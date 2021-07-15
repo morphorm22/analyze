@@ -425,7 +425,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyAxial_3
       "    <ParameterList name='Unobtainium'>                                                   \n"
       "      <ParameterList name='Isotropic Linear Elastic'>                                    \n"
       "        <Parameter  name='Density' type='double' value='1'/>                             \n"
-      "        <Parameter  name='Poissons Ratio' type='double' value='0.0'/>                    \n"
+      "        <Parameter  name='Poissons Ratio' type='double' value='0.2'/>                    \n"
       "        <Parameter  name='Youngs Modulus' type='double' value='1.0e4'/>                  \n"
       "      </ParameterList>                                                                   \n"
       "    </ParameterList>                                                                     \n"
@@ -499,11 +499,11 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyAxial_3
     constexpr Plato::Scalar tTolerance = 1e-4;
     std::string tCriterionName("VolAvgTensileEnergy");
     auto tCriterionValue = tProblem.criterionValue(tControls, tCriterionName);
-    TEST_FLOATING_EQUALITY(tCriterionValue, 50.0, tTolerance);
+    TEST_FLOATING_EQUALITY(tCriterionValue, 46.666666666666, tTolerance);
 
     auto tCriterionGrad = tProblem.criterionGradient(tControls, tSolution, tCriterionName);
-    std::vector<Plato::Scalar> tGold = { 3.75000e+01, 9.37500e+00, 6.25000e+00, 9.37500e+00, 
-                                         1.56250e+01, 3.75000e+01, 1.56250e+01, 1.87500e+01};
+    std::vector<Plato::Scalar> tGold = { 3.50000e+01,8.75000e+00,5.83333e+00,8.75000e+00
+                                        ,1.45833e+01,3.50000e+01,1.45833e+01,1.75000e+01};
     auto tHostGrad = Kokkos::create_mirror(tCriterionGrad);
     Kokkos::deep_copy(tHostGrad, tCriterionGrad);
     TEST_ASSERT( tHostGrad.size() == static_cast<Plato::OrdinalType>(tGold.size() ));

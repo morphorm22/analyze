@@ -78,8 +78,8 @@ private:
         {
             THROWERR("A penalty function type other than SIMP is not yet implemented for the VolumeIntegralCriterion.")
         }
-        mPenalty        = tParams.get<Plato::Scalar>("Exponent", 3.0);
-        mMinErsatzValue = tParams.get<Plato::Scalar>("Minimum Value", 1e-9);
+        mPenalty        = tPenaltyParams.get<Plato::Scalar>("Exponent", 3.0);
+        mMinErsatzValue = tPenaltyParams.get<Plato::Scalar>("Minimum Value", 1e-9);
     }
 
 public:
