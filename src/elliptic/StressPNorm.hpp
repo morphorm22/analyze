@@ -70,17 +70,17 @@ class StressPNorm :
       //
       Plato::OrdinalType tQuadratureDegree = 1;
 
-      Plato::OrdinalType tNumPoints = Plato::Cubature::getNumCubaturePoints(SpaceDim, tQuadratureDegree);
+      Plato::OrdinalType tNumPoints = Plato::Cubature::getNumCubaturePoints(mSpaceDim, tQuadratureDegree);
 
       Kokkos::View<Plato::Scalar**, Plato::Layout, Plato::MemSpace>
-          tRefCellQuadraturePoints("ref quadrature points", tNumPoints, SpaceDim);
+          tRefCellQuadraturePoints("ref quadrature points", tNumPoints, mSpaceDim);
       Kokkos::View<Plato::Scalar*, Plato::Layout, Plato::MemSpace> tQuadratureWeights("quadrature weights", tNumPoints);
 
-      Plato::Cubature::getCubature(SpaceDim, tQuadratureDegree, tRefCellQuadraturePoints, tQuadratureWeights);
+      Plato::Cubature::getCubature(mSpaceDim, tQuadratureDegree, tRefCellQuadraturePoints, tQuadratureWeights);
 
       // get basis values
       //
-      Plato::Basis tBasis(SpaceDim);
+      Plato::Basis tBasis(mSpaceDim);
       Plato::OrdinalType tNumFields = tBasis.basisCardinality();
       Kokkos::View<Plato::Scalar**, Plato::Layout, Plato::MemSpace>
           tRefCellBasisValues("ref basis values", tNumFields, tNumPoints);
@@ -90,13 +90,13 @@ class StressPNorm :
       //
       Plato::OrdinalType tNumCells = aSpatialDomain.numCells();
       Kokkos::View<Plato::Scalar***, Plato::Layout, Plato::MemSpace>
-          tQuadraturePoints("quadrature points", tNumCells, tNumPoints, SpaceDim);
+          tQuadraturePoints("quadrature points", tNumCells, tNumPoints, mSpaceDim);
 
-      Plato::mapPoints<SpaceDim>(aSpatialDomain, tRefCellQuadraturePoints, tQuadraturePoints);
+      Plato::mapPoints<mSpaceDim>(aSpatialDomain, tRefCellQuadraturePoints, tQuadraturePoints);
 
       // get integrand values at quadrature points
       //
-      Plato::getFunctionValues<SpaceDim>(tQuadraturePoints, mFuncString, mFxnValues);
+      Plato::getFunctionValues<mSpaceDim>(tQuadraturePoints, mFuncString, mFxnValues);
     }
 
   public:
@@ -120,7 +120,7 @@ class StressPNorm :
 //TODO quadrature
       mQuadratureWeight = 1.0; // for a 1-point quadrature rule for simplices
 
-      for (Plato::OrdinalType d = 2; d <= SpaceDim; d++)
+      for (Plato::OrdinalType d = 2; d <= mSpaceDim; d++)
       { 
         mQuadratureWeight /= Plato::Scalar(d);
       }
