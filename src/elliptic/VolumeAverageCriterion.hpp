@@ -59,7 +59,7 @@ private:
     std::string mSpatialWeightingFunctionString = "1.0"; /*!< Spatial weighting function string of x, y, z coordinates  */
 
     /******************************************************************************//**
-     * \brief Initialization of Mass Properties Function
+     * \brief Initialization of Volume Average Criterion
      * \param [in] aInputParams input parameters database
     **********************************************************************************/
     void
@@ -268,7 +268,7 @@ public:
     }
 
     /******************************************************************************//**
-     * \brief Evaluate Mass Properties Function
+     * \brief Evaluate Volume Average Criterion
      * \param [in] aSolution solution database
      * \param [in] aControl 1D view of control variables
      * \param [in] aTimeStep time step (default = 0.0)
@@ -286,7 +286,7 @@ public:
     }
 
     /******************************************************************************//**
-     * \brief Evaluate gradient of the Mass Properties Function with respect to (wrt) the state variables
+     * \brief Evaluate gradient of the Volume Average Criterion with respect to (wrt) the state variables
      * \param [in] aSolution solution database
      * \param [in] aControl 1D view of control variables
      * \param [in] aTimeStep time step (default = 0.0)
@@ -305,7 +305,7 @@ public:
     }
 
     /******************************************************************************//**
-     * \brief Evaluate gradient of the Mass Properties Function with respect to (wrt) the configuration
+     * \brief Evaluate gradient of the Volume Average Criterion with respect to (wrt) the configuration
      * \param [in] aSolution solution database
      * \param [in] aControl 1D view of control variables
      * \param [in] aTimeStep time step (default = 0.0)
@@ -323,7 +323,7 @@ public:
     }
 
     /******************************************************************************//**
-     * \brief Evaluate gradient of the Mass Properties Function with respect to (wrt) the control
+     * \brief Evaluate gradient of the Volume Average Criterion with respect to (wrt) the control
      * \param [in] aSolution solution database
      * \param [in] aControl 1D view of control variables
      * \param [in] aTimeStep time step (default = 0.0)
