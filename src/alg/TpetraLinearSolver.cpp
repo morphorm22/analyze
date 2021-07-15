@@ -390,8 +390,8 @@ TpetraLinearSolver::setupSolverOptions (const Teuchos::ParameterList &aSolverPar
   if(aSolverParams.isType<Teuchos::ParameterList>("Solver Options"))
     mSolverOptions = aSolverParams.get<Teuchos::ParameterList>("Solver Options");
   
-  if(mSolverParams.isParameter("Display Diagnostics"))
-    mDisplayDiagnostics = mSolverParams.get<bool>("Display Diagnostics");
+  if(aSolverParams.isParameter("Display Diagnostics"))
+    mDisplayDiagnostics = aSolverParams.get<bool>("Display Diagnostics");
   
   addDefaultToParameterList(mSolverOptions, "Maximum Iterations",    tMaxIterations);
   addDefaultToParameterList(mSolverOptions, "Convergence Tolerance", tTolerance);
