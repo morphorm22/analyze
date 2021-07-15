@@ -6,6 +6,7 @@
 #include "PlatoMathHelpers.hpp"
 #include "Plato_TopOptFunctors.hpp"
 #include "ComputeDeviatoricStress.hpp"
+#include "YieldStressFactory.hpp"
 #include "LinearTetCubRuleDegreeOne.hpp"
 #include "Simp.hpp"
 
@@ -17,25 +18,6 @@
 #include "ThermoPlasticityUtilities.hpp"
 
 #include "ExpInstMacros.hpp"
-
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//
-// NOTE: CURRENTLY THERE ARE TWO VERIONS OF J2PlasticityLocalResidual.hpp
-//       THIS VERSION IS THE ORIGINAL VERSION. THE OTEHR VERSION
-//       J2PlasticityLocalResidualExpFAD.hpp CONTAINS THE EXPRESSION FAD.
-//
-//       IF ANY CHANGES ARE MADE TO THIS FILE ONE MUST >>>>ALSO<<<<<
-//       MAKE THE >>>>SAME<<<<< CHANGES TO J2PlasticityLocalResidualExpFAD.hpp
-//
-// This duplication is due to a risk aversion request. The decision
-// was to have some minimal duplication for the time being so to avoid
-// possible trouble down the road. There is another project outside
-// Marie's and Sean's project that depends on the original
-// implementation. The call to merge, i.e. delete the original
-// implementation, will be made once a better understanding of how the
-// expressionFad implementation will end-up long term.
-//
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 namespace Plato
 {
@@ -91,6 +73,8 @@ private:
     std::shared_ptr<CubatureType> mCubatureRule; /*!< linear tet cubature rule */
 
     const Plato::Scalar mSqrt3Over2 = std::sqrt(3.0/2.0);
+
+    Teuchos::ParameterList mPlasticityParamList;
 
     /**************************************************************************//**
     * \brief Return the names of the local state degrees of freedom
@@ -197,10 +181,11 @@ private:
     ******************************************************************************/
     void initializeJ2Plasticity(Teuchos::ParameterList& aInputParams)
     {
-        auto tPlasticityParamList = aInputParams.get<Teuchos::ParameterList>("Plasticity Model");
-        if( tPlasticityParamList.isSublist("J2 Plasticity") )
+        mPlasticityParamList = aInputParams.get<Teuchos::ParameterList>("Plasticity Model");
+
+        if( mPlasticityParamList.isSublist("J2 Plasticity") )
         {
-          auto tJ2PlasticitySubList = tPlasticityParamList.sublist("J2 Plasticity");
+          auto tJ2PlasticitySubList = mPlasticityParamList.sublist("J2 Plasticity");
           this->checkJ2PlasticityInputs(tJ2PlasticitySubList);
 
           mHardeningModulusIsotropic = tJ2PlasticitySubList.get<Plato::Scalar>("Hardening Modulus Isotropic");
@@ -324,11 +309,6 @@ public:
       using ElasticStrainT = typename Plato::fad_type_t<SimplexPhysicsType, LocalStateT, ConfigT, GlobalStateT>;
       using StressT        = typename Plato::fad_type_t<SimplexPhysicsType, ControlT, LocalStateT, ConfigT, GlobalStateT>;
 
-      // Functors
-      Plato::ComputeGradientWorkset<mSpaceDim>  tComputeGradient;
-      Plato::Strain<mSpaceDim, mNumDofsPerNode> tComputeTotalStrain;
-      Plato::ComputeDeviatoricStress<mSpaceDim> tComputeDeviatoricStress;
-
       // J2 Utility Functions Object
       Plato::J2PlasticityUtilities<mSpaceDim>   tJ2PlasticityUtils;
 
@@ -336,14 +316,15 @@ public:
       Plato::ThermoPlasticityUtilities<mSpaceDim, SimplexPhysicsType>
             tThermoPlasticityUtils(mThermalExpansionCoefficient, mReferenceTemperature, mTemperatureScaling);
 
-      // Many views
-      Plato::ScalarVectorT<ConfigT>             tCellVolume("cell volume unused", tNumCells);
-      Plato::ScalarVectorT<StressT>             tDevStressMinusBackstressNorm("norm(deviatoric_stress - backstress)",tNumCells);
-      Plato::ScalarArray3DT<ConfigT>            tGradient("gradient", tNumCells,mNumNodesPerCell,mSpaceDim);
-      Plato::ScalarMultiVectorT<StressT>        tDeviatoricStress("deviatoric stress", tNumCells,mNumStressTerms);
-      Plato::ScalarMultiVectorT<StressT>        tYieldSurfaceNormal("yield surface normal",tNumCells,mNumStressTerms);
-      Plato::ScalarMultiVectorT<TotalStrainT>   tTotalStrain("total strain",tNumCells,mNumStressTerms);
-      Plato::ScalarMultiVectorT<ElasticStrainT> tElasticStrain("elastic strain", tNumCells,mNumStressTerms);
+      // Functors
+      Plato::ComputeGradientWorkset<mSpaceDim>  tComputeGradient;
+      Plato::Strain<mSpaceDim, mNumDofsPerNode> tComputeTotalStrain;
+      Plato::ComputeDeviatoricStress<mSpaceDim> tComputeDeviatoricStress;
+
+      // The yield stress requires a factory.
+      Plato::YieldStressFactory< EvaluationType > tYieldStressFactory;
+      auto pComputeYieldStress = tYieldStressFactory.create(mPlasticityParamList);
+      auto & tComputeYieldStress = *pComputeYieldStress;
 
       // Transfer elasticity parameters to device
       auto tElasticShearModulus = mElasticShearModulus;
@@ -360,71 +341,117 @@ public:
       Plato::MSIMP tElasticPropertiesSIMP(mElasticPropertiesPenaltySIMP, mElasticPropertiesMinErsatzSIMP);
       Plato::MSIMP tPlasticPropertiesSIMP(mPlasticPropertiesPenaltySIMP, mPlasticPropertiesMinErsatzSIMP);
 
+      // Views needed in all three loops.
+      Plato::ScalarVectorT<StressT>      tDevStressMinusBackstressNorm("norm(deviatoric_stress - backstress)", tNumCells);
+      Plato::ScalarMultiVectorT<StressT> tYieldSurfaceNormal("yield surface normal", tNumCells, mNumStressTerms);
+      // When using the expression evaluator a two dimensional array
+      // is expected. As such, a ScalarMultiVectorT is used but with
+      // the second dimension set to one.
+      Plato::ScalarMultiVectorT<ResultT> tYieldStress("yield stress", tNumCells, 1);
+      Plato::ScalarVectorT<ControlT> tPenalizedHardeningModulusKinematic("PenalizedHardeningModulusKinematic", tNumCells);
+
+      // Braces here so the views needed for just the first two loops
+      // go out of scope and are de-referenced immediately.
+      {
+        Plato::ScalarVectorT<ControlT> tPenalizedInitialYieldStress("PenalizedInitialYieldStress", tNumCells);
+        Plato::ScalarVectorT<ControlT> tPenalizedHardeningModulusIsotropic("PenalizedHardeningModulusIsotropic", tNumCells);
+
+        // Braces here so the views needed for just the first loop go
+        // out of scope and are de-referenced immediately.
+        {
+          // Views needed for just the first loop.
+          Plato::ScalarVectorT<ConfigT>             tCellVolume("cell volume unused", tNumCells);
+          Plato::ScalarArray3DT<ConfigT>            tGradient("gradient", tNumCells, mNumNodesPerCell, mSpaceDim);
+          Plato::ScalarMultiVectorT<TotalStrainT>   tTotalStrain("total strain", tNumCells, mNumStressTerms);
+          Plato::ScalarMultiVectorT<ElasticStrainT> tElasticStrain("elastic strain", tNumCells, mNumStressTerms);
+          Plato::ScalarMultiVectorT<StressT>        tDeviatoricStress("deviatoric stress", tNumCells, mNumStressTerms);
+
+          // First parallel_for loop.
+          Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+          {
+            tComputeGradient(aCellOrdinal, tGradient, aConfig, tCellVolume);
+
+            // compute elastic strain
+            tComputeTotalStrain(aCellOrdinal, tTotalStrain,
+                                aGlobalState, tGradient);
+
+            tThermoPlasticityUtils.computeElasticStrain
+              (aCellOrdinal, aGlobalState, aLocalState,
+               tBasisFunctions, tTotalStrain, tElasticStrain);
+
+            // apply penalization to elastic shear modulus
+            ControlT tDensity               = Plato::cell_density<mNumNodesPerCell>(aCellOrdinal, aControl);
+            ControlT tElasticParamsPenalty  = tElasticPropertiesSIMP(tDensity);
+            ControlT tPenalizedShearModulus = tElasticParamsPenalty * tElasticShearModulus;
+
+            // compute deviatoric stress
+            tComputeDeviatoricStress(aCellOrdinal, tPenalizedShearModulus,
+                                     tElasticStrain, tDeviatoricStress);
+
+            // compute eta = (deviatoric_stress - backstress) ... and
+            // its norm ... the normalized version is the yield
+            // surface normal
+            tJ2PlasticityUtils.computeDeviatoricStressMinusBackstressNormalized
+              (aCellOrdinal, tDeviatoricStress, aLocalState,
+               tYieldSurfaceNormal, tDevStressMinusBackstressNorm);
+
+            // apply penalization to plasticity material parameters
+            ControlT tPlasticParamsPenalty = tPlasticPropertiesSIMP(tDensity);
+
+            tPenalizedInitialYieldStress(aCellOrdinal)        = tPlasticParamsPenalty * tInitialYieldStress;
+            tPenalizedHardeningModulusIsotropic(aCellOrdinal) = tPlasticParamsPenalty * tHardeningModulusIsotropic;
+            tPenalizedHardeningModulusKinematic(aCellOrdinal) = tPlasticParamsPenalty * tHardeningModulusKinematic;
+
+          }, "Compute cell local residuals - part 1");
+        }
+
+        // compute yield stress - separate loop in the functor.
+        tComputeYieldStress( tYieldStress, aLocalState,
+                             tPenalizedInitialYieldStress,
+                             tPenalizedHardeningModulusIsotropic );
+      }
+
+      // Third parallel_for loop.
       Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
       {
-        tComputeGradient(aCellOrdinal, tGradient, aConfig, tCellVolume);
-
-        // compute elastic strain
-        tComputeTotalStrain(aCellOrdinal, tTotalStrain, aGlobalState, tGradient);
-        tThermoPlasticityUtils.computeElasticStrain(aCellOrdinal, aGlobalState, aLocalState,
-                                                    tBasisFunctions, tTotalStrain, tElasticStrain);
-
-        // apply penalization to elastic shear modulus
-        ControlT tDensity               = Plato::cell_density<mNumNodesPerCell>(aCellOrdinal, aControl);
-        ControlT tElasticParamsPenalty  = tElasticPropertiesSIMP(tDensity);
-        ControlT tPenalizedShearModulus = tElasticParamsPenalty * tElasticShearModulus;
-
-        // compute deviatoric stress
-        tComputeDeviatoricStress(aCellOrdinal, tPenalizedShearModulus, tElasticStrain, tDeviatoricStress);
-
-        // compute eta = (deviatoric_stress - backstress) ... and its norm ... the normalized version is the yield surface normal
-        tJ2PlasticityUtils.computeDeviatoricStressMinusBackstressNormalized(aCellOrdinal, tDeviatoricStress, aLocalState,
-                                                                            tYieldSurfaceNormal, tDevStressMinusBackstressNorm);
-
-        // apply penalization to plasticity material parameters
-        ControlT tPlasticParamsPenalty               = tPlasticPropertiesSIMP(tDensity);
-        ControlT tPenalizedHardeningModulusIsotropic = tPlasticParamsPenalty * tHardeningModulusIsotropic;
-        ControlT tPenalizedHardeningModulusKinematic = tPlasticParamsPenalty * tHardeningModulusKinematic;
-        ControlT tPenalizedInitialYieldStress        = tPlasticParamsPenalty * tInitialYieldStress;
-
-        // compute yield stress
-        ResultT tYieldStress = tPenalizedInitialYieldStress +
-                               tPenalizedHardeningModulusIsotropic * aLocalState(aCellOrdinal, 0); // SHOULD THIS BE PREV? I think no.
-
         // ### ELASTIC STEP ###
         // Residual: Accumulated Plastic Strain, DOF: Accumulated Plastic Strain
-        aResult(aCellOrdinal, 0) = aLocalState(aCellOrdinal, 0) - aPrevLocalState(aCellOrdinal, 0);
+        aResult(aCellOrdinal, 0) =
+          aLocalState(aCellOrdinal, 0) - aPrevLocalState(aCellOrdinal, 0);
 
         // Residual: Plastic Multiplier Increment = 0 , DOF: Plastic Multiplier Increment
         aResult(aCellOrdinal, 1) = aLocalState(aCellOrdinal, 1);
 
         // Residual: Plastic Strain Tensor, DOF: Plastic Strain Tensor
-        tJ2PlasticityUtils.fillPlasticStrainTensorResidualElasticStep(aCellOrdinal, aLocalState, aPrevLocalState, aResult);
+        tJ2PlasticityUtils.fillPlasticStrainTensorResidualElasticStep
+          (aCellOrdinal, aLocalState, aPrevLocalState, aResult);
 
         // Residual: Backstress, DOF: Backstress
-        tJ2PlasticityUtils.fillBackstressTensorResidualElasticStep(aCellOrdinal, aLocalState, aPrevLocalState, aResult);
+        tJ2PlasticityUtils.fillBackstressTensorResidualElasticStep
+          (aCellOrdinal, aLocalState, aPrevLocalState, aResult);
 
         if (aLocalState(aCellOrdinal, 1) /*Current Plastic Multiplier Increment*/ > 0.0) // -> yielding (assumes local state already updated)
         {
           // Residual: Accumulated Plastic Strain, DOF: Accumulated Plastic Strain
-          aResult(aCellOrdinal, 0) = aLocalState(aCellOrdinal, 0) - aPrevLocalState(aCellOrdinal, 0)
-                                                                  -     aLocalState(aCellOrdinal, 1);
+          aResult(aCellOrdinal, 0) = aLocalState(aCellOrdinal, 0) -
+            aPrevLocalState(aCellOrdinal, 0) - aLocalState(aCellOrdinal, 1);
 
           // Residual: Yield Function , DOF: Plastic Multiplier Increment
-          aResult(aCellOrdinal, 1) = tSqrt3Over2 * tDevStressMinusBackstressNorm(aCellOrdinal) - tYieldStress;
+          aResult(aCellOrdinal, 1) =
+            tSqrt3Over2 * tDevStressMinusBackstressNorm(aCellOrdinal) -
+            tYieldStress(aCellOrdinal, 0);
 
           // Residual: Plastic Strain Tensor, DOF: Plastic Strain Tensor
-          tJ2PlasticityUtils.fillPlasticStrainTensorResidualPlasticStep(aCellOrdinal, aLocalState, aPrevLocalState,
-                                                                        tYieldSurfaceNormal, aResult);
+          tJ2PlasticityUtils.fillPlasticStrainTensorResidualPlasticStep
+            (aCellOrdinal, aLocalState, aPrevLocalState,
+             tYieldSurfaceNormal, aResult);
 
           // Residual: Backstress, DOF: Backstress
-          tJ2PlasticityUtils.fillBackstressTensorResidualPlasticStep(aCellOrdinal,
-                                                                     tPenalizedHardeningModulusKinematic,
-                                                                     aLocalState,         aPrevLocalState,
-                                                                     tYieldSurfaceNormal, aResult);
+          tJ2PlasticityUtils.fillBackstressTensorResidualPlasticStep
+            (aCellOrdinal, tPenalizedHardeningModulusKinematic(aCellOrdinal),
+             aLocalState, aPrevLocalState, tYieldSurfaceNormal, aResult);
         }
-
-      }, "Compute cell local residuals");
+      }, "Compute cell local residuals - part 2");
     }
 
     /**************************************************************************//**
@@ -449,26 +476,23 @@ public:
     {
       auto tNumCells = mSpatialDomain.numCells();
 
-      // Functors
-      Plato::ComputeGradientWorkset<mSpaceDim> tComputeGradient;
-      Plato::Strain<mSpaceDim, mNumDofsPerNode> tComputeTotalStrain;
-      Plato::ComputeDeviatoricStress<mSpaceDim> tComputeDeviatoricStress;
-
       // J2 Utility Functions Object
-      Plato::J2PlasticityUtilities<mSpaceDim>  tJ2PlasticityUtils;
+      Plato::J2PlasticityUtilities<mSpaceDim> tJ2PlasticityUtils;
 
       // ThermoPlasticity Utility Functions Object (for computing elastic strain and potentially temperature-dependent material properties)
       Plato::ThermoPlasticityUtilities<mSpaceDim, SimplexPhysicsType>
             tThermoPlasticityUtils(mThermalExpansionCoefficient, mReferenceTemperature, mTemperatureScaling);
 
-      // Many views
-      Plato::ScalarVector      tCellVolume("cell volume unused",tNumCells);
-      Plato::ScalarMultiVector tTotalStrain("total strain",tNumCells,mNumStressTerms);
-      Plato::ScalarMultiVector tElasticStrain("elastic strain",tNumCells,mNumStressTerms);
-      Plato::ScalarArray3D     tGradient("gradient",tNumCells,mNumNodesPerCell,mSpaceDim);
-      Plato::ScalarMultiVector tDeviatoricStress("deviatoric stress",tNumCells,mNumStressTerms);
-      Plato::ScalarMultiVector tYieldSurfaceNormal("yield surface normal",tNumCells,mNumStressTerms);
-      Plato::ScalarVector      tDevStressMinusBackstressNorm("||(deviatoric stress - backstress)||",tNumCells);
+      // Functors
+      Plato::ComputeGradientWorkset<mSpaceDim>  tComputeGradient;
+      Plato::Strain<mSpaceDim, mNumDofsPerNode> tComputeTotalStrain;
+      Plato::ComputeDeviatoricStress<mSpaceDim> tComputeDeviatoricStress;
+
+      // The yield stress requires a factory.
+      Plato::YieldStressFactory< Plato::ResidualTypes<SimplexPhysicsType> >
+        tYieldStressFactory;
+      auto pComputeYieldStress = tYieldStressFactory.create(mPlasticityParamList);
+      auto & tComputeYieldStress = *pComputeYieldStress;
 
       // Transfer elasticity parameters to device
       auto tElasticShearModulus = mElasticShearModulus;
@@ -485,61 +509,108 @@ public:
       Plato::MSIMP tElasticPropertiesSIMP(mElasticPropertiesPenaltySIMP, mElasticPropertiesMinErsatzSIMP);
       Plato::MSIMP tPlasticPropertiesSIMP(mPlasticPropertiesPenaltySIMP, mPlasticPropertiesMinErsatzSIMP);
 
+      // Views needed in all three loops.
+      Plato::ScalarMultiVector tYieldSurfaceNormal("yield surface normal",tNumCells,mNumStressTerms);
+      // When using the expression evaluator a ScalarMultiVectorT is
+      // assumed thus one term.
+      Plato::ScalarMultiVector tYieldStress("yield stress", tNumCells, 1);
+
+      Plato::ScalarVector      tDevStressMinusBackstressNorm("||(deviatoric stress - backstress)||",tNumCells);
+
+      Plato::ScalarVector tPenalizedShearModulus("PenalizedShearModulus", tNumCells);
+      Plato::ScalarVector tPenalizedHardeningModulusIsotropic("PenalizedHardeningModulusIsotropic", tNumCells);
+      Plato::ScalarVector tPenalizedHardeningModulusKinematic("PenalizedHardeningModulusKinematic", tNumCells);
+
+      // Braces here so the views needed for just the first two loops
+      // go out of scope and are de-referenced immediately.
+      {
+        Plato::ScalarVector tPenalizedInitialYieldStress("PenalizedInitialYieldStress", tNumCells);
+
+        // Braces here so the views needed for just the first loop go
+        // out of scope and are de-referenced immediately.
+        {
+          // Views needed for just the first loop.
+          Plato::ScalarVector      tCellVolume("cell volume unused", tNumCells);
+          Plato::ScalarArray3D     tGradient("gradient", tNumCells, mNumNodesPerCell, mSpaceDim);
+          Plato::ScalarMultiVector tDeviatoricStress("deviatoric stress", tNumCells, mNumStressTerms);
+          Plato::ScalarMultiVector tTotalStrain("total strain", tNumCells, mNumStressTerms);
+          Plato::ScalarMultiVector tElasticStrain("elastic strain", tNumCells, mNumStressTerms);
+
+          // First parallel_for loop.
+          Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+          {
+            tComputeGradient(aCellOrdinal, tGradient, aConfig, tCellVolume);
+
+            // Accumulated Plastic Strain
+            aLocalState(aCellOrdinal, 0) = aPrevLocalState(aCellOrdinal, 0);
+
+            // Plastic Multiplier Increment
+            aLocalState(aCellOrdinal, 1) = 0.0;
+
+            tJ2PlasticityUtils.updatePlasticStrainAndBackstressElasticStep
+              (aCellOrdinal, aPrevLocalState, aLocalState);
+
+            // compute elastic strain
+            tComputeTotalStrain(aCellOrdinal, tTotalStrain,
+                                aGlobalState, tGradient);
+
+            tThermoPlasticityUtils.computeElasticStrain
+              (aCellOrdinal, aGlobalState, aLocalState,
+               tBasisFunctions, tTotalStrain, tElasticStrain);
+
+            // apply penalization to elastic shear modulus
+            Plato::Scalar tDensity               = Plato::cell_density<mNumNodesPerCell>(aCellOrdinal, aControl);
+            Plato::Scalar tElasticParamsPenalty  = tElasticPropertiesSIMP(tDensity);
+            tPenalizedShearModulus(aCellOrdinal) = tElasticParamsPenalty * tElasticShearModulus;
+
+            // compute deviatoric stress
+            tComputeDeviatoricStress(aCellOrdinal, tPenalizedShearModulus(aCellOrdinal), tElasticStrain, tDeviatoricStress);
+
+            // compute eta = (deviatoric_stress - backstress) ... and
+            // its norm ... the normalized version is the yield surf
+            // normal
+            tJ2PlasticityUtils.computeDeviatoricStressMinusBackstressNormalized
+              (aCellOrdinal, tDeviatoricStress, aLocalState,
+               tYieldSurfaceNormal, tDevStressMinusBackstressNorm);
+
+            // apply penalization to plasticity material parameters
+            Plato::Scalar tPlasticParamsPenalty = tPlasticPropertiesSIMP(tDensity);
+
+            tPenalizedInitialYieldStress(aCellOrdinal)        = tPlasticParamsPenalty * tInitialYieldStress;
+            tPenalizedHardeningModulusIsotropic(aCellOrdinal) = tPlasticParamsPenalty * tHardeningModulusIsotropic;
+            tPenalizedHardeningModulusKinematic(aCellOrdinal) = tPlasticParamsPenalty * tHardeningModulusKinematic;
+          }, "Update local state dofs - part 1");
+        }  // first scoping brace
+
+        // compute yield stress - separate loop in the functor.
+        tComputeYieldStress(tYieldStress, aLocalState,
+                            tPenalizedInitialYieldStress,
+                            tPenalizedHardeningModulusIsotropic );
+      }  // second scoping brace
+
+      // Third parallel_for loop.
       Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
       {
-        tComputeGradient(aCellOrdinal, tGradient, aConfig, tCellVolume);
-
-        // Accumulated Plastic Strain
-        aLocalState(aCellOrdinal, 0) = aPrevLocalState(aCellOrdinal, 0);
-
-        // Plastic Multiplier Increment
-        aLocalState(aCellOrdinal, 1) = 0.0;
-
-        tJ2PlasticityUtils.updatePlasticStrainAndBackstressElasticStep(aCellOrdinal, aPrevLocalState, aLocalState);
-
-        // compute elastic strain
-        tComputeTotalStrain(aCellOrdinal, tTotalStrain, aGlobalState, tGradient);
-        tThermoPlasticityUtils.computeElasticStrain(aCellOrdinal, aGlobalState, aLocalState,
-                                                    tBasisFunctions, tTotalStrain, tElasticStrain);
-
-        // apply penalization to elastic shear modulus
-        Plato::Scalar tDensity               = Plato::cell_density<mNumNodesPerCell>(aCellOrdinal, aControl);
-        Plato::Scalar tElasticParamsPenalty  = tElasticPropertiesSIMP(tDensity);
-        Plato::Scalar tPenalizedShearModulus = tElasticParamsPenalty * tElasticShearModulus;
-
-        // compute deviatoric stress
-        tComputeDeviatoricStress(aCellOrdinal, tPenalizedShearModulus, tElasticStrain, tDeviatoricStress);
-
-        // compute eta = (deviatoric_stress - backstress) ... and its norm ... the normalized version is the yield surf normal
-        tJ2PlasticityUtils.computeDeviatoricStressMinusBackstressNormalized(aCellOrdinal, tDeviatoricStress, aLocalState,
-                                                                            tYieldSurfaceNormal, tDevStressMinusBackstressNorm);
-
-        // apply penalization to plasticity material parameters
-        Plato::Scalar tPlasticParamsPenalty               = tPlasticPropertiesSIMP(tDensity);
-        Plato::Scalar tPenalizedHardeningModulusIsotropic = tPlasticParamsPenalty * tHardeningModulusIsotropic;
-        Plato::Scalar tPenalizedHardeningModulusKinematic = tPlasticParamsPenalty * tHardeningModulusKinematic;
-        Plato::Scalar tPenalizedInitialYieldStress        = tPlasticParamsPenalty * tInitialYieldStress;
-
-        // compute yield stress
-        Plato::Scalar tYieldStress = tPenalizedInitialYieldStress +
-                                     tPenalizedHardeningModulusIsotropic * aLocalState(aCellOrdinal, 0);
-
         // compute the yield function at the trial state
-        Plato::Scalar tTrialStateYieldFunction = tSqrt3Over2 * tDevStressMinusBackstressNorm(aCellOrdinal) - tYieldStress;
+        Plato::Scalar tTrialStateYieldFunction = tSqrt3Over2 * tDevStressMinusBackstressNorm(aCellOrdinal) - tYieldStress(aCellOrdinal, 0);
 
         if (tTrialStateYieldFunction > static_cast<Plato::Scalar>(1.0e-10)) // plastic step
         {
           // Plastic Multiplier Increment (for J2 w/ linear isotropic/kinematic hardening -> analytical return mapping)
-          aLocalState(aCellOrdinal, 1) = tTrialStateYieldFunction / (static_cast<Plato::Scalar>(3.0) * tPenalizedShearModulus +
-                                         tPenalizedHardeningModulusIsotropic + tPenalizedHardeningModulusKinematic);
+          aLocalState(aCellOrdinal, 1) = tTrialStateYieldFunction /
+            (static_cast<Plato::Scalar>(3.0) * tPenalizedShearModulus(aCellOrdinal) +
+             tPenalizedHardeningModulusIsotropic(aCellOrdinal) +
+             tPenalizedHardeningModulusKinematic(aCellOrdinal));
 
           // Accumulated Plastic Strain
-          aLocalState(aCellOrdinal, 0) = aPrevLocalState(aCellOrdinal, 0) + aLocalState(aCellOrdinal, 1);
+          aLocalState(aCellOrdinal, 0) =
+            aPrevLocalState(aCellOrdinal, 0) + aLocalState(aCellOrdinal, 1);
 
-          tJ2PlasticityUtils.updatePlasticStrainAndBackstressPlasticStep(aCellOrdinal, aPrevLocalState, tYieldSurfaceNormal,
-                                                                         tPenalizedHardeningModulusKinematic, aLocalState);
+          tJ2PlasticityUtils.updatePlasticStrainAndBackstressPlasticStep
+            (aCellOrdinal, aPrevLocalState, tYieldSurfaceNormal,
+             tPenalizedHardeningModulusKinematic(aCellOrdinal), aLocalState);
         }
-      }, "Update local state dofs");
+      }, "Update local state dofs - part 2");
     }
 
     /******************************************************************************//**
