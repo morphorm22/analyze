@@ -141,7 +141,8 @@ public:
       Plato::ScalarMultiVector tDisplacements = aSolutions.get("State");
       Plato::Solutions tSolutionsOutput(aSolutions.physics(), aSolutions.pde());
       tSolutionsOutput.set("Displacement", tDisplacements);
-      tSolutionsOutput.setNumDofs("Displacement", 3);
+      Plato::OrdinalType tSpaceDim = mSpaceDim;
+      tSolutionsOutput.setNumDofs("Displacement", tSpaceDim);
       return tSolutionsOutput;
     }
 

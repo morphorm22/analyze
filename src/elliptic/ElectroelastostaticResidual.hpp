@@ -144,12 +144,13 @@ public:
                     (tNumVertices, tSolutionFromSolutions, tDisplacements);
       Plato::blas2::extract<mNumDofsPerNode/*stride*/, NElecDims/*dofs per node*/, EDofOffset/*offset*/>
                     (tNumVertices, tSolutionFromSolutions, tPotentials);
-
+Plato::OrdinalType tNMechDims = static_cast<Plato::OrdinalType>(NMechDims);
+Plato::OrdinalType tNElecDims = static_cast<Plato::OrdinalType>(NElecDims);
       Plato::Solutions tSolutionsOutput(aSolutions.physics(), aSolutions.pde());
       tSolutionsOutput.set("Displacement", tDisplacements);
-      tSolutionsOutput.setNumDofs("Displacement", 3);
+      tSolutionsOutput.setNumDofs("Displacement", tNMechDims);
       tSolutionsOutput.set("Potential", tPotentials);
-      tSolutionsOutput.setNumDofs("Potential", 1);
+      tSolutionsOutput.setNumDofs("Potential", tNElecDims);
 
       return tSolutionsOutput;
     }

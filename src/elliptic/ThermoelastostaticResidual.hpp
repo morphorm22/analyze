@@ -144,11 +144,13 @@ public:
       Plato::blas2::extract<mNumDofsPerNode/*stride*/, NThrmDims/*dofs per node*/, TDofOffset/*offset*/>
                     (tNumVertices, tSolutionFromSolutions, tTemperatures);
 
+      Plato::OrdinalType tNMechDims = static_cast<Plato::OrdinalType>(NMechDims);
+      Plato::OrdinalType tNThrmDims = static_cast<Plato::OrdinalType>(NThrmDims);
       Plato::Solutions tSolutionsOutput(aSolutions.physics(), aSolutions.pde());
       tSolutionsOutput.set("Displacement", tDisplacements);
-      tSolutionsOutput.setNumDofs("Displacement", 3);
+      tSolutionsOutput.setNumDofs("Displacement", tNMechDims);
       tSolutionsOutput.set("Temperature", tTemperatures);
-      tSolutionsOutput.setNumDofs("Temperature", 1);
+      tSolutionsOutput.setNumDofs("Temperature", tNThrmDims);
 
       return tSolutionsOutput;
     }
