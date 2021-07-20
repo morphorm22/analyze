@@ -1,3 +1,5 @@
+<p align="center"><img src="https://github.com/platoengine/platoengine/blob/master/figures/plato_logo_simple.png" width="400"/></p>
+
 # Plato Analyze
 Fast physics with gradients for multidisciplinary analysis and optimization
 
