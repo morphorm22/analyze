@@ -1,5 +1,5 @@
 /*
- * AverageSurfaceTemperature.hpp
+ * CriterionAverageSurfaceTemperature.hpp
  *
  *  Created on: Apr 6, 2021
  */
@@ -27,7 +27,7 @@ namespace Fluids
  * \tparam PhysicsT    Plato physics type
  * \tparam EvaluationT Forward Automatic Differentiation (FAD) evaluation type
  *
- * \class AverageSurfaceTemperature
+ * \class CriterionAverageSurfaceTemperature
  *
  * \brief Class responsible for the evaluation of the average surface temperature
  *   along the user-specified entity sets (e.g. side sets).
@@ -37,7 +37,7 @@ namespace Fluids
  * where \f$ n \f$ denotes the current time step and \f$ T \f$ denotes temperature.
  ******************************************************************************/
 template<typename PhysicsT, typename EvaluationT>
-class AverageSurfaceTemperature : public Plato::Fluids::AbstractScalarFunction<PhysicsT, EvaluationT>
+class CriterionAverageSurfaceTemperature : public Plato::Fluids::AbstractScalarFunction<PhysicsT, EvaluationT>
 {
 private:
     static constexpr auto mNumSpatialDims       = PhysicsT::SimplexT::mNumSpatialDims;         /*!< number of spatial dimensions */
@@ -69,7 +69,7 @@ public:
      * \param [in] aDataMap holds output metadata
      * \param [in] aInputs  input file metadata
      ******************************************************************************/
-    AverageSurfaceTemperature
+    CriterionAverageSurfaceTemperature
     (const std::string          & aName,
      const Plato::SpatialDomain & aDomain,
      Plato::DataMap             & aDataMap,
@@ -86,7 +86,7 @@ public:
     /***************************************************************************//**
      * \brief Destructor
      ******************************************************************************/
-    virtual ~AverageSurfaceTemperature(){}
+    virtual ~CriterionAverageSurfaceTemperature(){}
 
     /***************************************************************************//**
      * \fn std::string name
@@ -202,7 +202,7 @@ public:
         }
     }
 };
-// class AverageSurfaceTemperature
+// class CriterionAverageSurfaceTemperature
 
 }
 // namespace Fluids
@@ -213,13 +213,13 @@ public:
 #include "hyperbolic/IncompressibleFluids.hpp"
 
 #ifdef PLATOANALYZE_1D
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AverageSurfaceTemperature, Plato::IncompressibleFluids, Plato::SimplexFluids, 1, 1)
+PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::CriterionAverageSurfaceTemperature, Plato::IncompressibleFluids, Plato::SimplexFluids, 1, 1)
 #endif
 
 #ifdef PLATOANALYZE_2D
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AverageSurfaceTemperature, Plato::IncompressibleFluids, Plato::SimplexFluids, 2, 1)
+PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::CriterionAverageSurfaceTemperature, Plato::IncompressibleFluids, Plato::SimplexFluids, 2, 1)
 #endif
 
 #ifdef PLATOANALYZE_3D
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AverageSurfaceTemperature, Plato::IncompressibleFluids, Plato::SimplexFluids, 3, 1)
+PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::CriterionAverageSurfaceTemperature, Plato::IncompressibleFluids, Plato::SimplexFluids, 3, 1)
 #endif

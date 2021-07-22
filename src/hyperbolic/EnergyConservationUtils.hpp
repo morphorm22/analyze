@@ -98,7 +98,7 @@ integrate_scalar_field
  const Plato::ScalarVectorT<ConfigT> & aCellVolume,
  const Plato::ScalarVectorT<SourceT> & aField,
  const Plato::ScalarMultiVectorT<ResultT> & aResult,
-       ScalarT aMultiplier)
+ const ScalarT & aMultiplier)
 {
     for(Plato::OrdinalType tNode = 0; tNode < NumNodes; tNode++)
     {

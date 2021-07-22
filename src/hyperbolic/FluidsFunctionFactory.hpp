@@ -8,10 +8,12 @@
 
 #include "hyperbolic/IncompressibleFluids.hpp"
 
+#include "hyperbolic/CriterionVolume.hpp"
 #include "hyperbolic/CriterionFlowRate.hpp"
-#include "hyperbolic/AverageSurfacePressure.hpp"
-#include "hyperbolic/AverageSurfaceTemperature.hpp"
 #include "hyperbolic/CriterionThermalCompliance.hpp"
+#include "hyperbolic/CriterionSurfaceThermalFlux.hpp"
+#include "hyperbolic/CriterionAverageSurfacePressure.hpp"
+#include "hyperbolic/CriterionAverageSurfaceTemperature.hpp"
 
 #include "hyperbolic/PressureResidual.hpp"
 #include "hyperbolic/TemperatureResidual.hpp"
@@ -121,11 +123,22 @@ public:
 
         auto tCriterionTag = tCriterion.get<std::string>("Scalar Function Type", "Not Defined");
         auto tCriterionLowerTag = Plato::tolower(tCriterionTag);
-
+        
+        if( tCriterionLowerTag == "volume" )
+        {
+            return ( std::make_shared<Plato::Fluids::CriterionVolume<PhysicsT, EvaluationT>>
+                (aTag, aDomain, aDataMap, aInputs) );
+        }else
         if( tCriterionLowerTag == "flow rate" )
         {
             return ( std::make_shared<Plato::Fluids::CriterionFlowRate<PhysicsT, EvaluationT>>
                 (aTag, aDomain, aDataMap, aInputs) );
+        }
+        else
+        if( tCriterionLowerTag == "thermal flux" )
+        {
+            return ( std::make_shared<Plato::Fluids::CriterionSurfaceThermalFlux<PhysicsT, EvaluationT>>
+                (aTag, aDomain, aDataMap, aInputs) );           
         }
         else
         if( tCriterionLowerTag == "thermal compliance" )
@@ -136,13 +149,13 @@ public:
         else 
         if( tCriterionLowerTag == "average surface pressure" )
         {
-            return ( std::make_shared<Plato::Fluids::AverageSurfacePressure<PhysicsT, EvaluationT>>
+            return ( std::make_shared<Plato::Fluids::CriterionAverageSurfacePressure<PhysicsT, EvaluationT>>
                 (aTag, aDomain, aDataMap, aInputs) );
         }
         else 
         if( tCriterionLowerTag == "average surface temperature" )
         {
-            return ( std::make_shared<Plato::Fluids::AverageSurfaceTemperature<PhysicsT, EvaluationT>>
+            return ( std::make_shared<Plato::Fluids::CriterionAverageSurfaceTemperature<PhysicsT, EvaluationT>>
                 (aTag, aDomain, aDataMap, aInputs) );
         }
         else
