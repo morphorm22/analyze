@@ -203,7 +203,7 @@ IF( AMGX_FOUND )
      )
 ENDIF()
 
-option(PLATOANALYZE_1D "Compile with 1D physics" ON)
+option(PLATOANALYZE_1D "Compile with 1D physics" OFF)
 option(PLATOANALYZE_2D "Compile with 2D physics" ON )
 option(PLATOANALYZE_3D "Compile with 3D physics" ON )
 if (PLATOANALYZE_1D)

@@ -79,7 +79,8 @@ if(PLASTICITY)
 endif()
 
 ## geometric sources
-set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+if(PLATOANALYZE_ENABLE_MESHMAP)
+  set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     geometric/DivisionFunction.cpp
     geometric/GeometryScalarFunction.cpp
     geometric/LeastSquaresFunction.cpp
@@ -87,7 +88,8 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     geometric/MassPropertiesFunction.cpp
     geometric/ScalarFunctionBaseFactory.cpp
     geometric/WeightedSumFunction.cpp
-)
+  )
+endif()
 
 ## elliptic sources
 if(ELLIPTIC)

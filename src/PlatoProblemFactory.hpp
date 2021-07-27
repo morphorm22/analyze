@@ -113,10 +113,10 @@ create_mechanical_problem
         return std::make_shared<HyperbolicProblem<::Plato::Hyperbolic::Mechanics<SpatialDim>>>(aMesh, aMeshSets, aPlatoProb, aMachine);
     }
     else
+#endif
     {
         THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
     }
-#endif
 }
 // function create_mechanical_problem
 
@@ -147,10 +147,10 @@ create_plasticity_problem
         return tOutput;
     }
     else
+#endif
     {
         THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
     }
-#endif
  }
  // function create_plasticity_problem
 
@@ -181,10 +181,10 @@ create_thermoplasticity_problem
         return tOutput;
     }
     else
+#endif
     {
         THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
     }
-#endif
  }
  // function create_thermoplasticity_problem
 
@@ -279,9 +279,20 @@ create_electromechanical_problem
  Teuchos::ParameterList & aPlatoProb,
  Comm::Machine            aMachine)
  {
-    auto tOutput = std::make_shared < Plato::Elliptic::Problem<::Plato::Electromechanics<SpatialDim>> > (aMesh, aMeshSets, aPlatoProb, aMachine);
-    tOutput->readEssentialBoundaryConditions(aPlatoProb);
-    return tOutput;
+     auto tLowerPDE = Plato::is_pde_constraint_supported(aPlatoProb);
+
+#ifdef PLATO_ELLIPTIC
+    if(tLowerPDE == "elliptic")
+    {
+        auto tOutput = std::make_shared < Plato::Elliptic::Problem<::Plato::Electromechanics<SpatialDim>> > (aMesh, aMeshSets, aPlatoProb, aMachine);
+        tOutput->readEssentialBoundaryConditions(aPlatoProb);
+        return tOutput;
+    }
+    else
+#endif
+    {
+        THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
+    }
  }
  // function create_electromechanical_problem
 
@@ -303,6 +314,8 @@ create_stabilized_thermomechanical_problem
  Comm::Machine            aMachine)
  {
     auto tLowerPDE = Plato::is_pde_constraint_supported(aPlatoProb);
+
+#ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
     {
         auto tOutput = std::make_shared < EllipticVMSProblem<::Plato::StabilizedThermomechanics<SpatialDim>> > (aMesh, aMeshSets, aPlatoProb, aMachine);
@@ -310,6 +323,7 @@ create_stabilized_thermomechanical_problem
         return tOutput;
     }
     else
+#endif
     {
         THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
     }
@@ -382,10 +396,10 @@ create_incompressible_fluid_problem
         return std::make_shared<Plato::Fluids::QuasiImplicit<::Plato::IncompressibleFluids<SpatialDim>>>(aMesh, aMeshSets, aPlatoProb, aMachine);
     }
     else
+#endif
     {
         THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
     }
-#endif
  }
  // function create_incompressible_fluid_problem
 
