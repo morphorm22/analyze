@@ -411,6 +411,20 @@ void MPMD_App::initialize()
       mOperationMap[tStrName] = new Visualization(this, tOperationNode, opDef);
     }
     else
+    if(tStrFunction == "ApplyHelmholtz"){
+  #ifdef PLATO_HELMHOLTZ
+      mOperationMap[tStrName] = new ApplyHelmholtz(this, tOperationNode, opDef);
+  #else
+      throw Plato::ParsingException("MPMD_App was not compiled with Helmholtz enabled.  Turn on 'PLATO_HELMHOLTZ' option and rebuild.");
+  #endif // PLATO_HELMHOLTZ
+    } else
+    if(tStrFunction == "ApplyHelmholtzGradient"){
+  #ifdef PLATO_HELMHOLTZ
+      mOperationMap[tStrName] = new ApplyHelmholtzGradient(this, tOperationNode, opDef);
+  #else
+      throw Plato::ParsingException("MPMD_App was not compiled with Helmholtz enabled.  Turn on 'PLATO_HELMHOLTZ' option and rebuild.");
+  #endif // PLATO_HELMHOLTZ
+    } else
     if(tStrFunction == "ComputeMLSField"){
   #ifdef PLATO_GEOMETRY
       auto tMLSName = Plato::Get::String(tOperationNode,"MLSName");
@@ -1388,6 +1402,94 @@ void MPMD_App::Visualization::operator()()
     mOptimizationIterationCounter++;
 }
 
+/******************************************************************************/
+MPMD_App::ApplyHelmholtz::
+ApplyHelmholtz(MPMD_App* aMyApp, Plato::InputData& aOpNode, Teuchos::RCP<ProblemDefinition> aOpDef) :
+        LocalOp(aMyApp, aOpNode, aOpDef),
+        mWriteNativeOutput(false),
+        mVizFilePath("")
+{
+    auto tOutputNode = aOpNode.getByName<Plato::InputData>("WriteOutput");
+    if ( tOutputNode.size() == 1 )
+    {
+        mWriteNativeOutput = true;
+        std::string tDefaultDirectory = "out_vtk";
+        mVizFilePath = Plato::Get::String(tOutputNode[0], "Directory", tDefaultDirectory);
+    } else
+    if ( tOutputNode.size() > 1 )
+    {
+        throw Plato::ParsingException("More than one WriteOutput block specified.");
+    }
+}
+/******************************************************************************/
+
+/******************************************************************************/
+void MPMD_App::ApplyHelmholtz::operator()()
+/******************************************************************************/
+{
+    if(mMyApp->mDebugAnalyzeApp == true)
+    {
+        REPORT("Analyze Application: Apply Helmholtz Operation.\n");
+    }
+
+    mMyApp->mGlobalSolution = mMyApp->mProblem->solution(mMyApp->mControl);
+
+    Plato::ScalarVector tFilteredControl = Kokkos::subview(mMyApp->mGlobalSolution.get("State"), 0, Kokkos::ALL());
+    Kokkos::deep_copy(mMyApp->mControl, tFilteredControl);
+
+    if(mMyApp->mDebugAnalyzeApp == true)
+    {
+        REPORT("Analyze Application - Apply Helmholtz Operation - Print Filtered Controls.\n");
+        Plato::print(mMyApp->mControl, "controls");
+    }
+
+    // optionally, write solution
+    if(mWriteNativeOutput)
+    {
+        mMyApp->mProblem->output(mVizFilePath);
+    }
+}
+
+/******************************************************************************/
+MPMD_App::ApplyHelmholtzGradient::
+ApplyHelmholtzGradient(MPMD_App* aMyApp, Plato::InputData& aOpNode, Teuchos::RCP<ProblemDefinition> aOpDef) :
+        LocalOp(aMyApp, aOpNode, aOpDef),
+        mWriteNativeOutput(false),
+        mVizFilePath("")
+{
+    auto tOutputNode = aOpNode.getByName<Plato::InputData>("WriteOutput");
+    if ( tOutputNode.size() == 1 )
+    {
+        mWriteNativeOutput = true;
+        std::string tDefaultDirectory = "out_vtk";
+        mVizFilePath = Plato::Get::String(tOutputNode[0], "Directory", tDefaultDirectory);
+    } else
+    if ( tOutputNode.size() > 1 )
+    {
+        throw Plato::ParsingException("More than one WriteOutput block specified.");
+    }
+}
+/******************************************************************************/
+
+/******************************************************************************/
+void MPMD_App::ApplyHelmholtzGradient::operator()()
+/******************************************************************************/
+{
+    if(mMyApp->mDebugAnalyzeApp == true)
+    {
+        REPORT("Analyze Application: Apply Helmholtz Gradient Operation.\n");
+    }
+
+    std::string tDummyString = "Helmholtz gradient";
+    mMyApp->mControl = mMyApp->mProblem->criterionGradient(mMyApp->mControl,tDummyString);
+
+    if(mMyApp->mDebugAnalyzeApp == true)
+    {
+        REPORT("Analyze Application - Apply Helmholtz Gradient Operation - Print Partial of Filtered Controls wrt Unfiltered Controls.\n");
+        Plato::print(mMyApp->mControl, "partial filtered wrt unfiltered");
+    }
+
+}
 
 /******************************************************************************/
 void MPMD_App::finalize() { }

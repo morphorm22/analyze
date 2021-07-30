@@ -848,6 +848,38 @@ private:
         std::string mVizDirectory = "plato_analyze_output";
     };
     friend class Visualization;
+    /******************************************************************************/
+
+#ifdef PLATO_HELMHOLTZ
+    // Apply Helmholtz sub-class
+    //
+    /******************************************************************************/
+    class ApplyHelmholtz : public LocalOp
+    {
+    public:
+        ApplyHelmholtz(MPMD_App* aMyApp, Plato::InputData& aNode, Teuchos::RCP<ProblemDefinition> aOpDef);
+        void operator()();
+    private:
+        bool mWriteNativeOutput;
+        std::string mVizFilePath;
+    };
+    friend class ApplyHelmholtz;
+    /******************************************************************************/
+
+    // Apply Helmholtz Gradient sub-class
+    //
+    /******************************************************************************/
+    class ApplyHelmholtzGradient : public LocalOp
+    {
+    public:
+        ApplyHelmholtzGradient(MPMD_App* aMyApp, Plato::InputData& aNode, Teuchos::RCP<ProblemDefinition> aOpDef);
+        void operator()();
+    private:
+        bool mWriteNativeOutput;
+        std::string mVizFilePath;
+    };
+    friend class ApplyHelmholtzGradient;
+#endif
 #ifdef PLATO_GEOMETRY
     // MLS sub-class
     //
