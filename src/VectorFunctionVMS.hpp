@@ -148,6 +148,16 @@ public:
     }
 
     /**************************************************************************//**
+    * \brief Return dof names for Physics
+    * \return dof names
+    ******************************************************************************/
+    std::vector<std::string> getDofNames() const
+    {
+        auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
+        return mResidualFunctions.at(tFirstBlockName)->getDofNames();
+    }
+
+    /**************************************************************************//**
     *
     * \brief Return number of degrees of freedom
     *

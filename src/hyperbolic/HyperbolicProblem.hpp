@@ -798,7 +798,7 @@ namespace Plato
          * \brief Return solution database.
          * \return solution database
         **********************************************************************************/
-        Plato::Solutions getSolution() const
+        Plato::Solutions getSolution() const override
         {
             Plato::Solutions tSolution(mPhysics, mPDE);
             tSolution.set("State", mDisplacement);

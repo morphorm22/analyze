@@ -813,6 +813,16 @@ public:
         return mNumNodes * mNumGlobalDofsPerNode;
     }
 
+    /**************************************************************************//**
+    * \brief Return dof names for Physics
+    * \return dof names
+    ******************************************************************************/
+    std::vector<std::string> getDofNames() const
+    {
+        auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
+        return mResidualFunctions.at(tFirstBlockName)->getDofNames();
+    }
+
     /***********************************************************************//**
      * \brief Return total number of nodes
      * \return total number of nodes

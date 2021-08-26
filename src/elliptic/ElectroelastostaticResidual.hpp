@@ -52,6 +52,7 @@ private:
 
     using Plato::Elliptic::AbstractVectorFunction<EvaluationType>::mSpatialDomain;
     using Plato::Elliptic::AbstractVectorFunction<EvaluationType>::mDataMap;
+    using Plato::Elliptic::AbstractVectorFunction<EvaluationType>::mDofNames;
 
     using StateScalarType   = typename EvaluationType::StateScalarType;
     using ControlScalarType = typename EvaluationType::ControlScalarType;
@@ -91,6 +92,12 @@ public:
         mCubatureRule(std::make_shared<Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>>())
     /**************************************************************************/
     {
+        // obligatory: define dof names in order
+        mDofNames.push_back("Displacement X");
+        if(SpaceDim > 1) mDofNames.push_back("Displacement Y");
+        if(SpaceDim > 2) mDofNames.push_back("Displacement Z");
+        mDofNames.push_back("Electric Potential");
+
         // create material model and get stiffness
         //
         Plato::ElectroelasticModelFactory<SpaceDim> mmfactory(aProblemParams);
