@@ -105,6 +105,7 @@ if(ELLIPTIC)
     elliptic/MassPropertiesFunction.cpp
     elliptic/FluxPNorm.cpp
     elliptic/StressPNorm.cpp
+    elliptic/TMStressPNorm.cpp
     elliptic/VolAvgStressPNormDenominator.cpp
     elliptic/EMStressPNorm.cpp
     elliptic/EffectiveEnergy.cpp

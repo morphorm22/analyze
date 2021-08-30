@@ -658,7 +658,7 @@ private:
      * \return solution database
      *
      **********************************************************************************/
-    Plato::Solutions setSolution()
+    Plato::Solutions setSolution() const
     {
         Plato::Solutions tSolution("incompressible cfd");
         tSolution.set("velocity", mVelocity);
@@ -2196,6 +2196,14 @@ private:
             auto tGradResTempWrtConfig = mTemperatureResidual->gradientConfig(aControl, aCurrentPrimal);
             Plato::MatrixTimesVectorPlusVector(tGradResTempWrtConfig, tCurrentTemperatureAdjoint, aTotalDerivative);
         }
+    }
+    /******************************************************************************/ /**
+    * \brief Return solution database.
+    * \return solution database
+    **********************************************************************************/
+    Plato::Solutions getSolution() const override
+    {
+        return this->setSolution();
     }
 };
 // class QuasiImplicit

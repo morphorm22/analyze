@@ -46,22 +46,25 @@ class ThermostaticResidual :
     using PhysicsType::mNumDofsPerCell;
     using PhysicsType::mNumDofsPerNode;
 
-    using Plato::Elliptic::AbstractVectorFunction<EvaluationType>::mSpatialDomain;
-    using Plato::Elliptic::AbstractVectorFunction<EvaluationType>::mDataMap;
+    using FunctionBaseType = Plato::Elliptic::AbstractVectorFunction<EvaluationType>;
+
+    using FunctionBaseType::mSpatialDomain;
+    using FunctionBaseType::mDataMap;
+    using FunctionBaseType::mDofNames;
 
     using StateScalarType   = typename EvaluationType::StateScalarType;
     using ControlScalarType = typename EvaluationType::ControlScalarType;
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
-    Plato::Scalar mQuadratureWeight;
-
     IndicatorFunctionType mIndicatorFunction;
     ApplyWeighting<mSpaceDim,mSpaceDim,IndicatorFunctionType> mApplyWeighting;
 
     std::shared_ptr<Plato::BodyLoads<EvaluationType, PhysicsType>> mBodyLoads;
 
-    std::shared_ptr<Plato::LinearTetCubRuleDegreeOne<mSpaceDim>> mCubatureRule;
+    using CubatureType = Plato::LinearTetCubRuleDegreeOne<mSpaceDim>;
+    std::shared_ptr<CubatureType> mCubatureRule;
+
     std::shared_ptr<Plato::NaturalBCs<mSpaceDim,mNumDofsPerNode>> mBoundaryLoads;
 
     Teuchos::RCP<Plato::MaterialModel<mSpaceDim>> mMaterialModel;
@@ -76,14 +79,17 @@ class ThermostaticResidual :
               Teuchos::ParameterList & aProblemParams,
               Teuchos::ParameterList & penaltyParams
     ) :
-        Plato::Elliptic::AbstractVectorFunction<EvaluationType>(aSpatialDomain, aDataMap),
-        mIndicatorFunction(penaltyParams),
-        mApplyWeighting(mIndicatorFunction),
-        mCubatureRule(std::make_shared<Plato::LinearTetCubRuleDegreeOne<mSpaceDim>>()),
-        mBodyLoads(nullptr),
-        mBoundaryLoads(nullptr)
+        FunctionBaseType   (aSpatialDomain, aDataMap),
+        mIndicatorFunction (penaltyParams),
+        mApplyWeighting    (mIndicatorFunction),
+        mCubatureRule      (std::make_shared<CubatureType>()),
+        mBodyLoads         (nullptr),
+        mBoundaryLoads     (nullptr)
     /**************************************************************************/
     {
+        // obligatory: define dof names in order
+        mDofNames.push_back("Temperature");
+
         Plato::ThermalConductionModelFactory<mSpaceDim> tMaterialFactory(aProblemParams);
         mMaterialModel = tMaterialFactory.create(aSpatialDomain.getMaterialName());
 

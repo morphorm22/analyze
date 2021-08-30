@@ -29,8 +29,9 @@ class AbstractGlobalVectorFunctionInc
 {
 
 protected:
-    const Plato::SpatialDomain & mSpatialDomain; /*!< Plato spatial model */
-          Plato::DataMap       & mDataMap;       /*!< output database */
+    const Plato::SpatialDomain     & mSpatialDomain; /*!< Plato spatial model */
+          Plato::DataMap           & mDataMap;       /*!< output database */
+          std::vector<std::string>   mDofNames;      /*!< state dof names */
 
 public:
     /***************************************************************************//**
@@ -71,6 +72,15 @@ public:
     decltype(mSpatialDomain.MeshSets) getMeshSets() const
     {
         return (mSpatialDomain.MeshSets);
+    }
+
+    /****************************************************************************//**
+    * \brief Return reference to dof names
+    * \return mDofNames
+    ********************************************************************************/
+    const decltype(mDofNames)& getDofNames() const
+    {
+        return mDofNames;
     }
 
     /***************************************************************************//**
