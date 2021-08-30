@@ -433,28 +433,6 @@ public:
             }
             this->copyFieldFromAnalyze(tCriter, aSharedField);
         }
-//
-//        else if(aName == "Solution")
-//        {
-//	        auto tScalarField = Plato::extract_solution(aName, mGlobalSolution, /*dof*/0, /*stride=*/1);
-//            this->copyFieldFromAnalyze(tScalarField, aSharedField);
-//        }
-//        else if(aName == "Solution X")
-//        {
-//	        auto tScalarField = Plato::extract_solution(aName, mGlobalSolution, /*dof*/0, /*stride=*/mNumSpatialDims);
-//            this->copyFieldFromAnalyze(tScalarField, aSharedField);
-//        }
-//        else if(aName == "Solution Y")
-//        {
-//	        auto tScalarField = Plato::extract_solution(aName, mGlobalSolution, /*dof*/1, /*stride=*/mNumSpatialDims);
-//            this->copyFieldFromAnalyze(tScalarField, aSharedField);
-//        }
-//        else if(aName == "Solution Z")
-//        {
-//	        auto tScalarField = Plato::extract_solution(aName, mGlobalSolution, /*dof*/2, /*stride=*/mNumSpatialDims);
-//            this->copyFieldFromAnalyze(tScalarField, aSharedField);
-//        }
-//
         else
         if(mGradientXNameToCriterionName.count(aName))
         {
