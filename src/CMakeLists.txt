@@ -185,7 +185,7 @@ if (PLATOANALYZE_ENABLE_TPETRA)
 endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
-include_directories(${Trilinos_INCLUDE_DIRS})
+include_directories(${Trilinos_INCLUDE_DIRS} ${Trilinos_TPL_INCLUDE_DIRS})
 
 add_library( analyzelib ${ANALYZE_SOURCES})
 SET_TARGET_PROPERTIES(analyzelib PROPERTIES OUTPUT_NAME analyze)
