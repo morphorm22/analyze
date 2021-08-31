@@ -1,5 +1,5 @@
-#ifndef ABSTRACT_VECTOR_FUNCTION_ELLIPTIC_HPP
-#define ABSTRACT_VECTOR_FUNCTION_ELLIPTIC_HPP
+#ifndef ABSTRACT_VECTOR_FUNCTION_HELMHOLTZ_HPP
+#define ABSTRACT_VECTOR_FUNCTION_HELMHOLTZ_HPP
 
 #include <Omega_h_mesh.hpp>
 #include <Omega_h_assoc.hpp>
@@ -10,21 +10,20 @@
 namespace Plato
 {
 
-namespace Elliptic
+namespace Helmholtz
 {
 
 /******************************************************************************//**
  * \brief Abstract vector function (i.e. PDE) interface
  * @tparam EvaluationType evaluation type use to determine automatic differentiation
- *   type for scalar function (e.g. Residual, Jacobian, GradientZ, etc.)
+ *   type for scalar function (e.g. Residual, Jacobian)
  **********************************************************************************/
 template<typename EvaluationType>
 class AbstractVectorFunction
 {
 protected:
-    const Plato::SpatialDomain     & mSpatialDomain;  /*!< Plato spatial model containing mesh, meshsets, etc */
-          Plato::DataMap           & mDataMap;        /*!< Plato Analyze database */
-          std::vector<std::string>   mDofNames;       /*!< state dof names */
+    const Plato::SpatialDomain & mSpatialDomain;  /*!< Plato spatial model containing mesh, meshsets, etc */
+          Plato::DataMap       & mDataMap;        /*!< Plato Analyze database */
 
 public:
     /******************************************************************************//**
@@ -34,11 +33,11 @@ public:
     **********************************************************************************/
     explicit
     AbstractVectorFunction(
-        const Plato::SpatialDomain     & aSpatialDomain,
-              Plato::DataMap           & aDataMap
+        const Plato::SpatialDomain & aSpatialDomain,
+              Plato::DataMap       & aDataMap
     ) :
         mSpatialDomain (aSpatialDomain),
-        mDataMap       (aDataMap)
+        mDataMap      (aDataMap)
     {
     }
 
@@ -65,15 +64,6 @@ public:
     decltype(mSpatialDomain.MeshSets) getMeshSets() const
     {
         return (mSpatialDomain.MeshSets);
-    }
-
-    /****************************************************************************//**
-    * \brief Return reference to dof names
-    * \return mDofNames
-    ********************************************************************************/
-    const decltype(mDofNames)& getDofNames() const
-    {
-        return mDofNames;
     }
 
     /****************************************************************************//**
@@ -123,7 +113,7 @@ public:
 };
 // class AbstractVectorFunction
 
-} // namespace Elliptic
+} // namespace Helmholtz
 
 } // namespace Plato
 

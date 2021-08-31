@@ -700,10 +700,10 @@ private:
     * \brief Return solution database.
     * \return solution database
     **********************************************************************************/
-    Plato::Solutions getSolution() const
+    Plato::Solutions getSolution() const override
     {
         Plato::Solutions tSolution(mPhysics, mPDEType);
-        tSolution.set("State", mStates);
+        tSolution.set("State", mStates, mPDE->getDofNames());
         return tSolution;
     }
 };

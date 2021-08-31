@@ -27,13 +27,11 @@ public:
     explicit 
     AbstractVectorFunction(
         const Plato::SpatialDomain     & aSpatialDomain,
-              Plato::DataMap           & aDataMap,
-              std::vector<std::string>   aStateNames
+              Plato::DataMap           & aDataMap
     ) :
     /******************************************************************************/
         mSpatialDomain (aSpatialDomain),
-        mDataMap       (aDataMap),
-        mDofNames      (aStateNames)
+        mDataMap       (aDataMap)
     {
     }
     /******************************************************************************/

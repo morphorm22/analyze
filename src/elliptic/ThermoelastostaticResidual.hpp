@@ -49,8 +49,11 @@ private:
     using PhysicsType::mNumDofsPerNode;
     using PhysicsType::mNumDofsPerCell;
 
-    using Plato::Elliptic::AbstractVectorFunction<EvaluationType>::mSpatialDomain;
-    using Plato::Elliptic::AbstractVectorFunction<EvaluationType>::mDataMap;
+    using FunctionBaseType = Plato::Elliptic::AbstractVectorFunction<EvaluationType>;
+
+    using FunctionBaseType::mSpatialDomain;
+    using FunctionBaseType::mDataMap;
+    using FunctionBaseType::mDofNames;
 
     using StateScalarType   = typename EvaluationType::StateScalarType;
     using ControlScalarType = typename EvaluationType::ControlScalarType;
@@ -66,7 +69,10 @@ private:
     std::shared_ptr<Plato::NaturalBCs<SpaceDim, NMechDims, mNumDofsPerNode, MDofOffset>> mBoundaryLoads;
     std::shared_ptr<Plato::NaturalBCs<SpaceDim, NThrmDims, mNumDofsPerNode, TDofOffset>> mBoundaryFluxes;
 
-    std::shared_ptr<Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>> mCubatureRule;
+
+    using CubatureType = Plato::LinearTetCubRuleDegreeOne<SpaceDim>;
+
+    std::shared_ptr<CubatureType> mCubatureRule;
 
     Teuchos::RCP<Plato::MaterialModel<SpaceDim>> mMaterialModel;
 
@@ -80,16 +86,22 @@ public:
               Teuchos::ParameterList & aProblemParams,
               Teuchos::ParameterList & aPenaltyParams
     ) :
-        Plato::Elliptic::AbstractVectorFunction<EvaluationType>(aSpatialDomain, aDataMap),
+        FunctionBaseType      (aSpatialDomain, aDataMap),
         mIndicatorFunction    (aPenaltyParams),
         mApplyStressWeighting (mIndicatorFunction),
         mApplyFluxWeighting   (mIndicatorFunction),
         mBodyLoads            (nullptr),
-        mBoundaryLoads(nullptr),
-        mBoundaryFluxes(nullptr),
-        mCubatureRule(std::make_shared<Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>>())
+        mBoundaryLoads        (nullptr),
+        mBoundaryFluxes       (nullptr),
+        mCubatureRule         (std::make_shared<CubatureType>())
     /**************************************************************************/
     {
+        // obligatory: define dof names in order
+        mDofNames.push_back("Displacement X");
+        if(SpaceDim > 1) mDofNames.push_back("Displacement Y");
+        if(SpaceDim > 2) mDofNames.push_back("Displacement Z");
+        mDofNames.push_back("Temperature");
+
         // create material model and get stiffness
         //
         Plato::ThermoelasticModelFactory<SpaceDim> mmfactory(aProblemParams);
@@ -144,11 +156,13 @@ public:
       Plato::blas2::extract<mNumDofsPerNode/*stride*/, NThrmDims/*dofs per node*/, TDofOffset/*offset*/>
                     (tNumVertices, tSolutionFromSolutions, tTemperatures);
 
+      Plato::OrdinalType tNMechDims = static_cast<Plato::OrdinalType>(NMechDims);
+      Plato::OrdinalType tNThrmDims = static_cast<Plato::OrdinalType>(NThrmDims);
       Plato::Solutions tSolutionsOutput(aSolutions.physics(), aSolutions.pde());
       tSolutionsOutput.set("Displacement", tDisplacements);
-      tSolutionsOutput.setNumDofs("Displacement", 3);
+      tSolutionsOutput.setNumDofs("Displacement", tNMechDims);
       tSolutionsOutput.set("Temperature", tTemperatures);
-      tSolutionsOutput.setNumDofs("Temperature", 1);
+      tSolutionsOutput.setNumDofs("Temperature", tNThrmDims);
 
       return tSolutionsOutput;
     }

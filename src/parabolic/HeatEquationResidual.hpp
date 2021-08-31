@@ -47,8 +47,11 @@ class HeatEquationResidual :
     using Plato::SimplexThermal<SpaceDim>::mNumDofsPerCell;
     using Plato::SimplexThermal<SpaceDim>::mNumDofsPerNode;
 
-    using Plato::Parabolic::AbstractVectorFunction<EvaluationType>::mSpatialDomain;
-    using Plato::Parabolic::AbstractVectorFunction<EvaluationType>::mDataMap;
+    using FunctionBaseType = Plato::Parabolic::AbstractVectorFunction<EvaluationType>;
+
+    using FunctionBaseType::mSpatialDomain;
+    using FunctionBaseType::mDataMap;
+    using FunctionBaseType::mDofNames;
 
     using StateScalarType     = typename EvaluationType::StateScalarType;
     using StateDotScalarType  = typename EvaluationType::StateDotScalarType;
@@ -60,7 +63,10 @@ class HeatEquationResidual :
     Plato::ApplyWeighting<SpaceDim,SpaceDim,IndicatorFunctionType> mApplyFluxWeighting;
     Plato::ApplyWeighting<SpaceDim,mNumDofsPerNode,IndicatorFunctionType> mApplyMassWeighting;
 
-    std::shared_ptr<Plato::LinearTetCubRuleDegreeOne<SpaceDim>> mCubatureRule;
+    using CubatureType = Plato::LinearTetCubRuleDegreeOne<SpaceDim>;
+
+    std::shared_ptr<CubatureType> mCubatureRule;
+
     std::shared_ptr<Plato::NaturalBCs<SpaceDim,mNumDofsPerNode>> mBoundaryLoads;
 
     Teuchos::RCP<Plato::MaterialModel<SpaceDim>> mThermalMassMaterialModel;
@@ -75,14 +81,17 @@ class HeatEquationResidual :
               Teuchos::ParameterList & problemParams,
               Teuchos::ParameterList & penaltyParams
     ) :
-     Plato::Parabolic::AbstractVectorFunction<EvaluationType>(aSpatialDomain, aDataMap, {"Temperature"}),
+     FunctionBaseType    (aSpatialDomain, aDataMap),
      mIndicatorFunction  (penaltyParams),
      mApplyFluxWeighting (mIndicatorFunction),
      mApplyMassWeighting (mIndicatorFunction),
-     mCubatureRule       (std::make_shared<Plato::LinearTetCubRuleDegreeOne<SpaceDim>>()),
+     mCubatureRule       (std::make_shared<CubatureType>()),
      mBoundaryLoads      (nullptr)
     /**************************************************************************/
     {
+        // obligatory: define dof names in order
+        mDofNames.push_back("Temperature");
+
         {
             Plato::ThermalConductionModelFactory<SpaceDim> mmfactory(problemParams);
             mThermalConductivityMaterialModel = mmfactory.create(aSpatialDomain.getMaterialName());
