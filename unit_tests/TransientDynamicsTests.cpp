@@ -806,7 +806,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegrator )
   int tNumDofs = cSpaceDim*tMesh->nverts();
 
   auto tIntegratorParams = tInputParams->sublist("Time Integration");
-  Plato::NewmarkIntegrator<Plato::Hyperbolic::Mechanics<cSpaceDim>> tIntegrator(tIntegratorParams);
+  Plato::NewmarkIntegratorUForm<Plato::Hyperbolic::Mechanics<cSpaceDim>> tIntegrator(tIntegratorParams);
 
   Plato::Scalar tU_val = 1.0, tV_val = 2.0, tA_val = 3.0;
   Plato::Scalar tU_Prev_val = 3.0, tV_Prev_val = 2.0, tA_Prev_val = 1.0;

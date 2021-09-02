@@ -38,7 +38,8 @@ namespace Plato
 
         VectorFunctionType mPDEConstraint;
 
-        Plato::NewmarkIntegrator<SimplexPhysics> mIntegrator;
+        using IntegratorBaseT = Plato::NewmarkIntegrator<SimplexPhysics>;
+        std::shared_ptr<IntegratorBaseT> mIntegrator;
 
         Plato::OrdinalType mNumSteps;
         Plato::Scalar      mTimeStep;
@@ -46,10 +47,6 @@ namespace Plato
         bool mSaveState;
 
         Criteria mCriteria;
-
-        Plato::ScalarVector      mResidual;
-        Plato::ScalarVector      mResidualV;
-        Plato::ScalarVector      mResidualA;
 
         Plato::ScalarMultiVector mAdjoints_U;
         Plato::ScalarMultiVector mAdjoints_V;
@@ -77,6 +74,7 @@ namespace Plato
         rcp<Plato::AbstractSolver> mSolver;
         std::string mPDE; /*!< partial differential equation type */
         std::string mPhysics; /*!< physics used for the simulation */
+        bool mUForm; /*!< true: displacement-based formulation, false: acceleration-based formulation */
 
       public:
         /******************************************************************************/
@@ -86,16 +84,14 @@ namespace Plato
           Teuchos::ParameterList& aProblemParams,
           Comm::Machine aMachine
         ) :
-            mSpatialModel  (aMesh, aMeshSets, aProblemParams),
-            mPDEConstraint (mSpatialModel, mDataMap, aProblemParams, aProblemParams.get<std::string>("PDE Constraint")),
-            mIntegrator    (aProblemParams.sublist("Time Integration")),
-            mNumSteps      (aProblemParams.sublist("Time Integration").get<int>("Number Time Steps")),
-            mTimeStep      (aProblemParams.sublist("Time Integration").get<Plato::Scalar>("Time Step")),
-            mSaveState     (aProblemParams.sublist("Hyperbolic").isType<Teuchos::Array<std::string>>("Plottable")),
-            mResidual      ("MyResidual", mPDEConstraint.size()),
-            mDisplacement  ("Displacement", mNumSteps, mPDEConstraint.size()),
-            mVelocity      ("Velocity",     mNumSteps, mPDEConstraint.size()),
-            mAcceleration  ("Acceleration", mNumSteps, mPDEConstraint.size()),
+            mSpatialModel    (aMesh, aMeshSets, aProblemParams),
+            mPDEConstraint   (mSpatialModel, mDataMap, aProblemParams, aProblemParams.get<std::string>("PDE Constraint")),
+            mNumSteps        (aProblemParams.sublist("Time Integration").get<int>("Number Time Steps")),
+            mTimeStep        (aProblemParams.sublist("Time Integration").get<Plato::Scalar>("Time Step")),
+            mSaveState       (aProblemParams.sublist("Hyperbolic").isType<Teuchos::Array<std::string>>("Plottable")),
+            mDisplacement    ("Displacement", mNumSteps, mPDEConstraint.size()),
+            mVelocity        ("Velocity",     mNumSteps, mPDEConstraint.size()),
+            mAcceleration    ("Acceleration", mNumSteps, mPDEConstraint.size()),
             mInitDisplacement ("Init Displacement", mPDEConstraint.size()),
             mInitVelocity     ("Init Velocity",     mPDEConstraint.size()),
             mInitAcceleration ("Init Acceleration", mPDEConstraint.size()),
@@ -107,6 +103,21 @@ namespace Plato
             mPhysics       (aProblemParams.get<std::string>("Physics"))
         /******************************************************************************/
         {
+            auto tAForm = aProblemParams.sublist("Time Integration").get<bool>("A-Form", "false");
+            mUForm = !tAForm;
+
+            auto tIntegratorParams = aProblemParams.sublist("Time Integration");
+            if (mUForm)
+            {
+                using IntegratorType = Plato::NewmarkIntegratorUForm<SimplexPhysics>;
+                mIntegrator = std::make_shared<IntegratorType>(tIntegratorParams);
+            }
+            else
+            {
+                using IntegratorType = Plato::NewmarkIntegratorAForm<SimplexPhysics>;
+                mIntegrator = std::make_shared<IntegratorType>(tIntegratorParams);
+            }
+
             // parse criteria
             //
             if(aProblemParams.isSublist("Criteria"))
@@ -254,7 +265,7 @@ namespace Plato
             Kokkos::deep_copy(tDisplacementInit, mInitDisplacement);
             Kokkos::deep_copy(tVelocityInit,     mInitVelocity);
             Kokkos::deep_copy(tAccelerationInit, mInitAcceleration);
-            mResidual  = mPDEConstraint.value(tDisplacementInit, tVelocityInit, tAccelerationInit, aControl, mTimeStep, 0.0);
+            auto tResidual = mPDEConstraint.value(tDisplacementInit, tVelocityInit, tAccelerationInit, aControl, mTimeStep, 0.0);
             mDataMap.saveState();
 
             Plato::Scalar tCurrentTime(0.0);
@@ -269,73 +280,141 @@ namespace Plato
               Plato::ScalarVector tAcceleration = Kokkos::subview(mAcceleration, tStepIndex, Kokkos::ALL());
 
 
-              // -R_{u}
-              mResidual  = mPDEConstraint.value(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, tCurrentTime);
-              Plato::blas1::scale(-1.0, mResidual);
+              if (mUForm)
+              {
+                  // -R
+                  tResidual = mPDEConstraint.value(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, tCurrentTime);
+                  Plato::blas1::scale(-1.0, tResidual);
 
-              // R_{v}
-              mResidualV = mIntegrator.v_value(tDisplacement, tDisplacementPrev,
-                                                      tVelocity,     tVelocityPrev,
-                                                      tAcceleration, tAccelerationPrev, mTimeStep);
+                  // R_{v}
+                  auto tResidualV = mIntegrator->v_value(tDisplacement, tDisplacementPrev,
+                                                          tVelocity,     tVelocityPrev,
+                                                          tAcceleration, tAccelerationPrev, mTimeStep);
 
-              // R_{u,v^N}
-              mJacobianV = mPDEConstraint.gradient_v(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, tCurrentTime);
+                  // R_{,v^N}
+                  mJacobianV = mPDEConstraint.gradient_v(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, tCurrentTime);
 
-              // -R_{u} += R_{u,v^N} R_{v}
-              Plato::MatrixTimesVectorPlusVector(mJacobianV, mResidualV, mResidual);
+                  // -R += R_{,v^N} R_{v}
+                  Plato::MatrixTimesVectorPlusVector(mJacobianV, tResidualV, tResidual);
 
-              // R_{a}
-              mResidualA = mIntegrator.a_value(tDisplacement, tDisplacementPrev,
-                                                      tVelocity,     tVelocityPrev,
-                                                      tAcceleration, tAccelerationPrev, mTimeStep);
+                  // R_{a}
+                  auto tResidualA = mIntegrator->a_value(tDisplacement, tDisplacementPrev,
+                                                          tVelocity,     tVelocityPrev,
+                                                          tAcceleration, tAccelerationPrev, mTimeStep);
 
-              // R_{u,a^N}
-              mJacobianA = mPDEConstraint.gradient_a(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, tCurrentTime);
+                  // R_{,a^N}
+                  mJacobianA = mPDEConstraint.gradient_a(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, tCurrentTime);
 
-              // -R_{u} += R_{u,a^N} R_{a}
-              Plato::MatrixTimesVectorPlusVector(mJacobianA, mResidualA, mResidual);
+                  // -R += R_{,a^N} R_{a}
+                  Plato::MatrixTimesVectorPlusVector(mJacobianA, tResidualA, tResidual);
 
-              // R_{u,u^N}
-              mJacobianU = mPDEConstraint.gradient_u(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, tCurrentTime);
+                  // R_{,u^N}
+                  mJacobianU = mPDEConstraint.gradient_u(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, tCurrentTime);
 
-              // R_{v,u^N}
-              auto tR_vu = mIntegrator.v_grad_u(mTimeStep);
+                  // R_{v,u^N}
+                  auto tR_vu = mIntegrator->v_grad_u(mTimeStep);
 
-              // R_{u,u^N} += R_{u,v^N} R_{v,u^N}
-              Plato::blas1::axpy(-tR_vu, mJacobianV->entries(), mJacobianU->entries());
+                  // R_{,u^N} += R_{,v^N} R_{v,u^N}
+                  Plato::blas1::axpy(-tR_vu, mJacobianV->entries(), mJacobianU->entries());
 
-              // R_{a,u^N}
-              auto tR_au = mIntegrator.a_grad_u(mTimeStep);
+                  // R_{a,u^N}
+                  auto tR_au = mIntegrator->a_grad_u(mTimeStep);
 
-              // R_{u,u^N} += R_{u,a^N} R_{a,u^N}
-              Plato::blas1::axpy(-tR_au, mJacobianA->entries(), mJacobianU->entries());
+                  // R_{,u^N} += R_{,a^N} R_{a,u^N}
+                  Plato::blas1::axpy(-tR_au, mJacobianA->entries(), mJacobianU->entries());
 
-              mStateBoundaryConditions.get(mStateBcDofs, mStateBcValues, tCurrentTime);
-              this->applyConstraints(mJacobianU, mResidual);
+                  mStateBoundaryConditions.get(mStateBcDofs, mStateBcValues, tCurrentTime);
+                  this->applyConstraints(mJacobianU, tResidual);
 
-              Plato::ScalarVector tDeltaD("increment", tDisplacement.extent(0));
-              Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tDeltaD);
+                  Plato::ScalarVector tDeltaD("increment", tDisplacement.extent(0));
+                  Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tDeltaD);
 
-              // compute displacement increment:
-              mSolver->solve(*mJacobianU, tDeltaD, mResidual);
+                  // compute displacement increment:
+                  mSolver->solve(*mJacobianU, tDeltaD, tResidual);
 
-              // compute and add velocity increment: \Delta v = - ( R_{v} + R_{v,u} \Delta u )
-              Plato::blas1::axpy(tR_vu, tDeltaD, mResidualV);
-              // a_{k+1} = a_{k} + \Delta a
-              Plato::blas1::axpy(-1.0, mResidualV, tVelocity);
+                  // compute and add velocity increment: \Delta v = - ( R_{v} + R_{v,u} \Delta u )
+                  Plato::blas1::axpy(tR_vu, tDeltaD, tResidualV);
+                  // v_{k+1} = v_{k} + \Delta v
+                  Plato::blas1::axpy(-1.0, tResidualV, tVelocity);
 
-              // compute and add acceleration increment: \Delta a = - ( R_{a} + R_{a,u} \Delta u )
-              Plato::blas1::axpy(tR_au, tDeltaD, mResidualA);
-              // a_{k+1} = a_{k} + \Delta a
-              Plato::blas1::axpy(-1.0, mResidualA, tAcceleration);
+                  // compute and add acceleration increment: \Delta a = - ( R_{a} + R_{a,u} \Delta u )
+                  Plato::blas1::axpy(tR_au, tDeltaD, tResidualA);
+                  // a_{k+1} = a_{k} + \Delta a
+                  Plato::blas1::axpy(-1.0, tResidualA, tAcceleration);
 
-              // add displacement increment
-              Plato::blas1::axpy(1.0, tDeltaD, tDisplacement);
+                  // add displacement increment
+                  Plato::blas1::axpy(1.0, tDeltaD, tDisplacement);
+              }
+              else
+              {
+                  // -R
+                  tResidual  = mPDEConstraint.value(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, tCurrentTime);
+                  Plato::blas1::scale(-1.0, tResidual);
+
+                  // R_{v}
+                  auto tResidualV = mIntegrator->v_value(tDisplacement, tDisplacementPrev,
+                                                          tVelocity,     tVelocityPrev,
+                                                          tAcceleration, tAccelerationPrev, mTimeStep);
+
+                  // R_{,v^N}
+                  mJacobianV = mPDEConstraint.gradient_v(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, tCurrentTime);
+
+                  // -R += R_{,v^N} R_{v}
+                  Plato::MatrixTimesVectorPlusVector(mJacobianV, tResidualV, tResidual);
+
+                  // R_{u}
+                  auto tResidualU = mIntegrator->u_value(tDisplacement, tDisplacementPrev,
+                                                          tVelocity,     tVelocityPrev,
+                                                          tAcceleration, tAccelerationPrev, mTimeStep);
+
+                  // R_{,u^N}
+                  mJacobianU = mPDEConstraint.gradient_u(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, tCurrentTime);
+
+                  // -R += R_{,u^N} R_{u}
+                  Plato::MatrixTimesVectorPlusVector(mJacobianU, tResidualU, tResidual);
+
+                  // R_{,a^N}
+                  mJacobianA = mPDEConstraint.gradient_a(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, tCurrentTime);
+
+                  // R_{v,a^N}
+                  auto tR_va = mIntegrator->v_grad_a(mTimeStep);
+
+                  // R_{,a^N} -= R_{,v^N} R_{v,a^N}
+                  Plato::blas1::axpy(-tR_va, mJacobianV->entries(), mJacobianA->entries());
+
+                  // R_{u,a^N}
+                  auto tR_ua = mIntegrator->u_grad_a(mTimeStep);
+
+                  // R_{,a^N} -= R_{,u^N} R_{u,a^N}
+                  Plato::blas1::axpy(-tR_ua, mJacobianU->entries(), mJacobianA->entries());
+
+                  mStateBoundaryConditions.get(mStateBcDofs, mStateBcValues, tCurrentTime);
+                  this->applyConstraints(mJacobianA, tResidual);
+
+                  Plato::ScalarVector tDeltaA("increment", tAcceleration.extent(0));
+                  Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tDeltaA);
+
+                  // compute displacement increment:
+                  mSolver->solve(*mJacobianA, tDeltaA, tResidual);
+
+                  // compute and add velocity increment: \Delta v = - ( R_{v} + R_{v,a} \Delta a )
+                  Plato::blas1::axpy(tR_va, tDeltaA, tResidualV);
+                  // v_{k+1} = v_{k} + \Delta v
+                  Plato::blas1::axpy(-1.0, tResidualV, tVelocity);
+
+                  // compute and add displacement increment: \Delta u = - ( R_{u} + R_{u,a} \Delta a )
+                  Plato::blas1::axpy(tR_ua, tDeltaA, tResidualU);
+                  // u_{k+1} = u_{k} + \Delta u
+                  Plato::blas1::axpy(-1.0, tResidualU, tDisplacement);
+
+                  // add acceleration increment
+                  Plato::blas1::axpy(1.0, tDeltaA, tAcceleration);
+              }
 
               if ( mSaveState )
               {
                 // evaluate at new state
-                mResidual  = mPDEConstraint.value(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, tCurrentTime);
+                tResidual  = mPDEConstraint.value(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, tCurrentTime);
                 mDataMap.saveState();
               }
             }
@@ -500,39 +579,39 @@ namespace Plato
 
 
                     // R_{v,u^k}^{k+1}
-                    auto tR_vu_prev = mIntegrator.v_grad_u_prev(mTimeStep);
+                    auto tR_vu_prev = mIntegrator->v_grad_u_prev(mTimeStep);
 
                     // F_{,u^k} += L_{v}^{k+1} R_{v,u^k}^{k+1}
                     Plato::blas1::axpy(tR_vu_prev, tAdjoint_V_next, t_dFdu);
 
                     // R_{a,u^k}^{k+1}
-                    auto tR_au_prev = mIntegrator.a_grad_u_prev(mTimeStep);
+                    auto tR_au_prev = mIntegrator->a_grad_u_prev(mTimeStep);
 
                     // F_{,u^k} += L_{a}^{k+1} R_{a,u^k}^{k+1}
                     Plato::blas1::axpy(tR_au_prev, tAdjoint_A_next, t_dFdu);
 
 
                     // R_{v,v^k}^{k+1}
-                    auto tR_vv_prev = mIntegrator.v_grad_v_prev(mTimeStep);
+                    auto tR_vv_prev = mIntegrator->v_grad_v_prev(mTimeStep);
 
                     // F_{,v^k} += L_{v}^{k+1} R_{v,v^k}^{k+1}
                     Plato::blas1::axpy(tR_vv_prev, tAdjoint_V_next, t_dFdv);
 
                     // R_{a,v^k}^{k+1}
-                    auto tR_av_prev = mIntegrator.a_grad_v_prev(mTimeStep);
+                    auto tR_av_prev = mIntegrator->a_grad_v_prev(mTimeStep);
 
                     // F_{,v^k} += L_{a}^{k+1} R_{a,v^k}^{k+1}
                     Plato::blas1::axpy(tR_av_prev, tAdjoint_A_next, t_dFdv);
 
 
                     // R_{v,a^k}^{k+1}
-                    auto tR_va_prev = mIntegrator.v_grad_a_prev(mTimeStep);
+                    auto tR_va_prev = mIntegrator->v_grad_a_prev(mTimeStep);
 
                     // F_{,a^k} += L_{v}^{k+1} R_{v,a^k}^{k+1}
                     Plato::blas1::axpy(tR_va_prev, tAdjoint_V_next, t_dFda);
 
                     // R_{a,a^k}^{k+1}
-                    auto tR_aa_prev = mIntegrator.a_grad_a_prev(mTimeStep);
+                    auto tR_aa_prev = mIntegrator->a_grad_a_prev(mTimeStep);
 
                     // F_{,a^k} += L_{a}^{k+1} R_{a,a^k}^{k+1}
                     Plato::blas1::axpy(tR_aa_prev, tAdjoint_A_next, t_dFda);
@@ -541,13 +620,13 @@ namespace Plato
                 Plato::blas1::scale(static_cast<Plato::Scalar>(-1), t_dFdu);
 
                 // R_{v,u^k}
-                auto tR_vu = mIntegrator.v_grad_u(mTimeStep);
+                auto tR_vu = mIntegrator->v_grad_u(mTimeStep);
 
                 // -F_{,u^k} += R_{v,u^k}^k F_{,v^k}
                 Plato::blas1::axpy(tR_vu, t_dFdv, t_dFdu);
 
                 // R_{a,u^k}
-                auto tR_au = mIntegrator.a_grad_u(mTimeStep);
+                auto tR_au = mIntegrator->a_grad_u(mTimeStep);
 
                 // -F_{,u^k} += R_{a,u^k}^k F_{,a^k}
                 Plato::blas1::axpy(tR_au, t_dFda, t_dFdu);
@@ -699,39 +778,39 @@ namespace Plato
 
 
                     // R_{v,u^k}^{k+1}
-                    auto tR_vu_prev = mIntegrator.v_grad_u_prev(mTimeStep);
+                    auto tR_vu_prev = mIntegrator->v_grad_u_prev(mTimeStep);
 
                     // F_{,u^k} += L_{v}^{k+1} R_{v,u^k}^{k+1}
                     Plato::blas1::axpy(tR_vu_prev, tAdjoint_V_next, t_dFdu);
 
                     // R_{a,u^k}^{k+1}
-                    auto tR_au_prev = mIntegrator.a_grad_u_prev(mTimeStep);
+                    auto tR_au_prev = mIntegrator->a_grad_u_prev(mTimeStep);
 
                     // F_{,u^k} += L_{a}^{k+1} R_{a,u^k}^{k+1}
                     Plato::blas1::axpy(tR_au_prev, tAdjoint_A_next, t_dFdu);
 
 
                     // R_{v,v^k}^{k+1}
-                    auto tR_vv_prev = mIntegrator.v_grad_v_prev(mTimeStep);
+                    auto tR_vv_prev = mIntegrator->v_grad_v_prev(mTimeStep);
 
                     // F_{,v^k} += L_{v}^{k+1} R_{v,v^k}^{k+1}
                     Plato::blas1::axpy(tR_vv_prev, tAdjoint_V_next, t_dFdv);
 
                     // R_{a,v^k}^{k+1}
-                    auto tR_av_prev = mIntegrator.a_grad_v_prev(mTimeStep);
+                    auto tR_av_prev = mIntegrator->a_grad_v_prev(mTimeStep);
 
                     // F_{,v^k} += L_{a}^{k+1} R_{a,v^k}^{k+1}
                     Plato::blas1::axpy(tR_av_prev, tAdjoint_A_next, t_dFdv);
 
 
                     // R_{v,a^k}^{k+1}
-                    auto tR_va_prev = mIntegrator.v_grad_a_prev(mTimeStep);
+                    auto tR_va_prev = mIntegrator->v_grad_a_prev(mTimeStep);
 
                     // F_{,a^k} += L_{v}^{k+1} R_{v,a^k}^{k+1}
                     Plato::blas1::axpy(tR_va_prev, tAdjoint_V_next, t_dFda);
 
                     // R_{a,a^k}^{k+1}
-                    auto tR_aa_prev = mIntegrator.a_grad_a_prev(mTimeStep);
+                    auto tR_aa_prev = mIntegrator->a_grad_a_prev(mTimeStep);
 
                     // F_{,a^k} += L_{a}^{k+1} R_{a,a^k}^{k+1}
                     Plato::blas1::axpy(tR_aa_prev, tAdjoint_A_next, t_dFda);
@@ -740,13 +819,13 @@ namespace Plato
                 Plato::blas1::scale(static_cast<Plato::Scalar>(-1), t_dFdu);
 
                 // R_{v,u^k}
-                auto tR_vu = mIntegrator.v_grad_u(mTimeStep);
+                auto tR_vu = mIntegrator->v_grad_u(mTimeStep);
 
                 // -F_{,u^k} += R_{v,u^k}^k F_{,v^k}
                 Plato::blas1::axpy(tR_vu, t_dFdv, t_dFdu);
 
                 // R_{a,u^k}
-                auto tR_au = mIntegrator.a_grad_u(mTimeStep);
+                auto tR_au = mIntegrator->a_grad_u(mTimeStep);
 
                 // -F_{,u^k} += R_{a,u^k}^k F_{,a^k}
                 Plato::blas1::axpy(tR_au, t_dFda, t_dFdu);
