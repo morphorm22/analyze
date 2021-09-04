@@ -10,6 +10,7 @@
 #include "SimplexMechanics.hpp"
 #include "PlatoAbstractProblem.hpp"
 #include "alg/PlatoSolverFactory.hpp"
+#include "Plato_Solve.hpp"
 #include "ComputedField.hpp"
 
 #include "hyperbolic/Newmark.hpp"
@@ -221,7 +222,8 @@ namespace Plato
         {
             auto tDataMap = getDataMap();
             auto tSolution = getSolution();
-            Plato::output<SpatialDim>(aFilepath, tSolution, tDataMap, mSpatialModel.Mesh);
+            auto tSolutionOutput = mPDEConstraint.getSolutionStateOutputData(tSolution);
+            Plato::universal_solution_output<SpatialDim>(aFilepath, tSolutionOutput, tDataMap, mSpatialModel.Mesh);
         }
 
         /******************************************************************************/
@@ -395,7 +397,12 @@ namespace Plato
                   Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tDeltaA);
 
                   // compute displacement increment:
-                  mSolver->solve(*mJacobianA, tDeltaA, tResidual);
+                  if(tR_ua == 0.0)
+                  {
+                    Plato::Solve::RowSummed<SimplexPhysics::mNumDofsPerNode>(mJacobianA, tDeltaA, tResidual);
+                  } else {
+                    mSolver->solve(*mJacobianA, tDeltaA, tResidual);
+                  }
 
                   // compute and add velocity increment: \Delta v = - ( R_{v} + R_{v,a} \Delta a )
                   Plato::blas1::axpy(tR_va, tDeltaA, tResidualV);
