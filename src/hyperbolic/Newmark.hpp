@@ -14,19 +14,137 @@ class NewmarkIntegrator
   protected:
     Plato::Scalar mGamma;
     Plato::Scalar mBeta;
+    Plato::Scalar mTimeStep;
+    Plato::Scalar mTimeStepScale;
+    Plato::Scalar mTerminationTime;
+    unsigned int mNumSteps;
 
   public:
     /******************************************************************************/
     explicit 
-    NewmarkIntegrator(Teuchos::ParameterList& aParams) :
-      mGamma( aParams.get<double>("Newmark Gamma") ),
-      mBeta ( aParams.get<double>("Newmark Beta") )
+    NewmarkIntegrator(
+        const Teuchos::ParameterList & aParams,
+              Plato::Scalar            aMaxEigenvalue
+    ) :
+        mGamma           (aParams.get<double>("Newmark Gamma") ),
+        mBeta            (aParams.get<double>("Newmark Beta") ),
+        mTimeStep        (0.0),
+        mTimeStepScale   (1.0),
+        mTerminationTime (0.0),
+        mNumSteps        (0)
     /******************************************************************************/
     {
+        bool tTimeStepGiven        = aParams.isType<Plato::Scalar>("Time Step");
+        bool tTimeStepScaleGiven   = aParams.isType<Plato::Scalar>("Time Step Scale");
+        bool tTerminationTimeGiven = aParams.isType<Plato::Scalar>("Termination Time");
+        bool tNumberTimeStepsGiven = aParams.isType<int>("Number Time Steps");
+
+        if ( tNumberTimeStepsGiven && tTerminationTimeGiven )
+        {
+            throw std::runtime_error("Specify 'Number Time Steps' OR 'Termination Time'. Not both.");
+        }
+
+        if ( !tNumberTimeStepsGiven && !tTerminationTimeGiven )
+        {
+            throw std::runtime_error("Either 'Number Time Steps' or 'Termination Time' must be specified.");
+        }
+
+        if ( tNumberTimeStepsGiven )
+        {
+            mNumSteps = aParams.get<int>("Number Time Steps");
+        }
+        else
+        {
+            mTerminationTime = aParams.get<Plato::Scalar>("Termination Time");
+        }
+
+        if(this->isConditionallyStable())
+        {
+            if ( tTimeStepGiven )
+            {
+                throw std::runtime_error("Time Step cannot be specified for a conditionally stable integrator.");
+            }
+
+            Plato::Scalar tCritSamplingFreq = this->getOmega();
+            mTimeStep = tCritSamplingFreq / aMaxEigenvalue;
+
+            if ( tTimeStepScaleGiven )
+            {
+                mTimeStepScale = aParams.get<Plato::Scalar>("Time Step Scale");
+            }
+            else
+            {
+                mTimeStepScale = 0.5; // default timestep scale
+            }
+        }
+        else
+        {
+            if ( tTimeStepGiven )
+            {
+                mTimeStep = aParams.get<Plato::Scalar>("Time Step");
+            }
+            else
+            {
+                throw std::runtime_error("Unconditionally stable integrator requires a 'Time Step' spec.");
+            }
+
+            if ( tTimeStepScaleGiven )
+            {
+                throw std::runtime_error("Unconditionally stable integrator doesn't accept a time step scale.");
+            }
+        }
+
+        if (mTerminationTime)
+        {
+            mNumSteps = mTerminationTime / this->getTimeStep() + 1;
+        }
+        else
+        {
+            mTerminationTime = mNumSteps * this->getTimeStep();
+        }
     }
+
+
     /******************************************************************************/
     ~NewmarkIntegrator() {}
     /******************************************************************************/
+
+    /******************************************************************************//**
+     * \brief Compute the critical sampling frequency.
+    **********************************************************************************/
+    Plato::Scalar
+    getOmega() const
+    {
+        return pow(mGamma/2.0 - mBeta, -1.0/2.0);
+    }
+
+    /******************************************************************************//**
+     * \brief Return true if integrator is conditionally stable.
+    **********************************************************************************/
+    bool
+    isConditionallyStable() const
+    {
+        return mBeta < mGamma/2.0;
+    }
+
+    /******************************************************************************//**
+     * \brief Return number of time steps
+    **********************************************************************************/
+    decltype(mNumSteps)
+    getNumSteps() const
+    {
+        return mNumSteps;
+    }
+
+    /******************************************************************************//**
+     * \brief Return time step
+    **********************************************************************************/
+    decltype(mTimeStep)
+    getTimeStep() const
+    {
+        return mTimeStep * mTimeStepScale;
+    }
+
 
     virtual Plato::Scalar v_grad_a      ( Plato::Scalar aTimeStep ) = 0;
     virtual Plato::Scalar u_grad_a      ( Plato::Scalar aTimeStep ) = 0;
@@ -84,9 +202,10 @@ class NewmarkIntegratorUForm : public NewmarkIntegrator<EvaluationType>
     /******************************************************************************/
     explicit 
     NewmarkIntegratorUForm(
-        Teuchos::ParameterList& aParams
+        const Teuchos::ParameterList & aParams,
+              Plato::Scalar            aMaxEigenvalue
     ) :
-        NewmarkIntegrator<EvaluationType>(aParams)
+        NewmarkIntegrator<EvaluationType>(aParams, aMaxEigenvalue)
     /******************************************************************************/
     {
     }
@@ -172,7 +291,7 @@ class NewmarkIntegratorUForm : public NewmarkIntegrator<EvaluationType>
             const Plato::ScalarVector & aV_prev,
             const Plato::ScalarVector & aA,
             const Plato::ScalarVector & aA_prev,
-                  Plato::Scalar dt) override {}
+                  Plato::Scalar dt) override { return Plato::ScalarVector(); }
 
 
     /******************************************************************************/
@@ -238,9 +357,10 @@ class NewmarkIntegratorAForm : public NewmarkIntegrator<EvaluationType>
     /******************************************************************************/
     explicit 
     NewmarkIntegratorAForm(
-        Teuchos::ParameterList& aParams
+        const Teuchos::ParameterList & aParams,
+              Plato::Scalar            aMaxEigenvalue
     ) :
-        NewmarkIntegrator<EvaluationType>(aParams)
+        NewmarkIntegrator<EvaluationType>(aParams, aMaxEigenvalue)
     /******************************************************************************/
     {
     }
@@ -335,7 +455,7 @@ class NewmarkIntegratorAForm : public NewmarkIntegrator<EvaluationType>
             const Plato::ScalarVector & aV_prev,
             const Plato::ScalarVector & aA,
             const Plato::ScalarVector & aA_prev,
-                  Plato::Scalar dt) override {}
+                  Plato::Scalar dt) override { return Plato::ScalarVector(); }
 
 };
 
