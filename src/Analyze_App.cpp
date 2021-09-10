@@ -1487,8 +1487,12 @@ void MPMD_App::ApplyHelmholtzGradient::operator()()
 }
 
 /******************************************************************************/
-void MPMD_App::finalize() { }
+void MPMD_App::finalize()
 /******************************************************************************/
+{
+    mProblem = nullptr; //  mProblem destructor is never called without this.
+}
+
 
 
 /******************************************************************************/
