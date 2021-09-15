@@ -12,7 +12,7 @@ ENV SPACK_ROOT=/usr/local
 RUN echo "source $SPACK_ROOT/share/spack/setup-env.sh" > /etc/profile.d/spack.sh
 
 # install spack
-RUN curl -s -L https://api.github.com/repos/platoengine/spack/tarball | tar xzC $SPACK_ROOT --strip 1
+RUN curl -s -L https://api.github.com/repos/platoengine/spack/tarball/update | tar xzC $SPACK_ROOT --strip 1
 
 # install software
 RUN spack install tar && spack clean -a
