@@ -156,7 +156,7 @@ DEVICE_TYPE inline void dot
 template<Plato::OrdinalType NumStride, Plato::OrdinalType NumOffset>
 inline void extract(const Plato::ScalarMultiVector& aFrom, Plato::ScalarMultiVector& aTo)
 {
-    auto tDim0 = aFrom.dimension_0();
+    auto tDim0 = aFrom.extent(0);
     for(Plato::OrdinalType tIndexI = 0; tIndexI < tDim0; tIndexI++)
     {
         auto tToSubView = Kokkos::subview(aTo, tIndexI, Kokkos::ALL());
@@ -188,7 +188,7 @@ inline void extract(const Plato::ScalarMultiVector& aFrom, Plato::ScalarMultiVec
 template<Plato::OrdinalType NumStride, Plato::OrdinalType NumDim, Plato::OrdinalType NumOffset = 0>
 inline void extract(const Plato::OrdinalType& aNumOrdinal, const Plato::ScalarMultiVector& aFrom, Plato::ScalarMultiVector& aTo)
 {
-    auto tDim0 = aFrom.dimension_0();
+    auto tDim0 = aFrom.extent(0);
     for(Plato::OrdinalType tIndexI = 0; tIndexI < tDim0; tIndexI++)
     {
         auto tToSubView = Kokkos::subview(aTo, tIndexI, Kokkos::ALL());

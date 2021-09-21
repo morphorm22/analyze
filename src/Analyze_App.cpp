@@ -8,6 +8,8 @@
 #include "HDF5IO.hpp"
 #include <PlatoProblemFactory.hpp>
 #include <Plato_OperationsUtilities.hpp>
+#include <Teuchos_XMLParameterListHelpers.hpp>
+
 
 #include <Plato_Console.hpp>
 
@@ -123,7 +125,7 @@ getArgumentName(
 /******************************************************************************/
 MPMD_App::MPMD_App(int aArgc, char **aArgv, MPI_Comm& aLocalComm) :
         mDebugAnalyzeApp(false),
-        mLibOsh(&aArgc, &aArgv, aLocalComm),
+        mLibOsh(&aArgc, &aArgv),
         mMachine(aLocalComm),
         mNumSpatialDims(0),
         mMesh(&mLibOsh)
@@ -240,16 +242,9 @@ createProblem(ProblemDefinition& aDefinition)
   mMesh.set_parting(Omega_h_Parting::OMEGA_H_GHOSTED);
 
   Omega_h::Assoc tAssoc;
-  if (aDefinition.params.isSublist("Associations"))
-  {
-    auto& tAssocParamList = aDefinition.params.sublist("Associations");
-    Omega_h::update_assoc(&tAssoc, tAssocParamList);
-  }
-  else {
-    tAssoc[Omega_h::ELEM_SET] = mMesh.class_sets;
-    tAssoc[Omega_h::NODE_SET] = mMesh.class_sets;
-    tAssoc[Omega_h::SIDE_SET] = mMesh.class_sets;
-  }
+  tAssoc[Omega_h::ELEM_SET] = mMesh.class_sets;
+  tAssoc[Omega_h::NODE_SET] = mMesh.class_sets;
+  tAssoc[Omega_h::SIDE_SET] = mMesh.class_sets;
   mMeshSets = Omega_h::invert(&mMesh, tAssoc);
 
   mDebugAnalyzeApp = aDefinition.params.get<bool>("Debug", false);
@@ -411,6 +406,20 @@ void MPMD_App::initialize()
       mOperationMap[tStrName] = new Visualization(this, tOperationNode, opDef);
     }
     else
+    if(tStrFunction == "ApplyHelmholtz"){
+  #ifdef PLATO_HELMHOLTZ
+      mOperationMap[tStrName] = new ApplyHelmholtz(this, tOperationNode, opDef);
+  #else
+      throw Plato::ParsingException("MPMD_App was not compiled with Helmholtz enabled.  Turn on 'PLATO_HELMHOLTZ' option and rebuild.");
+  #endif // PLATO_HELMHOLTZ
+    } else
+    if(tStrFunction == "ApplyHelmholtzGradient"){
+  #ifdef PLATO_HELMHOLTZ
+      mOperationMap[tStrName] = new ApplyHelmholtzGradient(this, tOperationNode, opDef);
+  #else
+      throw Plato::ParsingException("MPMD_App was not compiled with Helmholtz enabled.  Turn on 'PLATO_HELMHOLTZ' option and rebuild.");
+  #endif // PLATO_HELMHOLTZ
+    } else
     if(tStrFunction == "ComputeMLSField"){
   #ifdef PLATO_GEOMETRY
       auto tMLSName = Plato::Get::String(tOperationNode,"MLSName");
@@ -1388,10 +1397,102 @@ void MPMD_App::Visualization::operator()()
     mOptimizationIterationCounter++;
 }
 
+/******************************************************************************/
+MPMD_App::ApplyHelmholtz::
+ApplyHelmholtz(MPMD_App* aMyApp, Plato::InputData& aOpNode, Teuchos::RCP<ProblemDefinition> aOpDef) :
+        LocalOp(aMyApp, aOpNode, aOpDef),
+        mWriteNativeOutput(false),
+        mVizFilePath("")
+{
+    auto tOutputNode = aOpNode.getByName<Plato::InputData>("WriteOutput");
+    if ( tOutputNode.size() == 1 )
+    {
+        mWriteNativeOutput = true;
+        std::string tDefaultDirectory = "out_vtk";
+        mVizFilePath = Plato::Get::String(tOutputNode[0], "Directory", tDefaultDirectory);
+    } else
+    if ( tOutputNode.size() > 1 )
+    {
+        throw Plato::ParsingException("More than one WriteOutput block specified.");
+    }
+}
+/******************************************************************************/
 
 /******************************************************************************/
-void MPMD_App::finalize() { }
+void MPMD_App::ApplyHelmholtz::operator()()
 /******************************************************************************/
+{
+    if(mMyApp->mDebugAnalyzeApp == true)
+    {
+        REPORT("Analyze Application: Apply Helmholtz Operation.\n");
+    }
+
+    mMyApp->mGlobalSolution = mMyApp->mProblem->solution(mMyApp->mControl);
+
+    Plato::ScalarVector tFilteredControl = Kokkos::subview(mMyApp->mGlobalSolution.get("State"), 0, Kokkos::ALL());
+    Kokkos::deep_copy(mMyApp->mControl, tFilteredControl);
+
+    if(mMyApp->mDebugAnalyzeApp == true)
+    {
+        REPORT("Analyze Application - Apply Helmholtz Operation - Print Filtered Controls.\n");
+        Plato::print(mMyApp->mControl, "controls");
+    }
+
+    // optionally, write solution
+    if(mWriteNativeOutput)
+    {
+        mMyApp->mProblem->output(mVizFilePath);
+    }
+}
+
+/******************************************************************************/
+MPMD_App::ApplyHelmholtzGradient::
+ApplyHelmholtzGradient(MPMD_App* aMyApp, Plato::InputData& aOpNode, Teuchos::RCP<ProblemDefinition> aOpDef) :
+        LocalOp(aMyApp, aOpNode, aOpDef),
+        mWriteNativeOutput(false),
+        mVizFilePath("")
+{
+    auto tOutputNode = aOpNode.getByName<Plato::InputData>("WriteOutput");
+    if ( tOutputNode.size() == 1 )
+    {
+        mWriteNativeOutput = true;
+        std::string tDefaultDirectory = "out_vtk";
+        mVizFilePath = Plato::Get::String(tOutputNode[0], "Directory", tDefaultDirectory);
+    } else
+    if ( tOutputNode.size() > 1 )
+    {
+        throw Plato::ParsingException("More than one WriteOutput block specified.");
+    }
+}
+/******************************************************************************/
+
+/******************************************************************************/
+void MPMD_App::ApplyHelmholtzGradient::operator()()
+/******************************************************************************/
+{
+    if(mMyApp->mDebugAnalyzeApp == true)
+    {
+        REPORT("Analyze Application: Apply Helmholtz Gradient Operation.\n");
+    }
+
+    std::string tDummyString = "Helmholtz gradient";
+    mMyApp->mControl = mMyApp->mProblem->criterionGradient(mMyApp->mControl,tDummyString);
+
+    if(mMyApp->mDebugAnalyzeApp == true)
+    {
+        REPORT("Analyze Application - Apply Helmholtz Gradient Operation - Print Partial of Filtered Controls wrt Unfiltered Controls.\n");
+        Plato::print(mMyApp->mControl, "partial filtered wrt unfiltered");
+    }
+
+}
+
+/******************************************************************************/
+void MPMD_App::finalize()
+/******************************************************************************/
+{
+    mProblem = nullptr; //  mProblem destructor is never called without this.
+}
+
 
 
 /******************************************************************************/

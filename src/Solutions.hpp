@@ -26,6 +26,7 @@ private:
     std::string mPhysics; /*!< physics to be analyzed/simulated */
     std::unordered_map<std::string, Plato::ScalarMultiVector> mSolution; /*!< map from state solution name to 2D POD array */
     std::unordered_map<std::string, Plato::OrdinalType> mSolutionNameToNumDofsMap; /*!< map from state solution name to number of dofs */
+    std::unordered_map<std::string, std::vector<std::string>> mSolutionNameToDofNamesMap; /*!< map from state solution name to dof names */
 
 public:
     /***************************************************************************//**
@@ -79,6 +80,19 @@ public:
     void set(const std::string& aTag, const Plato::ScalarMultiVector& aData);
 
     /***************************************************************************//**
+     * \fn void set
+     *
+     * \brief Set value of an element in the solution map.
+     * \param aTag  data tag
+     * \param aData 2D POD array
+     * \param aDofNames list of dof names
+     ******************************************************************************/
+    void
+    set( const std::string              & aTag, 
+         const Plato::ScalarMultiVector & aData,
+         const std::vector<std::string> & aDofNames );
+
+    /***************************************************************************//**
      * \fn Plato::ScalarMultiVector get
      *
      * \brief Return 2D POD array.
@@ -96,6 +110,15 @@ public:
     void setNumDofs(const std::string& aTag, const Plato::OrdinalType& aNumDofs);
 
     /***************************************************************************//**
+     * \fn void set names of degrees of freedom (dofs) for this entry in the map
+     *
+     * \brief Set value of an element in the solution-to-dofnames map.
+     * \param aTag  data tag
+     * \param aDofNames names of dofs
+     ******************************************************************************/
+    void setDofNames(const std::string& aTag, const std::vector<std::string>& aDofNames);
+
+    /***************************************************************************//**
      * \fn Plato::OrdinalType get the number of degrees of freedom (dofs)
      *
      * \brief Return the number of dofs
@@ -110,6 +133,12 @@ public:
      * \param aTag data tag
      ******************************************************************************/
     Plato::OrdinalType getNumTimeSteps() const;
+
+    /***************************************************************************//**
+     * \brief Return the names of the degrees of freedom
+     * \param aTag data tag
+     ******************************************************************************/
+    std::vector<std::string> getDofNames(const std::string& aTag) const;
 
     /***************************************************************************//**
      * \fn void print

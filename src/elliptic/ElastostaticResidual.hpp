@@ -53,16 +53,19 @@ private:
     using PhysicsType::mNumDofsPerNode;
     using PhysicsType::mNumDofsPerCell;
 
-    using Plato::Elliptic::AbstractVectorFunction<EvaluationType>::mSpatialDomain;
-    using Plato::Elliptic::AbstractVectorFunction<EvaluationType>::mDataMap;
+    using FunctionBaseType = Plato::Elliptic::AbstractVectorFunction<EvaluationType>;
+
+    using FunctionBaseType::mSpatialDomain;
+    using FunctionBaseType::mDataMap;
+    using FunctionBaseType::mDofNames;
 
     using StateScalarType   = typename EvaluationType::StateScalarType;
     using ControlScalarType = typename EvaluationType::ControlScalarType;
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
-    using FunctionBaseType = Plato::Elliptic::AbstractVectorFunction<EvaluationType>;
-    using CubatureType  = Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>;
+    using CubatureType  = Plato::LinearTetCubRuleDegreeOne<mSpaceDim>;
+
     IndicatorFunctionType mIndicatorFunction;
     Plato::ApplyWeighting<mSpaceDim, mNumVoigtTerms, IndicatorFunctionType> mApplyWeighting;
 
@@ -97,6 +100,11 @@ public:
         mCellForcing       (nullptr),
         mCubatureRule      (std::make_shared<CubatureType>())
     {
+        // obligatory: define dof names in order
+        mDofNames.push_back("Displacement X");
+        if(mSpaceDim > 1) mDofNames.push_back("Displacement Y");
+        if(mSpaceDim > 2) mDofNames.push_back("Displacement Z");
+
         // create material model and get stiffness
         //
         Plato::ElasticModelFactory<mSpaceDim> tMaterialModelFactory(aProblemParams);
@@ -141,7 +149,8 @@ public:
       Plato::ScalarMultiVector tDisplacements = aSolutions.get("State");
       Plato::Solutions tSolutionsOutput(aSolutions.physics(), aSolutions.pde());
       tSolutionsOutput.set("Displacement", tDisplacements);
-      tSolutionsOutput.setNumDofs("Displacement", 3);
+      Plato::OrdinalType tSpaceDim = mSpaceDim;
+      tSolutionsOutput.setNumDofs("Displacement", tSpaceDim);
       return tSolutionsOutput;
     }
 

@@ -17,10 +17,10 @@
 #include "elliptic/AbstractVectorFunction.hpp"
 #include "elliptic/ThermoelastostaticResidual.hpp"
 #include "elliptic/InternalThermoelasticEnergy.hpp"
+#include "elliptic/TMStressPNorm.hpp"
 
 #include "AbstractLocalMeasure.hpp"
 #include "AnalyzeMacros.hpp"
-//#include "TMStressPNorm.hpp"
 #include "Simp.hpp"
 #include "Ramp.hpp"
 #include "Heaviside.hpp"
@@ -252,25 +252,24 @@ struct FunctionFactory
             }
         }
         else 
-#ifdef NOPE
         if(aStrScalarFunctionType == "Stress P-Norm")
         {
             if(tPenaltyType == "SIMP")
             {
-                return std::make_shared<Plato::TMStressPNorm<EvaluationType, Plato::MSIMP>>
-                         (aMesh, aMeshSets, aDataMap, aParamList, tPenaltyParams, aStrScalarFunctionName);
+                return std::make_shared<Plato::Elliptic::TMStressPNorm<EvaluationType, Plato::MSIMP>>
+                         (aSpatialDomain, aDataMap, aParamList, tPenaltyParams, aStrScalarFunctionName);
             }
             else 
             if(tPenaltyType == "RAMP")
             {
-                return std::make_shared<Plato::TMStressPNorm<EvaluationType, Plato::RAMP>>
-                         (aMesh, aMeshSets, aDataMap, aParamList, tPenaltyParams, aStrScalarFunctionName);
+                return std::make_shared<Plato::Elliptic::TMStressPNorm<EvaluationType, Plato::RAMP>>
+                         (aSpatialDomain, aDataMap, aParamList, tPenaltyParams, aStrScalarFunctionName);
             }
             else 
             if(tPenaltyType == "Heaviside")
             {
-                return std::make_shared<Plato::TMStressPNorm<EvaluationType, Plato::Heaviside>>
-                         (aMesh, aMeshSets, aDataMap, aParamList, tPenaltyParams, aStrScalarFunctionName);
+                return std::make_shared<Plato::Elliptic::TMStressPNorm<EvaluationType, Plato::Heaviside>>
+                         (aSpatialDomain, aDataMap, aParamList, tPenaltyParams, aStrScalarFunctionName);
             }
             else
             {
@@ -278,7 +277,6 @@ struct FunctionFactory
             }
         }
         else
-#endif
         {
             THROWERR("Unknown 'Objective' specified in 'Plato Problem' ParameterList");
         }

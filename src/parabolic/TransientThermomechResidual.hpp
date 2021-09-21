@@ -57,8 +57,11 @@ class TransientThermomechResidual :
     using Plato::SimplexThermomechanics<SpaceDim>::mNumDofsPerCell;
     using Plato::SimplexThermomechanics<SpaceDim>::mNumDofsPerNode;
 
-    using Plato::Parabolic::AbstractVectorFunction<EvaluationType>::mSpatialDomain;
-    using Plato::Parabolic::AbstractVectorFunction<EvaluationType>::mDataMap;
+    using FunctionBaseType = Plato::Parabolic::AbstractVectorFunction<EvaluationType>;
+
+    using FunctionBaseType::mSpatialDomain;
+    using FunctionBaseType::mDataMap;
+    using FunctionBaseType::mDofNames;
 
     using StateScalarType    = typename EvaluationType::StateScalarType;
     using StateDotScalarType = typename EvaluationType::StateDotScalarType;
@@ -66,7 +69,6 @@ class TransientThermomechResidual :
     using ConfigScalarType   = typename EvaluationType::ConfigScalarType;
     using ResultScalarType   = typename EvaluationType::ResultScalarType;
 
-    using FunctionBaseType = Plato::Parabolic::AbstractVectorFunction<EvaluationType>;
     using CubatureType = Plato::LinearTetCubRuleDegreeOne<SpaceDim>;
 
     IndicatorFunctionType mIndicatorFunction;
@@ -92,7 +94,7 @@ class TransientThermomechResidual :
               Teuchos::ParameterList & aProblemParams,
               Teuchos::ParameterList & aPenaltyParams
      ) :
-         FunctionBaseType      (aSpatialDomain, aDataMap, {"Displacement X", "Displacement Y", "Displacement Z", "Temperature"}),
+         FunctionBaseType      (aSpatialDomain, aDataMap),
          mIndicatorFunction    (aPenaltyParams),
          mApplyStressWeighting (mIndicatorFunction),
          mApplyFluxWeighting   (mIndicatorFunction),
@@ -102,6 +104,12 @@ class TransientThermomechResidual :
          mBoundaryFluxes       (nullptr)
     /**************************************************************************/
     {
+        // obligatory: define dof names in order
+        mDofNames.push_back("Displacement X");
+        if(SpaceDim > 1) mDofNames.push_back("Displacement Y");
+        if(SpaceDim > 2) mDofNames.push_back("Displacement Z");
+        mDofNames.push_back("Temperature");
+
         {
             Plato::ThermoelasticModelFactory<SpaceDim> mmfactory(aProblemParams);
             mMaterialModel = mmfactory.create(aSpatialDomain.getMaterialName());

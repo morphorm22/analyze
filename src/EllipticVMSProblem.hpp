@@ -81,7 +81,7 @@ private:
 
     rcp<Plato::AbstractSolver> mSolver;
 
-    std::string mPDE; /*!< partial differential equation type */
+    std::string mPDEType; /*!< partial differential equation type */
     std::string mPhysics; /*!< physics used for the simulation */
 
 public:
@@ -110,7 +110,7 @@ public:
       mProjPGrad       ("Projected PGrad", mStateProjection.size()),
       mProjectState    ("Project State", aMesh.nverts()),
       mProjJacobian    (Teuchos::null),
-      mPDE             (aInputParams.get<std::string>("PDE Constraint")),
+      mPDEType         (aInputParams.get<std::string>("PDE Constraint")),
       mPhysics         (aInputParams.get<std::string>("Physics"))
     {
         this->initialize(aInputParams);
@@ -299,7 +299,7 @@ public:
 
         }
 
-        Plato::Solutions tSolution(mPhysics, mPDE);
+        Plato::Solutions tSolution(mPhysics, mPDEType);
         tSolution.set("State", mGlobalState);
         return tSolution;
     }
@@ -746,6 +746,17 @@ private:
                 mEta = Plato::ScalarVector("Eta", tLength);
             }
         }
+    }
+    /******************************************************************************/ /**
+    * \brief Return solution database.
+    * \return solution database
+    **********************************************************************************/
+    Plato::Solutions getSolution() const override
+    {
+        Plato::Solutions tSolution(mPhysics, mPDEType);
+        tSolution.set("State", mGlobalState);
+        tSolution.setDofNames("State", mPDEConstraint.getDofNames());
+        return tSolution;
     }
 };
 // class EllipticVMSProblem

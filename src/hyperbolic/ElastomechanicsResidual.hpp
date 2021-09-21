@@ -3,6 +3,7 @@
 
 #include "Simp.hpp"
 #include "Ramp.hpp"
+#include "BLAS1.hpp"
 #include "BLAS2.hpp"
 #include "ToMap.hpp"
 #include "Strain.hpp"
@@ -120,6 +121,37 @@ class TransientMechanicsResidual :
         {
             mPlottable = tResidualParams.get<Teuchos::Array<std::string>>("Plottable").toVector();
         }
+    }
+
+    /**************************************************************************//**
+    * \brief return the maximum eigenvalue of the gradient wrt state
+    ******************************************************************************/
+    Plato::Scalar
+    getMaxEigenvalue(
+        const Plato::ScalarArray3D & aConfig
+    ) const override
+    {
+        auto tNumCells = mSpatialDomain.numCells();
+        Plato::ScalarVector tCellVolume("cell weight", tNumCells);
+
+        Plato::ComputeCellVolume<SpaceDim> tComputeVolume;
+
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+        {
+            Plato::Scalar tThisVolume;
+            tComputeVolume(aCellOrdinal, aConfig, tThisVolume);
+            tCellVolume(aCellOrdinal) = tThisVolume;
+        }, "compute volume");
+
+        Plato::Scalar tMinVolume;
+        Plato::blas1::min(tCellVolume, tMinVolume);
+        Plato::Scalar tLength = pow(tMinVolume, 1.0/SpaceDim);
+
+        auto tStiffnessMatrix = mMaterialModel->getStiffnessMatrix();
+        auto tMassDensity     = mMaterialModel->getMassDensity();
+        auto tSoundSpeed = sqrt(tStiffnessMatrix(0,0)/tMassDensity);
+
+        return 2.0*tSoundSpeed/tLength;
     }
 
     /**************************************************************************//**

@@ -79,6 +79,13 @@ public:
     }
 
     /**************************************************************************//**
+    * \brief return the maximum eigenvalue of the gradient wrt state
+    * \param [in] aConfig Current node locations
+    * \return maximum eigenvalue
+    ******************************************************************************/
+    virtual Plato::Scalar getMaxEigenvalue(const Plato::ScalarArray3D & aConfig) const = 0;
+
+    /**************************************************************************//**
     * \brief Call the output state function in the residual
     * \param [in] aSolutions State solutions database
     * \return output solutions database

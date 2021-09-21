@@ -185,6 +185,32 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
         return mBoundaryLoadsResidualFunction->getSolutionStateOutputData(aSolutions);
     }
 
+    Plato::Scalar getMaxEigenvalue() const
+    {
+        Plato::Scalar tMaxEigenvalue(0.0);
+
+        using ConfigScalar = typename Residual::ConfigScalarType;
+
+        for(const auto& tDomain : mSpatialModel.Domains)
+        {
+            auto tNumCells = tDomain.numCells();
+            auto tName     = tDomain.getDomainName();
+
+            // Workset config
+            // 
+            Plato::ScalarArray3DT<ConfigScalar> tConfigWS("Config Workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
+            Plato::WorksetBase<PhysicsT>::worksetConfig(tConfigWS, tDomain);
+
+            auto tDomainMax = mResidualFunctions.at(tName)->getMaxEigenvalue(tConfigWS);
+
+            if( tDomainMax > tMaxEigenvalue )
+            {
+                tMaxEigenvalue = tDomainMax;
+            }
+        }
+        return tMaxEigenvalue;
+    }
+
     /**************************************************************************/
     Plato::ScalarVector
     value(

@@ -8,7 +8,6 @@
 
 #include <Omega_h_mesh.hpp>
 #include <Omega_h_assoc.hpp>
-#include <Omega_h_teuchos.hpp>
 
 #include <Plato_InputData.hpp>
 #include <Plato_Application.hpp>
@@ -138,6 +137,11 @@ public:
     **********************************************************************************/
     void initialize();
 
+     /******************************************************************************//**
+     * \brief reinitialize
+    **********************************************************************************/
+    void reinitialize() {};
+
     /******************************************************************************//**
      * \brief Compute this operation
      * \param [in] aOperationName operation name
@@ -213,7 +217,7 @@ public:
         else if(aName == "Solution")
         {
             auto tTags = mGlobalSolution.tags();
-	    auto tState = mGlobalSolution.get(tTags[0]);
+            auto tState = mGlobalSolution.get(tTags[0]);
             const Plato::OrdinalType tTIME_STEP_INDEX = 0;
             auto tStatesSubView = Kokkos::subview(tState, tTIME_STEP_INDEX, Kokkos::ALL());
             this->copyFieldIntoAnalyze(tStatesSubView, aSharedField);
@@ -380,17 +384,29 @@ public:
     void exportElementField(const std::string& aName, SharedDataT& aSharedField, int aIndex=0)
     {
         auto tDataMap = mProblem->getDataMap();
-        if(tDataMap.scalarVectors.count(aName))
+
+        // does the map have saved states?  If so, use the last one.  If not, use the map itself.
+        decltype(tDataMap) tMap;
+        if(tDataMap.stateDataMaps.size())
         {
-            auto tData = tDataMap.scalarVectors.at(aName);
+            tMap = tDataMap.stateDataMaps.back();
+        }
+        else
+        {
+            tMap = tDataMap;
+        }
+
+        if(tMap.scalarVectors.count(aName))
+        {
+            auto tData = tMap.scalarVectors.at(aName);
             this->copyFieldFromAnalyze(tData, aSharedField);
         }
-        else if(tDataMap.scalarMultiVectors.count(aName))
+        else if(tMap.scalarMultiVectors.count(aName))
         {
-            auto tData = tDataMap.scalarMultiVectors.at(aName);
+            auto tData = tMap.scalarMultiVectors.at(aName);
             this->copyFieldFromAnalyze(tData, aIndex, aSharedField);
         }
-        else if(tDataMap.scalarArray3Ds.count(aName))
+        else if(tMap.scalarArray3Ds.count(aName))
         {
         }
     }
@@ -403,6 +419,7 @@ public:
     template<typename SharedDataT>
     void exportScalarField(const std::string& aName, SharedDataT& aSharedField, int aIndex=0)
     {
+
         if(aName == "Topology")
         {
             this->copyFieldFromAnalyze(mControl, aSharedField);
@@ -420,26 +437,6 @@ public:
             }
             this->copyFieldFromAnalyze(tCriter, aSharedField);
         }
-        else if(aName == "Solution")
-        {
-	        auto tScalarField = Plato::extract_solution(aName, mGlobalSolution, /*dof*/0, /*stride=*/1);
-            this->copyFieldFromAnalyze(tScalarField, aSharedField);
-        }
-        else if(aName == "Solution X")
-        {
-	        auto tScalarField = Plato::extract_solution(aName, mGlobalSolution, /*dof*/0, /*stride=*/mNumSpatialDims);
-            this->copyFieldFromAnalyze(tScalarField, aSharedField);
-        }
-        else if(aName == "Solution Y")
-        {
-	        auto tScalarField = Plato::extract_solution(aName, mGlobalSolution, /*dof*/1, /*stride=*/mNumSpatialDims);
-            this->copyFieldFromAnalyze(tScalarField, aSharedField);
-        }
-        else if(aName == "Solution Z")
-        {
-	        auto tScalarField = Plato::extract_solution(aName, mGlobalSolution, /*dof*/2, /*stride=*/mNumSpatialDims);
-            this->copyFieldFromAnalyze(tScalarField, aSharedField);
-        }
         else
         if(mGradientXNameToCriterionName.count(aName))
         {
@@ -447,6 +444,41 @@ public:
             auto tScalarField = Plato::get_vector_component(mCriterionGradientsX[tStrCriterion], aIndex, /*stride=*/mNumSpatialDims);
             this->copyFieldFromAnalyze(tScalarField, aSharedField);
         }
+        else
+        if(isSolutionComponent(aName))
+        {
+            this->copyFieldFromAnalyze(getSolutionComponent(aName), aSharedField);
+        }
+    }
+
+    /******************************************************************************//**
+     * \brief Is aName a solution component?
+     **********************************************************************************/
+    inline bool isSolutionComponent(const std::string& aName)
+    {
+        auto tSolution = mProblem->getSolution();
+        auto tDofNames = tSolution.getDofNames("State");
+        return count(tDofNames.begin(), tDofNames.end(), aName) > 0;
+    }
+
+    /******************************************************************************//**
+     * \brief get Solution component named aName from solution
+     **********************************************************************************/
+    inline Plato::ScalarVector getSolutionComponent(const std::string& aName)
+    {
+        auto tSolution = mProblem->getSolution();
+        auto tDofNames = tSolution.getDofNames("State");
+        auto tIterator = find(tDofNames.begin(), tDofNames.end(), aName);
+
+        int tIndex  = tIterator - tDofNames.begin();
+        int tStride = tDofNames.size();
+
+        auto tState = tSolution.get("State");
+
+        auto tLastStepIndex = tState.extent(0) - 1;
+        auto tStatesSubView = Kokkos::subview(tState, tLastStepIndex, Kokkos::ALL());
+        auto tScalarField = Plato::get_vector_component(tStatesSubView, tIndex, tStride);
+        return tScalarField;
     }
 
     /******************************************************************************//**
@@ -468,7 +500,7 @@ private:
     /******************************************************************************//**
      * \fn resetProblemMetaData
      * \brief Reset Analyze problem metadata. Metadata includes state, control, and \n
-     * respective gradients.  
+     * respective gradients.
     **********************************************************************************/
     void resetProblemMetaData();
 
@@ -799,7 +831,7 @@ private:
     /******************************************************************************/
     class ReloadMesh : public LocalOp
     {
-    public:	
+    public:
         ReloadMesh(MPMD_App* aMyApp, Plato::InputData& aNode, Teuchos::RCP<ProblemDefinition> aOpDef);
         void operator()();
     private:
@@ -826,14 +858,14 @@ private:
 
     /******************************************************************************//**
      * \class Visualization
-     * \brief Plato Analyze operation used to visualize output field data at each 
-     *        optimization iteration. This operation avoids having to send large 
-     *        field data sets through Plato Engine. 
-     * 
-     *        The output history is saved inside the 'plato_analyze_output' 
-     *        directory. One can have access to the output information for each 
-     *        optimization iteration (e.g. 'plato_analyze_output/iteration#', 
-     *        where # denotes the optimization itertion) or for the full 
+     * \brief Plato Analyze operation used to visualize output field data at each
+     *        optimization iteration. This operation avoids having to send large
+     *        field data sets through Plato Engine.
+     *
+     *        The output history is saved inside the 'plato_analyze_output'
+     *        directory. One can have access to the output information for each
+     *        optimization iteration (e.g. 'plato_analyze_output/iteration#',
+     *        where # denotes the optimization itertion) or for the full
      *        optimization run (e.g. 'plato_analyze_output/history.pvd')
     **********************************************************************************/
     class Visualization : public LocalOp
@@ -848,6 +880,38 @@ private:
         std::string mVizDirectory = "plato_analyze_output";
     };
     friend class Visualization;
+    /******************************************************************************/
+
+#ifdef PLATO_HELMHOLTZ
+    // Apply Helmholtz sub-class
+    //
+    /******************************************************************************/
+    class ApplyHelmholtz : public LocalOp
+    {
+    public:
+        ApplyHelmholtz(MPMD_App* aMyApp, Plato::InputData& aNode, Teuchos::RCP<ProblemDefinition> aOpDef);
+        void operator()();
+    private:
+        bool mWriteNativeOutput;
+        std::string mVizFilePath;
+    };
+    friend class ApplyHelmholtz;
+    /******************************************************************************/
+
+    // Apply Helmholtz Gradient sub-class
+    //
+    /******************************************************************************/
+    class ApplyHelmholtzGradient : public LocalOp
+    {
+    public:
+        ApplyHelmholtzGradient(MPMD_App* aMyApp, Plato::InputData& aNode, Teuchos::RCP<ProblemDefinition> aOpDef);
+        void operator()();
+    private:
+        bool mWriteNativeOutput;
+        std::string mVizFilePath;
+    };
+    friend class ApplyHelmholtzGradient;
+#endif
 #ifdef PLATO_GEOMETRY
     // MLS sub-class
     //
