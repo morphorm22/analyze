@@ -65,7 +65,7 @@ int main(int aArgc, char **aArgv)
 
     try
     {
-      tPlatoInterface->registerPerformer(tMyApp);
+      tPlatoInterface->registerApplication(tMyApp);
     }
     catch(...)
     {

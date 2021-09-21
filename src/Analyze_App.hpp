@@ -137,6 +137,11 @@ public:
     **********************************************************************************/
     void initialize();
 
+     /******************************************************************************//**
+     * \brief reinitialize
+    **********************************************************************************/
+    void reinitialize() {};
+
     /******************************************************************************//**
      * \brief Compute this operation
      * \param [in] aOperationName operation name
@@ -212,7 +217,7 @@ public:
         else if(aName == "Solution")
         {
             auto tTags = mGlobalSolution.tags();
-	    auto tState = mGlobalSolution.get(tTags[0]);
+            auto tState = mGlobalSolution.get(tTags[0]);
             const Plato::OrdinalType tTIME_STEP_INDEX = 0;
             auto tStatesSubView = Kokkos::subview(tState, tTIME_STEP_INDEX, Kokkos::ALL());
             this->copyFieldIntoAnalyze(tStatesSubView, aSharedField);
@@ -495,7 +500,7 @@ private:
     /******************************************************************************//**
      * \fn resetProblemMetaData
      * \brief Reset Analyze problem metadata. Metadata includes state, control, and \n
-     * respective gradients.  
+     * respective gradients.
     **********************************************************************************/
     void resetProblemMetaData();
 
@@ -826,7 +831,7 @@ private:
     /******************************************************************************/
     class ReloadMesh : public LocalOp
     {
-    public:	
+    public:
         ReloadMesh(MPMD_App* aMyApp, Plato::InputData& aNode, Teuchos::RCP<ProblemDefinition> aOpDef);
         void operator()();
     private:
@@ -853,14 +858,14 @@ private:
 
     /******************************************************************************//**
      * \class Visualization
-     * \brief Plato Analyze operation used to visualize output field data at each 
-     *        optimization iteration. This operation avoids having to send large 
-     *        field data sets through Plato Engine. 
-     * 
-     *        The output history is saved inside the 'plato_analyze_output' 
-     *        directory. One can have access to the output information for each 
-     *        optimization iteration (e.g. 'plato_analyze_output/iteration#', 
-     *        where # denotes the optimization itertion) or for the full 
+     * \brief Plato Analyze operation used to visualize output field data at each
+     *        optimization iteration. This operation avoids having to send large
+     *        field data sets through Plato Engine.
+     *
+     *        The output history is saved inside the 'plato_analyze_output'
+     *        directory. One can have access to the output information for each
+     *        optimization iteration (e.g. 'plato_analyze_output/iteration#',
+     *        where # denotes the optimization itertion) or for the full
      *        optimization run (e.g. 'plato_analyze_output/history.pvd')
     **********************************************************************************/
     class Visualization : public LocalOp
