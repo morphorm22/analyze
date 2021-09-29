@@ -72,7 +72,15 @@ public:
   //protected:
 
 // ************************************************************************* //
-  enum NodeID  // Node arithmetic operation
+  enum struct NodeID  // Node arithmetic operation - note these are
+                      // strongly typed (via the struct) because many
+                      // of the enums are common words. Strongly
+                      // typing them makes them unique.
+
+                      // Note the underscore with SUBTRACTION_
+                      // because of a conflict with the SUBTRACTION
+                      // defined globally in EGADS: Electronic
+                      // Geometry Aircraft Design System.
   {
     EMPTY_NODE,
 
@@ -86,7 +94,7 @@ public:
     NEGATIVE,
 
     ADDITION,
-    SUBTRACTION,
+    SUBTRACTION_,
     MULTIPLICATION,
     DIVISION,
 
@@ -107,7 +115,7 @@ public:
   };
 
 // ************************************************************************* //
-  enum NodeInfo  // Used for inserting nodes.
+  enum struct NodeInfo  // Used for inserting nodes.
   {
     NoInfo,
     SkipClimbUp,
@@ -139,7 +147,7 @@ public:
 // ************************************************************************* //
   // Node stucture for expression tree.
   typedef struct _Node {
-    NodeID ID{ EMPTY_NODE };             // Arithmetic operation
+    NodeID ID{ NodeID::EMPTY_NODE };     // Arithmetic operation
 
     Plato::OrdinalType precedence{ 0 };  // Precedence in the tree
 
@@ -754,7 +762,7 @@ valid_expression( const bool checkVariables ) const
 {
   // Return false if a non empty node is found.
   return (validateNode( mTreeRootNode, checkVariables ) ==
-          ExpressionEvaluator::EMPTY_NODE);
+          ExpressionEvaluator::NodeID::EMPTY_NODE);
 }
 
 /******************************************************************************//**
@@ -964,7 +972,7 @@ parse_expression( const char* expression )
   // Parse the expression.
   while( true )
   {
-    NodeInfo info = NoInfo;     // Set the info to the default value
+    NodeInfo info = NodeInfo::NoInfo;     // Set the info to the default value
 
     Plato::OrdinalType i_node = mNodesUsed++;
 
@@ -996,12 +1004,16 @@ parse_expression( const char* expression )
       numOpenAbsBars.push_back( 0 );
       beginABS = false;
 
-      mNodes[i_node].ID = OPEN_PARENTHESIS;  mNodes[i_node].precedence = 0; info = SkipClimbUp;
+      mNodes[i_node].ID = NodeID::OPEN_PARENTHESIS;
+      mNodes[i_node].precedence = 0;
+      info = NodeInfo::SkipClimbUp;
     }
     // Close parenthesis
     else if( c == ')' )
     {
-      mNodes[i_node].ID = CLOSE_PARENTHESIS; mNodes[i_node].precedence = 0; info = RightAssociative;
+      mNodes[i_node].ID = NodeID::CLOSE_PARENTHESIS;
+      mNodes[i_node].precedence = 0;
+      info = NodeInfo::RightAssociative;
 
       // When closing make sure there is a corresponding open parenthesis
       if( numOpenParens.back() == 0 )
@@ -1053,20 +1065,24 @@ parse_expression( const char* expression )
         numOpenParens.push_back( 0 );
 
         // Create and ABS mNodes[i_node].
-        mNodes[i_node].ID = OPEN_ABS_BAR;  mNodes[i_node].precedence = 1;  info = SkipClimbUp;
+        mNodes[i_node].ID = NodeID::OPEN_ABS_BAR;
+        mNodes[i_node].precedence = 1;
+        info = NodeInfo::SkipClimbUp;
       }
       // Close absolute value.
       else {
         beginABS = false;
 
-        mNodes[i_node].ID = CLOSE_ABS_BAR;  mNodes[i_node].precedence = 1;  info = RightAssociative;
+        mNodes[i_node].ID = NodeID::CLOSE_ABS_BAR;
+        mNodes[i_node].precedence = 1;
+        info = NodeInfo::RightAssociative;
 
         // When closing make sure there is an open absolute value bar
         if( numOpenAbsBars.back() == 0 )
         {
           errorMsg << "Invalid expression: "
                    << "Found a close absolute value bar '|' without a "
-                    << "corresponding open absolute value bar '|'";
+                   << "corresponding open absolute value bar '|'";
           break;
         }
         // When closing make sure there is not an open parenthesis
@@ -1093,92 +1109,94 @@ parse_expression( const char* expression )
     {
       // Distinguish between a plus/mius sign vs making a result
       // positive/negative.
-      if(   mNodes[i_previous].ID == NUMBER
-         || mNodes[i_previous].ID == VARIABLE
-         || mNodes[i_previous].ID == FACTORIAL
-         || mNodes[i_previous].ID == CLOSE_PARENTHESIS
-         || mNodes[i_previous].ID == CLOSE_ABS_BAR )
+      if(   mNodes[i_previous].ID == NodeID::NUMBER
+         || mNodes[i_previous].ID == NodeID::VARIABLE
+         || mNodes[i_previous].ID == NodeID::FACTORIAL
+         || mNodes[i_previous].ID == NodeID::CLOSE_PARENTHESIS
+         || mNodes[i_previous].ID == NodeID::CLOSE_ABS_BAR )
       {
-        mNodes[i_node].ID = (c == '+' ? ADDITION : SUBTRACTION);
+        mNodes[i_node].ID = (c == '+' ? NodeID::ADDITION : NodeID::SUBTRACTION_);
         mNodes[i_node].precedence = 2;
-        info = LeftAssociative;
+        info = NodeInfo::LeftAssociative;
       }
       else {
-        mNodes[i_node].ID = (c == '+' ? POSITIVE : NEGATIVE);
+        mNodes[i_node].ID = (c == '+' ? NodeID::POSITIVE : NodeID::NEGATIVE);
         mNodes[i_node].precedence = 5;
-        info = SkipClimbUp;
+        info = NodeInfo::SkipClimbUp;
       }
     }
 
     else if( c == '*' ) {
-      mNodes[i_node].ID = MULTIPLICATION;
+      mNodes[i_node].ID = NodeID::MULTIPLICATION;
       mNodes[i_node].precedence = 3;
-      info = LeftAssociative;
+      info = NodeInfo::LeftAssociative;
     }
     else if( c == '/' ) {
-      mNodes[i_node].ID = DIVISION;
+      mNodes[i_node].ID = NodeID::DIVISION;
       mNodes[i_node].precedence = 3;
-      info = LeftAssociative;
+      info = NodeInfo::LeftAssociative;
     }
     else if( c == '^' ) {
-      mNodes[i_node].ID = POWER;
+      mNodes[i_node].ID = NodeID::POWER;
       mNodes[i_node].precedence = 4;
-      info = RightAssociative;
+      info = NodeInfo::RightAssociative;
     }
     // else if( c == '!' ) {
-    //   mNodes[i_node].ID = FACTORIAL;       mNodes[i_node].precedence = 6;  info = LeftAssociative;
+    //   mNodes[i_node].ID = FACTORIAL;
+    //   mNodes[i_node].precedence = 6;
+    //   info = NodeInfo::LeftAssociative;
     // }
 
     // Functions
     else if( memcmp(expPtr-1, "sin" , 3) == 0 ) {
       expPtr += 3-1;
-      mNodes[i_node].ID = SIN;
+      mNodes[i_node].ID = NodeID::SIN;
       mNodes[i_node].precedence = 7;
-      info = LeftAssociative;
+      info = NodeInfo::LeftAssociative;
     }
     else if( memcmp(expPtr-1, "cos" , 3) == 0 ) {
       expPtr += 3-1;
-      mNodes[i_node].ID = COS;
+      mNodes[i_node].ID = NodeID::COS;
       mNodes[i_node].precedence = 7;
-      info = LeftAssociative;
+      info = NodeInfo::LeftAssociative;
     }
     else if( memcmp(expPtr-1, "tan" , 3) == 0 ) {
       expPtr += 3-1;
-      mNodes[i_node].ID = TAN;
+      mNodes[i_node].ID = NodeID::TAN;
       mNodes[i_node].precedence = 7;
-      info = LeftAssociative;
+      info = NodeInfo::LeftAssociative;
     }
 
     else if( memcmp(expPtr-1, "exp" , 3) == 0 ) {
       expPtr += 3-1;
-      mNodes[i_node].ID = EXPONENTIAL;
+      mNodes[i_node].ID = NodeID::EXPONENTIAL;
       mNodes[i_node].precedence = 7;
-      info = LeftAssociative;
+      info = NodeInfo::LeftAssociative;
     }
     else if( memcmp(expPtr-1, "log" , 3) == 0 ) {
       expPtr += 3-1;
-      mNodes[i_node].ID = LOG;
+      mNodes[i_node].ID = NodeID::LOG;
       mNodes[i_node].precedence = 7;
-      info = LeftAssociative;
+      info = NodeInfo::LeftAssociative;
     }
     else if( memcmp(expPtr-1, "sqrt", 4) == 0 ) {
       expPtr += 4-1;
-      mNodes[i_node].ID = SQRT;
+      mNodes[i_node].ID = NodeID::SQRT;
       mNodes[i_node].precedence = 7;
-      info = LeftAssociative;
+      info = NodeInfo::LeftAssociative;
     }
     else if( memcmp(expPtr-1, "abs" , 3) == 0 ) {
       expPtr += 3-1;
-      mNodes[i_node].ID = ABS;
+      mNodes[i_node].ID = NodeID::ABS;
       mNodes[i_node].precedence = 7;
-      info = LeftAssociative;
+      info = NodeInfo::LeftAssociative;
     }
 
     // For two argument functions push the function on to the next ID
     // stack. But do not create a mNodes[i_node]. The node will be created when
     // the corresponding comma is found.
     else if( memcmp(expPtr-1, "pow" , 3) == 0 ) {
-      expPtr += 3-1; twoParamFunctionIDs.push_back( POWER );
+      expPtr += 3-1; twoParamFunctionIDs.push_back( NodeID::POWER );
       twoParamFunctionLocations.push_back( strlen(expression) - strlen(expPtr) - 1 );
 
       continue;
@@ -1191,7 +1209,7 @@ parse_expression( const char* expression )
       {
         mNodes[i_node].ID = twoParamFunctionIDs.back();
         mNodes[i_node].precedence = 5;
-        info = LeftAssociative;
+        info = NodeInfo::LeftAssociative;
 
         twoParamFunctionIDs.pop_back();
         twoParamFunctionLocations.pop_back();
@@ -1206,9 +1224,9 @@ parse_expression( const char* expression )
     // Fixed constant
     else if( memcmp(expPtr-1, "PI"  , 2) == 0 ) {
       expPtr += 2-1;
-      mNodes[i_node].ID = NUMBER;
+      mNodes[i_node].ID = NodeID::NUMBER;
       mNodes[i_node].precedence = 7;
-      info = LeftAssociative;
+      info = NodeInfo::LeftAssociative;
       mNodes[i_node].number = M_PI;
     }
 
@@ -1271,9 +1289,9 @@ parse_expression( const char* expression )
       // Get the actual number from the string.
       number[i] = '\0';
       sscanf(number, "%lf", &mNodes[i_node].number);
-      mNodes[i_node].ID = NUMBER;
+      mNodes[i_node].ID = NodeID::NUMBER;
       mNodes[i_node].precedence = 7;
-      info = LeftAssociative;
+      info = NodeInfo::LeftAssociative;
     }
 
     // Variable
@@ -1313,9 +1331,9 @@ parse_expression( const char* expression )
       // Save the variable name.
       variable[i] = '\0';
       strcpy(mNodes[i_node].variable, variable);
-      mNodes[i_node].ID = VARIABLE;
+      mNodes[i_node].ID = NodeID::VARIABLE;
       mNodes[i_node].precedence = 7;
-      info = LeftAssociative;
+      info = NodeInfo::LeftAssociative;
 
       // Record variable the name so have a unique list.
       bool found = false;
@@ -1354,16 +1372,16 @@ parse_expression( const char* expression )
 
     // Special case for a close parenthesis followed by an open
     // parenthesis with no operand between. Which implies a multiply.
-    if( (mNodes[i_node    ].ID ==  OPEN_PARENTHESIS ||
-         mNodes[i_node    ].ID ==  OPEN_ABS_BAR) &&
-        (mNodes[i_previous].ID == CLOSE_PARENTHESIS ||
-         mNodes[i_previous].ID == CLOSE_ABS_BAR) )
+    if( (mNodes[i_node    ].ID == NodeID::OPEN_PARENTHESIS ||
+         mNodes[i_node    ].ID == NodeID::OPEN_ABS_BAR) &&
+        (mNodes[i_previous].ID == NodeID::CLOSE_PARENTHESIS ||
+         mNodes[i_previous].ID == NodeID::CLOSE_ABS_BAR) )
     {
-      NodeInfo multInfo = LeftAssociative;
+      NodeInfo multInfo = NodeInfo::LeftAssociative;
 
       Plato::OrdinalType i_multNode = mNodesUsed++;
       mNodes[i_multNode].precedence  = 3;
-      mNodes[i_multNode].ID          = MULTIPLICATION;
+      mNodes[i_multNode].ID          = NodeID::MULTIPLICATION;
 
       // Add the implict multiplication node to the tree.
       i_current = insertNode( i_current, i_multNode, multInfo );
@@ -1379,16 +1397,16 @@ parse_expression( const char* expression )
 
     // Some error handling for numbers and variables to make sure
     // there is an operand in between.
-    if( (mNodes[i_node].ID    == OPEN_PARENTHESIS   ||
-         mNodes[i_node].ID    == OPEN_ABS_BAR       ||
-         mNodes[i_node].ID    == NUMBER             ||
-         mNodes[i_node].ID    == VARIABLE)
+    if( (mNodes[i_node].ID    == NodeID::OPEN_PARENTHESIS   ||
+         mNodes[i_node].ID    == NodeID::OPEN_ABS_BAR       ||
+         mNodes[i_node].ID    == NodeID::NUMBER             ||
+         mNodes[i_node].ID    == NodeID::VARIABLE)
         &&
-        (mNodes[i_previous].ID == CLOSE_PARENTHESIS ||
-         mNodes[i_previous].ID == CLOSE_ABS_BAR     ||
-         mNodes[i_previous].ID == FACTORIAL         ||
-         mNodes[i_previous].ID == NUMBER            ||
-         mNodes[i_previous].ID == VARIABLE) )
+        (mNodes[i_previous].ID == NodeID::CLOSE_PARENTHESIS ||
+         mNodes[i_previous].ID == NodeID::CLOSE_ABS_BAR     ||
+         mNodes[i_previous].ID == NodeID::FACTORIAL         ||
+         mNodes[i_previous].ID == NodeID::NUMBER            ||
+         mNodes[i_previous].ID == NodeID::VARIABLE) )
     {
       errorMsg << "Invalid expression: "
                << "Found a " << printNodeID( i_node, true )
@@ -1399,16 +1417,16 @@ parse_expression( const char* expression )
 
     // Some error handling for positive and negative to make sure
     // there is a value in between.
-    if( (mNodes[i_node].ID     == POSITIVE ||
-         mNodes[i_node].ID     == NEGATIVE )
+    if( (mNodes[i_node].ID     == NodeID::POSITIVE ||
+         mNodes[i_node].ID     == NodeID::NEGATIVE )
         &&
-        (mNodes[i_previous].ID == POSITIVE ||
-         mNodes[i_previous].ID == NEGATIVE) )
+        (mNodes[i_previous].ID == NodeID::POSITIVE ||
+         mNodes[i_previous].ID == NodeID::NEGATIVE) )
     {
       mNodes[i_node].ID
-        = mNodes[i_node].ID     == POSITIVE ? ADDITION : SUBTRACTION;
+        = mNodes[i_node].ID     == NodeID::POSITIVE ? NodeID::ADDITION : NodeID::SUBTRACTION_;
       mNodes[i_previous].ID
-        = mNodes[i_previous].ID == POSITIVE ? ADDITION : SUBTRACTION;
+        = mNodes[i_previous].ID == NodeID::POSITIVE ? NodeID::ADDITION : NodeID::SUBTRACTION_;
 
       errorMsg << "Invalid expression: Found a " << printNodeID( i_node, true )
                 << " after a " << printNodeID( i_previous, true )
@@ -1429,8 +1447,8 @@ parse_expression( const char* expression )
     // Clear the close parenthesis and absolute value node. These are
     // not cleared until here because they are needed for the previous
     // checks.
-    if( mNodes[i_previous].ID == CLOSE_PARENTHESIS ||
-        mNodes[i_previous].ID == CLOSE_ABS_BAR)
+    if( mNodes[i_previous].ID == NodeID::CLOSE_PARENTHESIS ||
+        mNodes[i_previous].ID == NodeID::CLOSE_ABS_BAR)
       clearNode( i_previous );
 
     // Prepare for the next iteration
@@ -1440,8 +1458,8 @@ parse_expression( const char* expression )
   // Clear the close parenthesis and absolute value node. These are
   // not cleared until here because they are needed for the previous
   // checks.
-  if( mNodes[i_previous].ID == CLOSE_PARENTHESIS ||
-      mNodes[i_previous].ID == CLOSE_ABS_BAR)
+  if( mNodes[i_previous].ID == NodeID::CLOSE_PARENTHESIS ||
+      mNodes[i_previous].ID == NodeID::CLOSE_ABS_BAR)
     clearNode( i_previous );
 
   // Found an error so add the original expression and a pointer to
@@ -1603,42 +1621,42 @@ insertNode(       Plato::OrdinalType i_current,
   // if( i_current == (Plato::OrdinalType) -1 )
   //   return (Plato::OrdinalType) -1;
 
-  // if( mNodes[i_current].ID == EMPTY_NODE )
+  // if( mNodes[i_current].ID == NodeID::EMPTY_NODE )
   //   return (Plato::OrdinalType) -1;
 
   std::stringstream errorMsg;
 
   // Step 4: climb up to the parent node
-  if( info == NoInfo )
+  if( info == NodeInfo::NoInfo )
   {
     errorMsg << "Developer error: Can not add node, no node information.";
 
     i_current = (Plato::OrdinalType) -1;
   }
-  else if( info == RightAssociative )
+  else if( info == NodeInfo::RightAssociative )
   {
     // For right-associative
     while( i_current != (Plato::OrdinalType) -1 &&
            mNodes[i_current].precedence > mNodes[i_new].precedence )
       i_current = mNodes[i_current].i_parent;
   }
-  else if( info == LeftAssociative )
+  else if( info == NodeInfo::LeftAssociative )
   {
     // For left-associative
     while( i_current != (Plato::OrdinalType) -1 &&
            mNodes[i_current].precedence >= mNodes[i_new].precedence )
       i_current = mNodes[i_current].i_parent;
   }
-  else if( info == SkipClimbUp )
+  else if( info == NodeInfo::SkipClimbUp )
   {
     // For open parenthesis, open absolute value, and positive/negative.
   }
 
-  if( info != NoInfo && i_current == (Plato::OrdinalType) -1 )
+  if( info != NodeInfo::NoInfo && i_current == (Plato::OrdinalType) -1 )
   {
     errorMsg << "Developer error: Can not add node, the current node is null.";
   }
-  else if( mNodes[i_new].ID == CLOSE_PARENTHESIS )
+  else if( mNodes[i_new].ID == NodeID::CLOSE_PARENTHESIS )
   {
     if( mNodes[i_current].i_parent != (Plato::OrdinalType) -1 )
     {
@@ -1667,11 +1685,11 @@ insertNode(       Plato::OrdinalType i_current,
       i_current = (Plato::OrdinalType)-1;
     }
   }
-  else if( mNodes[i_new].ID == CLOSE_ABS_BAR )
+  else if( mNodes[i_new].ID == NodeID::CLOSE_ABS_BAR )
   {
       // Change the open absolute value open bar '|' node to
       // an abs node.
-      mNodes[i_current].ID = ABS;
+      mNodes[i_current].ID = NodeID::ABS;
 
       // Step 5.1: get the parent of '(' node.
       Plato::OrdinalType i_node = mNodes[i_current].i_parent;
@@ -1731,7 +1749,7 @@ commuteNode( const Plato::OrdinalType i_node )
 
   // Empty node. This should never happen as checks are made not to
   // evaluate empty nodes.
-  if( node.ID == EMPTY_NODE )
+  if( node.ID == NodeID::EMPTY_NODE )
   {
     std::stringstream errorMsg;
     errorMsg << "Invalid call to commuteNode - "
@@ -1744,12 +1762,12 @@ commuteNode( const Plato::OrdinalType i_node )
 
   switch( node.ID )
   {
-    case ADDITION:
-    case SUBTRACTION:
-    case MULTIPLICATION:
-    case DIVISION:
-    case POWER:
-//  case FACTORIAL:
+    case NodeID::ADDITION:
+    case NodeID::SUBTRACTION_:
+    case NodeID::MULTIPLICATION:
+    case NodeID::DIVISION:
+    case NodeID::POWER:
+//  case NodeID::FACTORIAL:
       left = commuteNode( node.i_left  );
       break;
 
@@ -1762,23 +1780,23 @@ commuteNode( const Plato::OrdinalType i_node )
 
   switch( node.ID )
   {
-    case POSITIVE:
-    case NEGATIVE:
+    case NodeID::POSITIVE:
+    case NodeID::NEGATIVE:
 
-    case ADDITION:
-    case SUBTRACTION:
-    case MULTIPLICATION:
-    case DIVISION:
+    case NodeID::ADDITION:
+    case NodeID::SUBTRACTION_:
+    case NodeID::MULTIPLICATION:
+    case NodeID::DIVISION:
 
-    case EXPONENTIAL:
-    case LOG:
-    case POWER:
-    case SQRT:
-    case ABS:
+    case NodeID::EXPONENTIAL:
+    case NodeID::LOG:
+    case NodeID::POWER:
+    case NodeID::SQRT:
+    case NodeID::ABS:
 
-    case SIN:
-    case COS:
-    case TAN:
+    case NodeID::SIN:
+    case NodeID::COS:
+    case NodeID::TAN:
       right = commuteNode( node.i_right );
       break;
 
@@ -1790,8 +1808,8 @@ commuteNode( const Plato::OrdinalType i_node )
   switch( node.ID )
   {
     // These nodes are commutable.
-    case ADDITION:
-    case MULTIPLICATION:
+    case NodeID::ADDITION:
+    case NodeID::MULTIPLICATION:
 
       // Swap the left and right children if the number of children on
       // the right is greater than the number of children on the left
@@ -1839,7 +1857,7 @@ validateNode( const Plato::OrdinalType i_node,
 
   // Empty node. This should never happen as checks are made not to
   // evaluate empty nodes.
-  if( node.ID == EMPTY_NODE )
+  if( node.ID == NodeID::EMPTY_NODE )
   {
     std::stringstream errorMsg;
     errorMsg << "Invalid call to validateNode - "
@@ -1850,15 +1868,15 @@ validateNode( const Plato::OrdinalType i_node,
   // Validate the left side of the tree.
   switch( node.ID )
   {
-    case ADDITION:
-    case SUBTRACTION:
-    case MULTIPLICATION:
-    case DIVISION:
-    case POWER:
+    case NodeID::ADDITION:
+    case NodeID::SUBTRACTION_:
+    case NodeID::MULTIPLICATION:
+    case NodeID::DIVISION:
+    case NodeID::POWER:
 //  case FACTORIAL:
     {
       NodeID left = validateNode( node.i_left  );
-      if( left != EMPTY_NODE )
+      if( left != NodeID::EMPTY_NODE )
       {
         return left;
       }
@@ -1873,26 +1891,26 @@ validateNode( const Plato::OrdinalType i_node,
   // Validate the right side of the tree.
   switch( node.ID )
   {
-    case POSITIVE:
-    case NEGATIVE:
+    case NodeID::POSITIVE:
+    case NodeID::NEGATIVE:
 
-    case ADDITION:
-    case SUBTRACTION:
-    case MULTIPLICATION:
-    case DIVISION:
+    case NodeID::ADDITION:
+    case NodeID::SUBTRACTION_:
+    case NodeID::MULTIPLICATION:
+    case NodeID::DIVISION:
 
-    case EXPONENTIAL:
-    case LOG:
-    case POWER:
-    case SQRT:
-    case ABS:
+    case NodeID::EXPONENTIAL:
+    case NodeID::LOG:
+    case NodeID::POWER:
+    case NodeID::SQRT:
+    case NodeID::ABS:
 
-    case SIN:
-    case COS:
-    case TAN:
+    case NodeID::SIN:
+    case NodeID::COS:
+    case NodeID::TAN:
     {
       NodeID right = validateNode( node.i_right );
-      if( right != EMPTY_NODE )
+      if( right != NodeID::EMPTY_NODE )
       {
         return right;
       }
@@ -1907,17 +1925,17 @@ validateNode( const Plato::OrdinalType i_node,
   Plato::OrdinalType thread = 0;
 
   std::stringstream errorMsg;
-  NodeID nodeID = EMPTY_NODE;
+  NodeID nodeID = NodeID::EMPTY_NODE;
 
   // Validate the current node.
   switch( node.ID )
   {
     // These nodes need a valid left and right side value
-    case ADDITION:
-    case SUBTRACTION:
-    case MULTIPLICATION:
-    case DIVISION:
-    case POWER:
+    case NodeID::ADDITION:
+    case NodeID::SUBTRACTION_:
+    case NodeID::MULTIPLICATION:
+    case NodeID::DIVISION:
+    case NodeID::POWER:
       if( node.i_left == (Plato::OrdinalType) -1 )
       {
         errorMsg << "Invalid expression: No left side value for "
@@ -1931,22 +1949,22 @@ validateNode( const Plato::OrdinalType i_node,
         nodeID = node.ID;
       }
       else
-        nodeID = EMPTY_NODE;
+        nodeID = NodeID::EMPTY_NODE;
 
       break;
 
     // These nodes need a valid right side value
-    case POSITIVE:
-    case NEGATIVE:
+    case NodeID::POSITIVE:
+    case NodeID::NEGATIVE:
 
-    case EXPONENTIAL:
-    case LOG:
-    case SQRT:
-    case ABS:
+    case NodeID::EXPONENTIAL:
+    case NodeID::LOG:
+    case NodeID::SQRT:
+    case NodeID::ABS:
 
-    case SIN:
-    case COS:
-    case TAN:
+    case NodeID::SIN:
+    case NodeID::COS:
+    case NodeID::TAN:
       if( node.i_right == (Plato::OrdinalType) -1 )
       {
         errorMsg << "Invalid expression: No value for "
@@ -1960,12 +1978,12 @@ validateNode( const Plato::OrdinalType i_node,
         nodeID = node.ID;
       }
       else
-        nodeID = EMPTY_NODE;
+        nodeID = NodeID::EMPTY_NODE;
 
       break;
 
     // These nodes need a valid left side value
-    case FACTORIAL:
+    case NodeID::FACTORIAL:
       if( node.i_left == (Plato::OrdinalType) -1 )
       {
         errorMsg << "Invalid expression: No value for "
@@ -1979,11 +1997,11 @@ validateNode( const Plato::OrdinalType i_node,
         nodeID = node.ID;
       }
       else
-        nodeID = EMPTY_NODE;
+        nodeID = NodeID::EMPTY_NODE;
 
       break;
 
-    case VARIABLE:
+    case NodeID::VARIABLE:
       if( checkVariables )
       {
         Plato::OrdinalType type  = (Plato::OrdinalType) -1;
@@ -2027,35 +2045,35 @@ validateNode( const Plato::OrdinalType i_node,
           THROWERR( errorMsg.str() );
         }
 
-        nodeID = EMPTY_NODE;
+        nodeID = NodeID::EMPTY_NODE;
       }
 
       break;
 
     // None of these node should ever be in the tree
-    case OPEN_PARENTHESIS:
+    case NodeID::OPEN_PARENTHESIS:
       errorMsg << "Invalid expression: Found an open parenthesis '(' without a "
                 << "corresponding close parenthesis ')'";
       nodeID = node.ID;
       break;
-    case CLOSE_PARENTHESIS:
+    case NodeID::CLOSE_PARENTHESIS:
       errorMsg << "Invalid expression: Found a close parenthesis ')' without a "
                 << "corresponding open parenthesis '('";
       nodeID = node.ID;
       break;
-    case OPEN_ABS_BAR:
+    case NodeID::OPEN_ABS_BAR:
       errorMsg << "Invalid expression: Found an open absolute value '|' without a "
                 << "corresponding close absolute value '|'";
       nodeID = node.ID;
       break;
-    case CLOSE_ABS_BAR:
+    case NodeID::CLOSE_ABS_BAR:
       errorMsg << "Invalid expression: Found a absolute value '|' without a "
                 << "corresponding open absolute value '|'";
       nodeID = node.ID;
       break;
 
     default:
-      nodeID = EMPTY_NODE;
+      nodeID = NodeID::EMPTY_NODE;
       break;
   }
 
@@ -2090,7 +2108,7 @@ traverseNode( const Plato::OrdinalType i_node,
 
   // Empty node. This should never happen as checks are made not to
   // evaluate empty nodes.
-  if( node.ID == EMPTY_NODE )
+  if( node.ID == NodeID::EMPTY_NODE )
   {
     std::stringstream errorMsg;
     errorMsg << "Invalid call to evaluateNode - "
@@ -2203,7 +2221,7 @@ evaluateNode( const Plato::OrdinalType thread,
   // Empty node. This should never happen as checks are made not to
   // evaluate empty nodes. A similar check is made in traverseNode
   // which throws an error. Thus commented out.
-  // if( node.ID == EMPTY_NODE )
+  // if( node.ID == NodeID::EMPTY_NODE )
   // {
   //   GPU_WARNING( "Invalid call to evaluateNode - "
   //                  "node index is -1", itoa(i_ode) );
@@ -2253,27 +2271,27 @@ evaluateNode( const Plato::OrdinalType thread,
   // Do the operation
   switch( node.ID )
   {
-    case POSITIVE:
+    case NodeID::POSITIVE:
       for( Plato::OrdinalType i=0; i<mNumValues; ++i )
         result(thread,i) = +right(thread,i);
       break;
-    case NEGATIVE:
+    case NodeID::NEGATIVE:
       for( Plato::OrdinalType i=0; i<mNumValues; ++i )
       break;
 
-    case ADDITION:
+    case NodeID::ADDITION:
       for( Plato::OrdinalType i=0; i<mNumValues; ++i )
         result(thread,i) = left(thread,i) + right(thread,i);
       break;
-    case SUBTRACTION:
+    case NodeID::SUBTRACTION_:
       for( Plato::OrdinalType i=0; i<mNumValues; ++i )
         result(thread,i) = left(thread,i) - right(thread,i);
       break;
-    case MULTIPLICATION:
+    case NodeID::MULTIPLICATION:
       for( Plato::OrdinalType i=0; i<mNumValues; ++i )
         result(thread,i) = left(thread,i) * right(thread,i);
       break;
-    case DIVISION:
+    case NodeID::DIVISION:
       for( Plato::OrdinalType i=0; i<mNumValues; ++i )
         if( right(thread,i) == 0 )
           result(thread,i) = 0;
@@ -2281,44 +2299,44 @@ evaluateNode( const Plato::OrdinalType thread,
           result(thread,i) = left(thread,i) / right(thread,i);
       break;
 
-    case EXPONENTIAL:
+    case NodeID::EXPONENTIAL:
       for( Plato::OrdinalType i=0; i<mNumValues; ++i )
         result(thread,i) = std::exp(right(thread,i));
       break;
-    case LOG:
+    case NodeID::LOG:
       for( Plato::OrdinalType i=0; i<mNumValues; ++i )
         result(thread,i) = std::log(right(thread,i));
       break;
-    case POWER:
+    case NodeID::POWER:
       for( Plato::OrdinalType i=0; i<mNumValues; ++i )
         result(thread,i) = std::pow(left(thread,i), right(thread,i));
       break;
-    case SQRT:
+    case NodeID::SQRT:
       for( Plato::OrdinalType i=0; i<mNumValues; ++i )
         result(thread,i) = std::sqrt(right(thread,i));
       break;
-    case ABS:
+    case NodeID::ABS:
       for( Plato::OrdinalType i=0; i<mNumValues; ++i )
         result(thread,i) = std::abs(right(thread,i));
       break;
-    // case FACTORIAL:
+    // case NodeID::FACTORIAL:
       // for( Plato::OrdinalType i=0; i<mNumValues; ++i )
       //        result(thread,i) = factorial(left(thread,i));
       // break;
-    case SIN:
+    case NodeID::SIN:
       for( Plato::OrdinalType i=0; i<mNumValues; ++i )
         result(thread,i) = std::sin(right(thread,i));
       break;
-    case COS:
+    case NodeID::COS:
       for( Plato::OrdinalType i=0; i<mNumValues; ++i )
         result(thread,i) = std::cos(right(thread,i));
       break;
-    case TAN:
+    case NodeID::TAN:
       for( Plato::OrdinalType i=0; i<mNumValues; ++i )
         result(thread,i) = std::tan(right(thread,i));
       break;
 
-    case NUMBER:
+    case NodeID::NUMBER:
     {
       const Plato::Scalar value = node.number;
 
@@ -2328,7 +2346,7 @@ evaluateNode( const Plato::OrdinalType thread,
       break;
     }
 
-    case VARIABLE:
+    case NodeID::VARIABLE:
     {
       Plato::OrdinalType type  = (Plato::OrdinalType) -1;
       Plato::OrdinalType index = (Plato::OrdinalType) -1;
@@ -2421,7 +2439,7 @@ deleteNode( const Plato::OrdinalType i_node )
 
   Node & node = mNodes[i_node];
 
-  if( node.ID == EMPTY_NODE )
+  if( node.ID == NodeID::EMPTY_NODE )
     return;
 
   deleteNode( node.i_left  );
@@ -2445,7 +2463,7 @@ clearNode( const Plato::OrdinalType i_node )
 
   Node & node = mNodes[i_node];
 
-  node.ID          = EMPTY_NODE;
+  node.ID          = NodeID::EMPTY_NODE;
   node.precedence  = 0;
   node.number      = 0;
   node.variable[0] = '\0';
@@ -2474,7 +2492,7 @@ printNodeID( const Plato::OrdinalType i_node,
 
   const Node & node = mNodes[i_node];
 
-  if( node.ID == EMPTY_NODE )
+  if( node.ID == NodeID::EMPTY_NODE )
     return "";
 
   Plato::OrdinalType thread = 0;
@@ -2487,12 +2505,12 @@ printNodeID( const Plato::OrdinalType i_node,
   {
     switch( node.ID )
     {
-      case NUMBER:             os << "number '";    break;
-      case VARIABLE:           os << "variable '";  break;
-      case OPEN_PARENTHESIS:   os << "open '";      break;
-      case CLOSE_PARENTHESIS:  os << "close '";     break;
-      case OPEN_ABS_BAR:       os << "open '";      break;
-      case CLOSE_ABS_BAR:      os << "close '";     break;
+      case NodeID::NUMBER:             os << "number '";    break;
+      case NodeID::VARIABLE:           os << "variable '";  break;
+      case NodeID::OPEN_PARENTHESIS:   os << "open '";      break;
+      case NodeID::CLOSE_PARENTHESIS:  os << "close '";     break;
+      case NodeID::OPEN_ABS_BAR:       os << "open '";      break;
+      case NodeID::CLOSE_ABS_BAR:      os << "close '";     break;
       default:
         os << "'";
     }
@@ -2501,27 +2519,27 @@ printNodeID( const Plato::OrdinalType i_node,
   // Print the current node
   switch( node.ID )
   {
-    case POSITIVE:        os << "+ve";       break;
-    case NEGATIVE:        os << "-ve";       break;
+    case NodeID::POSITIVE:        os << "+ve";       break;
+    case NodeID::NEGATIVE:        os << "-ve";       break;
 
-    case ADDITION:        os << "+";         break;
-    case SUBTRACTION:     os << "-";         break;
-    case MULTIPLICATION:  os << "*";         break;
-    case DIVISION:        os << "/";         break;
+    case NodeID::ADDITION:        os << "+";         break;
+    case NodeID::SUBTRACTION_:    os << "-";         break;
+    case NodeID::MULTIPLICATION:  os << "*";         break;
+    case NodeID::DIVISION:        os << "/";         break;
 
-    case EXPONENTIAL:     os << "exp";       break;
-    case LOG:             os << "log";       break;
-    case POWER:           os << "pow";       break;
-    case SQRT:            os << "sqrt";      break;
-    case FACTORIAL:       os << "!";         break;
-    case ABS:             os << "abs";       break;
+    case NodeID::EXPONENTIAL:     os << "exp";       break;
+    case NodeID::LOG:             os << "log";       break;
+    case NodeID::POWER:           os << "pow";       break;
+    case NodeID::SQRT:            os << "sqrt";      break;
+    case NodeID::FACTORIAL:       os << "!";         break;
+    case NodeID::ABS:             os << "abs";       break;
 
-    case SIN:             os << "sin";       break;
-    case COS:             os << "cos";       break;
-    case TAN:             os << "tan";       break;
+    case NodeID::SIN:             os << "sin";       break;
+    case NodeID::COS:             os << "cos";       break;
+    case NodeID::TAN:             os << "tan";       break;
 
-    case NUMBER:          os << node.number;    break;
-    case VARIABLE:
+    case NodeID::NUMBER:          os << node.number; break;
+    case NodeID::VARIABLE:
     {
       os << node.variable;
 
@@ -2588,10 +2606,10 @@ printNodeID( const Plato::OrdinalType i_node,
     }
     break;
 
-    case OPEN_PARENTHESIS:   os << "(";      break;
-    case CLOSE_PARENTHESIS:  os << ")";      break;
-    case OPEN_ABS_BAR:       os << "|";      break;
-    case CLOSE_ABS_BAR:      os << "|";      break;
+    case NodeID::OPEN_PARENTHESIS:   os << "(";      break;
+    case NodeID::CLOSE_PARENTHESIS:  os << ")";      break;
+    case NodeID::OPEN_ABS_BAR:       os << "|";      break;
+    case NodeID::CLOSE_ABS_BAR:      os << "|";      break;
 
     default:
       os << "Error: Unknown id";
@@ -2601,8 +2619,8 @@ printNodeID( const Plato::OrdinalType i_node,
   {
     switch( node.ID )
     {
-      case NUMBER:          os << "'";  break;
-      case VARIABLE:        os << "'";  break;
+      case NodeID::NUMBER:          os << "'";  break;
+      case NodeID::VARIABLE:        os << "'";  break;
       default:
         os << "'";
     }
@@ -2632,7 +2650,7 @@ printNode(       std::ostream &os,
 
   const Node & node = mNodes[i_node];
 
-  if( node.ID == EMPTY_NODE )
+  if( node.ID == NodeID::EMPTY_NODE )
     return;
 
   // Print right sub-tree
@@ -2673,7 +2691,7 @@ printNode( const Plato::OrdinalType i_node,
 
   const Node & node = mNodes[i_node];
 
-  // if( node.ID == EMPTY_NODE )
+  // if( node.ID == NodeID::EMPTY_NODE )
   //   return "";
 
   std::stringstream os;
