@@ -6,15 +6,11 @@ configure_file(
 ## material model sources
 set(ANALYZE_SOURCES
     ParseTools.cpp
-    CustomMaterial.cpp 
+    CustomMaterial.cpp
     AbstractLinearStress.cpp
     LinearStress.cpp
-    LinearStressExpression.cpp
-    LinearStressFactory.cpp
     AbstractYieldStress.cpp
     YieldStress.cpp
-    YieldStressExpression.cpp
-    YieldStressFactory.cpp
 ##    ElasticModelFactory.cpp
     LinearElasticMaterial.cpp
     CubicLinearElasticMaterial.cpp
@@ -27,6 +23,15 @@ set(ANALYZE_SOURCES
     Rank4Voigt.cpp
     IsotropicStiffness.cpp
 )
+
+if(EXPRESSION)
+  set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+      LinearStressExpression.cpp
+      LinearStressFactory.cpp
+      YieldStressExpression.cpp
+      YieldStressFactory.cpp
+  )
+endif()
 
 ## Augmented Lagrangian sources
 set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
@@ -44,8 +49,8 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
 set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     WorkSets.cpp
     Variables.cpp
-    Solutions.cpp 
-    AnalyzeAppUtils.cpp     
+    Solutions.cpp
+    AnalyzeAppUtils.cpp
     ExpressionEvaluator.cpp
     PlatoMask.cpp
     alg/ParseInput.cpp
@@ -69,18 +74,18 @@ endif()
 ## plasticity sources
 if(PLASTICITY)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    J2PlasticityLocalResidual.cpp 
-    NewtonRaphsonSolver.cpp 
-    PathDependentAdjointSolver.cpp 
-    GlobalVectorFunctionInc.cpp 
-    PathDependentScalarFunctionFactory.cpp 
-    BasicLocalScalarFunction.cpp 
-    PlasticityProblem.cpp 
-    ComputePrincipalStresses.cpp 
-    WeightedLocalScalarFunction.cpp 
-    InfinitesimalStrainPlasticityResidual.cpp 
-    InfinitesimalStrainThermoPlasticityResidual.cpp 
-    ElasticWorkCriterion.cpp 
+    J2PlasticityLocalResidual.cpp
+    NewtonRaphsonSolver.cpp
+    PathDependentAdjointSolver.cpp
+    GlobalVectorFunctionInc.cpp
+    PathDependentScalarFunctionFactory.cpp
+    BasicLocalScalarFunction.cpp
+    PlasticityProblem.cpp
+    ComputePrincipalStresses.cpp
+    WeightedLocalScalarFunction.cpp
+    InfinitesimalStrainPlasticityResidual.cpp
+    InfinitesimalStrainThermoPlasticityResidual.cpp
+    ElasticWorkCriterion.cpp
     PlasticWorkCriterion.cpp
     TotalWorkCriterion.cpp
     ThermoplasticityThermalEnergyCriterion.cpp
@@ -133,9 +138,14 @@ if(ELLIPTIC)
     elliptic/updated_lagrangian/InternalElasticEnergy.cpp
     elliptic/updated_lagrangian/AbstractEllipticUpLagLinearStress.cpp
     elliptic/updated_lagrangian/EllipticUpLagLinearStress.cpp
-    elliptic/updated_lagrangian/EllipticUpLagLinearStressExpression.cpp
-    elliptic/updated_lagrangian/EllipticUpLagLinearStressFactory.cpp
   )
+
+  if(EXPRESSION)
+    set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+      elliptic/updated_lagrangian/EllipticUpLagLinearStressExpression.cpp
+      elliptic/updated_lagrangian/EllipticUpLagLinearStressFactory.cpp
+    )
+  endif()
 endif()
 
 ## parabolic sources
@@ -180,13 +190,18 @@ if(HYPERBOLIC)
     hyperbolic/FluidsUniformThermalSource.cpp
     hyperbolic/FluidsWeightedScalarFunction.cpp
     hyperbolic/HyperbolicLinearStress.cpp
-    hyperbolic/HyperbolicLinearStressExpression.cpp
-    hyperbolic/HyperbolicLinearStressFactory.cpp
     hyperbolic/HyperbolicScalarFunctionFactory.cpp
     hyperbolic/HyperbolicPhysicsScalarFunction.cpp
     hyperbolic/FluidsLeastSquaresScalarFunction.cpp
     hyperbolic/FluidsStabilizedUniformThermalSource.cpp
   )
+
+  if(EXPRESSION)
+    set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+      hyperbolic/HyperbolicLinearStressExpression.cpp
+      hyperbolic/HyperbolicLinearStressFactory.cpp
+    )
+  endif()
 endif()
 
 ## helmholtz sources
