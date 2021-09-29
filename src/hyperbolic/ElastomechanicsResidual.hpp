@@ -91,7 +91,6 @@ class TransientMechanicsResidual :
         mBoundaryLoads        (nullptr)
     /**************************************************************************/
     {
-
         // create material model and get stiffness
         //
         Plato::ElasticModelFactory<mSpaceDim> tMaterialModelFactory(aProblemParams);
@@ -134,7 +133,7 @@ class TransientMechanicsResidual :
         auto tNumCells = mSpatialDomain.numCells();
         Plato::ScalarVector tCellVolume("cell weight", tNumCells);
 
-        Plato::ComputeCellVolume<SpaceDim> tComputeVolume;
+        Plato::ComputeCellVolume<mSpaceDim> tComputeVolume;
 
         Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
         {
@@ -145,7 +144,7 @@ class TransientMechanicsResidual :
 
         Plato::Scalar tMinVolume;
         Plato::blas1::min(tCellVolume, tMinVolume);
-        Plato::Scalar tLength = pow(tMinVolume, 1.0/SpaceDim);
+        Plato::Scalar tLength = pow(tMinVolume, 1.0/mSpaceDim);
 
         auto tStiffnessMatrix = mMaterialModel->getStiffnessMatrix();
         auto tMassDensity     = mMaterialModel->getMassDensity();
