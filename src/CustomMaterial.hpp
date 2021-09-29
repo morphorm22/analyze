@@ -81,6 +81,7 @@ public:
                                     TYPE & result ) const
     {
       // This code is what should normally be executed. It is Host (CPU) only.
+#ifdef COMMENT_OUT
       if( 0 )
       {
         const size_t nThreads = 1;
@@ -140,7 +141,8 @@ public:
 
       // Example with one thread and one value. This code is CPU or
       // GPU as it uses UVM spaces.
-      else if( 0 )
+      else
+      if( 0 )
       {
         const size_t nThreads = 1;
         const size_t nValues = 1;
@@ -224,7 +226,9 @@ public:
       }
       // Example with two threads and ten values.  This code is CPU or
       // GPU as it uses UVM spaces.
-      else if( 1 )
+      else
+#endif
+      if( 1 )
       {
         const size_t nThreads = 2;
         const size_t nValues = 10;
