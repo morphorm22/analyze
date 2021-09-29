@@ -1492,7 +1492,7 @@ private:
         { THROWERR("Parameter list 'Linear Solver' is not defined.") }
         auto tParamList = mInputs.sublist("Linear Solver");
         Plato::SolverFactory tSolverFactory(tParamList);
-        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh, mMachine, mNumVelDofsPerNode);
+        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh.nverts(), mMachine, mNumVelDofsPerNode);
 
         // set initial guess for current velocity
         Plato::OrdinalType tIteration = 1;
@@ -1627,7 +1627,7 @@ private:
         { THROWERR("Parameter list 'Linear Solver' is not defined.") }
         auto tParamList = mInputs.sublist("Linear Solver");
         Plato::SolverFactory tSolverFactory(tParamList);
-        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh, mMachine, mNumVelDofsPerNode);
+        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh.nverts(), mMachine, mNumVelDofsPerNode);
 
         Plato::OrdinalType tIteration = 1;
         Plato::Scalar tInitialNormStep = 0.0, tInitialNormResidual = 0.0;
@@ -1719,7 +1719,7 @@ private:
         { THROWERR("Parameter list 'Linear Solver' is not defined.") }
         auto tParamList = mInputs.sublist("Linear Solver");
         Plato::SolverFactory tSolverFactory(tParamList);
-        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh, mMachine, mNumPressDofsPerNode);
+        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh.nverts(), mMachine, mNumPressDofsPerNode);
 
         Plato::OrdinalType tIteration = 1;
         Plato::Scalar tInitialNormStep = 0.0, tInitialNormResidual = 0.0;
@@ -1814,7 +1814,7 @@ private:
         { THROWERR("Parameter list 'Linear Solver' is not defined.") }
         auto tParamList = mInputs.sublist("Linear Solver");
         Plato::SolverFactory tSolverFactory(tParamList);
-        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh, mMachine, mNumTempDofsPerNode);
+        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh.nverts(), mMachine, mNumTempDofsPerNode);
 
         Plato::OrdinalType tIteration = 1;
         Plato::Scalar tInitialNormStep = 0.0, tInitialNormResidual = 0.0;
@@ -1899,7 +1899,7 @@ private:
         { THROWERR("Parameter list 'Linear Solver' is not defined.") }
         auto tParamList = mInputs.sublist("Linear Solver");
         Plato::SolverFactory tSolverFactory(tParamList);
-        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh, mMachine, mNumVelDofsPerNode);
+        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh.nverts(), mMachine, mNumVelDofsPerNode);
         auto tJacobianPredictor = mPredictorResidual.gradientPredictor(aControl, aCurrentPrimal);
         tSolver->solve(*tJacobianPredictor, tCurrentPredictorAdjoint, tRHS);
     }
@@ -1964,7 +1964,7 @@ private:
         { THROWERR("Parameter list 'Linear Solver' is not defined.") }
         auto tParamList = mInputs.sublist("Linear Solver");
         Plato::SolverFactory tSolverFactory(tParamList);
-        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh, mMachine, mNumPressDofsPerNode);
+        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh.nverts(), mMachine, mNumPressDofsPerNode);
         auto tJacPressResWrtCurPress = mPressureResidual.gradientCurrentPress(aControl, aCurrentPrimal);
         Plato::apply_constraints<mNumPressDofsPerNode>(tBcDofs, tBcValues, tJacPressResWrtCurPress, tRightHandSide);
         tSolver->solve(*tJacPressResWrtCurPress, tCurrentPressAdjoint, tRightHandSide);
@@ -2028,7 +2028,7 @@ private:
         { THROWERR("Parameter list 'Linear Solver' is not defined.") }
         auto tParamList = mInputs.sublist("Linear Solver");
         Plato::SolverFactory tSolverFactory(tParamList);
-        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh, mMachine, mNumTempDofsPerNode);
+        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh.nverts(), mMachine, mNumTempDofsPerNode);
         auto tJacobianCurrentTemp = mTemperatureResidual->gradientCurrentTemp(aControl, aCurrentPrimal);
         Plato::apply_constraints<mNumTempDofsPerNode>(tBcDofs, tBcValues, tJacobianCurrentTemp, tRightHandSide);
         tSolver->solve(*tJacobianCurrentTemp, tCurrentTempAdjoint, tRightHandSide);
@@ -2102,7 +2102,7 @@ private:
         { THROWERR("Parameter list 'Linear Solver' is not defined.") }
         auto tParamList = mInputs.sublist("Linear Solver");
         Plato::SolverFactory tSolverFactory(tParamList);
-        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh, mMachine, mNumVelDofsPerNode);
+        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh.nverts(), mMachine, mNumVelDofsPerNode);
         auto tJacCorrectorResWrtCurVel = mCorrectorResidual.gradientCurrentVel(aControl, aCurrentPrimalState);
         Plato::set_dofs_values(tBcDofs, tRightHandSide, 0.0);
         tSolver->solve(*tJacCorrectorResWrtCurVel, tCurrentVelocityAdjoint, tRightHandSide);
