@@ -9,10 +9,10 @@
 #include "AnalyzeMacros.hpp"
 #include "SimplexThermoPlasticity.hpp"
 
-#ifndef PLATO_USE_EXP_FAD
-  #include "J2PlasticityLocalResidual.hpp"
-#else
+#ifdef PLATO_EXPRESSION
   #include "J2PlasticityLocalResidualExpFAD.hpp"
+#else
+  #include "J2PlasticityLocalResidual.hpp"
 #endif
 
 namespace Plato
