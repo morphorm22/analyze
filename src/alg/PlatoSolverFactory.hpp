@@ -23,9 +23,17 @@ class SolverFactory
 
     rcp<AbstractSolver>
     create(
-        Omega_h::Mesh&          aMesh,
-        Comm::Machine           aMachine,
-        int                     aDofsPerNode
+        Plato::OrdinalType                              aNumNodes,
+        Comm::Machine                                   aMachine,
+        Plato::OrdinalType                              aDofsPerNode
+    );
+
+    rcp<AbstractSolver>
+    create(
+        Plato::OrdinalType                              aNumNodes,
+        Comm::Machine                                   aMachine,
+        Plato::OrdinalType                              aDofsPerNode,
+        std::shared_ptr<Plato::MultipointConstraints>   aMPCs
     );
 };
 

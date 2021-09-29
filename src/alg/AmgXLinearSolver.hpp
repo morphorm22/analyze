@@ -48,11 +48,17 @@ class AmgXLinearSolver : public AbstractSolver
         int aDofsPerNode
     );
 
-    void solve(
+    AmgXLinearSolver(
+        const Teuchos::ParameterList&                   aSolverParams,
+        int                                             aDofsPerNode,
+        std::shared_ptr<Plato::MultipointConstraints>   aMPCs
+    );
+
+    void innerSolve(
         Plato::CrsMatrix<int> aA,
         Plato::ScalarVector   aX,
         Plato::ScalarVector   aB
-    );
+    ) override;
 
     ~AmgXLinearSolver();
 

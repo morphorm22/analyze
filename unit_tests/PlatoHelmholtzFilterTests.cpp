@@ -260,7 +260,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, Helmholtz2DUniformFieldTest )
   );
   Plato::SolverFactory tSolverFactory(*tSolverParams);
 
-  auto tSolver = tSolverFactory.create(*tMesh, tMachine, tNumDofsPerNode);
+  auto tSolver = tSolverFactory.create(tMesh->nverts(), tMachine, tNumDofsPerNode);
   
   // solve linear system
   //
