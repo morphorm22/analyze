@@ -10,16 +10,14 @@ namespace Plato {
    of this information between solutions.
 **********************************************************************************/
 EpetraSystem::EpetraSystem(
-    Omega_h::Mesh& aMesh,
+    int            aNumNodes,
     Comm::Machine  aMachine,
     int            aDofsPerNode
 ):  mMatrixConversionTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Matrix Conversion")),
     mVectorConversionTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Vector Conversion"))
 {
     mComm = aMachine.epetraComm;
-
-    int tNumNodes = aMesh.nverts();
-    mBlockRowMap = std::make_shared<Epetra_BlockMap>(tNumNodes, aDofsPerNode, 0, *mComm);
+    mBlockRowMap = std::make_shared<Epetra_BlockMap>(aNumNodes, aDofsPerNode, 0, *mComm);
 
 }
 
@@ -136,12 +134,42 @@ EpetraSystem::toVector(Plato::ScalarVector tOutVector, rcp<Epetra_Vector> tInVec
 **********************************************************************************/
 EpetraLinearSolver::EpetraLinearSolver(
     const Teuchos::ParameterList& aSolverParams,
-    Omega_h::Mesh&          aMesh,
+    int                     aNumNodes,
     Comm::Machine           aMachine,
     int                     aDofsPerNode
 ) :
     mSolverParams(aSolverParams),
-    mSystem(std::make_shared<EpetraSystem>(aMesh, aMachine, aDofsPerNode)),
+    mSystem(std::make_shared<EpetraSystem>(aNumNodes, aMachine, aDofsPerNode)),
+    mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Epetra Linear Solve"))
+{
+    if(mSolverParams.isType<int>("Iterations"))
+        mIterations = mSolverParams.get<int>("Iterations");
+
+    if(mSolverParams.isType<double>("Tolerance"))
+        mTolerance = mSolverParams.get<double>("Tolerance");
+    
+    if(mSolverParams.isType<int>("Display Iterations"))
+        mDisplayIterations = mSolverParams.get<int>("Display Iterations");
+    
+    if(mSolverParams.isParameter("Display Diagnostics"))
+        mDisplayDiagnostics = mSolverParams.get<bool>("Display Diagnostics");
+}
+
+/******************************************************************************//**
+ * @brief EpetraLinearSolver constructor with MPCs
+
+ This constructor takes an Omega_h::Mesh and MultipointConstraints and creates a new System.
+**********************************************************************************/
+EpetraLinearSolver::EpetraLinearSolver(
+    const Teuchos::ParameterList&                   aSolverParams,
+    int                                             aNumNodes,
+    Comm::Machine                                   aMachine,
+    int                                             aDofsPerNode,
+    std::shared_ptr<Plato::MultipointConstraints>   aMPCs
+) :
+    AbstractSolver(aMPCs),
+    mSolverParams(aSolverParams),
+    mSystem(std::make_shared<EpetraSystem>(aNumNodes, aMachine, aDofsPerNode)),
     mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Epetra Linear Solve"))
 {
     if(mSolverParams.isType<int>("Iterations"))
@@ -161,7 +189,7 @@ EpetraLinearSolver::EpetraLinearSolver(
  * \brief Solve the linear system
 **********************************************************************************/
 void
-EpetraLinearSolver::solve(
+EpetraLinearSolver::innerSolve(
     Plato::CrsMatrix<Plato::OrdinalType> aA,
     Plato::ScalarVector   aX,
     Plato::ScalarVector   aB
