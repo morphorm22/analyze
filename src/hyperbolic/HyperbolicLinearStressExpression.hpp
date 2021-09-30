@@ -163,16 +163,18 @@ public:
       // directly. Instead use a Kokkos::view and make a local copy
       // which is needed anyways for the reasons above, that view can
       // be re-referenced directly.
-      typedef Plato::ScalarVectorT<Plato::Scalar> SVS;
+      typedef Plato::ScalarVectorT<Plato::Scalar> ScalarVectorScalar;
 
-      Kokkos::View< SVS *, Kokkos::CudaUVMSpace > tCellStiffness("Temporary Cell Stiffness", mNumVoigtTerms);
+      Kokkos::View< ScalarVectorScalar *, Kokkos::CudaUVMSpace >
+        tCellStiffness("Temporary Cell Stiffness", mNumVoigtTerms);
 
       for(Plato::OrdinalType iIndex = 0; iIndex < mNumVoigtTerms; iIndex++)
       {
-	std::stringstream nameStr;
-	nameStr << "Temporary Cell Stiffness " << iIndex;
+        std::stringstream nameStr;
+        nameStr << "Temporary Cell Stiffness " << iIndex;
 
-	tCellStiffness[iIndex] = SVS(nameStr.str(), mNumVoigtTerms);
+        tCellStiffness[iIndex] =
+          ScalarVectorScalar(nameStr.str(), mNumVoigtTerms);
       }
 
       Plato::ScalarVectorT<Plato::Scalar> tReferenceStrain
@@ -433,11 +435,11 @@ public:
       } );
 
       // Clear the tCellStiffness storage.
-      SVS tDummySVS( "SVS Dummy" );
+      ScalarVectorScalar tDummyParam( "Dummy Cell Stiffness", 0 );
 
       for( Plato::OrdinalType iIndex=0; iIndex<mNumVoigtTerms; ++iIndex )
       {
-	tCellStiffness[iIndex] = tDummySVS;
+        tCellStiffness[iIndex] = tDummyParam;
       }
 
       // Clear the temporary storage used in the expression

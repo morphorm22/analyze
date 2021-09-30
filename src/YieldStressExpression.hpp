@@ -281,7 +281,7 @@ public:
       // still a slight memory leak because the creation of the dummy
       // views.
       Plato::ScalarVectorT< ControlT > tDummyVector
-        ( "Yield Stress Exp. Dummy Parameter" );
+        ( "Yield Stress Exp. Dummy Parameter", 0 );
 
       // Drop all of the references to the parameter data.
       for( Plato::OrdinalType i=0; i<aParameters.extent(0); ++i )

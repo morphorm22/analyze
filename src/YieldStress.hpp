@@ -125,10 +125,13 @@ public:
             aLocalState(aCellOrdinal, 0); // SHOULD THIS BE PREV? I think no.
         } );
 
+	Plato::ScalarVectorT< ControlT >
+	  tDummyParam( "Yield Stress Dummy Parameter", 0 );
+
         // Drop all of the refernces to the parameter data.
         for( Plato::OrdinalType i=0; i<aParameters.extent(0)-1; ++i )
         {
-          aParameters(i) = Plato::ScalarVectorT< ControlT >( "Yield Stress Dummy Parameter" );
+          aParameters(i) = tDummyParam;
         }
     }
 };

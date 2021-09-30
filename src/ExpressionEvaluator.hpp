@@ -371,9 +371,9 @@ clear_storage() const
 
   // Note: It is assumed that the ResultType, StateType, and
   // VectorType are of type Kokkos::View.
-  ResultType tDummyResult( "ExpEval Dummy Result" );
-  StateType  tDummyState ( "ExpEval Dummy State"  );
-  VectorType tDummyVector( "ExpEval Dummy Vector" );
+  ResultType tDummyResult( "ExpEval Dummy Result", 0 );
+  StateType  tDummyState ( "ExpEval Dummy State",  0 );
+  VectorType tDummyVector( "ExpEval Dummy Vector", 0 );
 
   // Clear the results storage.
   for( Plato::OrdinalType i=0; i<mNumMemoryChunks; ++i )
