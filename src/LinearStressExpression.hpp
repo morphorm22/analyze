@@ -137,7 +137,7 @@ public:
 
       typedef Plato::ScalarVectorT<Plato::Scalar> ScalarVectorScalar;
 
-      Kokkos::View< ScalarVectorScalar *, Kokkos::CudaUVMSpace >
+      Kokkos::View< ScalarVectorScalar *, Plato::MemSpace >
         tCellStiffness("Temporary Cell Stiffness", mNumVoigtTerms);
 
       for(Plato::OrdinalType iIndex = 0; iIndex < mNumVoigtTerms; iIndex++)
@@ -183,7 +183,7 @@ public:
       // If the user wants to use the input parameters these hold the
       // names of the equation variables that are mapped to the input
       // parameter labels.
-      Kokkos::View< VariableMap *, Kokkos::CudaUVMSpace >
+      Kokkos::View< VariableMap *, Plato::MemSpace >
         tVarMaps ("Linear Stress Exp. Variable Maps", tNumParamLabels);
 
       // No mappings initially.

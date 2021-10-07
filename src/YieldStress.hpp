@@ -93,7 +93,7 @@ public:
     operator()(Plato::ScalarMultiVectorT< ResultT     > const& aYieldStress,
                Plato::ScalarMultiVectorT< LocalStateT > const& aLocalState,
                Kokkos::View< Plato::ScalarVectorT< ControlT > *,
-                             Kokkos::CudaUVMSpace > const& aParameters) const override
+                             Plato::MemSpace > const& aParameters) const override
     {
         // Method used to compute the stress with the factory and has
         // its own Kokkos parallel_for.
