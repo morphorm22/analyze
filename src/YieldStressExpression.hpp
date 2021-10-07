@@ -91,7 +91,7 @@ public:
     operator()(Plato::ScalarMultiVectorT< ResultT     > const& aResult,
                Plato::ScalarMultiVectorT< LocalStateT > const& aLocalState,
                Kokkos::View< Plato::ScalarVectorT< ControlT > *,
-                             Plato::MemSpace > const& aParameters) const override
+                             Kokkos::CudaUVMSpace > const& aParameters) const override
   {
       // Method used with the factory and has it own Kokkos parallel_for
       const Plato::OrdinalType tNumCells = aResult.extent(0);
@@ -116,7 +116,7 @@ public:
       // If the user wants to use the input parameters these hold the
       // names of the equation variables that are mapped to the input
       // parameters.
-      Kokkos::View< VariableMap *, Plato::MemSpace >
+      Kokkos::View< VariableMap *, Kokkos::CudaUVMSpace >
         tVarMaps ("Yield Stress Exp. Variable Maps", tNumParamLabels);
 
       // No mappings initially.

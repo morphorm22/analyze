@@ -149,9 +149,9 @@ public:
 
         // Create an expression evaluator and pass the parameter list so
         // variable values can be retrived.
-        ExpressionEvaluator< Kokkos::View< TYPE *              , Plato::MemSpace>,
-                             Kokkos::View< TYPE *              , Plato::MemSpace>,
-                             Kokkos::View< Plato::OrdinalType *, Plato::MemSpace>,
+        ExpressionEvaluator< Kokkos::View< TYPE *              , Kokkos::CudaUVMSpace>,
+                             Kokkos::View< TYPE *              , Kokkos::CudaUVMSpace>,
+                             Kokkos::View< Plato::OrdinalType *, Kokkos::CudaUVMSpace>,
                              Plato::Scalar > expEval;
 
         expEval.parse_expression( "E/((1.0+v)(1.0-2.0*v))" );
@@ -168,7 +168,7 @@ public:
         expEval.set_variable( "v", v, 0 );
 
         // Setup memory for the input data.
-        Kokkos::View<TYPE *, Plato::MemSpace> E("E", nValues, 2);
+        Kokkos::View<TYPE *, Kokkos::CudaUVMSpace> E("E", nValues, 2);
 
         TYPE e;
         getTypedValue( paramList.get<Plato::Scalar>( "E" ), 0, 1, e );
@@ -188,7 +188,7 @@ public:
           std::cout << "________________________________" << std::endl;
           expEval.print_variables( std::cout );
 
-          Kokkos::View<TYPE *, Plato::MemSpace> results("results", nValues, 2);
+          Kokkos::View<TYPE *, Kokkos::CudaUVMSpace> results("results", nValues, 2);
 
 #ifdef DO_KOKKOS
           // Device - GPU
@@ -235,9 +235,9 @@ public:
 
         // Create an expression evaluator and pass the parameter list so
         // variable values can be retrived.
-        ExpressionEvaluator< Kokkos::View< TYPE **, Plato::MemSpace>,
-                             Kokkos::View< TYPE **, Plato::MemSpace>,
-                             Kokkos::View< Plato::Scalar *, Plato::MemSpace>,
+        ExpressionEvaluator< Kokkos::View< TYPE **, Kokkos::CudaUVMSpace>,
+                             Kokkos::View< TYPE **, Kokkos::CudaUVMSpace>,
+                             Kokkos::View< Plato::Scalar *, Kokkos::CudaUVMSpace>,
                              Plato::Scalar > expEval;
 
         // Parse the equation. The expression tree is held internally.
@@ -252,8 +252,8 @@ public:
 
         Plato::Scalar v = paramList.get<Plato::Scalar>( "v" );
 
-	Kokkos::View< Plato::Scalar *, Plato::MemSpace> V ("V" , nValues);
-	Kokkos::View< Plato::Scalar *, Plato::MemSpace> VV("VV", nValues);
+	Kokkos::View< Plato::Scalar *, Kokkos::CudaUVMSpace> V ("V" , nValues);
+	Kokkos::View< Plato::Scalar *, Kokkos::CudaUVMSpace> VV("VV", nValues);
 
         V[0] = VV[0] = v;
         for( size_t i=1; i<nValues; ++i )
@@ -266,7 +266,7 @@ public:
         if( nThreads == 2 )
           expEval.set_variable( "v", VV, 1 );
 
-        Kokkos::View<TYPE **, Plato::MemSpace> E("E", nThreads, nValues, 2);
+        Kokkos::View<TYPE **, Kokkos::CudaUVMSpace> E("E", nThreads, nValues, 2);
 
         TYPE e;
         getTypedValue( paramList.get<Plato::Scalar>( "E" ), 0, 1, e );
@@ -298,7 +298,7 @@ public:
           std::cout << "________________________________" << std::endl;
           expEval.print_variables( std::cout );
 
-          Kokkos::View<TYPE **, Plato::MemSpace> results("results", nThreads, nValues, 2);
+          Kokkos::View<TYPE **, Kokkos::CudaUVMSpace> results("results", nThreads, nValues, 2);
 
 #ifdef DO_KOKKOS
           // Device - GPU
