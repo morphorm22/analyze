@@ -229,13 +229,13 @@ public:
   // nodes may only be temporarily used. The array of nodes is
   // constructed on the host and used on the device.
   Plato::OrdinalType mNodesUsed{ 0 };
-  Kokkos::View< Node *, Kokkos::CudaUVMSpace > mNodes;
+  Kokkos::View< Node *, Plato::MemSpace > mNodes;
 
   // Total number of nodes in the expression tree and the post order
   // evaluation.  The array of nodes is constructed on the host and
   // used on the device.
   Plato::OrdinalType mNodeCount{ 0 };
-  Kokkos::View< Plato::OrdinalType *, Kokkos::CudaUVMSpace > mNodeOrder;
+  Kokkos::View< Plato::OrdinalType *, Plato::MemSpace > mNodeOrder;
 
   // The maximum number of chunks of temporary memory needed.
   Plato::OrdinalType mNumMemoryChunks{ (Plato::OrdinalType) 0 };
@@ -245,24 +245,24 @@ public:
 
   // Array holding the results for the nodes. The space is reused
   // based on the on post order evaluation.
-  Kokkos::View< ResultType *, Kokkos::CudaUVMSpace > mResults;
+  Kokkos::View< ResultType *, Plato::MemSpace > mResults;
 
   // A mapping of the variable names to their coresponding data in the
   // variable arrays - per thread, per variable.
   Kokkos::View< Map< char[MAX_ARRAY_LENGTH], Plato::OrdinalType > **,
-                Kokkos::CudaUVMSpace > mVariableMap;
+                Plato::MemSpace > mVariableMap;
 
   // Counts of the data stored in the variable arrays. Counts are need
   // because not all of the storage is used, per thread, per storage
   // (mNumDataSources).
-  Kokkos::View< Plato::OrdinalType **, Kokkos::CudaUVMSpace > mMapCounts;
+  Kokkos::View< Plato::OrdinalType **, Plato::MemSpace > mMapCounts;
 
   // Storage for variable data, there are three types, scalars are
   // constant and not indexed, vectors are indexed, and state values
   // are indexed by the thread and an index.
-  Kokkos::View< ScalarType **, Kokkos::CudaUVMSpace > mVariableScalarValues;
-  Kokkos::View< VectorType **, Kokkos::CudaUVMSpace > mVariableVectorValues;
-  Kokkos::View< StateType   *, Kokkos::CudaUVMSpace > mVariableStateValues;
+  Kokkos::View< ScalarType **, Plato::MemSpace > mVariableScalarValues;
+  Kokkos::View< VectorType **, Plato::MemSpace > mVariableVectorValues;
+  Kokkos::View< StateType   *, Plato::MemSpace > mVariableStateValues;
 
   // Local definition for Kokkos
   KOKKOS_INLINE_FUNCTION int STRCMP (const char *p1, const char *p2) const
@@ -414,7 +414,7 @@ setup_storage( const Plato::OrdinalType nThreads,
 
   // Reference to the results storage.
   mResults = Kokkos::View<ResultType *,
-                          Kokkos::CudaUVMSpace>("ExpEval Results", mNumMemoryChunks);
+                          Plato::MemSpace>("ExpEval Results", mNumMemoryChunks);
 
   // Allocate the actual results storage.
   for( Plato::OrdinalType i=0; i<mNumMemoryChunks; ++i )
@@ -432,7 +432,7 @@ setup_storage( const Plato::OrdinalType nThreads,
 
   mVariableMap =
     Kokkos::View< Map< char[MAX_ARRAY_LENGTH], Plato::OrdinalType > **,
-                  Kokkos::CudaUVMSpace >("ExpEval VariableMap", mNumThreads, mNumVariables );
+                  Plato::MemSpace >("ExpEval VariableMap", mNumThreads, mNumVariables );
 
   // Fill in the variable names for each thread.
   for( Plato::OrdinalType i=0; i<mNumThreads; ++i )
@@ -448,7 +448,7 @@ setup_storage( const Plato::OrdinalType nThreads,
   // are on a thread basis. It is needed on a thread basis becuase
   // threads operate independently.
   mMapCounts =
-    Kokkos::View< Plato::OrdinalType **, Kokkos::CudaUVMSpace >("ExpEval MapCounts", mNumThreads, mNumDataSources);
+    Kokkos::View< Plato::OrdinalType **, Plato::MemSpace >("ExpEval MapCounts", mNumThreads, mNumDataSources);
 
   for( Plato::OrdinalType i=0; i<mNumThreads; ++i )
   {
@@ -463,13 +463,13 @@ setup_storage( const Plato::OrdinalType nThreads,
   // state variables are assumed to be 2D arrays.
   mVariableScalarValues =
     Kokkos::View< ScalarType **,
-                  Kokkos::CudaUVMSpace >("ExpEval Scalar Values", mNumThreads, mNumVariables);
+                  Plato::MemSpace >("ExpEval Scalar Values", mNumThreads, mNumVariables);
   mVariableVectorValues =
     Kokkos::View< VectorType **,
-                  Kokkos::CudaUVMSpace >("ExpEval Vector Values", mNumThreads, mNumVariables);
+                  Plato::MemSpace >("ExpEval Vector Values", mNumThreads, mNumVariables);
   mVariableStateValues =
     Kokkos::View<  StateType *,
-                  Kokkos::CudaUVMSpace >("ExpEval State Values", mNumVariables);
+                  Plato::MemSpace >("ExpEval State Values", mNumVariables);
 
   Kokkos::Profiling::popRegion();
 }
@@ -857,7 +857,7 @@ traverse_expression()
   // Get the post order node evaluation order and the maximum number
   // of temporary memory chunks needed.
   mNodeOrder = Kokkos::View< Plato::OrdinalType *,
-                             Kokkos::CudaUVMSpace >( "ExpEval NodeOrder", mNodesUsed );
+                             Plato::MemSpace >( "ExpEval NodeOrder", mNodesUsed );
 
   mNodeCount = 0;
 
@@ -942,7 +942,7 @@ parse_expression( const char* expression )
   // Create the node array - worst case one for each character in the
   // expression. Will reduce to the actual needed at the end.
   mNodesUsed = 0;
-  mNodes = Kokkos::View< Node *, Kokkos::CudaUVMSpace >( "ExpEval Nodes", expLength );
+  mNodes = Kokkos::View< Node *, Plato::MemSpace >( "ExpEval Nodes", expLength );
 
   // The absolute value can be specified via abs(X) or |X| for the
   // latter, |X| it is necessary to keep track of whether the first or
@@ -1839,7 +1839,7 @@ commuteNode( const Plato::OrdinalType i_node )
  **********************************************************************************/
 template< typename ResultType, typename StateType,
           typename VectorType, typename ScalarType >
-ExpressionEvaluator<ResultType, StateType, VectorType, ScalarType>::NodeID
+typename ExpressionEvaluator<ResultType, StateType, VectorType, ScalarType>::NodeID
 ExpressionEvaluator<ResultType, StateType, VectorType, ScalarType>::
 validateNode( const Plato::OrdinalType i_node,
               const bool checkVariables ) const

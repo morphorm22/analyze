@@ -44,7 +44,7 @@ public:
       // Create a view to point to each of the parameters being passed
       // in. Note: all parameters are assumed to be of type
       // 'Plato::ScalarVectorT< ControlT >'.
-      Kokkos::View< Plato::ScalarVectorT< ControlT > *, Kokkos::CudaUVMSpace >
+      Kokkos::View< Plato::ScalarVectorT< ControlT > *, Plato::MemSpace >
         tParameters("Yield Stress Parameters");
 
       operator()(aResult, aLocalState, tParameters);
@@ -61,7 +61,7 @@ public:
       // Create a view to point to each of the parameters being passed
       // in. Note: all parameters are assumed to be of type
       // 'Plato::ScalarVectorT< ControlT >'.
-      Kokkos::View< Plato::ScalarVectorT< ControlT > *, Kokkos::CudaUVMSpace >
+      Kokkos::View< Plato::ScalarVectorT< ControlT > *, Plato::MemSpace >
         tParameters("Yield Stress Parameters", tNumParamNames);
 
       tParameters(0) = aArg0;
@@ -81,7 +81,7 @@ public:
       // Create a view to point to each of the parameters being passed
       // in. Note: all parameters are assumed to be of type
       // 'Plato::ScalarVectorT< ControlT >'.
-      Kokkos::View< Plato::ScalarVectorT< ControlT > *, Kokkos::CudaUVMSpace >
+      Kokkos::View< Plato::ScalarVectorT< ControlT > *, Plato::MemSpace >
         tParameters("Yield Stress Parameters", tNumParamNames);
 
       tParameters(0) = aArg0;
@@ -103,7 +103,7 @@ public:
       // Create a view to point to each of the parameters being passed
       // in. Note: all parameters are assumed to be of type
       // 'Plato::ScalarVectorT< ControlT >'.
-      Kokkos::View< Plato::ScalarVectorT< ControlT > *, Kokkos::CudaUVMSpace >
+      Kokkos::View< Plato::ScalarVectorT< ControlT > *, Plato::MemSpace >
         tParameters("Yield Stress Parameters", tNumParamNames);
 
       tParameters(0) = aArg0;
@@ -127,7 +127,7 @@ public:
       // Create a view to point to each of the parameters being passed
       // in. Note: all parameters are assumed to be of type
       // 'Plato::ScalarVectorT< ControlT >'.
-      Kokkos::View< Plato::ScalarVectorT< ControlT > *, Kokkos::CudaUVMSpace >
+      Kokkos::View< Plato::ScalarVectorT< ControlT > *, Plato::MemSpace >
         tParameters("Yield Stress Parameters", tNumParamNames);
 
       // The first is reserved for the LocalState.
@@ -149,7 +149,7 @@ public:
     operator()(Plato::ScalarMultiVectorT< ResultT     > const& aResult,
                Plato::ScalarMultiVectorT< LocalStateT > const& aLocalState,
                Kokkos::View< Plato::ScalarVectorT< ControlT > *,
-                             Kokkos::CudaUVMSpace > const& aParameters) const = 0;
+                             Plato::MemSpace > const& aParameters) const = 0;
 
 };
 // class AbstractYieldStress
