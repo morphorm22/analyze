@@ -11,6 +11,7 @@
 
 #include "AnalyzeMacros.hpp"
 #include "PlatoTypes.hpp"
+#include "ParseTools.hpp"
 
 #include <Sacado.hpp>
 
@@ -27,8 +28,6 @@ namespace Plato
 #define USE_POST_ORDER true
 #define USE_RECURSION false
 
-#define MAX_ARRAY_LENGTH 128
-
 // ************************************************************************* //
 // Note: It is assumed that the ResultType, StateType, and VectorType
 // are of type Kokkos::View so to properly handle the view of views
@@ -40,6 +39,12 @@ class ExpressionEvaluator
 public:
   ExpressionEvaluator();
   ~ExpressionEvaluator();
+
+  void initialize( Kokkos::View< VariableMap *, Plato::UVMSpace > & aVarMaps,
+                   const Teuchos::ParameterList & aInputParams,
+                   const std::vector< std::string > aParamLabels,
+                   const Plato::OrdinalType nThreads,
+                   const Plato::OrdinalType nValues );
 
   void    parse_expression( const char* expression );
   bool    valid_expression( const bool checkVariables = false ) const;
@@ -229,13 +234,13 @@ public:
   // nodes may only be temporarily used. The array of nodes is
   // constructed on the host and used on the device.
   Plato::OrdinalType mNodesUsed{ 0 };
-  Kokkos::View< Node *, Kokkos::CudaUVMSpace > mNodes;
+  Kokkos::View< Node *, Plato::UVMSpace > mNodes;
 
   // Total number of nodes in the expression tree and the post order
   // evaluation.  The array of nodes is constructed on the host and
   // used on the device.
   Plato::OrdinalType mNodeCount{ 0 };
-  Kokkos::View< Plato::OrdinalType *, Kokkos::CudaUVMSpace > mNodeOrder;
+  Kokkos::View< Plato::OrdinalType *, Plato::UVMSpace > mNodeOrder;
 
   // The maximum number of chunks of temporary memory needed.
   Plato::OrdinalType mNumMemoryChunks{ (Plato::OrdinalType) 0 };
@@ -245,24 +250,24 @@ public:
 
   // Array holding the results for the nodes. The space is reused
   // based on the on post order evaluation.
-  Kokkos::View< ResultType *, Kokkos::CudaUVMSpace > mResults;
+  Kokkos::View< ResultType *, Plato::UVMSpace > mResults;
 
   // A mapping of the variable names to their coresponding data in the
   // variable arrays - per thread, per variable.
   Kokkos::View< Map< char[MAX_ARRAY_LENGTH], Plato::OrdinalType > **,
-                Kokkos::CudaUVMSpace > mVariableMap;
+                Plato::UVMSpace > mVariableMap;
 
   // Counts of the data stored in the variable arrays. Counts are need
   // because not all of the storage is used, per thread, per storage
   // (mNumDataSources).
-  Kokkos::View< Plato::OrdinalType **, Kokkos::CudaUVMSpace > mMapCounts;
+  Kokkos::View< Plato::OrdinalType **, Plato::UVMSpace > mMapCounts;
 
   // Storage for variable data, there are three types, scalars are
   // constant and not indexed, vectors are indexed, and state values
   // are indexed by the thread and an index.
-  Kokkos::View< ScalarType **, Kokkos::CudaUVMSpace > mVariableScalarValues;
-  Kokkos::View< VectorType **, Kokkos::CudaUVMSpace > mVariableVectorValues;
-  Kokkos::View< StateType   *, Kokkos::CudaUVMSpace > mVariableStateValues;
+  Kokkos::View< ScalarType **, Plato::UVMSpace > mVariableScalarValues;
+  Kokkos::View< VectorType **, Plato::UVMSpace > mVariableVectorValues;
+  Kokkos::View< StateType   *, Plato::UVMSpace > mVariableStateValues;
 
   // Local definition for Kokkos
   KOKKOS_INLINE_FUNCTION int STRCMP (const char *p1, const char *p2) const
@@ -351,6 +356,221 @@ ExpressionEvaluator<ResultType, StateType, VectorType, ScalarType>::
 }
 
 /******************************************************************************//**
+ * \brief getVariableMapping - Parses the expression, gets the
+ * expression variables, sets up the variable mapping between the
+ * expression and the data, and sets up the storage needed.
+
+ * \param [in] aVarMaps - variable mapping between the expression and the data.
+ * \param [in] aInputParams Teuchos parameter list
+ * \param [in] nThreads - number of threads being executed
+ * \param [in] nValues  - number of values being evaluated
+ **********************************************************************************/
+template< typename ResultType, typename StateType,
+          typename VectorType, typename ScalarType >
+void
+ExpressionEvaluator<ResultType, StateType, VectorType, ScalarType>::
+initialize( Kokkos::View< VariableMap *, Plato::UVMSpace > & aVarMaps,
+            const Teuchos::ParameterList & aInputParams,
+            const std::vector< std::string > aParamLabels,
+            const Plato::OrdinalType nThreads,
+            const Plato::OrdinalType nValues )
+{
+  Kokkos::Profiling::pushRegion("ExpressionEvaluator::initialize");
+
+  auto tNumParamLabels = aParamLabels.size();
+
+  // No variable mappings initially.
+  for( Plato::OrdinalType i=0; i<tNumParamLabels; ++i )
+    aVarMaps(i).key = 0;
+
+  // Get the expression from the parameters.
+  std::string tEquationStr = ParseTools::getEquationParam(aInputParams);
+
+  // Parse the expression.
+  this->parse_expression(tEquationStr.c_str());
+
+  // For all of the variables found in the expression optionally
+  // get their values from the parameter list.
+  const std::vector< std::string > tVarNames = this->get_variables();
+
+  for( auto const & tVarName : tVarNames )
+  {
+    // Here the expression variable is found as a Plato::Scalar
+    // so the value comes from the XML and is set directly.
+    if( aInputParams.isType<Plato::Scalar>(tVarName) )
+    {
+      // The value *MUST BE* converted to the ScalarType as it is
+      // the type used for all fixed variables.
+      ScalarType tVal = aInputParams.get<Plato::Scalar>(tVarName);
+
+      this->set_variable( tVarName.c_str(), tVal );
+    }
+    // Here the expression variable is found as a string so the
+    // values should come from the XML.
+    else if( aInputParams.isType<std::string>(tVarName) )
+    {
+      std::string tVal = aInputParams.get<std::string>(tVarName);
+
+      // These are the names of the parameters passed into the
+      // evaluation operator below. If the equation variable
+      // "value" matches then the parameter value will be used.
+      bool tFound = false;
+
+      for( Plato::OrdinalType i=0; i<tNumParamLabels; ++i )
+      {
+        if( tVal == aParamLabels[i] )
+        {
+          aVarMaps(i).key = 1;
+          strcpy( aVarMaps(i).value, tVarName.c_str() );
+
+          tFound = true;
+          break;
+        }
+      }
+
+      if( !tFound )
+      {
+        std::stringstream errorMsg;
+        errorMsg << "Invalid parameter name '" << tVal << "' "
+                 << "found for varaible name '" << tVarName << "'. "
+                 << "It must be :";
+
+        for( Plato::OrdinalType i=0; i<tNumParamLabels; i++ )
+        {
+          errorMsg << " '" << aParamLabels[i] << "'";
+        }
+
+        errorMsg << ".";
+
+        THROWERR(  errorMsg.str() );
+      }
+    }
+    // Here the expression variable should come from the
+    // parameters passed in.
+    else
+    {
+      // These are the names of the parameters passed into the
+      // evaluation operator below. If the equation variable
+      // name matches then the parameter value will be used.
+      bool tFound = false;
+
+      for( Plato::OrdinalType i=0; i<tNumParamLabels; ++i )
+      {
+        if( tVarName == aParamLabels[i] )
+        {
+          aVarMaps(i).key = 1;
+          strcpy( aVarMaps(i).value, tVarName.c_str() );
+
+          tFound = true;
+          break;
+        }
+      }
+
+      if( !tFound )
+      {
+        std::stringstream errorMsg;
+        errorMsg << "Invalid varaible name '" << tVarName << "'. "
+                 << "It must be :";
+
+        for( Plato::OrdinalType i=0; i<tNumParamLabels; i++ )
+        {
+          errorMsg << " '" << aParamLabels[i] << "'";
+        }
+
+        errorMsg << ".";
+
+        THROWERR(  errorMsg.str() );
+      }
+    }
+  }
+
+  // After the parsing, set up the storage. The sizes must match the
+  // input and output data sizes.
+  this->setup_storage( nThreads, nValues );
+
+  Kokkos::Profiling::popRegion();
+}
+
+/******************************************************************************//**
+ * \brief setup_storage - sets up the storage for evaluating the expression
+ * \param [in] nThreads - number of threads being executed
+ * \param [in] nValues  - number of values being evaluated
+ **********************************************************************************/
+template< typename ResultType, typename StateType,
+          typename VectorType, typename ScalarType >
+void
+ExpressionEvaluator<ResultType, StateType, VectorType, ScalarType>::
+setup_storage( const Plato::OrdinalType nThreads,
+               const Plato::OrdinalType nValues )
+{
+  Kokkos::Profiling::pushRegion("ExpressionEvaluator::setup_storage");
+
+  mNumThreads = nThreads;
+  mNumValues  = nValues;
+
+  // Reference to the results storage.
+  mResults = Kokkos::View<ResultType *,
+                          Plato::UVMSpace>("ExpEval Results", mNumMemoryChunks);
+
+  // Allocate the actual results storage.
+  for( Plato::OrdinalType i=0; i<mNumMemoryChunks; ++i )
+  {
+    std::stringstream nameStr;
+    nameStr << "ExpEval Result " << i;
+
+    mResults[i] = ResultType(nameStr.str(), mNumThreads, mNumValues);
+  }
+
+  // Create the variable map array, which maps the variable names to
+  // the storage for each thread. It is needed on a thread basis
+  // becuase threads operate independently.
+  mNumVariables = mVariableList.size();
+
+  mVariableMap =
+    Kokkos::View< Map< char[MAX_ARRAY_LENGTH], Plato::OrdinalType > **,
+                  Plato::UVMSpace >("ExpEval VariableMap", mNumThreads, mNumVariables );
+
+  // Fill in the variable names for each thread.
+  for( Plato::OrdinalType i=0; i<mNumThreads; ++i )
+  {
+    for( Plato::OrdinalType j=0; j<mNumVariables; ++j )
+    {
+      strcpy( mVariableMap(i,j).key, mVariableList[j].c_str() );
+      mVariableMap(i,j).value = (Plato::OrdinalType) -1;
+    }
+  }
+
+  // Counts of the variables stored in each of the maps. These counts
+  // are on a thread basis. It is needed on a thread basis becuase
+  // threads operate independently.
+  mMapCounts =
+    Kokkos::View< Plato::OrdinalType **, Plato::UVMSpace >("ExpEval MapCounts", mNumThreads, mNumDataSources);
+
+  for( Plato::OrdinalType i=0; i<mNumThreads; ++i )
+  {
+    for( Plato::OrdinalType j=0; j<mNumDataSources; ++j )
+    {
+      mMapCounts(i,j) = 0;
+    }
+  }
+
+  // Storage of the variable data on a thread basis. The scalars are
+  // assumed to be a single value, vectors are a 1D vector, while
+  // state variables are assumed to be 2D arrays.
+  mVariableScalarValues =
+    Kokkos::View< ScalarType **,
+                  Plato::UVMSpace >("ExpEval Scalar Values", mNumThreads, mNumVariables);
+  mVariableVectorValues =
+    Kokkos::View< VectorType **,
+                  Plato::UVMSpace >("ExpEval Vector Values", mNumThreads, mNumVariables);
+  mVariableStateValues =
+    Kokkos::View<  StateType *,
+                  Plato::UVMSpace >("ExpEval State Values", mNumVariables);
+
+  Kokkos::Profiling::popRegion();
+}
+
+/******************************************************************************//**
  * \brief clear_storage - clear the storage for evaluating the expression
  * \param [in] dummyVector - number of threads being executed
  * \param [in] nValues  - number of values being evaluated
@@ -362,6 +582,10 @@ ExpressionEvaluator<ResultType, StateType, VectorType, ScalarType>::
 clear_storage() const
 {
   Kokkos::Profiling::pushRegion("ExpressionEvaluator::clear_storage");
+
+  // Fence before deallocation on host, to make sure that the device
+  // kernel is done first.
+  Kokkos::fence();
 
   // Because there are views of views which are reference counted and
   // deleting the parent view DOES NOT de-reference the child views a
@@ -392,84 +616,13 @@ clear_storage() const
     }
   }
 
-  Kokkos::Profiling::popRegion();
-}
+  // Destroy inner Views, again on host, outside of a parallel region.
+  // for (int k = 0; k < 5; ++k) {
+  //   outer[k].~inner_view_type ();
+  // }
 
-/******************************************************************************//**
- * \brief setup_storage - sets up the storage for evaluating the expression
- * \param [in] nThreads - number of threads being executed
- * \param [in] nValues  - number of values being evaluated
- **********************************************************************************/
-template< typename ResultType, typename StateType,
-          typename VectorType, typename ScalarType >
-void
-ExpressionEvaluator<ResultType, StateType, VectorType, ScalarType>::
-setup_storage( const Plato::OrdinalType nThreads,
-               const Plato::OrdinalType nValues )
-{
-  Kokkos::Profiling::pushRegion("ExpressionEvaluator::setup_storage");
-
-  mNumThreads = nThreads;
-  mNumValues  = nValues;
-
-  // Reference to the results storage.
-  mResults = Kokkos::View<ResultType *,
-                          Kokkos::CudaUVMSpace>("ExpEval Results", mNumMemoryChunks);
-
-  // Allocate the actual results storage.
-  for( Plato::OrdinalType i=0; i<mNumMemoryChunks; ++i )
-  {
-    std::stringstream nameStr;
-    nameStr << "ExpEval Result " << i;
-
-    mResults[i] = ResultType(nameStr.str(), mNumThreads, mNumValues);
-  }
-
-  // Create the variable map array, which maps the variable names to
-  // the storage for each thread. It is needed on a thread basis
-  // becuase threads operate independently.
-  mNumVariables = mVariableList.size();
-
-  mVariableMap =
-    Kokkos::View< Map< char[MAX_ARRAY_LENGTH], Plato::OrdinalType > **,
-                  Kokkos::CudaUVMSpace >("ExpEval VariableMap", mNumThreads, mNumVariables );
-
-  // Fill in the variable names for each thread.
-  for( Plato::OrdinalType i=0; i<mNumThreads; ++i )
-  {
-    for( Plato::OrdinalType j=0; j<mNumVariables; ++j )
-    {
-      strcpy( mVariableMap(i,j).key, mVariableList[j].c_str() );
-      mVariableMap(i,j).value = (Plato::OrdinalType) -1;
-    }
-  }
-
-  // Counts of the variables stored in each of the maps. These counts
-  // are on a thread basis. It is needed on a thread basis becuase
-  // threads operate independently.
-  mMapCounts =
-    Kokkos::View< Plato::OrdinalType **, Kokkos::CudaUVMSpace >("ExpEval MapCounts", mNumThreads, mNumDataSources);
-
-  for( Plato::OrdinalType i=0; i<mNumThreads; ++i )
-  {
-    for( Plato::OrdinalType j=0; j<mNumDataSources; ++j )
-    {
-      mMapCounts(i,j) = 0;
-    }
-  }
-
-  // Storage of the variable data on a thread basis. The scalars are
-  // assumed to be a single value, vectors are a 1D vector, while
-  // state variables are assumed to be 2D arrays.
-  mVariableScalarValues =
-    Kokkos::View< ScalarType **,
-                  Kokkos::CudaUVMSpace >("ExpEval Scalar Values", mNumThreads, mNumVariables);
-  mVariableVectorValues =
-    Kokkos::View< VectorType **,
-                  Kokkos::CudaUVMSpace >("ExpEval Vector Values", mNumThreads, mNumVariables);
-  mVariableStateValues =
-    Kokkos::View<  StateType *,
-                  Kokkos::CudaUVMSpace >("ExpEval State Values", mNumVariables);
+  // You're better off disposing of outer immediately.
+  // outer = outer_view_type ();
 
   Kokkos::Profiling::popRegion();
 }
@@ -857,7 +1010,7 @@ traverse_expression()
   // Get the post order node evaluation order and the maximum number
   // of temporary memory chunks needed.
   mNodeOrder = Kokkos::View< Plato::OrdinalType *,
-                             Kokkos::CudaUVMSpace >( "ExpEval NodeOrder", mNodesUsed );
+                             Plato::UVMSpace >( "ExpEval NodeOrder", mNodesUsed );
 
   mNodeCount = 0;
 
@@ -942,7 +1095,7 @@ parse_expression( const char* expression )
   // Create the node array - worst case one for each character in the
   // expression. Will reduce to the actual needed at the end.
   mNodesUsed = 0;
-  mNodes = Kokkos::View< Node *, Kokkos::CudaUVMSpace >( "ExpEval Nodes", expLength );
+  mNodes = Kokkos::View< Node *, Plato::UVMSpace >( "ExpEval Nodes", expLength );
 
   // The absolute value can be specified via abs(X) or |X| for the
   // latter, |X| it is necessary to keep track of whether the first or

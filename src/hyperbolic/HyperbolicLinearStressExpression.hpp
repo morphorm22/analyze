@@ -87,18 +87,6 @@ protected:
     Teuchos::ParameterList mInputParams;
 
 public:
-// ************************************************************************* //
-    // Map structure - used with Kokkos so char strings so to be compatable.
-    template< typename KEY_TYPE, typename VALUE_TYPE > struct _Map {
-      KEY_TYPE key;
-      VALUE_TYPE value;
-    };
-
-    template< typename KEY_TYPE, typename VALUE_TYPE >
-    using Map = _Map< KEY_TYPE, VALUE_TYPE>;
-
-    using VariableMap = Map< Plato::OrdinalType, char[MAX_ARRAY_LENGTH] >;
-
     /******************************************************************************//**
      * \brief Constructor
      * \param [in] aCellStiffness material element stiffness matrix
@@ -165,7 +153,7 @@ public:
       // be re-referenced directly.
       typedef Plato::ScalarVectorT<Plato::Scalar> ScalarVectorScalar;
 
-      Kokkos::View< ScalarVectorScalar *, Kokkos::CudaUVMSpace >
+      Kokkos::View< ScalarVectorScalar *, Plato::UVMSpace >
         tCellStiffness("Temporary Cell Stiffness", mNumVoigtTerms);
 
       for(Plato::OrdinalType iIndex = 0; iIndex < mNumVoigtTerms; iIndex++)
@@ -234,12 +222,8 @@ public:
       // If the user wants to use the input parameters these hold the
       // names of the equation variables that are mapped to the input
       // parameter labels.
-      Kokkos::View< VariableMap *, Kokkos::CudaUVMSpace >
+      Kokkos::View< VariableMap *, Plato::UVMSpace >
         tVarMaps ("Linear Stress Exp. Variable Maps", tNumParamLabels);
-
-      // No mappings initially.
-      for( Plato::OrdinalType i=0; i<tNumParamLabels; ++i )
-        tVarMaps(i).key = 0;
 
       /*!< expression evaluator */
       ExpressionEvaluator< Plato::ScalarMultiVectorT<ResultT>,
@@ -251,121 +235,17 @@ public:
       // Look for a Custom Elasticity Model
       if( mInputParams.isSublist("Custom Elasticity Model") )
       {
-        auto tCPMParams = mInputParams.sublist("Custom Elasticity Model");
+        auto tParams = mInputParams.sublist("Custom Elasticity Model");
 
-        // Get the expression from the parameters.
-        std::string tEquationStr = ParseTools::getEquationParam(tCPMParams);
-
-        // Parse the expression.
-        tExpEval.parse_expression(tEquationStr.c_str());
-
-        // For all of the variables found in the expression optionally
-        // get their values from the parameter list.
-        const std::vector< std::string > tVarNames =
-          tExpEval.get_variables();
-
-        for( auto const & tVarName : tVarNames )
-        {
-          // Here the expression variable is found as a Plato::Scalar
-          // so the value comes from the XML and is set directly.
-          if( tCPMParams.isType<Plato::Scalar>(tVarName) )
-          {
-            // The value *MUST BE* converted to the Plato::Scalar as it is
-            // the type used for all fixed variables.
-            Plato::Scalar tVal = tCPMParams.get<Plato::Scalar>(tVarName);
-
-            tExpEval.set_variable( tVarName.c_str(), tVal );
-          }
-          // Here the expression variable is found as a string so the
-          // values should come from the XML.
-          else if( tCPMParams.isType<std::string>(tVarName) )
-          {
-            std::string tVal = tCPMParams.get<std::string>(tVarName);
-
-            // These are the labels of the parameters passed into the
-            // evaluation operator below. If the equation variable
-            // "value" matches then the parameter value will be used.
-            bool tFound = false;
-
-            for( Plato::OrdinalType i=0; i<tNumParamLabels; ++i )
-            {
-              if( tVal == tParamLabels[i] )
-              {
-                tVarMaps(i).key = 1;
-                strcpy( tVarMaps(i).value, tVarName.c_str() );
-
-                tFound = true;
-                break;
-              }
-            }
-
-            if( !tFound )
-            {
-              std::stringstream errorMsg;
-              errorMsg << "Invalid parameter name '" << tVal << "' "
-                       << "found for varaible name '" << tVarName << "'. "
-                       << "It must be :";
-
-              for( Plato::OrdinalType i=0; i<tNumParamLabels; i++ )
-              {
-                errorMsg << " '" << tParamLabels[i] << "'";
-              }
-
-              errorMsg << ".";
-
-             THROWERR(  errorMsg.str() );
-            }
-          }
-          // Here the expression variable should come from the
-          // parameters passed in.
-          else
-          {
-            // These are the names of the parameters passed into the
-            // evaluation operator below. If the equation variable
-            // name matches then the parameter value will be used.
-            bool tFound = false;
-
-            for( Plato::OrdinalType i=0; i<tNumParamLabels; ++i )
-            {
-              if( tVarName == tParamLabels[i] )
-              {
-                tVarMaps(i).key = 1;
-                strcpy( tVarMaps(i).value, tVarName.c_str() );
-
-                tFound = true;
-                break;
-              }
-            }
-
-            if( !tFound )
-            {
-              std::stringstream errorMsg;
-              errorMsg << "Invalid varaible name '" << tVarName << "'. "
-                       << "It must be :";
-
-              for( Plato::OrdinalType i=0; i<tNumParamLabels; i++ )
-              {
-                errorMsg << " '" << tParamLabels[i] << "'";
-              }
-
-              errorMsg << ".";
-
-             THROWERR(  errorMsg.str() );
-            }
-          }
-        }
+        tExpEval.initialize(tVarMaps, tParams,
+                            tParamLabels, tNumCells, mNumVoigtTerms );
       }
-
       // If for some reason the expression evalutor is called but
       // without the XML block.
       else
       {
         THROWERR("Warning: Failed to find a 'Custom Elasticity Model' block.");
       }
-
-      // After the parsing, set up the storage the sizes must match
-      // the input and output data sizes.
-      tExpEval.setup_storage( tNumCells, mNumVoigtTerms );
 
       // Input values which is a two-dimensional array. The first
       // index is over the cell index. The second index is over tVoigtIndex_J.
@@ -433,6 +313,10 @@ public:
             }
         }
       } );
+
+      // Fence before deallocation on host, to make sure that the
+      // device kernel is done first.
+      Kokkos::fence();
 
       // Clear the tCellStiffness storage.
       ScalarVectorScalar tDummyParam( "Dummy Cell Stiffness", 0 );
