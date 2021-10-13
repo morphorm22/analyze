@@ -7,7 +7,7 @@
 #include "SimplexFadTypes.hpp"
 #include "ExpInstMacros.hpp"
 #include "TMKinematics.hpp"
-#include "TMKinetics.hpp"
+#include "TMKineticsFactory.hpp"
 #include "InterpolateFromNodal.hpp"
 #include "LinearTetCubRuleDegreeOne.hpp"
 #include "ThermoelasticMaterial.hpp"
@@ -75,7 +75,7 @@ public:
      * \param [in] aDataMap map to stored data
      * \param [out] aResult 1D container of cell local measure values
     **********************************************************************************/
-    virtual void
+   virtual void
     operator()(
         const Plato::ScalarMultiVectorT <StateT>  & aStateWS,
         const Plato::ScalarArray3DT     <ConfigT> & aConfigWS,
@@ -88,7 +88,10 @@ public:
         Plato::VonMisesYieldFunction<mSpaceDim>  tComputeVonMises;
         Plato::ComputeGradientWorkset<mSpaceDim> tComputeGradient;
         Plato::TMKinematics<mSpaceDim>           tKinematics;
-        Plato::TMKinetics<mSpaceDim>             tKinetics(mMaterialModel);
+        //Plato::TMKinetics<mSpaceDim>             tKinetics(mMaterialModel);
+      Plato::TMKineticsFactory< EvaluationType, SimplexPhysics > tTMKineticsFactory;
+      auto pkinetics = tTMKineticsFactory.create(mMaterialModel);
+      auto & tKinetics = *pkinetics;
 
         Plato::InterpolateFromNodal<mSpaceDim, mNumDofsPerNode, TDofOffset> tInterpolateFromNodal;
 
@@ -112,9 +115,17 @@ public:
             tComputeGradient(tCellOrdinal, tGradient, aConfigWS, tCellVolume);
             tKinematics(tCellOrdinal, tStrain, tGrad, aStateWS, tGradient);
             tInterpolateFromNodal(tCellOrdinal, tBasisFunctions, aStateWS, tTemperature);
-            tKinetics(tCellOrdinal, tStress, tFlux, tStrain, tGrad, tTemperature);
+//            tKinetics(tCellOrdinal, tStress, tFlux, tStrain, tGrad, tTemperature);
+        }, "Compute vonmises stress 1");
+
+        tKinetics(tStress, tFlux, tStrain, tGrad, tTemperature);
+
+        Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumCells), 
+            LAMBDA_EXPRESSION(const Plato::OrdinalType &tCellOrdinal)
+        {
             tComputeVonMises(tCellOrdinal, tStress, aResultWS);
-        }, "Compute vonmises stress");
+        }, "Compute vonmises stress 2");
+
     }
 };
 // class ThermalVonMisesLocalMeasure

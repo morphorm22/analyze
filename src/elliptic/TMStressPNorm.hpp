@@ -4,7 +4,7 @@
 #include "ScalarProduct.hpp"
 #include "ApplyWeighting.hpp"
 #include "TMKinematics.hpp"
-#include "TMKinetics.hpp"
+#include "TMKineticsFactory.hpp"
 #include "TensorPNorm.hpp"
 #include "ElasticModelFactory.hpp"
 #include "ImplicitFunctors.hpp"
@@ -152,7 +152,10 @@ class TMStressPNorm :
 
       Plato::ComputeGradientWorkset<SpaceDim> tComputeGradient;
       Plato::TMKinematics<SpaceDim>           tKinematics;
-      Plato::TMKinetics<SpaceDim>             tKinetics(mMaterialModel);
+      //Plato::TMKinetics<SpaceDim>             tKinetics(mMaterialModel);
+      Plato::TMKineticsFactory< EvaluationType, Plato::SimplexThermomechanics<EvaluationType::SpatialDim> > tTMKineticsFactory;
+      auto pkinetics = tTMKineticsFactory.create(mMaterialModel);
+      auto & tKinetics = *pkinetics;
 
       Plato::InterpolateFromNodal<SpaceDim, mNumDofsPerNode, TDofOffset> tInterpolateFromNodal;
 
@@ -189,13 +192,19 @@ class TMStressPNorm :
         // compute stress
         //
         tInterpolateFromNodal(aCellOrdinal, tBasisFunctions, aState, tTemperature);
-        tKinetics(aCellOrdinal, tStress, tFlux, tStrain, tTgrad, tTemperature);
+//        tKinetics(aCellOrdinal, tStress, tFlux, tStrain, tTgrad, tTemperature);
+      },"Compute Stress");
 
+      tKinetics(tStress, tFlux, tStrain, tTgrad, tTemperature);
+
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+      {
         // apply weighting
         //
         tApplyStressWeighting(aCellOrdinal, tStress, aControl);
 
-      },"Compute Stress");
+      },"Apply Stress Weighting");
+
 
       mNorm->evaluate(aResult, tStress, aControl, tCellVolume);
 

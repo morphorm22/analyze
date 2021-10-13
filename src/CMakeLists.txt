@@ -22,6 +22,9 @@ set(ANALYZE_SOURCES
     MaterialModel.cpp
     Rank4Voigt.cpp
     IsotropicStiffness.cpp
+    AbstractTMKinetics.cpp
+    LinearTMKinetics.cpp
+    NonLinearTMKinetics.cpp
 )
 
 if(EXPRESSION)
@@ -30,6 +33,7 @@ if(EXPRESSION)
       LinearStressFactory.cpp
       YieldStressExpression.cpp
       YieldStressFactory.cpp
+      ExpressionTMKinetics.cpp
   )
 endif()
 

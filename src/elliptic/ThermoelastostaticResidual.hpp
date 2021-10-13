@@ -7,7 +7,8 @@
 #include "SimplexFadTypes.hpp"
 #include "SimplexThermomechanics.hpp"
 #include "TMKinematics.hpp"
-#include "TMKinetics.hpp"
+//#include "TMKinetics.hpp"
+#include "TMKineticsFactory.hpp"
 #include "StressDivergence.hpp"
 #include "FluxDivergence.hpp"
 #include "elliptic/AbstractVectorFunction.hpp"
@@ -183,7 +184,11 @@ public:
 
       Plato::ComputeGradientWorkset<SpaceDim> computeGradient;
       Plato::TMKinematics<SpaceDim>           kinematics;
-      Plato::TMKinetics<SpaceDim>             kinetics(mMaterialModel);
+     // Plato::TMKinetics<SpaceDim>             kinetics(mMaterialModel);
+      
+      Plato::TMKineticsFactory< EvaluationType, PhysicsType > tTMKineticsFactory;
+      auto pkinetics = tTMKineticsFactory.create(mMaterialModel);
+      auto & tkinetics = *pkinetics;
       
       Plato::StressDivergence<SpaceDim, mNumDofsPerNode, MDofOffset> stressDivergence;
       Plato::FluxDivergence  <SpaceDim, mNumDofsPerNode, TDofOffset> fluxDivergence;
@@ -217,9 +222,11 @@ public:
         // compute stress and electric displacement
         //
         interpolateFromNodal(cellOrdinal, basisFunctions, state, temperature);
-        kinetics(cellOrdinal, stress, flux, strain, tgrad, temperature);
+//        kinetics(cellOrdinal, stress, flux, strain, tgrad, temperature);
 
       }, "Cauchy stress");
+
+      tkinetics(stress, flux, strain, tgrad, temperature);
 
       auto& applyStressWeighting = mApplyStressWeighting;
       auto& applyFluxWeighting  = mApplyFluxWeighting;

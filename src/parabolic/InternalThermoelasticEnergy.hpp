@@ -8,7 +8,8 @@
 #include "ScalarProduct.hpp"
 #include "ApplyWeighting.hpp"
 #include "TMKinematics.hpp"
-#include "TMKinetics.hpp"
+#include "TMKineticsFactory.hpp"
+//#include "TMKinetics.hpp"
 #include "ImplicitFunctors.hpp"
 #include "InterpolateFromNodal.hpp"
 #include "LinearTetCubRuleDegreeOne.hpp"
@@ -115,7 +116,10 @@ class InternalThermoelasticEnergy :
 
       Plato::ComputeGradientWorkset<SpaceDim> computeGradient;
       TMKinematics<SpaceDim>                  kinematics;
-      TMKinetics<SpaceDim>                    kinetics(mMaterialModel);
+      //TMKinetics<SpaceDim>                    kinetics(mMaterialModel);
+      Plato::TMKineticsFactory< EvaluationType, Plato::SimplexThermomechanics<SpaceDim> > tTMKineticsFactory;
+      auto pkinetics = tTMKineticsFactory.create(mMaterialModel);
+      auto & tKinetics = *pkinetics;
 
       ScalarProduct<mNumVoigtTerms>          mechanicalScalarProduct;
       ScalarProduct<SpaceDim>                 thermalScalarProduct;
@@ -151,8 +155,13 @@ class InternalThermoelasticEnergy :
         // compute stress and thermal flux
         //
         interpolateFromNodal(aCellOrdinal, basisFunctions, aState, temperature);
-        kinetics(aCellOrdinal, stress, flux, strain, tgrad, temperature);
+//        tKinetics(aCellOrdinal, stress, flux, strain, tgrad, temperature);
+      },"energy gradient1");
 
+      tKinetics(stress, flux, strain, tgrad, temperature);
+
+      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNumCells), LAMBDA_EXPRESSION(const int & aCellOrdinal)
+      {
         // apply weighting
         //
         applyStressWeighting(aCellOrdinal, stress, aControl);
@@ -163,7 +172,7 @@ class InternalThermoelasticEnergy :
         mechanicalScalarProduct(aCellOrdinal, aResult, stress, strain, cellVolume);
         thermalScalarProduct   (aCellOrdinal, aResult, flux,   tgrad,  cellVolume);
 
-      },"energy gradient");
+      },"energy gradient2");
     }
 };
 // class InternalThermoelasticEnergy

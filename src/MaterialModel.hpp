@@ -6,7 +6,7 @@
 
 namespace Plato {
 
-  enum class MaterialModelType { Linear, Nonlinear };
+  enum class MaterialModelType { Linear, Nonlinear, Expression };
 
   /******************************************************************************/
   /*!

@@ -37,6 +37,8 @@
 #include "SimplexThermal.hpp"
 #include "Thermomechanics.hpp"
 #include "ComputedField.hpp"
+#include "TMKineticsFactory.hpp"
+#include "Mechanics.hpp"
 
 #include <fenv.h>
 
@@ -129,7 +131,14 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
 
   Plato::ComputeGradientWorkset<spaceDim>  computeGradient;
   Plato::TMKinematics<spaceDim>                   kinematics;
-  Plato::TMKinetics<spaceDim>                     kinetics(materialModel);
+  using Residual = typename Plato::ResidualTypes<Plato::SimplexMechanics<spaceDim>>;
+  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+//  Plato::TMKinetics<spaceDim>                     kinetics(materialModel);
+  Plato::TMKineticsFactory< Residual, SimplexPhysics > tTMKineticsFactory;
+  //Plato::TMKineticsFactory< EvaluationType, SimplexPhysics > tTMKineticsFactory;
+  auto pkinetics = tTMKineticsFactory.create(materialModel);
+  auto & kinetics = *pkinetics;
+
 
   Plato::InterpolateFromNodal<spaceDim, dofsPerNode, TDofOffset> interpolateFromNodal;
 
@@ -156,7 +165,14 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
 
     interpolateFromNodal(cellOrdinal, basisFunctions, stateWS, tTemperature);
 
-    kinetics(cellOrdinal, tStress, tFlux, tStrain, tGrad, tTemperature);
+//    kinetics(cellOrdinal, tStress, tFlux, tStrain, tGrad, tTemperature);
+//
+  }, "divergence 1");
+
+  kinetics(tStress, tFlux, tStrain, tGrad, tTemperature);
+
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), LAMBDA_EXPRESSION(int cellOrdinal)
+  {
 
     stressDivergence(cellOrdinal, result, tStress, gradient, cellVolume, tTimeStep/2.0);
 
@@ -165,7 +181,7 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
     computeThermalContent(cellOrdinal, tThermalContent, tTemperature);
     projectThermalContent(cellOrdinal, cellVolume, basisFunctions, tThermalContent, massResult);
 
-  }, "divergence");
+  }, "divergence 2");
 
   // test cell volume
   //

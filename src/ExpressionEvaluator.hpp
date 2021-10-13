@@ -1992,7 +1992,7 @@ commuteNode( const Plato::OrdinalType i_node )
  **********************************************************************************/
 template< typename ResultType, typename StateType,
           typename VectorType, typename ScalarType >
-ExpressionEvaluator<ResultType, StateType, VectorType, ScalarType>::NodeID
+typename ExpressionEvaluator<ResultType, StateType, VectorType, ScalarType>::NodeID
 ExpressionEvaluator<ResultType, StateType, VectorType, ScalarType>::
 validateNode( const Plato::OrdinalType i_node,
               const bool checkVariables ) const

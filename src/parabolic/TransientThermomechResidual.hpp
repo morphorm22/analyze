@@ -8,7 +8,8 @@
 #include "FluxDivergence.hpp"
 #include "parabolic/ParabolicSimplexFadTypes.hpp"
 #include "TMKinematics.hpp"
-#include "TMKinetics.hpp"
+//#include "TMKinetics.hpp"
+#include "TMKineticsFactory.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "StateValues.hpp"
 #include "LinearTetCubRuleDegreeOne.hpp"
@@ -220,7 +221,10 @@ class TransientThermomechResidual :
       Plato::ComputeGradientWorkset<SpaceDim> tComputeGradient;
 
       Plato::TMKinematics<SpaceDim> tKinematics;
-      Plato::TMKinetics<SpaceDim>   tKinetics(mMaterialModel);
+      //Plato::TMKinetics<SpaceDim>   tKinetics(mMaterialModel);
+      Plato::TMKineticsFactory< EvaluationType, Plato::SimplexThermomechanics<SpaceDim> > tTMKineticsFactory;
+      auto pkinetics = tTMKineticsFactory.create(mMaterialModel);
+      auto & tKinetics = *pkinetics;
 
       Plato::InterpolateFromNodal<SpaceDim, mNumDofsPerNode, TDofOffset> tInterpolateFromNodal;
 
@@ -250,8 +254,13 @@ class TransientThermomechResidual :
         //
         tInterpolateFromNodal(tCellOrdinal, tBasisFunctions, aState, tTemperature);
 
-        tKinetics(tCellOrdinal, tStress, tFlux, tStrain, tGrad, tTemperature);
+//        tKinetics(tCellOrdinal, tStress, tFlux, tStrain, tGrad, tTemperature);
+      },"stress");
+  
+      tKinetics(tStress, tFlux, tStrain, tGrad, tTemperature);
 
+      Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType tCellOrdinal)
+      {
         // apply weighting
         //
         tApplyStressWeighting(tCellOrdinal, tStress, aControl);
@@ -282,7 +291,7 @@ class TransientThermomechResidual :
         //
         tProjectHeatRate(tCellOrdinal, tCellVolume, tBasisFunctions, tHeatRate, aResult);
 
-      },"stress and flux divergence");
+      },"flux divergence");
 
       if(std::count(mPlotTable.begin(), mPlotTable.end(), "strain")) { Plato::toMap(mDataMap, tStrain, "strain"); }
       if(std::count(mPlotTable.begin(), mPlotTable.end(), "stress")) { Plato::toMap(mDataMap, tStress, "stress"); }
