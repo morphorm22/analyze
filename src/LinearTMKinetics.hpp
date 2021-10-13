@@ -63,6 +63,13 @@ public:
                 Kokkos::View<KinematicsScalarType**, Plato::Layout, Plato::MemSpace> const& aTGrad,
                 Kokkos::View<StateT*,                Plato::MemSpace> const& aTemperature) const override
     {
+        auto tScaling = mScaling;
+        auto tScaling2 = mScaling2;
+        auto tRefTemperature = mRefTemperature;
+        auto& tThermalExpansivityConstant = mThermalExpansivityConstant;
+        auto& tThermalConductivityConstant = mThermalConductivityConstant;
+        auto& tElasticStiffnessConstant = mElasticStiffnessConstant;
+        auto& tVoigtMap = cVoigtMap;
         const Plato::OrdinalType tNumCells = aStrain.extent(0);
         Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNumCells), LAMBDA_EXPRESSION(const int & aCellOrdinal)
         {
@@ -71,8 +78,8 @@ public:
             //
             StateT tstrain[mNumVoigtTerms] = {0};
             for( int iDim=0; iDim<EvaluationType::SpatialDim; iDim++ ){
-                tstrain[iDim] = mScaling * mThermalExpansivityConstant(cVoigtMap.I[iDim], cVoigtMap.J[iDim])
-                            * (tTemperature - mRefTemperature);
+                tstrain[iDim] = tScaling * tThermalExpansivityConstant(tVoigtMap.I[iDim], tVoigtMap.J[iDim])
+                            * (tTemperature - tRefTemperature);
             }
 
             // compute stress
@@ -80,7 +87,7 @@ public:
             for( int iVoigt=0; iVoigt<mNumVoigtTerms; iVoigt++){
                 aStress(aCellOrdinal,iVoigt) = 0.0;
                 for( int jVoigt=0; jVoigt<mNumVoigtTerms; jVoigt++){
-                    aStress(aCellOrdinal,iVoigt) += (aStrain(aCellOrdinal,jVoigt)-tstrain[jVoigt])*mElasticStiffnessConstant(iVoigt, jVoigt);
+                    aStress(aCellOrdinal,iVoigt) += (aStrain(aCellOrdinal,jVoigt)-tstrain[jVoigt])*tElasticStiffnessConstant(iVoigt, jVoigt);
                 }
             }
 
@@ -89,7 +96,7 @@ public:
             for( int iDim=0; iDim<EvaluationType::SpatialDim; iDim++){
                 aFlux(aCellOrdinal,iDim) = 0.0;
                 for( int jDim=0; jDim<EvaluationType::SpatialDim; jDim++){
-                    aFlux(aCellOrdinal,iDim) += mScaling2 * aTGrad(aCellOrdinal,jDim)*mThermalConductivityConstant(iDim, jDim);
+                    aFlux(aCellOrdinal,iDim) += tScaling2 * aTGrad(aCellOrdinal,jDim)*tThermalConductivityConstant(iDim, jDim);
                 }
             }
         }, "Cauchy stress");
