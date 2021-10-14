@@ -36,7 +36,7 @@ class EpetraSystem
 
   public:
     EpetraSystem(
-        Omega_h::Mesh& aMesh,
+        int            aNumNodes,
         Comm::Machine  aMachine,
         int            aDofsPerNode
     );
@@ -88,21 +88,34 @@ class EpetraLinearSolver : public AbstractSolver
      This constructor takes an Omega_h::Mesh and creates a new System.
     **********************************************************************************/
     EpetraLinearSolver(
-        const Teuchos::ParameterList& aSolverParams,
-        Omega_h::Mesh&          aMesh,
-        Comm::Machine           aMachine,
-        int                     aDofsPerNode
+        const Teuchos::ParameterList&                   aSolverParams,
+        int                                             aNumNodes,
+        Comm::Machine                                   aMachine,
+        int                                             aDofsPerNode
+    );
+
+    /******************************************************************************//**
+     * @brief EpetraLinearSolver constructor with MPCs
+
+     This constructor takes an Omega_h::Mesh and MultipointConstraints and creates a new System.
+    **********************************************************************************/
+    EpetraLinearSolver(
+        const Teuchos::ParameterList&                   aSolverParams,
+        int                                             aNumNodes,
+        Comm::Machine                                   aMachine,
+        int                                             aDofsPerNode,
+        std::shared_ptr<Plato::MultipointConstraints>   aMPCs
     );
 
     /******************************************************************************//**
      * \brief Solve the linear system
     **********************************************************************************/
     void
-    solve(
+    innerSolve(
         Plato::CrsMatrix<Plato::OrdinalType> aA,
         Plato::ScalarVector   aX,
         Plato::ScalarVector   aB
-    );
+    ) override;
 
     /******************************************************************************//**
      * \brief Setup the AztecOO solver

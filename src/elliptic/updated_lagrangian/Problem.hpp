@@ -134,7 +134,7 @@ public:
         this->initialize(aProblemParams);
 
         Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
-        mSolver = tSolverFactory.create(aMesh, aMachine, PhysicsT::mNumDofsPerNode);
+        mSolver = tSolverFactory.create(aMesh.nverts(), aMachine, PhysicsT::mNumDofsPerNode);
     }
 
     ~Problem(){}

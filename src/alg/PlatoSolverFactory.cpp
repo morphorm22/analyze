@@ -29,9 +29,9 @@ std::string determine_solver_stack(const Teuchos::ParameterList& tSolverParams)
 **********************************************************************************/
 rcp<AbstractSolver>
 SolverFactory::create(
-    Omega_h::Mesh&     aMesh,
-    Comm::Machine      aMachine,
-    Plato::OrdinalType aDofsPerNode
+    Plato::OrdinalType                              aNumNodes,
+    Comm::Machine                                   aMachine,
+    Plato::OrdinalType                              aDofsPerNode
 )
 {
   auto tSolverStack = Plato::determine_solver_stack(mSolverParams);
@@ -39,12 +39,12 @@ SolverFactory::create(
 
   if(tLowerSolverStack == "epetra")
   {
-      return std::make_shared<Plato::EpetraLinearSolver>(mSolverParams, aMesh, aMachine, aDofsPerNode);
+      return std::make_shared<Plato::EpetraLinearSolver>(mSolverParams, aNumNodes, aMachine, aDofsPerNode);
   }
   else if(tLowerSolverStack == "tpetra")
   {
 #ifdef PLATO_TPETRA
-      return std::make_shared<Plato::TpetraLinearSolver>(mSolverParams, aMesh, aMachine, aDofsPerNode);
+      return std::make_shared<Plato::TpetraLinearSolver>(mSolverParams, aNumNodes, aMachine, aDofsPerNode);
 #else
       THROWERR("Not compiled with Tpetra");
 #endif
@@ -53,6 +53,45 @@ SolverFactory::create(
   {
 #ifdef HAVE_AMGX
       return std::make_shared<Plato::AmgXLinearSolver>(mSolverParams, aDofsPerNode);
+#else
+      THROWERR("Not compiled with AmgX");
+#endif
+  }
+  THROWERR("Requested solver stack not found");
+}
+
+/******************************************************************************//**
+ * @brief Solver factory for AbstractSolvers with MPCs
+**********************************************************************************/
+rcp<AbstractSolver>
+SolverFactory::create(
+    Plato::OrdinalType                              aNumNodes,
+    Comm::Machine                                   aMachine,
+    Plato::OrdinalType                              aDofsPerNode,
+    std::shared_ptr<Plato::MultipointConstraints>   aMPCs
+)
+{
+  auto tSolverStack = Plato::determine_solver_stack(mSolverParams);
+  auto tLowerSolverStack = Plato::tolower(tSolverStack);
+
+  if(tLowerSolverStack == "epetra")
+  {
+      Plato::OrdinalType tNumCondensedNodes = aMPCs->getNumCondensedNodes();
+      return std::make_shared<Plato::EpetraLinearSolver>(mSolverParams, tNumCondensedNodes, aMachine, aDofsPerNode, aMPCs);
+  }
+  else if(tLowerSolverStack == "tpetra")
+  {
+#ifdef PLATO_TPETRA
+      Plato::OrdinalType tNumCondensedNodes = aMPCs->getNumCondensedNodes();
+      return std::make_shared<Plato::TpetraLinearSolver>(mSolverParams, tNumCondensedNodes, aMachine, aDofsPerNode, aMPCs);
+#else
+      THROWERR("Not compiled with Tpetra");
+#endif
+  }
+  else if(tLowerSolverStack == "amgx")
+  {
+#ifdef HAVE_AMGX
+      return std::make_shared<Plato::AmgXLinearSolver>(mSolverParams, aDofsPerNode, aMPCs);
 #else
       THROWERR("Not compiled with AmgX");
 #endif

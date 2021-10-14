@@ -35,7 +35,7 @@ get(ViewType aView)
    of this information between solutions.
 **********************************************************************************/
 TpetraSystem::TpetraSystem(
-    Omega_h::Mesh& aMesh,
+    int            aNumNodes,
     Comm::Machine  aMachine,
     int            aDofsPerNode
 ) : mMatrixConversionTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Matrix Conversion")),
@@ -43,8 +43,7 @@ TpetraSystem::TpetraSystem(
 {
     mComm = aMachine.teuchosComm;
 
-    int tNumNodes = aMesh.nverts();
-    int tNumDofs = tNumNodes*aDofsPerNode;
+    int tNumDofs = aNumNodes*aDofsPerNode;
 
     mMap = Teuchos::rcp( new Tpetra_Map(tNumDofs, 0, mComm));
 
@@ -256,6 +255,72 @@ TpetraSystem::toVector(Plato::ScalarVector& tOutVector, const Teuchos::RCP<Tpetr
     auto tInVectorDeviceView1D = Kokkos::subview(tInVectorDeviceView2D,Kokkos::ALL(), 0);
 
     Kokkos::deep_copy(tOutVector,tInVectorDeviceView1D);
+}
+
+/******************************************************************************//**
+ This constructor creates a new System.
+**********************************************************************************/
+TpetraLinearSolver::TpetraLinearSolver(
+    const Teuchos::ParameterList& aSolverParams,
+    int                     aNumNodes,
+    Comm::Machine           aMachine,
+    int                     aDofsPerNode
+) :
+    mSolverParams(aSolverParams),
+    mSystem(Teuchos::rcp( new TpetraSystem(aNumNodes, aMachine, aDofsPerNode)))
+{
+    if(mSolverParams.isType<int>("Iterations"))
+    {
+        mIterations = mSolverParams.get<int>("Iterations");
+    }
+    else
+    {
+        mIterations = 100;
+    }
+
+    if(mSolverParams.isType<double>("Tolerance"))
+    {
+        mTolerance = mSolverParams.get<double>("Tolerance");
+    }
+    else
+    {
+        mTolerance = 1e-6;
+    }
+}
+
+/******************************************************************************//**
+ * @brief TpetraLinearSolver constructor with MPCs
+
+ This constructor takes a MultipointConstraints instance and creates a new System.
+**********************************************************************************/
+TpetraLinearSolver::TpetraLinearSolver(
+    const Teuchos::ParameterList&                   aSolverParams,
+    int                                             aNumNodes,
+    Comm::Machine                                   aMachine,
+    int                                             aDofsPerNode,
+    std::shared_ptr<Plato::MultipointConstraints>   aMPCs
+) :
+    AbstractSolver(aMPCs),
+    mSolverParams(aSolverParams),
+    mSystem(Teuchos::rcp( new TpetraSystem(aNumNodes, aMachine, aDofsPerNode)))
+{
+    if(mSolverParams.isType<int>("Iterations"))
+    {
+        mIterations = mSolverParams.get<int>("Iterations");
+    }
+    else
+    {
+        mIterations = 100;
+    }
+
+    if(mSolverParams.isType<double>("Tolerance"))
+    {
+        mTolerance = mSolverParams.get<double>("Tolerance");
+    }
+    else
+    {
+        mTolerance = 1e-6;
+    }
 }
 
 void getPrecondTypeAndParameters (std::string& precondType, Teuchos::ParameterList& pl)
@@ -544,7 +609,7 @@ TpetraLinearSolver::amesos2Solve (Teuchos::RCP<Tpetra_Matrix> A, Teuchos::RCP<Tp
  * \brief Solve the linear system
 **********************************************************************************/
 void
-TpetraLinearSolver::solve(
+TpetraLinearSolver::innerSolve(
     Plato::CrsMatrix<Plato::OrdinalType> aA,
     Plato::ScalarVector   aX,
     Plato::ScalarVector   aB

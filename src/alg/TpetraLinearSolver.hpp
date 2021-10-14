@@ -38,7 +38,7 @@ class TpetraSystem
 
   public:
     TpetraSystem(
-        Omega_h::Mesh& aMesh,
+        int            aNumNodes,
         Comm::Machine  aMachine,
         int            aDofsPerNode
     );
@@ -105,20 +105,33 @@ class TpetraLinearSolver : public AbstractSolver
     **********************************************************************************/
     TpetraLinearSolver(
         const Teuchos::ParameterList& aSolverParams,
-        Omega_h::Mesh&          aMesh,
+        int                     aNumNodes,
         Comm::Machine           aMachine,
         int                     aDofsPerNode
     );
 
     /******************************************************************************//**
-     * @brief Interface function to solve the linear system
+     * @brief TpetraLinearSolver constructor with MPCs
+
+     This constructor takes an Omega_h::Mesh and MultipointConstraints and creates a new System.
+    **********************************************************************************/
+    TpetraLinearSolver(
+        const Teuchos::ParameterList&                   aSolverParams,
+        int                                             aNumNodes,
+        Comm::Machine                                   aMachine,
+        int                                             aDofsPerNode,
+        std::shared_ptr<Plato::MultipointConstraints>   aMPCs
+    );
+
+    /******************************************************************************//**
+     * @brief Solve the linear system
     **********************************************************************************/
     void
-    solve(
+    innerSolve(
         Plato::CrsMatrix<Plato::OrdinalType> aA,
         Plato::ScalarVector   aX,
         Plato::ScalarVector   aB
-    );
+    ) override;
 
   private:
     /******************************************************************************//**
