@@ -52,6 +52,12 @@ struct FunctionFactory{
                    (aSpatialDomain, aDataMap, aParamList, penaltyParams, aStrScalarFunctionName);
             }
             else
+            if( tLowerPenaltyType == "nopenalty" )
+            {
+                return std::make_shared<Plato::Geometric::Volume<EvaluationType, Plato::Heaviside>>
+                   (aSpatialDomain, aDataMap, aParamList, penaltyParams, aStrScalarFunctionName);
+            }
+            else
             {
                 THROWERR(std::string("Unknown 'Penalty Function' of type '") + tLowerPenaltyType + "' specified in ParameterList");
             }

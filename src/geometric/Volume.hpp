@@ -6,7 +6,7 @@
 #include "ImplicitFunctors.hpp"
 #include "geometric/GeometricSimplexFadTypes.hpp"
 #include "geometric/AbstractScalarFunction.hpp"
-
+#include "UtilsTeuchos.hpp"
 #include "Simp.hpp"
 #include "Ramp.hpp"
 #include "Heaviside.hpp"
@@ -39,12 +39,14 @@ class Volume : public Plato::Geometric::AbstractScalarFunction<EvaluationType>
     PenaltyFunctionType mPenaltyFunction;
     Plato::ApplyWeighting<SpaceDim,1,PenaltyFunctionType> mApplyWeighting;
 
+    bool mCompute;
+
   public:
     /**************************************************************************/
     Volume(
         const Plato::SpatialDomain   & aSpatialDomain, 
               Plato::DataMap         & aDataMap, 
-              Teuchos::ParameterList &, 
+              Teuchos::ParameterList & aInputs, 
               Teuchos::ParameterList & aPenaltyParams,
               std::string            & aFunctionName
     ) :
@@ -53,6 +55,30 @@ class Volume : public Plato::Geometric::AbstractScalarFunction<EvaluationType>
         mApplyWeighting(mPenaltyFunction)
     /**************************************************************************/
     {
+
+      // decide whether we should compute the volume for the current domain
+      mCompute = false;
+      std::string tCurrentDomainName = aSpatialDomain.getDomainName();
+
+      auto tMyCriteria = aInputs.sublist("Criteria").sublist("Volume");
+      std::vector<std::string> tDomains = Plato::teuchos::parse_array<std::string>("Domains", tMyCriteria);
+
+      // see if this matches any of the domains we want to compute volumes of
+      for (int i = 0; i < tDomains.size(); i++)
+      {
+        if (tCurrentDomainName == tDomains[i])
+        {
+          std::cout<<"tDomains[i] = "<<tDomains[i]<<std::endl;
+          mCompute = true;
+        }
+      }
+
+      // check for a case we don't handle
+      if (tMyCriteria.isParameter("Domains") && tDomains.size() == 0)
+      {
+        THROWERR(std::string("Empty Domains in Volume criteria, either have at least one domain specified or remove from input. No specification indicates we include all domains in volume computation"));
+      }
+
       mQuadratureWeight = 1.0; // for a 1-point quadrature rule for simplices
       for (Plato::OrdinalType tDimIndex=2; tDimIndex<=SpaceDim; tDimIndex++)
       { 

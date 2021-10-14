@@ -17,6 +17,8 @@
 #include "Ramp.hpp"
 #include "Heaviside.hpp"
 #include "NoPenalty.hpp"
+#include "UtilsTeuchos.hpp"
+
 
 namespace Plato
 {
@@ -59,6 +61,8 @@ class InternalElasticEnergy :
 
     Teuchos::RCP<Plato::LinearElasticMaterial<mSpaceDim>> mMaterialModel;
 
+    bool mCompute;
+
 
   public:
     /******************************************************************************//**
@@ -79,6 +83,37 @@ class InternalElasticEnergy :
         mApplyWeighting    (mIndicatorFunction),
         mCubatureRule(std::make_shared<Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>>())
     {
+
+              // decide whether we should compute the internal elastic energy contribution for the current domain
+        mCompute = false;
+        std::string tCurrentDomainName = aSpatialDomain.getDomainName();
+        
+        auto tMyCriteria= aProblemParams.sublist("Criteria").sublist("Internal Elastic Energy");
+        std::vector<std::string> tDomains = Plato::teuchos::parse_array<std::string>("Domains", tMyCriteria);
+
+        std::cout<<"Elastic energy constructor "<<std::endl;
+        // see if this matches any of the domains we want to compute volumes of
+        for(int i = 0; i < tDomains.size(); i++)
+        {
+            std::cout<<"tDomains[i] = "<<tDomains[i]<<std::endl;
+            if(tCurrentDomainName == tDomains[i])
+            {
+                mCompute = true;
+            }
+        }
+
+        // check for a case we don't handle
+        if(tMyCriteria.isParameter("Domains") && tDomains.size() == 0)
+        {
+          THROWERR(std::string("Empty Domains in Volume criteria, either have at least one domain specified or remove from input. No specification indicates we include all domains in volume computation"));
+        }
+
+        // if not specified compute all
+        if(!tMyCriteria.isParameter("Domains"))
+        {
+            mCompute = true;
+        }
+        
         Plato::ElasticModelFactory<mSpaceDim> tMaterialModelFactory(aProblemParams);
         mMaterialModel = tMaterialModelFactory.create(aSpatialDomain.getMaterialName());
 
