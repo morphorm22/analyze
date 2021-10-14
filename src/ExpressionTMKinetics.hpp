@@ -53,6 +53,7 @@ public:
         const Plato::OrdinalType tNumCells = aStrain.extent(0);
         Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNumCells), LAMBDA_EXPRESSION(const int & aCellOrdinal)
         {
+            // MAKE SURE NOT TO USE ANY MEMBER VARIABLES IN HERE
         }, "Cauchy stress");
     }
 
