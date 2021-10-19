@@ -33,6 +33,7 @@ private:
     using StateT = typename EvaluationType::StateScalarType; /*!< state variables automatic differentiation type */
     using ConfigT = typename EvaluationType::ConfigScalarType; /*!< configuration variables automatic differentiation type */
     using ResultT = typename EvaluationType::ResultScalarType; /*!< result variables automatic differentiation type */
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
 
     Teuchos::RCP<Plato::MaterialModel<mSpaceDim>> mMaterialModel;
 
@@ -92,6 +93,9 @@ public:
       Plato::TMKineticsFactory< EvaluationType, SimplexPhysics > tTMKineticsFactory;
       auto pkinetics = tTMKineticsFactory.create(mMaterialModel);
       auto & tKinetics = *pkinetics;
+        
+        // Dummy vector that will not be used for this residual.
+        Plato::ScalarMultiVectorT <ControlScalarType> tControl;
 
         Plato::InterpolateFromNodal<mSpaceDim, mNumDofsPerNode, TDofOffset> tInterpolateFromNodal;
 
@@ -118,7 +122,7 @@ public:
 //            tKinetics(tCellOrdinal, tStress, tFlux, tStrain, tGrad, tTemperature);
         }, "Compute vonmises stress 1");
 
-        tKinetics(tStress, tFlux, tStrain, tGrad, tTemperature);
+        tKinetics(tStress, tFlux, tStrain, tGrad, tTemperature, tControl);
 
         Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumCells), 
             LAMBDA_EXPRESSION(const Plato::OrdinalType &tCellOrdinal)

@@ -22,6 +22,7 @@ protected:
     using KineticsScalarType = typename EvaluationType::ResultScalarType; /*!< result variables automatic differentiation type */
     using KinematicsScalarType = typename Plato::fad_type_t<SimplexPhysics, StateT, ConfigT>; /*!<   strain variables automatic differentiation type */
     using Plato::SimplexThermomechanics<EvaluationType::SpatialDim>::mNumVoigtTerms;
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
 
     Plato::Rank4VoigtFunctor<EvaluationType::SpatialDim>  mElasticStiffnessFunctor;
     Plato::TensorFunctor<EvaluationType::SpatialDim>  mThermalExpansivityFunctor;
@@ -61,7 +62,8 @@ public:
                 Kokkos::View<KineticsScalarType**,   Plato::Layout, Plato::MemSpace> const& aFlux,
                 Kokkos::View<KinematicsScalarType**, Plato::Layout, Plato::MemSpace> const& aStrain,
                 Kokkos::View<KinematicsScalarType**, Plato::Layout, Plato::MemSpace> const& aTGrad,
-                Kokkos::View<StateT*,       Plato::MemSpace> const& aTemperature) const override
+                Kokkos::View<StateT*,       Plato::MemSpace> const& aTemperature,
+                const Plato::ScalarMultiVectorT <ControlScalarType> & aControl) const override
     {
         auto tScaling = mScaling;
         auto tScaling2 = mScaling2;

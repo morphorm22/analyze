@@ -257,7 +257,7 @@ class TransientThermomechResidual :
 //        tKinetics(tCellOrdinal, tStress, tFlux, tStrain, tGrad, tTemperature);
       },"stress");
   
-      tKinetics(tStress, tFlux, tStrain, tGrad, tTemperature);
+      tKinetics(tStress, tFlux, tStrain, tGrad, tTemperature, aControl);
 
       Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType tCellOrdinal)
       {

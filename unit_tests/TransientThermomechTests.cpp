@@ -169,7 +169,9 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
 //
   }, "divergence 1");
 
-  kinetics(tStress, tFlux, tStrain, tGrad, tTemperature);
+  Plato::ScalarMultiVectorT <Plato::Scalar> tControl;
+
+  kinetics(tStress, tFlux, tStrain, tGrad, tTemperature, tControl);
 
   Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), LAMBDA_EXPRESSION(int cellOrdinal)
   {

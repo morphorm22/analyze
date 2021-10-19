@@ -25,6 +25,7 @@ protected:
     using ConfigT = typename EvaluationType::ConfigScalarType; /*!< configuration variables automatic differentiation type */
     using KineticsScalarType = typename EvaluationType::ResultScalarType; /*!< result variables automatic differentiation type */
     using KinematicsScalarType = typename Plato::fad_type_t<SimplexPhysics, StateT, ConfigT>; /*!<   strain variables automatic differentiation type */
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
 
 public:
     /******************************************************************************//**
@@ -49,7 +50,8 @@ public:
                 Kokkos::View<KineticsScalarType**,   Plato::Layout, Plato::MemSpace> const& aFlux,
                 Kokkos::View<KinematicsScalarType**, Plato::Layout, Plato::MemSpace> const& aStrain,
                 Kokkos::View<KinematicsScalarType**, Plato::Layout, Plato::MemSpace> const& aTGrad,
-                Kokkos::View<StateT*,       Plato::MemSpace> const& aTemperature) const = 0;
+                Kokkos::View<StateT*,       Plato::MemSpace> const& aTemperature,
+                const Plato::ScalarMultiVectorT <ControlScalarType> & aControl) const = 0;
 
 };
 // class AbstractTMKinetics

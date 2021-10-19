@@ -195,7 +195,7 @@ class TMStressPNorm :
 //        tKinetics(aCellOrdinal, tStress, tFlux, tStrain, tTgrad, tTemperature);
       },"Compute Stress");
 
-      tKinetics(tStress, tFlux, tStrain, tTgrad, tTemperature);
+      tKinetics(tStress, tFlux, tStrain, tTgrad, tTemperature, aControl);
 
       Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
       {

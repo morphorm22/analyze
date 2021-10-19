@@ -226,7 +226,7 @@ public:
 
       }, "Cauchy stress");
 
-      tkinetics(stress, flux, strain, tgrad, temperature);
+      tkinetics(stress, flux, strain, tgrad, temperature, control);
 
       auto& applyStressWeighting = mApplyStressWeighting;
       auto& applyFluxWeighting  = mApplyFluxWeighting;

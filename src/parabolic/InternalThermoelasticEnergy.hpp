@@ -158,7 +158,7 @@ class InternalThermoelasticEnergy :
 //        tKinetics(aCellOrdinal, stress, flux, strain, tgrad, temperature);
       },"energy gradient1");
 
-      tKinetics(stress, flux, strain, tgrad, temperature);
+      tKinetics(stress, flux, strain, tgrad, temperature, aControl);
 
       Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNumCells), LAMBDA_EXPRESSION(const int & aCellOrdinal)
       {
