@@ -54,7 +54,7 @@ struct FunctionFactory{
             else
             if( tLowerPenaltyType == "nopenalty" )
             {
-                return std::make_shared<Plato::Geometric::Volume<EvaluationType, Plato::Heaviside>>
+                return std::make_shared<Plato::Geometric::Volume<EvaluationType, Plato::NoPenalty>>
                    (aSpatialDomain, aDataMap, aParamList, penaltyParams, aStrScalarFunctionName);
             }
             else
