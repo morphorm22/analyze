@@ -55,12 +55,12 @@ class Volume : public Plato::Geometric::AbstractScalarFunction<EvaluationType>
         mApplyWeighting(mPenaltyFunction)
     /**************************************************************************/
     {
-
       // decide whether we should compute the volume for the current domain
       mCompute = false;
       std::string tCurrentDomainName = aSpatialDomain.getDomainName();
 
-      auto tMyCriteria = aInputs.sublist("Criteria").sublist("Volume");
+
+      auto tMyCriteria = aInputs.sublist("Criteria").sublist(aFunctionName);
       std::vector<std::string> tDomains = Plato::teuchos::parse_array<std::string>("Domains", tMyCriteria);
 
       // see if this matches any of the domains we want to compute volumes of
@@ -68,9 +68,15 @@ class Volume : public Plato::Geometric::AbstractScalarFunction<EvaluationType>
       {
         if (tCurrentDomainName == tDomains[i])
         {
-          std::cout<<"tDomains[i] = "<<tDomains[i]<<std::endl;
           mCompute = true;
         }
+      }
+
+      // if not specified compute all
+      if(!tMyCriteria.isParameter("Domains"))
+      {
+          std::cout<<"Volume for all";
+          mCompute = true;
       }
 
       // check for a case we don't handle
@@ -95,25 +101,31 @@ class Volume : public Plato::Geometric::AbstractScalarFunction<EvaluationType>
     ) const override
     /**************************************************************************/
     {
-      auto tNumCells = mSpatialDomain.numCells();
 
-      Plato::ComputeCellVolume<SpaceDim> tComputeCellVolume;
-
-      auto tQuadratureWeight = mQuadratureWeight;
-      auto tApplyWeighting  = mApplyWeighting;
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+      if (mCompute)
       {
-        ConfigScalarType tCellVolume;
-        tComputeCellVolume(aCellOrdinal, aConfig, tCellVolume);
-        tCellVolume *= tQuadratureWeight;
 
-        aResult(aCellOrdinal) = tCellVolume;
+        auto tNumCells = mSpatialDomain.numCells();
 
-        // apply weighting
-        //
-        tApplyWeighting(aCellOrdinal, aResult, aControl);
-    
-      },"volume");
+        Plato::ComputeCellVolume<SpaceDim> tComputeCellVolume;
+
+        auto tQuadratureWeight = mQuadratureWeight;
+        auto tApplyWeighting = mApplyWeighting;
+        Kokkos::parallel_for(
+            Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType &aCellOrdinal)
+            {
+              ConfigScalarType tCellVolume;
+              tComputeCellVolume(aCellOrdinal, aConfig, tCellVolume);
+              tCellVolume *= tQuadratureWeight;
+
+              aResult(aCellOrdinal) = tCellVolume;
+
+              // apply weighting
+              //
+              tApplyWeighting(aCellOrdinal, aResult, aControl);
+            },
+            "volume");
+      }
     }
 };
 // class Volume
