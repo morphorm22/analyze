@@ -718,6 +718,7 @@ private:
     private:
         std::string mStrValName;
         std::string mStrGradName;
+        std::string mOutputFile;
     };
     friend class ComputeCriterionX;
     /******************************************************************************/
