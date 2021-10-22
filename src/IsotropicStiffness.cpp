@@ -81,49 +81,91 @@ namespace Plato {
       c2[2][0] = c201; c2[2][1] = c201; c2[2][2] = c200;
       c2[3][3] = c233; c2[4][4] = c233; c2[5][5] = c233;
   }
-
-  template<>
-  IsotropicStiffnessConstant<1>::IsotropicStiffnessConstant(const Teuchos::ParameterList& aParams)
+#if 0
+  template<typename T>
+  IsotropicStiffnessConstant<1,T>::IsotropicStiffnessConstant(const Teuchos::ParameterList& aParams)
   {
-      typedef Plato::Scalar T;
-      T E = Plato::ParseTools::getParam<T>(aParams, "Youngs Modulus"); /*throw if not found*/
-      T v = Plato::ParseTools::getParam<T>(aParams, "Poissons Ratio"); /*throw if not found*/
+      typedef Plato::Scalar RealT;
+      T E = Plato::ParseTools::getParam<RealT>(aParams, "Youngs Modulus"); /*throw if not found*/
+      T v = Plato::ParseTools::getParam<RealT>(aParams, "Poissons Ratio"); /*throw if not found*/
       T c = 1.0/((1.0+v)*(1.0-2.0*v));
 
-      c0[0][0] = E*c*(1.0-v);
+      this->c0[0][0] = E*c*(1.0-v);
   }
 
-  template<>
-  IsotropicStiffnessConstant<2>::IsotropicStiffnessConstant(const Teuchos::ParameterList& aParams)
+  template<typename T>
+  IsotropicStiffnessConstant<2,T>::IsotropicStiffnessConstant(const Teuchos::ParameterList& aParams)
   {
-      typedef Plato::Scalar T;
-      T E = Plato::ParseTools::getParam<T>(aParams, "Youngs Modulus"); /*throw if not found*/
-      T v = Plato::ParseTools::getParam<T>(aParams, "Poissons Ratio"); /*throw if not found*/
+      typedef Plato::Scalar RealT;
+      T E = Plato::ParseTools::getParam<RealT>(aParams, "Youngs Modulus"); /*throw if not found*/
+      T v = Plato::ParseTools::getParam<RealT>(aParams, "Poissons Ratio"); /*throw if not found*/
 
       T c = 1.0/((1.0+v)*(1.0-2.0*v));
 
       T c00 = E*c*(1.0-v), c01 = E*c*v, c22 = 1.0/2.0*E*c*(1.0-2.0*v);
 
-      c0[0][0] = c00; c0[0][1] = c01;
-      c0[1][0] = c01; c0[1][1] = c00;
-      c0[2][2] = c22;
+      this->c0[0][0] = c00; this->c0[0][1] = c01;
+      this->c0[1][0] = c01; this->c0[1][1] = c00;
+      this->c0[2][2] = c22;
   }
-
-  template<>
-  IsotropicStiffnessConstant<3>::IsotropicStiffnessConstant(const Teuchos::ParameterList& aParams)
+#endif
+#if 0
+  template<typename T>
+  IsotropicStiffnessConstant<3,T>::IsotropicStiffnessConstant(const Teuchos::ParameterList& aParams)
   {
-      typedef Plato::Scalar T;
-      T E = Plato::ParseTools::getParam<T>(aParams, "Youngs Modulus"); /*throw if not found*/
-      T v = Plato::ParseTools::getParam<T>(aParams, "Poissons Ratio"); /*throw if not found*/
+      typedef Plato::Scalar RealT;
+      T E = Plato::ParseTools::getParam<RealT>(aParams, "Youngs Modulus"); /*throw if not found*/
+      T v = Plato::ParseTools::getParam<RealT>(aParams, "Poissons Ratio"); /*throw if not found*/
 
       T c = 1.0/((1.0+v)*(1.0-2.0*v));
 
       T c00 = E*c*(1.0-v), c01 = E*c*v, c33 = 1.0/2.0*E*c*(1.0-2.0*v);
 
-      c0[0][0] = c00; c0[0][1] = c01; c0[0][2] = c01;
-      c0[1][0] = c01; c0[1][1] = c00; c0[1][2] = c01;
-      c0[2][0] = c01; c0[2][1] = c01; c0[2][2] = c00;
-      c0[3][3] = c33; c0[4][4] = c33; c0[5][5] = c33;
+      this->c0[0][0] = c00; this->c0[0][1] = c01; this->c0[0][2] = c01;
+      this->c0[1][0] = c01; this->c0[1][1] = c00; this->c0[1][2] = c01;
+      this->c0[2][0] = c01; this->c0[2][1] = c01; this->c0[2][2] = c00;
+      this->c0[3][3] = c33; this->c0[4][4] = c33; this->c0[5][5] = c33;
+  }
+  #endif
+#if 0
+  template<typename T>
+  IsotropicStiffnessConstant<1, T>::IsotropicStiffnessConstant(const T& aYoungsModulus, 
+                                                            const T& aPoissonsRatio)
+  {
+      T c = 1.0/((1.0+aPoissonsRatio)*(1.0-2.0*aPoissonsRatio));
+      this->c0[0][0] = aYoungsModulus*c*(1.0-aPoissonsRatio);
   }
 
+  template<typename T>
+  IsotropicStiffnessConstant<2, T>::IsotropicStiffnessConstant(const T& aYoungsModulus, 
+                                                            const T& aPoissonsRatio)
+  {
+      T c = 1.0/((1.0+aPoissonsRatio)*(1.0-2.0*aPoissonsRatio));
+
+      T c00 = aYoungsModulus*c*(1.0-aPoissonsRatio);
+      T c01 = aYoungsModulus*c*aPoissonsRatio;
+      T c22 = 1.0/2.0*aYoungsModulus*c*(1.0-2.0*aPoissonsRatio);
+
+      this->c0[0][0] = c00; this->c0[0][1] = c01;
+      this->c0[1][0] = c01; this->c0[1][1] = c00;
+      this->c0[2][2] = c22;
+  }
+#endif
+#if 0
+  template<typename T>
+  IsotropicStiffnessConstant<3, T>::IsotropicStiffnessConstant(const T& aYoungsModulus, 
+                                                            const T& aPoissonsRatio)
+  {
+        T c = 1.0/((1.0+aPoissonsRatio)*(1.0-2.0*aPoissonsRatio));
+
+        T c00 = aYoungsModulus*c*(1.0-aPoissonsRatio);
+        T c01 = aYoungsModulus*c*aPoissonsRatio;
+        T c33 = 1.0/2.0*aYoungsModulus*c*(1.0-2.0*aPoissonsRatio);
+
+        this->c0[0][0] = c00; this->c0[0][1] = c01; this->c0[0][2] = c01;
+        this->c0[1][0] = c01; this->c0[1][1] = c00; this->c0[1][2] = c01;
+        this->c0[2][0] = c01; this->c0[2][1] = c01; this->c0[2][2] = c00;
+        this->c0[3][3] = c33; this->c0[4][4] = c33; this->c0[5][5] = c33;
+  }
+  #endif
 } // namespace Plato
