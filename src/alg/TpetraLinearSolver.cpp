@@ -273,7 +273,6 @@ TpetraLinearSolver::TpetraLinearSolver(
     mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Tpetra Linear Solve")),
     mSolverEndTime(mPreLinearSolveTimer->wallTime())
 {
-  std::cout<<"TPETRA CONSTRUCTOR"<<std::endl;
     // mPreLinearSolveTimer->start();
     if(mSolverParams.isType<int>("Iterations"))
     {
@@ -376,7 +375,6 @@ TpetraLinearSolver::TpetraLinearSolver(
     mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Tpetra Linear Solve")),
     mSolverEndTime(mPreLinearSolveTimer->wallTime())
 {
-  std::cout<<"TPETRA CONSTRUCTOR"<<std::endl;
     // mPreLinearSolveTimer->start();
     if(mSolverParams.isType<int>("Iterations"))
     {
