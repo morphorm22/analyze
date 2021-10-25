@@ -699,8 +699,9 @@ set_variable( const char * varName,
           // used. The later makes for easy lookup when evaluating.
           mVariableMap(t, i).value = SCALAR_DATA_SOURCE * MAX_DATA_SOURCE + index;
         }
-
         mVariableScalarValues(t, index) = value;
+printf("Scalar Variable: name: %s, value %lf, t: %d, index: %d\n", varName,
+              mVariableScalarValues(t, index), t, index);
 
         break;
       }
@@ -769,6 +770,10 @@ set_variable( const char * varName,
         }
 
         mVariableVectorValues(t, index) = values;
+printf("Vector Variable: name: %s, t: %d, index: %d\n", varName, t, index);
+printf("   values: %lf %lf %lf\n", mVariableVectorValues(t, index)[0],
+                                   mVariableVectorValues(t, index)[1],
+                                   mVariableVectorValues(t, index)[2]);
 
         break;
       }
@@ -2368,7 +2373,6 @@ evaluateNode( const Plato::OrdinalType thread,
 
   //   return false;
   // }
-
   const Node & node = mNodes[i_node];
 
   // Empty node. This should never happen as checks are made not to
