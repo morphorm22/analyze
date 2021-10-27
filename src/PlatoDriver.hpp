@@ -13,7 +13,6 @@
 #include <Omega_h_mesh.hpp>
 #include <Omega_h_array.hpp>
 #include <Omega_h_assoc.hpp>
-#include <Omega_h_teuchos.hpp>
 
 #include "AnalyzeOutput.hpp"
 #include "PlatoUtilities.hpp"
@@ -50,6 +49,18 @@ void run(Teuchos::ParameterList& aInputData,
     auto tSolution = tPlatoProblem->solution(tControl);
     if(false){ tSolution.print(); }
 
+    auto tPlatoProblemList = aInputData.sublist("Plato Problem");
+    if (tPlatoProblemList.isSublist("Criteria"))
+    {
+        auto tCriteriaList = tPlatoProblemList.sublist("Criteria");
+        for(Teuchos::ParameterList::ConstIterator tIndex = tCriteriaList.begin(); tIndex != tCriteriaList.end(); ++tIndex)
+        {
+            std::string tName = tCriteriaList.name(tIndex);
+            Plato::Scalar tCriterionValue = tPlatoProblem->criterionValue(tControl, tSolution, tName);
+            printf("Criterion '%s' , Value %0.10e\n", tName.c_str(), tCriterionValue);
+        }
+    }
+
     auto tFilepath = aInputData.get<std::string>("Output Viz");
     tPlatoProblem->output(tFilepath);
 }
@@ -77,16 +88,9 @@ void driver(Omega_h::Library*        aLibOSH,
     tMesh.set_parting(Omega_h_Parting::OMEGA_H_GHOSTED);
 
     Omega_h::Assoc tAssoc;
-    if (aInputData.isSublist("Associations"))
-    {
-      auto& tAssocParamList = aInputData.sublist("Associations");
-      Omega_h::update_assoc(&tAssoc, tAssocParamList);
-    } 
-    else {
-      tAssoc[Omega_h::ELEM_SET] = tMesh.class_sets;
-      tAssoc[Omega_h::NODE_SET] = tMesh.class_sets;
-      tAssoc[Omega_h::SIDE_SET] = tMesh.class_sets;
-    }
+    tAssoc[Omega_h::ELEM_SET] = tMesh.class_sets;
+    tAssoc[Omega_h::NODE_SET] = tMesh.class_sets;
+    tAssoc[Omega_h::SIDE_SET] = tMesh.class_sets;
     Omega_h::MeshSets tMeshSets = Omega_h::invert(&tMesh, tAssoc);
     
     Plato::run<SpatialDim>(aInputData, aMachine, tMesh, tMeshSets);

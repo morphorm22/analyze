@@ -48,6 +48,17 @@ void Solutions::set(const std::string& aTag, const Plato::ScalarMultiVector& aDa
     mSolution[tLowerTag] = aData;
 }
 
+void
+Solutions::set(
+    const std::string              & aTag,
+    const Plato::ScalarMultiVector & aData,
+    const std::vector<std::string> & aDofNames)
+{
+    auto tLowerTag = Plato::tolower(aTag);
+    mSolution[tLowerTag] = aData;
+    mSolutionNameToDofNamesMap[tLowerTag] = aDofNames;
+}
+
 Plato::ScalarMultiVector Solutions::get(const std::string& aTag) const
 {
     auto tLowerTag = Plato::tolower(aTag);
@@ -63,6 +74,12 @@ void Solutions::setNumDofs(const std::string& aTag, const Plato::OrdinalType& aN
 {
     auto tLowerTag = Plato::tolower(aTag);
     mSolutionNameToNumDofsMap[tLowerTag] = aNumDofs;
+}
+
+void Solutions::setDofNames(const std::string& aTag, const std::vector<std::string>& aDofNames)
+{
+    auto tLowerTag = Plato::tolower(aTag);
+    mSolutionNameToDofNamesMap[tLowerTag] = aDofNames;
 }
 
 Plato::OrdinalType Solutions::getNumDofs(const std::string& aTag) const
@@ -88,6 +105,18 @@ Plato::OrdinalType Solutions::getNumTimeSteps() const
     auto tSolution = tItr->second;
     return tSolution.extent(0);
 }
+
+std::vector<std::string> Solutions::getDofNames(const std::string& aTag) const
+{
+    auto tLowerTag = Plato::tolower(aTag);
+    auto tItr = mSolutionNameToDofNamesMap.find(tLowerTag);
+    if(tItr == mSolutionNameToDofNamesMap.end())
+    {
+        return std::vector<std::string>(0);
+    }
+    return tItr->second;
+}
+
 
 void Solutions::print() const
 {

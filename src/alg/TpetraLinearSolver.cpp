@@ -35,7 +35,7 @@ get(ViewType aView)
    of this information between solutions.
 **********************************************************************************/
 TpetraSystem::TpetraSystem(
-    Omega_h::Mesh& aMesh,
+    int            aNumNodes,
     Comm::Machine  aMachine,
     int            aDofsPerNode
 ) : mMatrixConversionTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Matrix Conversion")),
@@ -43,8 +43,7 @@ TpetraSystem::TpetraSystem(
 {
     mComm = aMachine.teuchosComm;
 
-    int tNumNodes = aMesh.nverts();
-    int tNumDofs = tNumNodes*aDofsPerNode;
+    int tNumDofs = aNumNodes*aDofsPerNode;
 
     mMap = Teuchos::rcp( new Tpetra_Map(tNumDofs, 0, mComm));
 
@@ -258,6 +257,72 @@ TpetraSystem::toVector(Plato::ScalarVector& tOutVector, const Teuchos::RCP<Tpetr
     Kokkos::deep_copy(tOutVector,tInVectorDeviceView1D);
 }
 
+/******************************************************************************//**
+ This constructor creates a new System.
+**********************************************************************************/
+TpetraLinearSolver::TpetraLinearSolver(
+    const Teuchos::ParameterList& aSolverParams,
+    int                     aNumNodes,
+    Comm::Machine           aMachine,
+    int                     aDofsPerNode
+) :
+    mSolverParams(aSolverParams),
+    mSystem(Teuchos::rcp( new TpetraSystem(aNumNodes, aMachine, aDofsPerNode)))
+{
+    if(mSolverParams.isType<int>("Iterations"))
+    {
+        mIterations = mSolverParams.get<int>("Iterations");
+    }
+    else
+    {
+        mIterations = 100;
+    }
+
+    if(mSolverParams.isType<double>("Tolerance"))
+    {
+        mTolerance = mSolverParams.get<double>("Tolerance");
+    }
+    else
+    {
+        mTolerance = 1e-6;
+    }
+}
+
+/******************************************************************************//**
+ * @brief TpetraLinearSolver constructor with MPCs
+
+ This constructor takes a MultipointConstraints instance and creates a new System.
+**********************************************************************************/
+TpetraLinearSolver::TpetraLinearSolver(
+    const Teuchos::ParameterList&                   aSolverParams,
+    int                                             aNumNodes,
+    Comm::Machine                                   aMachine,
+    int                                             aDofsPerNode,
+    std::shared_ptr<Plato::MultipointConstraints>   aMPCs
+) :
+    AbstractSolver(aMPCs),
+    mSolverParams(aSolverParams),
+    mSystem(Teuchos::rcp( new TpetraSystem(aNumNodes, aMachine, aDofsPerNode)))
+{
+    if(mSolverParams.isType<int>("Iterations"))
+    {
+        mIterations = mSolverParams.get<int>("Iterations");
+    }
+    else
+    {
+        mIterations = 100;
+    }
+
+    if(mSolverParams.isType<double>("Tolerance"))
+    {
+        mTolerance = mSolverParams.get<double>("Tolerance");
+    }
+    else
+    {
+        mTolerance = 1e-6;
+    }
+}
+
 void getPrecondTypeAndParameters (std::string& precondType, Teuchos::ParameterList& pl)
 {
   precondType = "ILUT";
@@ -353,17 +418,32 @@ TpetraLinearSolver::TpetraLinearSolver(
 
   setupSolverOptions(aSolverParams);
 
-  std::string tPreconditionerPackage = "ifpack2";
+  std::string tPreconditionerPackage = "muelu";
   if(aSolverParams.isType<std::string>("Preconditioner Package"))
     tPreconditionerPackage = aSolverParams.get<std::string>("Preconditioner Package");
   mPreconditionerPackage = Plato::tolower(tPreconditionerPackage);
 
+  mPreconditionerType = "Not Set";
   if(aSolverParams.isType<std::string>("Preconditioner Type"))
     mPreconditionerType = aSolverParams.get<std::string>("Preconditioner Type");
   else if(mPreconditionerPackage == "ifpack2")
     mPreconditionerType = "ILUT";
 
   setupPreconditionerOptions(aSolverParams);
+
+  bool tPrintSolverParameterLists = false;
+  if(aSolverParams.isType<bool>("Print Solver Parameters"))
+    tPrintSolverParameterLists = aSolverParams.get<bool>("Print Solver Parameters");
+  
+  if (tPrintSolverParameterLists)
+  {
+    printf("\n'Linear Solver' Parameter List: \n");
+    aSolverParams.print(std::cout, 2, true);
+    printf("\n'Solver Options' sublist of 'Linear Solver' Parameter List: \n");
+    mSolverOptions.print(std::cout, 2, true);
+    printf("\n'Preconditioner Options' sublist of 'Linear Solver' Parameter List: \n");
+    mPreconditionerOptions.print(std::cout, 2, true);
+  }
 }
 
 template<typename T>
@@ -378,27 +458,25 @@ void
 TpetraLinearSolver::setupSolverOptions (const Teuchos::ParameterList &aSolverParams) 
 {
   // Set default values here
-  int tMaxIterations = 300;
-  double tTolerance  = 1e-14;
-
+  int tMaxIterations = 1000;
+  double tTolerance  = 1e-8;
   if(aSolverParams.isType<int>("Iterations"))
     tMaxIterations = aSolverParams.get<int>("Iterations");
-  
   if(aSolverParams.isType<double>("Tolerance"))
-    tTolerance = aSolverParams.get<double>("Tolerance");
+      tTolerance = aSolverParams.get<double>("Tolerance");
 
   if(aSolverParams.isType<Teuchos::ParameterList>("Solver Options"))
     mSolverOptions = aSolverParams.get<Teuchos::ParameterList>("Solver Options");
+
+  if(aSolverParams.isParameter("Display Diagnostics"))
+    mDisplayDiagnostics = aSolverParams.get<bool>("Display Diagnostics");
   
-  if(mSolverParams.isParameter("Display Diagnostics"))
-    mDisplayDiagnostics = mSolverParams.get<bool>("Display Diagnostics");
-  
-  addDefaultToParameterList(mSolverOptions, "Maximum Iterations",    tMaxIterations);
-  addDefaultToParameterList(mSolverOptions, "Convergence Tolerance", tTolerance);
-  addDefaultToParameterList(mSolverOptions, "Block Size",            mDofsPerNode);
+  this->addDefaultToParameterList(mSolverOptions, "Maximum Iterations",    tMaxIterations);
+  this->addDefaultToParameterList(mSolverOptions, "Convergence Tolerance", tTolerance);
+  this->addDefaultToParameterList(mSolverOptions, "Block Size",            mDofsPerNode);
 
   if (mSolver == "pseudoblock gmres")
-    addDefaultToParameterList(mSolverOptions, "Num Blocks", tMaxIterations); // This is the number of iterations between restarts
+    this->addDefaultToParameterList(mSolverOptions, "Num Blocks", tMaxIterations); // This is the number of iterations between restarts
 }
 
 void
@@ -409,10 +487,17 @@ TpetraLinearSolver::setupPreconditionerOptions (const Teuchos::ParameterList &aS
   
   if (mPreconditionerPackage != "muelu") return;
 
+  bool tUseSmoothedAggregation = true;
+  if(aSolverParams.isType<bool>("Use Smoothed Aggregation"))
+    tUseSmoothedAggregation = aSolverParams.get<bool>("Use Smoothed Aggregation");
+
   this->addDefaultToParameterList(mPreconditionerOptions, "number of equations", mDofsPerNode); // Same as 'Block Size' above in solver options
   this->addDefaultToParameterList(mPreconditionerOptions, "verbosity", std::string("none"));
   this->addDefaultToParameterList(mPreconditionerOptions, "coarse: max size", static_cast<int>(128));
-  this->addDefaultToParameterList(mPreconditionerOptions, "multigrid algorithm", std::string("unsmoothed"));
+  if (tUseSmoothedAggregation)
+    this->addDefaultToParameterList(mPreconditionerOptions, "multigrid algorithm", std::string("sa"));
+  else
+    this->addDefaultToParameterList(mPreconditionerOptions, "multigrid algorithm", std::string("unsmoothed"));
   this->addDefaultToParameterList(mPreconditionerOptions, "transpose: use implicit", true);
   this->addDefaultToParameterList(mPreconditionerOptions, "max levels", static_cast<int>(10));
   this->addDefaultToParameterList(mPreconditionerOptions, "sa: use filtered matrix", true);
@@ -420,16 +505,34 @@ TpetraLinearSolver::setupPreconditionerOptions (const Teuchos::ParameterList &aS
   this->addDefaultToParameterList(mPreconditionerOptions, "aggregation: drop scheme", std::string("classical"));
   //this->addDefaultToParameterList(mPreconditionerOptions, "aggregation: drop tol", static_cast<double>(0.02));
 
+  // Setup the smoother for the AMG preconditioner
+  std::string tPreconditionerSmoother = "symmetric gs";
+  if(aSolverParams.isType<std::string>("Preconditioner Smoother"))
+    tPreconditionerSmoother = Plato::tolower(aSolverParams.get<std::string>("Preconditioner Smoother"));
+
+  this->addDefaultToParameterList(mPreconditionerOptions, "smoother: type", std::string("RELAXATION"));
+  Teuchos::ParameterList & tSmootherParams = mPreconditionerOptions.sublist("smoother: params");
+  if (tPreconditionerSmoother == "symmetric gs")
+    this->addDefaultToParameterList(tSmootherParams, "relaxation: type", std::string("MT Symmetric Gauss-Seidel"));
+  else if (tPreconditionerSmoother == "gs")
+    this->addDefaultToParameterList(tSmootherParams, "relaxation: type", std::string("MT Gauss-Seidel"));
+  else
+    this->addDefaultToParameterList(tSmootherParams, "relaxation: type", std::string("Jacobi"));
+  this->addDefaultToParameterList(tSmootherParams, "relaxation: sweeps", static_cast<int>(2));
+  this->addDefaultToParameterList(tSmootherParams, "relaxation: damping factor", static_cast<double>(0.9));
+
+  // These parameters were suggested for the plasticity work but take very long with one MPI rank
+  /*
   this->addDefaultToParameterList(mPreconditionerOptions, "smoother: type", std::string("SCHWARZ"));
-  Teuchos::ParameterList tSmootherParams = mPreconditionerOptions.sublist("smoother: params");
+  Teuchos::ParameterList & tSmootherParams = mPreconditionerOptions.sublist("smoother: params");
   this->addDefaultToParameterList(tSmootherParams, "schwarz: num iterations", static_cast<int>(1));
   this->addDefaultToParameterList(tSmootherParams, "schwarz: overlap level", static_cast<int>(1));
   this->addDefaultToParameterList(tSmootherParams, "schwarz: combine mode", std::string("Zero"));
   this->addDefaultToParameterList(tSmootherParams, "schwarz: use reordering", false);
-  Teuchos::ParameterList tSchwarzReorderingParams = tSmootherParams.sublist("schwarz: reordering list");
+  Teuchos::ParameterList & tSchwarzReorderingParams = tSmootherParams.sublist("schwarz: reordering list");
   this->addDefaultToParameterList(tSchwarzReorderingParams, "order_method", std::string("rcm"));
   this->addDefaultToParameterList(tSmootherParams, "subdomain solver name", std::string("RILUK"));
-  Teuchos::ParameterList tSubdomainSolverParams = tSmootherParams.sublist("subdomain solver parameters");
+  Teuchos::ParameterList & tSubdomainSolverParams = tSmootherParams.sublist("subdomain solver parameters");
   this->addDefaultToParameterList(tSubdomainSolverParams, "fact: iluk level-of-fill", static_cast<int>(0));
   this->addDefaultToParameterList(tSubdomainSolverParams, "fact: ilut level-of-fill", static_cast<double>(1.0));
   this->addDefaultToParameterList(tSubdomainSolverParams, "fact: absolute threshold", static_cast<double>(0.0));
@@ -442,8 +545,9 @@ TpetraLinearSolver::setupPreconditionerOptions (const Teuchos::ParameterList &aS
   this->addDefaultToParameterList(mPreconditionerOptions, "repartition: max imbalance", static_cast<double>(1.1));
   this->addDefaultToParameterList(mPreconditionerOptions, "repartition: remap parts", false);
   this->addDefaultToParameterList(mPreconditionerOptions, "repartition: rebalance P and R", false);
-  Teuchos::ParameterList tRepartitionParams = mPreconditionerOptions.sublist("repartition: params");
+  Teuchos::ParameterList & tRepartitionParams = mPreconditionerOptions.sublist("repartition: params");
   this->addDefaultToParameterList(tRepartitionParams, "algorithm", std::string("multijagged"));
+  */
 }
 
 template<class MV, class OP>
@@ -471,7 +575,7 @@ TpetraLinearSolver::belosSolve (Teuchos::RCP<const OP> A, Teuchos::RCP<MV> X, Te
 
   if (result == Belos::Unconverged) {
     Plato::Scalar tTolerance = static_cast<Plato::Scalar>(100.0) * std::numeric_limits<Plato::Scalar>::epsilon();
-    if (mAchievedTolerance > tTolerance)
+    if (mAchievedTolerance > tTolerance && mDisplayDiagnostics)
     printf("Tpetra Warning: Belos solver did not achieve desired tolerance. Completed %d iterations, achieved absolute tolerance of %7.1e (not relative)\n",
             mNumIterations, mAchievedTolerance);
   }
@@ -505,7 +609,7 @@ TpetraLinearSolver::amesos2Solve (Teuchos::RCP<Tpetra_Matrix> A, Teuchos::RCP<Tp
  * \brief Solve the linear system
 **********************************************************************************/
 void
-TpetraLinearSolver::solve(
+TpetraLinearSolver::innerSolve(
     Plato::CrsMatrix<Plato::OrdinalType> aA,
     Plato::ScalarVector   aX,
     Plato::ScalarVector   aB

@@ -169,6 +169,33 @@ build_mpi_test_string(ES_MPI_TEST 1 ${CMAKE_CURRENT_BINARY_DIR}/MassPropertiesUn
 add_test(NAME runMassPropertiesUnitTests COMMAND ${ES_MPI_TEST})
 #end: MassPropertiesTest unit test
 
+#begin: VolumeAverageCriterionTests unit test
+set(VolumeAverageCriterionTests_SOURCES
+  VolumeAverageCriterionTests.cpp
+  PlatoTestHelpers.cpp
+  PlatoUnitTestMain.cpp
+)
+
+set(VolumeAverageCriterionTests_HEADERS
+  PlatoTestHelpers.hpp
+)
+
+add_executable(VolumeAverageCriterionTests
+  ${VolumeAverageCriterionTests_SOURCES}
+  ${VolumeAverageCriterionTests_HEADERS}
+)
+
+target_link_libraries(VolumeAverageCriterionTests
+  analyzelib
+  ${Trilinos_LIBRARIES}
+  ${Trilinos_TPL_LIBRARIES}
+  )
+target_include_directories(VolumeAverageCriterionTests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+build_mpi_test_string(ES_MPI_TEST 1 ${CMAKE_CURRENT_BINARY_DIR}/VolumeAverageCriterionTests)
+add_test(NAME runVolumeAverageCriterionTests COMMAND ${ES_MPI_TEST})
+#end: VolumeAverageCriterionTests unit test
+
 #begin: GeometryMisfitTest unit test
 set(GeometryMisfitTest_SOURCES
   GeometryMisfitTests.cpp
@@ -713,6 +740,66 @@ target_include_directories(SolverInterfaceUnitTests PRIVATE ${CMAKE_SOURCE_DIR}/
 
 build_mpi_test_string(ES_MPI_TEST 1 ${CMAKE_CURRENT_BINARY_DIR}/SolverInterfaceUnitTests)
 add_test(NAME runSolverInterfaceUnitTests COMMAND ${ES_MPI_TEST})
+################################################################################
+
+################################################################################
+set(MultipointConstraintTests_SOURCES
+  PlatoMultipointConstraintTests.cpp
+  PlatoTestHelpers.cpp
+  PlatoUnitTestMain.cpp
+)
+
+set(MultipointConstraintTests_HEADERS
+  PlatoTestHelpers.hpp
+)
+
+add_executable(MultipointConstraintUnitTests
+  ${MultipointConstraintTests_SOURCES}
+  ${MultipointConstraintTests_HEADERS}
+)
+
+target_link_libraries(MultipointConstraintUnitTests
+  analyzelib
+  ${PLATO_LIBS}
+  ${Trilinos_LIBRARIES}
+  ${Trilinos_TPL_LIBRARIES}
+  )
+target_include_directories(MultipointConstraintUnitTests PRIVATE "${PLATOENGINE_PREFIX}/include")
+target_include_directories(MultipointConstraintUnitTests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+build_mpi_test_string(ES_MPI_TEST 1 ${CMAKE_CURRENT_BINARY_DIR}/MultipointConstraintUnitTests)
+add_test(NAME runMultipointConstraintUnitTests COMMAND ${ES_MPI_TEST})
+################################################################################
+
+################################################################################
+if(HELMHOLTZ)
+  set(HelmholtzFilterTests_SOURCES
+    PlatoHelmholtzFilterTests.cpp
+    PlatoTestHelpers.cpp
+    PlatoUnitTestMain.cpp
+  )
+
+  set(HelmholtzFilterTests_HEADERS
+    PlatoTestHelpers.hpp
+  )
+
+  add_executable(HelmholtzFilterUnitTests
+    ${HelmholtzFilterTests_SOURCES}
+    ${HelmholtzFilterTests_HEADERS}
+  )
+
+  target_link_libraries(HelmholtzFilterUnitTests
+    analyzelib
+    ${PLATO_LIBS}
+    ${Trilinos_LIBRARIES}
+    ${Trilinos_TPL_LIBRARIES}
+  )
+  target_include_directories(HelmholtzFilterUnitTests PRIVATE "${PLATOENGINE_PREFIX}/include")
+  target_include_directories(HelmholtzFilterUnitTests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+  build_mpi_test_string(ES_MPI_TEST 1 ${CMAKE_CURRENT_BINARY_DIR}/HelmholtzFilterUnitTests)
+  add_test(NAME runHelmholtzFilterUnitTests COMMAND ${ES_MPI_TEST})
+endif()
 ################################################################################
 
 if(PLATOANALYZE_ENABLE_MPMD)

@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.0)
 
 project(PLATOANALYZE VERSION 0.0.0 LANGUAGES CXX)
+
+# hdf5 dependency (introduced by exodus) needs C
+enable_language(C)
+
 MESSAGE("\n\nConfiguring Plato Analyze Version ${PLATOANALYZE_VERSION_MAJOR}.${PLATOANALYZE_VERSION_MINOR}.${PLATOANALYZE_VERSION_PATCH}")
 
 IF (DEFINED Trilinos_PREFIX)
@@ -44,7 +48,6 @@ endif()
 
 MESSAGE("-- BUILD_SHARED_LIBS: ${BUILD_SHARED_LIBS}")
 
-SET(CMAKE_CXX_FLAGS ${Trilinos_CXX_COMPILER_FLAGS})
 SET(CMAKE_C_FLAGS ${Trilinos_C_COMPILER_FLAGS} )
 ## this has to be conditional, or building without cuda fails
 IF (DEFINED AMGX_PREFIX)
@@ -95,6 +98,10 @@ IF(VTKDIFF)
   MESSAGE("-- VTKDIFF=${VTKDIFF}")
 ELSE()
   MESSAGE(FATAL_ERROR "Cannot locate the executable for vtkdiff, exiting")
+ENDIF()
+
+IF( TRILINOS_ROL_BRANCH )
+  ADD_DEFINITIONS(-DTRILINOS_ROL_BRANCH)
 ENDIF()
 
 # DAI: omega_h2 has a vtkdiff which by default compares all timesteps.
@@ -224,6 +231,7 @@ option(PARABOLIC "Compile with Parabolic physics" ON)
 option(HYPERBOLIC "Compile with Hyperbolic physics" ON)
 option(STABILIZED "Compile with Stabilized VMS physics" ON)
 option(PLASTICITY "Compile with Plasticity physics" ON)
+option(HELMHOLTZ "Compile with Helmholtz filter" ON)
 if(ELLIPTIC)
   message("-- Plato: Elliptic physics added")
   ADD_DEFINITIONS(-DPLATO_ELLIPTIC)
@@ -243,6 +251,10 @@ endif()
 if(PLASTICITY)
   message("-- Plato: Plasticity physics added")
   ADD_DEFINITIONS(-DPLATO_PLASTICITY)
+endif()
+if(HELMHOLTZ)
+  message("-- Plato: Helmholtz filter added")
+  ADD_DEFINITIONS(-DPLATO_HELMHOLTZ)
 endif()
 
 
@@ -306,7 +318,7 @@ if (PLATOANALYZE_ENABLE_MPMD)
     set(PLATO_LIBS ${PLATO_LIBS} ${PLATO_GEOMETRY_MLS_LIB} ${PLATO_GEOMETRY_COGENT_LIB} pamgen)
   endif()
 
-  string(REPLACE "-std=c++11" "-std=c++14" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+  # string(REPLACE "-std=c++11" "-std=c++14" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
 
   option(PLATOANALYZE_ENABLE_MESHMAP "Enable Plato MeshMap" OFF)
   if (PLATOANALYZE_ENABLE_MESHMAP)
@@ -393,6 +405,8 @@ list(REMOVE_DUPLICATES Trilinos_TPL_LIBRARIES)
 list(REVERSE Trilinos_TPL_LIBRARIES)
 message(STATUS "Trilinos_EXTRA_LD_FLAGS: ${Trilinos_EXTRA_LD_FLAGS}")
 
+# omega-h adds -Werror which currently breaks build
+set_target_properties(Omega_h::omega_h PROPERTIES INTERFACE_COMPILE_OPTIONS "")
 
 ENABLE_TESTING()
 INCLUDE(CTest)

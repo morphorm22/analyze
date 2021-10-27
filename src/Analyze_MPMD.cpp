@@ -1,5 +1,6 @@
 #include "Analyze_App.hpp"
 #include <Teuchos_Comm.hpp>
+#include <Teuchos_DefaultMpiComm.hpp>
 #include <Teuchos_TimeMonitor.hpp>
 
 #ifndef NDEBUG
@@ -64,7 +65,7 @@ int main(int aArgc, char **aArgv)
 
     try
     {
-      tPlatoInterface->registerPerformer(tMyApp);
+      tPlatoInterface->registerApplication(tMyApp);
     }
     catch(...)
     {

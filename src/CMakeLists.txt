@@ -31,6 +31,14 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     ThermalVonMisesLocalMeasure.cpp
 )
 
+## Mesh constraint sources
+set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+    MultipointConstraints.cpp
+    MultipointConstraintFactory.cpp
+    TieMultipointConstraint.cpp
+    PbcMultipointConstraint.cpp
+)
+
 ## core sources
 set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     WorkSets.cpp
@@ -79,7 +87,8 @@ if(PLASTICITY)
 endif()
 
 ## geometric sources
-set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+if(PLATOANALYZE_ENABLE_MESHMAP)
+  set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     geometric/DivisionFunction.cpp
     geometric/GeometryScalarFunction.cpp
     geometric/LeastSquaresFunction.cpp
@@ -87,7 +96,8 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     geometric/MassPropertiesFunction.cpp
     geometric/ScalarFunctionBaseFactory.cpp
     geometric/WeightedSumFunction.cpp
-)
+  )
+endif()
 
 ## elliptic sources
 if(ELLIPTIC)
@@ -103,6 +113,8 @@ if(ELLIPTIC)
     elliptic/MassPropertiesFunction.cpp
     elliptic/FluxPNorm.cpp
     elliptic/StressPNorm.cpp
+    elliptic/TMStressPNorm.cpp
+    elliptic/VolAvgStressPNormDenominator.cpp
     elliptic/EMStressPNorm.cpp
     elliptic/EffectiveEnergy.cpp
     elliptic/InternalThermalEnergy.cpp
@@ -111,6 +123,7 @@ if(ELLIPTIC)
     elliptic/InternalElasticEnergy.cpp
     elliptic/ElastostaticResidual.cpp
     elliptic/ThermostaticResidual.cpp
+    elliptic/VolumeAverageCriterion.cpp
     IntermediateDensityPenalty.cpp
     elliptic/updated_lagrangian/Problem.cpp
     elliptic/updated_lagrangian/ElastostaticResidual.cpp
@@ -169,12 +182,20 @@ if(HYPERBOLIC)
   )
 endif()
 
+## helmholtz sources
+if(HELMHOLTZ)
+  set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+    helmholtz/Problem.cpp
+    helmholtz/HelmholtzResidual.cpp
+  )
+endif()
+
 if (PLATOANALYZE_ENABLE_TPETRA)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES} alg/TpetraLinearSolver.cpp)
 endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
-include_directories(${Trilinos_INCLUDE_DIRS})
+include_directories(${Trilinos_INCLUDE_DIRS} ${Trilinos_TPL_INCLUDE_DIRS})
 
 add_library( analyzelib ${ANALYZE_SOURCES})
 SET_TARGET_PROPERTIES(analyzelib PROPERTIES OUTPUT_NAME analyze)

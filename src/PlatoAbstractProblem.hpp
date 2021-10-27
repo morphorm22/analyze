@@ -163,6 +163,11 @@ public:
         return mDataMap;
     }
 
+    /******************************************************************************/ /**
+    * \brief Return solution database.
+    * \return solution database
+    **********************************************************************************/
+    virtual Plato::Solutions getSolution() const = 0;
 };
 // end class AbstractProblem
 

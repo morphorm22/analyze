@@ -16,6 +16,7 @@
 #include "AnalyzeOutput.hpp"
 #include "ImplicitFunctors.hpp"
 #include "ApplyConstraints.hpp"
+#include "MultipointConstraints.hpp"
 #include "SpatialModel.hpp"
 
 #include "ParseTools.hpp"
@@ -84,6 +85,8 @@ private:
     Plato::LocalOrdinalVector mBcDofs; /*!< list of degrees of freedom associated with the Dirichlet boundary conditions */
     Plato::ScalarVector mBcValues; /*!< values associated with the Dirichlet boundary conditions */
 
+    std::shared_ptr<Plato::MultipointConstraints> mMPCs; /*!< multipoint constraint interface */
+
     rcp<Plato::AbstractSolver> mSolver;
 
     std::string mPDEType; /*!< partial differential equation type */
@@ -113,12 +116,16 @@ public:
       mJacobian      (Teuchos::null),
       mIsSelfAdjoint (aProblemParams.get<bool>("Self-Adjoint", false)),
       mPDEType       (aProblemParams.get<std::string>("PDE Constraint")),
-      mPhysics       (aProblemParams.get<std::string>("Physics"))
+      mPhysics       (aProblemParams.get<std::string>("Physics")),
+      mMPCs          (nullptr)
     {
         this->initialize(aProblemParams);
 
         Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
-        mSolver = tSolverFactory.create(aMesh, aMachine, PhysicsT::mNumDofsPerNode);
+        if(mMPCs)
+            mSolver = tSolverFactory.create(aMesh.nverts(), aMachine, PhysicsT::mNumDofsPerNode, mMPCs);
+        else
+            mSolver = tSolverFactory.create(aMesh.nverts(), aMachine, PhysicsT::mNumDofsPerNode);
     }
 
     ~Problem(){}
@@ -434,7 +441,7 @@ public:
             this->applyAdjointConstraints(mJacobian, tPartialCriterionWRT_State);
 
             Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tAdjointSubView);
-            mSolver->solve(*mJacobian, tAdjointSubView, tPartialCriterionWRT_State);
+            mSolver->solve(*mJacobian, tAdjointSubView, tPartialCriterionWRT_State, /*isAdjointSolve=*/ true);
         }
 
         // compute dgdz: partial of PDE wrt state.
@@ -526,7 +533,7 @@ public:
             Plato::ScalarVector
               tAdjointSubView = Kokkos::subview(mAdjoint, tTIME_STEP_INDEX, Kokkos::ALL());
 
-            mSolver->solve(*mJacobian, tAdjointSubView, tPartialCriterionWRT_State);
+            mSolver->solve(*mJacobian, tAdjointSubView, tPartialCriterionWRT_State, /*isAdjointSolve=*/ true);
 
             // compute dgdx: partial of PDE wrt config.
             // dgdx is returned transposed, nxm.  n=x.size() and m=u.size().
@@ -613,6 +620,11 @@ public:
         Plato::EssentialBCs<PhysicsT>
         tEssentialBoundaryConditions(aProblemParams.sublist("Essential Boundary Conditions", false), mSpatialModel.MeshSets);
         tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
+
+        if(mMPCs)
+        {
+            mMPCs->checkEssentialBcsConflicts(mBcDofs);
+        }
     }
 
     /***************************************************************************//**
@@ -680,6 +692,14 @@ private:
                 mAdjoint = Plato::ScalarMultiVector("Adjoint Variables", 1, tLength);
             }
         }
+
+        if(aProblemParams.isSublist("Multipoint Constraints") == true)
+        {
+            Plato::OrdinalType tNumDofsPerNode = mPDE->numDofsPerNode();
+            auto & tMyParams = aProblemParams.sublist("Multipoint Constraints", false);
+            mMPCs = std::make_shared<Plato::MultipointConstraints>(mSpatialModel, tNumDofsPerNode, tMyParams);
+            mMPCs->setupTransform();
+        }
     }
 
     void applyAdjointConstraints(const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix, const Plato::ScalarVector & aVector)
@@ -700,10 +720,10 @@ private:
     * \brief Return solution database.
     * \return solution database
     **********************************************************************************/
-    Plato::Solutions getSolution() const
+    Plato::Solutions getSolution() const override
     {
         Plato::Solutions tSolution(mPhysics, mPDEType);
-        tSolution.set("State", mStates);
+        tSolution.set("State", mStates, mPDE->getDofNames());
         return tSolution;
     }
 };

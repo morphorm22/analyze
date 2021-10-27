@@ -285,30 +285,33 @@ getDataAsNonBlock( const Teuchos::RCP<Plato::CrsMatrixType>       & aMatrix,
     auto tNumColsPerBlock = aMatrix->numColsPerBlock();
     auto tBlockSize = tNumRowsPerBlock*tNumColsPerBlock;
 
+
     // generate non block row map
     //
     aMatrixRowMap = Plato::ScalarVectorT<Plato::OrdinalType>("non block row map", tNumMatrixRows+1);
 
     if (aRowStride == 1)
     {
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows+1), LAMBDA_EXPRESSION(const Plato::OrdinalType & tMatrixRowIndex) {
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & tMatrixRowIndex) {
             auto tBlockRowIndex = tMatrixRowIndex / tNumRowsPerBlock;
             auto tLocalRowIndex = tMatrixRowIndex % tNumRowsPerBlock;
             auto tFrom = tRowMap(tBlockRowIndex);
             auto tTo   = tRowMap(tBlockRowIndex+1);
             auto tBlockRowSize = tTo - tFrom;
             aMatrixRowMap(tMatrixRowIndex) = tFrom * tBlockSize + tLocalRowIndex * tBlockRowSize * tNumColsPerBlock;
+            aMatrixRowMap(tMatrixRowIndex+1) = tFrom * tBlockSize + (tLocalRowIndex+1) * tBlockRowSize * tNumColsPerBlock;
         });
     }
     else 
     {
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows+1), LAMBDA_EXPRESSION(const Plato::OrdinalType & tMatrixRowIndex) {
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & tMatrixRowIndex) {
             auto tBlockRowIndex = tMatrixRowIndex / aRowStride;
             auto tLocalRowIndex = tMatrixRowIndex % aRowStride;
             auto tFrom = tRowMap(tBlockRowIndex);
             auto tTo   = tRowMap(tBlockRowIndex+1);
             auto tBlockRowSize = tTo - tFrom;
             aMatrixRowMap(tMatrixRowIndex) = tFrom * aRowStride * tNumColsPerBlock + tLocalRowIndex * tBlockRowSize * tNumColsPerBlock;
+            aMatrixRowMap(tMatrixRowIndex+1) = tFrom * aRowStride * tNumColsPerBlock + (tLocalRowIndex+1) * tBlockRowSize * tNumColsPerBlock;
         });
     }
 
@@ -521,13 +524,32 @@ MatrixMatrixMultiply( const Teuchos::RCP<Plato::CrsMatrixType> & aInMatrixOne,
     // numCols(C)  === numCols(M2)
     if (tNumColsOut != tNumColsTwo) { THROWERR("output matrix has incorrect shape"); }
 
+    // Get matrix data in non-block form
     ScalarView tMatOneValues;
     OrdinalView tMatOneRowMap, tMatOneColMap;
-    Plato::getDataAsNonBlock(aInMatrixOne, tMatOneRowMap, tMatOneColMap, tMatOneValues);
+    if (aInMatrixOne->isBlockMatrix())
+    {
+      Plato::getDataAsNonBlock(aInMatrixOne, tMatOneRowMap, tMatOneColMap, tMatOneValues);
+    }
+    else
+    {
+      tMatOneValues = tMatOne.entries();
+      tMatOneRowMap = tMatOne.rowMap();
+      tMatOneColMap = tMatOne.columnIndices();
+    }
 
     ScalarView tMatTwoValues;
     OrdinalView tMatTwoRowMap, tMatTwoColMap;
-    Plato::getDataAsNonBlock(aInMatrixTwo, tMatTwoRowMap, tMatTwoColMap, tMatTwoValues);
+    if (aInMatrixTwo->isBlockMatrix())
+    {
+      Plato::getDataAsNonBlock(aInMatrixTwo, tMatTwoRowMap, tMatTwoColMap, tMatTwoValues);
+    }
+    else
+    {
+      tMatTwoValues = tMatTwo.entries();
+      tMatTwoRowMap = tMatTwo.rowMap();
+      tMatTwoColMap = tMatTwo.columnIndices();
+    }
 
     OrdinalView tOutRowMap ("output row map", tNumRowsOne + 1);
     spgemm_symbolic ( &tKernel, tNumRowsOne, tNumRowsTwo, tNumColsTwo,
@@ -549,7 +571,18 @@ MatrixMatrixMultiply( const Teuchos::RCP<Plato::CrsMatrixType> & aInMatrixOne,
         tOutRowMap, tOutColMap, tOutValues
     );
 
-    Plato::setDataFromNonBlock(aOutMatrix, tOutRowMap, tOutColMap, tOutValues);
+    // update out matrix
+    if (aOutMatrix->isBlockMatrix())
+    {
+      Plato::setDataFromNonBlock(aOutMatrix, tOutRowMap, tOutColMap, tOutValues);
+    }
+    else
+    {
+      aOutMatrix->setRowMap(tOutRowMap);
+      aOutMatrix->setColumnIndices(tOutColMap);
+      aOutMatrix->setEntries(tOutValues);
+    }
+
     tKernel.destroy_spgemm_handle();
 }
 
@@ -601,6 +634,7 @@ MatrixMinusMatrix(      Teuchos::RCP<Plato::CrsMatrixType> & aInMatrixOne,
 
     KernelHandle tKernel;
     tKernel.create_spadd_handle(/*sort rows=*/ false);
+    auto tAddHandle = tKernel.get_spadd_handle();
     KokkosSparse::Experimental::spadd_symbolic< KernelHandle,
       OrdinalView, OrdinalView,
       OrdinalView, OrdinalView,
@@ -612,11 +646,14 @@ MatrixMinusMatrix(      Teuchos::RCP<Plato::CrsMatrixType> & aInMatrixOne,
       tOutRowMap
     );
 
-    auto tAddHandle = tKernel.get_spadd_handle();
+#ifdef TRILINOS_ROL_BRANCH
+    auto t_nnz = tAddHandle->get_c_nnz();
+#else
+    auto t_nnz = tAddHandle->get_max_result_nnz();
+#endif
 
-    size_t tNumOutValues = tAddHandle->get_max_result_nnz();
-    OrdinalView tOutColMap("out column map", tNumOutValues);
-    ScalarView  tOutValues("out values",  tNumOutValues);
+    OrdinalView tOutColMap("output graph", t_nnz);
+    ScalarView  tOutValues("output values", t_nnz);
     KokkosSparse::Experimental::spadd_numeric< KernelHandle,
       OrdinalView, OrdinalView, Scalar, ScalarView,
       OrdinalView, OrdinalView, Scalar, ScalarView,
@@ -658,6 +695,94 @@ inline void Condense(       Teuchos::RCP<Plato::CrsMatrixType> & aA,
   MatrixMatrixMultiply     ( aB, aD, tBD );
 
   MatrixMinusMatrix        ( aA, tBD, aOffset );
+}
+
+/******************************************************************************//**
+ * \brief Compute matrix transpose
+ * \param [in] aMatrix
+ * \param [out] aMatrixTranspose
+ *
+**********************************************************************************/
+inline void
+MatrixTranspose( const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
+                       Teuchos::RCP<Plato::CrsMatrixType> & aMatrixTranspose)
+{
+    using Plato::OrdinalType;
+    using Plato::Scalar;
+
+    typedef Plato::ScalarVectorT<OrdinalType> OrdinalView;
+    typedef Plato::ScalarVectorT<Scalar>  ScalarView;
+
+    ScalarView tEntries;
+    OrdinalView tRowMap, tColMap;
+    if (aMatrix->isBlockMatrix())
+    {
+      Plato::getDataAsNonBlock(aMatrix, tRowMap, tColMap, tEntries);
+    }
+    else
+    {
+      tEntries = aMatrix->entries();
+      tRowMap = aMatrix->rowMap();
+      tColMap = aMatrix->columnIndices();
+    }
+
+    OrdinalType tNumRowsT = aMatrix->numCols();
+    OrdinalView tRowMapT("row map", tNumRowsT+1);
+    OrdinalView tColMapT("col map", tEntries.size());
+    ScalarView tEntriesT("entries", tEntries.size());
+
+    // determine rowmap
+    OrdinalType tNumRows = tRowMap.size() - 1;
+    Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalType>(0, tNumRows), LAMBDA_EXPRESSION(OrdinalType iRowOrdinal)
+    {
+        auto tRowStart = tRowMap(iRowOrdinal);
+        auto tRowEnd = tRowMap(iRowOrdinal + 1);
+        for (auto tEntryIndex = tRowStart; tEntryIndex < tRowEnd; tEntryIndex++)
+        {
+            auto iColumnIndex = tColMap(tEntryIndex);
+            Kokkos::atomic_increment(&tRowMapT(iColumnIndex));
+        }
+    }, "nonzeros");
+
+    OrdinalType tNumEntries(0);
+    Kokkos::parallel_scan (Kokkos::RangePolicy<OrdinalType>(0,tNumRowsT+1),
+    KOKKOS_LAMBDA (const OrdinalType& iOrdinal, OrdinalType& aUpdate, const bool& tIsFinal)
+    {
+        const OrdinalType tVal = tRowMapT(iOrdinal);
+        if( tIsFinal )
+        {
+          tRowMapT(iOrdinal) = aUpdate;
+        }
+        aUpdate += tVal;
+    }, tNumEntries);
+
+    // determine column map and entries
+    OrdinalView tOffsetT("offsets", tNumRowsT);
+    Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalType>(0, tNumRows), LAMBDA_EXPRESSION(OrdinalType iRowOrdinal)
+    {
+        auto tRowStart = tRowMap(iRowOrdinal);
+        auto tRowEnd = tRowMap(iRowOrdinal + 1);
+        for (auto iEntryIndex = tRowStart; iEntryIndex < tRowEnd; iEntryIndex++)
+        {
+            auto iRowIndexT = tColMap(iEntryIndex);
+            auto tMyOffset = Kokkos::atomic_fetch_add(&tOffsetT(iRowIndexT), 1);
+            auto iEntryIndexT = tRowMapT(iRowIndexT)+tMyOffset;
+            tColMapT(iEntryIndexT) = iRowOrdinal;
+            tEntriesT(iEntryIndexT) = tEntries(iEntryIndex);
+        }
+    }, "colmap and entries");
+
+    // update matrix transpose 
+    if (aMatrixTranspose->isBlockMatrix())
+    {
+      Plato::setDataFromNonBlock(aMatrixTranspose, tRowMapT, tColMapT, tEntriesT);
+    }
+    else
+    {
+      aMatrixTranspose->setRowMap(tRowMapT);
+      aMatrixTranspose->setColumnIndices(tColMapT);
+      aMatrixTranspose->setEntries(tEntriesT);
+    }
 }
 
 } // namespace Plato

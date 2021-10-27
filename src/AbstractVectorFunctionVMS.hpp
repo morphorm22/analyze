@@ -16,8 +16,9 @@ template<typename EvaluationType>
 class AbstractVectorFunctionVMS
 {
 protected:
-    const Plato::SpatialDomain & mSpatialDomain; /*!< Plato Analyze spatial model */
-          Plato::DataMap       & mDataMap;       /*!< Plato Analyze database */
+    const Plato::SpatialDomain     & mSpatialDomain; /*!< Plato Analyze spatial model */
+          Plato::DataMap           & mDataMap;       /*!< Plato Analyze database */
+          std::vector<std::string>   mDofNames;      /*!< state dof names */
 
 public:
     /******************************************************************************//**
@@ -58,6 +59,15 @@ public:
     decltype(mSpatialDomain.MeshSets) getMeshSets() const
     {
         return (mSpatialDomain.MeshSets);
+    }
+
+    /****************************************************************************//**
+    * \brief Return reference to dof names
+    * \return mDofNames
+    ********************************************************************************/
+    const decltype(mDofNames)& getDofNames() const
+    {
+        return mDofNames;
     }
 
     /******************************************************************************//**

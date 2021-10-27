@@ -94,6 +94,8 @@ private:
     std::shared_ptr<Plato::PathDependentAdjointSolver<PhysicsT>> mAdjointSolver; /*!< Path-dependent adjoint solver interface */
 
     bool mStopOptimization; /*!< stops optimization problem if Newton-Raphson solver fails to converge during an optimization run */
+
+    std::string mPDEType; /*!< partial differential equation type */
     std::string mPhysics; /*!< simulated physics */
 
 // public functions
@@ -128,10 +130,11 @@ public:
       mProjectedPressGrad("Projected Pressure Gradient", mTimeData->mNumTimeSteps, mProjectionEquation->size()),
       mWorksetBase(aMesh),
       mLinearSolverFactory(aInputs.sublist("Linear Solver")),
-      mLinearSolver(mLinearSolverFactory.create(aMesh, aMachine, PhysicsT::mNumDofsPerNode)),
+      mLinearSolver(mLinearSolverFactory.create(aMesh.nverts(), aMachine, PhysicsT::mNumDofsPerNode)),
       mNewtonSolver(std::make_shared<Plato::NewtonRaphsonSolver<PhysicsT>>(aMesh, aInputs, mLinearSolver)),
       mAdjointSolver(std::make_shared<Plato::PathDependentAdjointSolver<PhysicsT>>(aMesh, aInputs, mLinearSolver)),
       mStopOptimization(false),
+      mPDEType(aInputs.get<std::string>("PDE Constraint")),
       mPhysics(aInputs.get<std::string>("Physics")),
       mEssentialBCs(nullptr)
     {
@@ -1152,6 +1155,17 @@ private:
         {
             REPORT("Plasticity Problem: No criteria defined for this problem.")
         }
+    }
+    /******************************************************************************/ /**
+    * \brief Return solution database.
+    * \return solution database
+    **********************************************************************************/
+    Plato::Solutions getSolution() const override
+    {
+        Plato::Solutions tSolution(mPhysics, mPDEType);
+        tSolution.set("State", mGlobalStates);
+        tSolution.setDofNames("State", mGlobalEquation->getDofNames());
+        return tSolution;
     }
 };
 // class PlasticityProblem
