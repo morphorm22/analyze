@@ -2,7 +2,10 @@
 #define PLATO_LINEAR_STRESS_FACTORY_HPP
 
 #include <LinearStress.hpp>
-#include <LinearStressExpression.hpp>
+
+#ifdef PLATO_EXPRESSION
+  #include <LinearStressExpression.hpp>
+#endif
 
 namespace Plato
 {
@@ -37,9 +40,14 @@ public:
       // Look for a linear stress block.
       if( aParamList.isSublist("Custom Elasticity Model") )
       {
+#ifdef PLATO_EXPRESSION
         return Teuchos::rcp( new Plato::LinearStressExpression<EvaluationType,
                                                                SimplexPhysics>
                              (aMaterialInfo, aParamList) );
+#else
+	THROWERR("Plato Analyze was not built with expression support. "
+		 "Rebuild with the cmake EXPRESSION option ON")
+#endif
       }
       else
       {

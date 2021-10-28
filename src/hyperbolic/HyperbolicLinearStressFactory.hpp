@@ -3,7 +3,10 @@
 
 #include <hyperbolic/HyperbolicExpInstMacros.hpp>
 #include <hyperbolic/HyperbolicLinearStress.hpp>
-#include <hyperbolic/HyperbolicLinearStressExpression.hpp>
+
+#ifdef PLATO_EXPRESSION
+  #include <hyperbolic/HyperbolicLinearStressExpression.hpp>
+#endif
 
 namespace Plato
 {
@@ -35,17 +38,22 @@ public:
     **********************************************************************************/
     template<typename MaterialInfoType >
     Teuchos::RCP<Plato::Hyperbolic::AbstractHyperbolicLinearStress<EvaluationType,
-								   SimplexPhysics> > create(
+                                                                   SimplexPhysics> > create(
         const MaterialInfoType aMaterialInfo,
         const Teuchos::ParameterList& aParamList)
     {
       // Look for a linear stress block.
       if( aParamList.isSublist("Custom Elasticity Model") )
       {
+#ifdef PLATO_EXPRESSION
           return Teuchos::rcp( new
               Plato::Hyperbolic::HyperbolicLinearStressExpression<EvaluationType,
                                                                   SimplexPhysics>
                                (aMaterialInfo, aParamList) );
+#else
+          THROWERR("Plato Analyze was not built with expression support. "
+                   "Rebuild with the cmake EXPRESSION option ON")
+#endif
       }
       else
       {

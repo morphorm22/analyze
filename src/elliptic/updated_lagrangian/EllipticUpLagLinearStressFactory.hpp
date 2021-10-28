@@ -2,7 +2,10 @@
 #define PLATO_ELLIPTIC_UPDATED_LAGRANGIAN_LINEAR_STRESS_FACTORY_HPP
 
 #include "EllipticUpLagLinearStress.hpp"
-#include "EllipticUpLagLinearStressExpression.hpp"
+
+#ifdef PLATO_EXPRESSION
+  #include "EllipticUpLagLinearStressExpression.hpp"
+#endif
 
 namespace Plato
 {
@@ -43,8 +46,13 @@ public:
       // Look for a linear stress block.
       if( aParamList.isSublist("Custom Elasticity Model") )
       {
-        return Teuchos::rcp( new Plato::Elliptic::UpdatedLagrangian::EllipticUpLagLinearStressExpression<EvaluationType, SimplexPhysics>
+#ifdef PLATO_EXPRESSION
+          return Teuchos::rcp( new Plato::Elliptic::UpdatedLagrangian::EllipticUpLagLinearStressExpression<EvaluationType, SimplexPhysics>
                              (aMaterialInfo, aParamList) );
+#else
+          THROWERR("Plato Analyze was not built with expression support. "
+                   "Rebuild with the cmake EXPRESSION option ON")
+#endif
       }
       else
       {

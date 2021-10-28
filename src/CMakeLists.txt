@@ -9,8 +9,10 @@ set(ANALYZE_SOURCES
     CustomMaterial.cpp
     AbstractLinearStress.cpp
     LinearStress.cpp
+    LinearStressFactory.cpp
     AbstractYieldStress.cpp
     YieldStress.cpp
+    YieldStressFactory.cpp
 ##    ElasticModelFactory.cpp
     LinearElasticMaterial.cpp
     CubicLinearElasticMaterial.cpp
@@ -26,10 +28,9 @@ set(ANALYZE_SOURCES
 
 if(EXPRESSION)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+      ExpressionEvaluator.cpp
       LinearStressExpression.cpp
-      LinearStressFactory.cpp
       YieldStressExpression.cpp
-      YieldStressFactory.cpp
   )
 endif()
 
@@ -59,7 +60,6 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     Variables.cpp
     Solutions.cpp
     AnalyzeAppUtils.cpp
-    ExpressionEvaluator.cpp
     PlatoMask.cpp
     alg/ParseInput.cpp
     alg/Basis.cpp
@@ -146,12 +146,12 @@ if(ELLIPTIC)
     elliptic/updated_lagrangian/InternalElasticEnergy.cpp
     elliptic/updated_lagrangian/AbstractEllipticUpLagLinearStress.cpp
     elliptic/updated_lagrangian/EllipticUpLagLinearStress.cpp
+    elliptic/updated_lagrangian/EllipticUpLagLinearStressFactory.cpp
   )
 
   if(EXPRESSION)
     set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
       elliptic/updated_lagrangian/EllipticUpLagLinearStressExpression.cpp
-      elliptic/updated_lagrangian/EllipticUpLagLinearStressFactory.cpp
     )
   endif()
 endif()
@@ -198,6 +198,7 @@ if(HYPERBOLIC)
     hyperbolic/FluidsUniformThermalSource.cpp
     hyperbolic/FluidsWeightedScalarFunction.cpp
     hyperbolic/HyperbolicLinearStress.cpp
+    hyperbolic/HyperbolicLinearStressFactory.cpp
     hyperbolic/HyperbolicScalarFunctionFactory.cpp
     hyperbolic/HyperbolicPhysicsScalarFunction.cpp
     hyperbolic/FluidsLeastSquaresScalarFunction.cpp
@@ -207,7 +208,6 @@ if(HYPERBOLIC)
   if(EXPRESSION)
     set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
       hyperbolic/HyperbolicLinearStressExpression.cpp
-      hyperbolic/HyperbolicLinearStressFactory.cpp
     )
   endif()
 endif()
