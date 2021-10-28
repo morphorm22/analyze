@@ -277,6 +277,11 @@ namespace Plato {
       **********************************************************************************/
       Rank4VoigtConstant(Teuchos::ParameterList& aParams);
 
+      // Note this constructor runs on the device. In the base class here it
+      // doesn't do anything but is present so derived classes can be constructed
+      // on the device and call this constructor.
+      DEVICE_TYPE Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio){}
+
       /******************************************************************************//**
        * \brief Functor for 4th rank tensor constant
        * \return \f$ y(i, j) = c0(i,j) \f$
@@ -289,7 +294,7 @@ namespace Plato {
        return c0[i][j];
       }
   };
-#if 0
+
   template<typename T>
   class Rank4VoigtConstant<1,T>
   /******************************************************************************/
@@ -303,14 +308,22 @@ namespace Plato {
 
       Rank4VoigtConstant() : c0{{0.0}} {}
 
-      Rank4VoigtConstant(Teuchos::ParameterList& aParams);
+      // Note this constructor runs on the device. In the base class here it
+      // doesn't do anything but is present so derived classes can be constructed
+      // on the device and call this constructor.
+      DEVICE_TYPE Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio){}
+
+      Rank4VoigtConstant(Teuchos::ParameterList& aParams)
+      {
+          typedef Plato::Scalar RealT;
+          c0[0][0] = Plato::ParseTools::getParam<RealT>(aParams, "c11" /*throw if not found*/);
+      }
 
       DEVICE_TYPE inline T
       operator()(Plato::OrdinalType i, Plato::OrdinalType j ) const {
           return c0[i][j];
       }
   };
-#endif
 
   template<typename T>
   class Rank4VoigtConstant<2,T>
@@ -325,6 +338,11 @@ namespace Plato {
 
       Rank4VoigtConstant() : c0{{0.0}} {}
 
+      // Note this constructor runs on the device. In the base class here it
+      // doesn't do anything but is present so derived classes can be constructed
+      // on the device and call this constructor.
+      DEVICE_TYPE Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio){}
+
       Rank4VoigtConstant(Teuchos::ParameterList& aParams)
       {
           typedef Plato::Scalar RealT;
@@ -333,7 +351,7 @@ namespace Plato {
           c0[0][1] = Plato::ParseTools::getParam<RealT>(aParams, "c12", /*default=*/ 0.0); c0[1][0] = c0[0][1];
           c0[2][2] = Plato::ParseTools::getParam<RealT>(aParams, "c33" /*throw if not found*/);
       }
-
+  
       DEVICE_TYPE inline T
       operator()(Plato::OrdinalType i, Plato::OrdinalType j ) const {
           return c0[i][j];
@@ -351,6 +369,11 @@ namespace Plato {
     public:
 
       Rank4VoigtConstant() : c0{{0.0}} {}
+
+      // Note this constructor runs on the device. In the base class here it
+      // doesn't do anything but is present so derived classes can be constructed
+      // on the device and call this constructor.
+      DEVICE_TYPE Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio){}
 
       Rank4VoigtConstant(Teuchos::ParameterList& aParams) : c0{{0.0}}
       {
@@ -409,16 +432,34 @@ namespace Plato {
        * unit test: PlatoMaterialModel_IsotropicStiffnessConstant
        **********************************************************************************/
        IsotropicStiffnessConstant(const Teuchos::ParameterList& aParams){}
-       IsotropicStiffnessConstant(const T& aYoungsModulus, const T& aPoissonsRatio){}
+
+      // Note this constructor runs on the device. 
+      DEVICE_TYPE IsotropicStiffnessConstant(const T& aYoungsModulus, const T& aPoissonsRatio) :
+            Rank4VoigtConstant<SpatialDim, T>(aYoungsModulus, aPoissonsRatio) {}      
   };
-#if 0  
+
   template<typename T>
   class IsotropicStiffnessConstant<1,T> : public Rank4VoigtConstant<1,T>
   /******************************************************************************/
   {
     public:
-      IsotropicStiffnessConstant(const Teuchos::ParameterList& aParams);
-      IsotropicStiffnessConstant(const T& aYoungsModulus, const T& aPoissonsRatio);
+      IsotropicStiffnessConstant(const Teuchos::ParameterList& aParams)
+      {
+          typedef Plato::Scalar RealT;
+          T E = Plato::ParseTools::getParam<RealT>(aParams, "Youngs Modulus"); /*throw if not found*/
+          T v = Plato::ParseTools::getParam<RealT>(aParams, "Poissons Ratio"); /*throw if not found*/
+          T c = 1.0/((1.0+v)*(1.0-2.0*v));
+
+          this->c0[0][0] = E*c*(1.0-v);
+      }
+
+      // Note this constructor runs on the device. 
+      DEVICE_TYPE IsotropicStiffnessConstant(const T& aYoungsModulus, const T& aPoissonsRatio) :
+            Rank4VoigtConstant<1,T>(aYoungsModulus, aPoissonsRatio) 
+      {
+          T c = 1.0/((1.0+aPoissonsRatio)*(1.0-2.0*aPoissonsRatio));
+          this->c0[0][0] = aYoungsModulus*c*(1.0-aPoissonsRatio);
+      }
   };
 
   template<typename T>
@@ -426,10 +467,37 @@ namespace Plato {
   /******************************************************************************/
   {
     public:
-      IsotropicStiffnessConstant(const Teuchos::ParameterList& aParams);
-      IsotropicStiffnessConstant(const T& aYoungsModulus, const T& aPoissonsRatio);
+      IsotropicStiffnessConstant(const Teuchos::ParameterList& aParams)
+      {
+          typedef Plato::Scalar RealT;
+          T E = Plato::ParseTools::getParam<RealT>(aParams, "Youngs Modulus"); /*throw if not found*/
+          T v = Plato::ParseTools::getParam<RealT>(aParams, "Poissons Ratio"); /*throw if not found*/
+
+          T c = 1.0/((1.0+v)*(1.0-2.0*v));
+
+          T c00 = E*c*(1.0-v), c01 = E*c*v, c22 = 1.0/2.0*E*c*(1.0-2.0*v);
+
+          this->c0[0][0] = c00; this->c0[0][1] = c01;
+          this->c0[1][0] = c01; this->c0[1][1] = c00;
+          this->c0[2][2] = c22;
+      }
+
+      // Note this constructor runs on the device. 
+      DEVICE_TYPE IsotropicStiffnessConstant(const T& aYoungsModulus, const T& aPoissonsRatio) :
+            Rank4VoigtConstant<2,T>(aYoungsModulus, aPoissonsRatio) 
+      {
+          T c = 1.0/((1.0+aPoissonsRatio)*(1.0-2.0*aPoissonsRatio));
+
+          T c00 = aYoungsModulus*c*(1.0-aPoissonsRatio);
+          T c01 = aYoungsModulus*c*aPoissonsRatio;
+          T c22 = 1.0/2.0*aYoungsModulus*c*(1.0-2.0*aPoissonsRatio);
+
+          this->c0[0][0] = c00; this->c0[0][1] = c01;
+          this->c0[1][0] = c01; this->c0[1][1] = c00;
+          this->c0[2][2] = c22;
+      }
   };
-#endif
+
   template<typename T>
   class IsotropicStiffnessConstant<3,T> : public Rank4VoigtConstant<3,T>
   /******************************************************************************/
@@ -451,7 +519,9 @@ namespace Plato {
           this->c0[3][3] = c33; this->c0[4][4] = c33; this->c0[5][5] = c33;
       }
 
-      IsotropicStiffnessConstant(const T& aYoungsModulus, const T& aPoissonsRatio)
+      // Note this constructor runs on the device. 
+      DEVICE_TYPE IsotropicStiffnessConstant(const T& aYoungsModulus, const T& aPoissonsRatio) :
+            Rank4VoigtConstant<3,T>(aYoungsModulus, aPoissonsRatio) 
       {
           T c = 1.0/((1.0+aPoissonsRatio)*(1.0-2.0*aPoissonsRatio));
 
@@ -464,7 +534,6 @@ namespace Plato {
           this->c0[2][0] = c01; this->c0[2][1] = c01; this->c0[2][2] = c00;
           this->c0[3][3] = c33; this->c0[4][4] = c33; this->c0[5][5] = c33;
       }
-
   };
 
   /******************************************************************************/
@@ -507,10 +576,10 @@ namespace Plato {
                   this->mType = Plato::MaterialModelType::Nonlinear;
               }
           }
-          if (paramList.isSublist("Custom Elastic Stiffness")) 
+          if (paramList.isSublist("Elastic Stiffness Expression")) 
           {
               this->mType = Plato::MaterialModelType::Expression;
-              auto tCustomElasticSubList = paramList.sublist("Custom Elastic Stiffness");
+              auto tCustomElasticSubList = paramList.sublist("Elastic Stiffness Expression");
               if(tCustomElasticSubList.isType<double>("E0"))
               {          
                   this->setScalarConstant("E0", tCustomElasticSubList.get<double>("E0"));
@@ -538,6 +607,9 @@ namespace Plato {
       //
 
       // scalar constant
+      bool scalarConstantExists(std::string aConstantName)
+      { return mScalarConstantsMap.count(aConstantName) == 1 ? true : false; }
+
       Plato::Scalar getScalarConstant(std::string aConstantName)
       { return mScalarConstantsMap[aConstantName]; }
 
@@ -560,6 +632,7 @@ namespace Plato {
       // Rank4Voigt functor
       Plato::Rank4VoigtFunctor<SpatialDim> getRank4VoigtFunctor(std::string aFunctorName)
       { return mRank4VoigtFunctorsMap[aFunctorName]; }
+
 
 
       // setters

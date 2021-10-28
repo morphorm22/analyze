@@ -30,26 +30,28 @@ public:
         const Teuchos::RCP<Plato::MaterialModel<EvaluationType::SpatialDim>> aMaterialModel)
     {
         Plato::MaterialModelType tModelType = aMaterialModel->type();
-        /*
         if (tModelType == Plato::MaterialModelType::Nonlinear)
         {
             return Teuchos::rcp( new Plato::NonLinearTMKinetics<EvaluationType,
                                                                SimplexPhysics>
                              (aMaterialModel) );
-        } else
-        if (tModelType == Plato::MaterialModelType::Linear)
+        } 
+        else if (tModelType == Plato::MaterialModelType::Linear)
         {
             return Teuchos::rcp( new Plato::LinearTMKinetics<EvaluationType,
                                                                SimplexPhysics>
                              (aMaterialModel) );
-        } else
-        if (tModelType == Plato::MaterialModelType::Expression)
+        } 
+        else if (tModelType == Plato::MaterialModelType::Expression)
         {
-            */
             return Teuchos::rcp( new Plato::ExpressionTMKinetics<EvaluationType,
                                                                SimplexPhysics>
                              (aMaterialModel) );
-//        }
+        }
+        else
+        {
+            THROWERR("Unknown Material Model Type")
+        }
     }
 };
 // class TMKineticsFactory

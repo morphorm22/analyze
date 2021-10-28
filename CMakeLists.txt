@@ -429,9 +429,9 @@ endfunction(build_mpi_test_string)
 ADD_SUBDIRECTORY(src)
 
 option(PLATOANALYZE_UNIT_TEST "Flag to enable unit tests" ON)
-#if( PLATOANALYZE_UNIT_TEST)
-#  ADD_SUBDIRECTORY(unit_tests)
-#endif()
+if( PLATOANALYZE_UNIT_TEST)
+  ADD_SUBDIRECTORY(unit_tests)
+endif()
 
 option(PLATOANALYZE_SMOKE_TESTS "Flag to enable smoke tests" ON)
 if(PLATOANALYZE_SMOKE_TESTS)

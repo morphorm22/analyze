@@ -30,7 +30,6 @@ protected:
     using PhysicsType = typename Plato::SimplexThermomechanics<EvaluationType::SpatialDim>;
     using PhysicsType::mNumDofsPerNode;
 
-//    Plato::Rank4VoigtConstant<EvaluationType::SpatialDim> mElasticStiffnessConstant;
     Plato::TensorConstant<EvaluationType::SpatialDim> mThermalExpansivityConstant;
     Plato::TensorConstant<EvaluationType::SpatialDim> mThermalConductivityConstant;
     Plato::Scalar mRefTemperature;
@@ -56,81 +55,57 @@ public:
             mScaling2(mScaling*mScaling),
             mCubatureRule(std::make_shared<Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>>())
     {
- //       mElasticStiffnessConstant = aMaterialModel->getRank4VoigtConstant("Elastic Stiffness");
         mThermalExpansivityConstant = aMaterialModel->getTensorConstant("Thermal Expansivity");
         mThermalConductivityConstant = aMaterialModel->getTensorConstant("Thermal Conductivity");
         mE0 = aMaterialModel->getScalarConstant("E0");
         mExpression = aMaterialModel->expression();
         mPoissonsRatio = aMaterialModel->getScalarConstant("Poissons Ratio");
-        mControlValue = aMaterialModel->getScalarConstant("Density");
+        mControlValue = -1.0;
+        if(aMaterialModel->scalarConstantExists("Density"))
+        {
+            mControlValue = aMaterialModel->getScalarConstant("Density");
+        }
     }
 
-    void perform_expression_call() const;
-
-    /***********************************************************************************
-     * \brief Compute stress and thermal flux from strain, temperature, and temperature gradient
-     * \param [in] aStrain infinitesimal strain tensor
-     * \param [in] aTGrad temperature gradient
-     * \param [in] aTemperature temperature
-     * \param [out] aStress Cauchy stress tensor
-     * \param [out] aFlux thermal flux vector
-     **********************************************************************************/
-    //template<typename KineticsScalarType, typename KinematicsScalarType, typename StateScalarType>
-    void
-    operator()( Kokkos::View<KineticsScalarType**,   Plato::Layout, Plato::MemSpace> const& aStress,
-                Kokkos::View<KineticsScalarType**,   Plato::Layout, Plato::MemSpace> const& aFlux,
-                Kokkos::View<KinematicsScalarType**, Plato::Layout, Plato::MemSpace> const& aStrain,
-                Kokkos::View<KinematicsScalarType**, Plato::Layout, Plato::MemSpace> const& aTGrad,
-                Kokkos::View<StateT*,       Plato::MemSpace> const& aTemperature,
-                const Plato::ScalarMultiVectorT <ControlScalarType> & aControl) const override
+    void 
+    setLocalControl(const Plato::ScalarMultiVectorT <ControlScalarType> &aControl,
+                               Plato::ScalarMultiVectorT<ControlScalarType> &aLocalControl) const
     {
-        auto tScaling = mScaling;
-        auto tScaling2 = mScaling2;
-        auto tRefTemperature = mRefTemperature;
-        auto& tThermalExpansivityConstant = mThermalExpansivityConstant;
-        auto& tThermalConductivityConstant = mThermalConductivityConstant;
-        auto& tVoigtMap = cVoigtMap;
-        const Plato::OrdinalType tNumCells = aStrain.extent(0);
-
-        Plato::InterpolateFromNodal<EvaluationType::SpatialDim, 1, 0> tInterpolateFromNodal;
-        Plato::ScalarVectorT<ControlScalarType> tElementDensity("Gauss point density", tNumCells);
-        auto tBasisFunctions = mCubatureRule->getBasisFunctions();
-
-        Plato::ScalarMultiVectorT<KineticsScalarType> tElementYoungsModulusValues("Element Youngs Modulus", tNumCells, 1);
-
-
-        perform_expression_call();
-        perform_expression_call();
-    //    this->perform_expression_call();
-    //    this->perform_expression_call();
-    //    this->perform_expression_call();
-
-
-
-
-/*
-printf("Local Control Values\n");
-        auto tControlValue = mControlValue;
-        Plato::ScalarMultiVectorT<ControlScalarType> tLocalControl("Local Control", aControl.extent(0), aControl.extent(1));
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,aControl.extent(0)), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+        // This code allows for the user to specify a global density value for all nodes when 
+        // running a forward problem (when mControlValue != -1.0). This is set with a "Density" entry in 
+        // the input deck (see parsing of this in MaterialModel constructor). Typically, though, the passed in 
+        // control will just be used. 
+        if(mControlValue != -1.0)
         {
-            for(int j=0; j<aControl.extent(1); ++j)
+            auto tControlValue = mControlValue;
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0,aControl.extent(0)), LAMBDA_EXPRESSION(Plato::OrdinalType i)
             {
-                tLocalControl(aCellOrdinal, j) = tControlValue;
-                printf("%lf ", tLocalControl(aCellOrdinal, j));
-            }
-            printf("\n");
-        },"Set Local Control");
-
-printf("Element Density Values\n");
-        // Calculate the node-averaged density for the element/cell
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+                for(Plato::OrdinalType j=0; j<aControl.extent(1); j++)
+                {
+                    aLocalControl(i,j) = tControlValue;
+                }
+            },"Compute local control");
+        }
+        else
         {
-            tInterpolateFromNodal(aCellOrdinal, tBasisFunctions, tLocalControl, tElementDensity);
-            printf("%lf\n", tElementDensity(aCellOrdinal));
-        },"Compute Element Densities");
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0,aControl.extent(0)), LAMBDA_EXPRESSION(Plato::OrdinalType i)
+            {
+                for(Plato::OrdinalType j=0; j<aControl.extent(1); j++)
+                {
+                    aLocalControl(i,j) = aControl(i,j);
+                }
+            },"Compute local control");
+        }
+    }
 
-        // Calculate Youngs Modulus for each element based on the element density
+    void
+    calculateElementYoungsModulusValues(const Plato::OrdinalType &aNumCells,
+                                        const Plato::ScalarMultiVectorT<ControlScalarType> &aLocalControl,
+                                        Plato::ScalarMultiVectorT<KineticsScalarType> &aElementYoungsModulusValues) const
+    {
+        auto tBasisFunctions = mCubatureRule->getBasisFunctions();
+        Plato::InterpolateFromNodal<EvaluationType::SpatialDim, 1, 0> tInterpolateFromNodal;
+        Plato::ScalarVectorT<ControlScalarType> tElementDensity("Gauss point density", aNumCells);
 
         ExpressionEvaluator<Plato::ScalarMultiVectorT<KineticsScalarType>,
                             Plato::ScalarMultiVectorT<KinematicsScalarType>,
@@ -138,37 +113,47 @@ printf("Element Density Values\n");
                             Plato::Scalar > tExpEval;
         
         tExpEval.parse_expression(mExpression.c_str());
-        tExpEval.setup_storage(tNumCells, 1);
+        tExpEval.setup_storage(aNumCells, 1);
         tExpEval.set_variable("E0", mE0);
-printf("Expression: %s\n", mExpression.c_str());    
-printf("E0: %lf\n", mE0);    
-printf("Element Youngs Modulus Values\n");
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,aNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
         {
+            // Calculate the node-averaged density for the element/cell
+            tInterpolateFromNodal(aCellOrdinal, tBasisFunctions, aLocalControl, tElementDensity);
+
             tExpEval.set_variable("tElementDensity", tElementDensity, aCellOrdinal);
-            std::stringstream tMessage;
-            tExpEval.print_variables(tMessage);
-            printf("%s\n", tMessage.str().c_str());
-            tExpEval.evaluate_expression( aCellOrdinal, tElementYoungsModulusValues );
-            printf("%lf\n", tElementYoungsModulusValues(aCellOrdinal,0));
+            tExpEval.evaluate_expression( aCellOrdinal, aElementYoungsModulusValues );
         },"Compute Youngs Modulus for each Element");
         Kokkos::fence();
         tExpEval.clear_storage();
+    }
 
-*/
-/*
+    void
+    computeThermalStrainStressAndFlux(const Plato::OrdinalType &aNumCells,
+                                      Kokkos::View<StateT*, Plato::MemSpace> const& aTemperature,
+                                      const Plato::ScalarMultiVectorT<KineticsScalarType> &aElementYoungsModulusValues,
+                                      Kokkos::View<KinematicsScalarType**, Plato::Layout, Plato::MemSpace> const& aStrain,
+                                      Kokkos::View<KineticsScalarType**,   Plato::Layout, Plato::MemSpace> const& aStress,
+                                      Kokkos::View<KineticsScalarType**,   Plato::Layout, Plato::MemSpace> const& aFlux,
+                                      Kokkos::View<KinematicsScalarType**, Plato::Layout, Plato::MemSpace> const& aTGrad) const
+    {
+        auto tScaling = mScaling;
+        auto tScaling2 = mScaling2;
+        auto tRefTemperature = mRefTemperature;
+        auto& tThermalExpansivityConstant = mThermalExpansivityConstant;
+        auto& tThermalConductivityConstant = mThermalConductivityConstant;
+        auto& tVoigtMap = cVoigtMap;
         auto tPoissonsRatio = mPoissonsRatio;
-        auto tNumVoigtTerms = mNumVoigtTerms;
-        Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNumCells), LAMBDA_EXPRESSION(const int & aCellOrdinal)
+
+        Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, aNumCells), LAMBDA_EXPRESSION(const int & aCellOrdinal)
         {
             StateT tTemperature = aTemperature(aCellOrdinal);
-            auto tCurYoungsModulus = tElementYoungsModulusValues(aCellOrdinal,0);
+            auto tCurYoungsModulus = aElementYoungsModulusValues(aCellOrdinal,0);
             Plato::IsotropicStiffnessConstant<EvaluationType::SpatialDim, KineticsScalarType> 
                     tStiffnessConstant(tCurYoungsModulus, tPoissonsRatio);            
             
             // compute thermal strain
             //
-            StateT tstrain[tNumVoigtTerms] = {0};
+            StateT tstrain[mNumVoigtTerms] = {0};
             for( int iDim=0; iDim<EvaluationType::SpatialDim; iDim++ ){
                 tstrain[iDim] = tScaling * tThermalExpansivityConstant(tVoigtMap.I[iDim], tVoigtMap.J[iDim])
                             * (tTemperature - tRefTemperature);
@@ -176,9 +161,9 @@ printf("Element Youngs Modulus Values\n");
 
             // compute stress
             //
-            for( int iVoigt=0; iVoigt<tNumVoigtTerms; iVoigt++){
+            for( int iVoigt=0; iVoigt<mNumVoigtTerms; iVoigt++){
                 aStress(aCellOrdinal,iVoigt) = 0.0;
-                for( int jVoigt=0; jVoigt<tNumVoigtTerms; jVoigt++){
+                for( int jVoigt=0; jVoigt<mNumVoigtTerms; jVoigt++){
                     aStress(aCellOrdinal,iVoigt) += (aStrain(aCellOrdinal,jVoigt)-tstrain[jVoigt])*tStiffnessConstant(iVoigt, jVoigt);
                 }
             }
@@ -192,60 +177,40 @@ printf("Element Youngs Modulus Values\n");
                 }
             }
         }, "Cauchy stress");
-        */
+    }
+
+    /***********************************************************************************
+     * \brief Compute stress and thermal flux from strain, temperature, and temperature gradient
+     * \param [in] aStrain infinitesimal strain tensor
+     * \param [in] aTGrad temperature gradient
+     * \param [in] aTemperature temperature
+     * \param [out] aStress Cauchy stress tensor
+     * \param [out] aFlux thermal flux vector
+     **********************************************************************************/
+    void
+    operator()( Kokkos::View<KineticsScalarType**,   Plato::Layout, Plato::MemSpace> const& aStress,
+                Kokkos::View<KineticsScalarType**,   Plato::Layout, Plato::MemSpace> const& aFlux,
+                Kokkos::View<KinematicsScalarType**, Plato::Layout, Plato::MemSpace> const& aStrain,
+                Kokkos::View<KinematicsScalarType**, Plato::Layout, Plato::MemSpace> const& aTGrad,
+                Kokkos::View<StateT*,       Plato::MemSpace> const& aTemperature,
+                const Plato::ScalarMultiVectorT <ControlScalarType> & aControl) const override
+    {
+        const Plato::OrdinalType tNumCells = aStrain.extent(0);
+
+        Plato::ScalarMultiVectorT<ControlScalarType> tLocalControl("Local Control", aControl.extent(0), aControl.extent(1));
+
+        // Set local control to user-defined value if requested.
+        setLocalControl(aControl, tLocalControl);
+
+        // Calculate a Youngs Modulus for each element based on its density.
+        Plato::ScalarMultiVectorT<KineticsScalarType> tElementYoungsModulusValues("Element Youngs Modulus", tNumCells, 1);
+        calculateElementYoungsModulusValues(tNumCells, tLocalControl, tElementYoungsModulusValues);
+
+        computeThermalStrainStressAndFlux(tNumCells, aTemperature, tElementYoungsModulusValues, aStrain, aStress, aFlux, aTGrad);
     }
 };
 // class ExpressionTMKinetics
 
-template<typename EvaluationType, typename SimplexPhysics>
-void ExpressionTMKinetics<EvaluationType, SimplexPhysics> ::
-perform_expression_call() const
-{
-    printf("Local Control Values\n");
-    Plato::ScalarMultiVectorT<ControlScalarType> tLocalControl("Local Control", 20, 4);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,20), LAMBDA_EXPRESSION(Plato::OrdinalType i)
-    {
-        for(int j=0; j<4; ++j)
-        {
-            tLocalControl(i, j) = .5;
-            printf("%lf ", tLocalControl(i, j));
-        }
-        printf("\n");
-    },"Set Local Control");
-
-
-    Plato::ScalarVectorT<ControlScalarType> tElementDensity("Gauss point density", 20);
-    printf("Element Density Values\n");
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,20), LAMBDA_EXPRESSION(Plato::OrdinalType i)
-    {
-        tElementDensity(i) = .5;
-        printf("%lf\n", tElementDensity(i));
-    },"Compute Element Densities");
-
-    Plato::ScalarMultiVectorT<KineticsScalarType> tElementYoungsModulusValues("Element Youngs Modulus", 20, 1);
-
-    ExpressionEvaluator<Plato::ScalarMultiVectorT<KineticsScalarType>,
-                        Plato::ScalarMultiVectorT<KinematicsScalarType>,
-                        Plato::ScalarVectorT<ControlScalarType>,
-                        Plato::Scalar > tExpEval;
-    
-    tExpEval.parse_expression("E0*tElementDensity*tElementDensity*tElementDensity");
-    tExpEval.setup_storage(20, 1);
-    tExpEval.set_variable("E0", 1e9);
-    printf("Element Youngs Modulus Values\n");
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,20), LAMBDA_EXPRESSION(Plato::OrdinalType i)
-    {
-        tExpEval.set_variable("tElementDensity", tElementDensity, i);
-        std::stringstream tMessage;
-        tExpEval.print_variables(tMessage);
-        printf("%s\n", tMessage.str().c_str());
-        tExpEval.evaluate_expression( i, tElementYoungsModulusValues );
-        printf("%lf\n", tElementYoungsModulusValues(i,0));
-    },"Compute Youngs Modulus for each Element");
-    Kokkos::fence();
-    tExpEval.clear_storage();
-
-}
 
 
 }// namespace Plato

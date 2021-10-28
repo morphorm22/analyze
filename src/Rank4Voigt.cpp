@@ -78,37 +78,4 @@ namespace Plato {
           c1[1][2] = Plato::ParseTools::getParam<T>(aParams, "c123", /*default=*/ c1[0][1]); c1[2][1] = c1[1][2];
           c2[1][2] = Plato::ParseTools::getParam<T>(aParams, "c223", /*default=*/ c2[0][1]); c2[2][1] = c2[1][2];
       }
-#if 0
-  template<typename T>
-  Rank4VoigtConstant<1,T>::Rank4VoigtConstant(Teuchos::ParameterList& aParams) : c0{{0.0}}
-      {
-          typedef Plato::Scalar RealT;
-          c0[0][0] = Plato::ParseTools::getParam<RealT>(aParams, "c11" /*throw if not found*/);
-
-      }
-
-  template<typename T>
-  Rank4VoigtConstant<2,T>::Rank4VoigtConstant(Teuchos::ParameterList& aParams) : c0{{0.0}}
-      {
-          typedef Plato::Scalar RealT;
-          c0[0][0] = Plato::ParseTools::getParam<RealT>(aParams, "c11" /*throw if not found*/);
-          c0[1][1] = Plato::ParseTools::getParam<RealT>(aParams, "c22", /*default=*/ c0[0][0]);
-          c0[0][1] = Plato::ParseTools::getParam<RealT>(aParams, "c12", /*default=*/ 0.0); c0[1][0] = c0[0][1];
-          c0[2][2] = Plato::ParseTools::getParam<RealT>(aParams, "c33" /*throw if not found*/);
-      }
-  template<typename T>
-  Rank4VoigtConstant<3,T>::Rank4VoigtConstant(Teuchos::ParameterList& aParams) : c0{{0.0}}
-      {
-          typedef Plato::Scalar RealT;
-          c0[0][0] = Plato::ParseTools::getParam<RealT>(aParams, "c11" /*throw if not found*/);
-          c0[1][1] = Plato::ParseTools::getParam<RealT>(aParams, "c22", /*default=*/ c0[0][0]);
-          c0[2][2] = Plato::ParseTools::getParam<RealT>(aParams, "c33", /*default=*/ c0[0][0]);
-          c0[0][1] = Plato::ParseTools::getParam<RealT>(aParams, "c12", /*default=*/ 0.0); c0[1][0] = c0[0][1];
-          c0[0][2] = Plato::ParseTools::getParam<RealT>(aParams, "c13", /*default=*/ c0[0][1]); c0[2][0] = c0[0][2];
-          c0[1][2] = Plato::ParseTools::getParam<RealT>(aParams, "c23", /*default=*/ c0[0][1]); c0[2][1] = c0[1][2];
-          c0[3][3] = Plato::ParseTools::getParam<RealT>(aParams, "c44" /*throw if not found*/);
-          c0[4][4] = Plato::ParseTools::getParam<RealT>(aParams, "c55", c0[3][3]);
-          c0[5][5] = Plato::ParseTools::getParam<RealT>(aParams, "c66", c0[3][3]);
-      }
-#endif
 } // namespace Plato
