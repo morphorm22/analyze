@@ -1,10 +1,10 @@
 #ifndef PLATO_LINEAR_STRESS_FACTORY_HPP
 #define PLATO_LINEAR_STRESS_FACTORY_HPP
 
-#include <LinearStress.hpp>
+#include "LinearStress.hpp"
 
 #ifdef PLATO_EXPRESSION
-  #include <LinearStressExpression.hpp>
+  #include "LinearStressExpression.hpp"
 #endif
 
 namespace Plato
@@ -45,8 +45,8 @@ public:
                                                                SimplexPhysics>
                              (aMaterialInfo, aParamList) );
 #else
-	THROWERR("Plato Analyze was not built with expression support. "
-		 "Rebuild with the cmake EXPRESSION option ON")
+        THROWERR("Plato Analyze was not built with expression support. "
+                 "Rebuild with the cmake EXPRESSION option ON")
 #endif
       }
       else

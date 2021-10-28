@@ -1,11 +1,11 @@
 #ifndef PLATO_HYPERBOLIC_LINEAR_STRESS_FACTORY_HPP
 #define PLATO_HYPERBOLIC_LINEAR_STRESS_FACTORY_HPP
 
-#include <hyperbolic/HyperbolicExpInstMacros.hpp>
-#include <hyperbolic/HyperbolicLinearStress.hpp>
+#include "hyperbolic/HyperbolicExpInstMacros.hpp"
+#include "hyperbolic/HyperbolicLinearStress.hpp"
 
 #ifdef PLATO_EXPRESSION
-  #include <hyperbolic/HyperbolicLinearStressExpression.hpp>
+  #include "hyperbolic/HyperbolicLinearStressExpression.hpp"
 #endif
 
 namespace Plato
