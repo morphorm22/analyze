@@ -80,158 +80,8 @@ public:
                               const std::string equationStr,
                                     TYPE & result ) const
     {
-      // This code is what should normally be executed. It is Host (CPU) only.
-#ifdef COMMENT_OUT
-      if( 0 )
-      {
         const size_t nThreads = 1;
-        const size_t nValues = 1;
-
-        // Create an expression evaluator.
-        ExpressionEvaluator< Kokkos::View< TYPE *              , Kokkos::HostSpace>,
-                             Kokkos::View< TYPE *              , Kokkos::HostSpace>,
-                             Kokkos::View< Plato::OrdinalType *, Kokkos::HostSpace>,
-                             Plato::Scalar > expEval;
-
-        // Parse the equation. The expression tree is held internally.
-        expEval.parse_expression( equationStr.c_str() );
-
-        // Set up the storage.
-        expEval.setup_storage( nThreads, nValues );
-
-        // For all of the variables found in the expression get
-        // their values from the parameter list.
-        const std::vector< std::string > variableNames =
-          expEval.get_variables();
-
-        Kokkos::View<TYPE*, Kokkos::HostSpace> inputs[variableNames.size()];
-
-        size_t i = 0;
-        for( auto const & variable : variableNames )
-        {
-          // Note the "2" is DFAD types so to get the right amount of
-          // memory allocated. For scalars it is moot.
-          inputs[i] = Kokkos::View<TYPE*, Kokkos::HostSpace>(variable, nValues, 2);
-
-          // Type all of the input values.
-          TYPE val;
-          getTypedValue( paramList.get<Plato::Scalar>( variable ),
-                         i, variableNames.size(), val );
-
-          inputs[i](0) = val;
-
-          expEval.set_variable( variable.c_str(), inputs[i] );
-
-          i++;
-        }
-
-        // If a valid equation, evaluate it,
-        if( expEval.valid_expression( true ) )
-        {
-          Kokkos::View<TYPE *, Kokkos::HostSpace> results("results", nValues, 2);
-          expEval.evaluate_expression( 0, results );
-
-          result = results(0);
-        }
-
-        // Clear the temporary storage used in the expression
-        // otherwise there will be memory leaks.
-        expEval.clear_storage();
-      }
-
-      // Example with one thread and one value. This code is CPU or
-      // GPU as it uses UVM spaces.
-      else
-      if( 0 )
-      {
-        const size_t nThreads = 1;
-        const size_t nValues = 1;
-
-        // Create an expression evaluator and pass the parameter list so
-        // variable values can be retrived.
-        ExpressionEvaluator< Kokkos::View< TYPE *              , Plato::UVMSpace>,
-                             Kokkos::View< TYPE *              , Plato::UVMSpace>,
-                             Kokkos::View< Plato::OrdinalType *, Plato::UVMSpace>,
-                             Plato::Scalar > expEval;
-
-        expEval.parse_expression( "E/((1.0+v)(1.0-2.0*v))" );
-
-        // Set up the storage.
-        expEval.setup_storage( nThreads, nValues );
-
-        // For all of the variables found in the expression and get
-        // their values from the parameter list.
-        const std::vector< std::string > variableNames =
-          expEval.get_variables();
-
-        Plato::Scalar v = paramList.get<Plato::Scalar>( "v" );
-        expEval.set_variable( "v", v, 0 );
-
-        // Setup memory for the input data.
-        Kokkos::View<TYPE *, Plato::UVMSpace> E("E", nValues, 2);
-
-        TYPE e;
-        getTypedValue( paramList.get<Plato::Scalar>( "E" ), 0, 1, e );
-        E[0] = e;
-
-        expEval.set_variable( "E", E );
-
-        std::cout << "________________________________" << std::endl
-                  << "expression : " << equationStr << std::endl;
-
-        std::cout << "________________________________" << std::endl;
-        expEval.print_expression( std::cout );
-
-        // If a valid equation, evaluate it,
-        if( expEval.valid_expression( true ) )
-        {
-          std::cout << "________________________________" << std::endl;
-          expEval.print_variables( std::cout );
-
-          Kokkos::View<TYPE *, Plato::UVMSpace> results("results", nValues, 2);
-
-#ifdef DO_KOKKOS
-          // Device - GPU
-          Kokkos::parallel_for(Kokkos::RangePolicy<>(0, nThreads),
-                               LAMBDA_EXPRESSION(const Plato::OrdinalType & tCellOrdinal)
-                               {
-                                 expEval.evaluate_expression( tCellOrdinal, results );
-                               }, "Compute");
-
-          // Wait for the GPU to finish so to get the data on to the CPU.
-          Kokkos::fence();
-#else
-          // Host - CPU
-          for( size_t tCellOrdinal=0; tCellOrdinal<nThreads; ++tCellOrdinal )
-            expEval.evaluate_expression( tCellOrdinal, results );
-#endif
-
-          std::cout << "________________________________" << std::endl;
-          for( size_t i=0; i<nValues; ++i )
-          {
-            std::cout << "results = ";
-
-            for( size_t j=0; j<nThreads; ++j )
-              std::cout << results(j,i) << "  ";
-
-            std::cout << std::endl;
-          }
-
-          result = results[0];
-        }
-
-        // Clear the temporary storage used in the expression
-        // otherwise there will be memory leaks.
-        expEval.clear_storage();
-      }
-      // Example with two threads and ten values.  This code is CPU or
-      // GPU as it uses UVM spaces.
-      else
-#endif
-      if( 1 )
-      {
-        const size_t nThreads = 2;
-        const size_t nValues = 10;
+        const size_t nValues  = 1;
 
         // Create an expression evaluator and pass the parameter list so
         // variable values can be retrived.
@@ -241,7 +91,7 @@ public:
                              Plato::Scalar > expEval;
 
         // Parse the equation. The expression tree is held internally.
-        expEval.parse_expression( "E/((1.0+v)(1.0-2.0*v))" );
+        expEval.parse_expression( equationStr.c_str() );
 
         // For all of the variables found in the expression and get
         // their values from the parameter list.
@@ -250,55 +100,26 @@ public:
 
         expEval.setup_storage( nThreads, nValues );
 
-        Plato::Scalar v = paramList.get<Plato::Scalar>( "v" );
-
-        Kokkos::View< Plato::Scalar *, Plato::UVMSpace> V ("V" , nValues);
-        Kokkos::View< Plato::Scalar *, Plato::UVMSpace> VV("VV", nValues);
-
-        V[0] = VV[0] = v;
-        for( size_t i=1; i<nValues; ++i )
+        for( size_t i=0; i<variableNames.size(); ++i)
         {
-          V[i] = i * v;
-          VV[i] = v;
+           Plato::Scalar val = paramList.get<Plato::Scalar>( variableNames[i] );
+
+           expEval.set_variable( variableNames[i].c_str(), val );
         }
 
-        expEval.set_variable( "v", V,  0 );
-        if( nThreads == 2 )
-          expEval.set_variable( "v", VV, 1 );
+        // std::cout << "________________________________" << std::endl
+        //           << "expression : " << equationStr << std::endl;
 
-        Kokkos::View<TYPE **, Plato::UVMSpace> E("E", nThreads, nValues, 2);
-
-        TYPE e;
-        getTypedValue( paramList.get<Plato::Scalar>( "E" ), 0, 1, e );
-        E(0,0) = e;
-
-        if( nThreads == 2 )
-          E(1,0) = e;
-
-        for( size_t i=1; i<nValues; ++i )
-        {
-          getTypedValue( i, 0, 1, e );
-          E(0,i) = e;
-
-          if( nThreads == 2 )
-            E(1,i) = E(1,0);
-        }
-
-        expEval.set_variable( "E", E );
-
-        std::cout << "________________________________" << std::endl
-                  << "expression : " << equationStr << std::endl;
-
-        std::cout << "________________________________" << std::endl;
-        expEval.print_expression( std::cout );
+        // std::cout << "________________________________" << std::endl;
+        // expEval.print_expression( std::cout );
 
         // If a valid equation, evaluate it,
         if( expEval.valid_expression( true ) )
         {
-          std::cout << "________________________________" << std::endl;
-          expEval.print_variables( std::cout );
+          // std::cout << "________________________________" << std::endl;
+          // expEval.print_variables( std::cout );
 
-          Kokkos::View<TYPE **, Plato::UVMSpace> results("results", nThreads, nValues, 2);
+          Kokkos::View<TYPE **, Plato::UVMSpace> results("results", nThreads, nValues);
 
 #ifdef DO_KOKKOS
           // Device - GPU
@@ -316,16 +137,16 @@ public:
             expEval.evaluate_expression( tCellOrdinal, results );
 #endif
 
-          std::cout << "________________________________" << std::endl;
-          for( size_t i=0; i<nValues; ++i )
-          {
-            std::cout << "results = ";
+          // std::cout << "________________________________" << std::endl;
+          // for( size_t i=0; i<nValues; ++i )
+          // {
+          //   std::cout << "results = ";
 
-            for( size_t j=0; j<nThreads; ++j )
-              std::cout << results(j,i) << "  ";
+          //   for( size_t j=0; j<nThreads; ++j )
+          //     std::cout << results(j,i) << "  ";
 
-            std::cout << std::endl;
-          }
+          //   std::cout << std::endl;
+          // }
 
           result = results(0,0);
         }
@@ -333,7 +154,6 @@ public:
         // Clear the temporary storage used in the expression
         // otherwise there will be memory leaks.
         expEval.clear_storage();
-      }
     };
 };
 // class CustomMaterial
