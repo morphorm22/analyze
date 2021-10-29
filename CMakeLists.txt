@@ -257,7 +257,7 @@ if(HELMHOLTZ)
   ADD_DEFINITIONS(-DPLATO_HELMHOLTZ)
 endif()
 
-option(EXPRESSION "Compile with Expression evaluator" ON)
+option(EXPRESSION "Compile with Expression evaluator" OFF)
 if(EXPRESSION)
   message("-- Plato: Expression evaluator added")
   ADD_DEFINITIONS(-DPLATO_EXPRESSION)
