@@ -714,7 +714,8 @@ ComputeCriterionX(MPMD_App* aMyApp, Plato::InputData& aOpNode, Teuchos::RCP<Prob
     LocalOp      (aMyApp, aOpNode, aOpDef),
     CriterionOp  (aMyApp, aOpNode),
     mStrValName  (getArgumentName(aOpNode, "Value",    "ComputeCriterion")),
-    mStrGradName (getArgumentName(aOpNode, "Gradient", "ComputeCriterion"))
+    mStrGradName (getArgumentName(aOpNode, "Gradient", "ComputeCriterion")),
+    mOutputFile  (Plato::Get::String(aOpNode,"OutputFile"))
 /******************************************************************************/
 {
     if(aMyApp->mCriterionValues.count(mStrCriterion) == 0)
@@ -753,7 +754,34 @@ void MPMD_App::ComputeCriterionX::operator()()
     std::cout << "Criterion with name '" << mStrCriterion << "' has a value of '" << tValue << "'.\n";
     tValue -= mTarget;
     tGradX = mMyApp->mProblem->criterionGradientX(tControl, mMyApp->mGlobalSolution, mStrCriterion);
+    if(!mOutputFile.empty())
+    {
+        // create file
+        hid_t tFileId = Plato::create_hdf5_file( mOutputFile );
+        
+        for(int i = 0; i < mMyApp->mNumSpatialDims; i++)
+        {
+            // device data
+            Plato::ScalarVector tDeviceData;
 
+            // get the vector component from data above
+            tDeviceData = Plato::get_vector_component(tGradX,/*component=*/i, /*stride=*/mMyApp->mNumSpatialDims);
+
+            // create a mirror on host
+            Plato::ScalarVector::HostMirror tScalarFieldHostMirror = Kokkos::create_mirror(tDeviceData);
+
+            // copy to host from device
+            Kokkos::deep_copy(tScalarFieldHostMirror, tDeviceData);
+
+            // write to hdf5
+            herr_t tErrCode;
+            Plato::save_scalar_vector_to_hdf5_file(tFileId, "data" + std::to_string(i), tScalarFieldHostMirror,tErrCode);
+        }
+
+
+        // close the file
+        herr_t tErrCode = Plato::close_hdf5_file( tFileId );
+    }
     if(mMyApp->mDebugAnalyzeApp == true)
     {
         REPORT("Analyze Application - Compute Criterion X Operation - Print Controls.\n");
