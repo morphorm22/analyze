@@ -280,7 +280,7 @@ namespace Plato {
       // Note this constructor runs on the device. In the base class here it
       // doesn't do anything but is present so derived classes can be constructed
       // on the device and call this constructor.
-      DEVICE_TYPE Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio){}
+      DEVICE_TYPE Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio) : c0{{0.0}} {}
 
       /******************************************************************************//**
        * \brief Functor for 4th rank tensor constant
@@ -311,7 +311,8 @@ namespace Plato {
       // Note this constructor runs on the device. In the base class here it
       // doesn't do anything but is present so derived classes can be constructed
       // on the device and call this constructor.
-      DEVICE_TYPE Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio){}
+      DEVICE_TYPE Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio) : c0{{0.0}} {}
+
 
       Rank4VoigtConstant(Teuchos::ParameterList& aParams)
       {
@@ -341,7 +342,7 @@ namespace Plato {
       // Note this constructor runs on the device. In the base class here it
       // doesn't do anything but is present so derived classes can be constructed
       // on the device and call this constructor.
-      DEVICE_TYPE Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio){}
+      DEVICE_TYPE Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio) : c0{{0.0}} {}
 
       Rank4VoigtConstant(Teuchos::ParameterList& aParams)
       {
@@ -373,7 +374,7 @@ namespace Plato {
       // Note this constructor runs on the device. In the base class here it
       // doesn't do anything but is present so derived classes can be constructed
       // on the device and call this constructor.
-      DEVICE_TYPE Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio){}
+      DEVICE_TYPE Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio) : c0{{0.0}} {}
 
       Rank4VoigtConstant(Teuchos::ParameterList& aParams) : c0{{0.0}}
       {
