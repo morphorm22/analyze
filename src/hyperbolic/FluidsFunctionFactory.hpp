@@ -10,10 +10,11 @@
 
 #include "hyperbolic/CriterionVolume.hpp"
 #include "hyperbolic/CriterionFlowRate.hpp"
+#include "hyperbolic/CriterionMeanTemperature.hpp"
 #include "hyperbolic/CriterionThermalCompliance.hpp"
 #include "hyperbolic/CriterionSurfaceThermalFlux.hpp"
-#include "hyperbolic/CriterionAverageSurfacePressure.hpp"
-#include "hyperbolic/CriterionAverageSurfaceTemperature.hpp"
+#include "hyperbolic/CriterionMeanSurfacePressure.hpp"
+#include "hyperbolic/CriterionMeanSurfaceTemperature.hpp"
 
 #include "hyperbolic/PressureResidual.hpp"
 #include "hyperbolic/TemperatureResidual.hpp"
@@ -147,15 +148,21 @@ public:
                 (aTag, aDomain, aDataMap, aInputs) );           
         }
         else 
-        if( tCriterionLowerTag == "average surface pressure" )
+        if( tCriterionLowerTag == "mean temperature" )
         {
-            return ( std::make_shared<Plato::Fluids::CriterionAverageSurfacePressure<PhysicsT, EvaluationT>>
+            return ( std::make_shared<Plato::Fluids::CriterionMeanTemperature<PhysicsT, EvaluationT>>
                 (aTag, aDomain, aDataMap, aInputs) );
         }
         else 
-        if( tCriterionLowerTag == "average surface temperature" )
+        if( tCriterionLowerTag == "mean surface pressure" )
         {
-            return ( std::make_shared<Plato::Fluids::CriterionAverageSurfaceTemperature<PhysicsT, EvaluationT>>
+            return ( std::make_shared<Plato::Fluids::CriterionMeanSurfacePressure<PhysicsT, EvaluationT>>
+                (aTag, aDomain, aDataMap, aInputs) );
+        }
+        else 
+        if( tCriterionLowerTag == "mean surface temperature" )
+        {
+            return ( std::make_shared<Plato::Fluids::CriterionMeanSurfaceTemperature<PhysicsT, EvaluationT>>
                 (aTag, aDomain, aDataMap, aInputs) );
         }
         else

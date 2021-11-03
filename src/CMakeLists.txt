@@ -175,9 +175,9 @@ if(HYPERBOLIC)
     hyperbolic/FluidsWeightedScalarFunction.cpp
     hyperbolic/HyperbolicScalarFunctionFactory.cpp
     hyperbolic/HyperbolicPhysicsScalarFunction.cpp
-    hyperbolic/CriterionAverageSurfacePressure.cpp
+    hyperbolic/CriterionMeanSurfacePressure.cpp
     hyperbolic/FluidsLeastSquaresScalarFunction.cpp
-    hyperbolic/CriterionAverageSurfaceTemperature.cpp
+    hyperbolic/CriterionMeanSurfaceTemperature.cpp
     hyperbolic/FluidsStabilizedUniformThermalSource.cpp
   )
 endif()
