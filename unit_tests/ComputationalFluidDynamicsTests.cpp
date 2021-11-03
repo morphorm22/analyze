@@ -708,10 +708,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_CheckCrit
         Teuchos::getParametersFromXmlString(
             "<ParameterList name='Plato Problem'>"
             "  <ParameterList name='Criteria'>"
-            "    <ParameterList name='Inlet Average Surface Pressure'>"
+            "    <ParameterList name='Inlet Mean Surface Pressure'>"
             "      <Parameter name='Type' type='string' value='Scalar Function'/> "
             "      <Parameter  name='Sides' type='Array(string)' value='{x-}'/>"
-            "      <Parameter name='Scalar Function Type' type='string' value='Average Surface Pressure'/>"
+            "      <Parameter name='Scalar Function Type' type='string' value='Mean Surface Pressure'/>"
             "    </ParameterList>"
             "  </ParameterList>"
             "  <ParameterList name='Hyperbolic'>"
@@ -805,7 +805,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_CheckCrit
     // create and test gradient wrt control for incompressible cfd problem
     constexpr auto tSpaceDim = 2;
     Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(*tMesh, tMeshSets, *tInputs, tMachine);
-    auto tError = Plato::test_criterion_grad_wrt_control(tProblem, *tMesh, "Inlet Average Surface Pressure", 1, 6);
+    auto tError = Plato::test_criterion_grad_wrt_control(tProblem, *tMesh, "Inlet Mean Surface Pressure", 1, 6);
     TEST_ASSERT(tError < 1e-4);
 }
 
@@ -3621,12 +3621,12 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ParseArray)
             "  <Parameter  name='Weights'      type='Array(double)'  value='{1.0,-1.0}'/>"
             "  <ParameterList  name='My Inlet Pressure'>"
             "    <Parameter  name='Type'                   type='string'           value='Scalar Function'/>"
-            "    <Parameter  name='Scalar Function Type'   type='string'           value='Average Surface Pressure'/>"
+            "    <Parameter  name='Scalar Function Type'   type='string'           value='Mean Surface Pressure'/>"
             "    <Parameter  name='Sides'                  type='Array(string)'    value='{ss_1}'/>"
             "  </ParameterList>"
             "  <ParameterList  name='My Outlet Pressure'>"
             "    <Parameter  name='Type'                   type='string'           value='Scalar Function'/>"
-            "    <Parameter  name='Scalar Function Type'   type='string'           value='Average Surface Pressure'/>"
+            "    <Parameter  name='Scalar Function Type'   type='string'           value='Mean Surface Pressure'/>"
             "    <Parameter  name='Sides'                  type='Array(string)'    value='{ss_2}'/>"
             "  </ParameterList>"
             "</ParameterList>"
