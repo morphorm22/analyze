@@ -93,7 +93,7 @@ private:
               Teuchos::ParameterList & aInputParams
     )
     {
-        auto tProblemFunctionName = aInputParams.sublist(mFunctionName);
+        auto tProblemFunctionName = aInputParams.sublist("Criteria").sublist(mFunctionName);
 
         auto tPropertyNamesTeuchos      = tProblemFunctionName.get<Teuchos::Array<std::string>>("Properties");
         auto tPropertyWeightsTeuchos    = tProblemFunctionName.get<Teuchos::Array<Plato::Scalar>>("Weights");
