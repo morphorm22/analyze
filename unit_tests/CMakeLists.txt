@@ -32,60 +32,6 @@ if(STRUCTURAL)
   #end: Structural dynamics unit test
 endif()
 
-#begin: Hamilton-Jacobi unit test
-set(HamiltonJacobi_SOURCES
-  HamiltonJacobiTest.cpp
-  PlatoTestHelpers.cpp
-  PlatoUnitTestMain.cpp
-)
-
-set(HamiltonJacobi_HEADERS
-  PlatoTestHelpers.hpp
-)
-
-add_executable(HamiltonJacobiUnitTests
-  ${HamiltonJacobi_SOURCES}
-  ${HamiltonJacobi_HEADERS}
-)
-
-target_link_libraries(HamiltonJacobiUnitTests
-  analyzelib
-  ${Trilinos_LIBRARIES}
-  ${Trilinos_TPL_LIBRARIES}
-  )
-target_include_directories(HamiltonJacobiUnitTests PRIVATE ${CMAKE_SOURCE_DIR}/src)
-
-build_mpi_test_string(ES_MPI_TEST 1 ${CMAKE_CURRENT_BINARY_DIR}/HamiltonJacobiUnitTests)
-add_test(NAME runHamiltonJacobiUnitTests COMMAND ${ES_MPI_TEST})
-#end: Hamilton-Jacobi unit test
-
-#begin: Algebraic rocket model unit test
-set(AlgebraicRocket_SOURCES
-  AlgebraicRocketTest.cpp
-  PlatoTestHelpers.cpp
-  PlatoUnitTestMain.cpp
-)
-
-set(AlgebraicRocket_HEADERS
-  PlatoTestHelpers.hpp
-)
-
-add_executable(AlgebraicRocketUnitTests
-  ${AlgebraicRocket_SOURCES}
-  ${AlgebraicRocket_HEADERS}
-)
-
-target_link_libraries(AlgebraicRocketUnitTests
-  analyzelib
-  ${Trilinos_LIBRARIES}
-  ${Trilinos_TPL_LIBRARIES}
-  )
-target_include_directories(AlgebraicRocketUnitTests PRIVATE ${CMAKE_SOURCE_DIR}/src)
-
-build_mpi_test_string(ES_MPI_TEST 1 ${CMAKE_CURRENT_BINARY_DIR}/AlgebraicRocketUnitTests)
-add_test(NAME runAlgebraicRocketUnitTests COMMAND ${ES_MPI_TEST})
-#end: Algebraic rocket model unit test
-
 #begin: AugLagStressTest unit test
 set(AugLagStressTest_SOURCES
   PlatoAugLagStressTest.cpp
