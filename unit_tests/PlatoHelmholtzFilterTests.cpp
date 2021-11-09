@@ -282,3 +282,53 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, Helmholtz2DUniformFieldTest )
 
 }
 
+/******************************************************************************/
+/*!
+  \brief parse fixed blocks
+
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( HelmholtzFilterTests, ParseFixedBlocks )
+{
+  // set parameters
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <ParameterList name='Spatial Model'>                                    \n"
+    "    <ParameterList name='Domains'>                                        \n"
+    "      <ParameterList name='Design Volume'>                                \n"
+    "        <Parameter name='Element Block' type='string' value='block_1'/>      \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/> \n"
+    "        <Parameter name='Fixed' type='bool' value='false'/> \n"
+    "      </ParameterList>                                                    \n"
+    "      <ParameterList name='Fixed Volume'>                                \n"
+    "        <Parameter name='Element Block' type='string' value='block_2'/>      \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/> \n"
+    "        <Parameter name='Fixed' type='bool' value='true'/> \n"
+    "      </ParameterList>                                                    \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "</ParameterList>                                                        \n"
+  );
+
+  std::map<std::string, bool> tFixedDomainMap;
+
+  if (tParamList->isSublist("Spatial Model"))
+  {
+      auto tModelParams = tParamList->sublist("Spatial Model");
+      auto tDomainsParams = tModelParams.sublist("Domains");
+      for (auto tIndex = tDomainsParams.begin(); tIndex != tDomainsParams.end(); ++tIndex)
+      {
+          const auto &tMyName = tDomainsParams.name(tIndex);
+          Teuchos::ParameterList &tDomainParams = tDomainsParams.sublist(tMyName);
+          auto tBlockName = tDomainParams.get<std::string>("Element Block");
+          auto tIsFixed = tDomainParams.get<bool>("Fixed");
+          tFixedDomainMap[tMyName] = tIsFixed;
+      }
+  }
+
+  TEST_EQUALITY(tFixedDomainMap["Design Volume"], false);
+  TEST_EQUALITY(tFixedDomainMap["Fixed Volume"], true);
+}
+
