@@ -57,7 +57,7 @@ private:
     Teuchos::RCP<Plato::CrsMatrixType> mJacobian; /*!< Jacobian matrix */
 
     Plato::LocalOrdinalVector mBcDofs; /*!< list of degrees of freedom associated with the Dirichlet boundary conditions */
-    Plato::ScalarVector mBcValues; /*!< values associated with the Dirichlet boundary conditions */
+    std::vector<std::string> mFixedDomainNames; /*!< list of names for fixed domains */
 
     std::shared_ptr<Plato::MultipointConstraints> mMPCs; /*!< multipoint constraint interface */
 
@@ -155,6 +155,25 @@ public:
     }
 
     /******************************************************************************//**
+     * \brief Apply Dirichlet constraints
+     * \param [in] aMatrix Compressed Row Storage (CRS) matrix
+     * \param [in] aVector 1D view of Right-Hand-Side forces
+    **********************************************************************************/
+    void applyFixedBlockConstraints(
+      const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
+      const Plato::ScalarVector & aVector)
+    //**********************************************************************************/
+    {
+        if(mBcDofs.size() > 0)
+        {
+            Plato::ScalarVector tBcValues("fixed block filtered values", mBcDofs.size());
+            Plato::blas1::fill(static_cast<Plato::Scalar>(1.0), tBcValues);
+
+            Plato::applyConstraints<PhysicsT::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tBcValues);
+        }
+    }
+
+    /******************************************************************************//**
      * \brief Solve system of equations
      * \param [in] aControl 1D view of control variables
      * \return solution database
@@ -172,6 +191,8 @@ public:
         Plato::blas1::scale(-1.0, mResidual);
 
         mJacobian = mPDE->gradient_u(tStatesSubView, aControl);
+
+        this->applyFixedBlockConstraints(mJacobian, mResidual);
 
         mSolver->solve(*mJacobian, tStatesSubView, mResidual);
 
@@ -298,7 +319,8 @@ private:
      * \brief Initialize member data
      * \param [in] aProblemParams input parameters database
     **********************************************************************************/
-    void initialize(Teuchos::ParameterList& aProblemParams)
+    void initialize(Omega_h::Mesh& aMesh,
+                    Teuchos::ParameterList& aProblemParams)
     {
         auto tName = aProblemParams.get<std::string>("PDE Constraint");
         mPDE = std::make_shared<Plato::Helmholtz::VectorFunction<PhysicsT>>(mSpatialModel, mDataMap, aProblemParams, tName);
@@ -310,6 +332,91 @@ private:
             mMPCs = std::make_shared<Plato::MultipointConstraints>(mSpatialModel, tNumDofsPerNode, tMyParams);
             mMPCs->setupTransform();
         }
+
+        if(aProblemParams.isSublist("Fixed Domains"))
+        {
+            this->setFixedDomainEssentialBCs(aMesh,aProblemParams.sublist("Fixed Domains"));
+        }
+    }
+
+    void setFixedDomainEssentialBCs(Omega_h::Mesh& aMesh,
+                                    Teuchos::ParameterList& aFixedDomainParams)
+    {
+        if (mPDE->numDofsPerNode() > 1)
+            THROWERR("In setFixedDomainEssentialBCs: Number of DOFs per node for Helmoltz physics is greater than 1.")
+
+        for (auto tIndex = aFixedDomainParams.begin(); tIndex != aFixedDomainParams.end(); ++tIndex)
+        {
+            mFixedDomainNames.push_back(aFixedDomainParams.name(tIndex));
+        }
+        
+        const auto tNumNodes = aMesh.nverts();
+        const auto tNumNodesPerCell = mPDE->numNodesPerCell();
+
+        Plato::LocalOrdinalVector tFixedBlockNodes("Nodes in fixed blocks", tNumNodes);
+        Plato::blas1::fill(static_cast<Plato::OrdinalType>(0), tFixedBlockNodes);
+
+        for(const auto& tDomain : mSpatialModel.Domains)
+        {
+            auto tDomainName = tDomain.getDomainName();
+            if (this->isFixedDomain(tDomainName))
+                this->markBlockNodes(aMesh, tDomain, tNumNodesPerCell, tFixedBlockNodes);
+        }
+
+        auto tNumUniqueNodes = this->getNumberOfUniqueNodes(tFixedBlockNodes);
+        Kokkos::resize(mBcDofs, tNumUniqueNodes);
+        this->storeUniqueNodes(tFixedBlockNodes);
+    }
+
+    bool isFixedDomain(const std::string & aDomainName) 
+    {
+        for (auto iNameOrdinal(0); iNameOrdinal < mFixedDomainNames.size(); iNameOrdinal++)
+        {
+            if(mFixedDomainNames[iNameOrdinal] == aDomainName)
+                return true;
+        }
+        return false;
+    }
+
+    void markBlockNodes(Omega_h::Mesh & aMesh, 
+                    const Plato::SpatialDomain & aDomain, 
+                    const Plato::OrdinalType aNumNodesPerCell, 
+                    Plato::LocalOrdinalVector aMarkedNodes)
+    {
+        auto tCells2Nodes = aMesh.ask_elem_verts();
+        auto tDomainCells = aDomain.cellOrdinals();
+        Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tDomainCells.size()), LAMBDA_EXPRESSION(Plato::OrdinalType iElemOrdinal)
+        {
+            Plato::OrdinalType tElement = tDomainCells(iElemOrdinal); 
+            for(Plato::OrdinalType iVertOrdinal=0; iVertOrdinal < aNumNodesPerCell; ++iVertOrdinal)
+            {
+                Plato::OrdinalType tVertIndex = tCells2Nodes[tElement*aNumNodesPerCell + iVertOrdinal];
+                aMarkedNodes(tVertIndex) = 1;
+            }
+        }, "nodes in domain element set");
+    }
+
+    Plato::OrdinalType getNumberOfUniqueNodes(const Plato::LocalOrdinalVector & aNodeVector)
+    {
+        Plato::OrdinalType tSum(0);
+        Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0,aNodeVector.size()),
+        LAMBDA_EXPRESSION(const Plato::OrdinalType& aOrdinal, Plato::OrdinalType & aUpdate)
+        {
+            aUpdate += aNodeVector(aOrdinal);
+        }, tSum);
+        return tSum;
+    }
+    void storeUniqueNodes(const Plato::LocalOrdinalVector & aMarkedNodes)
+    {
+        Plato::OrdinalType tOffset(0);
+        Kokkos::parallel_scan (Kokkos::RangePolicy<Plato::OrdinalType>(0,aMarkedNodes.size()),
+        KOKKOS_LAMBDA (const Plato::OrdinalType& iOrdinal, Plato::OrdinalType& aUpdate, const bool& tIsFinal)
+        {
+            const Plato::OrdinalType tVal = aMarkedNodes(iOrdinal);
+            if( tIsFinal && tVal ) 
+                mBcDofs(aUpdate) = iOrdinal; 
+            aUpdate += tVal;
+        }, tOffset);
     }
 
     /******************************************************************************/ /**

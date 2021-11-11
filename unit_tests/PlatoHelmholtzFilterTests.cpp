@@ -49,6 +49,58 @@ void PrintFullMatrix(const Teuchos::RCP<Plato::CrsMatrixType> & aInMatrix)
     
     }
 }
+bool isFixedDomain(const std::string & aDomainName, const std::vector<std::string> & aFixedDomains) 
+{
+    for (auto iNameOrdinal(0); iNameOrdinal < aFixedDomains.size(); iNameOrdinal++)
+    {
+        if(aFixedDomains[iNameOrdinal] == aDomainName)
+            return true;
+    }
+    return false;
+}
+
+void markBlockNodes(Omega_h::Mesh & aMesh, 
+                    const Plato::SpatialDomain & aDomain, 
+                    const Plato::OrdinalType aNumNodesPerCell, 
+                    Plato::LocalOrdinalVector aMarkedNodes)
+{
+    auto tCells2Nodes = aMesh.ask_elem_verts();
+    auto tDomainCells = aDomain.cellOrdinals();
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tDomainCells.size()), LAMBDA_EXPRESSION(Plato::OrdinalType iElemOrdinal)
+    {
+        Plato::OrdinalType tElement = tDomainCells(iElemOrdinal); 
+        for(Plato::OrdinalType iVertOrdinal=0; iVertOrdinal < aNumNodesPerCell; ++iVertOrdinal)
+        {
+            Plato::OrdinalType tVertIndex = tCells2Nodes[tElement*aNumNodesPerCell + iVertOrdinal];
+            aMarkedNodes(tVertIndex) = 1;
+        }
+    }, "nodes in domain element set");
+}
+
+Plato::OrdinalType getNumberOfUniqueNodes(const Plato::LocalOrdinalVector & aNodeVector)
+{
+    Plato::OrdinalType tSum(0);
+    Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0,aNodeVector.size()),
+    LAMBDA_EXPRESSION(const Plato::OrdinalType& aOrdinal, Plato::OrdinalType & aUpdate)
+    {
+        aUpdate += aNodeVector(aOrdinal);
+    }, tSum);
+    return tSum;
+}
+
+void storeUniqueNodes(const Plato::LocalOrdinalVector & aMarkedNodes, 
+                      Plato::LocalOrdinalVector & aUniqueNodes)
+{
+    Plato::OrdinalType tOffset(0);
+    Kokkos::parallel_scan (Kokkos::RangePolicy<Plato::OrdinalType>(0,aMarkedNodes.size()),
+    KOKKOS_LAMBDA (const Plato::OrdinalType& iOrdinal, Plato::OrdinalType& aUpdate, const bool& tIsFinal)
+    {
+        const Plato::OrdinalType tVal = aMarkedNodes(iOrdinal);
+        if( tIsFinal && tVal ) 
+            aUniqueNodes(aUpdate) = iOrdinal; 
+        aUpdate += tVal;
+    }, tOffset);
+}
 
 /******************************************************************************/
 /*!
@@ -300,35 +352,154 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, ParseFixedBlocks )
     "      <ParameterList name='Design Volume'>                                \n"
     "        <Parameter name='Element Block' type='string' value='block_1'/>      \n"
     "        <Parameter name='Material Model' type='string' value='Unobtainium'/> \n"
-    "        <Parameter name='Fixed' type='bool' value='false'/> \n"
     "      </ParameterList>                                                    \n"
     "      <ParameterList name='Fixed Volume'>                                \n"
     "        <Parameter name='Element Block' type='string' value='block_2'/>      \n"
     "        <Parameter name='Material Model' type='string' value='Unobtainium'/> \n"
-    "        <Parameter name='Fixed' type='bool' value='true'/> \n"
     "      </ParameterList>                                                    \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Fixed Domains'>                                    \n"
+    "    <ParameterList name='Fixed Volume'>                                     \n"
     "    </ParameterList>                                                      \n"
     "  </ParameterList>                                                        \n"
     "</ParameterList>                                                        \n"
   );
 
-  std::map<std::string, bool> tFixedDomainMap;
+  std::vector<std::string> tFixedDomainNames;
 
-  if (tParamList->isSublist("Spatial Model"))
+  if (tParamList->isSublist("Fixed Domains"))
   {
-      auto tModelParams = tParamList->sublist("Spatial Model");
-      auto tDomainsParams = tModelParams.sublist("Domains");
-      for (auto tIndex = tDomainsParams.begin(); tIndex != tDomainsParams.end(); ++tIndex)
+      auto tFixedDomains = tParamList->sublist("Fixed Domains");
+      for (auto tIndex = tFixedDomains.begin(); tIndex != tFixedDomains.end(); ++tIndex)
       {
-          const auto &tMyName = tDomainsParams.name(tIndex);
-          Teuchos::ParameterList &tDomainParams = tDomainsParams.sublist(tMyName);
-          auto tBlockName = tDomainParams.get<std::string>("Element Block");
-          auto tIsFixed = tDomainParams.get<bool>("Fixed");
-          tFixedDomainMap[tMyName] = tIsFixed;
+          tFixedDomainNames.push_back(tFixedDomains.name(tIndex));
       }
   }
 
-  TEST_EQUALITY(tFixedDomainMap["Design Volume"], false);
-  TEST_EQUALITY(tFixedDomainMap["Fixed Volume"], true);
+  TEST_EQUALITY(tFixedDomainNames.size(), 1);
+  TEST_EQUALITY(tFixedDomainNames[0], "Fixed Volume");
+}
+
+/******************************************************************************/
+/*!
+  \brief check fixed block in list
+
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( HelmholtzFilterTests, FindFixedBlock )
+{
+  // set parameters
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <ParameterList name='Spatial Model'>                                    \n"
+    "    <ParameterList name='Domains'>                                        \n"
+    "      <ParameterList name='Fixed Volume'>                                \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>      \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/> \n"
+    "      </ParameterList>                                                    \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Fixed Domains'>                                    \n"
+    "    <ParameterList name='Fixed Volume'>                                     \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "</ParameterList>                                                        \n"
+  );
+
+  std::vector<std::string> tFixedDomainNames;
+
+  if (tParamList->isSublist("Fixed Domains"))
+  {
+      auto tFixedDomains = tParamList->sublist("Fixed Domains");
+      for (auto tIndex = tFixedDomains.begin(); tIndex != tFixedDomains.end(); ++tIndex)
+      {
+          tFixedDomainNames.push_back(tFixedDomains.name(tIndex));
+      }
+  }
+
+  TEST_EQUALITY(isFixedDomain("Fixed Vol",tFixedDomainNames), false);
+  TEST_EQUALITY(isFixedDomain("Fixed Volume",tFixedDomainNames), true);
+}
+
+/******************************************************************************/
+/*!
+  \brief build EBC DOF array for fixed block 
+
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( HelmholtzFilterTests, BuildEssentialBCArrayForFixedBlock )
+{
+  // set parameters
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <ParameterList name='Spatial Model'>                                    \n"
+    "    <ParameterList name='Domains'>                                        \n"
+    "      <ParameterList name='Fixed Volume'>                                \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>      \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/> \n"
+    "      </ParameterList>                                                    \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Fixed Domains'>                                    \n"
+    "    <ParameterList name='Fixed Volume'>                                     \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "</ParameterList>                                                        \n"
+  );
+
+  std::vector<std::string> tFixedDomainNames;
+
+  if (tParamList->isSublist("Fixed Domains"))
+  {
+      auto tFixedDomains = tParamList->sublist("Fixed Domains");
+      for (auto tIndex = tFixedDomains.begin(); tIndex != tFixedDomains.end(); ++tIndex)
+      {
+          tFixedDomainNames.push_back(tFixedDomains.name(tIndex));
+      }
+  } 
+
+  // create test mesh
+  //
+  constexpr int meshWidth=2;
+  constexpr int spaceDim=2;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tNumNodes = tMesh->nverts();
+
+  // get mesh sets
+  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
+  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+
+  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+
+  using SimplexPhysics = ::Plato::HelmholtzFilter<spaceDim>;
+  auto tNumNodesPerCell = SimplexPhysics::mNumNodesPerCell;
+
+  Plato::LocalOrdinalVector tFixedBlockNodes("Nodes in fixed blocks", tNumNodes);
+  Plato::blas1::fill(static_cast<Plato::OrdinalType>(0), tFixedBlockNodes);
+
+  for(const auto& tDomain : tSpatialModel.Domains)
+  {
+      auto tDomainName = tDomain.getDomainName();
+      if (isFixedDomain(tDomainName,tFixedDomainNames))
+          markBlockNodes(*tMesh, tDomain, tNumNodesPerCell, tFixedBlockNodes);
+  }
+
+  auto tNumUniqueNodes = getNumberOfUniqueNodes(tFixedBlockNodes);
+  Plato::LocalOrdinalVector tUniqueFixedBlockNodes("Unique nodes in fixed blocks", tNumUniqueNodes);
+  storeUniqueNodes(tFixedBlockNodes,tUniqueFixedBlockNodes);
+
+  TEST_EQUALITY(tNumUniqueNodes, tNumNodes);
+
+  auto tUniqueFixedBlockNodes_host = Kokkos::create_mirror_view(tUniqueFixedBlockNodes);
+  Kokkos::deep_copy(tUniqueFixedBlockNodes_host, tUniqueFixedBlockNodes);
+  for (auto iNodeOrdinal = 0; iNodeOrdinal < tNumNodes; iNodeOrdinal++)
+  {
+      TEST_EQUALITY(iNodeOrdinal, tUniqueFixedBlockNodes_host(iNodeOrdinal));
+  }
 }
 
