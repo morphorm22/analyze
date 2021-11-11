@@ -7,6 +7,8 @@
 #include "helmholtz/VectorFunction.hpp"
 #include "helmholtz/SimplexHelmholtz.hpp"
 #include "helmholtz/Problem.hpp"
+#include "helmholtz/FixedDomainDofs.hpp"
+
 #include "alg/PlatoSolverFactory.hpp"
 #include "BLAS1.hpp"
 #include "PlatoMathHelpers.hpp"
@@ -48,58 +50,6 @@ void PrintFullMatrix(const Teuchos::RCP<Plato::CrsMatrixType> & aInMatrix)
         printf("\n");
     
     }
-}
-bool isFixedDomain(const std::string & aDomainName, const std::vector<std::string> & aFixedDomains) 
-{
-    for (auto iNameOrdinal(0); iNameOrdinal < aFixedDomains.size(); iNameOrdinal++)
-    {
-        if(aFixedDomains[iNameOrdinal] == aDomainName)
-            return true;
-    }
-    return false;
-}
-
-void markBlockNodes(Omega_h::Mesh & aMesh, 
-                    const Plato::SpatialDomain & aDomain, 
-                    const Plato::OrdinalType aNumNodesPerCell, 
-                    Plato::LocalOrdinalVector aMarkedNodes)
-{
-    auto tCells2Nodes = aMesh.ask_elem_verts();
-    auto tDomainCells = aDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tDomainCells.size()), LAMBDA_EXPRESSION(Plato::OrdinalType iElemOrdinal)
-    {
-        Plato::OrdinalType tElement = tDomainCells(iElemOrdinal); 
-        for(Plato::OrdinalType iVertOrdinal=0; iVertOrdinal < aNumNodesPerCell; ++iVertOrdinal)
-        {
-            Plato::OrdinalType tVertIndex = tCells2Nodes[tElement*aNumNodesPerCell + iVertOrdinal];
-            aMarkedNodes(tVertIndex) = 1;
-        }
-    }, "nodes in domain element set");
-}
-
-Plato::OrdinalType getNumberOfUniqueNodes(const Plato::LocalOrdinalVector & aNodeVector)
-{
-    Plato::OrdinalType tSum(0);
-    Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0,aNodeVector.size()),
-    LAMBDA_EXPRESSION(const Plato::OrdinalType& aOrdinal, Plato::OrdinalType & aUpdate)
-    {
-        aUpdate += aNodeVector(aOrdinal);
-    }, tSum);
-    return tSum;
-}
-
-void storeUniqueNodes(const Plato::LocalOrdinalVector & aMarkedNodes, 
-                      Plato::LocalOrdinalVector & aUniqueNodes)
-{
-    Plato::OrdinalType tOffset(0);
-    Kokkos::parallel_scan (Kokkos::RangePolicy<Plato::OrdinalType>(0,aMarkedNodes.size()),
-    KOKKOS_LAMBDA (const Plato::OrdinalType& iOrdinal, Plato::OrdinalType& aUpdate, const bool& tIsFinal)
-    {
-        const Plato::OrdinalType tVal = aMarkedNodes(iOrdinal);
-        if( tIsFinal && tVal ) 
-            aUniqueNodes(aUpdate) = iOrdinal; 
-        aUpdate += tVal;
-    }, tOffset);
 }
 
 /******************************************************************************/
@@ -342,8 +292,6 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, Helmholtz2DUniformFieldTest )
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( HelmholtzFilterTests, ParseFixedBlocks )
 {
-  // set parameters
-  //
   Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
     "<ParameterList name='Plato Problem'>                                      \n"
@@ -389,8 +337,6 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, ParseFixedBlocks )
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( HelmholtzFilterTests, FindFixedBlock )
 {
-  // set parameters
-  //
   Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
     "<ParameterList name='Plato Problem'>                                      \n"
@@ -409,19 +355,65 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, FindFixedBlock )
     "</ParameterList>                                                        \n"
   );
 
-  std::vector<std::string> tFixedDomainNames;
+  constexpr int meshWidth=2;
+  constexpr int spaceDim=2;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
 
-  if (tParamList->isSublist("Fixed Domains"))
+  using SimplexPhysics = ::Plato::HelmholtzFilter<spaceDim>;
+  auto tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  auto tNumNodesPerCell = SimplexPhysics::mNumNodesPerCell;
+
+  Plato::FixedDomainDofs 
+      tSetFixedDomainEssentialBcDofs(*tMesh,tParamList->sublist("Fixed Domains"),tNumDofsPerNode,tNumNodesPerCell);
+
+  TEST_EQUALITY(tSetFixedDomainEssentialBcDofs.isFixedDomain("Fixed Vol"), false);
+  TEST_EQUALITY(tSetFixedDomainEssentialBcDofs.isFixedDomain("Fixed Volume"), true);
+}
+
+/******************************************************************************/
+/*!
+  \brief build EBC DOF array for non-fixed block 
+
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( HelmholtzFilterTests, BuildEssentialBCArrayForNonFixedBlock )
+{
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <ParameterList name='Spatial Model'>                                    \n"
+    "    <ParameterList name='Domains'>                                        \n"
+    "      <ParameterList name='Fixed Volume'>                                \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>      \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/> \n"
+    "      </ParameterList>                                                    \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "</ParameterList>                                                        \n"
+  );
+
+  constexpr int meshWidth=2;
+  constexpr int spaceDim=2;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+
+  using SimplexPhysics = ::Plato::HelmholtzFilter<spaceDim>;
+  auto tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  auto tNumNodesPerCell = SimplexPhysics::mNumNodesPerCell;
+
+  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
+  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList); 
+
+  Plato::LocalOrdinalVector tBcDofs;
+
+  if(tParamList->isSublist("Fixed Domains"))
   {
-      auto tFixedDomains = tParamList->sublist("Fixed Domains");
-      for (auto tIndex = tFixedDomains.begin(); tIndex != tFixedDomains.end(); ++tIndex)
-      {
-          tFixedDomainNames.push_back(tFixedDomains.name(tIndex));
-      }
+      Plato::FixedDomainDofs 
+          tSetFixedDomainEssentialBcDofs(*tMesh,tParamList->sublist("Fixed Domains"),tNumDofsPerNode,tNumNodesPerCell);
+      tSetFixedDomainEssentialBcDofs(tSpatialModel,tBcDofs);
   }
 
-  TEST_EQUALITY(isFixedDomain("Fixed Vol",tFixedDomainNames), false);
-  TEST_EQUALITY(isFixedDomain("Fixed Volume",tFixedDomainNames), true);
+  TEST_EQUALITY(tBcDofs.size(), 0);
 }
 
 /******************************************************************************/
@@ -452,54 +444,35 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, BuildEssentialBCArrayForFixedBlock )
     "</ParameterList>                                                        \n"
   );
 
-  std::vector<std::string> tFixedDomainNames;
-
-  if (tParamList->isSublist("Fixed Domains"))
-  {
-      auto tFixedDomains = tParamList->sublist("Fixed Domains");
-      for (auto tIndex = tFixedDomains.begin(); tIndex != tFixedDomains.end(); ++tIndex)
-      {
-          tFixedDomainNames.push_back(tFixedDomains.name(tIndex));
-      }
-  } 
-
-  // create test mesh
-  //
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
-  auto tNumNodes = tMesh->nverts();
-
-  // get mesh sets
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
 
   using SimplexPhysics = ::Plato::HelmholtzFilter<spaceDim>;
+  auto tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
   auto tNumNodesPerCell = SimplexPhysics::mNumNodesPerCell;
 
-  Plato::LocalOrdinalVector tFixedBlockNodes("Nodes in fixed blocks", tNumNodes);
-  Plato::blas1::fill(static_cast<Plato::OrdinalType>(0), tFixedBlockNodes);
+  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
+  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList); 
 
-  for(const auto& tDomain : tSpatialModel.Domains)
+  Plato::LocalOrdinalVector tBcDofs;
+
+  if(tParamList->isSublist("Fixed Domains"))
   {
-      auto tDomainName = tDomain.getDomainName();
-      if (isFixedDomain(tDomainName,tFixedDomainNames))
-          markBlockNodes(*tMesh, tDomain, tNumNodesPerCell, tFixedBlockNodes);
+      Plato::FixedDomainDofs 
+          tSetFixedDomainEssentialBcDofs(*tMesh,tParamList->sublist("Fixed Domains"),tNumDofsPerNode,tNumNodesPerCell);
+      tSetFixedDomainEssentialBcDofs(tSpatialModel,tBcDofs);
   }
 
-  auto tNumUniqueNodes = getNumberOfUniqueNodes(tFixedBlockNodes);
-  Plato::LocalOrdinalVector tUniqueFixedBlockNodes("Unique nodes in fixed blocks", tNumUniqueNodes);
-  storeUniqueNodes(tFixedBlockNodes,tUniqueFixedBlockNodes);
+  auto tNumMeshNodes = tMesh->nverts();
+  TEST_EQUALITY(tBcDofs.size(), tNumMeshNodes);
 
-  TEST_EQUALITY(tNumUniqueNodes, tNumNodes);
-
-  auto tUniqueFixedBlockNodes_host = Kokkos::create_mirror_view(tUniqueFixedBlockNodes);
-  Kokkos::deep_copy(tUniqueFixedBlockNodes_host, tUniqueFixedBlockNodes);
-  for (auto iNodeOrdinal = 0; iNodeOrdinal < tNumNodes; iNodeOrdinal++)
+  auto tBcDofs_host = Kokkos::create_mirror_view(tBcDofs);
+  Kokkos::deep_copy(tBcDofs_host, tBcDofs);
+  for (auto iNodeOrdinal = 0; iNodeOrdinal < tNumMeshNodes; iNodeOrdinal++)
   {
-      TEST_EQUALITY(iNodeOrdinal, tUniqueFixedBlockNodes_host(iNodeOrdinal));
+      TEST_EQUALITY(iNodeOrdinal, tBcDofs_host(iNodeOrdinal));
   }
 }
 
