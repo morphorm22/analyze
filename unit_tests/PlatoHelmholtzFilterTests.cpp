@@ -372,6 +372,43 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, FindFixedBlock )
 
 /******************************************************************************/
 /*!
+  \brief throw error if number of DOFs per node is greater than 1
+
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( HelmholtzFilterTests, ThrowIfNumDofsPerNodeGreaterThanOne )
+{
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <ParameterList name='Spatial Model'>                                    \n"
+    "    <ParameterList name='Domains'>                                        \n"
+    "      <ParameterList name='Fixed Volume'>                                \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>      \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/> \n"
+    "      </ParameterList>                                                    \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Fixed Domains'>                                    \n"
+    "    <ParameterList name='body'>                                     \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "</ParameterList>                                                        \n"
+  );
+
+  constexpr int meshWidth=2;
+  constexpr int spaceDim=2;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+
+  using SimplexPhysics = ::Plato::HelmholtzFilter<spaceDim>;
+  auto tNumNodesPerCell = SimplexPhysics::mNumNodesPerCell;
+  auto tNumDofsPerNode = 2;
+
+  TEST_THROW(Plato::FixedDomainDofs tSetFixedDomainEssentialBcDofs(*tMesh,tParamList->sublist("Fixed Domains"),tNumDofsPerNode,tNumNodesPerCell), std::runtime_error);
+}
+
+/******************************************************************************/
+/*!
   \brief build EBC DOF array for non-fixed block 
 
 */
