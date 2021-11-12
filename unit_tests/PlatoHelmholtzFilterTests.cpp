@@ -308,7 +308,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, ParseFixedBlocks )
     "    </ParameterList>                                                      \n"
     "  </ParameterList>                                                        \n"
     "  <ParameterList name='Fixed Domains'>                                    \n"
-    "    <ParameterList name='Fixed Volume'>                                     \n"
+    "    <ParameterList name='block_2'>                                     \n"
     "    </ParameterList>                                                      \n"
     "  </ParameterList>                                                        \n"
     "</ParameterList>                                                        \n"
@@ -326,7 +326,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, ParseFixedBlocks )
   }
 
   TEST_EQUALITY(tFixedDomainNames.size(), 1);
-  TEST_EQUALITY(tFixedDomainNames[0], "Fixed Volume");
+  TEST_EQUALITY(tFixedDomainNames[0], "block_2");
 }
 
 /******************************************************************************/
@@ -349,7 +349,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, FindFixedBlock )
     "    </ParameterList>                                                      \n"
     "  </ParameterList>                                                        \n"
     "  <ParameterList name='Fixed Domains'>                                    \n"
-    "    <ParameterList name='Fixed Volume'>                                     \n"
+    "    <ParameterList name='body'>                                     \n"
     "    </ParameterList>                                                      \n"
     "  </ParameterList>                                                        \n"
     "</ParameterList>                                                        \n"
@@ -366,8 +366,8 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, FindFixedBlock )
   Plato::FixedDomainDofs 
       tSetFixedDomainEssentialBcDofs(*tMesh,tParamList->sublist("Fixed Domains"),tNumDofsPerNode,tNumNodesPerCell);
 
-  TEST_EQUALITY(tSetFixedDomainEssentialBcDofs.isFixedDomain("Fixed Vol"), false);
-  TEST_EQUALITY(tSetFixedDomainEssentialBcDofs.isFixedDomain("Fixed Volume"), true);
+  TEST_EQUALITY(tSetFixedDomainEssentialBcDofs.isFixedDomain("Fixed Volume"), false);
+  TEST_EQUALITY(tSetFixedDomainEssentialBcDofs.isFixedDomain("body"), true);
 }
 
 /******************************************************************************/
@@ -438,7 +438,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, BuildEssentialBCArrayForFixedBlock )
     "    </ParameterList>                                                      \n"
     "  </ParameterList>                                                        \n"
     "  <ParameterList name='Fixed Domains'>                                    \n"
-    "    <ParameterList name='Fixed Volume'>                                     \n"
+    "    <ParameterList name='body'>                                     \n"
     "    </ParameterList>                                                      \n"
     "  </ParameterList>                                                        \n"
     "</ParameterList>                                                        \n"

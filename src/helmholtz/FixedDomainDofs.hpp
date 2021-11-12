@@ -39,8 +39,8 @@ public:
 
         for(const auto& tDomain : aSpatialModel.Domains)
         {
-            auto tDomainName = tDomain.getDomainName();
-            if (this->isFixedDomain(tDomainName))
+            auto tBlockName = tDomain.getElementBlockName();
+            if (this->isFixedDomain(tBlockName))
                 this->markBlockNodes(tDomain, tFixedBlockNodes);
         }
 
@@ -49,11 +49,11 @@ public:
         this->storeUniqueNodes(tFixedBlockNodes, aBcDofs);
     }
 
-    bool isFixedDomain(const std::string & aDomainName) 
+    bool isFixedDomain(const std::string & aBlockName) 
     {
         for (auto iNameOrdinal(0); iNameOrdinal < mFixedDomainNames.size(); iNameOrdinal++)
         {
-            if(mFixedDomainNames[iNameOrdinal] == aDomainName)
+            if(mFixedDomainNames[iNameOrdinal] == aBlockName)
                 return true;
         }
         return false;
