@@ -15,8 +15,12 @@
 #include "Strain.hpp"
 #include "TimeData.hpp"
 #include "LocalVectorFunctionInc.hpp"
-#include "J2PlasticityLocalResidual.hpp"
 
+#ifdef PLATO_EXPRESSION
+  #include "J2PlasticityLocalResidualExpFAD.hpp"
+#else
+  #include "J2PlasticityLocalResidual.hpp"
+#endif
 
 namespace PlasticityTests
 {

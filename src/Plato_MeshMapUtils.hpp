@@ -519,7 +519,7 @@ findParentElements(
     // construct search tree
     ArborX::BVH<DeviceType>
       bvh{BoundingBoxes{d_x0.data(), d_y0.data(), d_z0.data(),
-                        d_x1.data(), d_y1.data(), d_z1.data(), tNElems}};
+                        d_x1.data(), d_y1.data(), d_z1.data(), (int) tNElems}};
 
     // conduct search for bounding box elements
     auto d_x = Kokkos::subview(aMappedLocations, (size_t)Dim::X, Kokkos::ALL());
@@ -562,7 +562,7 @@ findParentElements(
             {
                  tMaxMin = tEleMin;
                  iParent = tElem;
-            
+
             }
         }
         if( tMaxMin >= cEpsilon )

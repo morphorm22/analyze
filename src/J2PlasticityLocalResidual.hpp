@@ -18,6 +18,25 @@
 
 #include "ExpInstMacros.hpp"
 
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//
+// NOTE: CURRENTLY THERE ARE TWO VERIONS OF J2PlasticityLocalResidual.hpp
+//       THIS VERSION IS THE ORIGINAL VERSION. THE OTEHR VERSION
+//       J2PlasticityLocalResidualExpFAD.hpp CONTAINS THE EXPRESSION FAD.
+//
+//       IF ANY CHANGES ARE MADE TO THIS FILE ONE MUST >>>>ALSO<<<<<
+//       MAKE THE >>>>SAME<<<<< CHANGES TO J2PlasticityLocalResidualExpFAD.hpp
+//
+// This duplication is due to a risk aversion request. The decision
+// was to have some minimal duplication for the time being so to avoid
+// possible trouble down the road. There is another project outside
+// Marie's and Sean's project that depends on the original
+// implementation. The call to merge, i.e. delete the original
+// implementation, will be made once a better understanding of how the
+// expressionFad implementation will end-up long term.
+//
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 namespace Plato
 {
 
@@ -547,10 +566,10 @@ public:
 #include "SimplexThermoPlasticity.hpp"
 
 #ifdef PLATOANALYZE_2D
-PLATO_EXPL_DEC_INC_LOCAL(Plato::J2PlasticityLocalResidual, Plato::SimplexPlasticity, 2)
-PLATO_EXPL_DEC_INC_LOCAL(Plato::J2PlasticityLocalResidual, Plato::SimplexThermoPlasticity, 2)
+PLATO_EXPL_DEC_INC_LOCAL_2(Plato::J2PlasticityLocalResidual, Plato::SimplexPlasticity, 2)
+PLATO_EXPL_DEC_INC_LOCAL_2(Plato::J2PlasticityLocalResidual, Plato::SimplexThermoPlasticity, 2)
 #endif
 #ifdef PLATOANALYZE_3D
-PLATO_EXPL_DEC_INC_LOCAL(Plato::J2PlasticityLocalResidual, Plato::SimplexPlasticity, 3)
-PLATO_EXPL_DEC_INC_LOCAL(Plato::J2PlasticityLocalResidual, Plato::SimplexThermoPlasticity, 3)
+PLATO_EXPL_DEC_INC_LOCAL_2(Plato::J2PlasticityLocalResidual, Plato::SimplexPlasticity, 3)
+PLATO_EXPL_DEC_INC_LOCAL_2(Plato::J2PlasticityLocalResidual, Plato::SimplexThermoPlasticity, 3)
 #endif

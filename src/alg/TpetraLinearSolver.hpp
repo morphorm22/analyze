@@ -92,10 +92,14 @@ class TpetraLinearSolver : public AbstractSolver
     double mSolverStartTime, mSolverEndTime;
 
     int    mDisplayIterations;
-    int    mNumIterations;
     int    mDofsPerNode;
     bool   mDisplayDiagnostics = true; /*!< display solver warnings/diagnostics to console */
     double mAchievedTolerance;
+
+    Teuchos::ParameterList mSolverParams;
+
+    int mNumIterations = 1000; /*!< maximum linear solver iterations */
+    Plato::Scalar mTolerance = 1e-14; /*!< linear solver tolerance */
     
   public:
     /******************************************************************************//**

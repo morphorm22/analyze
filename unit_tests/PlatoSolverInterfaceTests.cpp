@@ -572,7 +572,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
   constexpr int tBogusMeshWidth=3;
   auto tBogusMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, tBogusMeshWidth);
 
-  Plato::TpetraSystem tSystem(*tBogusMesh, tMachine, tNumDofsPerNode);
+  Plato::TpetraSystem tSystem(tBogusMesh->nverts(), tMachine, tNumDofsPerNode);
 
   TEST_THROW(tSystem.fromMatrix(*jacobian),std::domain_error);
 }
