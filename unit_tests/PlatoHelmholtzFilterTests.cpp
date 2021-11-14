@@ -7,9 +7,12 @@
 #include "helmholtz/VectorFunction.hpp"
 #include "helmholtz/SimplexHelmholtz.hpp"
 #include "helmholtz/Problem.hpp"
-#include "alg/PlatoSolverFactory.hpp"
+
 #include "BLAS1.hpp"
+#include "UtilsOmegaH.hpp"
+#include "OmegaHUtilities.hpp"
 #include "PlatoMathHelpers.hpp"
+#include "alg/PlatoSolverFactory.hpp"
 
 #ifdef HAVE_AMGX
 #include <alg/AmgXSparseLinearProblem.hpp>
@@ -48,6 +51,28 @@ void PrintFullMatrix(const Teuchos::RCP<Plato::CrsMatrixType> & aInMatrix)
         printf("\n");
     
     }
+}
+
+TEUCHOS_UNIT_TEST(HelmholtzFilterTests, TestOmegaH)
+{
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+  //Plato::write_exodus_file("mesh.exo", *tMesh);
+
+  auto tBoundaryEntitiesIDs = Plato::omega_h::get_boundary_entities<Omega_h::EDGE>(*tMesh);
+  //Plato::omega_h::print<Omega_h::LOs>(tBoundaryEntitiesIDs, "IDs");
+  
+  auto tCopy = Plato::omega_h::copy<Plato::OrdinalType>(tBoundaryEntitiesIDs);
+  auto tHostCopy = Kokkos::create_mirror_view(tCopy);
+  Kokkos::deep_copy(tHostCopy, tCopy);
+
+  std::vector<Plato::OrdinalType> tGold = {0, 2, 3, 4};
+  for (auto &tValue : tGold)
+  {
+    auto tIndex = &tValue - &tGold[0];
+    TEST_EQUALITY(tValue, tHostCopy(tIndex));
+  }
 }
 
 /******************************************************************************/
