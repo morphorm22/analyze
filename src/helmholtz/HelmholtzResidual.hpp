@@ -188,7 +188,6 @@ class HelmholtzResidual :
         { return; }
 
       // get mesh vertices
-      std::cout << "HELLO\n";
       auto tFace2Verts = aSpatialModel.Mesh.ask_verts_of(mNumSpatialDimsOnFace);
       auto tCell2Verts = aSpatialModel.Mesh.ask_elem_verts();
 
