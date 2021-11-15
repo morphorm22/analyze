@@ -7,6 +7,7 @@
 #include "helmholtz/VectorFunction.hpp"
 #include "helmholtz/SimplexHelmholtz.hpp"
 #include "helmholtz/Problem.hpp"
+#include "helmholtz/FixedDomainDofs.hpp"
 
 #include "BLAS1.hpp"
 #include "UtilsOmegaH.hpp"
@@ -305,5 +306,234 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, Helmholtz2DUniformFieldTest )
     TEST_FLOATING_EQUALITY(stateView_host(iDof), 1.0, 1.0e-14);
   }
 
+}
+
+/******************************************************************************/
+/*!
+  \brief parse fixed blocks
+
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( HelmholtzFilterTests, ParseFixedBlocks )
+{
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <ParameterList name='Spatial Model'>                                    \n"
+    "    <ParameterList name='Domains'>                                        \n"
+    "      <ParameterList name='Design Volume'>                                \n"
+    "        <Parameter name='Element Block' type='string' value='block_1'/>      \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/> \n"
+    "      </ParameterList>                                                    \n"
+    "      <ParameterList name='Fixed Volume'>                                \n"
+    "        <Parameter name='Element Block' type='string' value='block_2'/>      \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/> \n"
+    "      </ParameterList>                                                    \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Fixed Domains'>                                    \n"
+    "    <ParameterList name='block_2'>                                     \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "</ParameterList>                                                        \n"
+  );
+
+  std::vector<std::string> tFixedDomainNames;
+
+  if (tParamList->isSublist("Fixed Domains"))
+  {
+      auto tFixedDomains = tParamList->sublist("Fixed Domains");
+      for (auto tIndex = tFixedDomains.begin(); tIndex != tFixedDomains.end(); ++tIndex)
+      {
+          tFixedDomainNames.push_back(tFixedDomains.name(tIndex));
+      }
+  }
+
+  TEST_EQUALITY(tFixedDomainNames.size(), 1);
+  TEST_EQUALITY(tFixedDomainNames[0], "block_2");
+}
+
+/******************************************************************************/
+/*!
+  \brief check fixed block in list
+
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( HelmholtzFilterTests, FindFixedBlock )
+{
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <ParameterList name='Spatial Model'>                                    \n"
+    "    <ParameterList name='Domains'>                                        \n"
+    "      <ParameterList name='Fixed Volume'>                                \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>      \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/> \n"
+    "      </ParameterList>                                                    \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Fixed Domains'>                                    \n"
+    "    <ParameterList name='body'>                                     \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "</ParameterList>                                                        \n"
+  );
+
+  constexpr int meshWidth=2;
+  constexpr int spaceDim=2;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+
+  using SimplexPhysics = ::Plato::HelmholtzFilter<spaceDim>;
+  auto tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  auto tNumNodesPerCell = SimplexPhysics::mNumNodesPerCell;
+
+  Plato::FixedDomainDofs 
+      tSetFixedDomainEssentialBcDofs(*tMesh,tParamList->sublist("Fixed Domains"),tNumDofsPerNode,tNumNodesPerCell);
+
+  TEST_EQUALITY(tSetFixedDomainEssentialBcDofs.isFixedDomain("Fixed Volume"), false);
+  TEST_EQUALITY(tSetFixedDomainEssentialBcDofs.isFixedDomain("body"), true);
+}
+
+/******************************************************************************/
+/*!
+  \brief throw error if number of DOFs per node is greater than 1
+
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( HelmholtzFilterTests, ThrowIfNumDofsPerNodeGreaterThanOne )
+{
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <ParameterList name='Spatial Model'>                                    \n"
+    "    <ParameterList name='Domains'>                                        \n"
+    "      <ParameterList name='Fixed Volume'>                                \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>      \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/> \n"
+    "      </ParameterList>                                                    \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Fixed Domains'>                                    \n"
+    "    <ParameterList name='body'>                                     \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "</ParameterList>                                                        \n"
+  );
+
+  constexpr int meshWidth=2;
+  constexpr int spaceDim=2;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+
+  using SimplexPhysics = ::Plato::HelmholtzFilter<spaceDim>;
+  auto tNumNodesPerCell = SimplexPhysics::mNumNodesPerCell;
+  auto tNumDofsPerNode = 2;
+
+  TEST_THROW(Plato::FixedDomainDofs tSetFixedDomainEssentialBcDofs(*tMesh,tParamList->sublist("Fixed Domains"),tNumDofsPerNode,tNumNodesPerCell), std::runtime_error);
+}
+
+/******************************************************************************/
+/*!
+  \brief build EBC DOF array for non-fixed block 
+
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( HelmholtzFilterTests, BuildEssentialBCArrayForNonFixedBlock )
+{
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <ParameterList name='Spatial Model'>                                    \n"
+    "    <ParameterList name='Domains'>                                        \n"
+    "      <ParameterList name='Fixed Volume'>                                \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>      \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/> \n"
+    "      </ParameterList>                                                    \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "</ParameterList>                                                        \n"
+  );
+
+  constexpr int meshWidth=2;
+  constexpr int spaceDim=2;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+
+  using SimplexPhysics = ::Plato::HelmholtzFilter<spaceDim>;
+  auto tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  auto tNumNodesPerCell = SimplexPhysics::mNumNodesPerCell;
+
+  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
+  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList); 
+
+  Plato::LocalOrdinalVector tBcDofs;
+
+  if(tParamList->isSublist("Fixed Domains"))
+  {
+      Plato::FixedDomainDofs 
+          tSetFixedDomainEssentialBcDofs(*tMesh,tParamList->sublist("Fixed Domains"),tNumDofsPerNode,tNumNodesPerCell);
+      tSetFixedDomainEssentialBcDofs(tSpatialModel,tBcDofs);
+  }
+
+  TEST_EQUALITY(tBcDofs.size(), 0);
+}
+
+/******************************************************************************/
+/*!
+  \brief build EBC DOF array for fixed block 
+
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( HelmholtzFilterTests, BuildEssentialBCArrayForFixedBlock )
+{
+  // set parameters
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <ParameterList name='Spatial Model'>                                    \n"
+    "    <ParameterList name='Domains'>                                        \n"
+    "      <ParameterList name='Fixed Volume'>                                \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>      \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/> \n"
+    "      </ParameterList>                                                    \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Fixed Domains'>                                    \n"
+    "    <ParameterList name='body'>                                     \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "</ParameterList>                                                        \n"
+  );
+
+  constexpr int meshWidth=2;
+  constexpr int spaceDim=2;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+
+  using SimplexPhysics = ::Plato::HelmholtzFilter<spaceDim>;
+  auto tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  auto tNumNodesPerCell = SimplexPhysics::mNumNodesPerCell;
+
+  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
+  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList); 
+
+  Plato::LocalOrdinalVector tBcDofs;
+
+  if(tParamList->isSublist("Fixed Domains"))
+  {
+      Plato::FixedDomainDofs 
+          tSetFixedDomainEssentialBcDofs(*tMesh,tParamList->sublist("Fixed Domains"),tNumDofsPerNode,tNumNodesPerCell);
+      tSetFixedDomainEssentialBcDofs(tSpatialModel,tBcDofs);
+  }
+
+  auto tNumMeshNodes = tMesh->nverts();
+  TEST_EQUALITY(tBcDofs.size(), tNumMeshNodes);
+
+  auto tBcDofs_host = Kokkos::create_mirror_view(tBcDofs);
+  Kokkos::deep_copy(tBcDofs_host, tBcDofs);
+  for (auto iNodeOrdinal = 0; iNodeOrdinal < tNumMeshNodes; iNodeOrdinal++)
+  {
+      TEST_EQUALITY(iNodeOrdinal, tBcDofs_host(iNodeOrdinal));
+  }
 }
 
