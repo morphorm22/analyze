@@ -30,15 +30,14 @@ namespace omega_h
 /******************************************************************************//**
  * \tparam ViewType view type
  *
- * \fn inline void print_fad_dx_values
+ * \fn inline void copy
  *
  * \brief Copy Kokkos view into an Omega_h LOs array.
  *
  * \param [in] aInput input 1D view
 **********************************************************************************/
 template<typename ViewType>
-inline Omega_h::LOs copy
-(const ScalarVectorT<ViewType> & aInput)
+inline Omega_h::LOs copy(const ScalarVectorT<ViewType> & aInput)
 {
     auto tLength = aInput.size();
     Omega_h::Write<ViewType> tWrite(tLength);
@@ -50,6 +49,25 @@ inline Omega_h::LOs copy
     return (Omega_h::LOs(tWrite));
 }
 // function copy
+
+/******************************************************************************//**
+ * \tparam ViewType view type
+ * \fn inline void copy
+ * \brief Copy Omega_h LOs array into a one-dimensional kokkos view.
+ * \param [in] aInput Omega_h LOs array
+ * \return one-dimensional kokkos view
+**********************************************************************************/
+template<typename ViewType>
+inline ScalarVectorT<ViewType> copy(const Omega_h::LOs & aInput)
+{
+  auto tLength = aInput.size();
+  Plato::ScalarVectorT<ViewType> tOutput("kokkos-view-copy", tLength);
+  Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+  {
+      tOutput(aOrdinal) = aInput[aOrdinal];
+  }, "copy");
+  return tOutput;
+}
 
 /******************************************************************************//**
  * \tparam ViewType Omega_h array type
@@ -356,6 +374,50 @@ find_entities_on_non_prescribed_boundary
     return tIDsOfEntitiesOnNonPrescribedBoundary;
 }
 // function find_entities_on_non_prescribed_boundary
+
+/******************************************************************************//**
+ * \tparam EntityDim  entity dimension (e.g. vertex, edge, face, or region)
+ * \fn Omega_h::LOs get_boundary_entities
+ * \brief Return list of boundary entities' ids.
+ * \param [in] aMesh finite element mesh metadata
+ * \return list of boundary entities' ids
+**********************************************************************************/
+template<Omega_h::Int EntityDim>
+Omega_h::LOs get_boundary_entities(Omega_h::Mesh& aMesh)
+{
+  auto tBoundaryEntities = Omega_h::mark_by_class_dim(&aMesh, EntityDim, EntityDim);
+  auto tBoundaryEntitiesIDs = Omega_h::collect_marked(tBoundaryEntities);
+  return tBoundaryEntitiesIDs;
+}
+// function get_boundary_entities
+
+/******************************************************************************//**
+ * \tparam EntityDim entity dimension (e.g. vertex, edge, face, or region)
+ * \tparam EntitySet entity set type (e.g. nodeset or sideset)
+ * \fn inline Omega_h::LOs get_boundary_entities
+ * \brief Return list of boundary entities' ids.
+ * \param [in] aEntitySetNames list of prescribed entity set names
+ * \param [in] aMesh           computational mesh metadata
+ * \param [in] aMeshSets       list of mesh sets
+ * \return list of boundary entities' ids
+**********************************************************************************/
+template
+<Omega_h::Int EntityDim,
+ Omega_h::SetType EntitySet>
+inline Omega_h::LOs get_boundary_entities
+(const std::vector<std::string> & aEntitySetNames,
+       Omega_h::Mesh            & aMesh,
+       Omega_h::MeshSets        & aMeshSets)
+{
+    if(aEntitySetNames.empty())
+    {
+        auto tBoundaryEntities = Plato::omega_h::get_boundary_entities<EntityDim>(aMesh);
+        return tBoundaryEntities;
+    }
+    auto tBoundaryEntities = Plato::omega_h::find_entities_on_non_prescribed_boundary<EntityDim,EntitySet>(aEntitySetNames, aMesh, aMeshSets);
+    return tBoundaryEntities;
+}
+
 
 /***************************************************************************//**
  * \tparam EntityDim Oemga_h entity dimension
