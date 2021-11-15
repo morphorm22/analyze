@@ -13,6 +13,7 @@
 #include "AnalyzeOutput.hpp"
 #include "ImplicitFunctors.hpp"
 #include "MultipointConstraints.hpp"
+#include "ApplyConstraints.hpp"
 #include "SpatialModel.hpp"
 
 #include "ParseTools.hpp"
@@ -20,9 +21,10 @@
 #include "PlatoStaticsTypes.hpp"
 #include "PlatoAbstractProblem.hpp"
 #include "PlatoUtilities.hpp"
+#include "AnalyzeMacros.hpp"
 
 #include "helmholtz/VectorFunction.hpp"
-#include "AnalyzeMacros.hpp"
+#include "helmholtz/FixedDomainDofs.hpp"
 
 #include "alg/ParallelComm.hpp"
 #include "alg/PlatoSolverFactory.hpp"
@@ -57,7 +59,6 @@ private:
     Teuchos::RCP<Plato::CrsMatrixType> mJacobian; /*!< Jacobian matrix */
 
     Plato::LocalOrdinalVector mBcDofs; /*!< list of degrees of freedom associated with the Dirichlet boundary conditions */
-    Plato::ScalarVector mBcValues; /*!< values associated with the Dirichlet boundary conditions */
 
     std::shared_ptr<Plato::MultipointConstraints> mMPCs; /*!< multipoint constraint interface */
 
@@ -88,7 +89,7 @@ public:
       mPhysics       (aProblemParams.get<std::string>("Physics")),
       mMPCs          (nullptr)
     {
-        this->initialize(aProblemParams);
+        this->initialize(aMesh,aProblemParams);
 
         Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
         if(mMPCs)
@@ -158,6 +159,25 @@ public:
     }
 
     /******************************************************************************//**
+     * \brief Apply Dirichlet constraints
+     * \param [in] aMatrix Compressed Row Storage (CRS) matrix
+     * \param [in] aVector 1D view of Right-Hand-Side forces
+    **********************************************************************************/
+    void applyFixedBlockConstraints(
+      const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
+      const Plato::ScalarVector & aVector)
+    //**********************************************************************************/
+    {
+        if(mBcDofs.size() > 0)
+        {
+            Plato::ScalarVector tBcValues("fixed block filtered values", mBcDofs.size());
+            Plato::blas1::fill(static_cast<Plato::Scalar>(1.0), tBcValues);
+
+            Plato::applyConstraints<PhysicsT::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tBcValues);
+        }
+    }
+
+    /******************************************************************************//**
      * \brief Solve system of equations
      * \param [in] aControl 1D view of control variables
      * \return solution database
@@ -175,6 +195,8 @@ public:
         Plato::blas1::scale(-1.0, mResidual);
 
         mJacobian = mPDE->gradient_u(tStatesSubView, aControl);
+
+        this->applyFixedBlockConstraints(mJacobian, mResidual);
 
         mSolver->solve(*mJacobian, tStatesSubView, mResidual);
 
@@ -301,7 +323,8 @@ private:
      * \brief Initialize member data
      * \param [in] aProblemParams input parameters database
     **********************************************************************************/
-    void initialize(Teuchos::ParameterList& aProblemParams)
+    void initialize(Omega_h::Mesh& aMesh,
+                    Teuchos::ParameterList& aProblemParams)
     {
         auto tName = aProblemParams.get<std::string>("PDE Constraint");
         mPDE = std::make_shared<Plato::Helmholtz::VectorFunction<PhysicsT>>(mSpatialModel, mDataMap, aProblemParams, tName);
@@ -312,6 +335,13 @@ private:
             auto & tMyParams = aProblemParams.sublist("Multipoint Constraints", false);
             mMPCs = std::make_shared<Plato::MultipointConstraints>(mSpatialModel, tNumDofsPerNode, tMyParams);
             mMPCs->setupTransform();
+        }
+
+        if(aProblemParams.isSublist("Fixed Domains"))
+        {
+            Plato::FixedDomainDofs 
+                tSetFixedDomainEssentialBcDofs(aMesh,aProblemParams.sublist("Fixed Domains"),mPDE->numDofsPerNode(),mPDE->numNodesPerCell());
+            tSetFixedDomainEssentialBcDofs(mSpatialModel,mBcDofs);
         }
     }
 
