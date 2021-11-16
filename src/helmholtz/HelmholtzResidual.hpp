@@ -44,18 +44,19 @@ class HelmholtzResidual :
 
     using Plato::Helmholtz::AbstractVectorFunction<EvaluationType>::mSpatialDomain;
     using Plato::Helmholtz::AbstractVectorFunction<EvaluationType>::mDataMap;
-
+    
+    /*!< local automatic differentiaton parameters */
     using StateScalarType   = typename EvaluationType::StateScalarType;
     using ControlScalarType = typename EvaluationType::ControlScalarType;
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
-    Plato::LinearTetCubRuleDegreeOne<mSpaceDim> mCubatureRule;
-    Plato::LinearTetCubRuleDegreeOne<mNumSpatialDimsOnFace> mSurfaceCubatureRule;
+    Plato::LinearTetCubRuleDegreeOne<mSpaceDim> mCubatureRule; /*!< volume cubature rule */
+    Plato::LinearTetCubRuleDegreeOne<mNumSpatialDimsOnFace> mSurfaceCubatureRule; /*!< surface cubature rule */
 
-    Plato::Scalar mLengthScale = 1.0;
-    Plato::Scalar mSurfacePenalty = 0.0;
-    std::vector<std::string> mSymmetryPlaneSides;
+    Plato::Scalar mLengthScale = 0.5; /*!< volume length scale */
+    Plato::Scalar mSurfaceLengthScale = 0.0; /*!< surface length scale multiplier, 0 \leq \alpha \leq 1 */
+    std::vector<std::string> mSymmetryPlaneSides; /*!< entity sets where symmetry constraints are applied */
 
   public:
     /**************************************************************************/
@@ -77,8 +78,8 @@ class HelmholtzResidual :
         else
         {
           auto tParamList = aProblemParams.get < Teuchos::ParameterList > ("Parameters");
-          mLengthScale = tParamList.get<Plato::Scalar>("Length Scale", 1.0);
-          mSurfacePenalty = tParamList.get<Plato::Scalar>("Surface Length Scale", 0.0);
+          mLengthScale = tParamList.get<Plato::Scalar>("Length Scale", 0.5);
+          mSurfaceLengthScale = tParamList.get<Plato::Scalar>("Surface Length Scale", 0.0);
           mSymmetryPlaneSides = Plato::teuchos::parse_array<std::string>("Symmetry Plane Sides", tParamList);
         }
     }
@@ -184,7 +185,7 @@ class HelmholtzResidual :
     ) const
     /**************************************************************************/
     {
-      if(mSurfacePenalty <= static_cast<Plato::Scalar>(0.0))
+      if(mSurfaceLengthScale <= static_cast<Plato::Scalar>(0.0))
         { return; }
 
       // get mesh vertices
@@ -215,6 +216,7 @@ class HelmholtzResidual :
 
       // evaluate integral
       auto tLengthScale = mLengthScale;
+      auto tSurfaceLengthScale = mSurfaceLengthScale;
       auto tSurfaceCubatureWeight = mSurfaceCubatureRule.getCubWeight();
       auto tSurfaceBasisFunctions = mSurfaceCubatureRule.getBasisFunctions();
       Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aFaceI)
@@ -245,7 +247,7 @@ class HelmholtzResidual :
           for( Plato::OrdinalType tNode = 0; tNode < mNumNodesPerFace; tNode++ )
           {
             auto tLocalCellNode = tLocalNodeOrd[tNode];
-            aResult(tCellOrdinal, tLocalCellNode) += tLengthScale * tFilteredDensity(tCellOrdinal) *
+            aResult(tCellOrdinal, tLocalCellNode) += tSurfaceLengthScale * tLengthScale * tFilteredDensity(tCellOrdinal) *
               tSurfaceBasisFunctions(tNode) * tSurfaceAreaTimesCubWeight;
           }
         }
