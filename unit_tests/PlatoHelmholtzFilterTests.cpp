@@ -7,7 +7,6 @@
 #include "helmholtz/VectorFunction.hpp"
 #include "helmholtz/SimplexHelmholtz.hpp"
 #include "helmholtz/Problem.hpp"
-#include "helmholtz/FixedDomainDofs.hpp"
 
 #include "BLAS1.hpp"
 #include "UtilsOmegaH.hpp"
