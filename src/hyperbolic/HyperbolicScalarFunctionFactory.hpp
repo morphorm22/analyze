@@ -51,15 +51,19 @@ public:
 } // namespace Plato
 
 #include "HyperbolicMechanics.hpp"
+#include "MicromorphicMechanics.hpp"
 
 #ifdef PLATOANALYZE_1D
 extern template class Plato::Hyperbolic::ScalarFunctionFactory<::Plato::Hyperbolic::Mechanics<1>>;
+extern template class Plato::Hyperbolic::ScalarFunctionFactory<::Plato::Hyperbolic::MicromorphicMechanics<1>>;
 #endif
 
 #ifdef PLATOANALYZE_2D
 extern template class Plato::Hyperbolic::ScalarFunctionFactory<::Plato::Hyperbolic::Mechanics<2>>;
+extern template class Plato::Hyperbolic::ScalarFunctionFactory<::Plato::Hyperbolic::MicromorphicMechanics<2>>;
 #endif
 
 #ifdef PLATOANALYZE_3D
 extern template class Plato::Hyperbolic::ScalarFunctionFactory<::Plato::Hyperbolic::Mechanics<3>>;
+extern template class Plato::Hyperbolic::ScalarFunctionFactory<::Plato::Hyperbolic::MicromorphicMechanics<3>>;
 #endif

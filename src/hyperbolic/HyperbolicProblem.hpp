@@ -15,6 +15,7 @@
 
 #include "hyperbolic/Newmark.hpp"
 #include "hyperbolic/HyperbolicMechanics.hpp"
+#include "hyperbolic/MicromorphicMechanics.hpp"
 #include "hyperbolic/HyperbolicVectorFunction.hpp"
 #include "hyperbolic/HyperbolicScalarFunctionBase.hpp"
 #include "hyperbolic/HyperbolicScalarFunctionFactory.hpp"

@@ -205,6 +205,10 @@ if(HYPERBOLIC)
     hyperbolic/FluidsLeastSquaresScalarFunction.cpp
     hyperbolic/CriterionMeanSurfaceTemperature.cpp
     hyperbolic/FluidsStabilizedUniformThermalSource.cpp
+    hyperbolic/MicromorphicLinearElasticMaterial.cpp
+    hyperbolic/CubicMicromorphicLinearElasticMaterial.cpp
+    hyperbolic/MicromorphicInertiaMaterial.cpp
+    hyperbolic/CubicMicromorphicInertiaMaterial.cpp
   )
 
   if(EXPRESSION)

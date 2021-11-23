@@ -19,6 +19,15 @@ CubicLinearElasticMaterial(const Teuchos::ParameterList& paramList) :
 {
     Plato::Scalar tC11 = paramList.get<Plato::Scalar>("C11");
     mCellStiffness(0, 0) = tC11;
+
+    if(paramList.isType<Plato::Scalar>("Pressure Scaling"))
+    {
+        mPressureScaling = paramList.get<Plato::Scalar>("Pressure Scaling");
+    }
+    if(paramList.isType<Plato::Scalar>("Mass Density"))
+    {
+        mCellDensity = paramList.get<Plato::Scalar>("Mass Density");
+    }
 }
 
 /******************************************************************************//**
@@ -38,6 +47,15 @@ CubicLinearElasticMaterial(const Teuchos::ParameterList& paramList) :
     mCellStiffness(1, 0) = tC12;
     mCellStiffness(1, 1) = tC11;
     mCellStiffness(2, 2) = tC44;
+
+    if(paramList.isType<Plato::Scalar>("Pressure Scaling"))
+    {
+        mPressureScaling = paramList.get<Plato::Scalar>("Pressure Scaling");
+    }
+    if(paramList.isType<Plato::Scalar>("Mass Density"))
+    {
+        mCellDensity = paramList.get<Plato::Scalar>("Mass Density");
+    }
 }
 
 /******************************************************************************//**
@@ -64,6 +82,15 @@ CubicLinearElasticMaterial(const Teuchos::ParameterList& paramList) :
     mCellStiffness(3, 3) = tC44;
     mCellStiffness(4, 4) = tC44;
     mCellStiffness(5, 5) = tC44;
+
+    if(paramList.isType<Plato::Scalar>("Pressure Scaling"))
+    {
+        mPressureScaling = paramList.get<Plato::Scalar>("Pressure Scaling");
+    }
+    if(paramList.isType<Plato::Scalar>("Mass Density"))
+    {
+        mCellDensity = paramList.get<Plato::Scalar>("Mass Density");
+    }
 }
 
 }

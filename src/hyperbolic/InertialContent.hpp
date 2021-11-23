@@ -1,7 +1,8 @@
-#ifndef INERTIAL_CONTENT_HPP
-#define INERTIAL_CONTENT_HPP
+#pragma once
 
 #include "PlatoStaticsTypes.hpp"
+#include "LinearElasticMaterial.hpp"
+#include "hyperbolic/MicromorphicInertiaMaterial.hpp"
 
 namespace Plato
 {
@@ -22,6 +23,11 @@ class InertialContent
   public:
     InertialContent(const Teuchos::RCP<Plato::LinearElasticMaterial<SpaceDim>> aMaterialModel ) :
             mCellDensity (aMaterialModel->getMassDensity()),
+            mRayleighA   (aMaterialModel->getRayleighA()) {}
+
+    // overloaded for micromorphic materials
+    InertialContent(const Teuchos::RCP<Plato::MicromorphicInertiaMaterial<SpaceDim>> aMaterialModel ) :
+            mCellDensity (aMaterialModel->getMacroscopicMassDensity()),
             mRayleighA   (aMaterialModel->getRayleighA()) {}
 
     template<typename TScalarType, typename TContentScalarType>
@@ -58,4 +64,3 @@ class InertialContent
 
 } // namespace Plato
 
-#endif
