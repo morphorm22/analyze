@@ -60,7 +60,7 @@ createInternalThermalForces
     auto tLowerScenario = Plato::tolower(tScenario);
     if( tLowerScenario == "density-based topology optimization" )
     {
-        return ( std::make_shared<Plato::Fluids::SIMP::InternalThermalForces<PhysicsT, EvaluationT>>(aDomain, aDataMap, aInputs) );
+        return ( std::make_shared<Plato::Fluids::InternalThermalForces<PhysicsT, EvaluationT>>(aDomain, aDataMap, aInputs) );
     }
     else if( tLowerScenario == "analysis" || tLowerScenario == "levelset topology optimization" )
     {

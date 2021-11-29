@@ -371,21 +371,23 @@ public:
             tCellVolume(aCellOrdinal) = tCellVolume(aCellOrdinal) * tCubWeight;
 
             // 1. Penalize diffusivity ratio with element density
-            ControlT tPenalizedDiffusivityRatio = Plato::Fluids::penalize_thermal_diffusivity<mNumNodesPerCell>
-                (aCellOrdinal, tThermalDiffusivityRatio, tDiffusiveTermPenaltyExponent, tControlWS);
-            ControlT tPenalizedEffConductivity = tEffConductivity * tPenalizedDiffusivityRatio;
+            //ControlT tPenalizedDiffusivityRatio = Plato::Fluids::penalize_thermal_diffusivity<mNumNodesPerCell>
+            //    (aCellOrdinal, tThermalDiffusivityRatio, tDiffusiveTermPenaltyExponent, tControlWS);
+            //ControlT tPenalizedEffConductivity = tEffConductivity * tPenalizedDiffusivityRatio;
 
             // 2. add current diffusive force contribution to residual, i.e. R += \theta_3 K T^{n+1},
             Plato::Fluids::calculate_flux<mNumNodesPerCell, mNumSpatialDims>
                 (aCellOrdinal, tGradient, tCurTempWS, tCurThermalFlux);
-            ControlT tMultiplierControlOneT = tArtificialDamping * tPenalizedEffConductivity;
+            //ControlT tMultiplierControlOneT = tArtificialDamping * tPenalizedEffConductivity;
             Plato::Fluids::calculate_flux_divergence<mNumNodesPerCell, mNumSpatialDims>
-                (aCellOrdinal, tGradient, tCellVolume, tCurThermalFlux, aResultWS, tMultiplierControlOneT);
+                (aCellOrdinal, tGradient, tCellVolume, tCurThermalFlux, aResultWS, tArtificialDamping);
+                //(aCellOrdinal, tGradient, tCellVolume, tCurThermalFlux, aResultWS, tMultiplierControlOneT);
 
             // 3. add previous diffusive force contribution to residual, i.e. R -= (\theta_3-1) K T^n
             Plato::Fluids::calculate_flux<mNumNodesPerCell, mNumSpatialDims>
                 (aCellOrdinal, tGradient, tPrevTempWS, tPrevThermalFlux);
-            ControlT tMultiplierControlTwoT = (tArtificialDamping - static_cast<Plato::Scalar>(1.0)) * tPenalizedEffConductivity;
+            //ControlT tMultiplierControlTwoT = (tArtificialDamping - static_cast<Plato::Scalar>(1.0)) * tPenalizedEffConductivity;
+            Plato::Scalar tMultiplierControlTwoT = (tArtificialDamping - static_cast<Plato::Scalar>(1.0));
             Plato::Fluids::calculate_flux_divergence<mNumNodesPerCell, mNumSpatialDims>
                 (aCellOrdinal, tGradient, tCellVolume, tPrevThermalFlux, aResultWS, -tMultiplierControlTwoT);
 
@@ -393,15 +395,17 @@ public:
             tIntrplVectorField(aCellOrdinal, tBasisFunctions, tCurVelWS, tCurVelGP);
             Plato::Fluids::calculate_convective_forces<mNumNodesPerCell, mNumSpatialDims>
                 (aCellOrdinal, tGradient, tCurVelGP, tPrevTempWS, tConvection);
-            ControlT tAveragedCellDensity = Plato::cell_density<mNumNodesPerCell>(aCellOrdinal, tControlWS);
-            ControlT tPenalizedAvgCellDensity = pow(tAveragedCellDensity, tConvectiveTermPenaltyExponent);
+            //ControlT tAveragedCellDensity = Plato::cell_density<mNumNodesPerCell>(aCellOrdinal, tControlWS);
+            //ControlT tPenalizedAvgCellDensity = pow(tAveragedCellDensity, tConvectiveTermPenaltyExponent);
             Plato::Fluids::integrate_scalar_field<mNumTempDofsPerCell>
-                (aCellOrdinal, tBasisFunctions, tCellVolume, tConvection, aResultWS, tPenalizedAvgCellDensity);
+                (aCellOrdinal, tBasisFunctions, tCellVolume, tConvection, aResultWS, 1.0);
+                //(aCellOrdinal, tBasisFunctions, tCellVolume, tConvection, aResultWS, tPenalizedAvgCellDensity);
             Plato::blas2::scale<mNumDofsPerCell>(aCellOrdinal, tCriticalTimeStep(0), aResultWS);
 
             // 5. add stabilizing force contribution to residual, i.e. R += \alpha_{stab} * \beta_{\rho} * C_u(u^{n+1}) T^n
-            ControlT tScalar = tStabilizationMultiplier * tPenalizedAvgCellDensity * 
-                static_cast<Plato::Scalar>(0.5) * tCriticalTimeStep(0) * tCriticalTimeStep(0);
+            //ControlT tScalar = tStabilizationMultiplier * tPenalizedAvgCellDensity * 
+                //static_cast<Plato::Scalar>(0.5) * tCriticalTimeStep(0) * tCriticalTimeStep(0);
+            Plato::Scalar tScalar = tStabilizationMultiplier * static_cast<Plato::Scalar>(0.5) * tCriticalTimeStep(0) * tCriticalTimeStep(0);
             Plato::Fluids::integrate_stabilizing_scalar_forces<mNumNodesPerCell, mNumSpatialDims>
                 (aCellOrdinal, tCellVolume, tGradient, tCurVelGP, tConvection, aResultWS, tScalar);
 
