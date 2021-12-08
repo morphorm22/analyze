@@ -404,6 +404,37 @@ create_incompressible_fluid_problem
  // function create_incompressible_fluid_problem
 
 /******************************************************************************//**
+* \brief Create a abstract problem of micromorphic mechanics.
+* \param [in] aMesh        mesh metadata
+* \param [in] aPlatoProb input xml metadata
+* \param [in] aMachine     mpi communicator interface
+* \returns shared pointer to abstract problem of type micromorphic mechanics
+**********************************************************************************/
+template<Plato::OrdinalType SpatialDim>
+inline
+std::shared_ptr<Plato::AbstractProblem>
+create_micromorphic_mechanics_problem
+(Omega_h::Mesh          & aMesh,
+ Omega_h::MeshSets      & aMeshSets,
+ Teuchos::ParameterList & aPlatoProb,
+ Comm::Machine            aMachine)
+ {
+    auto tLowerPDE = Plato::is_pde_constraint_supported(aPlatoProb);
+
+#ifdef PLATO_HYPERBOLIC
+    if (tLowerPDE == "hyperbolic")
+    {
+        return std::make_shared<HyperbolicProblem<::Plato::Hyperbolic::MicromorphicMechanics<SpatialDim>>>(aMesh, aMeshSets, aPlatoProb, aMachine);
+    }
+    else
+#endif
+    {
+        THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
+    }
+ }
+ // function create_incompressible_fluid_problem
+
+/******************************************************************************//**
  * \brief This class is responsible for the creation of a Plato problem, which enables
  * finite element simulations of multiphysics problem.
  **********************************************************************************/
@@ -479,6 +510,10 @@ public:
         if(tLowerPhysics == "incompressible fluids")
         {
             return ( Plato::create_incompressible_fluid_problem<SpatialDim>(aMesh, aMeshSets, tInputData, aMachine) );
+        }
+        if(tLowerPhysics == "micromorphic mechanical")
+        {
+            return ( Plato::create_micromorphic_mechanics_problem<SpatialDim>(aMesh, aMeshSets, tInputData, aMachine) );
         }
 #ifdef PLATO_HELMHOLTZ
         else

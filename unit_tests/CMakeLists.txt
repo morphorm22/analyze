@@ -586,6 +586,33 @@ if(HYPERBOLIC)
   add_test(NAME runComputationalFluidDynamicsTests COMMAND ${ES_MPI_TEST})
 endif()
 
+if(HYPERBOLIC)
+  set(RelaxedMicromorphicTests_SOURCES
+    RelaxedMicromorphicTests.cpp
+    PlatoTestHelpers.cpp
+    PlatoUnitTestMain.cpp
+  )
+
+  set(RelaxedMicromorphicTests_HEADERS
+    PlatoTestHelpers.hpp
+  )
+
+  add_executable(RelaxedMicromorphicUnitTests
+  ${RelaxedMicromorphicTests_SOURCES}
+  ${RelaxedMicromorphicTests_HEADERS}
+  )
+
+  target_link_libraries(RelaxedMicromorphicUnitTests
+    analyzelib
+    ${Trilinos_LIBRARIES}
+    ${Trilinos_TPL_LIBRARIES}
+  )
+  target_include_directories(RelaxedMicromorphicUnitTests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+  build_mpi_test_string(ES_MPI_TEST 1 ${CMAKE_CURRENT_BINARY_DIR}/RelaxedMicromorphicUnitTests)
+  add_test(NAME runRelaxedMicromorphicUnitTests COMMAND ${ES_MPI_TEST})
+endif()
+
 set(EllipticUpdLagTests_SOURCES
   EllipticUpdLagTests.cpp
   PlatoTestHelpers.cpp
