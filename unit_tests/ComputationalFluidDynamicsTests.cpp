@@ -1894,7 +1894,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizeHeatSourceConstant)
     //Plato::print(tResult, "result");
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizeThermalDiffusivity)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizedEffectiveThermalProperty)
 {
     // set input data for unit test
     constexpr auto tNumCells = 2;
@@ -1917,7 +1917,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizeThermalDiffusivity)
     }, "unit test penalized_effective_thermal_property");
 
     auto tTol = 1e-4;
-    std::vector<Plato::Scalar> tGold = {3.6250,1.0};
+    std::vector<Plato::Scalar> tGold = {1.375,4.0};
     auto tHostResult = Kokkos::create_mirror(tResult);
     Kokkos::deep_copy(tHostResult, tResult);
     for (auto &tValue : tGold)
