@@ -8,6 +8,7 @@
 
 #include <Teuchos_ParameterList.hpp>
 
+#include "FluidsUtils.hpp"
 #include "SpatialModel.hpp"
 #include "PlatoUtilities.hpp"
 #include "AbstractVolumeIntegrand.hpp"
@@ -50,26 +51,26 @@ createInternalThermalForces
  Plato::DataMap & aDataMap,
  Teuchos::ParameterList & aInputs)
 {
-    if(aInputs.isSublist("Hyperbolic") == false)
+    auto tScenario = Plato::Fluids::scenario(aInputs);
+    auto tHeatTransfer = Plato::Fluids::heat_transfer_tag(aInputs);
+    if( tScenario == "density-based topology optimization" && tHeatTransfer == "forced")
     {
-        THROWERR("'Hyperbolic' Parameter List is not defined.")
+        return ( std::make_shared<Plato::Fluids::SIMP::InternalThermalForces<PhysicsT, EvaluationT>>(aDomain, aDataMap, aInputs) );
     }
-    auto tHyperbolic = aInputs.sublist("Hyperbolic");
-
-    auto tScenario = tHyperbolic.get<std::string>("Scenario","Analysis");
-    auto tLowerScenario = Plato::tolower(tScenario);
-    if( tLowerScenario == "density-based topology optimization" )
+    else if( tScenario == "density-based topology optimization" && tHeatTransfer == "natural")
     {
         return ( std::make_shared<Plato::Fluids::InternalThermalForces<PhysicsT, EvaluationT>>(aDomain, aDataMap, aInputs) );
     }
-    else if( tLowerScenario == "analysis" || tLowerScenario == "levelset topology optimization" )
+    else if( tScenario == "analysis" || tScenario == "levelset topology optimization" )
     {
         return ( std::make_shared<Plato::Fluids::InternalThermalForces<PhysicsT, EvaluationT>>(aDomain, aDataMap, aInputs) );
     }
     else
     {
-        THROWERR(std::string("Scenario '") + tScenario + 
-            "' is not supported. Supported options are 1) Analysis, 2) Density-Based Topology Optimization or 3) Levelset Topology Optimization.")
+        THROWERR( std::string("Requested Use Case: Scenario '") + tScenario + "' & Heat Transfer Mechanism '" + tHeatTransfer + "' is not supported. " +
+            "Supported use cases are: Scenario = 'Density-Based Topology Optimization' and Heat Transfer = 'Natural or Forced', " + 
+            "Scenario = 'Levelset Topology Optimization' & Heat Transfer = 'Natural or Forced', " + 
+            "Scenario = 'Analysis' & Heat Transfer = 'Natural or Forced'" )
     }
 }
 
