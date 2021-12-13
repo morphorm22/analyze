@@ -77,7 +77,7 @@ public:
               Plato::LocalOrdinalVector & aBcDofs,
               Plato::ScalarVector       & aBcValues,
         const Plato::OrdinalType          aOffset,
-        const Plato::Scalar               aTime=0)
+        const Plato::Scalar               aTime=0.0)
     {
         auto tNodeIds = this->parseConstrainedNodeSets(aMeshSets);
         auto tValue = this->get_value(aTime);
@@ -100,7 +100,7 @@ public:
     }
 
     Plato::Scalar get_value(
-        const Plato::Scalar aTime) const
+        const Plato::Scalar aTime=0.0) const
     {
         if (mMathExpr == nullptr)
         {

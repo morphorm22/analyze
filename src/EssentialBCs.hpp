@@ -8,6 +8,7 @@
 #include "PlatoMathExpr.hpp"
 #include "AnalyzeMacros.hpp"
 #include "PlatoStaticsTypes.hpp"
+#include "PlatoTypes.hpp"
 
 #include "EssentialBC.hpp"
 
@@ -107,9 +108,9 @@ public:
      \param [in]     aTime     Current time (default=0.0).
      */
     void get(
-        Plato::LocalOrdinalVector & aBcDofs,
-        Plato::ScalarVector       & aBcValues,
-        Plato::Scalar               aTime=0.0)
+              Plato::LocalOrdinalVector & aBcDofs,
+              Plato::ScalarVector       & aBcValues,
+        const Plato::Scalar               aTime=0.0)
     {
         this->sizeBcArrays(aBcDofs,aBcValues);
         this->fillBcData(aBcDofs,aBcValues,aTime);
@@ -129,14 +130,14 @@ public:
     }
 
     void fillBcData(
-        Plato::LocalOrdinalVector & aBcDofs,
-        Plato::ScalarVector       & aBcValues,
-        Plato::Scalar               aTime)
+              Plato::LocalOrdinalVector & aBcDofs,
+              Plato::ScalarVector       & aBcValues,
+        const Plato::Scalar               aTime=0.0)
     {
         Plato::OrdinalType tOffset(0);
         for(auto &tBC : mBCs)
         {
-            tBC->get(mMeshSets, aBcDofs, aBcValues, tOffset, aTime);
+            tBC->get(mMeshSets,aBcDofs,aBcValues,tOffset,aTime);
             tOffset += tBC->get_length(mMeshSets);
         }
     }

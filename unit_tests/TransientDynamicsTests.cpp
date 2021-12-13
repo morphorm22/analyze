@@ -3,6 +3,7 @@
 */
 
 #include "PlatoTestHelpers.hpp"
+#include "PlatoTypes.hpp"
 #include "Teuchos_UnitTestHarness.hpp"
 
 
@@ -31,6 +32,7 @@
 #include "hyperbolic/ElastomechanicsResidual.hpp"
 #include "hyperbolic/HyperbolicMechanics.hpp"
 #include "hyperbolic/HyperbolicProblem.hpp"
+#include <Teuchos_MathExpr.hpp>
 
 template <class VectorFunctionT, class VectorT, class ControlT>
 Plato::Scalar
@@ -274,9 +276,6 @@ TEUCHOS_UNIT_TEST( TransientDynamicsProblemTests, 3D )
   tConstraintGradientX = tHyperbolicProblem->criterionGradientX(tControl, tSolution, "Internal Energy");
 
 }
-
-
-
 
 TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_NoMass )
 {
@@ -538,7 +537,6 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_NoMass )
 
 }
 
-
 TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_WithMass )
 {
   // create input for transient mechanics residual
@@ -766,7 +764,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_WithMass )
 
 }
 
-TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegrator )
+TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorUForm )
 {
   // create input for transient mechanics residual
   //
@@ -957,6 +955,132 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegrator )
 
 }
 
+TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorAForm )
+{
+  // create input for transient mechanics residual
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tInputParams =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                   \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Hyperbolic'/>  \n"
+    "  <Parameter name='Self-Adjoint' type='bool' value='false'/>           \n"
+    "  <ParameterList name='Hyperbolic'>                                    \n"
+    "    <ParameterList name='Penalty Function'>                            \n"
+    "      <Parameter name='Exponent' type='double' value='1.0'/>           \n"
+    "      <Parameter name='Minimum Value' type='double' value='0.0'/>      \n"
+    "      <Parameter name='Type' type='string' value='SIMP'/>              \n"
+    "    </ParameterList>                                                   \n"
+    "  </ParameterList>                                                     \n"
+    "  <ParameterList name='Material Models'>                               \n"
+    "    <ParameterList name='Isotropic Linear Elastic'>                    \n"
+    "      <Parameter name='Mass Density' type='double' value='2.7'/>       \n"
+    "      <Parameter  name='Poissons Ratio' type='double' value='0.36'/>   \n"
+    "      <Parameter  name='Youngs Modulus' type='double' value='68.0e10'/>\n"
+    "    </ParameterList>                                                   \n"
+    "  </ParameterList>                                                     \n"
+    "  <ParameterList name='Time Integration'>                              \n"
+    "    <Parameter name='Newmark Gamma' type='double' value='0.5'/>        \n"
+    "    <Parameter name='Newmark Beta' type='double' value='0.25'/>        \n"
+    "    <Parameter name='Number Time Steps' type='int' value='2'/>         \n"
+    "    <Parameter name='Time Step' type='double' value='1.0e-7'/>         \n"
+    "    <Parameter name='A-Form' type='bool' value='true'/>           \n"
+    "  </ParameterList>                                                     \n"
+    "</ParameterList>                                                       \n"
+  );
+
+  // create test mesh
+  //
+  constexpr int cMeshWidth=2;
+  constexpr int cSpaceDim=3;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(cSpaceDim, cMeshWidth);
+  int tNumDofs = cSpaceDim*tMesh->nverts();
+
+  auto tIntegratorParams = tInputParams->sublist("Time Integration");
+  Plato::NewmarkIntegratorAForm<Plato::Hyperbolic::Mechanics<cSpaceDim>> tIntegrator(tIntegratorParams, 1.0);
+
+  Plato::Scalar tU_val = 1.0, tV_val = 2.0, tA_val = 3.0;
+  Plato::Scalar tU_Prev_val = 3.0, tV_Prev_val = 2.0, tA_Prev_val = 1.0;
+
+  Plato::ScalarVector tU("Displacement", tNumDofs);
+  Plato::blas1::fill(tU_val, tU);
+
+  Plato::ScalarVector tV("Velocity", tNumDofs);
+  Plato::blas1::fill(tV_val, tV);
+
+  Plato::ScalarVector tA("Acceleration", tNumDofs);
+  Plato::blas1::fill(tA_val, tA);
+
+  Plato::ScalarVector tU_Prev("Previous Displacement", tNumDofs);
+  Plato::blas1::fill(tU_Prev_val, tU_Prev);
+
+  Plato::ScalarVector tV_Prev("Previous Velocity", tNumDofs);
+  Plato::blas1::fill(tV_Prev_val, tV_Prev);
+
+  Plato::ScalarVector tA_Prev("Previous Acceleration", tNumDofs);
+  Plato::blas1::fill(tA_Prev_val, tA_Prev);
+
+  auto tTimeStep = tIntegratorParams.get<Plato::Scalar>("Time Step");
+  auto tGamma    = tIntegratorParams.get<Plato::Scalar>("Newmark Gamma");
+  auto tBeta     = tIntegratorParams.get<Plato::Scalar>("Newmark Beta");
+
+  Plato::Scalar
+    tU_pred_val = tU_Prev_val
+                + tTimeStep*tV_Prev_val
+                + tTimeStep*tTimeStep/2.0 * (1.0-2.0*tBeta)*tA_Prev_val;
+
+  Plato::Scalar
+    tV_pred_val = tV_Prev_val
+                + (1.0-tGamma)*tTimeStep * tA_Prev_val;
+
+  /**************************************
+   Test Newmark integrator v_value
+   **************************************/
+  Plato::Scalar tTestVal_V = tV_val - tV_pred_val - tGamma*tTimeStep*tA_val;
+
+  auto tResidualV = tIntegrator.v_value(tU, tU_Prev,
+                                        tV, tV_Prev,
+                                        tA, tA_Prev, tTimeStep);
+
+  auto tResidualV_host = Kokkos::create_mirror_view( tResidualV );
+  Kokkos::deep_copy(tResidualV_host, tResidualV);
+
+  for( int iVal=0; iVal<tNumDofs; iVal++)
+  {
+      TEST_FLOATING_EQUALITY(tResidualV_host(iVal), tTestVal_V, 1.0e-15);
+  }
+
+  /**************************************
+   Test Newmark integrator v_grad_a
+   **************************************/
+  auto tR_va = tIntegrator.v_grad_a(tTimeStep);
+  auto tTestVal_R_va = -tGamma*tTimeStep;
+  TEST_FLOATING_EQUALITY(tR_va, tTestVal_R_va, 1.0e-15);
+
+  /**************************************
+   Test Newmark integrator u_value
+   **************************************/
+  Plato::Scalar tTestVal_U = tU_val - tU_pred_val - tTimeStep*tTimeStep*tBeta*tA_val;
+
+  auto tResidualU = tIntegrator.u_value(tU, tU_Prev,
+                                        tV, tV_Prev,
+                                        tA, tA_Prev, tTimeStep);
+
+  auto tResidualU_host = Kokkos::create_mirror_view( tResidualU );
+  Kokkos::deep_copy(tResidualU_host, tResidualU);
+
+  for( int iVal=0; iVal<tNumDofs; iVal++)
+  {
+      TEST_FLOATING_EQUALITY(tResidualU_host(iVal), tTestVal_U, 1.0e-15);
+  }
+
+  /**************************************
+   Test Newmark integrator u_grad_a
+   **************************************/
+  auto tR_ua = tIntegrator.u_grad_a(tTimeStep);
+  auto tTestVal_R_ua = -tBeta*tTimeStep*tTimeStep;
+  TEST_FLOATING_EQUALITY(tR_ua, tTestVal_R_ua, 1.0e-15);
+}
+
 TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_ScalarFunction )
 {
   // create input for transient mechanics residual
@@ -1118,6 +1242,1123 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_ScalarFunction )
 
   for(int iNode=0; iNode<int(tObjGradZ_gold.size()); iNode++){
     TEST_FLOATING_EQUALITY(tObjGradZ_Host[iNode], tObjGradZ_gold[iNode], 1e-15);
+  }
+
+}
+
+TEUCHOS_UNIT_TEST( TimeDependentBCsTests, EssentialBoundaryDofValuesMatchFunctionValues )
+{
+  // create comm
+  //
+  MPI_Comm myComm;
+  MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
+  Plato::Comm::Machine tMachine(myComm);
+
+  // create test mesh
+  //
+  constexpr int cMeshWidth=2;
+  constexpr int cSpaceDim=3;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(cSpaceDim, cMeshWidth);
+
+  // create mesh sets
+  //
+  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(cSpaceDim);
+  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+
+  // create input for problem
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tInputParams =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Hyperbolic'/>     \n"
+    "  <Parameter name='Physics' type='string' value='Mechanical'/>            \n"
+    "  <Parameter name='Self-Adjoint' type='bool' value='false'/>              \n"
+    "  <ParameterList name='Hyperbolic'>                                       \n"
+    "    <ParameterList name='Penalty Function'>                               \n"
+    "      <Parameter name='Exponent' type='double' value='1.0'/>              \n"
+    "      <Parameter name='Minimum Value' type='double' value='0.0'/>         \n"
+    "      <Parameter name='Type' type='string' value='SIMP'/>                 \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Spatial Model'>                                     \n"
+    "    <ParameterList name='Domains'>                                         \n"
+    "      <ParameterList name='Design Volume'>                                 \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>       \n"
+    "        <Parameter name='Material Model' type='string' value='Alyoominium'/>\n"
+    "      </ParameterList>                                                     \n"
+    "    </ParameterList>                                                       \n"
+    "  </ParameterList>                                                         \n"
+    "  <ParameterList name='Material Models'>                                  \n"
+    "    <ParameterList name='Alyoominium'>                                    \n"
+    "      <ParameterList name='Isotropic Linear Elastic'>                       \n"
+    "        <Parameter name='Mass Density' type='double' value='2.7'/>          \n"
+    "        <Parameter  name='Poissons Ratio' type='double' value='0.36'/>      \n"
+    "        <Parameter  name='Youngs Modulus' type='double' value='68.0e10'/>   \n"
+    "      </ParameterList>                                                      \n"
+    "    </ParameterList>                                                        \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Time Integration'>                                 \n"
+    "    <Parameter name='Newmark Gamma' type='double' value='0.5'/>           \n"
+    "    <Parameter name='Newmark Beta' type='double' value='0.25'/>           \n"
+    "    <Parameter name='Number Time Steps' type='int' value='10'/>            \n"
+    "    <Parameter name='Time Step' type='double' value='1.0e-7'/>            \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='State Essential Boundary Conditions'>                     \n"
+    "    <ParameterList  name='x+ Applied Displacement'>            \n"
+    "      <Parameter name='Type'   type='string'        value='Time Dependent'/>     \n"
+    "      <Parameter name='Index'  type='int'           value='0'/>     \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>          \n"
+    "      <Parameter name='Function' type='string' value='w=2e-6; p=0.01; pi=3.14159264; p*sin(pi*t/w)'/> \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='State Dot Essential Boundary Conditions'>                     \n"
+    "    <ParameterList  name='x+ Applied Velocity'>            \n"
+    "      <Parameter name='Type'   type='string'        value='Time Dependent'/>     \n"
+    "      <Parameter name='Index'  type='int'           value='0'/>     \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>          \n"
+    "      <Parameter name='Function' type='string' value='w=2e-6; p=0.01; pi=3.14159264; p*(pi/w)*cos(pi*t/w)'/> \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='State Dot Dot Essential Boundary Conditions'>                     \n"
+    "    <ParameterList  name='x+ Applied Acceleration'>            \n"
+    "      <Parameter name='Type'   type='string'        value='Time Dependent'/>     \n"
+    "      <Parameter name='Index'  type='int'           value='0'/>     \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>          \n"
+    "      <Parameter name='Function' type='string' value='w=2e-6; p=0.01; pi=3.14159264; -p*(pi*pi/w/w)*sin(pi*t/w)'/> \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Linear Solver'>                              \n"
+    "    <Parameter name='Solver Stack' type='string' value='Epetra'/>        \n"
+    "    <Parameter name='Display Iterations' type='int' value='0'/>     \n"
+    "    <Parameter name='Iterations' type='int' value='50'/>            \n"
+    "    <Parameter name='Tolerance' type='double' value='1e-14'/>       \n"
+    "  </ParameterList>                                                  \n"
+    "</ParameterList>                                                          \n"
+  );
+
+  // construct problem
+  //
+  auto tHyperbolicProblem = 
+    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+    (*tMesh, tMeshSets, *tInputParams, tMachine);
+
+  //create control
+  //
+  int tNumDofs = cSpaceDim*tMesh->nverts();
+  Plato::ScalarVector tControl("control", tNumDofs);
+  Plato::blas1::fill(1.0, tControl);
+
+  // initialize
+  //
+  std::vector<Plato::OrdinalType> tBcDofs = {30, 33, 51, 54, 57, 60, 69, 72, 78};
+  Plato::ScalarVector tDisplacement("displacement", tNumDofs);
+  Plato::ScalarVector tVelocity("velocity", tNumDofs);
+  Plato::ScalarVector tAcceleration("acceleration", tNumDofs);
+
+  // fill in function values at t=0
+  //
+  Plato::Scalar tTime = 0.0;
+  tHyperbolicProblem->constrainFieldsAtBoundary(tDisplacement,tVelocity,tAcceleration,tTime);
+
+  auto tVelocity_Host = Kokkos::create_mirror_view( tVelocity );
+  Kokkos::deep_copy( tVelocity_Host, tVelocity );
+
+  for(int iDof=0; iDof<int(tBcDofs.size()); iDof++){
+      auto tDof = tBcDofs[iDof];
+      TEST_FLOATING_EQUALITY(tVelocity_Host[tDof],15707.9632679, 1e-7);
+  }
+
+  auto tAcceleration_Host = Kokkos::create_mirror_view( tAcceleration );
+  Kokkos::deep_copy( tAcceleration_Host, tAcceleration );
+
+  for(int iDof=0; iDof<int(tBcDofs.size()); iDof++){
+      auto tDof = tBcDofs[iDof];
+      TEST_FLOATING_EQUALITY(tAcceleration_Host[tDof],0.0, 1e-7);
+  }
+
+  // fill in function values at t=1.5e-6
+  //
+  tTime = 1.5e-6;
+  tHyperbolicProblem->constrainFieldsAtBoundary(tDisplacement,tVelocity,tAcceleration,tTime);
+
+  Kokkos::deep_copy( tVelocity_Host, tVelocity );
+
+  for(int iDof=0; iDof<int(tBcDofs.size()); iDof++){
+      auto tDof = tBcDofs[iDof];
+      TEST_FLOATING_EQUALITY(tVelocity_Host[tDof],-11107.207345395916, 1e-7);
+  }
+
+  Kokkos::deep_copy( tAcceleration_Host, tAcceleration );
+
+  for(int iDof=0; iDof<int(tBcDofs.size()); iDof++){
+      auto tDof = tBcDofs[iDof];
+      TEST_FLOATING_EQUALITY(tAcceleration_Host[tDof],-17447160499.097198, 1e-7);
+  }
+
+}
+
+TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithConstantNaturalBCs )
+{
+  // create comm
+  //
+  MPI_Comm myComm;
+  MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
+  Plato::Comm::Machine tMachine(myComm);
+
+  // create test mesh
+  //
+  constexpr int cMeshWidth=2;
+  constexpr int cSpaceDim=3;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(cSpaceDim, cMeshWidth);
+
+  // create mesh sets
+  //
+  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(cSpaceDim);
+  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+
+  // create input for u-form problem
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tInputParamsUForm =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Hyperbolic'/>     \n"
+    "  <Parameter name='Physics' type='string' value='Mechanical'/>            \n"
+    "  <Parameter name='Self-Adjoint' type='bool' value='false'/>              \n"
+    "  <ParameterList name='Hyperbolic'>                                       \n"
+    "    <ParameterList name='Penalty Function'>                               \n"
+    "      <Parameter name='Exponent' type='double' value='1.0'/>              \n"
+    "      <Parameter name='Minimum Value' type='double' value='0.0'/>         \n"
+    "      <Parameter name='Type' type='string' value='SIMP'/>                 \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Spatial Model'>                                     \n"
+    "    <ParameterList name='Domains'>                                         \n"
+    "      <ParameterList name='Design Volume'>                                 \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>       \n"
+    "        <Parameter name='Material Model' type='string' value='Alyoominium'/>\n"
+    "      </ParameterList>                                                     \n"
+    "    </ParameterList>                                                       \n"
+    "  </ParameterList>                                                         \n"
+    "  <ParameterList name='Material Models'>                                  \n"
+    "    <ParameterList name='Alyoominium'>                                    \n"
+    "      <ParameterList name='Isotropic Linear Elastic'>                       \n"
+    "        <Parameter name='Mass Density' type='double' value='2.7'/>          \n"
+    "        <Parameter  name='Poissons Ratio' type='double' value='0.36'/>      \n"
+    "        <Parameter  name='Youngs Modulus' type='double' value='68.0e10'/>   \n"
+    "      </ParameterList>                                                      \n"
+    "    </ParameterList>                                                        \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Time Integration'>                                 \n"
+    "    <Parameter name='Newmark Gamma' type='double' value='0.5'/>           \n"
+    "    <Parameter name='Newmark Beta' type='double' value='0.25'/>           \n"
+    "    <Parameter name='Number Time Steps' type='int' value='2'/>            \n"
+    "    <Parameter name='Time Step' type='double' value='1.0e-7'/>            \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='Natural Boundary Conditions'>                     \n"
+    "    <ParameterList  name='Traction Vector Boundary Condition'>            \n"
+    "      <Parameter name='Type'   type='string'        value='Uniform'/>     \n"
+    "      <Parameter name='Values' type='Array(double)' value='{1e9, 0, 0}'/> \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>          \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Linear Solver'>                              \n"
+    "    <Parameter name='Solver Stack' type='string' value='Epetra'/>        \n"
+    "    <Parameter name='Display Iterations' type='int' value='0'/>     \n"
+    "    <Parameter name='Iterations' type='int' value='50'/>            \n"
+    "    <Parameter name='Tolerance' type='double' value='1e-14'/>       \n"
+    "  </ParameterList>                                                  \n"
+    "</ParameterList>                                                          \n"
+  );
+
+  // create input for a-form problem
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tInputParamsAForm =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Hyperbolic'/>     \n"
+    "  <Parameter name='Physics' type='string' value='Mechanical'/>            \n"
+    "  <Parameter name='Self-Adjoint' type='bool' value='false'/>              \n"
+    "  <ParameterList name='Hyperbolic'>                                       \n"
+    "    <ParameterList name='Penalty Function'>                               \n"
+    "      <Parameter name='Exponent' type='double' value='1.0'/>              \n"
+    "      <Parameter name='Minimum Value' type='double' value='0.0'/>         \n"
+    "      <Parameter name='Type' type='string' value='SIMP'/>                 \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Spatial Model'>                                     \n"
+    "    <ParameterList name='Domains'>                                         \n"
+    "      <ParameterList name='Design Volume'>                                 \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>       \n"
+    "        <Parameter name='Material Model' type='string' value='Alyoominium'/>\n"
+    "      </ParameterList>                                                     \n"
+    "    </ParameterList>                                                       \n"
+    "  </ParameterList>                                                         \n"
+    "  <ParameterList name='Material Models'>                                  \n"
+    "    <ParameterList name='Alyoominium'>                                    \n"
+    "      <ParameterList name='Isotropic Linear Elastic'>                       \n"
+    "        <Parameter name='Mass Density' type='double' value='2.7'/>          \n"
+    "        <Parameter  name='Poissons Ratio' type='double' value='0.36'/>      \n"
+    "        <Parameter  name='Youngs Modulus' type='double' value='68.0e10'/>   \n"
+    "      </ParameterList>                                                      \n"
+    "    </ParameterList>                                                        \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Time Integration'>                                 \n"
+    "    <Parameter name='Newmark Gamma' type='double' value='0.5'/>           \n"
+    "    <Parameter name='Newmark Beta' type='double' value='0.25'/>           \n"
+    "    <Parameter name='A-Form' type='bool' value='true'/>           \n"
+    "    <Parameter name='Number Time Steps' type='int' value='2'/>            \n"
+    "    <Parameter name='Time Step' type='double' value='1.0e-7'/>            \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='Natural Boundary Conditions'>                     \n"
+    "    <ParameterList  name='Traction Vector Boundary Condition'>            \n"
+    "      <Parameter name='Type'   type='string'        value='Uniform'/>     \n"
+    "      <Parameter name='Values' type='Array(double)' value='{1e9, 0, 0}'/> \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>          \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Linear Solver'>                              \n"
+    "    <Parameter name='Solver Stack' type='string' value='Epetra'/>        \n"
+    "    <Parameter name='Display Iterations' type='int' value='0'/>     \n"
+    "    <Parameter name='Iterations' type='int' value='50'/>            \n"
+    "    <Parameter name='Tolerance' type='double' value='1e-14'/>       \n"
+    "  </ParameterList>                                                  \n"
+    "</ParameterList>                                                          \n"
+  );
+
+  // create u-form problem
+  //
+  auto tHyperbolicProblemUForm = 
+    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+    (*tMesh, tMeshSets, *tInputParamsUForm, tMachine);
+
+  // create a-form problem
+  //
+  auto tHyperbolicProblemAForm = 
+    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+    (*tMesh, tMeshSets, *tInputParamsAForm, tMachine);
+
+  // create control
+  //
+  int tNumDofs = cSpaceDim*tMesh->nverts();
+  Plato::ScalarVector tControl("control", tNumDofs);
+  Plato::blas1::fill(1.0, tControl);
+
+  /*****************************************************
+   Test Equivalence of U-Form and A-Form Solutions 
+   *****************************************************/
+
+  // displacements
+  //
+  auto tSolutionUForm = tHyperbolicProblemUForm->solution(tControl);
+  auto tDisplacementsUForm = tSolutionUForm.get("State");
+  auto tDisplacementUForm = Kokkos::subview(tDisplacementsUForm, /*tStepIndex*/1, Kokkos::ALL());
+
+  auto tDisplacementUForm_Host = Kokkos::create_mirror_view( tDisplacementUForm );
+  Kokkos::deep_copy( tDisplacementUForm_Host, tDisplacementUForm );
+
+  auto tSolutionAForm = tHyperbolicProblemAForm->solution(tControl);
+  auto tDisplacementsAForm = tSolutionAForm.get("State");
+  auto tDisplacementAForm = Kokkos::subview(tDisplacementsAForm, /*tStepIndex*/1, Kokkos::ALL());
+
+  auto tDisplacementAForm_Host = Kokkos::create_mirror_view( tDisplacementAForm );
+  Kokkos::deep_copy( tDisplacementAForm_Host, tDisplacementAForm );
+
+  // velocities
+  //
+  auto tVelocitiesUForm = tSolutionUForm.get("StateDot");
+  auto tVelocityUForm = Kokkos::subview(tVelocitiesUForm, /*tStepIndex*/1, Kokkos::ALL());
+
+  auto tVelocityUForm_Host = Kokkos::create_mirror_view( tVelocityUForm );
+  Kokkos::deep_copy( tVelocityUForm_Host, tVelocityUForm );
+
+  auto tVelocitiesAForm = tSolutionAForm.get("StateDot");
+  auto tVelocityAForm = Kokkos::subview(tVelocitiesAForm, /*tStepIndex*/1, Kokkos::ALL());
+
+  auto tVelocityAForm_Host = Kokkos::create_mirror_view( tVelocityAForm );
+  Kokkos::deep_copy( tVelocityAForm_Host, tVelocityAForm );
+
+  // accelerations
+  //
+  auto tAccelerationsUForm = tSolutionUForm.get("StateDotDot");
+  auto tAccelerationUForm = Kokkos::subview(tAccelerationsUForm, /*tStepIndex*/1, Kokkos::ALL());
+
+  auto tAccelerationUForm_Host = Kokkos::create_mirror_view( tAccelerationUForm );
+  Kokkos::deep_copy( tAccelerationUForm_Host, tAccelerationUForm );
+
+  auto tAccelerationsAForm = tSolutionAForm.get("StateDotDot");
+  auto tAccelerationAForm = Kokkos::subview(tAccelerationsAForm, /*tStepIndex*/1, Kokkos::ALL());
+
+  auto tAccelerationAForm_Host = Kokkos::create_mirror_view( tAccelerationAForm );
+  Kokkos::deep_copy( tAccelerationAForm_Host, tAccelerationAForm );
+
+  // test displacements
+  //
+  for(int iNode=0; iNode<int(tDisplacementUForm_Host.size()); iNode++){
+    TEST_FLOATING_EQUALITY(
+      tDisplacementAForm_Host[iNode],
+      tDisplacementUForm_Host[iNode], 1e-12);
+  }
+
+  // test velocities
+  //
+  for(int iNode=0; iNode<int(tVelocityUForm_Host.size()); iNode++){
+    TEST_FLOATING_EQUALITY(
+      tVelocityAForm_Host[iNode],
+      tVelocityUForm_Host[iNode], 1e-12);
+  }
+
+  // test accelerations
+  //
+  for(int iNode=0; iNode<int(tAccelerationUForm_Host.size()); iNode++){
+    TEST_FLOATING_EQUALITY(
+      tAccelerationAForm_Host[iNode],
+      tAccelerationUForm_Host[iNode], 1e-12);
+  }
+
+}
+
+TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithInitialConditions )
+{
+  // create comm
+  //
+  MPI_Comm myComm;
+  MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
+  Plato::Comm::Machine tMachine(myComm);
+
+  // create test mesh
+  //
+  constexpr int cMeshWidth=2;
+  constexpr int cSpaceDim=3;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(cSpaceDim, cMeshWidth);
+
+  // create mesh sets
+  //
+  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(cSpaceDim);
+  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+
+  // create input for u-form problem
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tInputParamsUForm =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Hyperbolic'/>     \n"
+    "  <Parameter name='Physics' type='string' value='Mechanical'/>            \n"
+    "  <Parameter name='Self-Adjoint' type='bool' value='false'/>              \n"
+    "  <ParameterList name='Hyperbolic'>                                       \n"
+    "    <ParameterList name='Penalty Function'>                               \n"
+    "      <Parameter name='Exponent' type='double' value='1.0'/>              \n"
+    "      <Parameter name='Minimum Value' type='double' value='0.0'/>         \n"
+    "      <Parameter name='Type' type='string' value='SIMP'/>                 \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Spatial Model'>                                     \n"
+    "    <ParameterList name='Domains'>                                         \n"
+    "      <ParameterList name='Design Volume'>                                 \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>       \n"
+    "        <Parameter name='Material Model' type='string' value='Alyoominium'/>\n"
+    "      </ParameterList>                                                     \n"
+    "    </ParameterList>                                                       \n"
+    "  </ParameterList>                                                         \n"
+    "  <ParameterList name='Material Models'>                                  \n"
+    "    <ParameterList name='Alyoominium'>                                    \n"
+    "      <ParameterList name='Isotropic Linear Elastic'>                       \n"
+    "        <Parameter name='Mass Density' type='double' value='2.7'/>          \n"
+    "        <Parameter  name='Poissons Ratio' type='double' value='0.36'/>      \n"
+    "        <Parameter  name='Youngs Modulus' type='double' value='68.0e10'/>   \n"
+    "      </ParameterList>                                                      \n"
+    "    </ParameterList>                                                        \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Time Integration'>                                 \n"
+    "    <Parameter name='Newmark Gamma' type='double' value='0.5'/>           \n"
+    "    <Parameter name='Newmark Beta' type='double' value='0.25'/>           \n"
+    "    <Parameter name='Number Time Steps' type='int' value='10'/>            \n"
+    "    <Parameter name='Time Step' type='double' value='1.0e-7'/>            \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='Computed Fields'>                     \n"
+    "    <ParameterList  name='Initial X Displacement'>            \n"
+    "      <Parameter name='Function' type='string' value='w=2e-6; p=0.01; pi=3.14159264; p*sin(pi*x/w)'/> \n"
+    "    </ParameterList>                                                      \n"
+    "    <ParameterList  name='Initial X Velocity'>            \n"
+    "      <Parameter name='Function' type='string' value='w=2e-6; p=0.01; pi=3.14159264; p*(pi/w)*cos(pi*x/w)'/> \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='Initial State'>                     \n"
+    "    <ParameterList  name='Displacement X'>            \n"
+    "      <Parameter name='Computed Field' type='string' value='Initial X Displacement'/> \n"
+    "    </ParameterList>                                                      \n"
+    "    <ParameterList  name='Velocity X'>            \n"
+    "      <Parameter name='Computed Field' type='string' value='Initial X Velocity'/> \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Linear Solver'>                              \n"
+    "    <Parameter name='Solver Stack' type='string' value='Epetra'/>        \n"
+    "    <Parameter name='Display Iterations' type='int' value='0'/>     \n"
+    "    <Parameter name='Iterations' type='int' value='50'/>            \n"
+    "    <Parameter name='Tolerance' type='double' value='1e-14'/>       \n"
+    "  </ParameterList>                                                  \n"
+    "</ParameterList>                                                          \n"
+  );
+
+  // create input for a-form problem
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tInputParamsAForm =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Hyperbolic'/>     \n"
+    "  <Parameter name='Physics' type='string' value='Mechanical'/>            \n"
+    "  <Parameter name='Self-Adjoint' type='bool' value='false'/>              \n"
+    "  <ParameterList name='Hyperbolic'>                                       \n"
+    "    <ParameterList name='Penalty Function'>                               \n"
+    "      <Parameter name='Exponent' type='double' value='1.0'/>              \n"
+    "      <Parameter name='Minimum Value' type='double' value='0.0'/>         \n"
+    "      <Parameter name='Type' type='string' value='SIMP'/>                 \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Spatial Model'>                                     \n"
+    "    <ParameterList name='Domains'>                                         \n"
+    "      <ParameterList name='Design Volume'>                                 \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>       \n"
+    "        <Parameter name='Material Model' type='string' value='Alyoominium'/>\n"
+    "      </ParameterList>                                                     \n"
+    "    </ParameterList>                                                       \n"
+    "  </ParameterList>                                                         \n"
+    "  <ParameterList name='Material Models'>                                  \n"
+    "    <ParameterList name='Alyoominium'>                                    \n"
+    "      <ParameterList name='Isotropic Linear Elastic'>                       \n"
+    "        <Parameter name='Mass Density' type='double' value='2.7'/>          \n"
+    "        <Parameter  name='Poissons Ratio' type='double' value='0.36'/>      \n"
+    "        <Parameter  name='Youngs Modulus' type='double' value='68.0e10'/>   \n"
+    "      </ParameterList>                                                      \n"
+    "    </ParameterList>                                                        \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Time Integration'>                                 \n"
+    "    <Parameter name='Newmark Gamma' type='double' value='0.5'/>           \n"
+    "    <Parameter name='Newmark Beta' type='double' value='0.25'/>           \n"
+    "    <Parameter name='A-Form' type='bool' value='true'/>           \n"
+    "    <Parameter name='Number Time Steps' type='int' value='10'/>            \n"
+    "    <Parameter name='Time Step' type='double' value='1.0e-7'/>            \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='Computed Fields'>                     \n"
+    "    <ParameterList  name='Initial X Displacement'>            \n"
+    "      <Parameter name='Function' type='string' value='w=2e-6; p=0.01; pi=3.14159264; p*sin(pi*x/w)'/> \n"
+    "    </ParameterList>                                                      \n"
+    "    <ParameterList  name='Initial X Velocity'>            \n"
+    "      <Parameter name='Function' type='string' value='w=2e-6; p=0.01; pi=3.14159264; p*(pi/w)*cos(pi*x/w)'/> \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='Initial State'>                     \n"
+    "    <ParameterList  name='Displacement X'>            \n"
+    "      <Parameter name='Computed Field' type='string' value='Initial X Displacement'/> \n"
+    "    </ParameterList>                                                      \n"
+    "    <ParameterList  name='Velocity X'>            \n"
+    "      <Parameter name='Computed Field' type='string' value='Initial X Velocity'/> \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Linear Solver'>                              \n"
+    "    <Parameter name='Solver Stack' type='string' value='Epetra'/>        \n"
+    "    <Parameter name='Display Iterations' type='int' value='0'/>     \n"
+    "    <Parameter name='Iterations' type='int' value='50'/>            \n"
+    "    <Parameter name='Tolerance' type='double' value='1e-14'/>       \n"
+    "  </ParameterList>                                                  \n"
+    "</ParameterList>                                                          \n"
+  );
+
+  // create u-form problem
+  //
+  auto tHyperbolicProblemUForm = 
+    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+    (*tMesh, tMeshSets, *tInputParamsUForm, tMachine);
+
+  // create a-form problem
+  //
+  auto tHyperbolicProblemAForm = 
+    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+    (*tMesh, tMeshSets, *tInputParamsAForm, tMachine);
+
+  // create control
+  //
+  int tNumDofs = cSpaceDim*tMesh->nverts();
+  Plato::ScalarVector tControl("control", tNumDofs);
+  Plato::blas1::fill(1.0, tControl);
+
+  /*****************************************************
+   Test Equivalence of U-Form and A-Form Solutions 
+   *****************************************************/
+
+  // displacements
+  //
+  auto tSolutionUForm = tHyperbolicProblemUForm->solution(tControl);
+  auto tDisplacementsUForm = tSolutionUForm.get("State");
+  auto tDisplacementUForm = Kokkos::subview(tDisplacementsUForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tDisplacementUForm_Host = Kokkos::create_mirror_view( tDisplacementUForm );
+  Kokkos::deep_copy( tDisplacementUForm_Host, tDisplacementUForm );
+
+  auto tSolutionAForm = tHyperbolicProblemAForm->solution(tControl);
+  auto tDisplacementsAForm = tSolutionAForm.get("State");
+  auto tDisplacementAForm = Kokkos::subview(tDisplacementsAForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tDisplacementAForm_Host = Kokkos::create_mirror_view( tDisplacementAForm );
+  Kokkos::deep_copy( tDisplacementAForm_Host, tDisplacementAForm );
+
+  // velocities
+  //
+  auto tVelocitiesUForm = tSolutionUForm.get("StateDot");
+  auto tVelocityUForm = Kokkos::subview(tVelocitiesUForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tVelocityUForm_Host = Kokkos::create_mirror_view( tVelocityUForm );
+  Kokkos::deep_copy( tVelocityUForm_Host, tVelocityUForm );
+
+  auto tVelocitiesAForm = tSolutionAForm.get("StateDot");
+  auto tVelocityAForm = Kokkos::subview(tVelocitiesAForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tVelocityAForm_Host = Kokkos::create_mirror_view( tVelocityAForm );
+  Kokkos::deep_copy( tVelocityAForm_Host, tVelocityAForm );
+
+  // accelerations
+  //
+  auto tAccelerationsUForm = tSolutionUForm.get("StateDotDot");
+  auto tAccelerationUForm = Kokkos::subview(tAccelerationsUForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tAccelerationUForm_Host = Kokkos::create_mirror_view( tAccelerationUForm );
+  Kokkos::deep_copy( tAccelerationUForm_Host, tAccelerationUForm );
+
+  auto tAccelerationsAForm = tSolutionAForm.get("StateDotDot");
+  auto tAccelerationAForm = Kokkos::subview(tAccelerationsAForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tAccelerationAForm_Host = Kokkos::create_mirror_view( tAccelerationAForm );
+  Kokkos::deep_copy( tAccelerationAForm_Host, tAccelerationAForm );
+
+  // test displacements
+  //
+  for(int iNode=0; iNode<int(tDisplacementUForm_Host.size()); iNode++){
+    TEST_FLOATING_EQUALITY(
+      tDisplacementAForm_Host[iNode],
+      tDisplacementUForm_Host[iNode], 1e-5);
+  }
+
+  // test velocities
+  //
+  for(int iNode=0; iNode<int(tVelocityUForm_Host.size()); iNode++){
+    TEST_FLOATING_EQUALITY(
+      tVelocityAForm_Host[iNode],
+      tVelocityUForm_Host[iNode], 1e-5);
+  }
+
+  // test accelerations
+  //
+  for(int iNode=0; iNode<int(tAccelerationUForm_Host.size()); iNode++){
+    TEST_FLOATING_EQUALITY(
+      tAccelerationAForm_Host[iNode],
+      tAccelerationUForm_Host[iNode], 1e-5);
+  }
+
+}
+
+TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithTimeDependentNaturalBCs )
+{
+  // create comm
+  //
+  MPI_Comm myComm;
+  MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
+  Plato::Comm::Machine tMachine(myComm);
+
+  // create test mesh
+  //
+  constexpr int cMeshWidth=2;
+  constexpr int cSpaceDim=3;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(cSpaceDim, cMeshWidth);
+
+  // create mesh sets
+  //
+  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(cSpaceDim);
+  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+
+  // create input for u-form problem
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tInputParamsUForm =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Hyperbolic'/>     \n"
+    "  <Parameter name='Physics' type='string' value='Mechanical'/>            \n"
+    "  <Parameter name='Self-Adjoint' type='bool' value='false'/>              \n"
+    "  <ParameterList name='Hyperbolic'>                                       \n"
+    "    <ParameterList name='Penalty Function'>                               \n"
+    "      <Parameter name='Exponent' type='double' value='1.0'/>              \n"
+    "      <Parameter name='Minimum Value' type='double' value='0.0'/>         \n"
+    "      <Parameter name='Type' type='string' value='SIMP'/>                 \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Spatial Model'>                                     \n"
+    "    <ParameterList name='Domains'>                                         \n"
+    "      <ParameterList name='Design Volume'>                                 \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>       \n"
+    "        <Parameter name='Material Model' type='string' value='Alyoominium'/>\n"
+    "      </ParameterList>                                                     \n"
+    "    </ParameterList>                                                       \n"
+    "  </ParameterList>                                                         \n"
+    "  <ParameterList name='Material Models'>                                  \n"
+    "    <ParameterList name='Alyoominium'>                                    \n"
+    "      <ParameterList name='Isotropic Linear Elastic'>                       \n"
+    "        <Parameter name='Mass Density' type='double' value='2.7'/>          \n"
+    "        <Parameter  name='Poissons Ratio' type='double' value='0.36'/>      \n"
+    "        <Parameter  name='Youngs Modulus' type='double' value='68.0e10'/>   \n"
+    "      </ParameterList>                                                      \n"
+    "    </ParameterList>                                                        \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Time Integration'>                                 \n"
+    "    <Parameter name='Newmark Gamma' type='double' value='0.5'/>           \n"
+    "    <Parameter name='Newmark Beta' type='double' value='0.25'/>           \n"
+    "    <Parameter name='Number Time Steps' type='int' value='10'/>            \n"
+    "    <Parameter name='Time Step' type='double' value='1.0e-7'/>            \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='Natural Boundary Conditions'>                     \n"
+    "    <ParameterList  name='Traction Vector Boundary Condition'>            \n"
+    "      <Parameter name='Type'   type='string'        value='Uniform'/>     \n"
+    "      <Parameter name='Values' type='Array(string)' value='{0.0, w=2e-6; p=1.5e8; pi=3.14159264; p*sin(pi*t/w)^2, 0.0}'/> \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>          \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='State Essential Boundary Conditions'>                     \n"
+    "    <ParameterList  name='X fixed'>            \n"
+    "      <Parameter name='Type'   type='string' value='Zero Value'/>     \n"
+    "      <Parameter name='Index'  type='int'    value='0'/>     \n"
+    "      <Parameter name='Sides'  type='string' value='x-'/>     \n"
+    "    </ParameterList>                                                      \n"
+    "    <ParameterList  name='Y fixed'>            \n"
+    "      <Parameter name='Type'   type='string' value='Zero Value'/>     \n"
+    "      <Parameter name='Index'  type='int'    value='1'/>     \n"
+    "      <Parameter name='Sides'  type='string' value='x+'/>     \n"
+    "    </ParameterList>                                                      \n"
+    "    <ParameterList  name='Z fixed'>            \n"
+    "      <Parameter name='Type'   type='string' value='Zero Value'/>     \n"
+    "      <Parameter name='Index'  type='int'    value='2'/>     \n"
+    "      <Parameter name='Sides'  type='string' value='x+'/>     \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Linear Solver'>                              \n"
+    "    <Parameter name='Solver Stack' type='string' value='Epetra'/>        \n"
+    "    <Parameter name='Display Iterations' type='int' value='0'/>     \n"
+    "    <Parameter name='Iterations' type='int' value='50'/>            \n"
+    "    <Parameter name='Tolerance' type='double' value='1e-14'/>       \n"
+    "  </ParameterList>                                                  \n"
+    "</ParameterList>                                                          \n"
+  );
+
+  // create input for a-form problem
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tInputParamsAForm =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Hyperbolic'/>     \n"
+    "  <Parameter name='Physics' type='string' value='Mechanical'/>            \n"
+    "  <Parameter name='Self-Adjoint' type='bool' value='false'/>              \n"
+    "  <ParameterList name='Hyperbolic'>                                       \n"
+    "    <ParameterList name='Penalty Function'>                               \n"
+    "      <Parameter name='Exponent' type='double' value='1.0'/>              \n"
+    "      <Parameter name='Minimum Value' type='double' value='0.0'/>         \n"
+    "      <Parameter name='Type' type='string' value='SIMP'/>                 \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Spatial Model'>                                     \n"
+    "    <ParameterList name='Domains'>                                         \n"
+    "      <ParameterList name='Design Volume'>                                 \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>       \n"
+    "        <Parameter name='Material Model' type='string' value='Alyoominium'/>\n"
+    "      </ParameterList>                                                     \n"
+    "    </ParameterList>                                                       \n"
+    "  </ParameterList>                                                         \n"
+    "  <ParameterList name='Material Models'>                                  \n"
+    "    <ParameterList name='Alyoominium'>                                    \n"
+    "      <ParameterList name='Isotropic Linear Elastic'>                       \n"
+    "        <Parameter name='Mass Density' type='double' value='2.7'/>          \n"
+    "        <Parameter  name='Poissons Ratio' type='double' value='0.36'/>      \n"
+    "        <Parameter  name='Youngs Modulus' type='double' value='68.0e10'/>   \n"
+    "      </ParameterList>                                                      \n"
+    "    </ParameterList>                                                        \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Time Integration'>                                 \n"
+    "    <Parameter name='Newmark Gamma' type='double' value='0.5'/>           \n"
+    "    <Parameter name='Newmark Beta' type='double' value='0.25'/>           \n"
+    "    <Parameter name='A-Form' type='bool' value='true'/>           \n"
+    "    <Parameter name='Number Time Steps' type='int' value='10'/>            \n"
+    "    <Parameter name='Time Step' type='double' value='1.0e-7'/>            \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='Natural Boundary Conditions'>                     \n"
+    "    <ParameterList  name='Traction Vector Boundary Condition'>            \n"
+    "      <Parameter name='Type'   type='string'        value='Uniform'/>     \n"
+    "      <Parameter name='Values' type='Array(string)' value='{0.0, w=2e-6; p=1.5e8; pi=3.14159264; p*sin(pi*t/w)^2, 0.0}'/> \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>          \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='State Dot Dot Essential Boundary Conditions'>                     \n"
+    "    <ParameterList  name='X fixed'>            \n"
+    "      <Parameter name='Type'   type='string' value='Zero Value'/>     \n"
+    "      <Parameter name='Index'  type='int'    value='0'/>     \n"
+    "      <Parameter name='Sides'  type='string' value='x-'/>     \n"
+    "    </ParameterList>                                                      \n"
+    "    <ParameterList  name='Y fixed'>            \n"
+    "      <Parameter name='Type'   type='string' value='Zero Value'/>     \n"
+    "      <Parameter name='Index'  type='int'    value='1'/>     \n"
+    "      <Parameter name='Sides'  type='string' value='x+'/>     \n"
+    "    </ParameterList>                                                      \n"
+    "    <ParameterList  name='Z fixed'>            \n"
+    "      <Parameter name='Type'   type='string' value='Zero Value'/>     \n"
+    "      <Parameter name='Index'  type='int'    value='2'/>     \n"
+    "      <Parameter name='Sides'  type='string' value='x+'/>     \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Linear Solver'>                              \n"
+    "    <Parameter name='Solver Stack' type='string' value='Epetra'/>        \n"
+    "    <Parameter name='Display Iterations' type='int' value='0'/>     \n"
+    "    <Parameter name='Iterations' type='int' value='50'/>            \n"
+    "    <Parameter name='Tolerance' type='double' value='1e-14'/>       \n"
+    "  </ParameterList>                                                  \n"
+    "</ParameterList>                                                          \n"
+  );
+
+  // create u-form problem
+  //
+  auto tHyperbolicProblemUForm = 
+    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+    (*tMesh, tMeshSets, *tInputParamsUForm, tMachine);
+
+  // create a-form problem
+  //
+  auto tHyperbolicProblemAForm = 
+    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+    (*tMesh, tMeshSets, *tInputParamsAForm, tMachine);
+
+  // create control
+  //
+  int tNumDofs = cSpaceDim*tMesh->nverts();
+  Plato::ScalarVector tControl("control", tNumDofs);
+  Plato::blas1::fill(1.0, tControl);
+
+  /*****************************************************
+   Test Equivalence of U-Form and A-Form Solutions 
+   *****************************************************/
+
+  // displacements
+  //
+  auto tSolutionUForm = tHyperbolicProblemUForm->solution(tControl);
+  auto tDisplacementsUForm = tSolutionUForm.get("State");
+  auto tDisplacementUForm = Kokkos::subview(tDisplacementsUForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tDisplacementUForm_Host = Kokkos::create_mirror_view( tDisplacementUForm );
+  Kokkos::deep_copy( tDisplacementUForm_Host, tDisplacementUForm );
+
+  auto tSolutionAForm = tHyperbolicProblemAForm->solution(tControl);
+  auto tDisplacementsAForm = tSolutionAForm.get("State");
+  auto tDisplacementAForm = Kokkos::subview(tDisplacementsAForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tDisplacementAForm_Host = Kokkos::create_mirror_view( tDisplacementAForm );
+  Kokkos::deep_copy( tDisplacementAForm_Host, tDisplacementAForm );
+
+  // velocities
+  //
+  auto tVelocitiesUForm = tSolutionUForm.get("StateDot");
+  auto tVelocityUForm = Kokkos::subview(tVelocitiesUForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tVelocityUForm_Host = Kokkos::create_mirror_view( tVelocityUForm );
+  Kokkos::deep_copy( tVelocityUForm_Host, tVelocityUForm );
+
+  auto tVelocitiesAForm = tSolutionAForm.get("StateDot");
+  auto tVelocityAForm = Kokkos::subview(tVelocitiesAForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tVelocityAForm_Host = Kokkos::create_mirror_view( tVelocityAForm );
+  Kokkos::deep_copy( tVelocityAForm_Host, tVelocityAForm );
+
+  // accelerations
+  //
+  auto tAccelerationsUForm = tSolutionUForm.get("StateDotDot");
+  auto tAccelerationUForm = Kokkos::subview(tAccelerationsUForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tAccelerationUForm_Host = Kokkos::create_mirror_view( tAccelerationUForm );
+  Kokkos::deep_copy( tAccelerationUForm_Host, tAccelerationUForm );
+
+  auto tAccelerationsAForm = tSolutionAForm.get("StateDotDot");
+  auto tAccelerationAForm = Kokkos::subview(tAccelerationsAForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tAccelerationAForm_Host = Kokkos::create_mirror_view( tAccelerationAForm );
+  Kokkos::deep_copy( tAccelerationAForm_Host, tAccelerationAForm );
+
+  // test displacements
+  //
+  for(int iNode=0; iNode<int(tDisplacementUForm_Host.size()); iNode++){
+    TEST_FLOATING_EQUALITY(
+      tDisplacementAForm_Host[iNode],
+      tDisplacementUForm_Host[iNode], 1e-8);
+  }
+
+  // test velocities
+  //
+  for(int iNode=0; iNode<int(tVelocityUForm_Host.size()); iNode++){
+    TEST_FLOATING_EQUALITY(
+      tVelocityAForm_Host[iNode],
+      tVelocityUForm_Host[iNode], 1e-8);
+  }
+
+  // test accelerations
+  //
+  for(int iNode=0; iNode<int(tAccelerationUForm_Host.size()); iNode++){
+    TEST_FLOATING_EQUALITY(
+      tAccelerationAForm_Host[iNode],
+      tAccelerationUForm_Host[iNode], 1e-8);
+  }
+
+}
+
+TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithTimeDependentEssentialBCs )
+{
+  // create comm
+  //
+  MPI_Comm myComm;
+  MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
+  Plato::Comm::Machine tMachine(myComm);
+
+  // create test mesh
+  //
+  constexpr int cMeshWidth=2;
+  constexpr int cSpaceDim=3;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(cSpaceDim, cMeshWidth);
+
+  // create mesh sets
+  //
+  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(cSpaceDim);
+  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+
+  // create input for u-form problem
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tInputParamsUForm =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Hyperbolic'/>     \n"
+    "  <Parameter name='Physics' type='string' value='Mechanical'/>            \n"
+    "  <Parameter name='Self-Adjoint' type='bool' value='false'/>              \n"
+    "  <ParameterList name='Hyperbolic'>                                       \n"
+    "    <ParameterList name='Penalty Function'>                               \n"
+    "      <Parameter name='Exponent' type='double' value='1.0'/>              \n"
+    "      <Parameter name='Minimum Value' type='double' value='0.0'/>         \n"
+    "      <Parameter name='Type' type='string' value='SIMP'/>                 \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Spatial Model'>                                     \n"
+    "    <ParameterList name='Domains'>                                         \n"
+    "      <ParameterList name='Design Volume'>                                 \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>       \n"
+    "        <Parameter name='Material Model' type='string' value='Alyoominium'/>\n"
+    "      </ParameterList>                                                     \n"
+    "    </ParameterList>                                                       \n"
+    "  </ParameterList>                                                         \n"
+    "  <ParameterList name='Material Models'>                                  \n"
+    "    <ParameterList name='Alyoominium'>                                    \n"
+    "      <ParameterList name='Isotropic Linear Elastic'>                       \n"
+    "        <Parameter name='Mass Density' type='double' value='2.7'/>          \n"
+    "        <Parameter  name='Poissons Ratio' type='double' value='0.36'/>      \n"
+    "        <Parameter  name='Youngs Modulus' type='double' value='68.0e10'/>   \n"
+    "      </ParameterList>                                                      \n"
+    "    </ParameterList>                                                        \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Time Integration'>                                 \n"
+    "    <Parameter name='Newmark Gamma' type='double' value='0.5'/>           \n"
+    "    <Parameter name='Newmark Beta' type='double' value='0.25'/>           \n"
+    "    <Parameter name='Number Time Steps' type='int' value='10'/>            \n"
+    "    <Parameter name='Time Step' type='double' value='1.0e-7'/>            \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='State Essential Boundary Conditions'>                     \n"
+    "    <ParameterList  name='x+ Applied Displacement'>            \n"
+    "      <Parameter name='Type'   type='string'        value='Time Dependent'/>     \n"
+    "      <Parameter name='Index'  type='int'           value='0'/>     \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>          \n"
+    "      <Parameter name='Function' type='string' value='w=2e-6; p=0.01; pi=3.14159264; p*sin(pi*t/w)'/> \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='State Dot Essential Boundary Conditions'>                     \n"
+    "    <ParameterList  name='x+ Applied Velocity'>            \n"
+    "      <Parameter name='Type'   type='string'        value='Time Dependent'/>     \n"
+    "      <Parameter name='Index'  type='int'           value='0'/>     \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>          \n"
+    "      <Parameter name='Function' type='string' value='w=2e-6; p=0.01; pi=3.14159264; p*(pi/w)*cos(pi*t/w)'/> \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='State Dot Dot Essential Boundary Conditions'>                     \n"
+    "    <ParameterList  name='x+ Applied Acceleration'>            \n"
+    "      <Parameter name='Type'   type='string'        value='Time Dependent'/>     \n"
+    "      <Parameter name='Index'  type='int'           value='0'/>     \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>          \n"
+    "      <Parameter name='Function' type='string' value='w=2e-6; p=0.01; pi=3.14159264; -p*(pi*pi/w/w)*sin(pi*t/w)'/> \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Linear Solver'>                              \n"
+    "    <Parameter name='Solver Stack' type='string' value='Epetra'/>        \n"
+    "    <Parameter name='Display Iterations' type='int' value='0'/>     \n"
+    "    <Parameter name='Iterations' type='int' value='50'/>            \n"
+    "    <Parameter name='Tolerance' type='double' value='1e-14'/>       \n"
+    "  </ParameterList>                                                  \n"
+    "</ParameterList>                                                          \n"
+  );
+
+  // create input for a-form problem
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tInputParamsAForm =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                      \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Hyperbolic'/>     \n"
+    "  <Parameter name='Physics' type='string' value='Mechanical'/>            \n"
+    "  <Parameter name='Self-Adjoint' type='bool' value='false'/>              \n"
+    "  <ParameterList name='Hyperbolic'>                                       \n"
+    "    <ParameterList name='Penalty Function'>                               \n"
+    "      <Parameter name='Exponent' type='double' value='1.0'/>              \n"
+    "      <Parameter name='Minimum Value' type='double' value='0.0'/>         \n"
+    "      <Parameter name='Type' type='string' value='SIMP'/>                 \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Spatial Model'>                                     \n"
+    "    <ParameterList name='Domains'>                                         \n"
+    "      <ParameterList name='Design Volume'>                                 \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>       \n"
+    "        <Parameter name='Material Model' type='string' value='Alyoominium'/>\n"
+    "      </ParameterList>                                                     \n"
+    "    </ParameterList>                                                       \n"
+    "  </ParameterList>                                                         \n"
+    "  <ParameterList name='Material Models'>                                  \n"
+    "    <ParameterList name='Alyoominium'>                                    \n"
+    "      <ParameterList name='Isotropic Linear Elastic'>                       \n"
+    "        <Parameter name='Mass Density' type='double' value='2.7'/>          \n"
+    "        <Parameter  name='Poissons Ratio' type='double' value='0.36'/>      \n"
+    "        <Parameter  name='Youngs Modulus' type='double' value='68.0e10'/>   \n"
+    "      </ParameterList>                                                      \n"
+    "    </ParameterList>                                                        \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Time Integration'>                                 \n"
+    "    <Parameter name='Newmark Gamma' type='double' value='0.5'/>           \n"
+    "    <Parameter name='Newmark Beta' type='double' value='0.25'/>           \n"
+    "    <Parameter name='A-Form' type='bool' value='true'/>           \n"
+    "    <Parameter name='Number Time Steps' type='int' value='10'/>            \n"
+    "    <Parameter name='Time Step' type='double' value='1.0e-7'/>            \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='State Essential Boundary Conditions'>                     \n"
+    "    <ParameterList  name='x+ Applied Displacement'>            \n"
+    "      <Parameter name='Type'   type='string'        value='Time Dependent'/>     \n"
+    "      <Parameter name='Index'  type='int'           value='0'/>     \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>          \n"
+    "      <Parameter name='Function' type='string' value='w=2e-6; p=0.01; pi=3.14159264; p*sin(pi*t/w)'/> \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='State Dot Essential Boundary Conditions'>                     \n"
+    "    <ParameterList  name='x+ Applied Velocity'>            \n"
+    "      <Parameter name='Type'   type='string'        value='Time Dependent'/>     \n"
+    "      <Parameter name='Index'  type='int'           value='0'/>     \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>          \n"
+    "      <Parameter name='Function' type='string' value='w=2e-6; p=0.01; pi=3.14159264; p*(pi/w)*cos(pi*t/w)'/> \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList  name='State Dot Dot Essential Boundary Conditions'>                     \n"
+    "    <ParameterList  name='x+ Applied Acceleration'>            \n"
+    "      <Parameter name='Type'   type='string'        value='Time Dependent'/>     \n"
+    "      <Parameter name='Index'  type='int'           value='0'/>     \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>          \n"
+    "      <Parameter name='Function' type='string' value='w=2e-6; p=0.01; pi=3.14159264; -p*(pi*pi/w/w)*sin(pi*t/w)'/> \n"
+    "    </ParameterList>                                                      \n"
+    "  </ParameterList>                                                        \n"
+    "  <ParameterList name='Linear Solver'>                              \n"
+    "    <Parameter name='Solver Stack' type='string' value='Epetra'/>        \n"
+    "    <Parameter name='Display Iterations' type='int' value='0'/>     \n"
+    "    <Parameter name='Iterations' type='int' value='50'/>            \n"
+    "    <Parameter name='Tolerance' type='double' value='1e-14'/>       \n"
+    "  </ParameterList>                                                  \n"
+    "</ParameterList>                                                          \n"
+  );
+
+  // create u-form problem
+  //
+  auto tHyperbolicProblemUForm = 
+    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+    (*tMesh, tMeshSets, *tInputParamsUForm, tMachine);
+
+  // create a-form problem
+  //
+  auto tHyperbolicProblemAForm = 
+    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+    (*tMesh, tMeshSets, *tInputParamsAForm, tMachine);
+
+  // create control
+  //
+  int tNumDofs = cSpaceDim*tMesh->nverts();
+  Plato::ScalarVector tControl("control", tNumDofs);
+  Plato::blas1::fill(1.0, tControl);
+
+  /*****************************************************
+   Test Equivalence of U-Form and A-Form Solutions 
+   *****************************************************/
+
+  // displacements
+  //
+  auto tSolutionUForm = tHyperbolicProblemUForm->solution(tControl);
+  auto tDisplacementsUForm = tSolutionUForm.get("State");
+  auto tDisplacementUForm = Kokkos::subview(tDisplacementsUForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tDisplacementUForm_Host = Kokkos::create_mirror_view( tDisplacementUForm );
+  Kokkos::deep_copy( tDisplacementUForm_Host, tDisplacementUForm );
+
+  auto tSolutionAForm = tHyperbolicProblemAForm->solution(tControl);
+  auto tDisplacementsAForm = tSolutionAForm.get("State");
+  auto tDisplacementAForm = Kokkos::subview(tDisplacementsAForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tDisplacementAForm_Host = Kokkos::create_mirror_view( tDisplacementAForm );
+  Kokkos::deep_copy( tDisplacementAForm_Host, tDisplacementAForm );
+
+  // velocities
+  //
+  auto tVelocitiesUForm = tSolutionUForm.get("StateDot");
+  auto tVelocityUForm = Kokkos::subview(tVelocitiesUForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tVelocityUForm_Host = Kokkos::create_mirror_view( tVelocityUForm );
+  Kokkos::deep_copy( tVelocityUForm_Host, tVelocityUForm );
+
+  auto tVelocitiesAForm = tSolutionAForm.get("StateDot");
+  auto tVelocityAForm = Kokkos::subview(tVelocitiesAForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tVelocityAForm_Host = Kokkos::create_mirror_view( tVelocityAForm );
+  Kokkos::deep_copy( tVelocityAForm_Host, tVelocityAForm );
+
+  // accelerations
+  //
+  auto tAccelerationsUForm = tSolutionUForm.get("StateDotDot");
+  auto tAccelerationUForm = Kokkos::subview(tAccelerationsUForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tAccelerationUForm_Host = Kokkos::create_mirror_view( tAccelerationUForm );
+  Kokkos::deep_copy( tAccelerationUForm_Host, tAccelerationUForm );
+
+  auto tAccelerationsAForm = tSolutionAForm.get("StateDotDot");
+  auto tAccelerationAForm = Kokkos::subview(tAccelerationsAForm, /*tStepIndex*/9, Kokkos::ALL());
+
+  auto tAccelerationAForm_Host = Kokkos::create_mirror_view( tAccelerationAForm );
+  Kokkos::deep_copy( tAccelerationAForm_Host, tAccelerationAForm );
+
+  // test displacements
+  //
+  for(int iNode=0; iNode<int(tDisplacementUForm_Host.size()); iNode++){
+    TEST_FLOATING_EQUALITY(
+      tDisplacementAForm_Host[iNode],
+      tDisplacementUForm_Host[iNode], 1.6e-0);
+  }
+
+  // test velocities
+  //
+  for(int iNode=0; iNode<int(tVelocityUForm_Host.size()); iNode++){
+    TEST_FLOATING_EQUALITY(
+      tVelocityAForm_Host[iNode],
+      tVelocityUForm_Host[iNode], 1e-0);
+  }
+
+  // test accelerations
+  //
+  for(int iNode=0; iNode<int(tAccelerationUForm_Host.size()); iNode++){
+    TEST_FLOATING_EQUALITY(
+      tAccelerationAForm_Host[iNode],
+      tAccelerationUForm_Host[iNode], 1e-0);
   }
 
 }
