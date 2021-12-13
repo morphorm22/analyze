@@ -19,6 +19,35 @@ namespace Plato
 namespace Fluids
 {
 
+/***************************************************************************//**
+ * \fn inline std::string heat_transfer_tag
+ *
+ * \brief Parse heat transfer mechanism tag from input file and convert value to lowercase.
+ * \param [in] aInputs input file metadata
+ * \return lowercase heat transfer mechanism tag
+ ******************************************************************************/
+inline std::string heat_transfer_tag
+(Teuchos::ParameterList & aInputs)
+{
+    if(aInputs.isSublist("Hyperbolic") == false)
+    {
+        THROWERR("'Hyperbolic' Parameter List is not defined.")
+    }
+    auto tHyperbolic = aInputs.sublist("Hyperbolic");
+    auto tTag = tHyperbolic.get<std::string>("Heat Transfer", "None");
+    auto tHeatTransfer = Plato::tolower(tTag);
+    return tHeatTransfer;
+}
+// function heat_transfer_tag
+
+/***************************************************************************//**
+ * \fn get_material_property
+ * \brief Parse and return material property scalar value(s).
+ * \param [in] aMaterialProperty  material property tag/name
+ * \param [in] aMaterialBlockName material block tag/name
+ * \param [in] aInputs            input database
+ * \return material property scalar value(s)
+ ******************************************************************************/
 template<typename Type>
 inline Type get_material_property(
     const std::string& aMaterialProperty,
@@ -46,7 +75,104 @@ inline Type get_material_property(
     auto tProperty = tMyMaterial.get<Type>(aMaterialProperty);
     return tProperty;
 }
+// function get_material_property
 
+/***************************************************************************//**
+ * \fn forced_convection_thermal_source_dimless_constant
+ * \brief Initialize thermal source dimensionless constant for forced convection problems. \n
+ *            \f$\beta = \frac{\alpha L^2_{\infty}}{k_f \Delta{t} u_{\infty}}\f$ \n
+ * where \f$ L_{\infty}\f$ is the characteristic length, \f$ k_f\f$ is the fluid thermal \n
+ * conductivity, \f$\alpha\f$ is the thermal difussivity, \f$ u_{\infty}\f$ is the \n
+ * characteristic vecloty, and \f$\Delta{t}\f$ is the reference temperature (difference \n
+ * between the wall and ambient temperature).
+ * \param [in] aMaterialName material name
+ * \param [in] aInputs       input database
+ * \return dimensionless constant
+ ******************************************************************************/
+inline Plato::Scalar forced_convection_thermal_source_dimless_constant(const std::string& aMaterialName, Teuchos::ParameterList& aInputs)
+{
+    auto tThermalDifussivity = Plato::Fluids::get_material_property<Plato::Scalar>("Thermal Difussivity", aMaterialName, aInputs);
+    Plato::is_positive_finite_number(tThermalDifussivity, "Thermal Difussivity");
+
+    auto tThermalConductivity = Plato::Fluids::get_material_property<Plato::Scalar>("Thermal Conductivity", aMaterialName, aInputs);
+    Plato::is_positive_finite_number(tThermalConductivity, "Thermal Conductivity");
+
+    auto tCharacteristicLength = Plato::Fluids::get_material_property<Plato::Scalar>("Characteristic Length", aMaterialName, aInputs);
+    Plato::is_positive_finite_number(tCharacteristicLength, "Characteristic Length");
+
+    auto tCharacteristicVelocity = Plato::Fluids::get_material_property<Plato::Scalar>("Characteristic Velocity", aMaterialName, aInputs);
+    Plato::is_positive_finite_number(tCharacteristicVelocity, "Characteristic Velocity");
+
+    auto tReferenceTemperature = Plato::Fluids::get_material_property<Plato::Scalar>("Reference Temperature", aMaterialName, aInputs);
+    if(tReferenceTemperature == static_cast<Plato::Scalar>(0.0)){ THROWERR(std::string("'Reference Temperature' keyword cannot be set to zero.")) }
+    
+    auto tDimLessConstant = (tCharacteristicLength * tThermalDifussivity) / (tThermalConductivity * tReferenceTemperature * tCharacteristicVelocity);
+    return tDimLessConstant;
+}
+// function forced_convection_thermal_source_dimless_constant
+
+/***************************************************************************//**
+ * \fn natural_convection_thermal_source_dimless_constant
+ * \brief Initialize thermal source dimensionless constant for natural convection problems. \n
+ *            \f$\beta = \frac{L^2_{\infty}}{k_f \Delta{t}}\f$ \n
+ * where \f$ L_{\infty}\f$ is the characteristic length, \f$ k_f\f$ is the fluid thermal \n
+ * conductivity and \f$\Delta{t}\f$ is the reference temperature (difference between the wall \n
+ * and ambient temperature).
+ * \param [in] aMaterialName material name
+ * \param [in] aInputs       input database
+ * \return dimensionless constant
+ ******************************************************************************/
+inline Plato::Scalar natural_convection_thermal_source_dimless_constant(const std::string& aMaterialName, Teuchos::ParameterList& aInputs)
+{
+    auto tThermalConductivity = Plato::Fluids::get_material_property<Plato::Scalar>("Thermal Conductivity", aMaterialName, aInputs);
+    Plato::is_positive_finite_number(tThermalConductivity, "Thermal Conductivity");
+
+    auto tCharacteristicLength = Plato::Fluids::get_material_property<Plato::Scalar>("Characteristic Length", aMaterialName, aInputs);
+    Plato::is_positive_finite_number(tCharacteristicLength, "Characteristic Length");
+
+    auto tReferenceTemperature = Plato::Fluids::get_material_property<Plato::Scalar>("Reference Temperature", aMaterialName, aInputs);
+    if(tReferenceTemperature == static_cast<Plato::Scalar>(0.0)){ THROWERR(std::string("'Reference Temperature' keyword cannot be set to zero.")) }
+
+    auto tDimLessConstant = (tCharacteristicLength * tCharacteristicLength) / (tThermalConductivity * tReferenceTemperature);
+    return tDimLessConstant;
+}
+// function natural_convection_thermal_source_dimless_constant
+
+/***************************************************************************//**
+ * \fn compute_thermal_source_dimless_constant
+ * \brief Compute thermal source term dimensionless constant.
+ * \param [in] aMaterialName material name
+ * \param [in] aInputs       input database
+ * \return dimensionless constant
+ ******************************************************************************/  
+inline Plato::Scalar compute_thermal_source_dimensionless_constant(const std::string& aMaterialName, Teuchos::ParameterList & aInputs)
+{
+    Plato::Scalar tDimLessConstant = 0.0;
+    auto tHeatTransfer = Plato::Fluids::heat_transfer_tag(aInputs);
+    if( tHeatTransfer == "natural" )
+    {
+        auto tDimLessConstant = Plato::Fluids::natural_convection_thermal_source_dimless_constant(aMaterialName, aInputs);
+    }
+    else if( tHeatTransfer == "forced" )
+    {
+        auto tDimLessConstant = Plato::Fluids::forced_convection_thermal_source_dimless_constant(aMaterialName, aInputs);
+    }
+    else
+    {
+        THROWERR( std::string("Heat transfer mechanism '") + tHeatTransfer + "' is not suported. Supported options are: 'natural' or 'forced'." )
+    }
+    return tDimLessConstant;
+}
+// function compute_thermal_source_dimless_constant
+
+/***************************************************************************//**
+ * \fn is_material_property_defined
+ * \brief Return true if material property is defined; else, return false.
+ * \param [in] aMaterialProperty  material property tag/name
+ * \param [in] aMaterialBlockName material block tag/name
+ * \param [in] aInputs            input database
+ * \return boolean
+ ******************************************************************************/
 inline bool is_material_property_defined(
     const std::string& aMaterialProperty,
     const std::string& aMaterialBlockName,
@@ -66,6 +192,7 @@ inline bool is_material_property_defined(
     
     return ( tMyMaterial.isParameter(aMaterialProperty) );
 }
+// function is_material_property_defined
 
 /***************************************************************************//**
  * \fn inline std::string scenario
@@ -118,27 +245,6 @@ inline bool calculate_brinkman_forces
     return false;
 }
 // function calculate_brinkman_forces
-
-/***************************************************************************//**
- * \fn inline std::string heat_transfer_tag
- *
- * \brief Parse heat transfer mechanism tag from input file and convert value to lowercase.
- * \param [in] aInputs input file metadata
- * \return lowercase heat transfer mechanism tag
- ******************************************************************************/
-inline std::string heat_transfer_tag
-(Teuchos::ParameterList & aInputs)
-{
-    if(aInputs.isSublist("Hyperbolic") == false)
-    {
-        THROWERR("'Hyperbolic' Parameter List is not defined.")
-    }
-    auto tHyperbolic = aInputs.sublist("Hyperbolic");
-    auto tTag = tHyperbolic.get<std::string>("Heat Transfer", "None");
-    auto tHeatTransfer = Plato::tolower(tTag);
-    return tHeatTransfer;
-}
-// function heat_transfer_tag
 
 /***************************************************************************//**
  * \fn inline bool calculate_heat_transfer

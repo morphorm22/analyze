@@ -11,6 +11,7 @@
 #include "BLAS2.hpp"
 #include "MetaData.hpp"
 #include "WorkSets.hpp"
+#include "FluidsUtils.hpp"
 #include "SpatialModel.hpp"
 #include "UtilsTeuchos.hpp"
 #include "ExpInstMacros.hpp"
@@ -50,9 +51,7 @@ private:
     // member parameters
     Plato::Scalar mMagnitude = 0.0; /*!< thermal source magnitude */
     Plato::Scalar mPenaltyExponent = 3.0; /*!< thermal source simp penalty model exponent */
-    Plato::Scalar mThermalConductivity = 1.0; /*!< thermal conductivity */
-    Plato::Scalar mCharacteristicLength = 0.0; /*!< characteristic lenght */
-    Plato::Scalar mReferenceTemperature = 1.0; /*!< reference temperature */
+    Plato::Scalar mDimLessConstant = 1.0; /*!< dimensionless constant applied to source term */
     Plato::Scalar mStabilizationMultiplier = 0.0; /*!< stabilization scalar multiplier */
 
     std::string mFuncName; /*!< scalar funciton name */
@@ -64,6 +63,13 @@ private:
     Plato::LinearTetCubRuleDegreeOne<mNumSpatialDims> mCubatureRule; /*!< cubature integration rule */
 
 public:
+    /***************************************************************************//**
+     * \brief Constructor.
+     * \param [in] aFuncName function name
+     * \param [in] aDomain   spatail domain database
+     * \param [in] aDataMap  output database
+     * \param [in] aInputs   input database
+     ******************************************************************************/
     StabilizedUniformThermalSource    
     (const std::string          & aFuncName,
      const Plato::SpatialDomain & aDomain,
@@ -76,18 +82,35 @@ public:
         this->initialize(aInputs);
     }
 
-    virtual ~StabilizedUniformThermalSource(){}
+    /***************************************************************************//**
+     * \brief Destructor
+     ******************************************************************************/
+    virtual ~StabilizedUniformThermalSource(){ return; }
     
+    /***************************************************************************//**
+     * \brief Return function type.
+     * \return function type
+     ******************************************************************************/
     std::string type() const override
     {
-        return "uniform";
+        return "uniform stabilized";
     }
 
+    /***************************************************************************//**
+     * \brief Return function name.
+     * \return function name
+     ******************************************************************************/
     std::string name() const override
     {
         return mFuncName;
     }
 
+    /***************************************************************************//**
+     * \brief Evaluate stabilized thermal source integral.
+     * \param [in]  aWorkSets   workset database
+     * \param [out] aResultWS   output/result workset
+     * \param [in]  aMultiplier scalar multiplier (default = 1.0)
+     ******************************************************************************/
     void evaluate
     (const Plato::WorkSets & aWorkSets, 
      Plato::ScalarMultiVectorT<ResultT> & aResultWS,
@@ -127,10 +150,8 @@ public:
             auto tCriticalTimeStep = Plato::metadata<Plato::ScalarVector>(aWorkSets.get("critical time step"));
 
             // transfer member data to device
-            auto tCharLength = mCharacteristicLength;
-            auto tThermalCond = mThermalConductivity;
+            auto tDimLessConstant = mDimLessConstant;
             auto tPenaltyExponent = mPenaltyExponent;
-            auto tReferenceTemp = mReferenceTemperature;
             auto tStabilizationMultiplier = mStabilizationMultiplier;
 
             auto tCubWeight = mCubatureRule.getCubWeight();
@@ -142,9 +163,9 @@ public:
                 tCellVolume(aCellOrdinal) = tCellVolume(aCellOrdinal) * tCubWeight;
 
                 // 2. add previous thermal source contribution to residual, i.e. R -= \alpha Q^n
-                Plato::Scalar tDimlessConstant = (aMultiplier * tCharLength * tCharLength) / (tThermalCond * tReferenceTemp);
+                Plato::Scalar tUnpenalizedConstant = aMultiplier * tDimLessConstant;
                 ControlT tPenalizedDimlessConstant = 
-                    Plato::Fluids::penalize_heat_source_constant<mNumNodesPerCell>(aCellOrdinal, tDimlessConstant, tPenaltyExponent, tControlWS);
+                    Plato::Fluids::penalize_heat_source_constant<mNumNodesPerCell>(aCellOrdinal, tUnpenalizedConstant, tPenaltyExponent, tControlWS);
                 ControlT tTimeStepTimesPenalizedDimlessConstant = tCriticalTimeStep(0) * tPenalizedDimlessConstant;
                 Plato::Fluids::integrate_scalar_field<mNumTempDofsPerCell>
                     (aCellOrdinal, tBasisFunctions, tCellVolume, tThermalSource, aResultWS, -tTimeStepTimesPenalizedDimlessConstant);
@@ -170,31 +191,23 @@ private:
 
         if( aInputs.isSublist("Thermal Sources") )
         {
+            this->initializeTopologyPenalizationModel(aInputs);
+            auto tMaterialName = mSpatialDomain.getMaterialName();
+            mDimLessConstant = Plato::Fluids::compute_thermal_source_dimensionless_constant(tMaterialName, aInputs);
+
             auto tThermalSourceParamList = aInputs.sublist("Thermal Sources");
             mMagnitude = Plato::teuchos::parse_parameter<Plato::Scalar>("Value", mFuncName, tThermalSourceParamList);
             mElemBlock = Plato::teuchos::parse_parameter<std::string>("Element Block", mFuncName, tThermalSourceParamList);
-
-            this->initializeMaterialProperties(aInputs);
         }
     }
 
     /***************************************************************************//**
-     * \brief Initialize material proerties.
+     * \brief Initialize topology penalization model parameters.
      * \param [in] aInputs  input database
      ******************************************************************************/
-    void initializeMaterialProperties(Teuchos::ParameterList& aInputs)
+    void initializeTopologyPenalizationModel(Teuchos::ParameterList& aInputs)
     {
         auto tMaterialName = mSpatialDomain.getMaterialName();
-        mThermalConductivity = Plato::Fluids::get_material_property<Plato::Scalar>("Thermal Conductivity", tMaterialName, aInputs);
-        Plato::is_positive_finite_number(mThermalConductivity, "Thermal Conductivity");
-
-        mCharacteristicLength = Plato::Fluids::get_material_property<Plato::Scalar>("Characteristic Length", tMaterialName, aInputs);
-        Plato::is_positive_finite_number(mCharacteristicLength, "Characteristic Length");
-
-        mReferenceTemperature = Plato::Fluids::get_material_property<Plato::Scalar>("Reference Temperature", tMaterialName, aInputs);
-        if(mReferenceTemperature == static_cast<Plato::Scalar>(0.0))
-            { THROWERR(std::string("'Reference Temperature' keyword cannot be set to zero.")) }
-            
         if(Plato::Fluids::is_material_property_defined("Source Term Penalty Exponent", tMaterialName, aInputs))
         {
             mPenaltyExponent = Plato::Fluids::get_material_property<Plato::Scalar>("Source Term Penalty Exponent", tMaterialName, aInputs);
@@ -206,8 +219,6 @@ private:
 
 }
 // namespace SIMP
-
-
 
 template<typename PhysicsT, typename EvaluationT>
 class StabilizedUniformThermalSource : public Plato::AbstractVolumetricSource<PhysicsT, EvaluationT>
@@ -225,9 +236,7 @@ private:
 
     // member parameters
     Plato::Scalar mMagnitude = 0.0; /*!< thermal source magnitude */
-    Plato::Scalar mThermalConductivity = 1.0; /*!< thermal conductivity */
-    Plato::Scalar mCharacteristicLength = 0.0; /*!< characteristic lenght */
-    Plato::Scalar mReferenceTemperature = 1.0; /*!< reference temperature */
+    Plato::Scalar mDimLessConstant = 1.0; /*!< dimensionless constant applied to source term */
     Plato::Scalar mStabilizationMultiplier = 0.0; /*!< stabilization scalar multiplier */
 
     std::string mFuncName; /*!< scalar funciton name */
@@ -239,6 +248,13 @@ private:
     Plato::LinearTetCubRuleDegreeOne<mNumSpatialDims> mCubatureRule; /*!< cubature integration rule */
 
 public:
+    /***************************************************************************//**
+     * \brief Constructor.
+     * \param [in] aFuncName function name
+     * \param [in] aDomain   spatail domain database
+     * \param [in] aDataMap  output database
+     * \param [in] aInputs   input database
+     ******************************************************************************/
     StabilizedUniformThermalSource    
     (const std::string          & aFuncName,
      const Plato::SpatialDomain & aDomain,
@@ -251,18 +267,35 @@ public:
         this->initialize(aInputs);
     }
 
-    virtual ~StabilizedUniformThermalSource(){}
+    /***************************************************************************//**
+     * \brief Destructor
+     ******************************************************************************/
+    virtual ~StabilizedUniformThermalSource(){ return; }
     
+    /***************************************************************************//**
+     * \brief Return function type.
+     * \return function type
+     ******************************************************************************/
     std::string type() const override
     {
-        return "uniform";
+        return "uniform stabilized";
     }
 
+    /***************************************************************************//**
+     * \brief Return function name.
+     * \return function name
+     ******************************************************************************/
     std::string name() const override
     {
         return mFuncName;
     }
 
+    /***************************************************************************//**
+     * \brief Evaluate stabilized thermal source integral.
+     * \param [in]  aWorkSets   workset database
+     * \param [out] aResultWS   output/result workset
+     * \param [in]  aMultiplier scalar multiplier (default = 1.0)
+     ******************************************************************************/
     void evaluate
     (const Plato::WorkSets & aWorkSets, 
      Plato::ScalarMultiVectorT<ResultT> & aResultWS,
@@ -301,9 +334,7 @@ public:
             auto tCriticalTimeStep = Plato::metadata<Plato::ScalarVector>(aWorkSets.get("critical time step"));
 
             // transfer member data to device
-            auto tRefTemp = mReferenceTemperature;
-            auto tCharLength = mCharacteristicLength;
-            auto tThermalCond = mThermalConductivity;
+            auto tDimLessConstant = mDimLessConstant;
             auto tStabilizationMultiplier = mStabilizationMultiplier;
 
             auto tCubWeight = mCubatureRule.getCubWeight();
@@ -315,14 +346,13 @@ public:
                 tCellVolume(aCellOrdinal) = tCellVolume(aCellOrdinal) * tCubWeight;
 
                 // 2. add previous thermal source contribution to residual, i.e. R -= \alpha Q^n
-                auto tDimlessConstant = (aMultiplier * tCharLength * tCharLength) / (tThermalCond * tRefTemp);
-                auto tTimeStepTimesDimlessConstant = tCriticalTimeStep(0) * tDimlessConstant;
+                auto tTimeStepTimesDimlessConstant = aMultiplier * tCriticalTimeStep(0) * tDimLessConstant;
                 Plato::Fluids::integrate_scalar_field<mNumTempDofsPerCell>
                     (aCellOrdinal, tBasisFunctions, tCellVolume, tThermalSource, aResultWS, -tTimeStepTimesDimlessConstant);
 
                 // 3. add stabilizing thermal source contribution to residual, i.e. R -= \alpha_{stab} *  Q_u(u^{n+1})
-                auto tScalar = tStabilizationMultiplier * aMultiplier * tDimlessConstant * 
-                               static_cast<Plato::Scalar>(0.5) * tCriticalTimeStep(0) * tCriticalTimeStep(0);
+                auto tScalar = tStabilizationMultiplier * aMultiplier * tDimLessConstant * 
+                    static_cast<Plato::Scalar>(0.5) * tCriticalTimeStep(0) * tCriticalTimeStep(0);
                 tIntrplVectorField(aCellOrdinal, tBasisFunctions, tCurVelWS, tCurVelGP);
                 Plato::Fluids::integrate_stabilizing_scalar_forces<mNumNodesPerCell, mNumSpatialDims>
                     (aCellOrdinal, tCellVolume, tGradient, tCurVelGP, tThermalSource, aResultWS, -tScalar);
@@ -338,33 +368,15 @@ private:
     void initialize(Teuchos::ParameterList& aInputs)
     {
         mStabilizationMultiplier = Plato::Fluids::stabilization_constant("Energy Conservation", aInputs);
-
         if( aInputs.isSublist("Thermal Source") )
         {
+            auto tMaterialName = mSpatialDomain.getMaterialName();
+            mDimLessConstant = Plato::Fluids::compute_thermal_source_dimensionless_constant(tMaterialName, aInputs);
+
             auto tThermalSourceParamList = aInputs.sublist("Thermal Source");
             mMagnitude = Plato::teuchos::parse_parameter<Plato::Scalar>("Value", mFuncName, tThermalSourceParamList);
             mElemBlock = Plato::teuchos::parse_parameter<std::string>("Element Block", mFuncName, tThermalSourceParamList);
-
-            this->initializeMaterialProperties(aInputs);
         }
-    }
-
-    /***************************************************************************//**
-     * \brief Initialize material proerties.
-     * \param [in] aInputs  input database
-     ******************************************************************************/
-    void initializeMaterialProperties(Teuchos::ParameterList& aInputs)
-    {
-        auto tMaterialName = mSpatialDomain.getMaterialName();
-        mThermalConductivity = Plato::Fluids::get_material_property<Plato::Scalar>("Thermal Conductivity", tMaterialName, aInputs);
-        Plato::is_positive_finite_number(mThermalConductivity, "Thermal Conductivity");
-
-        mCharacteristicLength = Plato::Fluids::get_material_property<Plato::Scalar>("Characteristic Length", tMaterialName, aInputs);
-        Plato::is_positive_finite_number(mCharacteristicLength, "Characteristic Length");
-
-        mReferenceTemperature = Plato::Fluids::get_material_property<Plato::Scalar>("Reference Temperature", tMaterialName, aInputs);
-        if(mReferenceTemperature == static_cast<Plato::Scalar>(0.0))
-            { THROWERR(std::string("'Reference Temperature' keyword cannot be set to zero.")) }
     }
 };
 // class StabilizedUniformThermalSource
