@@ -69,8 +69,8 @@ private:
     using ConvectionT = typename Plato::Fluids::fad_type_t<typename PhysicsT::SimplexT, PrevTempT, CurVelT, ConfigT>; /*!< convection FAD evaluation type */
 
     Plato::Scalar mArtificialDamping = 1.0; /*!< artificial temperature damping - damping is a byproduct from time integration scheme */
-    Plato::Scalar mEffectiveConductivity = 1.0; /*!< effective conductivity */
     Plato::Scalar mStabilizationMultiplier = 1.0; /*!< stabilization scalar multiplier */
+    Plato::Scalar mEffectiveThermalProperty = 1.0; /*!< effective thermal property for diffusivity term */
 
     Plato::DataMap& mDataMap; /*!< output database */
     const Plato::SpatialDomain& mSpatialDomain; /*!< spatial domain metadata */
@@ -93,7 +93,7 @@ public:
     {
         this->setAritificalDiffusiveDamping(aInputs);
         auto tMyMaterialName = mSpatialDomain.getMaterialName();
-        mEffectiveConductivity = Plato::Fluids::calculate_effective_conductivity(tMyMaterialName, aInputs);
+        mEffectiveThermalProperty = Plato::Fluids::calculate_effective_conductivity(tMyMaterialName, aInputs);
         mStabilizationMultiplier = Plato::Fluids::stabilization_constant("Energy Conservation", aInputs);
     }
 
@@ -146,7 +146,7 @@ public:
 
         // transfer member data to device
         auto tTheta           = mArtificialDamping;
-        auto tEffConductivity = mEffectiveConductivity;
+        auto tEffectiveThermalProperty = mEffectiveThermalProperty;
         auto tStabilizationMultiplier = mStabilizationMultiplier;
 
         auto tCubWeight = mCubatureRule.getCubWeight();
@@ -160,7 +160,7 @@ public:
             auto tMultiplier = (tTheta - static_cast<Plato::Scalar>(1));
             Plato::Fluids::calculate_flux<mNumNodesPerCell, mNumSpatialDims>
                 (aCellOrdinal, tGradient, tPrevTempWS, tPrevThermalFlux);
-            Plato::blas2::scale<mNumSpatialDims>(aCellOrdinal, tEffConductivity, tPrevThermalFlux);
+            Plato::blas2::scale<mNumSpatialDims>(aCellOrdinal, tEffectiveThermalProperty, tPrevThermalFlux);
             Plato::Fluids::calculate_flux_divergence<mNumNodesPerCell, mNumSpatialDims>
                 (aCellOrdinal, tGradient, tCellVolume, tPrevThermalFlux, aResultWS, -tMultiplier);
 
@@ -174,7 +174,7 @@ public:
             // 3. add current diffusive force contribution to residual, i.e. R += \theta_3 K T^{n+1}
             Plato::Fluids::calculate_flux<mNumNodesPerCell, mNumSpatialDims>
                 (aCellOrdinal, tGradient, tCurTempWS, tCurThermalFlux);
-            Plato::blas2::scale<mNumSpatialDims>(aCellOrdinal, tEffConductivity, tCurThermalFlux);
+            Plato::blas2::scale<mNumSpatialDims>(aCellOrdinal, tEffectiveThermalProperty, tCurThermalFlux);
             Plato::Fluids::calculate_flux_divergence<mNumNodesPerCell, mNumSpatialDims>
                 (aCellOrdinal, tGradient, tCellVolume, tCurThermalFlux, aResultWS, tTheta);
             Plato::blas2::scale<mNumDofsPerCell>(aCellOrdinal, tCriticalTimeStep(0), aResultWS);
@@ -219,10 +219,9 @@ private:
 }
 // namespace Plato
 
-
-
-
-
+// ********************************************************************************************************************
+// * Evaluation of internal thermal forces for density-based topology optimization in forced convection applications. *
+// ********************************************************************************************************************
 namespace Plato
 {
 
@@ -272,11 +271,9 @@ private:
     using ConvectionT = typename Plato::Fluids::fad_type_t<typename PhysicsT::SimplexT, PrevTempT, CurVelT, ConfigT>; /*!< convection FAD evaluation type */
 
     Plato::Scalar mArtificialDamping = 1.0; /*!< artificial temperature damping - damping is a byproduct from time integration scheme */
-    Plato::Scalar mEffectiveConductivity = 1.0; /*!< effective conductivity */
     Plato::Scalar mStabilizationMultiplier = 0.0; /*!< stabilization scalar multiplier */
-    Plato::Scalar mThermalDiffusivityRatio = 1.0; /*!< thermal diffusivity ratio, e.g. solid diffusivity / fluid diffusivity */
+    Plato::Scalar mEffectiveThermalProperty = 1.0; /*!< effective thermal property for diffusivity term */
     Plato::Scalar mDiffusiveTermPenaltyExponent = 3.0; /*!< penalty model exponent used for diffusive term */
-    Plato::Scalar mConvectiveTermPenaltyExponent = 3.0; /*!< penalty model exponent used for convective term */
 
     Plato::DataMap& mDataMap; /*!< output database */
     const Plato::SpatialDomain& mSpatialDomain; /*!< spatial domain metadata */
@@ -298,11 +295,10 @@ public:
         mCubatureRule(Plato::LinearTetCubRuleDegreeOne<mNumSpatialDims>())
     {
         this->setPenaltyModelParameters(aInputs);
-        this->setThermalDiffusivityRatio(aInputs);
         this->setAritificalDiffusiveDamping(aInputs);
 
         auto tMyMaterialName = mSpatialDomain.getMaterialName();
-        mEffectiveConductivity = Plato::Fluids::calculate_effective_conductivity(tMyMaterialName, aInputs);
+        mEffectiveThermalProperty = Plato::Fluids::calculate_effective_conductivity(tMyMaterialName, aInputs);
         mStabilizationMultiplier = Plato::Fluids::stabilization_constant("Energy Conservation", aInputs);
     }
 
@@ -357,50 +353,46 @@ public:
 
         // transfer member data to temporary local scope that device can access
         auto tArtificialDamping = mArtificialDamping;
-        auto tEffConductivity = mEffectiveConductivity;
         auto tStabilizationMultiplier = mStabilizationMultiplier;
-        auto tThermalDiffusivityRatio = mThermalDiffusivityRatio;
+        auto tEffectiveThermalProperty = mEffectiveThermalProperty;
         auto tDiffusiveTermPenaltyExponent = mDiffusiveTermPenaltyExponent;
-        auto tConvectiveTermPenaltyExponent = mConvectiveTermPenaltyExponent;
 
         auto tCubWeight = mCubatureRule.getCubWeight();
         auto tBasisFunctions = mCubatureRule.getBasisFunctions();
         Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
         {
+            // compte cell volumes
             tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
             tCellVolume(aCellOrdinal) = tCellVolume(aCellOrdinal) * tCubWeight;
 
-            // 1. Penalize diffusivity ratio with element density
-            ControlT tPenalizedDiffusivityRatio = Plato::Fluids::penalize_thermal_diffusivity<mNumNodesPerCell>
-                (aCellOrdinal, tThermalDiffusivityRatio, tDiffusiveTermPenaltyExponent, tControlWS);
-            ControlT tPenalizedEffConductivity = tEffConductivity * tPenalizedDiffusivityRatio;
+            // 1. Penalize effective thermal property
+            ControlT tPenalizedEffectiveThermalProperty = Plato::Fluids::penalized_effective_thermal_property<mNumNodesPerCell>
+                (aCellOrdinal, tEffectiveThermalProperty, tDiffusiveTermPenaltyExponent, tControlWS);
 
-            // 2. add current diffusive force contribution to residual, i.e. R += \theta_3 K T^{n+1},
+            // 2. add current diffusive force contribution to residual, i.e. R += \theta_3 pi^{\alpha}(theta) K T^{n+1},
             Plato::Fluids::calculate_flux<mNumNodesPerCell, mNumSpatialDims>
                 (aCellOrdinal, tGradient, tCurTempWS, tCurThermalFlux);
-            ControlT tMultiplierControlOneT = tArtificialDamping * tPenalizedEffConductivity;
+            ControlT tMultiplierControlOneT = tArtificialDamping * tPenalizedEffectiveThermalProperty;
             Plato::Fluids::calculate_flux_divergence<mNumNodesPerCell, mNumSpatialDims>
                 (aCellOrdinal, tGradient, tCellVolume, tCurThermalFlux, aResultWS, tMultiplierControlOneT);
 
-            // 3. add previous diffusive force contribution to residual, i.e. R -= (\theta_3-1) K T^n
+            // 3. add previous diffusive force contribution to residual, i.e. R -= (\theta_3-1) pi^{\alpha}(theta) K T^n
             Plato::Fluids::calculate_flux<mNumNodesPerCell, mNumSpatialDims>
                 (aCellOrdinal, tGradient, tPrevTempWS, tPrevThermalFlux);
-            ControlT tMultiplierControlTwoT = (tArtificialDamping - static_cast<Plato::Scalar>(1.0)) * tPenalizedEffConductivity;
+            ControlT tMultiplierControlTwoT = (tArtificialDamping - static_cast<Plato::Scalar>(1.0)) * tPenalizedEffectiveThermalProperty;
             Plato::Fluids::calculate_flux_divergence<mNumNodesPerCell, mNumSpatialDims>
                 (aCellOrdinal, tGradient, tCellVolume, tPrevThermalFlux, aResultWS, -tMultiplierControlTwoT);
 
-            // 4. add current convective force contribution to residual, i.e. R += \beta_{\rho} * C(u^{n+1}) T^n
+            // 4. add current convective force contribution to residual, i.e. R += C(u^{n+1}) T^n
             tIntrplVectorField(aCellOrdinal, tBasisFunctions, tCurVelWS, tCurVelGP);
             Plato::Fluids::calculate_convective_forces<mNumNodesPerCell, mNumSpatialDims>
                 (aCellOrdinal, tGradient, tCurVelGP, tPrevTempWS, tConvection);
-            ControlT tAveragedCellDensity = Plato::cell_density<mNumNodesPerCell>(aCellOrdinal, tControlWS);
-            ControlT tPenalizedAvgCellDensity = pow(tAveragedCellDensity, tConvectiveTermPenaltyExponent);
             Plato::Fluids::integrate_scalar_field<mNumTempDofsPerCell>
-                (aCellOrdinal, tBasisFunctions, tCellVolume, tConvection, aResultWS, tPenalizedAvgCellDensity);
+                (aCellOrdinal, tBasisFunctions, tCellVolume, tConvection, aResultWS, 1.0);
             Plato::blas2::scale<mNumDofsPerCell>(aCellOrdinal, tCriticalTimeStep(0), aResultWS);
 
-            // 5. add stabilizing force contribution to residual, i.e. R += \alpha_{stab} * \beta_{\rho} * C_u(u^{n+1}) T^n
-            ControlT tScalar = tStabilizationMultiplier * tPenalizedAvgCellDensity * 
+            // 5. add stabilizing force contribution to residual, i.e. R += \alpha_{stab} * C_u(u^{n+1}) T^n
+            Plato::Scalar tScalar = tStabilizationMultiplier * 
                 static_cast<Plato::Scalar>(0.5) * tCriticalTimeStep(0) * tCriticalTimeStep(0);
             Plato::Fluids::integrate_stabilizing_scalar_forces<mNumNodesPerCell, mNumSpatialDims>
                 (aCellOrdinal, tCellVolume, tGradient, tCurVelGP, tConvection, aResultWS, tScalar);
@@ -416,17 +408,6 @@ public:
     }
 
 private:
-    /***************************************************************************//**
-     * \brief Set thermal diffusivity ratio.
-     * \param [in] aInputs input file metadata.
-     ******************************************************************************/
-    void setThermalDiffusivityRatio(Teuchos::ParameterList &aInputs)
-    {
-        auto tMaterialName = mSpatialDomain.getMaterialName();
-        mThermalDiffusivityRatio = Plato::Fluids::get_material_property<Plato::Scalar>("Thermal Diffusivity Ratio", tMaterialName, aInputs);
-        Plato::is_positive_finite_number(mThermalDiffusivityRatio, "Thermal Diffusivity Ratio");
-    }
-
     /***************************************************************************//**
      * \brief Set artificial diffusive damping.
      * \param [in] aInputs input file metadata.
@@ -461,7 +442,6 @@ private:
             {
                 auto tPenaltyFuncList = tEnergyParamList.sublist("Penalty Function");
                 mDiffusiveTermPenaltyExponent = tPenaltyFuncList.get<Plato::Scalar>("Diffusive Term Penalty Exponent", 3.0);
-                mConvectiveTermPenaltyExponent = tPenaltyFuncList.get<Plato::Scalar>("Convective Term Penalty Exponent", 3.0);
             }
         }
     }

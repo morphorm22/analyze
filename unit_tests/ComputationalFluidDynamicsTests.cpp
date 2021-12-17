@@ -106,7 +106,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, setState)
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='2'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='2'/>"
             "  </ParameterList>"
             "</ParameterList>"
             );
@@ -262,7 +262,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ReadFields)
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='2'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='2'/>"
             "  </ParameterList>"
             "</ParameterList>"
             );
@@ -407,7 +407,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Test_Omega_h_ReadParallel)
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='2'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='2'/>"
             "  </ParameterList>"
             "</ParameterList>"
             );
@@ -552,7 +552,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ReadPvtuFilePaths)
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='10'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='10'/>"
             "  </ParameterList>"
             "</ParameterList>"
             );
@@ -677,7 +677,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_CheckCrit
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='5'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='5'/>"
             "    <Parameter name='Steady State Tolerance' type='double' value='1e-3'/>"
             "  </ParameterList>"
             "</ParameterList>"
@@ -785,7 +785,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_CheckCrit
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='5'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='5'/>"
             "    <Parameter name='Steady State Tolerance' type='double' value='1e-3'/>"
             "  </ParameterList>"
             "</ParameterList>"
@@ -893,7 +893,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_TestCrite
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='5'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='5'/>"
             "    <Parameter name='Steady State Tolerance' type='double' value='1e-3'/>"
             "  </ParameterList>"
             "</ParameterList>"
@@ -949,7 +949,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "    <ParameterList name='air'>"
             "      <Parameter  name='Impermeability Number'  type='double'  value='100'/>"
             "      <Parameter  name='Thermal Diffusivity' type='double' value='2.1117e-5'/>"
-            "      <Parameter  name='Thermal Diffusivity Ratio' type='double' value='0.75' />"
             "      <Parameter  name='Kinematic Viscocity' type='double' value='1.5111e-5'/>"
             "      <Parameter  name='Prandtl Number'  type='double' value='0.7'/>"
             "      <Parameter  name='Rayleigh Number' type='Array(double)' value='{0,1e3}'/>"
@@ -1020,7 +1019,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='2'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='2'/>"
             "    <Parameter name='Steady State Tolerance' type='double' value='1e-4'/>"
             "  </ParameterList>"
             "</ParameterList>"
@@ -1076,7 +1075,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "      <Parameter  name='Impermeability Number'  type='double'  value='100'/>"
             "      <Parameter  name='Thermal Diffusivity' type='double' value='2.1117e-5'/>"
             "      <Parameter  name='Kinematic Viscocity'   type='double' value='1.5111e-5'/>"
-            "      <Parameter  name='Thermal Diffusivity Ratio' type='double' value='0.75' />"
             "      <Parameter  name='Thermal Conductivity'  type='double' value='1'/>"
             "      <Parameter  name='Characteristic Length' type='double' value='1'/>"
             "      <Parameter  name='Reference Temperature'  type='double'  value='1'/>"
@@ -1163,7 +1161,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='2'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='2'/>"
             "    <Parameter name='Steady State Tolerance' type='double' value='1e-4'/>"
             "  </ParameterList>"
             "</ParameterList>"
@@ -1221,7 +1219,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "      <Parameter  name='Impermeability Number'  type='double'  value='100'/>"
             "      <Parameter  name='Thermal Diffusivity' type='double' value='2.1117e-5'/>"
             "      <Parameter  name='Kinematic Viscocity'   type='double' value='1.5111e-5'/>"
-            "      <Parameter  name='Thermal Diffusivity Ratio' type='double' value='7750' />"
             "      <Parameter  name='Thermal Conductivity'  type='double' value='1'/>"
             "      <Parameter  name='Characteristic Length' type='double' value='1'/>"
             "      <Parameter  name='Reference Temperature'  type='double'  value='1'/>"
@@ -1315,7 +1312,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='2'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='2'/>"
             "    <Parameter name='Steady State Tolerance' type='double' value='1e-3'/>"
             "  </ParameterList>"
             "</ParameterList>"
@@ -1371,7 +1368,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "      <Parameter  name='Impermeability Number'  type='double'  value='100'/>"
             "      <Parameter  name='Thermal Diffusivity' type='double' value='2.1117e-5'/>"
             "      <Parameter  name='Kinematic Viscocity'   type='double' value='1.5111e-5'/>"
-            "      <Parameter  name='Thermal Diffusivity Ratio' type='double' value='7750' />"
             "      <Parameter  name='Thermal Conductivity'  type='double' value='1'/>"
             "      <Parameter  name='Characteristic Length' type='double' value='1'/>"
             "      <Parameter  name='Reference Temperature'  type='double'  value='1'/>"
@@ -1465,7 +1461,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='2'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='2'/>"
             "    <Parameter name='Steady State Tolerance' type='double' value='1e-3'/>"
             "  </ParameterList>"
             "</ParameterList>"
@@ -1898,7 +1894,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizeHeatSourceConstant)
     //Plato::print(tResult, "result");
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizeThermalDiffusivity)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizedEffectiveThermalProperty)
 {
     // set input data for unit test
     constexpr auto tNumCells = 2;
@@ -1911,17 +1907,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizeThermalDiffusivity)
     tHostControl(1,0) = 1.0; tHostControl(1,1) = 1.0; tHostControl(1,2) = 1.0;
     Kokkos::deep_copy(tControl, tHostControl);
     constexpr auto tPenaltyExp = 3.0;
-    constexpr auto tDiffusivityRatio  = 4.0;
+    constexpr auto tEffectiveThermalProperty  = 4.0;
 
     // call device function
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
     {
         tResult(aCellOrdinal) =
-            Plato::Fluids::penalize_thermal_diffusivity<tNumNodesPerCell>(aCellOrdinal, tDiffusivityRatio, tPenaltyExp, tControl);
-    }, "unit test penalize_thermal_diffusivity");
+            Plato::Fluids::penalized_effective_thermal_property<tNumNodesPerCell>(aCellOrdinal, tEffectiveThermalProperty, tPenaltyExp, tControl);
+    }, "unit test penalized_effective_thermal_property");
 
     auto tTol = 1e-4;
-    std::vector<Plato::Scalar> tGold = {3.6250,1.0};
+    std::vector<Plato::Scalar> tGold = {1.375,4.0};
     auto tHostResult = Kokkos::create_mirror(tResult);
     Kokkos::deep_copy(tHostResult, tResult);
     for (auto &tValue : tGold)

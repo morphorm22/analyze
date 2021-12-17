@@ -884,7 +884,7 @@ private:
         {
             auto tConvergence = aInputs.sublist("Convergence");
             mSteadyStateTolerance = tConvergence.get<Plato::Scalar>("Steady State Tolerance", 1e-5);
-            mMaxSteadyStateIterations = tConvergence.get<Plato::OrdinalType>("Maximum Iterations", 1000);
+            mMaxSteadyStateIterations = tConvergence.get<Plato::OrdinalType>("Steady State Iterations", 1000);
             mOutputFrequency = tConvergence.get<Plato::OrdinalType>("Output Frequency", mMaxSteadyStateIterations + 1);
         }
     }
