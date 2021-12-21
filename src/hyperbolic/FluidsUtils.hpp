@@ -82,7 +82,7 @@ inline Type get_material_property(
  * \brief Initialize thermal source dimensionless constant for forced convection problems. \n
  *            \f$\beta = \frac{\alpha L^2_{\infty}}{k_f \Delta{t} u_{\infty}}\f$ \n
  * where \f$ L_{\infty}\f$ is the characteristic length, \f$ k_f\f$ is the fluid thermal \n
- * conductivity, \f$\alpha\f$ is the thermal difussivity, \f$ u_{\infty}\f$ is the \n
+ * conductivity, \f$\alpha\f$ is the thermal diffusivity, \f$ u_{\infty}\f$ is the \n
  * characteristic vecloty, and \f$\Delta{t}\f$ is the reference temperature (difference \n
  * between the wall and ambient temperature).
  * \param [in] aMaterialName material name
@@ -91,8 +91,8 @@ inline Type get_material_property(
  ******************************************************************************/
 inline Plato::Scalar forced_convection_thermal_source_dimless_constant(const std::string& aMaterialName, Teuchos::ParameterList& aInputs)
 {
-    auto tThermalDifussivity = Plato::Fluids::get_material_property<Plato::Scalar>("Thermal Difussivity", aMaterialName, aInputs);
-    Plato::is_positive_finite_number(tThermalDifussivity, "Thermal Difussivity");
+    auto tThermalDifussivity = Plato::Fluids::get_material_property<Plato::Scalar>("Thermal Diffusivity", aMaterialName, aInputs);
+    Plato::is_positive_finite_number(tThermalDifussivity, "Thermal Diffusivity");
 
     auto tThermalConductivity = Plato::Fluids::get_material_property<Plato::Scalar>("Thermal Conductivity", aMaterialName, aInputs);
     Plato::is_positive_finite_number(tThermalConductivity, "Thermal Conductivity");

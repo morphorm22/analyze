@@ -353,11 +353,11 @@ private:
     Plato::DataMap             & aDataMap,
     Teuchos::ParameterList     & aInputs)
    {
-       mCalculateThermalBuoyancyForces = Plato::Fluids::calculate_heat_transfer(aInputs);
+       auto tHeatTransferTag = Plato::Fluids::heat_transfer_tag(aInputs);
+       mCalculateThermalBuoyancyForces = ( (tHeatTransferTag == "natural") || (tHeatTransferTag == "mixed") ) ? true : false;
        if(mCalculateThermalBuoyancyForces)
        {
-           mThermalBuoyancy =
-               std::make_shared<Plato::Fluids::ThermalBuoyancy<PhysicsT,EvaluationT>>(aDomain, aDataMap, aInputs);
+           mThermalBuoyancy = std::make_shared<Plato::Fluids::ThermalBuoyancy<PhysicsT,EvaluationT>>(aDomain, aDataMap, aInputs);
        }
    }
 

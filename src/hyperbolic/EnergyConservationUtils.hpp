@@ -270,7 +270,7 @@ penalize_heat_source_constant
 {
     ControlT tDensity = Plato::cell_density<NumNodesPerCell>(aCellOrdinal, aControl);
     ControlT tPenalizedDensity = pow(tDensity, aPenalty);
-    auto tPenalizedProperty = (static_cast<Plato::Scalar>(1) - tPenalizedDensity) * aConstant;
+    auto tPenalizedProperty = tPenalizedDensity * aConstant;
     return tPenalizedProperty;
 }
 // function penalize_heat_source_constant
