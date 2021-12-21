@@ -151,11 +151,11 @@ inline Plato::Scalar compute_thermal_source_dimensionless_constant(const std::st
     auto tHeatTransfer = Plato::Fluids::heat_transfer_tag(aInputs);
     if( tHeatTransfer == "natural" )
     {
-        auto tDimLessConstant = Plato::Fluids::natural_convection_thermal_source_dimless_constant(aMaterialName, aInputs);
+        tDimLessConstant = Plato::Fluids::natural_convection_thermal_source_dimless_constant(aMaterialName, aInputs);
     }
     else if( tHeatTransfer == "forced" )
     {
-        auto tDimLessConstant = Plato::Fluids::forced_convection_thermal_source_dimless_constant(aMaterialName, aInputs);
+        tDimLessConstant = Plato::Fluids::forced_convection_thermal_source_dimless_constant(aMaterialName, aInputs);
     }
     else
     {
