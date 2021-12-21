@@ -83,7 +83,7 @@ inline Type get_material_property(
  *            \f$\beta = \frac{\alpha L^2_{\infty}}{k_f \Delta{t} u_{\infty}}\f$ \n
  * where \f$ L_{\infty}\f$ is the characteristic length, \f$ k_f\f$ is the fluid thermal \n
  * conductivity, \f$\alpha\f$ is the thermal diffusivity, \f$ u_{\infty}\f$ is the \n
- * characteristic vecloty, and \f$\Delta{t}\f$ is the reference temperature (difference \n
+ * characteristic vecloty, and \f$\Delta{t}\f$ is the temperature difference (difference \n
  * between the wall and ambient temperature).
  * \param [in] aMaterialName material name
  * \param [in] aInputs       input database
@@ -91,22 +91,22 @@ inline Type get_material_property(
  ******************************************************************************/
 inline Plato::Scalar forced_convection_thermal_source_dimless_constant(const std::string& aMaterialName, Teuchos::ParameterList& aInputs)
 {
-    auto tThermalDifussivity = Plato::Fluids::get_material_property<Plato::Scalar>("Thermal Diffusivity", aMaterialName, aInputs);
-    Plato::is_positive_finite_number(tThermalDifussivity, "Thermal Diffusivity");
+    auto tPrNum = Plato::Fluids::get_material_property<Plato::Scalar>("Prandtl Number", aMaterialName, aInputs);
+    Plato::is_positive_finite_number(tPrNum, "Prandtl Number");
 
+    auto tReNum = Plato::Fluids::get_material_property<Plato::Scalar>("Reynolds Number", aMaterialName, aInputs); 
+    Plato::is_positive_finite_number(tReNum, "Reynolds Number");
+    
     auto tThermalConductivity = Plato::Fluids::get_material_property<Plato::Scalar>("Thermal Conductivity", aMaterialName, aInputs);
     Plato::is_positive_finite_number(tThermalConductivity, "Thermal Conductivity");
 
     auto tCharacteristicLength = Plato::Fluids::get_material_property<Plato::Scalar>("Characteristic Length", aMaterialName, aInputs);
     Plato::is_positive_finite_number(tCharacteristicLength, "Characteristic Length");
 
-    auto tCharacteristicVelocity = Plato::Fluids::get_material_property<Plato::Scalar>("Characteristic Velocity", aMaterialName, aInputs);
-    Plato::is_positive_finite_number(tCharacteristicVelocity, "Characteristic Velocity");
-
-    auto tReferenceTemperature = Plato::Fluids::get_material_property<Plato::Scalar>("Reference Temperature", aMaterialName, aInputs);
-    if(tReferenceTemperature == static_cast<Plato::Scalar>(0.0)){ THROWERR(std::string("'Reference Temperature' keyword cannot be set to zero.")) }
+    auto tTemperatureDifference = Plato::Fluids::get_material_property<Plato::Scalar>("Temperature Difference", aMaterialName, aInputs);
+    if(tTemperatureDifference == static_cast<Plato::Scalar>(0.0)){ THROWERR(std::string("'Temperature Difference' keyword cannot be set to zero.")) }
     
-    auto tDimLessConstant = (tCharacteristicLength * tThermalDifussivity) / (tThermalConductivity * tReferenceTemperature * tCharacteristicVelocity);
+    auto tDimLessConstant = (tCharacteristicLength * tCharacteristicLength) / (tThermalConductivity * tTemperatureDifference * tPrNum * tReNum);
     return tDimLessConstant;
 }
 // function forced_convection_thermal_source_dimless_constant
@@ -116,7 +116,7 @@ inline Plato::Scalar forced_convection_thermal_source_dimless_constant(const std
  * \brief Initialize thermal source dimensionless constant for natural convection problems. \n
  *            \f$\beta = \frac{L^2_{\infty}}{k_f \Delta{t}}\f$ \n
  * where \f$ L_{\infty}\f$ is the characteristic length, \f$ k_f\f$ is the fluid thermal \n
- * conductivity and \f$\Delta{t}\f$ is the reference temperature (difference between the wall \n
+ * conductivity and \f$\Delta{t}\f$ is the temperature difference (difference between the wall \n
  * and ambient temperature).
  * \param [in] aMaterialName material name
  * \param [in] aInputs       input database
@@ -130,8 +130,8 @@ inline Plato::Scalar natural_convection_thermal_source_dimless_constant(const st
     auto tCharacteristicLength = Plato::Fluids::get_material_property<Plato::Scalar>("Characteristic Length", aMaterialName, aInputs);
     Plato::is_positive_finite_number(tCharacteristicLength, "Characteristic Length");
 
-    auto tReferenceTemperature = Plato::Fluids::get_material_property<Plato::Scalar>("Reference Temperature", aMaterialName, aInputs);
-    if(tReferenceTemperature == static_cast<Plato::Scalar>(0.0)){ THROWERR(std::string("'Reference Temperature' keyword cannot be set to zero.")) }
+    auto tReferenceTemperature = Plato::Fluids::get_material_property<Plato::Scalar>("Temperature Difference", aMaterialName, aInputs);
+    if(tReferenceTemperature == static_cast<Plato::Scalar>(0.0)){ THROWERR(std::string("'Temperature Difference' keyword cannot be set to zero.")) }
 
     auto tDimLessConstant = (tCharacteristicLength * tCharacteristicLength) / (tThermalConductivity * tReferenceTemperature);
     return tDimLessConstant;
