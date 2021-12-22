@@ -41,7 +41,7 @@ private:
     Plato::LinearTetCubRuleDegreeOne<mNumSpatialDims> mCubatureRule; /*!< cubature integration rule */
     
     std::string mFuncName; /*!< scalar funciton name */
-    std::vector<std::string> mBlocks; /*!< element blocks considered for the volume integral caclulation */
+    std::vector<std::string> mElemDomains; /*!< element blocks considered for volume caclulation */
     Plato::Scalar mPenaltyExponent = 3.0; /*!< penalty exponent used for volume penalization */
 
 public:
@@ -63,12 +63,12 @@ public:
         mFuncName(aName)
     {
         auto tMyCriteria = aInputs.sublist("Criteria").sublist(aName);
-        mBlocks = Plato::teuchos::parse_array<std::string>("Blocks", tMyCriteria);
-        if( mBlocks.empty() )
+        mElemDomains = Plato::teuchos::parse_array<std::string>("Domains", tMyCriteria);
+        if( mElemDomains.empty() )
         {
             // default: all the element blocks will be used in the volume evaluation
             auto tMyBlockName = mSpatialDomain.getElementBlockName();
-            mBlocks.push_back(tMyBlockName);
+            mElemDomains.push_back(tMyBlockName);
         }
 
         if (tMyCriteria.isSublist("Penalty Function"))
@@ -102,7 +102,7 @@ public:
     void evaluate(const Plato::WorkSets & aWorkSets, Plato::ScalarVectorT<ResultT> & aResult) const override
     {
         auto tMyBlockName = mSpatialDomain.getElementBlockName();
-        auto tEvaluateDomain = std::find(mBlocks.begin(), mBlocks.end(), tMyBlockName) != mBlocks.end();
+        auto tEvaluateDomain = std::find(mElemDomains.begin(), mElemDomains.end(), tMyBlockName) != mElemDomains.end();
         if(tEvaluateDomain)
         {
             // local functors
