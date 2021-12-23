@@ -25,6 +25,7 @@ private:
     std::string         mElementBlockName;  /*!< element block name */
     std::string         mMaterialModelName; /*!< material model name */
     std::string         mSpatialDomainName; /*!< element block name */
+    bool                mIsFixedBlock;      /*!< flag for fixed block */
     Omega_h::LOs        mElemLids;          /*!< local element identification numbers (i.e. element ids) */
 
     Plato::LocalOrdinalVector mTotalElemLids;   /*!< List of local elements ids in this domain */
@@ -96,6 +97,16 @@ public:
     }
 
     /******************************************************************************//**
+     * \fn isFixedBlock
+     * \brief Return whether block has fixed control field.
+     **********************************************************************************/
+    decltype(mIsFixedBlock) 
+    isFixedBlock() const
+    {
+        return mIsFixedBlock;
+    }
+
+    /******************************************************************************//**
      * \fn numCells
      * \brief Return the number of cells.
      * \return number of cells
@@ -149,7 +160,8 @@ public:
      const std::string       & aName) :
         Mesh(aMesh),
         MeshSets(aMeshSets),
-        mSpatialDomainName(aName)
+        mSpatialDomainName(aName),
+        mIsFixedBlock(false)
     {}
 
     /******************************************************************************//**
@@ -166,7 +178,8 @@ public:
      const std::string            & aName) :
         Mesh(aMesh),
         MeshSets(aMeshSets),
-        mSpatialDomainName(aName)
+        mSpatialDomainName(aName),
+        mIsFixedBlock(false)
     {
         this->initialize(aInputParams);
     }
@@ -277,6 +290,10 @@ public:
         else
         {
             THROWERR("Parsing new Domain. Required keyword 'Material Model' not found");
+        }
+        if(aInputParams.isType<bool>("Fixed Control"))
+        {
+            mIsFixedBlock = aInputParams.get<bool>("Fixed Control");
         }
 
         this->setMaskLocalElemIDs(mElementBlockName);

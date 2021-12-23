@@ -12,6 +12,8 @@
 
 #include "PlatoMask.hpp"
 #include "SpatialModel.hpp"
+#include "BLAS1.hpp"
+#include "WorksetBase.hpp"
 
 namespace PlatoUnitTests
 {
@@ -140,6 +142,226 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoModel)
   {
     TEST_ASSERT(tOrdinals_gold[i] == tOrdinals_host(i));
   }
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, DefaultBlockNotMarkedAsFixed)
+{
+  // create spatial domain input
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tInputParams =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                     \n"
+    "  <ParameterList name='Spatial Model'>                                   \n"
+    "    <ParameterList name='Domains'>                                       \n"
+    "      <ParameterList name='Design Volume'>                               \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>     \n"
+    "        <Parameter name='Material Model' type='string' value='matl'/>    \n"
+    "      </ParameterList>                                                   \n"
+    "    </ParameterList>                                                     \n"
+    "  </ParameterList>                                                       \n"
+    "  <ParameterList name='Material Models'>                                 \n"
+    "    <ParameterList name='matl'>                                          \n"
+    "      <ParameterList name='Isotropic Linear Elastic'>                    \n"
+    "        <Parameter name='Mass Density' type='double' value='0.0'/>       \n"
+    "        <Parameter name='Poissons Ratio' type='double' value='0.36'/>    \n"
+    "        <Parameter name='Youngs Modulus' type='double' value='68.0e10'/> \n"
+    "      </ParameterList>                                                   \n"
+    "    </ParameterList>                                                     \n"
+    "  </ParameterList>                                                       \n"
+    "</ParameterList>                                                         \n"
+  );
+
+  constexpr int meshWidth=2;
+  constexpr int spaceDim=3;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+
+  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
+  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+
+  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tInputParams);
+
+
+  auto tIsFixed = tSpatialModel.Domains[0].isFixedBlock();
+
+  TEST_ASSERT(tIsFixed == false);
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, FixedBlockIsMarked)
+{
+  // create spatial domain input
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tInputParams =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                     \n"
+    "  <ParameterList name='Spatial Model'>                                   \n"
+    "    <ParameterList name='Domains'>                                       \n"
+    "      <ParameterList name='Design Volume'>                               \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>     \n"
+    "        <Parameter name='Material Model' type='string' value='matl'/>    \n"
+    "        <Parameter name='Fixed Control' type='bool' value='true'/>       \n"
+    "      </ParameterList>                                                   \n"
+    "    </ParameterList>                                                     \n"
+    "  </ParameterList>                                                       \n"
+    "  <ParameterList name='Material Models'>                                 \n"
+    "    <ParameterList name='matl'>                                          \n"
+    "      <ParameterList name='Isotropic Linear Elastic'>                    \n"
+    "        <Parameter name='Mass Density' type='double' value='0.0'/>       \n"
+    "        <Parameter name='Poissons Ratio' type='double' value='0.36'/>    \n"
+    "        <Parameter name='Youngs Modulus' type='double' value='68.0e10'/> \n"
+    "      </ParameterList>                                                   \n"
+    "    </ParameterList>                                                     \n"
+    "  </ParameterList>                                                       \n"
+    "</ParameterList>                                                         \n"
+  );
+
+  constexpr int meshWidth=2;
+  constexpr int spaceDim=3;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+
+  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
+  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+
+  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tInputParams);
+
+
+  auto tIsFixed = tSpatialModel.Domains[0].isFixedBlock();
+
+  TEST_ASSERT(tIsFixed == true);
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, DefaultBlockWorksetControlUnchanged)
+{
+  // create spatial domain input
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tInputParams =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                     \n"
+    "  <ParameterList name='Spatial Model'>                                   \n"
+    "    <ParameterList name='Domains'>                                       \n"
+    "      <ParameterList name='Design Volume'>                               \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>     \n"
+    "        <Parameter name='Material Model' type='string' value='matl'/>    \n"
+    "      </ParameterList>                                                   \n"
+    "    </ParameterList>                                                     \n"
+    "  </ParameterList>                                                       \n"
+    "  <ParameterList name='Material Models'>                                 \n"
+    "    <ParameterList name='matl'>                                          \n"
+    "      <ParameterList name='Isotropic Linear Elastic'>                    \n"
+    "        <Parameter name='Mass Density' type='double' value='0.0'/>       \n"
+    "        <Parameter name='Poissons Ratio' type='double' value='0.36'/>    \n"
+    "        <Parameter name='Youngs Modulus' type='double' value='68.0e10'/> \n"
+    "      </ParameterList>                                                   \n"
+    "    </ParameterList>                                                     \n"
+    "  </ParameterList>                                                       \n"
+    "</ParameterList>                                                         \n"
+  );
+
+  // create mesh
+  //
+  constexpr int meshWidth=2;
+  constexpr int spaceDim=3;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+
+  // create spatial model
+  //
+  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
+  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tInputParams);
+
+  // create control
+  //
+  int tNumDofs = spaceDim*tMesh->nverts();
+  Plato::ScalarVector tControl("control", tNumDofs);
+  Plato::blas1::fill(0.4, tControl);
+
+  // workset control
+  //
+  auto tNumCells = tMesh->nelems();
+  constexpr int tNumNodesPerCell = Plato::SimplexMechanics<spaceDim>::mNumNodesPerCell;
+
+  Plato::WorksetBase<Plato::SimplexMechanics<spaceDim>> tWorksetBase(*tMesh);
+  Plato::ScalarMultiVectorT<Plato::Scalar> tControlWS("control workset", tNumCells, tNumNodesPerCell);
+  tWorksetBase.worksetControl(tControl, tControlWS, tSpatialModel.Domains[0]);
+
+  // test workset control
+  //
+  auto tControlWS_Host = Kokkos::create_mirror_view( tControlWS );
+  Kokkos::deep_copy( tControlWS_Host, tControlWS );
+
+  for(int iCell=0; iCell < tNumCells; iCell++){
+    for(int iNode=0; iNode < tNumNodesPerCell; iNode++){
+      TEST_FLOATING_EQUALITY(tControlWS_Host(iCell,iNode), 0.4, 1e-18);
+    }
+  }
+
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, FixedBlockWorksetControlGivesOnes)
+{
+  // create spatial domain input
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tInputParams =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                     \n"
+    "  <ParameterList name='Spatial Model'>                                   \n"
+    "    <ParameterList name='Domains'>                                       \n"
+    "      <ParameterList name='Design Volume'>                               \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>     \n"
+    "        <Parameter name='Material Model' type='string' value='matl'/>    \n"
+    "        <Parameter name='Fixed Control' type='bool' value='true'/>       \n"
+    "      </ParameterList>                                                   \n"
+    "    </ParameterList>                                                     \n"
+    "  </ParameterList>                                                       \n"
+    "  <ParameterList name='Material Models'>                                 \n"
+    "    <ParameterList name='matl'>                                          \n"
+    "      <ParameterList name='Isotropic Linear Elastic'>                    \n"
+    "        <Parameter name='Mass Density' type='double' value='0.0'/>       \n"
+    "        <Parameter name='Poissons Ratio' type='double' value='0.36'/>    \n"
+    "        <Parameter name='Youngs Modulus' type='double' value='68.0e10'/> \n"
+    "      </ParameterList>                                                   \n"
+    "    </ParameterList>                                                     \n"
+    "  </ParameterList>                                                       \n"
+    "</ParameterList>                                                         \n"
+  );
+
+  // create mesh
+  //
+  constexpr int meshWidth=2;
+  constexpr int spaceDim=3;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+
+  // create spatial model
+  //
+  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
+  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tInputParams);
+
+  // create control
+  //
+  int tNumDofs = spaceDim*tMesh->nverts();
+  Plato::ScalarVector tControl("control", tNumDofs);
+  Plato::blas1::fill(0.4, tControl);
+
+  // workset control
+  //
+  auto tNumCells = tMesh->nelems();
+  constexpr int tNumNodesPerCell = Plato::SimplexMechanics<spaceDim>::mNumNodesPerCell;
+
+  Plato::WorksetBase<Plato::SimplexMechanics<spaceDim>> tWorksetBase(*tMesh);
+  Plato::ScalarMultiVectorT<Plato::Scalar> tControlWS("control workset", tNumCells, tNumNodesPerCell);
+  tWorksetBase.worksetControl(tControl, tControlWS, tSpatialModel.Domains[0]);
+
+  // test workset control
+  //
+  auto tControlWS_Host = Kokkos::create_mirror_view( tControlWS );
+  Kokkos::deep_copy( tControlWS_Host, tControlWS );
+
+  for(int iCell=0; iCell < tNumCells; iCell++){
+    for(int iNode=0; iNode < tNumNodesPerCell; iNode++){
+      TEST_FLOATING_EQUALITY(tControlWS_Host(iCell,iNode), 1.0, 1e-18);
+    }
+  }
+
 }
 
 } // namespace PlatoUnitTests
