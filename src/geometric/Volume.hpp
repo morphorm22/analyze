@@ -82,7 +82,7 @@ class Volume : public Plato::Geometric::AbstractScalarFunction<EvaluationType>
       // check for a case we don't handle
       if (tMyCriteria.isParameter("Domains") && tDomains.size() == 0)
       {
-        THROWERR(std::string("Empty Domains in Volume criteria, either have at least one domain specified or remove from input. No specification indicates we include all domains in volume computation"));
+        THROWERR(std::string("Empty Domains in Volume criteria, either have at least one domain specified or remove from input."));
       }
 
       mQuadratureWeight = 1.0; // for a 1-point quadrature rule for simplices
