@@ -16,7 +16,6 @@ namespace Plato
  * \brief Create interface for the evaluation of path-dependent scalar function
  *  operators, e.g. value and sensitivities.
  * \param [in] aMesh         mesh database
- * \param [in] aMeshSets     side sets database
  * \param [in] aDataMap      output database
  * \param [in] aInputParams  problem inputs in XML file
  * \param [in] aFunctionName scalar function name, i.e. type
@@ -48,7 +47,7 @@ PathDependentScalarFunctionFactory<PhysicsT>::create(
                 + "'. OBJECTIVE OR CONSTRAINT KEYWORD WITH NAME '" + aFunctionName
                 + "' IS NOT DEFINED.  MOST LIKELY, SUBLIST '" + aFunctionName
                 + "' IS NOT DEFINED IN THE INPUT FILE.";
-        THROWERR(tError);
+        ANALYZE_THROWERR(tError);
     }
 }
 

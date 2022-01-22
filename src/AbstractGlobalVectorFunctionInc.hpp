@@ -6,9 +6,6 @@
 
 #pragma once
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include "PlatoStaticsTypes.hpp"
 #include "TimeData.hpp"
 
@@ -57,21 +54,12 @@ public:
     }
 
     /***************************************************************************//**
-     * \brief Return reference to Omega_h mesh data base
+     * \brief Return reference to mesh data base
      * \return mesh metadata
     *******************************************************************************/
     decltype(mSpatialDomain.Mesh) getMesh() const
     {
         return (mSpatialDomain.Mesh);
-    }
-
-    /***************************************************************************//**
-     * \brief Return reference to Omega_h mesh sets
-     * \return mesh side sets metadata
-    *******************************************************************************/
-    decltype(mSpatialDomain.MeshSets) getMeshSets() const
-    {
-        return (mSpatialDomain.MeshSets);
     }
 
     /****************************************************************************//**

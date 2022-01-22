@@ -502,14 +502,14 @@ createIFpack2Preconditioner (const Teuchos::RCP<const TpetraMatrixType>& A,
 /******************************************************************************//**
  * \brief TpetraLinearSolver constructor
 
- This constructor takes an Omega_h::Mesh and creates a new TpetraSystem.
+ This constructor creates a new TpetraSystem.
 **********************************************************************************/
 // TpetraLinearSolver::TpetraLinearSolver(
 //     const Teuchos::ParameterList& aSolverParams,
-//     Omega_h::Mesh&          aMesh,
+//     int                     aNumNodes,
 //     Comm::Machine           aMachine,
 //     int                     aDofsPerNode
-// ) : mSystem(Teuchos::rcp( new TpetraSystem(aMesh, aMachine, aDofsPerNode))),
+// ) : mSystem(Teuchos::rcp( new TpetraSystem(aNumNodes, aMachine, aDofsPerNode))),
 //     mPreLinearSolveTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Pre Linear Solve Setup")),
 //     mPreconditionerSetupTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Preconditioner Setup")),
 //     mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Tpetra Linear Solve")),
@@ -735,7 +735,7 @@ TpetraLinearSolver::amesos2Solve (Teuchos::RCP<Tpetra_Matrix> A, Teuchos::RCP<Tp
     const std::string tErrorMessage = std::string("The specified Amesos2 solver '") + mSolver 
                                     + "' is not currently enabled. Typical options (if compiled with): "
                                     + "{'superlu','superlu_dist','klu2','mumps','umfpack'}";
-    THROWERR(tErrorMessage)
+    ANALYZE_THROWERR(tErrorMessage)
   }
 }
 

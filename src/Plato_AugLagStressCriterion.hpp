@@ -73,7 +73,7 @@ private:
 
     Plato::ScalarVector mMassMultipliers; /*!< mass multipliers */
     Plato::ScalarVector mLagrangeMultipliers; /*!< Lagrange multipliers */
-    Omega_h::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffMatrix; /*!< cell/element Lame constants matrix */
+    Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffMatrix; /*!< cell/element Lame constants matrix */
 
 private:
     /******************************************************************************//**
@@ -156,8 +156,8 @@ public:
         mInitialLagrangeMultipliersValue(0.01),
         mAugLagPenaltyExpansionMultiplier(1.05),
         mMassMultiplierUpperBoundReductionParam(0.95),
-        mMassMultipliers("Mass Multipliers", aSpatialDomain.Mesh.nelems()),
-        mLagrangeMultipliers("Lagrange Multipliers", aSpatialDomain.Mesh.nelems())
+        mMassMultipliers("Mass Multipliers", aSpatialDomain.Mesh->NumElements()),
+        mLagrangeMultipliers("Lagrange Multipliers", aSpatialDomain.Mesh->NumElements())
     {
         this->initialize(aInputParams);
         this->computeStructuralMass();
@@ -186,8 +186,8 @@ public:
         mInitialLagrangeMultipliersValue(0.01),
         mAugLagPenaltyExpansionMultiplier(1.05),
         mMassMultiplierUpperBoundReductionParam(0.95),
-        mMassMultipliers("Mass Multipliers", aSpatialDomain.Mesh.nelems()),
-        mLagrangeMultipliers("Lagrange Multipliers", aSpatialDomain.Mesh.nelems())
+        mMassMultipliers("Mass Multipliers", aSpatialDomain.Mesh->NumElements()),
+        mLagrangeMultipliers("Lagrange Multipliers", aSpatialDomain.Mesh->NumElements())
     {
         Plato::blas1::fill(mInitialMassMultipliersValue, mMassMultipliers);
         Plato::blas1::fill(mInitialLagrangeMultipliersValue, mLagrangeMultipliers);
@@ -296,7 +296,7 @@ public:
      * \brief Set cell material stiffness matrix
      * \param [in] aInput cell material stiffness matrix
     **********************************************************************************/
-    void setCellStiffMatrix(const Omega_h::Matrix<mNumVoigtTerms, mNumVoigtTerms> & aInput)
+    void setCellStiffMatrix(const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> & aInput)
     {
         mCellStiffMatrix = aInput;
     }
@@ -475,7 +475,7 @@ public:
             const Plato::Scalar tOptionTwo =
                     static_cast<Plato::Scalar>(2.5) * tMassMultipliers(aCellOrdinal) + static_cast<Plato::Scalar>(0.5);
             tMassMultipliers(aCellOrdinal) = tMassMultiplierMeasures(aCellOrdinal) > static_cast<Plato::Scalar>(1.0) ?
-                    Omega_h::max2(tOptionOne, tMassMultiplierLowerBound) : Omega_h::min2(tOptionTwo, tMassMultiplierUpperBound);
+                    Plato::max2(tOptionOne, tMassMultiplierLowerBound) : Plato::min2(tOptionTwo, tMassMultiplierUpperBound);
 
             // Compute Von Mises stress constraint residual
             const Plato::Scalar tVonMisesOverLimitMinusOne = tVonMisesOverStressLimit - static_cast<Plato::Scalar>(1.0);
@@ -488,12 +488,12 @@ public:
             // Compute relaxed stress constraint
             const Plato::Scalar tLambdaOverPenalty =
                     static_cast<Plato::Scalar>(-1.0) * tLagrangeMultipliers(aCellOrdinal) / tAugLagPenalty;
-            const Plato::Scalar tRelaxedStressConstraint = Omega_h::max2(tPenalizedStressConstraint, tLambdaOverPenalty);
+            const Plato::Scalar tRelaxedStressConstraint = Plato::max2(tPenalizedStressConstraint, tLambdaOverPenalty);
 
             // Update Lagrange multipliers
             const Plato::Scalar tSuggestedLagrangeMultiplier =
                     tLagrangeMultipliers(aCellOrdinal) + tAugLagPenalty * tRelaxedStressConstraint;
-            tLagrangeMultipliers(aCellOrdinal) = Omega_h::max2(tSuggestedLagrangeMultiplier, static_cast<Plato::Scalar>(0.0));
+            tLagrangeMultipliers(aCellOrdinal) = Plato::max2(tSuggestedLagrangeMultiplier, static_cast<Plato::Scalar>(0.0));
         }, "Update Multipliers");
     }
 
@@ -504,7 +504,7 @@ public:
     {
         auto tNumCells = mSpatialDomain.numCells();
 
-        Plato::NodeCoordinate<mSpaceDim> tCoordinates(&mSpatialDomain.Mesh);
+        Plato::NodeCoordinate<mSpaceDim> tCoordinates(mSpatialDomain.Mesh);
         Plato::ScalarArray3D tConfig("configuration", tNumCells, mNumNodesPerCell, mSpaceDim);
         Plato::workset_config_scalar<mSpaceDim, mNumNodesPerCell>(tNumCells, tCoordinates, tConfig);
         Plato::ComputeCellVolume<mSpaceDim> tComputeCellVolume;

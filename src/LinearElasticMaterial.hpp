@@ -1,10 +1,10 @@
 #ifndef LINEARELASTICMATERIAL_HPP
 #define LINEARELASTICMATERIAL_HPP
 
-#include <Omega_h_matrix.hpp>
 #include <Teuchos_ParameterList.hpp>
 
 #include "AnalyzeMacros.hpp"
+#include "PlatoMathTypes.hpp"
 #include "PlatoStaticsTypes.hpp"
 
 namespace Plato
@@ -25,8 +25,8 @@ protected:
                                           (((SpatialDim == 1) ? 1 : 0)));
     static_assert(mNumVoigtTerms, "SpatialDim must be 1, 2, or 3."); /*!< number of stress-strain terms */
 
-    Omega_h::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffness;   /*!< cell stiffness matrix, i.e. fourth-order material tensor */
-    Omega_h::Vector<mNumVoigtTerms> mReferenceStrain;                /*!< reference strain tensor */
+    Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffness;   /*!< cell stiffness matrix, i.e. fourth-order material tensor */
+    Plato::Array<mNumVoigtTerms> mReferenceStrain;                /*!< reference strain tensor */
 
     Plato::Scalar mCellDensity;     /*!< material density */
     Plato::Scalar mPressureScaling; /*!< pressure term scaling */

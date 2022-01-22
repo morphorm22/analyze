@@ -73,7 +73,7 @@ class HelmholtzResidual :
         // parse length scale parameter
         if (!aProblemParams.isSublist("Parameters"))
         {
-          THROWERR("NO PARAMETERS SUBLIST WAS PROVIDED FOR THE HELMHOLTZ FILTER.");
+            ANALYZE_THROWERR("NO PARAMETERS SUBLIST WAS PROVIDED FOR THE HELMHOLTZ FILTER.");
         }
         else
         {
@@ -188,69 +188,55 @@ class HelmholtzResidual :
       if(mSurfaceLengthScale <= static_cast<Plato::Scalar>(0.0))
         { return; }
 
-      // get mesh vertices
-      auto tFace2Verts = aSpatialModel.Mesh.ask_verts_of(mNumSpatialDimsOnFace);
-      auto tCell2Verts = aSpatialModel.Mesh.ask_elem_verts();
-
-      // get face to element graph
-      auto tFace2eElems = aSpatialModel.Mesh.ask_up(mNumSpatialDimsOnFace, mSpaceDim);
-      auto tFace2Elems_map   = tFace2eElems.a2ab;
-      auto tFace2Elems_elems = tFace2eElems.ab2b;
-
-      // get element to face map
-      auto tElem2Faces = aSpatialModel.Mesh.ask_down(mSpaceDim, mNumSpatialDimsOnFace).ab2b;
-
       // set local functors
       Plato::CalculateSurfaceArea<mSpaceDim> tCalculateSurfaceArea;
-      Plato::NodeCoordinate<mSpaceDim> tCoords(&(aSpatialModel.Mesh));
+      Plato::NodeCoordinate<mSpaceDim> tCoords(aSpatialModel.Mesh);
       Plato::CalculateSurfaceJacobians<mSpaceDim> tCalculateSurfaceJacobians;
-      Plato::CreateFaceLocalNode2ElemLocalNodeIndexMap<mSpaceDim> tCreateFaceLocalNode2ElemLocalNodeIndexMap;
 
       // get sideset faces
-      auto tFaceLocalOrdinals = 
-        Plato::omega_h::get_boundary_entities<mNumSpatialDimsOnFace,Omega_h::SIDE_SET>(mSymmetryPlaneSides, aSpatialModel.Mesh, aSpatialModel.MeshSets);
-      auto tNumFaces = tFaceLocalOrdinals.size();
+      auto tElementOrds = aSpatialModel.Mesh->GetSideSetElementsComplement(mSymmetryPlaneSides);
+      auto tNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodesComplement(mSymmetryPlaneSides);
+      auto tNumFaces = tElementOrds.size();
+
       Plato::ScalarArray3DT<ConfigScalarType> tJacobians("jacobian", tNumFaces, mNumSpatialDimsOnFace, mSpaceDim);
-      auto tNumCells = aSpatialModel.Mesh.nelems();
+      auto tNumCells = aSpatialModel.Mesh->NumElements();
       Plato::ScalarVectorT<StateScalarType> tFilteredDensity("filtered density", tNumCells);
 
       // evaluate integral
       auto tLengthScale = mLengthScale;
+      const auto tNodesPerFace = mNumNodesPerFace;
       auto tSurfaceLengthScale = mSurfaceLengthScale;
       auto tSurfaceCubatureWeight = mSurfaceCubatureRule.getCubWeight();
       auto tSurfaceBasisFunctions = mSurfaceCubatureRule.getBasisFunctions();
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aFaceI)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aSideOrdinal)
       {
-        auto tFaceOrdinal = tFaceLocalOrdinals[aFaceI];
+          auto tElementOrdinal = tElementOrds(aSideOrdinal);
 
-        // for each element that the face is connected to: (either 1 or 2 elements)
-        for( Plato::OrdinalType tElem = tFace2Elems_map[tFaceOrdinal]; tElem < tFace2Elems_map[tFaceOrdinal + 1]; tElem++ )
-        {
-          // create a map from face local node index to elem local node index
-          Plato::OrdinalType tLocalNodeOrd[mSpaceDim];
-          auto tCellOrdinal = tFace2Elems_elems[tElem];
-          tCreateFaceLocalNode2ElemLocalNodeIndexMap(tCellOrdinal, tFaceOrdinal, tCell2Verts, tFace2Verts, tLocalNodeOrd);
+          Plato::OrdinalType tLocalNodeOrds[tNodesPerFace];
+          for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<tNodesPerFace; tNodeOrd++)
+          {
+              tLocalNodeOrds[tNodeOrd] = tNodeOrds(aSideOrdinal*tNodesPerFace+tNodeOrd);
+          }
 
           // calculate surface jacobians
           ConfigScalarType tSurfaceAreaTimesCubWeight(0.0);
-          tCalculateSurfaceJacobians(tCellOrdinal, aFaceI, tLocalNodeOrd, aConfig, tJacobians);
-          tCalculateSurfaceArea(aFaceI, tSurfaceCubatureWeight, tJacobians, tSurfaceAreaTimesCubWeight);
+          tCalculateSurfaceJacobians(tElementOrdinal, aSideOrdinal, tLocalNodeOrds, aConfig, tJacobians);
+          tCalculateSurfaceArea(aSideOrdinal, tSurfaceCubatureWeight, tJacobians, tSurfaceAreaTimesCubWeight);
 
           // project filtered density field onto surface
-          tFilteredDensity(tCellOrdinal) = 0.0;
+          tFilteredDensity(tElementOrdinal) = 0.0;
           for(Plato::OrdinalType tNode = 0; tNode < mNumNodesPerFace; tNode++)
           {
-            auto tLocalCellNode = tLocalNodeOrd[tNode];
-            tFilteredDensity(tCellOrdinal) += tSurfaceBasisFunctions(tNode) * aState(tCellOrdinal, tLocalCellNode);
+            auto tLocalCellNode = tLocalNodeOrds[tNode];
+            tFilteredDensity(tElementOrdinal) += tSurfaceBasisFunctions(tNode) * aState(tElementOrdinal, tLocalCellNode);
           }
 
           for( Plato::OrdinalType tNode = 0; tNode < mNumNodesPerFace; tNode++ )
           {
-            auto tLocalCellNode = tLocalNodeOrd[tNode];
-            aResult(tCellOrdinal, tLocalCellNode) += tSurfaceLengthScale * tLengthScale * tFilteredDensity(tCellOrdinal) *
+            auto tLocalCellNode = tLocalNodeOrds[tNode];
+            aResult(tElementOrdinal, tLocalCellNode) += tSurfaceLengthScale * tLengthScale * tFilteredDensity(tElementOrdinal) *
               tSurfaceBasisFunctions(tNode) * tSurfaceAreaTimesCubWeight;
           }
-        }
       }, "add surface mass to left-hand-side");
     }
 };

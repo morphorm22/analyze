@@ -157,7 +157,7 @@ public:
      const Plato::Primal       & aPrimal)
     const override
     {
-        const auto tNumNodes = mSpatialModel.Mesh.nverts();
+        const auto tNumNodes = mSpatialModel.Mesh->NumNodes();
         Plato::ScalarVector tTotalDerivative("total derivative", mNumSpatialDims * tNumNodes);
         for (auto& tCriterion : mCriteria)
         {
@@ -181,7 +181,7 @@ public:
      const Plato::Primal & aVariables)
     const override
     {
-        const auto tNumNodes = mSpatialModel.Mesh.nverts();
+        const auto tNumNodes = mSpatialModel.Mesh->NumNodes();
         Plato::ScalarVector tTotalDerivative("total derivative", mNumControlDofsPerNode * tNumNodes);
         for (auto& tCriterion : mCriteria)
         {
@@ -204,7 +204,7 @@ public:
     (const Plato::ScalarVector & aControls,
      const Plato::Primal & aVariables) const override
     {
-        const auto tNumNodes = mSpatialModel.Mesh.nverts();
+        const auto tNumNodes = mSpatialModel.Mesh->NumNodes();
         Plato::ScalarVector tTotalDerivative("total derivative", mNumPressDofsPerNode * tNumNodes);
         for (auto& tCriterion : mCriteria)
         {
@@ -227,7 +227,7 @@ public:
     (const Plato::ScalarVector & aControls,
      const Plato::Primal & aVariables) const override
     {
-        const auto tNumNodes = mSpatialModel.Mesh.nverts();
+        const auto tNumNodes = mSpatialModel.Mesh->NumNodes();
         Plato::ScalarVector tTotalDerivative("total derivative", mNumTempDofsPerNode * tNumNodes);
         for (auto& tCriterion : mCriteria)
         {
@@ -250,7 +250,7 @@ public:
     (const Plato::ScalarVector & aControls,
      const Plato::Primal & aVariables) const override
     {
-        const auto tNumNodes = mSpatialModel.Mesh.nverts();
+        const auto tNumNodes = mSpatialModel.Mesh->NumNodes();
         Plato::ScalarVector tTotalDerivative("total derivative", mNumVelDofsPerNode * tNumNodes);
         for (auto& tCriterion : mCriteria)
         {
@@ -271,7 +271,7 @@ private:
     {
         if (mCriterionNames.size() != mCriterionWeights.size())
         {
-            THROWERR(std::string("Dimensions mismatch.  Number of 'Functions' and 'Weights' do not match. ") +
+            ANALYZE_THROWERR(std::string("Dimensions mismatch.  Number of 'Functions' and 'Weights' do not match. ") +
                      "Check scalar function with name '" + mFuncTag + "'.")
         }
     }
@@ -285,7 +285,7 @@ private:
     {
         if(aInputs.sublist("Criteria").isSublist(mFuncTag) == false)
         {
-            THROWERR(std::string("Scalar function with tag '") + mFuncTag + "' is not defined in the input file.")
+            ANALYZE_THROWERR(std::string("Scalar function with tag '") + mFuncTag + "' is not defined in the input file.")
         }
 
         auto tCriteriaInputs = aInputs.sublist("Criteria").sublist(mFuncTag);
@@ -311,7 +311,7 @@ private:
         mCriterionNames = Plato::teuchos::parse_array<std::string>("Functions", aInputs);
         if(mCriterionNames.empty())
         {
-            THROWERR(std::string("'Functions' keyword was not defined in function block with name '") + mFuncTag
+            ANALYZE_THROWERR(std::string("'Functions' keyword was not defined in function block with name '") + mFuncTag
                 + "'. User must define the 'Functions' keyword to use the 'Weighted Sum' criterion.")
         }
     }
@@ -328,7 +328,7 @@ private:
         {
             if(mCriterionNames.empty())
             {
-                THROWERR(std::string("Criterion names were not parsed. ")
+                ANALYZE_THROWERR(std::string("Criterion names were not parsed. ")
                     + "Users must define the 'Functions' keyword to use the 'Weighted Sum' criterion.")
             }
             mCriterionWeights.resize(mCriterionNames.size());

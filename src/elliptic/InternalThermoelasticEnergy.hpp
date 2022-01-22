@@ -87,14 +87,14 @@ class InternalThermoelasticEnergy :
 
         if( aProblemParams.isSublist("Material Models") == false )
         {
-            THROWERR("Required input list ('Material Models') is missing.");
+            ANALYZE_THROWERR("Required input list ('Material Models') is missing.");
         }
 
         if( aProblemParams.sublist("Material Models").isSublist(tMaterialName) == false )
         {
             std::stringstream ss;
             ss << "Specified material model ('" << tMaterialName << "') is not defined";
-            THROWERR(ss.str());
+            ANALYZE_THROWERR(ss.str());
         }
 
         auto& tParams = aProblemParams.sublist(aFunctionName);

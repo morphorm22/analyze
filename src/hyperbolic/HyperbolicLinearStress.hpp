@@ -49,7 +49,7 @@ public:
      * \brief Constructor
      * \param [in] aCellStiffness material element stiffness matrix
     **********************************************************************************/
-    HyperbolicLinearStress(const Omega_h::Matrix<mNumVoigtTerms,
+    HyperbolicLinearStress(const Plato::Matrix<mNumVoigtTerms,
                  mNumVoigtTerms> aCellStiffness) :
       AbstractHyperbolicLinearStress< EvaluationType, SimplexPhysics >(aCellStiffness),
       LinearStress< EvaluationType, SimplexPhysics >(aCellStiffness)

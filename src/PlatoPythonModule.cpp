@@ -255,6 +255,7 @@ Analyze_dealloc(Analyze* self)
     if(self->mNumInstances == 0)
     {
         Kokkos::finalize();
+        Plato::MeshFactory::finalize();
         int isFinalized;
         MPI_Finalized(&isFinalized);
         if( !isFinalized ) MPI_Finalize();
@@ -312,6 +313,7 @@ Analyze_init(Analyze *self, PyObject *args, PyObject *kwds)
         MPI_Init(&argc, &argv);
         Kokkos::initialize(argc, argv);
     }
+    Plato::MeshFactory::initialize(argc, argv);
 
     // construct the MPMD_App
     //

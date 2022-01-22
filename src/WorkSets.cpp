@@ -26,7 +26,7 @@ const std::shared_ptr<Plato::MetaDataBase> & WorkSets::get(const std::string & a
     }
     else
     {
-        THROWERR(std::string("Did not find 'MetaData' with tag '") + aName + "'.")
+        ANALYZE_THROWERR(std::string("Did not find 'MetaData' with tag '") + aName + "'.")
     }
 }
 

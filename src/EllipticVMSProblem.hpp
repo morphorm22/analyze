@@ -4,18 +4,15 @@
 #include <memory>
 #include <sstream>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include "BLAS1.hpp"
 #include "BLAS2.hpp"
 #include "NaturalBCs.hpp"
-#include "UtilsOmegaH.hpp"
 #include "EssentialBCs.hpp"
 #include "ImplicitFunctors.hpp"
 #include "ApplyConstraints.hpp"
 
 #include "Solutions.hpp"
+#include "AnalyzeOutput.hpp"
 #include "VectorFunctionVMS.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "PlatoStaticsTypes.hpp"
@@ -76,7 +73,7 @@ private:
     Plato::ScalarVector mEta;
     Teuchos::RCP<Plato::CrsMatrixType> mProjJacobian; /*!< Jacobian matrix */
 
-    Plato::LocalOrdinalVector mBcDofs; /*!< list of degrees of freedom associated with the Dirichlet boundary conditions */
+    Plato::OrdinalVector mBcDofs; /*!< list of degrees of freedom associated with the Dirichlet boundary conditions */
     Plato::ScalarVector mBcValues; /*!< values associated with the Dirichlet boundary conditions */
 
     rcp<Plato::AbstractSolver> mSolver;
@@ -88,16 +85,14 @@ public:
     /******************************************************************************//**
      * \brief PLATO problem constructor
      * \param [in] aMesh mesh database
-     * \param [in] aMeshSets side sets database
      * \param [in] aInputParams input parameters database
     **********************************************************************************/
     EllipticVMSProblem(
-      Omega_h::Mesh& aMesh,
-      Omega_h::MeshSets& aMeshSets,
-      Teuchos::ParameterList& aInputParams,
-      Comm::Machine aMachine
+      Plato::Mesh              aMesh,
+      Teuchos::ParameterList & aInputParams,
+      Comm::Machine            aMachine
     ) :
-      mSpatialModel    (aMesh, aMeshSets, aInputParams),
+      mSpatialModel    (aMesh, aInputParams),
       mPDEConstraint   (mSpatialModel, mDataMap, aInputParams, aInputParams.get<std::string>("PDE Constraint")),
       mStateProjection (mSpatialModel, mDataMap, aInputParams, std::string("State Gradient Projection")),
       mNumSteps        (Plato::ParseTools::getSubParam<int>   (aInputParams, "Time Stepping", "Number Time Steps",    1  )),
@@ -108,7 +103,7 @@ public:
       mJacobian        (Teuchos::null),
       mProjResidual    ("MyProjResidual", mStateProjection.size()),
       mProjPGrad       ("Projected PGrad", mStateProjection.size()),
-      mProjectState    ("Project State", aMesh.nverts()),
+      mProjectState    ("Project State", aMesh->NumNodes()),
       mProjJacobian    (Teuchos::null),
       mPDEType         (aInputParams.get<std::string>("PDE Constraint")),
       mPhysics         (aInputParams.get<std::string>("Physics"))
@@ -116,53 +111,35 @@ public:
         this->initialize(aInputParams);
 
         Plato::SolverFactory tSolverFactory(aInputParams.sublist("Linear Solver"));
-        mSolver = tSolverFactory.create(aMesh.nverts(), aMachine, SimplexPhysics::mNumDofsPerNode);
+        mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, SimplexPhysics::mNumDofsPerNode);
     }
 
-    /***************************************************************************//**
-     * \brief Save states to visualization file
-     * \param [in] aFilepath output/viz directory path
-     * \param [in] aMesh     Omega_h mesh database
-    *******************************************************************************/
-    void output(const std::string& aFilepath)
-    {
-        auto tMesh = mSpatialModel.Mesh;
-        auto tNumNodes = mPDEConstraint.numNodes();
-        Plato::ScalarMultiVector tPressure("Pressure", mGlobalState.extent(0), tNumNodes);
-        Plato::ScalarMultiVector tDisplacements("Displacements", mGlobalState.extent(0), tNumNodes*mSpaceDim);
-        Plato::blas2::extract<mNumGlobalDofsPerNode, mPressureDofOffset>(mGlobalState, tPressure);
-        Plato::blas2::extract<mNumGlobalDofsPerNode, mSpaceDim>(tNumNodes, mGlobalState, tDisplacements);
 
-        Omega_h::vtk::Writer tWriter = Omega_h::vtk::Writer(aFilepath.c_str(), &tMesh, mSpaceDim);
-        for(Plato::OrdinalType tSnapshot = 1; tSnapshot < tDisplacements.extent(0); tSnapshot++)
-        {
-            auto tPressSubView = Kokkos::subview(tPressure, tSnapshot, Kokkos::ALL());
-            auto tPressSubViewDefaultMirror = Kokkos::create_mirror_view(Kokkos::DefaultExecutionSpace(),tPressSubView);
-            auto tDispSubView = Kokkos::subview(tDisplacements, tSnapshot, Kokkos::ALL());
-            auto tDispSubViewDefaultMirror = Kokkos::create_mirror_view(Kokkos::DefaultExecutionSpace(),tDispSubView);
-            tMesh.add_tag(Omega_h::VERT, "Pressure", 1, Omega_h::Reals(Omega_h::Write<Omega_h::Real>(tPressSubViewDefaultMirror)));
-            tMesh.add_tag(Omega_h::VERT, "Displacements", mSpaceDim, Omega_h::Reals(Omega_h::Write<Omega_h::Real>(tDispSubViewDefaultMirror)));
-            Plato::add_state_tags(tMesh, mDataMap, tSnapshot);
-            auto tTags = Omega_h::vtk::get_all_vtk_tags(&tMesh, mSpaceDim);
-            auto tTime = mTimeStep * static_cast<Plato::Scalar>(tSnapshot);
-            tWriter.write(tSnapshot, tTime, tTags);
-        }
+    /******************************************************************************//**
+     * \brief Output solution to visualization file.
+     * \param [in] aFilepath output/visualizaton file path
+    **********************************************************************************/
+    void output(const std::string & aFilepath) override
+    {
+        auto tDataMap = this->getDataMap();
+        auto tSolution = this->getSolution();
+        auto tSolutionOutput = mPDEConstraint.getSolutionStateOutputData(tSolution);
+        Plato::universal_solution_output(aFilepath, tSolutionOutput, tDataMap, mSpatialModel.Mesh);
     }
 
     /***************************************************************************//**
      * \brief Read essential (Dirichlet) boundary conditions from the Exodus file.
      * \param [in] aMesh mesh database
-     * \param [in] aMeshSets side sets database
      * \param [in] aInputParams input parameters database
     *******************************************************************************/
     void readEssentialBoundaryConditions(Teuchos::ParameterList& aInputParams)
     {
         if(aInputParams.isSublist("Essential Boundary Conditions") == false)
         {
-            THROWERR("ESSENTIAL BOUNDARY CONDITIONS SUBLIST IS NOT DEFINED IN THE INPUT FILE.")
+            ANALYZE_THROWERR("ESSENTIAL BOUNDARY CONDITIONS SUBLIST IS NOT DEFINED IN THE INPUT FILE.")
         }
         Plato::EssentialBCs<SimplexPhysics>
-        tEssentialBoundaryConditions(aInputParams.sublist("Essential Boundary Conditions", false), mSpatialModel.MeshSets);
+        tEssentialBoundaryConditions(aInputParams.sublist("Essential Boundary Conditions", false), mSpatialModel.Mesh);
         tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
     }
 
@@ -171,14 +148,14 @@ public:
      * \param [in] aDofs   degrees of freedom associated with Dirichlet boundary conditions
      * \param [in] aValues values associated with Dirichlet degrees of freedom
     *******************************************************************************/
-    void setEssentialBoundaryConditions(const Plato::LocalOrdinalVector & aDofs, const Plato::ScalarVector & aValues)
+    void setEssentialBoundaryConditions(const Plato::OrdinalVector & aDofs, const Plato::ScalarVector & aValues)
     {
         if(aDofs.size() != aValues.size())
         {
             std::ostringstream tError;
             tError << "DIMENSION MISMATCH: THE NUMBER OF ELEMENTS IN INPUT DOFS AND VALUES ARRAY DO NOT MATCH."
                 << "DOFS SIZE = " << aDofs.size() << " AND VALUES SIZE = " << aValues.size();
-            THROWERR(tError.str())
+            ANALYZE_THROWERR(tError.str())
         }
         mBcDofs = aDofs;
         mBcValues = aValues;
@@ -192,10 +169,10 @@ public:
     void applyConstraints(const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix, const Plato::ScalarVector & aVector)
     {
         if(mBcValues.size() <= static_cast<Plato::OrdinalType>(0))
-        { THROWERR("Elliptic VMS Problem: Essential Boundary Conditions Values array is empty.") }
+        { ANALYZE_THROWERR("Elliptic VMS Problem: Essential Boundary Conditions Values array is empty.") }
 
         if(mBcDofs.size() <= static_cast<Plato::OrdinalType>(0))
-        { THROWERR("Elliptic VMS Problem: Essential Boundary Conditions Dofs array is empty.") }
+        { ANALYZE_THROWERR("Elliptic VMS Problem: Essential Boundary Conditions Dofs array is empty.") }
 
         Plato::ScalarVector tBcValues("Dirichlet Values", mBcValues.size());
         Plato::blas1::fill(0.0, tBcValues);
@@ -220,10 +197,10 @@ public:
     void applyAdjointConstraints(const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix, const Plato::ScalarVector & aVector)
     {
         if(mBcValues.size() <= static_cast<Plato::OrdinalType>(0))
-        { THROWERR("Elliptic VMS Problem: Essential Boundary Conditions Values array is empty.") }
+        { ANALYZE_THROWERR("Elliptic VMS Problem: Essential Boundary Conditions Values array is empty.") }
 
         if(mBcDofs.size() <= static_cast<Plato::OrdinalType>(0))
-        { THROWERR("Elliptic VMS Problem: Essential Boundary Conditions Dofs array is empty.") }
+        { ANALYZE_THROWERR("Elliptic VMS Problem: Essential Boundary Conditions Dofs array is empty.") }
 
         Plato::ScalarVector tBcValues("Dirichlet Values", mBcValues.size());
         Plato::blas1::scale(static_cast<Plato::Scalar>(0.0), tBcValues);
@@ -331,7 +308,7 @@ public:
         }
         else
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
     }
 
@@ -362,7 +339,7 @@ public:
         }
         else
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
     }
 
@@ -393,7 +370,7 @@ public:
         }
         else
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
     }
 
@@ -424,7 +401,7 @@ public:
         }
         else
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
     }
 
@@ -444,15 +421,15 @@ public:
     {
         if(aControl.size() <= static_cast<Plato::OrdinalType>(0))
         {
-            THROWERR("\nCONTROL 1D VIEW IS EMPTY.\n");
+            ANALYZE_THROWERR("\nCONTROL 1D VIEW IS EMPTY.\n");
         }
         if(aSolution.empty())
         {
-            THROWERR("\nSolutions database is empty.\n");
+            ANALYZE_THROWERR("\nSolutions database is empty.\n");
         }
         if(aCriterion == nullptr)
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
 
         // compute dfdz: partial of criterion wrt z
@@ -547,7 +524,7 @@ public:
         }
         else
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
     }
 
@@ -578,7 +555,7 @@ public:
         }
         else
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
     }
 
@@ -597,15 +574,15 @@ public:
     {
         if(aControl.size() <= static_cast<Plato::OrdinalType>(0))
         {
-            THROWERR("\nCONTROL 1D VIEW IS EMPTY.\n");
+            ANALYZE_THROWERR("\nCONTROL 1D VIEW IS EMPTY.\n");
         }
         if(aSolution.empty())
         {
-            THROWERR("\nSolution database is empty.\n");
+            ANALYZE_THROWERR("\nSolution database is empty.\n");
         }
         if(aCriterion == nullptr)
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
 
         // compute dfdx: partial of criterion wrt x
@@ -679,7 +656,6 @@ private:
     /******************************************************************************//**
      * \brief Initialize member data
      * \param [in] aMesh mesh database
-     * \param [in] aMeshSets side sets database
      * \param [in] aProblemParams input parameters database
     **********************************************************************************/
     void

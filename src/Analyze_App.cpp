@@ -1,7 +1,5 @@
 #include <limits>
 
-#include <Omega_h_file.hpp>
-
 #include "Analyze_App.hpp"
 #include "AnalyzeOutput.hpp"
 #include "AnalyzeAppUtils.hpp"
@@ -125,10 +123,9 @@ getArgumentName(
 /******************************************************************************/
 MPMD_App::MPMD_App(int aArgc, char **aArgv, MPI_Comm& aLocalComm) :
         mDebugAnalyzeApp(false),
-        mLibOsh(&aArgc, &aArgv),
         mMachine(aLocalComm),
         mNumSpatialDims(0),
-        mMesh(&mLibOsh)
+        mMesh(nullptr)
 /******************************************************************************/
 {
   // parse app file
@@ -150,7 +147,7 @@ MPMD_App::MPMD_App(int aArgc, char **aArgv, MPI_Comm& aLocalComm) :
   auto tMeshMapInputs = mInputData.getByName<Plato::InputData>("MeshMap");
   if( tMeshMapInputs.size() > 1 )
   {
-      THROWERR("Multiple MeshMap blocks found.");
+      ANALYZE_THROWERR("Multiple MeshMap blocks found.");
   }
   else
   if( tMeshMapInputs.size() == 0 )
@@ -164,7 +161,7 @@ MPMD_App::MPMD_App(int aArgc, char **aArgv, MPI_Comm& aLocalComm) :
       Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
       mMeshMap = tMeshMapFactory.create(mMesh, tMeshMapInput);
 #else
-      THROWERR("MeshMap requested but Plato was compiled without MeshMap.");
+      ANALYZE_THROWERR("MeshMap requested but Plato was compiled without MeshMap.");
 #endif
   }
 
@@ -234,18 +231,11 @@ createProblem(ProblemDefinition& aDefinition)
   {
       std::string tMsg = std::string("Analyze Application: 'Input Mesh' keyword was not defined. ")
           + "Use the 'Input Mesh' keyword to provide the name of the mesh file.";
-      THROWERR(tMsg)
+      ANALYZE_THROWERR(tMsg)
   }
   auto tInputMesh = aDefinition.params.get<std::string>("Input Mesh");
 
-  mMesh = Omega_h::read_mesh_file(tInputMesh, mLibOsh.world());
-  mMesh.set_parting(Omega_h_Parting::OMEGA_H_GHOSTED);
-
-  Omega_h::Assoc tAssoc;
-  tAssoc[Omega_h::ELEM_SET] = mMesh.class_sets;
-  tAssoc[Omega_h::NODE_SET] = mMesh.class_sets;
-  tAssoc[Omega_h::SIDE_SET] = mMesh.class_sets;
-  mMeshSets = Omega_h::invert(&mMesh, tAssoc);
+  mMesh = Plato::MeshFactory::create(tInputMesh);
 
   mDebugAnalyzeApp = aDefinition.params.get<bool>("Debug", false);
   mNumSpatialDims = aDefinition.params.get<int>("Spatial Dimension");
@@ -255,7 +245,7 @@ createProblem(ProblemDefinition& aDefinition)
     #ifdef PLATOANALYZE_3D
     Plato::ProblemFactory<3> tProblemFactory;
     mProblem = nullptr; // otherwise destructor of previous problem not called
-    mProblem = tProblemFactory.create(mMesh, mMeshSets, aDefinition.params, mMachine);
+    mProblem = tProblemFactory.create(mMesh, aDefinition.params, mMachine);
     #else
     throw Plato::ParsingException("3D physics is not compiled.");
     #endif
@@ -265,7 +255,7 @@ createProblem(ProblemDefinition& aDefinition)
     #ifdef PLATOANALYZE_2D
     Plato::ProblemFactory<2> tProblemFactory;
     mProblem = nullptr; // otherwise destructor of previous problem not called
-    mProblem = tProblemFactory.create(mMesh, mMeshSets, aDefinition.params, mMachine);
+    mProblem = tProblemFactory.create(mMesh, aDefinition.params, mMachine);
     #else
     throw Plato::ParsingException("2D physics is not compiled.");
     #endif
@@ -275,7 +265,7 @@ createProblem(ProblemDefinition& aDefinition)
     #ifdef PLATOANALYZE_1D
     Plato::ProblemFactory<1> tProblemFactory;
     mProblem = nullptr; // otherwise destructor of previous problem not called
-    mProblem = tProblemFactory.create(mMesh, mMeshSets, aDefinition.params, mMachine);
+    mProblem = tProblemFactory.create(mMesh, aDefinition.params, mMachine);
     #else
     throw Plato::ParsingException("1D physics is not compiled.");
     #endif
@@ -290,7 +280,7 @@ void MPMD_App::resetProblemMetaData()
 {
   //mGlobalSolution  = mProblem->getGlobalSolution();
 
-  auto tNumLocalVals = mMesh.nverts();
+  auto tNumLocalVals = mMesh->NumNodes();
   if(mControl.extent(0) != tNumLocalVals)
   {
     Kokkos::resize(mControl, tNumLocalVals);
@@ -317,7 +307,7 @@ void MPMD_App::initialize()
       REPORT("Analyze Application: Initialize");
   }
 
-  auto tNumLocalVals = mMesh.nverts();
+  auto tNumLocalVals = mMesh->NumNodes();
 
   mControl    = Plato::ScalarVector("control", tNumLocalVals);
   Kokkos::deep_copy(mControl, 1.0);
@@ -664,7 +654,7 @@ ComputeCriterion(MPMD_App* aMyApp, Plato::InputData& aOpNode, Teuchos::RCP<Probl
 
     if(aMyApp->mCriterionGradientsZ.count(mStrCriterion) == 0)
     {
-        auto tNumLocalVals = aMyApp->mMesh.nverts();
+        auto tNumLocalVals = aMyApp->mMesh->NumNodes();
         aMyApp->mCriterionGradientsZ[mStrCriterion] = Plato::ScalarVector("gradient_z", tNumLocalVals);
     }
 
@@ -724,7 +714,7 @@ ComputeCriterionX(MPMD_App* aMyApp, Plato::InputData& aOpNode, Teuchos::RCP<Prob
     }
     if(aMyApp->mCriterionGradientsX.count(mStrCriterion) == 0)
     {
-        auto tNumLocalVals   = aMyApp->mMesh.nverts();
+        auto tNumLocalVals   = aMyApp->mMesh->NumNodes();
         auto tNumSpatialDims = aMyApp->mNumSpatialDims;
         aMyApp->mCriterionGradientsX[mStrCriterion] = Plato::ScalarVector("gradient_x", tNumSpatialDims*tNumLocalVals);
     }
@@ -925,7 +915,7 @@ ComputeCriterionGradient(MPMD_App* aMyApp, Plato::InputData& aOpNode,  Teuchos::
 {
     if(aMyApp->mCriterionGradientsZ.count(mStrCriterion) == 0)
     {
-        auto tNumLocalVals = aMyApp->mMesh.nverts();
+        auto tNumLocalVals = aMyApp->mMesh->NumNodes();
         aMyApp->mCriterionGradientsZ[mStrCriterion] = Plato::ScalarVector("gradient_z", tNumLocalVals);
     }
     addUnique(aMyApp->mGradientZNameToCriterionName, mStrGradName, mStrCriterion, "ComputeCriterion");
@@ -966,7 +956,7 @@ ComputeCriterionGradientX(MPMD_App* aMyApp, Plato::InputData& aOpNode, Teuchos::
 {
     if(aMyApp->mCriterionGradientsX.count(mStrCriterion) == 0)
     {
-        auto tNumLocalVals = aMyApp->mMesh.nverts();
+        auto tNumLocalVals = aMyApp->mMesh->NumNodes();
         auto tNumSpatialDims = aMyApp->mNumSpatialDims;
         aMyApp->mCriterionGradientsX[mStrCriterion] = Plato::ScalarVector("gradient_x", tNumSpatialDims*tNumLocalVals);
     }
@@ -1406,7 +1396,7 @@ void MPMD_App::Visualization::operator()()
     
     if(tOuptutFile.is_open() == false)
     {
-        THROWERR(std::string("Visualization operation failed to open file with path '") + mVizDirectory + "/steps.pvd" + "'.")
+        ANALYZE_THROWERR(std::string("Visualization operation failed to open file with path '") + mVizDirectory + "/steps.pvd" + "'.")
     }
 
     tOuptutFile << "<VTKFile type=\"Collection\" version=\"0.1\">\n";
@@ -1561,7 +1551,7 @@ void MPMD_App::exportDataMap(const Plato::data::layout_t & aDataLayout, std::vec
 
     if(aDataLayout == Plato::data::layout_t::SCALAR_FIELD)
     {
-        Plato::OrdinalType tNumLocalVals = mMesh.nverts();
+        Plato::OrdinalType tNumLocalVals = mMesh->NumNodes();
         aMyOwnedGlobalIDs.resize(tNumLocalVals);
         for(Plato::OrdinalType tLocalID = 0; tLocalID < tNumLocalVals; tLocalID++)
         {
@@ -1570,7 +1560,7 @@ void MPMD_App::exportDataMap(const Plato::data::layout_t & aDataLayout, std::vec
     }
     else if(aDataLayout == Plato::data::layout_t::ELEMENT_FIELD)
     {
-        Plato::OrdinalType tNumLocalVals = mMesh.nelems();
+        Plato::OrdinalType tNumLocalVals = mMesh->NumElements();
         aMyOwnedGlobalIDs.resize(tNumLocalVals);
         for(Plato::OrdinalType tLocalID = 0; tLocalID < tNumLocalVals; tLocalID++)
         {
@@ -1644,9 +1634,9 @@ void MPMD_App::getScalarFieldHostMirror
 Plato::ScalarMultiVector MPMD_App::getCoords()
 /******************************************************************************/
 {
-    auto tCoords = mMesh.coords();
-    auto tNumVerts = mMesh.nverts();
-    auto tNumDims = mMesh.dim();
+    auto tCoords = mMesh->Coordinates();
+    auto tNumVerts = mMesh->NumNodes();
+    auto tNumDims = mMesh->NumDimensions();
     Plato::ScalarMultiVector retval("coords", tNumVerts, tNumDims);
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumVerts), LAMBDA_EXPRESSION(const Plato::OrdinalType & tVertOrdinal){
         for (int iDim=0; iDim<tNumDims; iDim++){

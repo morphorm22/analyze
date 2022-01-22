@@ -152,11 +152,11 @@ public:
         // create return matrix
         //
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
-                Plato::CreateLocalByGlobalBlockMatrix<Plato::CrsMatrixType, mNumNodesPerCell, mNumVoigtTerms, mNumDofsPerNode>( &mSpatialModel.Mesh );
+                Plato::CreateLocalByGlobalBlockMatrix<Plato::CrsMatrixType, mNumNodesPerCell, mNumVoigtTerms, mNumDofsPerNode>( mSpatialModel.Mesh );
 
         // assembly to return matrix
         //
-        Plato::LocalByGlobalEntryFunctor<mNumSpatialDims, mNumLocalDofsPerCell, mNumDofsPerNode> tJacobianMatEntryOrdinal( tJacobianMat, &mSpatialModel.Mesh );
+        Plato::LocalByGlobalEntryFunctor<mNumSpatialDims, mNumLocalDofsPerCell, mNumDofsPerNode> tJacobianMatEntryOrdinal( tJacobianMat, mSpatialModel.Mesh );
 
         for(const auto& tDomain : mSpatialModel.Domains)
         {
@@ -214,11 +214,11 @@ public:
         // create return matrix
         //
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
-                Plato::CreateGlobalByLocalBlockMatrix<Plato::CrsMatrixType, mNumNodesPerCell, mNumDofsPerNode, mNumVoigtTerms>( &mSpatialModel.Mesh );
+                Plato::CreateGlobalByLocalBlockMatrix<Plato::CrsMatrixType, mNumNodesPerCell, mNumDofsPerNode, mNumVoigtTerms>( mSpatialModel.Mesh );
 
         // assembly to return matrix
         //
-        Plato::GlobalByLocalEntryFunctor<mNumSpatialDims, mNumDofsPerNode, mNumLocalDofsPerCell> tJacobianMatEntryOrdinal( tJacobianMat, &mSpatialModel.Mesh );
+        Plato::GlobalByLocalEntryFunctor<mNumSpatialDims, mNumDofsPerNode, mNumLocalDofsPerCell> tJacobianMatEntryOrdinal( tJacobianMat, mSpatialModel.Mesh );
 
         for(const auto& tDomain : mSpatialModel.Domains)
         {
@@ -273,16 +273,16 @@ public:
         using LocalStateScalar  = typename GradientX::LocalStateScalarType;
         using ResultScalar      = typename GradientX::ResultScalarType;
 
-        auto tNumCells = mSpatialModel.Mesh.nelems();
+        auto tNumCells = mSpatialModel.Mesh->NumElements();
 
         // create return matrix
         //
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
-                Plato::CreateGlobalByLocalBlockMatrix<Plato::CrsMatrixType, mNumNodesPerCell, mNumDofsPerNode, mNumVoigtTerms>( &mSpatialModel.Mesh );
+                Plato::CreateGlobalByLocalBlockMatrix<Plato::CrsMatrixType, mNumNodesPerCell, mNumDofsPerNode, mNumVoigtTerms>( mSpatialModel.Mesh );
 
         // assembly to return matrix
         //
-        Plato::GlobalByLocalEntryFunctor<mNumSpatialDims, mNumDofsPerNode, mNumLocalDofsPerCell> tJacobianMatEntryOrdinal( tJacobianMat, &mSpatialModel.Mesh );
+        Plato::GlobalByLocalEntryFunctor<mNumSpatialDims, mNumDofsPerNode, mNumLocalDofsPerCell> tJacobianMatEntryOrdinal( tJacobianMat, mSpatialModel.Mesh );
 
         for(const auto& tDomain : mSpatialModel.Domains)
         {

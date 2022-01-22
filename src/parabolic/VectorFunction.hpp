@@ -122,7 +122,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
     * \param [in] aDataMap problem-specific data map
     *
     ******************************************************************************/
-    VectorFunction(Omega_h::Mesh& aMesh, Plato::DataMap& aDataMap) :
+    VectorFunction(Plato::Mesh aMesh, Plato::DataMap& aDataMap) :
             Plato::WorksetBase<PhysicsT>(aMesh),
             mDataMap(aDataMap)
     {
@@ -147,6 +147,17 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
     {
         auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
         return mResidualFunctions.at(tFirstBlockName)->getDofNames();
+    }
+
+    /**************************************************************************//**
+    *
+    * \brief Return state dot names
+    *
+    ******************************************************************************/
+    std::vector<std::string> getDofDotNames() const
+    {
+        auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
+        return mResidualFunctions.at(tFirstBlockName)->getDofDotNames();
     }
 
     /**************************************************************************//**
@@ -272,7 +283,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
         //
         auto tMesh = mSpatialModel.Mesh;
         Teuchos::RCP<Plato::CrsMatrixType> tGradientMat =
-                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumSpatialDims, mNumDofsPerNode>(&tMesh);
+                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumSpatialDims, mNumDofsPerNode>(tMesh);
 
         for(const auto& tDomain : mSpatialModel.Domains)
         {
@@ -309,7 +320,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumSpatialDims, mNumDofsPerNode>
-                tGradientMatEntryOrdinal(tGradientMat, &tMesh);
+                tGradientMatEntryOrdinal(tGradientMat, tMesh);
 
             auto tGradientMatEntries = tGradientMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleTransposeJacobian
@@ -347,7 +358,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumSpatialDims, mNumDofsPerNode>
-                tGradientMatEntryOrdinal(tGradientMat, &tMesh);
+                tGradientMatEntryOrdinal(tGradientMat, tMesh);
 
             auto tGradientMatEntries = tGradientMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleTransposeJacobian
@@ -376,7 +387,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
         //
         auto tMesh = mSpatialModel.Mesh;
         Teuchos::RCP<Plato::CrsMatrixType> tGradientMat =
-             Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumDofsPerNode>( &tMesh );
+             Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumDofsPerNode>( tMesh );
 
         for(const auto& tDomain : mSpatialModel.Domains)
         {
@@ -413,7 +424,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumDofsPerNode>
-                tGradientMatEntryOrdinal( tGradientMat, &tMesh );
+                tGradientMatEntryOrdinal( tGradientMat, tMesh );
 
             auto tGradientMatEntries = tGradientMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleJacobianFad
@@ -451,7 +462,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumDofsPerNode>
-                tGradientMatEntryOrdinal( tGradientMat, &tMesh );
+                tGradientMatEntryOrdinal( tGradientMat, tMesh );
 
             auto tGradientMatEntries = tGradientMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleJacobianFad
@@ -481,7 +492,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
         //
         auto tMesh = mSpatialModel.Mesh;
         Teuchos::RCP<Plato::CrsMatrixType> tGradientMat =
-            Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumDofsPerNode>( &tMesh );
+            Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumDofsPerNode>( tMesh );
 
         for(const auto& tDomain : mSpatialModel.Domains)
         {
@@ -518,7 +529,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumDofsPerNode>
-                tGradientMatEntryOrdinal( tGradientMat, &tMesh );
+                tGradientMatEntryOrdinal( tGradientMat, tMesh );
 
             auto tGradientMatEntries = tGradientMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleJacobianFad
@@ -556,7 +567,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumDofsPerNode>
-                tGradientMatEntryOrdinal( tGradientMat, &tMesh );
+                tGradientMatEntryOrdinal( tGradientMat, tMesh );
 
             auto tGradientMatEntries = tGradientMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleJacobianFad
@@ -586,7 +597,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
         //
         auto tMesh = mSpatialModel.Mesh;
         Teuchos::RCP<Plato::CrsMatrixType> tGradientMat =
-            Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumControl, mNumDofsPerNode>( &tMesh );
+            Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumControl, mNumDofsPerNode>( tMesh );
 
         for(const auto& tDomain : mSpatialModel.Domains)
         {
@@ -623,7 +634,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumControl, mNumDofsPerNode>
-              tGradientMatEntryOrdinal( tGradientMat, &tMesh );
+              tGradientMatEntryOrdinal( tGradientMat, tMesh );
 
             auto tGradientMatEntries = tGradientMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleTransposeJacobian
@@ -661,7 +672,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumControl, mNumDofsPerNode>
-              tGradientMatEntryOrdinal( tGradientMat, &tMesh );
+              tGradientMatEntryOrdinal( tGradientMat, tMesh );
 
             auto tGradientMatEntries = tGradientMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleTransposeJacobian

@@ -7,7 +7,7 @@
 #include "Teuchos_UnitTestHarness.hpp"
 #include "PlatoTestHelpers.hpp"
 #include "Solutions.hpp"
-#include "Plato_Diagnostics.hpp"
+#include "Analyze_Diagnostics.hpp"
 #include "elliptic/Problem.hpp"
 #include "elliptic/WeightedSumFunction.hpp"
 #include "elliptic/PhysicsScalarFunction.hpp"
@@ -25,10 +25,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressAxial_
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = PlatoUtestHelpers::build_3d_box_mesh(tBoxWidth,tBoxWidth,tBoxWidth,tNumElemX,tNumElemY,tNumElemZ);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -82,22 +79,22 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressAxial_
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Z Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='2'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Z0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='z-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied X Displacement Boundary Condition'>                   \n"
       "       <Parameter  name='Type'     type='string' value='Fixed Value'/>                   \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Value'    type='double' value='0.2'/>                           \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -109,15 +106,13 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressAxial_
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    PlatoUtestHelpers::set_mesh_sets_3D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::Mechanics<tSpaceDim>;
 
-    Plato::Elliptic::Problem<PhysicsT> tProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
-    auto tNumVertices = tMesh->nverts();
+    auto tNumVertices = tMesh->NumNodes();
     Plato::ScalarVector tControls("Controls", tNumVertices);
     Plato::blas1::fill(1.0, tControls);
     auto tSolution = tProblem.solution(tControls);
@@ -129,8 +124,9 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressAxial_
     TEST_FLOATING_EQUALITY(tCriterionValue, 1000.0, tTolerance);
 
     auto tCriterionGrad = tProblem.criterionGradient(tControls, tSolution, tCriterionName);
-    std::vector<Plato::Scalar> tGold = { 7.50000e+02, 1.87500e+02, 1.25000e+02, 1.87500e+02, 3.12500e+02, 
-                                         7.50000e+02, 3.12500e+02, 3.75000e+02};
+    std::vector<Plato::Scalar> tGold = {
+      7.50000e+02, 1.87500e+02, 1.87500e+02, 1.25000e+02,
+      3.75000e+02, 3.12500e+02, 3.12500e+02, 7.50000e+02};
     auto tHostGrad = Kokkos::create_mirror(tCriterionGrad);
     Kokkos::deep_copy(tHostGrad, tCriterionGrad);
     TEST_ASSERT( tHostGrad.size() == static_cast<Plato::OrdinalType>(tGold.size() ));
@@ -155,10 +151,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressShear_
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = PlatoUtestHelpers::build_3d_box_mesh(tBoxWidth,tBoxWidth,tBoxWidth,tNumElemX,tNumElemY,tNumElemZ);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -212,29 +205,29 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressShear_
       "     <ParameterList  name='X0 Fixed Y'>                                                  \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y0 Fixed X'>                                                  \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='X1 Applied Y'>                                                \n"
       "       <Parameter  name='Type'     type='string' value='Fixed Value'/>                   \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Value'    type='double' value='0.2'/>                           \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y1 Applied X'>                                                \n"
       "       <Parameter  name='Type'     type='string' value='Fixed Value'/>                   \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y+'/>                         \n"
       "       <Parameter  name='Value'    type='double' value='0.2'/>                           \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Z Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='2'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Z0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='z-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
       "</ParameterList>                                                                         \n"
@@ -245,16 +238,14 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressShear_
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    PlatoUtestHelpers::set_mesh_sets_3D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::Mechanics<tSpaceDim>;
 
-    Plato::Elliptic::Problem<PhysicsT> tProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
     Plato::Scalar tDensity = 0.9;
-    auto tNumVertices = tMesh->nverts();
+    auto tNumVertices = tMesh->NumNodes();
     Plato::ScalarVector tControls("Controls", tNumVertices);
     Plato::blas1::fill(tDensity, tControls);
     auto tSolution = tProblem.solution(tControls);
@@ -268,8 +259,9 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressShear_
     TEST_FLOATING_EQUALITY(tCriterionValue, tSimpPenalty*1443.3756727, tTolerance);
 
     auto tCriterionGrad = tProblem.criterionGradient(tControls, tSolution, tCriterionName);
-    std::vector<Plato::Scalar> tGold = { 8.76851e+02, 2.19213e+02, 1.46142e+02, 2.19213e+02, 3.65354e+02,
-                                         8.76851e+02, 3.65354e+02, 4.38425e+02};
+    std::vector<Plato::Scalar> tGold = {
+      8.76851e+02, 2.19213e+02, 2.19213e+02, 1.46142e+02,
+      4.38425e+02, 3.65354e+02, 3.65354e+02, 8.76851e+02};
     auto tHostGrad = Kokkos::create_mirror(tCriterionGrad);
     Kokkos::deep_copy(tHostGrad, tCriterionGrad);
     TEST_ASSERT( tHostGrad.size() == static_cast<Plato::OrdinalType>(tGold.size() ));
@@ -293,10 +285,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressGradie
     const Plato::OrdinalType tNumElemX = 5;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = PlatoUtestHelpers::build_3d_box_mesh(5.0*tBoxWidth,tBoxWidth,tBoxWidth,tNumElemX,tNumElemY,tNumElemZ);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -350,22 +339,22 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressGradie
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Z Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='2'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Z0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='z-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied Y Displacement Boundary Condition'>                   \n"
       "       <Parameter  name='Type'     type='string' value='Fixed Value'/>                   \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Value'    type='double' value='0.1'/>                           \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -377,15 +366,13 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressGradie
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    PlatoUtestHelpers::set_mesh_sets_3D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::Mechanics<tSpaceDim>;
 
-    Plato::Elliptic::Problem<PhysicsT> tProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);
 
     std::string tCriterionName("VolAvgMisesStress");
-    auto tApproxError = Plato::test_criterion_grad_wrt_control(tProblem, *tMesh, tCriterionName);
+    auto tApproxError = Plato::test_criterion_grad_wrt_control(tProblem, tMesh, tCriterionName);
     const Plato::Scalar tUpperBound = 1e-6;
     TEST_ASSERT(tApproxError < tUpperBound);
 }
@@ -398,10 +385,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyAxial_3
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = PlatoUtestHelpers::build_3d_box_mesh(tBoxWidth,tBoxWidth,tBoxWidth,tNumElemX,tNumElemY,tNumElemZ);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -455,22 +439,22 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyAxial_3
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Z Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='2'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Z0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='z-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied X Displacement Boundary Condition'>                   \n"
       "       <Parameter  name='Type'     type='string' value='Fixed Value'/>                   \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Value'    type='double' value='0.2'/>                           \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -482,15 +466,13 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyAxial_3
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    PlatoUtestHelpers::set_mesh_sets_3D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::Mechanics<tSpaceDim>;
 
-    Plato::Elliptic::Problem<PhysicsT> tProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
-    auto tNumVertices = tMesh->nverts();
+    auto tNumVertices = tMesh->NumNodes();
     Plato::ScalarVector tControls("Controls", tNumVertices);
     Plato::blas1::fill(1.0, tControls);
     auto tSolution = tProblem.solution(tControls);
@@ -502,8 +484,9 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyAxial_3
     TEST_FLOATING_EQUALITY(tCriterionValue, 46.666666666666, tTolerance);
 
     auto tCriterionGrad = tProblem.criterionGradient(tControls, tSolution, tCriterionName);
-    std::vector<Plato::Scalar> tGold = { 3.50000e+01,8.75000e+00,5.83333e+00,8.75000e+00
-                                        ,1.45833e+01,3.50000e+01,1.45833e+01,1.75000e+01};
+    std::vector<Plato::Scalar> tGold = {
+      3.50000e+01, 8.75000e+00, 8.75000e+00, 5.83333e+00,
+      1.75000e+01, 1.45833e+01, 1.45833e+01, 3.50000e+01};
     auto tHostGrad = Kokkos::create_mirror(tCriterionGrad);
     Kokkos::deep_copy(tHostGrad, tCriterionGrad);
     TEST_ASSERT( tHostGrad.size() == static_cast<Plato::OrdinalType>(tGold.size() ));
@@ -528,10 +511,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyShear_3
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = PlatoUtestHelpers::build_3d_box_mesh(tBoxWidth,tBoxWidth,tBoxWidth,tNumElemX,tNumElemY,tNumElemZ);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -585,29 +565,29 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyShear_3
       "     <ParameterList  name='X0 Fixed Y'>                                                  \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y0 Fixed X'>                                                  \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='X1 Applied Y'>                                                \n"
       "       <Parameter  name='Type'     type='string' value='Fixed Value'/>                   \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Value'    type='double' value='0.2'/>                           \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y1 Applied X'>                                                \n"
       "       <Parameter  name='Type'     type='string' value='Fixed Value'/>                   \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y+'/>                         \n"
       "       <Parameter  name='Value'    type='double' value='0.2'/>                           \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Z Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='2'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Z0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='z-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
       "</ParameterList>                                                                         \n"
@@ -618,16 +598,14 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyShear_3
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    PlatoUtestHelpers::set_mesh_sets_3D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::Mechanics<tSpaceDim>;
 
-    Plato::Elliptic::Problem<PhysicsT> tProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
     Plato::Scalar tDensity = 0.9;
-    auto tNumVertices = tMesh->nverts();
+    auto tNumVertices = tMesh->NumNodes();
     Plato::ScalarVector tControls("Controls", tNumVertices);
     Plato::blas1::fill(tDensity, tControls);
     auto tSolution = tProblem.solution(tControls);
@@ -641,8 +619,9 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyShear_3
     TEST_FLOATING_EQUALITY(tCriterionValue, tSimpPenalty*41.6666666666, tTolerance);
 
     auto tCriterionGrad = tProblem.criterionGradient(tControls, tSolution, tCriterionName);
-    std::vector<Plato::Scalar> tGold = { 2.53125e+01, 6.32812e+00, 4.21875e+00, 6.32812e+00, 1.05469e+01,
-                                         2.53125e+01, 1.05469e+01, 1.26562e+01};
+    std::vector<Plato::Scalar> tGold = {
+      2.53125e+01, 6.32812e+00, 6.32812e+00, 4.21875e+00,
+      1.26562e+01, 1.05469e+01, 1.05469e+01, 2.53125e+01};
     auto tHostGrad = Kokkos::create_mirror(tCriterionGrad);
     Kokkos::deep_copy(tHostGrad, tCriterionGrad);
     TEST_ASSERT( tHostGrad.size() == static_cast<Plato::OrdinalType>(tGold.size() ));
@@ -666,10 +645,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyGradien
     const Plato::OrdinalType tNumElemX = 5;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = PlatoUtestHelpers::build_3d_box_mesh(5.0*tBoxWidth,tBoxWidth,tBoxWidth,tNumElemX,tNumElemY,tNumElemZ);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -723,22 +699,22 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyGradien
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Z Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='2'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Z0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='z-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied Y Displacement Boundary Condition'>                   \n"
       "       <Parameter  name='Type'     type='string' value='Fixed Value'/>                   \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Value'    type='double' value='1.0'/>                           \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -750,15 +726,13 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyGradien
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    PlatoUtestHelpers::set_mesh_sets_3D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::Mechanics<tSpaceDim>;
 
-    Plato::Elliptic::Problem<PhysicsT> tProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);
 
     std::string tCriterionName("VolAvgTensileEnergy");
-    auto tApproxError = Plato::test_criterion_grad_wrt_control(tProblem, *tMesh, tCriterionName);
+    auto tApproxError = Plato::test_criterion_grad_wrt_control(tProblem, tMesh, tCriterionName);
     const Plato::Scalar tUpperBound = 1e-6;
     TEST_ASSERT(tApproxError < tUpperBound);
 }

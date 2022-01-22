@@ -105,7 +105,7 @@ std::string getEquationParam(const Teuchos::ParameterList& aInputParams,
 
           if( line.empty() || equationIndex != 0 )
           {
-            THROWERR( "Cannot find Bingo equation requested." );
+            ANALYZE_THROWERR( "Cannot find Bingo equation requested." );
           }
 
           // Find the last comma delimiter.
@@ -117,7 +117,7 @@ std::string getEquationParam(const Teuchos::ParameterList& aInputParams,
           }
           else
           {
-            THROWERR( "Malformed Bingo equation found :" + line);
+            ANALYZE_THROWERR( "Malformed Bingo equation found :" + line);
           }
         }
         // Skip all other text.
@@ -128,13 +128,13 @@ std::string getEquationParam(const Teuchos::ParameterList& aInputParams,
     }
     else
     {
-      THROWERR( "Cannot open Bingo file: " + bingoFile );
+      ANALYZE_THROWERR( "Cannot open Bingo file: " + bingoFile );
     }
   }
 
   if( equationStr.empty() )
   {
-    THROWERR( "No custom equation found." );
+    ANALYZE_THROWERR( "No custom equation found." );
   }
 
   return equationStr;

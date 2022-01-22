@@ -4,7 +4,7 @@
 #include "SimplexMechanics.hpp"
 #include "LinearElasticMaterial.hpp"
 
-#include <Omega_h_matrix.hpp>
+#include "PlatoMathTypes.hpp"
 
 namespace Plato
 {
@@ -22,8 +22,8 @@ class RayleighStress : public Plato::SimplexMechanics<SpaceDim>
 private:
     using Plato::SimplexMechanics<SpaceDim>::mNumVoigtTerms;               /*!< number of stress/strain terms */
 
-    const Omega_h::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;  /*!< material stiffness matrix */
-    Omega_h::Vector<mNumVoigtTerms> mReferenceStrain;                      /*!< reference strain tensor */
+    const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;  /*!< material stiffness matrix */
+    Plato::Array<mNumVoigtTerms> mReferenceStrain;                       /*!< reference voigt strain tensor */
     Plato::Scalar mRayleighB;
 
 public:
@@ -31,7 +31,7 @@ public:
      * \brief Constructor
      * \param [in] aCellStiffness material element stiffness matrix
     **********************************************************************************/
-    RayleighStress(const Omega_h::Matrix<mNumVoigtTerms, mNumVoigtTerms> aCellStiffness) :
+    RayleighStress(const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> aCellStiffness) :
             mCellStiffness(aCellStiffness)
     {
         for(Plato::OrdinalType tIndex = 0; tIndex < mNumVoigtTerms; tIndex++)

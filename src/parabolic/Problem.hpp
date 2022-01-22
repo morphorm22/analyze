@@ -10,6 +10,7 @@
 #include "alg/PlatoSolverFactory.hpp"
 
 #include "Thermal.hpp"
+#include "PlatoMesh.hpp"
 #include "Mechanics.hpp"
 #include "ParseTools.hpp"
 #include "Geometrical.hpp"
@@ -75,7 +76,7 @@ namespace Parabolic
 
         Teuchos::RCP<Plato::ComputedFields<mSpatialDim>> mComputedFields;
 
-        Plato::LocalOrdinalVector mStateBcDofs;
+        Plato::OrdinalVector mStateBcDofs;
         Plato::ScalarVector mStateBcValues;
 
         rcp<Plato::AbstractSolver> mSolver;
@@ -86,12 +87,11 @@ namespace Parabolic
       public:
         /******************************************************************************/
         Problem(
-          Omega_h::Mesh& aMesh,
-          Omega_h::MeshSets& aMeshSets,
-          Teuchos::ParameterList& aProblemParams,
-          Comm::Machine aMachine
+          Plato::Mesh              aMesh,
+          Teuchos::ParameterList & aProblemParams,
+          Comm::Machine            aMachine
         ) :
-            mSpatialModel  (aMesh, aMeshSets, aProblemParams),
+            mSpatialModel  (aMesh, aProblemParams),
             mPDEConstraint (mSpatialModel, mDataMap, aProblemParams, aProblemParams.get<std::string>("PDE Constraint")),
             mTrapezoidIntegrator (aProblemParams.sublist("Time Integration")),
             mNumSteps      (Plato::ParseTools::getSubParam<int>   (aProblemParams, "Time Integration", "Number Time Steps",   1  )),
@@ -112,7 +112,7 @@ namespace Parabolic
             // parse boundary constraints
             //
             Plato::EssentialBCs<SimplexPhysics>
-                tEssentialBoundaryConditions(aProblemParams.sublist("Essential Boundary Conditions",false), mSpatialModel.MeshSets);
+                tEssentialBoundaryConditions(aProblemParams.sublist("Essential Boundary Conditions",false), mSpatialModel.Mesh);
             tEssentialBoundaryConditions.get(mStateBcDofs, mStateBcValues);
 
             // parse criteria
@@ -169,7 +169,7 @@ namespace Parabolic
             {
                 Plato::ScalarVector tInitialState = Kokkos::subview(mState, 0, Kokkos::ALL());
                 if(mComputedFields == Teuchos::null) {
-                  THROWERR("No 'Computed Fields' have been defined");
+                  ANALYZE_THROWERR("No 'Computed Fields' have been defined");
                 }
 
                 auto tDofNames = mPDEConstraint.getDofNames();
@@ -196,7 +196,7 @@ namespace Parabolic
             }
 
             Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
-            mSolver = tSolverFactory.create(aMesh.nverts(), aMachine, SimplexPhysics::mNumDofsPerNode);
+            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, SimplexPhysics::mNumDofsPerNode);
 
         }
 
@@ -244,7 +244,7 @@ namespace Parabolic
             auto tDataMap = this->getDataMap();
             auto tSolution = this->getSolution();
             auto tSolutionOutput = mPDEConstraint.getSolutionStateOutputData(tSolution);
-            Plato::universal_solution_output<mSpatialDim>(aFilepath, tSolutionOutput, tDataMap, mSpatialModel.Mesh);
+            Plato::universal_solution_output(aFilepath, tSolutionOutput, tDataMap, mSpatialModel.Mesh);
         }
 
         /******************************************************************************//**
@@ -378,7 +378,7 @@ namespace Parabolic
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -410,7 +410,7 @@ namespace Parabolic
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -440,7 +440,7 @@ namespace Parabolic
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -471,7 +471,7 @@ namespace Parabolic
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -491,7 +491,7 @@ namespace Parabolic
         {
             if(aCriterion == nullptr)
             {
-                THROWERR("OBJECTIVE REQUESTED BUT NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("OBJECTIVE REQUESTED BUT NOT DEFINED BY USER.");
             }
 
             Plato::Solutions tSolution(mPhysics);
@@ -598,7 +598,7 @@ namespace Parabolic
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -629,7 +629,7 @@ namespace Parabolic
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -649,7 +649,7 @@ namespace Parabolic
         {
             if(aCriterion == nullptr)
             {
-                THROWERR("OBJECTIVE REQUESTED BUT NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("OBJECTIVE REQUESTED BUT NOT DEFINED BY USER.");
             }
 
             Plato::Solutions tSolution(mPhysics);
@@ -739,8 +739,8 @@ namespace Parabolic
         Plato::Solutions getSolution() const
         {
             Plato::Solutions tSolution(mPhysics, mPDE);
-            tSolution.set("State", mState);
-            tSolution.set("StateDot", mStateDot);
+            tSolution.set("State",    mState,    mPDEConstraint.getDofNames());
+            tSolution.set("StateDot", mStateDot, mPDEConstraint.getDofDotNames());
             return tSolution;
         }
     };

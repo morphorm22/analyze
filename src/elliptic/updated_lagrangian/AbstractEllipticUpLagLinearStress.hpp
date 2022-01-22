@@ -6,7 +6,7 @@
 #include "EllipticUpLagSimplexFadTypes.hpp"
 #include "SimplexMechanics.hpp"
 
-#include <Omega_h_matrix.hpp>
+#include "PlatoMathTypes.hpp"
 
 namespace Plato
 {
@@ -40,16 +40,16 @@ protected:
 
     using Plato::Elliptic::UpdatedLagrangian::SimplexMechanics<mSpaceDim>::mNumVoigtTerms; /*!< number of stress/strain terms */
 
-    const Omega_h::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;  /*!< material stiffness matrix */
+    const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;  /*!< material stiffness matrix */
 
-    Omega_h::Vector<mNumVoigtTerms> mReferenceStrain;                      /*!< reference strain tensor */
+    Plato::Array<mNumVoigtTerms> mReferenceStrain;                      /*!< reference strain tensor */
 
 public:
     /******************************************************************************//**
      * \brief Constructor
      * \param [in] aCellStiffness material element stiffness matrix
     **********************************************************************************/
-    AbstractEllipticUpLagLinearStress(const Omega_h::Matrix<mNumVoigtTerms,
+    AbstractEllipticUpLagLinearStress(const Plato::Matrix<mNumVoigtTerms,
                                                mNumVoigtTerms> aCellStiffness) :
       mCellStiffness(aCellStiffness)
     {

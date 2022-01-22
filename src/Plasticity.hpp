@@ -3,11 +3,9 @@
 
 #include <memory>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include "AnalyzeMacros.hpp"
 #include "SimplexPlasticity.hpp"
+#include "J2PlasticityLocalResidual.hpp"
 
 #ifdef PLATO_EXPRESSION
   #include "J2PlasticityLocalResidualExpFAD.hpp"
@@ -27,8 +25,7 @@ struct FunctionFactory
     /******************************************************************************//**
      * \brief Create a PLATO local vector function  inc (i.e. local residual equations)
      * \param [in] aMesh mesh database
-     * \param [in] aMeshSets side sets database
-     * \param [in] aDataMap PLATO Analyze physics-based database
+     * \param [in] aDataMap Plato Analyze physics-based database
      * \param [in] aInputParams input parameters
     **********************************************************************************/
     template<typename EvaluationType>
@@ -41,13 +38,13 @@ struct FunctionFactory
     {
         if(aInputParams.isSublist("Material Models") == false)
         {
-            THROWERR("'Material Models' Sublist is not defined.")
+            ANALYZE_THROWERR("'Material Models' Sublist is not defined.")
         }
         Teuchos::ParameterList tMaterialModelsList = aInputParams.sublist("Material Models");
         Teuchos::ParameterList tMaterialModelList  = tMaterialModelsList.sublist(aSpatialDomain.getMaterialName());
         if(tMaterialModelList.isSublist("Plasticity Model") == false)
         {
-            THROWERR("Plasticity Model Sublist is not defined.")
+            ANALYZE_THROWERR("Plasticity Model Sublist is not defined.")
         }
 
         auto tPlasticityParamList = tMaterialModelList.get<Teuchos::ParameterList>("Plasticity Model");
@@ -61,7 +58,7 @@ struct FunctionFactory
         }
         else
         {
-          THROWERR("Unknown Plasticity Model.  Options are: J2 Plasticity.  User is advised to select one of the available options.")
+          ANALYZE_THROWERR("Unknown Plasticity Model.  Options are: J2 Plasticity.  User is advised to select one of the available options.")
         }
     }
 }; // struct FunctionFactory

@@ -56,21 +56,12 @@ public:
     virtual ~AbstractLocalScalarFunctionInc() { return; }
 
     /***************************************************************************//**
-     * \brief Return reference to Omega_h mesh data base
+     * \brief Return reference to mesh data base
      * \return mesh metadata
     *******************************************************************************/
     decltype(mSpatialDomain.Mesh) getMesh() const
     {
         return (mSpatialDomain.Mesh);
-    }
-
-    /***************************************************************************//**
-     * \brief Return reference to Omega_h mesh sets
-     * \return mesh side sets metadata
-    *******************************************************************************/
-    decltype(mSpatialDomain.MeshSets) getMeshSets() const
-    {
-        return (mSpatialDomain.MeshSets);
     }
 
     /******************************************************************************//**

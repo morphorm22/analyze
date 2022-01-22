@@ -46,7 +46,7 @@ SolverFactory::create(
 #ifdef PLATO_TPETRA
       return std::make_shared<Plato::TpetraLinearSolver>(mSolverParams, aNumNodes, aMachine, aDofsPerNode);
 #else
-      THROWERR("Not compiled with Tpetra");
+      ANALYZE_THROWERR("Not compiled with Tpetra");
 #endif
   }
   else if(tLowerSolverStack == "amgx")
@@ -54,10 +54,10 @@ SolverFactory::create(
 #ifdef HAVE_AMGX
       return std::make_shared<Plato::AmgXLinearSolver>(mSolverParams, aDofsPerNode);
 #else
-      THROWERR("Not compiled with AmgX");
+      ANALYZE_THROWERR("Not compiled with AmgX");
 #endif
   }
-  THROWERR("Requested solver stack not found");
+  ANALYZE_THROWERR("Requested solver stack not found");
 }
 
 /******************************************************************************//**
@@ -85,7 +85,7 @@ SolverFactory::create(
       Plato::OrdinalType tNumCondensedNodes = aMPCs->getNumCondensedNodes();
       return std::make_shared<Plato::TpetraLinearSolver>(mSolverParams, tNumCondensedNodes, aMachine, aDofsPerNode, aMPCs);
 #else
-      THROWERR("Not compiled with Tpetra");
+      ANALYZE_THROWERR("Not compiled with Tpetra");
 #endif
   }
   else if(tLowerSolverStack == "amgx")
@@ -93,10 +93,10 @@ SolverFactory::create(
 #ifdef HAVE_AMGX
       return std::make_shared<Plato::AmgXLinearSolver>(mSolverParams, aDofsPerNode, aMPCs);
 #else
-      THROWERR("Not compiled with AmgX");
+      ANALYZE_THROWERR("Not compiled with AmgX");
 #endif
   }
-  THROWERR("Requested solver stack not found");
+  ANALYZE_THROWERR("Requested solver stack not found");
 }
 
 } // end namespace Plato

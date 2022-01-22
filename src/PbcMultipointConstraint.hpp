@@ -9,7 +9,6 @@
 #ifndef PBC_MULTIPOINT_CONSTRAINT_HPP
 #define PBC_MULTIPOINT_CONSTRAINT_HPP
 
-#include <Omega_h_assoc.hpp>
 #include <Teuchos_ParameterList.hpp>
 
 #include "MultipointConstraint.hpp"
@@ -38,7 +37,6 @@ public:
 
     /*!
      \brief Get constraint matrix and RHS data.
-     \param aMeshSets Omega_h mesh sets that contains nodeset data.
      \param mpcRowMap CRS-style rowMap for constraint data.
      \param mpcColumnIndices CRS-style columnIndices for constraint data.
      \param mpcEntries CRS-style entries for constraint data.
@@ -46,11 +44,11 @@ public:
      \param offsetChild Starting location in rowMap/RHS where constrained nodes/values will be added.
      \param offsetNnz Starting location in columnIndices/entries where constraining nodes/coefficients will be added.
      */
-    void get(LocalOrdinalVector & aMpcChildNodes,
-             LocalOrdinalVector & aMpcParentNodes,
-             Plato::CrsMatrixType::RowMapVector & aMpcRowMap,
-             Plato::CrsMatrixType::OrdinalVector & aMpcColumnIndices,
-             Plato::CrsMatrixType::ScalarVector & aMpcEntries,
+    void get(OrdinalVector & aMpcChildNodes,
+             OrdinalVector & aMpcParentNodes,
+             Plato::CrsMatrixType::RowMapVectorT & aMpcRowMap,
+             Plato::CrsMatrixType::OrdinalVectorT & aMpcColumnIndices,
+             Plato::CrsMatrixType::ScalarVectorT & aMpcEntries,
              ScalarVector & aMpcValues,
              OrdinalType aOffsetChild,
              OrdinalType aOffsetParent,
@@ -63,10 +61,10 @@ public:
 
     // ! Fill in node set members
     void updateNodesets(const OrdinalType& tNumberChildNodes,
-                        const Omega_h::LOs& tChildNodeLids);
+                        const Plato::OrdinalVectorT<const Plato::OrdinalType>& tChildNodeLids);
 
     // ! Perform translation mapping from child nodes to parent locations
-    void mapChildVertexLocations(Omega_h::Mesh & aMesh,
+    void mapChildVertexLocations(Plato::Mesh         aMesh,
                                  const Plato::Scalar aTranslationX,
                                  const Plato::Scalar aTranslationY,
                                  const Plato::Scalar aTranslationZ,
@@ -74,18 +72,18 @@ public:
                                  Plato::ScalarMultiVector & aMappedLocations);
     
     // ! Use mapped parent elements to find global IDs of unique parent nodes
-    void getUniqueParentNodes(Omega_h::Mesh & aMesh,
-                              LocalOrdinalVector & aParentElements,
-                              LocalOrdinalVector & aParentGlobalLocalMap);
+    void getUniqueParentNodes(Plato::Mesh     aMesh,
+                              OrdinalVector & aParentElements,
+                              OrdinalVector & aParentGlobalLocalMap);
 
-    void setMatrixValues(Omega_h::Mesh & aMesh,
-                         LocalOrdinalVector & aParentElements,
+    void setMatrixValues(Plato::Mesh     aMesh,
+                         OrdinalVector & aParentElements,
                          Plato::ScalarMultiVector & aMappedLocations,
-                         LocalOrdinalVector & aParentGlobalLocalMap);
+                         OrdinalVector & aParentGlobalLocalMap);
 
 private:
-    LocalOrdinalVector                 mChildNodes;
-    LocalOrdinalVector                 mParentNodes;
+    OrdinalVector                      mChildNodes;
+    OrdinalVector                      mParentNodes;
     Plato::Scalar                      mValue;
     Teuchos::RCP<Plato::CrsMatrixType> mMpcMatrix;
 

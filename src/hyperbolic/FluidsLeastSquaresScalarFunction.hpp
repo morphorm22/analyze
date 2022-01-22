@@ -132,7 +132,7 @@ public:
      const Plato::Primal & aPrimal)
     const override
     {
-        const auto tNumDofs = mNumConfigDofsPerNode * mSpatialModel.Mesh.nverts();
+        const auto tNumDofs = mNumConfigDofsPerNode * mSpatialModel.Mesh->NumNodes();
         Plato::ScalarVector tGradConfig("gradient configuration", tNumDofs);
         Plato::blas1::fill(0.0, tGradConfig);
         for(auto& tCriterion : mCriteria)
@@ -163,7 +163,7 @@ public:
     (const Plato::ScalarVector & aControls,
      const Plato::Primal & aPrimal) const override
     {
-        const auto tNumDofs = mNumControlDofsPerNode * mSpatialModel.Mesh.nverts();
+        const auto tNumDofs = mNumControlDofsPerNode * mSpatialModel.Mesh->NumNodes();
         Plato::ScalarVector tGradControl("gradient control", tNumDofs);
         Plato::blas1::fill(0.0, tGradControl);
         for(auto& tCriterion : mCriteria)
@@ -194,7 +194,7 @@ public:
     (const Plato::ScalarVector & aControls,
      const Plato::Primal & aPrimal) const override
     {
-        const auto tNumDofs = mNumPressDofsPerNode * mSpatialModel.Mesh.nverts();
+        const auto tNumDofs = mNumPressDofsPerNode * mSpatialModel.Mesh->NumNodes();
         Plato::ScalarVector tGradCurPress("gradient current pressure", tNumDofs);
         Plato::blas1::fill(0.0, tGradCurPress);
         for(auto& tCriterion : mCriteria)
@@ -225,7 +225,7 @@ public:
     (const Plato::ScalarVector & aControls,
      const Plato::Primal & aPrimal) const override
     {
-        const auto tNumDofs = mNumTempDofsPerNode * mSpatialModel.Mesh.nverts();
+        const auto tNumDofs = mNumTempDofsPerNode * mSpatialModel.Mesh->NumNodes();
         Plato::ScalarVector tGradCurTemp("gradient current temperature", tNumDofs);
         Plato::blas1::fill(0.0, tGradCurTemp);
         for(auto& tCriterion : mCriteria)
@@ -256,7 +256,7 @@ public:
     (const Plato::ScalarVector & aControls,
      const Plato::Primal & aPrimal) const override
     {
-        const auto tNumDofs = mNumVelDofsPerNode * mSpatialModel.Mesh.nverts();
+        const auto tNumDofs = mNumVelDofsPerNode * mSpatialModel.Mesh->NumNodes();
         Plato::ScalarVector tGradCurVel("gradient current velocity", tNumDofs);
         Plato::blas1::fill(0.0, tGradCurVel);
         for(auto& tCriterion : mCriteria)
@@ -285,19 +285,19 @@ private:
     {
         if (mCriterionNames.size() != mCriterionWeights.size())
         {
-            THROWERR(std::string("Dimensions mismatch.  Number of 'Functions' and 'Weights' do not match. ") +
+            ANALYZE_THROWERR(std::string("Dimensions mismatch.  Number of 'Functions' and 'Weights' do not match. ") +
                      "Check inputs for scalar function with name '" + mFuncName + "'.")
         }
 
         if(mCriterionNames.size() != mCriterionNormalizations.size())
         {
-            THROWERR(std::string("Dimensions mismatch.  Number of 'Functions' and 'Normalizations' do not match. ") +
+            ANALYZE_THROWERR(std::string("Dimensions mismatch.  Number of 'Functions' and 'Normalizations' do not match. ") +
                      "Check inputs for scalar function with name '" + mFuncName + "'.")
         }
 
         if(mCriterionNames.size() != mCriterionTarget.size())
         {
-            THROWERR(std::string("Dimensions mismatch.  Number of 'Functions' and 'Gold/Target' values do not match. ") +
+            ANALYZE_THROWERR(std::string("Dimensions mismatch.  Number of 'Functions' and 'Gold/Target' values do not match. ") +
                      "Check inputs for scalar function with name '" + mFuncName + "'.")
         }
     }
@@ -311,7 +311,7 @@ private:
     {
         if(aInputs.sublist("Criteria").isSublist(mFuncName) == false)
         {
-            THROWERR(std::string("Scalar function with tag '") + mFuncName + "' is not defined in the input file.")
+            ANALYZE_THROWERR(std::string("Scalar function with tag '") + mFuncName + "' is not defined in the input file.")
         }
 
         auto tCriteriaInputs = aInputs.sublist("Criteria").sublist(mFuncName);
@@ -338,7 +338,7 @@ private:
         mCriterionNames = Plato::teuchos::parse_array<std::string>("Functions", aInputs);
         if(mCriterionNames.empty())
         {
-            THROWERR(std::string("'Functions' keyword was not defined in function block with name '") + mFuncName
+            ANALYZE_THROWERR(std::string("'Functions' keyword was not defined in function block with name '") + mFuncName
                 + "'. Users must define the 'Functions' keyword to use the 'Least Squares' criterion.")
         }
     }
@@ -353,7 +353,7 @@ private:
         mCriterionTarget = Plato::teuchos::parse_array<Plato::Scalar>("Targets", aInputs);
         if(mCriterionTarget.empty())
         {
-            THROWERR(std::string("'Targets' keyword was not defined in function block with name '") + mFuncName
+            ANALYZE_THROWERR(std::string("'Targets' keyword was not defined in function block with name '") + mFuncName
                 + "'. User must define the 'Targets' keyword to use the 'Least Squares' criterion.")
         }
     }
@@ -370,7 +370,7 @@ private:
         {
             if(mCriterionNames.empty())
             {
-                THROWERR("Criterion names have not been parsed. Users must define the 'Functions' keyword to use the 'Least Squares' criterion.")
+                ANALYZE_THROWERR("Criterion names have not been parsed. Users must define the 'Functions' keyword to use the 'Least Squares' criterion.")
             }
             mCriterionWeights.resize(mCriterionNames.size());
             std::fill(mCriterionWeights.begin(), mCriterionWeights.end(), 1.0);
@@ -390,7 +390,7 @@ private:
         {
             if(mCriterionNames.empty())
             {
-                THROWERR("Criterion names have not been parsed. Users must define the 'Functions' keyword to use the 'Least Squares' criterion.")
+                ANALYZE_THROWERR("Criterion names have not been parsed. Users must define the 'Functions' keyword to use the 'Least Squares' criterion.")
             }
             mCriterionNormalizations.resize(mCriterionNames.size());
             std::fill(mCriterionNormalizations.begin(), mCriterionNormalizations.end(), 1.0);

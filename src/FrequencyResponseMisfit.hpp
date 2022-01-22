@@ -13,9 +13,7 @@
 #include <algorithm>
 #include <stdexcept>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-#include <Omega_h_defines.hpp>
+#include "PlatoMesh.hpp"
 
 #include <Teuchos_Array.hpp>
 #include <Teuchos_ParameterList.hpp>
@@ -130,7 +128,7 @@ public:
     }
 
     /**************************************************************************/
-    void readExperimentalData(Omega_h::Mesh& aMesh, Teuchos::ParameterList & aParamList)
+    void readExperimentalData(Plato::Mesh aMesh, Teuchos::ParameterList & aParamList)
     /**************************************************************************/
     {
         if(aParamList.isSublist("Experimental Data") == true)
@@ -184,7 +182,7 @@ public:
     }
 
     /**************************************************************************/
-    void readExperimentalFields(Omega_h::Mesh& aMesh,
+    void readExperimentalFields(Plato::Mesh aMesh,
                                 const Teuchos::Array<std::string> & aNames,
                                 const Teuchos::Array<Plato::OrdinalType> & aIndices)
     /**************************************************************************/
@@ -201,7 +199,7 @@ public:
                     << " EXPERIMENTAL DATA FIELD NAMES IN THE INPUT FILE. **************\n\n";
             throw std::runtime_error(tErrorMessage.str().c_str());
         }
-        const Plato::OrdinalType tNumVertices = aMesh.nverts();
+        const Plato::OrdinalType tNumVertices = aMesh->NumNodes();
         const Plato::OrdinalType tNumTimeSteps = mTimeSteps.size();
         const Plato::OrdinalType tNumStates = tNumVertices * mNumDofsPerNode;
         mExpStates = Plato::ScalarMultiVector("ExpStates", tNumTimeSteps, tNumStates);
@@ -215,7 +213,10 @@ public:
             // TODO: FINISH IMPLEMENTATION, I NEED TO MAKE SURE THAT I AM READING EACH TIME STEPS
             Plato::OrdinalType tMyTimeStep = 0;
             auto tMyExpStates = Kokkos::subview(mExpStates, tMyTimeStep, Kokkos::ALL());
-            auto tMyInputExpData = aMesh.get_array < Omega_h::Real > (Omega_h::VERT, tMyName).view();
+            auto tBaseName = "exprdata.exo";
+            auto tReader = Plato::MeshIOFactory::create(tBaseName, mSpatialModel.Mesh, "Read");
+
+            auto tMyInputExpData = tReader->Read(tMyName, tMyTimeStep);
 
             Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumVertices), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
             {

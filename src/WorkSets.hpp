@@ -9,6 +9,7 @@
 #include <unordered_map>
 
 #include "MetaData.hpp"
+#include "PlatoMesh.hpp"
 #include "ImplicitFunctors.hpp"
 
 namespace Plato
@@ -80,11 +81,11 @@ struct LocalOrdinalMaps
      * \brief Constructor
      * \param [in] aMesh mesh metadata
      ******************************************************************************/
-    LocalOrdinalMaps(Omega_h::Mesh & aMesh) :
-        mNodeCoordinate(&aMesh),
-        mScalarFieldOrdinalsMap(&aMesh),
-        mVectorFieldOrdinalsMap(&aMesh),
-        mControlOrdinalsMap(&aMesh)
+    LocalOrdinalMaps(Plato::Mesh aMesh) :
+        mNodeCoordinate(aMesh),
+        mScalarFieldOrdinalsMap(aMesh),
+        mVectorFieldOrdinalsMap(aMesh),
+        mControlOrdinalsMap(aMesh)
     { return; }
 };
 // struct LocalOrdinalMaps

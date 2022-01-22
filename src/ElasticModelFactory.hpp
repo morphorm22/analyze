@@ -55,7 +55,7 @@ public:
             {
                 std::stringstream ss;
                 ss << "Requested a material model ('" << aModelName << "') that isn't defined";
-                THROWERR(ss.str());
+                ANALYZE_THROWERR(ss.str());
             }
 
             auto tModelParamList = tModelsParamList.sublist(aModelName);

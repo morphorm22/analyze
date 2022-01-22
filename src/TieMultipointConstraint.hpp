@@ -9,12 +9,12 @@
 #ifndef TIE_MULTIPOINT_CONSTRAINT_HPP
 #define TIE_MULTIPOINT_CONSTRAINT_HPP
 
-#include <Omega_h_assoc.hpp>
 #include <Teuchos_ParameterList.hpp>
 
-#include "MultipointConstraint.hpp"
+#include "PlatoMesh.hpp"
 #include "AnalyzeMacros.hpp"
 #include "PlatoStaticsTypes.hpp"
+#include "MultipointConstraint.hpp"
 
 namespace Plato
 {
@@ -26,15 +26,14 @@ namespace Plato
 class TieMultipointConstraint : public Plato::MultipointConstraint
 {
 public:
-    TieMultipointConstraint(const Omega_h::MeshSets & aMeshSets,
-                            const std::string & aName, 
+    TieMultipointConstraint(const Plato::Mesh        aMesh,
+                            const std::string      & aName, 
                             Teuchos::ParameterList & aParam);
 
     virtual ~TieMultipointConstraint(){}
 
     /*!
      \brief Get constraint matrix and RHS data.
-     \param aMeshSets Omega_h mesh sets that contains nodeset data.
      \param mpcRowMap CRS-style rowMap for constraint data.
      \param mpcColumnIndices CRS-style columnIndices for constraint data.
      \param mpcEntries CRS-style entries for constraint data.
@@ -42,11 +41,11 @@ public:
      \param offsetChild Starting location in rowMap/RHS where constrained nodes/values will be added.
      \param offsetNnz Starting location in columnIndices/entries where constraining nodes/coefficients will be added.
      */
-    void get(LocalOrdinalVector & aMpcChildNodes,
-             LocalOrdinalVector & aMpcParentNodes,
-             Plato::CrsMatrixType::RowMapVector & aMpcRowMap,
-             Plato::CrsMatrixType::OrdinalVector & aMpcColumnIndices,
-             Plato::CrsMatrixType::ScalarVector & aMpcEntries,
+    void get(OrdinalVector & aMpcChildNodes,
+             OrdinalVector & aMpcParentNodes,
+             Plato::CrsMatrixType::RowMapVectorT & aMpcRowMap,
+             Plato::CrsMatrixType::OrdinalVectorT & aMpcColumnIndices,
+             Plato::CrsMatrixType::ScalarVectorT & aMpcEntries,
              ScalarVector & aMpcValues,
              OrdinalType aOffsetChild,
              OrdinalType aOffsetParent,
@@ -59,12 +58,12 @@ public:
 
     // ! Fill in node set members
     void updateNodesets(const OrdinalType& tNumberChildNodes,
-                        const Omega_h::LOs& tChildNodeLids,
-                        const Omega_h::LOs& tParentNodeLids);
+                        const Plato::OrdinalVectorT<const Plato::OrdinalType>& tChildNodeLids,
+                        const Plato::OrdinalVectorT<const Plato::OrdinalType>& tParentNodeLids);
 
 private:
-    LocalOrdinalVector    mParentNodes;
-    LocalOrdinalVector    mChildNodes;
+    OrdinalVector    mParentNodes;
+    OrdinalVector    mChildNodes;
     Plato::Scalar         mValue;
 
 };

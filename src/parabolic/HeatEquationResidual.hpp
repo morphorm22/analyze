@@ -52,6 +52,7 @@ class HeatEquationResidual :
     using FunctionBaseType::mSpatialDomain;
     using FunctionBaseType::mDataMap;
     using FunctionBaseType::mDofNames;
+    using FunctionBaseType::mDofDotNames;
 
     using StateScalarType     = typename EvaluationType::StateScalarType;
     using StateDotScalarType  = typename EvaluationType::StateDotScalarType;
@@ -90,7 +91,8 @@ class HeatEquationResidual :
     /**************************************************************************/
     {
         // obligatory: define dof names in order
-        mDofNames.push_back("Temperature");
+        mDofNames.push_back("temperature");
+        mDofDotNames.push_back("temperature rate");
 
         {
             Plato::ThermalConductionModelFactory<SpaceDim> mmfactory(problemParams);
@@ -112,31 +114,7 @@ class HeatEquationResidual :
 
     Plato::Solutions getSolutionStateOutputData(const Plato::Solutions &aSolutions) const override
     {
-      Plato::ScalarMultiVector tSolutionFromSolutions    = aSolutions.get("State");
-      Plato::ScalarMultiVector tSolutionDotFromSolutions = aSolutions.get("StateDot");
-
-      auto tNumTimeSteps = tSolutionFromSolutions.extent(0);
-      auto tNumVertices  = mSpatialDomain.Mesh.nverts();
-
-      Plato::ScalarMultiVector tTemperatures("temperatures for all time steps", tNumTimeSteps, tNumVertices);
-      Plato::ScalarMultiVector tTemperatureDots("temperatureDots for all time steps", tNumTimeSteps, tNumVertices);
-
-      if (tSolutionFromSolutions.extent(0) != tSolutionDotFromSolutions.extent(0))
-          THROWERR("Number of steps provided for State and StateDot differ.")
-
-      Plato::blas2::extract<mNumDofsPerNode, 1, 0>
-                          (tNumVertices, tSolutionFromSolutions, tTemperatures);
-      Plato::blas2::extract<mNumDofsPerNode, 1, 0>
-                          (tNumVertices, tSolutionDotFromSolutions, tTemperatureDots);
-
-      Plato::Solutions tSolutionsOutput(aSolutions.physics(), aSolutions.pde());
-      tSolutionsOutput.set("Temperature",    tTemperatures);
-      tSolutionsOutput.set("Temperature_Dot", tTemperatureDots);
-
-      tSolutionsOutput.setNumDofs("Temperature", 1);
-      tSolutionsOutput.setNumDofs("Temperature_Dot", 1);
-
-      return tSolutionsOutput;
+      return aSolutions;
     }
 
     /**************************************************************************/

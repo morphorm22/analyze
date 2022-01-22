@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Omega_h_matrix.hpp>
+#include "PlatoMathTypes.hpp"
 #include "hyperbolic/SimplexMicromorphicMechanics.hpp"
 
 namespace Plato
@@ -20,10 +20,10 @@ class MicromorphicKinetics : public Plato::SimplexMicromorphicMechanics<SpaceDim
     using Plato::SimplexMicromorphicMechanics<SpaceDim>::mNumVoigtTerms;
     using Plato::SimplexMicromorphicMechanics<SpaceDim>::mNumSkwTerms;
 
-    const Omega_h::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellMesoStressSymmetricMaterialTensor; 
-    const Omega_h::Matrix<mNumSkwTerms,mNumSkwTerms>     mCellMesoStressSkewMaterialTensor; 
-    const Omega_h::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellMicroStressSymmetricMaterialTensor; 
-    const Omega_h::Matrix<mNumSkwTerms,mNumSkwTerms>     mCellMicroStressSkewMaterialTensor; 
+    const Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellMesoStressSymmetricMaterialTensor; 
+    const Plato::Matrix<mNumSkwTerms,mNumSkwTerms>     mCellMesoStressSkewMaterialTensor; 
+    const Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellMicroStressSymmetricMaterialTensor; 
+    const Plato::Matrix<mNumSkwTerms,mNumSkwTerms>     mCellMicroStressSkewMaterialTensor; 
 
   public:
 

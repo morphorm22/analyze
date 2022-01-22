@@ -43,8 +43,6 @@
 #include "KokkosSparse_CrsMatrix.hpp"
 #include <KokkosKernels_IOUtils.hpp>
 
-#include <Omega_h_mesh.hpp>
-
 namespace PlatoUnitTests
 {
 
@@ -127,8 +125,8 @@ fromFull( Teuchos::RCP<Plato::CrsMatrixType>            aOutMatrix,
     using Plato::OrdinalType;
     using Plato::Scalar;
 
-    if( aOutMatrix->numRows() != aInMatrix.size()    ) { THROWERR("matrices have incompatible shapes"); }
-    if( aOutMatrix->numCols() != aInMatrix[0].size() ) { THROWERR("matrices have incompatible shapes"); }
+    if( aOutMatrix->numRows() != aInMatrix.size()    ) { ANALYZE_THROWERR("matrices have incompatible shapes"); }
+    if( aOutMatrix->numCols() != aInMatrix[0].size() ) { ANALYZE_THROWERR("matrices have incompatible shapes"); }
 
     auto tNumRowsPerBlock = aOutMatrix->numRowsPerBlock();
     auto tNumColsPerBlock = aOutMatrix->numColsPerBlock();
@@ -200,11 +198,11 @@ void SlowDumbRowSummedInverseMultiply(
 
     auto tNumM1Rows = aInMatrixOne->numRows();
     auto tNumM1Cols = aInMatrixOne->numCols();
-    if (tNumM1Rows != tNumM1Cols) { THROWERR("matrix one must be square"); }
+    if (tNumM1Rows != tNumM1Cols) { ANALYZE_THROWERR("matrix one must be square"); }
 
     auto tNumM2Rows = aInMatrixTwo->numRows();
     auto tNumM2Cols = aInMatrixTwo->numCols();
-    if (tNumM1Cols != tNumM2Rows) { THROWERR("matrices have incompatible shapes"); }
+    if (tNumM1Cols != tNumM2Rows) { ANALYZE_THROWERR("matrices have incompatible shapes"); }
 
     for (auto iRow=0; iRow<tNumM1Rows; iRow++)
     {
@@ -282,11 +280,11 @@ void SlowDumbMatrixMinusMatrix(
    
     if( aOffset == -1 )
     {
-        if( tNumM1Rows != tNumM2Rows || tNumM1Cols != tNumM2Cols ) { THROWERR("input matrices have incompatible shapes"); }
+        if( tNumM1Rows != tNumM2Rows || tNumM1Cols != tNumM2Cols ) { ANALYZE_THROWERR("input matrices have incompatible shapes"); }
     }
     else
     {
-        if(  tNumM2RowsPerBlock != 1 || tNumM1Cols != tNumM2Cols ) { THROWERR("input matrices have incompatible shapes"); }
+        if(  tNumM2RowsPerBlock != 1 || tNumM1Cols != tNumM2Cols ) { ANALYZE_THROWERR("input matrices have incompatible shapes"); }
     }
 
     using Plato::Scalar;
@@ -335,7 +333,7 @@ void SlowDumbMatrixMatrixMultiply(
     auto tNumOutMatrixRows = aInMatrixOne->numRows();
     auto tNumOutMatrixCols = aInMatrixTwo->numCols();
 
-    if( aInMatrixOne->numCols() != aInMatrixTwo->numRows() ) { THROWERR("input matrices have incompatible shapes"); }
+    if( aInMatrixOne->numCols() != aInMatrixTwo->numRows() ) { ANALYZE_THROWERR("input matrices have incompatible shapes"); }
 
     auto tNumInner = aInMatrixOne->numCols();
 
@@ -542,8 +540,8 @@ Teuchos::RCP<Plato::CrsMatrixType> createSquareMatrix()
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
-  auto nverts = tMesh->nverts();
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto nverts = tMesh->NumNodes();
 
   // create vector data
   //
@@ -554,10 +552,8 @@ Teuchos::RCP<Plato::CrsMatrixType> createSquareMatrix()
   // create residual function
   //
   Plato::DataMap tDataMap;
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
 
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *gElastostaticsParams);
+  Plato::SpatialModel tSpatialModel(tMesh, *gElastostaticsParams);
 
   Plato::Elliptic::VectorFunction<::Plato::Mechanics<spaceDim>>
     tVectorFunction(tSpatialModel, tDataMap, *gElastostaticsParams, gElastostaticsParams->get<std::string>("PDE Constraint"));
@@ -1249,17 +1245,15 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_CondenseMatrix_2)
 {
   constexpr int cSpaceDim  = 3;
   constexpr int cMeshWidth = 2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(cSpaceDim, cMeshWidth);
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(cSpaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
 
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *gElastostaticsParams);
+  Plato::SpatialModel tSpatialModel(tMesh, *gElastostaticsParams);
 
   using PhysicsT = Plato::StabilizedMechanics<cSpaceDim>;
   auto tResidual = createStabilizedResidual<PhysicsT>(tSpatialModel);
   auto tProjector = createStabilizedProjector<PhysicsT>(tSpatialModel);
 
-  auto tNverts = tMesh->nverts();
+  auto tNverts = tMesh->NumNodes();
   Plato::ScalarVector U("state",          tResidual->size());
   Plato::ScalarVector N("project p grad", tProjector->size());
   Plato::ScalarVector z("control",        tNverts);
@@ -1653,10 +1647,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_fill)
   // create test mesh
   //
   constexpr int meshWidth=2;
-  constexpr int spaceDim=3;
-  auto mesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  int numVerts = mesh->nverts();
+  int numVerts = tMesh->NumNodes();
   
   Plato::ScalarVector tSomeVector("some vector", numVerts);
   Plato::blas1::fill(2.0, tSomeVector);
@@ -1672,10 +1665,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_copy)
   // create test mesh
   //
   constexpr int meshWidth=2;
-  constexpr int spaceDim=3;
-  auto mesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  int numVerts = mesh->nverts();
+  int numVerts = tMesh->NumNodes();
   
   Plato::ScalarVector tSomeVector("some vector", numVerts);
   Plato::blas1::fill(2.0, tSomeVector);
@@ -1696,10 +1688,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_scale)
   // create test mesh
   //
   constexpr int meshWidth=2;
-  constexpr int spaceDim=3;
-  auto mesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  int numVerts = mesh->nverts();
+  int numVerts = tMesh->NumNodes();
   
   Plato::ScalarVector tSomeVector("some vector", numVerts);
   Plato::blas1::fill(1.0, tSomeVector);
@@ -1716,10 +1707,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_update)
   // create test mesh
   //
   constexpr int meshWidth=2;
-  constexpr int spaceDim=3;
-  auto mesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  int numVerts = mesh->nverts();
+  int numVerts = tMesh->NumNodes();
   
   Plato::ScalarVector tVector_A("vector a", numVerts);
   Plato::ScalarVector tVector_B("vector b", numVerts);
@@ -1739,17 +1729,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_MatrixTimesVectorPlusV
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
   // create mesh based density from host data
   //
-  std::vector<Plato::Scalar> z_host( tMesh->nverts(), 1.0 );
+  std::vector<Plato::Scalar> z_host( tMesh->NumNodes(), 1.0 );
   Kokkos::View<Plato::Scalar*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged> z_host_view(z_host.data(),z_host.size());
   auto z = Kokkos::create_mirror_view_and_copy( Kokkos::DefaultExecutionSpace(), z_host_view);
 
   // create mesh based displacement from host data
   //
-  auto stateSize = spaceDim*tMesh->nverts();
+  auto stateSize = spaceDim*tMesh->NumNodes();
   Plato::ScalarMultiVector U("states", /*numSteps=*/1, stateSize);
   auto u = Kokkos::subview(U, 0, Kokkos::ALL());
   auto u_host = Kokkos::create_mirror_view(u);
@@ -1803,10 +1793,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_MatrixTimesVectorPlusV
   //
   Plato::DataMap tDataMap;
   std::string tMyFunction("Internal Elastic Energy");
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
 
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParams);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParams);
 
   Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<spaceDim>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParams, tMyFunction);
@@ -1890,36 +1878,45 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_MatrixTimesVectorPlusV
 #endif
 
   std::vector<Plato::Scalar> dfdx_gold = {
-    73.3153846153846,-47.0163461538462,-21.8596153846154,
-    68.8629807692308,-53.5716346153847,6.80192307692308,
-    4.52163461538462,-14.1706730769231,23.1490384615385,
-    35.2860576923076,23.0581730769231,-8.91346153846153,
-    -5.02788461538462,2.85144230769231,19.2591346153846,
-    -1.35,7.94423076923076,5.86730769230769,
-    -3.96346153846154,17.7923076923077,-4.4826923076923,
-    -0.917307692307696,6.19615384615385,-2.78653846153846,
-    -10.0514423076923,1.82596153846153,-13.1668269230769,
-    33.2134615384616,-4.18413461538466,-14.3870192307693,
-    18.7052884615385,-23.0408653846154,-1.0125,
-    2.475,3.72115384615385,-1.21153846153846,
-    -0.051923076923075,6.43846153846155,-7.6326923076923,
-    -13.6081730769229,16.7798076923077,14.8975961538462,
-    -32.733173076923,15.5033653846154,29.3019230769231,
-    -30.7298076923077,4.98028846153846,12.6649038461538,
-    -25.0052884615385,6.91442307692306,-5.27451923076924,
-    4.08028846153847,5.11875000000002,-11.4836538461539,
-    -4.49134615384617,1.94711538461539,2.36250000000001,
-    5.36105769230771,-2.72596153846155,4.73798076923079,
-    8.79230769230771,11.9206730769231,0.912980769230768,
-    -45.1990384615385,-21.8596153846153,4.8548076923077,
-    -25.5850961538462,-14.7721153846154,16.3168269230769,
-    -0.173076923076924,0.346153846153847,0.65769230769231,
-    0.220673076923078,0.700961538461542,2.55721153846155,
-    -65.8038461538463,42.364903846154,-42.529326923077,
-    9.8567307692308,4.93701923076925,-9.60144230769233};
+30.4874999999999758, 2.13750000000000107, -7.31249999999998934, 
+29.1418269230768985, -2.32355769230767883, 5.24423076923076792, 
+-1.34567307692307758, -4.46105769230768701, 12.5567307692307573, 
+26.3379807692307537, 14.7980769230769234, -13.1235576923076778, 
+19.4971153846153626, 18.5365384615384485, 6.17884615384615188, 
+-6.84086538461538929, 3.73846153846153229, 19.3024038461538368, 
+-4.14951923076923279, 12.6605769230769187, -5.81105769230769109, 
+-9.64471153846153406, 20.8600961538461505, 0.934615384615383737, 
+-5.49519230769230482, 8.19951923076923173, 6.74567307692307860, 
+35.9826923076923606, -6.06201923076923421, -14.0581730769230902, 
+38.7865384615385267, -23.1836538461538417, 4.30961538461539018, 
+2.80384615384615321, -17.1216346153846146, 18.3677884615384883, 
+33.1788461538462585, 11.0596153846154177, -32.4259615384615643, 
+1.37667655053519411e-13, 5.32907051820075139e-14, 
+1.83186799063150829e-14, -33.1788461538461377, 
+-11.0596153846153840, 32.4259615384615927, -2.80384615384616342, 
+17.1216346153846537, -18.3677884615384777, -38.7865384615384770, 
+23.1836538461538986, -4.30961538461538662, -35.9826923076923180, 
+6.06201923076924398, 14.0581730769230955, 5.49519230769232259, 
+-8.19951923076924594, -6.74567307692308837, 9.64471153846156781, 
+-20.8600961538461966, -0.934615384615391509, 4.14951923076924256, 
+-12.6605769230769525, 5.81105769230770530, 6.84086538461540439, 
+-3.73846153846155671, -19.3024038461538936, -19.4971153846154337, 
+-18.5365384615385125, -6.17884615384617764, -26.3379807692308461, 
+-14.7980769230769660, 13.1235576923077346, 1.34567307692308225, 
+4.46105769230770743, -12.5567307692308106, -29.1418269230770193, 
+2.32355769230769837, -5.24423076923078302, -30.4875000000000966, 
+-2.13750000000000284, 7.31250000000002665};
 
-  for(int iNode=0; iNode<int(dfdx_gold.size()); iNode++){
-      TEST_FLOATING_EQUALITY(dfdx_host[iNode], dfdx_gold[iNode], 1e-13);
+  for(int iNode=0; iNode<int(dfdx_gold.size()); iNode++)
+  {
+      if(fabs(dfdx_gold[iNode]) < 1e-12)
+      {
+          TEST_ASSERT(dfdx_host[iNode] < 1e-12);
+      }
+      else
+      {
+          TEST_FLOATING_EQUALITY(dfdx_host[iNode], dfdx_gold[iNode], 1e-12);
+      }
   }
 }
 

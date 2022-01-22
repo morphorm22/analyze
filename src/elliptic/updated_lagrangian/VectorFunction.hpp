@@ -123,6 +123,16 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
     }
 
     /**************************************************************************//**
+    * \brief Return dof names for Physics
+    * \return dof names
+    ******************************************************************************/
+    std::vector<std::string> getDofNames() const
+    {
+        auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
+        return mResidualFunctions.at(tFirstBlockName)->getDofNames();
+    }
+
+    /**************************************************************************//**
     * \brief Return number of nodes on the mesh
     * \return number of nodes
     ******************************************************************************/
@@ -273,7 +283,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
         auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
         auto tItr = mResidualFunctions.find(tFirstBlockName);
         if(tItr == mResidualFunctions.end())
-            { THROWERR(std::string("Element block with name '") + tFirstBlockName + "is not defined in residual function to element block map.") }
+            { ANALYZE_THROWERR(std::string("Element block with name '") + tFirstBlockName + "is not defined in residual function to element block map.") }
         return tItr->second->getSolutionStateOutputData(aSolutions);
     }
     
@@ -336,7 +346,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
         }
 
         {
-            auto tNumCells = mSpatialModel.Mesh.nelems();
+            auto tNumCells = mSpatialModel.Mesh->NumElements();
 
             // Workset global state
             //
@@ -396,7 +406,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
         //
         auto tMesh = mSpatialModel.Mesh;
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
-                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumSpatialDims, mNumDofsPerNode>(&tMesh);
+                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumSpatialDims, mNumDofsPerNode>(tMesh);
 
         for(const auto& tDomain : mSpatialModel.Domains)
         {
@@ -433,7 +443,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumSpatialDims, mNumDofsPerNode>
-                tJacobianMatEntryOrdinal(tJacobianMat, &tMesh);
+                tJacobianMatEntryOrdinal(tJacobianMat, tMesh);
 
             auto tJacobianMatEntries = tJacobianMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleTransposeJacobian
@@ -474,7 +484,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumSpatialDims, mNumDofsPerNode>
-                tJacobianMatEntryOrdinal(tJacobianMat, &tMesh);
+                tJacobianMatEntryOrdinal(tJacobianMat, tMesh);
 
             auto tJacobianMatEntries = tJacobianMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleTransposeJacobian
@@ -504,7 +514,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
         //
         auto tMesh = mSpatialModel.Mesh;
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
-                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumDofsPerNode>( &tMesh );
+                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumDofsPerNode>( tMesh );
 
         for(const auto& tDomain : mSpatialModel.Domains)
         {
@@ -541,7 +551,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::BlockMatrixTransposeEntryOrdinal<mNumSpatialDims, mNumDofsPerNode>
-                tJacobianMatEntryOrdinal( tJacobianMat, &tMesh );
+                tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
             auto tJacobianMatEntries = tJacobianMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleJacobianFad
@@ -581,7 +591,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::BlockMatrixTransposeEntryOrdinal<mNumSpatialDims, mNumDofsPerNode>
-                tJacobianMatEntryOrdinal( tJacobianMat, &tMesh );
+                tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
             auto tJacobianMatEntries = tJacobianMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleJacobianFad
@@ -610,7 +620,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
         //
         auto tMesh = mSpatialModel.Mesh;
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
-                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumDofsPerNode>( &tMesh );
+                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumDofsPerNode>( tMesh );
 
         for(const auto& tDomain : mSpatialModel.Domains)
         {
@@ -647,7 +657,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumDofsPerNode>
-                tJacobianMatEntryOrdinal( tJacobianMat, &tMesh );
+                tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
             auto tJacobianMatEntries = tJacobianMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleJacobianFad
@@ -687,7 +697,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumDofsPerNode>
-                tJacobianMatEntryOrdinal( tJacobianMat, &tMesh );
+                tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
             auto tJacobianMatEntries = tJacobianMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleJacobianFad
@@ -717,7 +727,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
         //
         auto tMesh = mSpatialModel.Mesh;
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
-                Plato::CreateLocalByGlobalBlockMatrix<Plato::CrsMatrixType, mNumNodesPerCell, mNumLocalDofsPerCell, mNumDofsPerNode>( &tMesh );
+                Plato::CreateLocalByGlobalBlockMatrix<Plato::CrsMatrixType, mNumNodesPerCell, mNumLocalDofsPerCell, mNumDofsPerNode>( tMesh );
 
         for(const auto& tDomain : mSpatialModel.Domains)
         {
@@ -754,7 +764,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::LocalByGlobalEntryFunctor<mNumSpatialDims, mNumLocalDofsPerCell, mNumDofsPerNode>
-                tJacobianMatEntryOrdinal( tJacobianMat, &tMesh );
+                tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
             auto tJacobianMatEntries = tJacobianMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleTransposeJacobian
@@ -794,7 +804,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::LocalByGlobalEntryFunctor<mNumSpatialDims, mNumLocalDofsPerCell, mNumDofsPerNode>
-                tJacobianMatEntryOrdinal( tJacobianMat, &tMesh );
+                tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
             auto tJacobianMatEntries = tJacobianMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleJacobianFad
@@ -823,7 +833,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
         //
         auto tMesh = mSpatialModel.Mesh;
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
-                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumControl, mNumDofsPerNode>( &tMesh );
+                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumControl, mNumDofsPerNode>( tMesh );
 
         for(const auto& tDomain : mSpatialModel.Domains)
         {
@@ -861,7 +871,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumControl, mNumDofsPerNode>
-              tJacobianMatEntryOrdinal( tJacobianMat, &tMesh );
+              tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
             auto tJacobianMatEntries = tJacobianMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleTransposeJacobian
@@ -902,7 +912,7 @@ class VectorFunction : public Plato::WorksetBase<PhysicsT>
 
             // assembly to return matrix
             Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumControl, mNumDofsPerNode>
-              tJacobianMatEntryOrdinal( tJacobianMat, &tMesh );
+              tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
             auto tJacobianMatEntries = tJacobianMat->entries();
             Plato::WorksetBase<PhysicsT>::assembleTransposeJacobian

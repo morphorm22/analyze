@@ -9,9 +9,6 @@
 #include <memory>
 #include <string>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include <Teuchos_ParameterList.hpp>
 
 #include "LocalScalarFunctionInc.hpp"
@@ -42,7 +39,6 @@ public:
      * \brief Create interface for the evaluation of path-dependent scalar function
      *  operators, e.g. value and sensitivities.
      * \param [in] aMesh         mesh database
-     * \param [in] aMeshSets     side sets database
      * \param [in] aDataMap      output database
      * \param [in] aInputParams  problem inputs in XML file
      * \param [in] aFunctionName scalar function name, i.e. type

@@ -9,7 +9,6 @@
 #include "parabolic/HeatEquationResidual.hpp"
 #include "parabolic/InternalThermalEnergy.hpp"
 #include "parabolic/TemperatureAverage.hpp"
-//#include "parabolic/ThermalFluxRate.hpp"
 
 #include "elliptic/AbstractVectorFunction.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"

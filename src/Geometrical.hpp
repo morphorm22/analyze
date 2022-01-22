@@ -59,7 +59,7 @@ struct FunctionFactory{
             }
             else
             {
-                THROWERR(std::string("Unknown 'Penalty Function' of type '") + tLowerPenaltyType + "' specified in ParameterList");
+                ANALYZE_THROWERR(std::string("Unknown 'Penalty Function' of type '") + tLowerPenaltyType + "' specified in ParameterList");
             }
         } else
         if( tLowerScalarFunc == "geometry misfit" )
@@ -69,7 +69,7 @@ struct FunctionFactory{
         }
         else
         {
-            THROWERR(std::string("Unknown 'Objective' of type '") + tLowerScalarFunc + "' specified in 'Plato Problem' ParameterList");
+            ANALYZE_THROWERR(std::string("Unknown 'Objective' of type '") + tLowerScalarFunc + "' specified in 'Plato Problem' ParameterList");
         }
     }
 };

@@ -4,8 +4,6 @@
 #include <cassert>
 #include <vector>
 
-#include <Omega_h_mesh.hpp>
-
 #include "PlatoStaticsTypes.hpp"
 #include "geometric/WorksetBase.hpp"
 #include "geometric/ScalarFunctionBase.hpp"
@@ -85,7 +83,6 @@ public:
     /******************************************************************************//**
      * \brief Secondary division function constructor, used for unit testing
      * \param [in] aMesh mesh database
-     * \param [in] aMeshSets side sets database
     **********************************************************************************/
     DivisionFunction(
         const Plato::SpatialModel & aSpatialModel,
@@ -139,7 +136,7 @@ public:
         Plato::Scalar tResult = tNumeratorValue / tDenominatorValue;
         if (tDenominatorValue == 0.0)
         {
-            THROWERR("Denominator of division function evaluated to 0!")
+            ANALYZE_THROWERR("Denominator of division function evaluated to 0!")
         }
         
         return tResult;

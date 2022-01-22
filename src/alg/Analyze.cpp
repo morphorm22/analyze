@@ -49,6 +49,11 @@
 #include "alg/ParseInput.hpp"
 #include "alg/Run.hpp"
 
+#include "PlatoMesh.hpp"
+
+// TODO ifdef this eventually
+#include "OmegaHMesh.hpp"
+
 void printTimingResults()
 {
   const std::string tTimerFilter = ""; //"Analyze:"; // Only timers beginning with this string get summarized.
@@ -68,7 +73,7 @@ int main(int aArgc, char** aArgv) {
 
   Kokkos::initialize(aArgc, aArgv);
 
-  Omega_h::Library tOmegaHLib(&aArgc, &aArgv);
+  Plato::MeshFactory::initialize(aArgc, aArgv);
 
   Teuchos::Time tTimeMng("Total Time", true);
 
@@ -80,13 +85,15 @@ int main(int aArgc, char** aArgv) {
 
   try
   {
-    Plato::run(&tOmegaHLib, tProblem, tMachine);
+    Plato::run(tProblem, tMachine);
   }
   PLATO_CATCH_STATEMENTS(true, tSuccess);
 
   if (!tSuccess) tReturnCode = EXIT_FAILURE;
 
   printTimingResults();
+
+  Plato::MeshFactory::finalize();
 
   return tReturnCode;
 }

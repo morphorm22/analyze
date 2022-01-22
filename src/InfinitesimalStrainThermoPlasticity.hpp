@@ -32,7 +32,6 @@ struct FunctionFactory
      * \tparam automatic differentiation evaluation type, e.g. JacobianU, JacobianZ, etc.
      *
      * \param [in] aMesh         mesh database
-     * \param [in] aMeshSets     side sets database
      * \param [in] aDataMap      output data database
      * \param [in] aInputParams  input parameters
      * \param [in] aFunctionName vector function name
@@ -58,7 +57,7 @@ struct FunctionFactory
         {
             const auto tError = std::string("Unknown Vector Function with path-dependent states. '")
                     + "User specified '" + aFunctionName + "'.  This Vector Function is not supported in PLATO.";
-            THROWERR(tError)
+            ANALYZE_THROWERR(tError)
         }
     }
 
@@ -68,7 +67,6 @@ struct FunctionFactory
      * \tparam automatic differentiation evaluation type, e.g. JacobianU, JacobianZ, etc.
      *
      * \param [in] aMesh        mesh database
-     * \param [in] aMeshSets    side sets database
      * \param [in] aDataMap     output data database
      * \param [in] aInputParams input parameters
      * \param [in] aFuncType    function type, used to identify requested function
@@ -116,7 +114,7 @@ struct FunctionFactory
         {
             const auto tError = std::string("Unknown Scalar Function with local path-dependent states. ")
                     + "User specified '" + aFuncType + "'.  This Scalar Function is not supported in PLATO.";
-            THROWERR(tError)
+            ANALYZE_THROWERR(tError)
         }
     }
 };

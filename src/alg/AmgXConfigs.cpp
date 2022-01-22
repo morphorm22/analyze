@@ -313,7 +313,7 @@ namespace Plato
       }
       else
       {
-          THROWERR("AMGX configuration string is not predefined.")
+          ANALYZE_THROWERR("AMGX configuration string is not predefined.")
       }
       return tStrStream.str();
   }

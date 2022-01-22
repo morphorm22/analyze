@@ -303,7 +303,7 @@ private:
             const auto tError = std::string("UNKNOWN USER DEFINED SCALAR FUNCTION SUBLIST '")
                     + tFunctionName + "'. USER DEFINED SCALAR FUNCTION SUBLIST '" + tFunctionName
                     + "' IS NOT DEFINED IN THE INPUT FILE.";
-            THROWERR(tError)
+            ANALYZE_THROWERR(tError)
         }
     }
 
@@ -324,7 +324,7 @@ private:
         }
         else
         {
-            THROWERR("'Material Models' SUBLIST IS NOT DEFINED.")
+            ANALYZE_THROWERR("'Material Models' SUBLIST IS NOT DEFINED.")
         }
     }
 
@@ -355,7 +355,7 @@ private:
         }
         else
         {
-            THROWERR("'Isotropic Linear Elastic' or 'Isotropic Linear Thermoelastic' sublist of 'Material Model' is not defined.")
+            ANALYZE_THROWERR("'Isotropic Linear Elastic' or 'Isotropic Linear Thermoelastic' sublist of 'Material Model' is not defined.")
         }
     }
 };

@@ -54,7 +54,7 @@ private:
             const auto tError = std::string("UNKNOWN USER DEFINED SCALAR FUNCTION SUBLIST '")
                     + mWeigthedSumFunctionName + "'. USER DEFINED SCALAR FUNCTION SUBLIST '" + mWeigthedSumFunctionName
                     + "' IS NOT DEFINED IN THE INPUT FILE.";
-            THROWERR(tError)
+            ANALYZE_THROWERR(tError)
         }
 
         mFunctionNames.clear();
@@ -68,7 +68,7 @@ private:
         {
             const auto tErrorString = std::string("WeightedLocalScalarFunction: 'Functions' Keyword is not defined. ") +
                 + "Used the 'Functions' keyword to define each weighted function.";
-            THROWERR(tErrorString)
+            ANALYZE_THROWERR(tErrorString)
         }
         auto tFunctionNamesTeuchos = tProblemFunctionParams.get<Teuchos::Array<std::string>>("Functions");
         auto tFunctionNames = tFunctionNamesTeuchos.toVector();
@@ -77,7 +77,7 @@ private:
         {
             const auto tErrorString = std::string("WeightedLocalScalarFunction: 'Weights' Keyword is not defined. ") +
                 + "Used the 'Weights' keyword to define the weight of each weighted function.";
-            THROWERR(tErrorString)
+            ANALYZE_THROWERR(tErrorString)
         }
         auto tFunctionWeightsTeuchos = tProblemFunctionParams.get<Teuchos::Array<Plato::Scalar>>("Weights");
         auto tFunctionWeights = tFunctionWeightsTeuchos.toVector();
@@ -86,7 +86,7 @@ private:
         {
             const auto tErrorString = std::string("Number of 'Functions' in '") + mWeigthedSumFunctionName
                 + "' parameter list does not match the number of 'Weights'";
-            THROWERR(tErrorString)
+            ANALYZE_THROWERR(tErrorString)
         }
 
         Plato::PathDependentScalarFunctionFactory<PhysicsT> tFactory;
@@ -205,7 +205,7 @@ public:
     {
         if(mLocalScalarFunctionContainer.empty())
         {
-            THROWERR("LOCAL SCALAR FUNCTION CONTAINER IS EMPTY")
+            ANALYZE_THROWERR("LOCAL SCALAR FUNCTION CONTAINER IS EMPTY")
         }
 
         for(Plato::OrdinalType tFunctionIndex = 0; tFunctionIndex < mLocalScalarFunctionContainer.size(); tFunctionIndex++)
@@ -238,12 +238,12 @@ public:
     {
         if(mLocalScalarFunctionContainer.empty())
         {
-            THROWERR("LOCAL SCALAR FUNCTION CONTAINER IS EMPTY")
+            ANALYZE_THROWERR("LOCAL SCALAR FUNCTION CONTAINER IS EMPTY")
         }
 
         if(mLocalScalarFunctionContainer.size() != mFunctionWeights.size())
         {
-            THROWERR("DIMENSION MISMATCH: NUMBER OF LOCAL SCALAR FUNCTIONS DOES NOT MATCH THE NUMBER OF WEIGHTS")
+            ANALYZE_THROWERR("DIMENSION MISMATCH: NUMBER OF LOCAL SCALAR FUNCTIONS DOES NOT MATCH THE NUMBER OF WEIGHTS")
         }
 
         if(mWriteDiagnostics)

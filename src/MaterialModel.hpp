@@ -48,7 +48,7 @@ namespace Plato {
           }
           else
           {
-              THROWERR("Missing required parameter 'c0'");
+              ANALYZE_THROWERR("Missing required parameter 'c0'");
           }
 
           if (aParams.isType<Plato::Scalar>("c1"))
@@ -455,7 +455,7 @@ namespace Plato {
                 err << "Found a temperature dependent constant in a linear model." << std::endl;
                 err << "Models must be declared temperature dependent." << std::endl;
                 err << "Set Parameter 'temperature dependent' to 'true'." << std::endl;
-                THROWERR(err.str());
+                ANALYZE_THROWERR(err.str());
             }
             auto tList = aParamList.sublist(aName);
             this->setScalarFunctor(aName, Plato::ScalarFunctor(tList));
@@ -465,7 +465,7 @@ namespace Plato {
               std::stringstream err;
               err << "Required input missing. '" << aName
                   << "' must be provided as either a Parameter or ParameterList";
-              THROWERR(err.str());
+              ANALYZE_THROWERR(err.str());
           }
       }
       /******************************************************************************/
@@ -507,7 +507,7 @@ namespace Plato {
               std::stringstream err;
               err << "Required input missing. '" << aName
                   << "' must be provided as a Parameter of type 'double'";
-              THROWERR(err.str());
+              ANALYZE_THROWERR(err.str());
           }
       }
 
@@ -548,7 +548,7 @@ namespace Plato {
               std::stringstream err;
               err << "Required input missing. '" << aName
                   << "' must be provided as either a Parameter or ParameterList";
-              THROWERR(err.str());
+              ANALYZE_THROWERR(err.str());
           }
       }
 
@@ -577,7 +577,7 @@ namespace Plato {
               std::stringstream err;
               err << "Required input missing. '" << aName
                   << "' must be provided as a ParameterList";
-              THROWERR(err.str());
+              ANALYZE_THROWERR(err.str());
           }
       }
   };

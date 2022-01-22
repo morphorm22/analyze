@@ -3,8 +3,6 @@
 
 #include <cassert>
 
-#include <Omega_h_mesh.hpp>
-
 #include "ImplicitFunctors.hpp"
 #include "SimplexFadTypes.hpp"
 #include "AnalyzeMacros.hpp"
@@ -74,15 +72,15 @@ public:
      * \brief Constructor
      * \param [in] aMesh mesh metadata
     **********************************************************************************/
-    WorksetBase(Omega_h::Mesh& aMesh) :
-            mNumCells(aMesh.nelems()),
-            mNumNodes(aMesh.nverts()),
-            mGlobalStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumDofsPerNode>(&aMesh)),
-            mLocalStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumLocalDofsPerCell>(&aMesh)),
-            mNodeStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumNodeStatePerNode>(&aMesh)),
-            mControlEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumControl>(&aMesh)),
-            mConfigEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mSpaceDim>(&aMesh)),
-            mNodeCoordinate(Plato::NodeCoordinate<mSpaceDim>(&aMesh))
+    WorksetBase(Plato::Mesh aMesh) :
+            mNumCells(aMesh->NumElements()),
+            mNumNodes(aMesh->NumNodes()),
+            mGlobalStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumDofsPerNode>(aMesh)),
+            mLocalStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumLocalDofsPerCell>(aMesh)),
+            mNodeStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumNodeStatePerNode>(aMesh)),
+            mControlEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumControl>(aMesh)),
+            mConfigEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mSpaceDim>(aMesh)),
+            mNodeCoordinate(Plato::NodeCoordinate<mSpaceDim>(aMesh))
     {
     }
 
@@ -491,7 +489,7 @@ public:
     {
         if(mNumLocalDofsPerCell <= static_cast<Plato::OrdinalType>(0))
         {
-            THROWERR("Number of local degrees of freedom is set to zero. Local state variables are not defined for this application.");
+            ANALYZE_THROWERR("Number of local degrees of freedom is set to zero. Local state variables are not defined for this application.");
         }
         Plato::flatten_vector_workset<mNumLocalDofsPerCell>(mNumCells, aWorkset, aOutput);
     }

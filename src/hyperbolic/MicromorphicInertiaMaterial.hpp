@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Omega_h_matrix.hpp>
+#include "PlatoMathTypes.hpp"
 #include <Teuchos_ParameterList.hpp>
 
 #include "AnalyzeMacros.hpp"
@@ -29,10 +29,10 @@ protected:
 
     static_assert(mNumVoigtTerms, "SpatialDim must be 1, 2, or 3."); /*!< number of stress-strain terms */
 
-    Omega_h::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellInertiaTe;   /*!< cell inertia matrix Te, i.e. fourth-order inertia tensor for symmetric part of gradient micro-inertia */
-    Omega_h::Matrix<mNumSkwTerms,mNumSkwTerms> mCellInertiaTc;   /*!< cell inertia matrix Tc, i.e. fourth-order inertia tensor for skew-symmetric part of gradient micro-inertia */
-    Omega_h::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellInertiaJm;   /*!< cell inertia matrix Jm, i.e. fourth-order inertia tensor for symmetric part of free micro-inertia */
-    Omega_h::Matrix<mNumSkwTerms,mNumSkwTerms> mCellInertiaJc;   /*!< cell inertia matrix Jc, i.e. fourth-order inertia tensor for symmetric part of free micro-inertia */
+    Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellInertiaTe;   /*!< cell inertia matrix Te, i.e. fourth-order inertia tensor for symmetric part of gradient micro-inertia */
+    Plato::Matrix<mNumSkwTerms,mNumSkwTerms> mCellInertiaTc;   /*!< cell inertia matrix Tc, i.e. fourth-order inertia tensor for skew-symmetric part of gradient micro-inertia */
+    Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellInertiaJm;   /*!< cell inertia matrix Jm, i.e. fourth-order inertia tensor for symmetric part of free micro-inertia */
+    Plato::Matrix<mNumSkwTerms,mNumSkwTerms> mCellInertiaJc;   /*!< cell inertia matrix Jc, i.e. fourth-order inertia tensor for symmetric part of free micro-inertia */
 
     Plato::Scalar mCellMacroscopicDensity; /*!< material density */
     Plato::Scalar mPressureScaling; /*!< pressure term scaling */

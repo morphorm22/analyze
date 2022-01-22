@@ -1,9 +1,6 @@
 #ifndef ABSTRACT_VECTOR_FUNCTION_HELMHOLTZ_HPP
 #define ABSTRACT_VECTOR_FUNCTION_HELMHOLTZ_HPP
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include "Solutions.hpp"
 #include "SpatialModel.hpp"
 
@@ -49,21 +46,12 @@ public:
     }
 
     /****************************************************************************//**
-    * \brief Return reference to Omega_h mesh database
+    * \brief Return reference to mesh database
     * \return volume mesh database
     ********************************************************************************/
     decltype(mSpatialDomain.Mesh) getMesh() const
     {
         return (mSpatialDomain.Mesh);
-    }
-
-    /****************************************************************************//**
-    * \brief Return reference to Omega_h mesh sets
-    * \return surface mesh database
-    ********************************************************************************/
-    decltype(mSpatialDomain.MeshSets) getMeshSets() const
-    {
-        return (mSpatialDomain.MeshSets);
     }
 
     /****************************************************************************//**

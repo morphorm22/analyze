@@ -154,7 +154,7 @@ public:
         {
             std::ostringstream tMsg;
             tMsg << "PrincipalStresses: Invalid number of cells.  Number of cells is '" << tNumCells << "'.";
-            THROWERR(tMsg.str().c_str())
+            ANALYZE_THROWERR(tMsg.str().c_str())
         }
 
         Plato::ScalarVectorT<ConfigT> tCellVolume("cell volume", tNumCells);

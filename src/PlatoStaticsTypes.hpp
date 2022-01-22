@@ -18,14 +18,29 @@ namespace Plato
 {
 
 using CrsMatrixType      = typename Plato::CrsMatrix<Plato::OrdinalType>;
-using LocalOrdinalVector = typename Kokkos::View<Plato::OrdinalType*, Plato::MemSpace>;
+
+template <typename OrdinalType>
+using OrdinalVectorT = typename Kokkos::View<OrdinalType*,Plato:: MemSpace>;
+using OrdinalVector  = OrdinalVectorT<Plato::OrdinalType>;
+
+template <typename OrdinalType>
+using HostOrdinalVectorT = typename Kokkos::View<OrdinalType*, Kokkos::HostSpace>;
+using HostOrdinalVector  = HostOrdinalVectorT<Plato::OrdinalType>;
+
+template <typename OrdinalType>
+using OrdinalMultiVectorT = typename Kokkos::View<OrdinalType**,Plato:: MemSpace>;
+using OrdinalMultiVector  = OrdinalMultiVectorT<Plato::OrdinalType>;
+
+template <typename OrdinalType>
+using HostOrdinalMultiVectorT = typename Kokkos::View<OrdinalType**, Kokkos::HostSpace>;
+using HostOrdinalMultiVector  = HostOrdinalMultiVectorT<Plato::OrdinalType>;
 
 template <typename ScalarType>
 using ScalarVectorT = typename Kokkos::View<ScalarType*, Plato::MemSpace>;
 using ScalarVector  = ScalarVectorT<Plato::Scalar>;
 
 template <typename ScalarType>
-using HostScalarVectorT = typename Kokkos::View<ScalarType*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>;
+using HostScalarVectorT = typename Kokkos::View<ScalarType*, Kokkos::HostSpace>;
 using HostScalarVector  = HostScalarVectorT<Plato::Scalar>;
 
 template <typename ScalarType>
@@ -33,7 +48,7 @@ using ScalarMultiVectorT = typename Kokkos::View<ScalarType**, Plato::Layout, Pl
 using ScalarMultiVector  = ScalarMultiVectorT<Plato::Scalar>;
 
 template <typename ScalarType>
-using HostMultiScalarVectorT = typename Kokkos::View<ScalarType**, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>;
+using HostMultiScalarVectorT = typename Kokkos::View<ScalarType**, Kokkos::HostSpace>;
 using HostMultiScalarVector  = HostMultiScalarVectorT<Plato::Scalar>;
 
 template <typename ScalarType>
@@ -41,7 +56,7 @@ using ScalarArray3DT = typename Kokkos::View<ScalarType***, Plato::Layout, Plato
 using ScalarArray3D  = ScalarArray3DT<Plato::Scalar>;
 
 template <typename ScalarType>
-using HostScalarArray3DT = typename Kokkos::View<ScalarType***, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>;
+using HostScalarArray3DT = typename Kokkos::View<ScalarType***, Kokkos::HostSpace>;
 using HostScalarArray3D  = HostScalarArray3DT<Plato::Scalar>;
 
 struct DataMap
@@ -104,7 +119,7 @@ struct DataMap
       auto tNumStates = stateDataMaps.size();
       if ( aStateIndex < 0 || aStateIndex >= tNumStates )
       {
-        THROWERR("Requested a state that doesn't exist");
+        ANALYZE_THROWERR("Requested a state that doesn't exist");
       }
       else
       {

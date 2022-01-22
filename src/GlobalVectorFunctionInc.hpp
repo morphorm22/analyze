@@ -755,8 +755,8 @@ public:
               Teuchos::ParameterList & aParamList,
         const std::string            & aFuncType
     ) :
-        mNumNodes     (aSpatialModel.Mesh.nverts()),
-        mNumCells     (aSpatialModel.Mesh.nelems()),
+        mNumNodes     (aSpatialModel.Mesh->NumNodes()),
+        mNumCells     (aSpatialModel.Mesh->NumElements()),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
         mWorksetBase  (aSpatialModel.Mesh)
@@ -797,10 +797,10 @@ public:
     ~GlobalVectorFunctionInc(){ return; }
 
     /***************************************************************************//**
-     * \brief Return reference to Omega_h mesh database
-     * \return Omega_h mesh database
+     * \brief Return reference to mesh database
+     * \return mesh database
     *******************************************************************************/
-    Omega_h::Mesh& getMesh() const
+    Plato::Mesh getMesh() const
     {
         return mSpatialModel.Mesh;
     }
@@ -1173,7 +1173,7 @@ public:
         //
         auto tMesh = mSpatialModel.Mesh;
         Teuchos::RCP<Plato::CrsMatrixType> tAssembledTransposeJacobian =
-                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumNodeStatePerNode, mNumGlobalDofsPerNode>( &tMesh );
+                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumNodeStatePerNode, mNumGlobalDofsPerNode>( tMesh );
 
         // create entry ordinal functor:
         // tJacobianMatEntryOrdinal(e, k, l) => G
@@ -1190,7 +1190,7 @@ public:
         // Note that the second two template parameters must match the block shape of the destination matrix, tJacobianMat
         //
         Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumNodeStatePerNode, mNumGlobalDofsPerNode>
-            tJacobianMatEntryOrdinal( tAssembledTransposeJacobian, &tMesh );
+            tJacobianMatEntryOrdinal( tAssembledTransposeJacobian, tMesh );
 
         for(const auto& tDomain : mSpatialModel.Domains)
         {

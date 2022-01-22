@@ -142,7 +142,7 @@ public:
         auto tNumCells = mSpatialDomain.numCells();
         if( tNumCells != static_cast<Plato::OrdinalType>(aResultWS.extent(0)) )
         {
-            THROWERR(std::string("Number of elements mismatch. Spatial domain and output/result workset ")
+            ANALYZE_THROWERR(std::string("Number of elements mismatch. Spatial domain and output/result workset ")
                 + "have different number of cells. " + "Spatial domain has '" + std::to_string(tNumCells)
                 + "' elements and output workset has '" + std::to_string(aResultWS.extent(0)) + "' elements.")
         }
@@ -266,7 +266,7 @@ private:
 
         if(aInputs.isSublist("Hyperbolic") == false)
         {
-            THROWERR("'Hyperbolic' Parameter List is not defined.")
+            ANALYZE_THROWERR("'Hyperbolic' Parameter List is not defined.")
         }
         auto tHyperbolic = aInputs.sublist("Hyperbolic");
         if(tHyperbolic.isSublist("Mass Conservation"))
@@ -288,7 +288,7 @@ private:
         std::unordered_map<std::string, std::vector<std::pair<Plato::OrdinalType, Plato::Scalar>>> tMap;
         if(aInputs.isSublist("Velocity Essential Boundary Conditions") == false)
         {
-            THROWERR("'Velocity Essential Boundary Conditions' block must be defined for fluid flow problems.")
+            ANALYZE_THROWERR("'Velocity Essential Boundary Conditions' block must be defined for fluid flow problems.")
         }
         auto tSublist = aInputs.sublist("Velocity Essential Boundary Conditions");
 
@@ -297,7 +297,7 @@ private:
             const Teuchos::ParameterEntry &tEntry = tSublist.entry(tItr);
             if (!tEntry.isList())
             {
-                THROWERR(std::string("Error reading 'Velocity Essential Boundary Conditions' block: Expects a parameter ")
+                ANALYZE_THROWERR(std::string("Error reading 'Velocity Essential Boundary Conditions' block: Expects a parameter ")
                     + "list input with information pertaining to the velocity boundary conditions .")
             }
 
@@ -305,7 +305,7 @@ private:
             Teuchos::ParameterList & tParamList = tSublist.sublist(tParamListName);
             if (tParamList.isParameter("Sides") == false)
             {
-                THROWERR(std::string("Keyword 'Sides' is not define in Parameter List '") + tParamListName + "'.")
+                ANALYZE_THROWERR(std::string("Keyword 'Sides' is not define in Parameter List '") + tParamListName + "'.")
             }
             const auto tEntitySetName = tParamList.get<std::string>("Sides");
             auto tMapItr = mMomentumBCs.find(tEntitySetName);

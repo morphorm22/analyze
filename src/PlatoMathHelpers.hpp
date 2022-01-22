@@ -24,6 +24,27 @@ namespace Plato
 {
 
 /******************************************************************************//**
+* \brief Determine the max of the arguments aA and aB
+* \return maximum value
+**********************************************************************************/
+template <typename T>
+KOKKOS_INLINE_FUNCTION T max2(T aA, T aB)
+{
+  return (aA < aB) ? (aB) : (aA);
+}
+
+/******************************************************************************//**
+* \brief Determine the min of the arguments aA and aB
+* \return minimum value
+**********************************************************************************/
+template <typename T>
+KOKKOS_INLINE_FUNCTION T min2(T aA, T aB)
+{
+  return (aA > aB) ? (aB) : (aA);
+}
+
+
+/******************************************************************************//**
  * \brief Device only function used to compare two values (conditional values)
  * between themselves and return the decision (consequent value). The conditional
  * expression evaluated in this function is defined as if(X > Y) A = B.
@@ -66,7 +87,7 @@ void MatrixTimesVectorPlusVector(const Teuchos::RCP<Plato::CrsMatrixType> & aMat
              << "INPUT VECTOR LENGTH = '" <<  aInput.size() << "' AND THE NUMBER OF COLUMNS IN MATRIX A = '"
              << aMatrix->numCols() << "'. INPUT VECTOR LABEL IS '" << aInput.label()
              << "' AND OUTPUT VECTOR LABEL IS '" << aOutput.label() << "'.";
-        THROWERR(tMsg.str());
+        ANALYZE_THROWERR(tMsg.str());
     }
     if(aMatrix->numRows() != aOutput.size())
     {
@@ -74,7 +95,7 @@ void MatrixTimesVectorPlusVector(const Teuchos::RCP<Plato::CrsMatrixType> & aMat
         tMsg << "DIMENSION MISMATCH.  OUTPUT VECTOR LENGTH DOES NOT MATCH THE NUMBER OF ROWS IN MATRIX A.  "
              << "OUTPUT VECTOR LENGTH = '" <<  aOutput.size() << "' AND THE NUMBER OF ROWS IN MATRIX A = '"
              << aMatrix->numRows() << "'. OUTPUT VECTOR LABEL IS '" << aOutput.label() << "'.";
-        THROWERR(tMsg.str());
+        ANALYZE_THROWERR(tMsg.str());
     }
 
     if(aMatrix->isBlockMatrix())
@@ -156,7 +177,7 @@ void VectorTimesMatrixPlusVector(
              << "INPUT VECTOR LENGTH = '" <<  aInput.size() << "' AND THE NUMBER OF ROWS IN MATRIX A = '"
              << aMatrix->numCols() << "'. INPUT VECTOR LABEL IS '" << aInput.label()
              << "' AND OUTPUT VECTOR LABEL IS '" << aOutput.label() << "'.";
-        THROWERR(tMsg.str());
+        ANALYZE_THROWERR(tMsg.str());
     }
     if(aMatrix->numCols() != aOutput.size())
     {
@@ -164,7 +185,7 @@ void VectorTimesMatrixPlusVector(
         tMsg << "DIMENSION MISMATCH.  OUTPUT VECTOR LENGTH DOES NOT MATCH THE NUMBER OF COLUMNS IN MATRIX A.  "
              << "OUTPUT VECTOR LENGTH = '" <<  aOutput.size() << "' AND THE NUMBER OF COLUMNS IN MATRIX A = '"
              << aMatrix->numRows() << "'. OUTPUT VECTOR LABEL IS '" << aOutput.label() << "'.";
-        THROWERR(tMsg.str());
+        ANALYZE_THROWERR(tMsg.str());
     }
 
     if(aMatrix->isBlockMatrix())
@@ -516,13 +537,13 @@ MatrixMatrixMultiply( const Teuchos::RCP<Plato::CrsMatrixType> & aInMatrixOne,
     // C = M1 x M2
     //
     // numCols(M1) === numRows(M2)
-    if (tNumRowsTwo != tNumColsOne) { THROWERR("input matrices have incompatible shapes"); }
+    if (tNumRowsTwo != tNumColsOne) { ANALYZE_THROWERR("input matrices have incompatible shapes"); }
 
     // numRows(C)  === numRows(M1)
-    if (tNumRowsOut != tNumRowsOne) { THROWERR("output matrix has incorrect shape"); }
+    if (tNumRowsOut != tNumRowsOne) { ANALYZE_THROWERR("output matrix has incorrect shape"); }
 
     // numCols(C)  === numCols(M2)
-    if (tNumColsOut != tNumColsTwo) { THROWERR("output matrix has incorrect shape"); }
+    if (tNumColsOut != tNumColsTwo) { ANALYZE_THROWERR("output matrix has incorrect shape"); }
 
     // Get matrix data in non-block form
     ScalarView tMatOneValues;
@@ -620,7 +641,7 @@ MatrixMinusMatrix(      Teuchos::RCP<Plato::CrsMatrixType> & aInMatrixOne,
 
     auto tNumRowsPerBlock = tMatOne.numRowsPerBlock();
 
-    if (tNumColsOne != tNumColsTwo) { THROWERR("matrices have incompatible shape"); }
+    if (tNumColsOne != tNumColsTwo) { ANALYZE_THROWERR("matrices have incompatible shape"); }
 
     ScalarView tMatOneValues;
     OrdinalView tMatOneRowMap, tMatOneColMap;

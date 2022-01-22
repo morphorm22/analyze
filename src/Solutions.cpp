@@ -65,7 +65,7 @@ Plato::ScalarMultiVector Solutions::get(const std::string& aTag) const
     auto tItr = mSolution.find(tLowerTag);
     if(tItr == mSolution.end())
     {
-        THROWERR(std::string("Solution with tag '") + aTag + "' is not defined.")
+        ANALYZE_THROWERR(std::string("Solution with tag '") + aTag + "' is not defined.")
     }
     return tItr->second;
 }
@@ -88,7 +88,7 @@ Plato::OrdinalType Solutions::getNumDofs(const std::string& aTag) const
     auto tItr = mSolutionNameToNumDofsMap.find(tLowerTag);
     if(tItr == mSolutionNameToNumDofsMap.end())
     {
-        THROWERR(std::string("Solution NumDofs with tag '") + aTag + "' is not defined.")
+        ANALYZE_THROWERR(std::string("Solution NumDofs with tag '") + aTag + "' is not defined.")
     }
     return tItr->second;
 }
@@ -97,7 +97,7 @@ Plato::OrdinalType Solutions::getNumTimeSteps() const
 {
     if(this->empty())
     {
-        THROWERR("Solution map is empty.")
+        ANALYZE_THROWERR("Solution map is empty.")
     }
     auto tTags = this->tags();
     const std::string tTag = tTags[0];

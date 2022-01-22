@@ -8,7 +8,6 @@
 
 #include "Teuchos_UnitTestHarness.hpp"
 
-#include "UtilsOmegaH.hpp"
 #include "PlatoUtilities.hpp"
 #include "PlatoTestHelpers.hpp"
 #include "EllipticVMSProblem.hpp"
@@ -23,17 +22,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Kinematics3D)
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
     constexpr Plato::OrdinalType tNumVoigtTerms = 6;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // Set configuration workset
-    auto tNumCells = tMesh->nelems();
+    auto tNumCells = tMesh->NumElements();
     using PhysicsT = Plato::StabilizedMechanics<tSpaceDim>;
-    Plato::WorksetBase<PhysicsT> tWorksetBase(*tMesh);
+    Plato::WorksetBase<PhysicsT> tWorksetBase(tMesh);
     Plato::ScalarArray3D tConfig("configuration", tNumCells, PhysicsT::mNumNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfig);
 
     // Set state workset
-    auto tNumNodes = tMesh->nverts();
+    auto tNumNodes = tMesh->NumNodes();
     auto tNumDofsPerNode = PhysicsT::mNumDofsPerNode;
     Plato::ScalarVector tState("state", tNumDofsPerNode * tNumNodes);
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), LAMBDA_EXPRESSION(const Plato::OrdinalType & aNodeOrdinal)
@@ -60,12 +59,12 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Kinematics3D)
     }, "kinematics test");
 
     std::vector<std::vector<Plato::Scalar>> tGold =
-        { {1e-7,  6e-7,  3e-7, 1.1e-6,   4e-7,   5e-7},
-          {3e-7,  6e-7, -3e-7,   7e-7,   8e-7,   9e-7},
-          {3e-7,  2e-7,  3e-7,   5e-7,   1e-6,   7e-7},
-          {5e-7, -2e-7,  3e-7,  -1e-7, 1.6e-6,   9e-7},
-          {7e-7, -2e-7, -3e-7,  -5e-7,   2e-6, 1.3e-6},
-          {7e-7, -6e-7,  3e-7,  -7e-7, 2.2e-6, 1.1e-6} };
+        { {4e-7, 4e-7, 3e-7, 8.0e-7, 13e-7, 10e-7},
+          {4e-7, 4e-7, 3e-7, 8.0e-7, 13e-7, 10e-7},
+          {4e-7, 4e-7, 3e-7, 8.0e-7, 13e-7, 10e-7},
+          {4e-7, 4e-7, 3e-7, 8.0e-7, 13e-7, 10e-7},
+          {4e-7, 4e-7, 3e-7, 8.0e-7, 13e-7, 10e-7},
+          {4e-7, 4e-7, 3e-7, 8.0e-7, 13e-7, 10e-7} };
     auto tHostStrains = Kokkos::create_mirror(tStrains);
     Kokkos::deep_copy(tHostStrains, tStrains);
 
@@ -76,7 +75,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Kinematics3D)
     {
         for (Plato::OrdinalType tIndexJ = 0; tIndexJ < tDim1; tIndexJ++)
         {
-            //printf("X(%d,%d) = %f\n", tIndexI, tIndexJ, tHostInput(tIndexI, tIndexJ));
+            //printf("X(%d,%d) = %12.8e\n", tIndexI, tIndexJ, tHostStrains(tIndexI, tIndexJ));
             TEST_FLOATING_EQUALITY(tHostStrains(tIndexI, tIndexJ), tGold[tIndexI][tIndexJ], tTolerance);
         }
     }
@@ -89,10 +88,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Solution3D)
     const bool tOutputData = false; // for debugging purpose, set true to enable the Paraview output file
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -137,24 +133,24 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Solution3D)
     Plato::Comm::Machine tMachine(myComm);
 
     using PhysicsT = Plato::StabilizedMechanics<tSpaceDim>;
-    Plato::EllipticVMSProblem<PhysicsT> tEllipticVMSProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::EllipticVMSProblem<PhysicsT> tEllipticVMSProblem(tMesh, *tParamList, tMachine);
 
     // 2. Get Dirichlet Boundary Conditions
     Plato::OrdinalType tDispDofX = 0;
     Plato::OrdinalType tDispDofY = 1;
     Plato::OrdinalType tDispDofZ = 2;
     constexpr Plato::OrdinalType tNumDofsPerNode = PhysicsT::mNumDofsPerNode;
-    auto tDirichletIndicesBoundaryX0_Xdof = PlatoUtestHelpers::get_dirichlet_indices_on_boundary_3D(*tMesh, "x0", tNumDofsPerNode, tDispDofX);
-    auto tDirichletIndicesBoundaryX0_Ydof = PlatoUtestHelpers::get_dirichlet_indices_on_boundary_3D(*tMesh, "x0", tNumDofsPerNode, tDispDofY);
-    auto tDirichletIndicesBoundaryX0_Zdof = PlatoUtestHelpers::get_dirichlet_indices_on_boundary_3D(*tMesh, "x0", tNumDofsPerNode, tDispDofZ);
-    auto tDirichletIndicesBoundaryX1_Ydof = PlatoUtestHelpers::get_dirichlet_indices_on_boundary_3D(*tMesh, "x1", tNumDofsPerNode, tDispDofY);
+    auto tDirichletIndicesBoundaryX0_Xdof = PlatoUtestHelpers::get_dirichlet_indices_on_boundary_3D(tMesh, "x-", tNumDofsPerNode, tDispDofX);
+    auto tDirichletIndicesBoundaryX0_Ydof = PlatoUtestHelpers::get_dirichlet_indices_on_boundary_3D(tMesh, "x-", tNumDofsPerNode, tDispDofY);
+    auto tDirichletIndicesBoundaryX0_Zdof = PlatoUtestHelpers::get_dirichlet_indices_on_boundary_3D(tMesh, "x-", tNumDofsPerNode, tDispDofZ);
+    auto tDirichletIndicesBoundaryX1_Ydof = PlatoUtestHelpers::get_dirichlet_indices_on_boundary_3D(tMesh, "x+", tNumDofsPerNode, tDispDofY);
 
     // 3. Set Dirichlet Boundary Conditions
     Plato::Scalar tValueToSet = 0;
     auto tNumDirichletDofs = tDirichletIndicesBoundaryX0_Xdof.size() + tDirichletIndicesBoundaryX0_Ydof.size() +
             tDirichletIndicesBoundaryX0_Zdof.size() + tDirichletIndicesBoundaryX1_Ydof.size();
     Plato::ScalarVector tDirichletValues("Dirichlet Values", tNumDirichletDofs);
-    Plato::LocalOrdinalVector tDirichletDofs("Dirichlet Dofs", tNumDirichletDofs);
+    Plato::OrdinalVector tDirichletDofs("Dirichlet Dofs", tNumDirichletDofs);
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tDirichletIndicesBoundaryX0_Xdof.size()), LAMBDA_EXPRESSION(const Plato::OrdinalType & aIndex)
     {
         tDirichletValues(aIndex) = tValueToSet;
@@ -188,18 +184,31 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Solution3D)
     tEllipticVMSProblem.setEssentialBoundaryConditions(tDirichletDofs, tDirichletValues);
 
     // 4. Solve problem
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarVector tControls = Plato::ScalarVector("Controls", tNumVerts);
     Plato::blas1::fill(1.0, tControls);
     auto tSolution = tEllipticVMSProblem.solution(tControls);
     auto tState = tSolution.get("State");
 
     // 5. Test Results
-    std::vector<std::vector<Plato::Scalar>> tGold =
-        { {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-          {0, 0, 0, -3.765995e-6, 0, 0, 0, -2.756658e-5, 0, 0, 0, 7.081654e-5, 0, 0, 0, 8.626534e-05,
-           3.118233e-4, -1.0e-3, 4.815153e-5, 1.774578e-5, 2.340348e-4, -1.0e-3, 4.357691e-5, -3.765995e-6,
-           -3.927496e-4, -1.0e-3, 5.100447e-5, -9.986030e-5, -1.803906e-4, -1.0e-3, 9.081316e-5, -6.999675e-5}};
+    std::vector<std::vector<Plato::Scalar>> tGold = {
+   { 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 
+     0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 
+     0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 
+     0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 
+     0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 
+     0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 
+     0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 
+     0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00},
+   { 0.00000000e+00,  0.00000000e+00, 0.00000000e+00, -3.76599539e-06, 
+     0.00000000e+00,  0.00000000e+00, 0.00000000e+00, -2.75665794e-05, 
+     0.00000000e+00,  0.00000000e+00, 0.00000000e+00,  8.62653419e-05, 
+     0.00000000e+00,  0.00000000e+00, 0.00000000e+00,  7.08165405e-05, 
+    -1.80390643e-04, -1.00000000e-03, 9.08131637e-05, -6.99967486e-05, 
+    -3.92749639e-04, -1.00000000e-03, 5.10044731e-05, -9.98603044e-05, 
+     3.11823346e-04, -1.00000000e-03, 4.81515303e-05,  1.77457777e-05, 
+     2.34034774e-04, -1.00000000e-03, 4.35769056e-05, -3.76599539e-06 }
+  };
     auto tHostState = Kokkos::create_mirror(tState);
     Kokkos::deep_copy(tHostState, tState);
 
@@ -210,7 +219,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Solution3D)
     {
         for (Plato::OrdinalType tIndexJ = 0; tIndexJ < tDim1; tIndexJ++)
         {
-            //printf("X(%d,%d) = %f\n", tIndexI, tIndexJ, tHostInput(tIndexI, tIndexJ));
+            // printf("X(%d,%d) = %12.8e\n", tIndexI, tIndexJ, tHostState(tIndexI, tIndexJ));
             TEST_FLOATING_EQUALITY(tHostState(tIndexI, tIndexJ), tGold[tIndexI][tIndexJ], tTolerance);
         }
     }
@@ -229,10 +238,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Residual3D)
     Plato::DataMap tDataMap;
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tPDEInputs =
         Teuchos::getParametersFromXmlString(
@@ -263,14 +269,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Residual3D)
         "</ParameterList>                                                               \n"
       );
 
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tPDEInputs);
+    Plato::SpatialModel tSpatialModel(tMesh, *tPDEInputs);
 
     // 2. PREPARE FUNCTION INPUTS FOR TEST
-    const Plato::OrdinalType tNumNodes = tMesh->nverts();
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumNodes = tMesh->NumNodes();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
     using PhysicsT = Plato::StabilizedMechanics<tSpaceDim>;
     using EvalType = typename Plato::Evaluation<PhysicsT>::Residual;
-    Plato::WorksetBase<PhysicsT> tWorksetBase(*tMesh);
+    Plato::WorksetBase<PhysicsT> tWorksetBase(tMesh);
 
     // 2.1 SET CONFIGURATION
     Plato::ScalarArray3DT<EvalType::ConfigScalarType> tConfigWS("configuration", tNumCells, PhysicsT::mNumNodesPerCell, tSpaceDim);
@@ -318,18 +324,30 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Residual3D)
     // 5. TEST RESULTS
     std::vector<std::vector<Plato::Scalar>> tGold =
     {
-      {-3.086420e+03, -2.551440e+04, -6.790123e+03,  9.169188e+03,  1.687243e+04, -3.703704e+03, -1.934156e+04, -9.259259e+02,
-       -1.625514e+04,  2.242798e+04,  4.320988e+03, -7.656002e+03,  2.469136e+03,  6.790123e+03,  2.181070e+04, -4.290964e+03},
-      {-5.555556e+03, -2.345679e+04, -4.320988e+03,  8.243263e+03,  6.172840e+02,  1.913580e+04, -8.024691e+03, -1.531200e+04,
-       -1.481481e+04, -1.234568e+03,  7.407407e+03,  1.160830e+04,  1.975309e+04,  5.555556e+03,  4.938272e+03, -1.194697e+04},
-      {-6.172840e+03, -3.086420e+03, -1.522634e+04,  3.365038e+03, -1.090535e+04,  9.670782e+03, -3.086420e+03,  6.730076e+03,
-        1.851852e+03, -1.090535e+04,  1.213992e+04,  2.271404e-07,  1.522634e+04,  4.320988e+03,  6.172840e+03, -1.009511e+04},
-      {-9.876543e+03,  6.172840e+02, -2.345679e+04,  5.872604e+02,  2.037037e+04, -1.172840e+04,  1.049383e+04, -2.296801e+04,
-        5.555556e+03,  1.728395e+04, -6.172840e+02,  5.872604e+02, -1.604938e+04, -6.172840e+03,  1.358025e+04,  1.068237e+04},
-      { 2.880658e+04,  1.111111e+04, -1.646091e+04, -3.432771e+04,  4.320988e+03, -3.312757e+04,  3.189300e+04, -7.407407e+03,
-        8.024691e+03,  3.004115e+04, -3.086420e+03, -4.042369e+03, -4.115226e+04, -8.024691e+03, -1.234568e+04,  1.614786e+04},
-      { 2.983539e+04, -1.378601e+04,  1.790123e+04, -3.920594e+04,  1.358025e+04, -4.320988e+03,  3.168724e+04, -8.920594e+03,
-        -6.790123e+03,  2.489712e+04, -3.600823e+04,  7.904597e+03, -3.662551e+04, -6.790123e+03, -1.358025e+04,  1.799971e+04}
+     {-6172.8395061728, -28189.3004115226, -4938.2716049383, 4878.2244177454,
+       20164.6090534979, 1234.5679012346, -18930.0411522634, -11946.9662566263,
+      -22016.4609053498, 22016.4609053498, -3086.4197530864, 4878.2244179725,
+       8024.6913580247, 4938.2716049383, 26954.7325102881, -5216.8899864990 },
+     {-6172.8395061728, -22633.7448559671, -4938.2716049383, 6267.1133064828,
+      -1851.8518518519, 17695.4732510288, -16460.9053497942, -3828.0010979887,
+      -14609.0534979424, -1234.5679012346, 13374.4855967078, 9632.1514419629,
+       22633.7448559671, 6172.8395061728, 8024.6913580247, -13923.1155023089 },
+     {-8024.6913580247, -4938.2716049383, -19547.3251028807, 3365.0381341929,
+      -14609.0534979424, 14609.0534979424, -3086.4197530864, 6730.0762699758,
+       1851.8518518519, -15843.6213991770, 14609.0534979424, 3365.0381351015,
+       20781.8930041152, 6172.8395061728, 8024.6913580247, -13460.1525392702 },
+     {-8024.6913580247, -4938.2716049383, -23251.0288065844, 2439.1122080398,
+      -16460.9053497942, -1234.5679012346, 15226.3374485597, 9169.1884793028,
+       18312.7572016461, -18312.7572016461, 3086.4197530864, -7656.0021959774,
+       6172.8395061728, 24485.5967078189, 4938.2716049383, -7656.0021950689 },
+     {-30041.1522633745, -6172.8395061728, -8024.6913580247, 11145.3377243039,
+       1851.8518518519, -25102.8806584362, 23868.3127572016, 1050.2233204381,
+       22016.4609053498, 1234.5679012346, -20781.8930041152, -12409.9292201949,
+       6172.8395061728, 30041.1522633745, 4938.2716049383, -9044.8910838063 },
+     {-31893.0041152263, -6172.8395061728, -8024.6913580247, 10682.3747612653,
+       25720.1646090535, -25720.1646090535, 3086.4197530864, -9507.8540479807,
+      -1851.8518518519, 26954.7325102881, -25720.1646090535, -6142.8159131064,
+       8024.6913580247, 4938.2716049383, 30658.4362139918, -6142.8159112893 }
     };
 
     auto tHostResidualWS = Kokkos::create_mirror(tResidualWS);
@@ -339,7 +357,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Residual3D)
     {
         for(Plato::OrdinalType tDofIndex=0; tDofIndex< PhysicsT::mNumDofsPerCell; tDofIndex++)
         {
-            //printf("residual(%d,%d) = %.10f\n", tCellIndex, tDofIndex, tHostElastoPlasticityResidual(tCellIndex, tDofIndex));
+            //printf("residual(%d,%d) = %.10f\n", tCellIndex, tDofIndex, tHostResidualWS(tCellIndex, tDofIndex));
             TEST_FLOATING_EQUALITY(tHostResidualWS(tCellIndex, tDofIndex), tGold[tCellIndex][tDofIndex], tTolerance);
         }
     }

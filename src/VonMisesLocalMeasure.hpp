@@ -1,7 +1,6 @@
 #pragma once
 
 #include "AbstractLocalMeasure.hpp"
-#include <Omega_h_matrix.hpp>
 #include "LinearStress.hpp"
 #include "Strain.hpp"
 #include "ImplicitFunctors.hpp"
@@ -29,7 +28,7 @@ private:
     using AbstractLocalMeasure<EvaluationType,SimplexPhysics>::mNumNodesPerCell; /*!< number of nodes per cell */
     using AbstractLocalMeasure<EvaluationType,SimplexPhysics>::mSpatialDomain; 
 
-    using MatrixType = Omega_h::Matrix<mNumVoigtTerms, mNumVoigtTerms>;
+    using MatrixType = Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms>;
     MatrixType mCellStiffMatrix; /*!< cell/element Lame constants matrix */
 
     using StateT  = typename EvaluationType::StateScalarType;  /*!< state variables automatic differentiation type */

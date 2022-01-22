@@ -67,8 +67,7 @@ class MassMoment : public Plato::Simplex<EvaluationType::SpatialDim>,
     /******************************************************************************//**
      * \brief Unit testing constructor
      * \param [in] aMesh mesh database
-     * \param [in] aMeshSets side sets database
-     * \param [in] aDataMap PLATO Engine and Analyze data map
+     * \param [in] aDataMap Plato Engine and Analyze data map
      **********************************************************************************/
     MassMoment(
         const Plato::SpatialDomain & aSpatialDomain,
@@ -134,7 +133,7 @@ class MassMoment : public Plato::Simplex<EvaluationType::SpatialDim>,
       else if (mCalculationType == "SecondYZ")
         computeSecondMoment(aControl, aConfig, aResult, 1, 2);
       else {
-        THROWERR("Specified mass moment calculation type not implemented.")
+        ANALYZE_THROWERR("Specified mass moment calculation type not implemented.")
       }
     }
 

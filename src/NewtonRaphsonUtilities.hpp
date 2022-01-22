@@ -141,7 +141,7 @@ inline Plato::NewtonRaphson::measure_t newton_raphson_stopping_criterion(const s
         std::ostringstream tMsg;
         tMsg << "Newton-Raphson Stopping Criterion '" << aInput.c_str() << "' is not defined as a valid stopping criterion. "
                 << "Valid Options: 'ABSOLUTE RESIDUAL NORM' and 'RELATIVE RESIDUAL NORM'";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 }
 // function newton_raphson_stopping_criterion
@@ -160,7 +160,7 @@ inline void print_newton_raphson_stop_criterion(const Plato::NewtonRaphsonOutput
 
     if(aOutputFile.is_open() == false)
     {
-        THROWERR("Newton-Raphson solver diagnostic file is closed.")
+        ANALYZE_THROWERR("Newton-Raphson solver diagnostic file is closed.")
     }
 
     switch(aOutputData.mStopingCriterion)
@@ -213,7 +213,7 @@ inline void print_newton_raphson_diagnostics(const Plato::NewtonRaphsonOutputDat
 
     if(aOutputFile.is_open() == false)
     {
-        THROWERR("Newton-Raphson solver diagnostic file is closed.")
+        ANALYZE_THROWERR("Newton-Raphson solver diagnostic file is closed.")
     }
 
     aOutputFile << std::scientific << std::setprecision(6) << aOutputData.mCurrentIteration << std::setw(20)
@@ -235,7 +235,7 @@ inline void print_newton_raphson_diagnostics_header(const Plato::NewtonRaphsonOu
 
     if(aOutputFile.is_open() == false)
     {
-        THROWERR("Newton-Raphson solver diagnostic file is closed.")
+        ANALYZE_THROWERR("Newton-Raphson solver diagnostic file is closed.")
     }
 
     aOutputFile << std::scientific << std::setprecision(6) << std::right << "Iter" << std::setw(13)
@@ -257,11 +257,11 @@ inline void compute_relative_residual_norm_error(Plato::NewtonRaphsonOutputData 
 {
     if(std::isfinite(aOutputData.mCurrentNorm) == false)
     {
-        THROWERR("Relative Error Calculation: Current norm value is not a finite number.")
+        ANALYZE_THROWERR("Relative Error Calculation: Current norm value is not a finite number.")
     }
     if(std::isfinite(aOutputData.mReferenceNorm) == false)
     {
-        THROWERR("Relative Error Calculation: Reference norm value is not a finite number.")
+        ANALYZE_THROWERR("Relative Error Calculation: Reference norm value is not a finite number.")
     }
 
     if(aOutputData.mCurrentIteration == static_cast<Plato::OrdinalType>(0))
@@ -290,11 +290,11 @@ inline void compute_absolute_residual_norm_error(Plato::NewtonRaphsonOutputData 
 {
     if(std::isfinite(aOutputData.mCurrentNorm) == false)
     {
-        THROWERR("Relative Error Calculation: Current norm value is not a finite number.")
+        ANALYZE_THROWERR("Relative Error Calculation: Current norm value is not a finite number.")
     }
     if(std::isfinite(aOutputData.mReferenceNorm) == false)
     {
-        THROWERR("Relative Error Calculation: Reference norm value is not a finite number.")
+        ANALYZE_THROWERR("Relative Error Calculation: Reference norm value is not a finite number.")
     }
 
     if(aOutputData.mCurrentIteration == static_cast<Plato::OrdinalType>(0))

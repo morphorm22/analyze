@@ -120,42 +120,34 @@ public:
      Plato::ScalarVectorT<ResultT> & aResult)
     const override
     {
-        auto tNumCells = mSpatialDomain.Mesh.nelems();
+        auto tNumCells = mSpatialDomain.Mesh->NumElements();
         if(tNumCells != aResult.extent(0)) 
         {
-            THROWERR( std::string("Dimension mismatch. 'Result View' and 'Spatial Domain' cell/element number do not match. ") 
+            ANALYZE_THROWERR( std::string("Dimension mismatch. 'Result View' and 'Spatial Domain' cell/element number do not match. ") 
                 + "'Result View' has '" + std::to_string(aResult.extent(0)) + "' elements and 'Spatial Domain' has '" 
                 + std::to_string(tNumCells) + "' elements." )
         }
 
-        // set face to element graph
-        auto tFace2eElems      = mSpatialDomain.Mesh.ask_up(mNumSpatialDimsOnFace, mNumSpatialDims);
-        auto tFace2Elems_map   = tFace2eElems.a2ab;
-        auto tFace2Elems_elems = tFace2eElems.ab2b;
-
-        // set mesh vertices
-        auto tFace2Verts = mSpatialDomain.Mesh.ask_verts_of(mNumSpatialDimsOnFace);
-        auto tCell2Verts = mSpatialDomain.Mesh.ask_elem_verts();
-
         // allocate local functors
         Plato::CalculateSurfaceArea<mNumSpatialDims> tCalculateSurfaceArea;
-        Plato::NodeCoordinate<mNumSpatialDims> tCoords(&(mSpatialDomain.Mesh));
+        Plato::NodeCoordinate<mNumSpatialDims> tCoords(mSpatialDomain.Mesh);
         Plato::CalculateSurfaceJacobians<mNumSpatialDims> tCalculateSurfaceJacobians;
-        Plato::CreateFaceLocalNode2ElemLocalNodeIndexMap<mNumSpatialDims> tCreateFaceLocalNode2ElemLocalNodeIndexMap;
-
-        // set local data
-        auto tCubatureWeight = mSurfaceCubatureRule.getCubWeight();
-        auto tBasisFunctions = mSurfaceCubatureRule.getBasisFunctions();
 
         // set input worksets
         auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
         auto tCurrentTempWS = Plato::metadata<Plato::ScalarMultiVectorT<CurrentTempT>>(aWorkSets.get("current temperature"));
 
+        // transfer member data to device
+        auto tCubatureWeight = mSurfaceCubatureRule.getCubWeight();
+        auto tBasisFunctions = mSurfaceCubatureRule.getBasisFunctions();
         for(auto& tName : mWallSets)
         {
-            // get faces on this side set
-            auto tFaceOrdinalsOnSideSet = Plato::omega_h::side_set_face_ordinals(mSpatialDomain.MeshSets, tName);
-            auto tNumFaces = tFaceOrdinalsOnSideSet.size();
+            auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(tName);
+            auto tFaceOrds    = aSpatialModel.Mesh->GetSideSetFaces(tName);
+            auto tNodeOrds    = aSpatialModel.Mesh->GetSideSetLocalNodes(tName);
+
+            auto tNumFaces = tFaceOrds.size();
+
             Plato::ScalarArray3DT<ConfigT> tJacobians("face Jacobians", tNumFaces, mNumSpatialDimsOnFace, mNumSpatialDims);
 
             // set local worksets
@@ -164,40 +156,39 @@ public:
             Plato::ScalarVectorT<ConfigT> tSurfaceArea("surface area", tNumFaces);
             Plato::ScalarVectorT<CurrentTempT> tCurrentTempGP("current temperature at GP", tNumCells);
 
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aFaceI)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aSideOrdinal)
             {
-                auto tFaceOrdinal = tFaceOrdinalsOnSideSet[aFaceI];
-                // for all elements connected to this face, which is either 1 or 2 elements
-                for( Plato::OrdinalType tElem = tFace2Elems_map[tFaceOrdinal]; tElem < tFace2Elems_map[tFaceOrdinal+1]; tElem++ )
+                Plato::OrdinalType tElementOrdinal = tElementOrds(aSideOrdinal);
+
+                Plato::OrdinalType tLocalNodeOrdinals[mNumSpatialDims];
+                for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<mNumNodesPerFace; tNodeOrd++)
                 {
-                    // create a map from face local node index to elem local node index
-                    Plato::OrdinalType tCellOrdinal = tFace2Elems_elems[tElem];
-                    Plato::OrdinalType tLocalNodeOrdinals[mNumSpatialDims];
-                    tCreateFaceLocalNode2ElemLocalNodeIndexMap(tCellOrdinal, tFaceOrdinal, tCell2Verts, tFace2Verts, tLocalNodeOrdinals);
+                    tLocalNodeOrdinals[tNodeOrd] = tNodeOrds(aSideOrdinal*mNumNodesPerFace+tNodeOrd);
+                }
 
-                    // calculate surface Jacobian and surface integral weight
-                    tCalculateSurfaceJacobians(tCellOrdinal, aFaceI, tLocalNodeOrdinals, tConfigWS, tJacobians);
-                    tCalculateSurfaceArea(aFaceI, tCubatureWeight, tJacobians, tSurfaceArea);
-                    tSurfaceAreaSum(0) += tSurfaceArea(aFaceI);
+                // calculate surface Jacobian and surface integral weight
+                tCalculateSurfaceJacobians(tElementOrdinal, aSideOrdinal, tLocalNodeOrdinals, tConfigWS, tJacobians);
+                tCalculateSurfaceArea(aSideOrdinal, tCubatureWeight, tJacobians, tSurfaceArea);
 
-                    // project current temperature onto surface
-                    for(Plato::OrdinalType tNode = 0; tNode < mNumNodesPerFace; tNode++)
-                    {
-                        auto tLocalCellNode = tLocalNodeOrdinals[tNode];
-                        tCurrentTempGP(tCellOrdinal) += tBasisFunctions(tNode) * tCurrentTempWS(tCellOrdinal, tLocalCellNode);
-                    }
+                Kokkos::atomic_add(&tSurfaceAreaSum(0), tSurfaceArea(aSideOrdinal));
 
-                    // calculate surface integral, which is defined as \int_{\Gamma_e}N_p^a T^h d\Gamma_e
-                    for( Plato::OrdinalType tNode=0; tNode < mNumNodesPerFace; tNode++)
-                    {
-                        tResult(tCellOrdinal) += tBasisFunctions(tNode) * tCurrentTempGP(tCellOrdinal) * tSurfaceArea(aFaceI);
-                    }
-                }               
+                // project current temperature onto surface
+                for(Plato::OrdinalType tNode = 0; tNode < mNumNodesPerFace; tNode++)
+                {
+                    auto tLocalElementNode = tLocalNodeOrdinals[tNode];
+                    tCurrentTempGP(tElementOrdinal) += tBasisFunctions(tNode) * tCurrentTempWS(tElementOrdinal, tLocalElementNode);
+                }
+
+                // calculate surface integral, which is defined as \int_{\Gamma_e}N_p^a T^h d\Gamma_e
+                for( Plato::OrdinalType tNode=0; tNode < mNumNodesPerFace; tNode++)
+                {
+                    tResult(tElementOrdinal) += tBasisFunctions(tNode) * tCurrentTempGP(tElementOrdinal) * tSurfaceArea(aSideOrdinal);
+                }
             }, "integrate surface temperature");
 
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aElementOrdinal)
             {
-                aResult(aCellOrdinal) = ( static_cast<Plato::Scalar>(1.0) / tSurfaceAreaSum(0) ) * tResult(aCellOrdinal);
+                aResult(aElementOrdinal) = ( static_cast<Plato::Scalar>(1.0) / tSurfaceAreaSum(0) ) * tResult(aElementOrdinal);
             }, "calculate mean surface temperature");
         }
     }

@@ -3,7 +3,7 @@
 
 #include "SimplexStabilizedMechanics.hpp"
 #include "LinearElasticMaterial.hpp"
-#include <Omega_h_matrix.hpp>
+#include "PlatoMathTypes.hpp"
 
 namespace Plato
 {
@@ -25,7 +25,7 @@ private:
     using Plato::SimplexStabilizedMechanics<SpaceDim>::mNumDofsPerNode; /*!< number of nodes per node */
     using Plato::SimplexStabilizedMechanics<SpaceDim>::mNumDofsPerCell; /*!< number of nodes per cell */
 
-    const Omega_h::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness; /*!< material matrix with lame constants */
+    const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness; /*!< material matrix with lame constants */
     Plato::Scalar mBulkModulus, mShearModulus; /*!< shear and bulk moduli */
 
     const Plato::Scalar mPressureScaling; /*!< pressure scaling term */

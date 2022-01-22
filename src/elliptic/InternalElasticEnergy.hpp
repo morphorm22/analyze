@@ -103,7 +103,7 @@ class InternalElasticEnergy :
         // check for a case we don't handle
         if(tMyCriteria.isParameter("Domains") && tDomains.size() == 0)
         {
-          THROWERR(std::string("Empty Domains in Volume criteria, either have at least one domain specified or remove from input. No specification indicates we include all domains in volume computation"));
+          ANALYZE_THROWERR(std::string("Empty Domains in Volume criteria, either have at least one domain specified or remove from input. No specification indicates we include all domains in volume computation"));
         }
 
         // if not specified compute all

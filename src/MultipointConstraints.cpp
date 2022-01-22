@@ -8,7 +8,7 @@ MultipointConstraints::MultipointConstraints(const Plato::SpatialModel & aSpatia
                                              const OrdinalType & aNumDofsPerNode, 
                                              Teuchos::ParameterList & aParams) :
                                              MPCs(),
-                                             mNumNodes(aSpatialModel.Mesh.nverts()),
+                                             mNumNodes(aSpatialModel.Mesh->NumNodes()),
                                              mNumDofsPerNode(aNumDofsPerNode),
                                              mTransformMatrix(Teuchos::null),
                                              mTransformMatrixTranspose(Teuchos::null)
@@ -43,9 +43,9 @@ void MultipointConstraints::get(Teuchos::RCP<Plato::CrsMatrixType> & mpcMatrix,
     Kokkos::resize(mChildNodes, numChildNodes);
     Kokkos::resize(mParentNodes, numParentNodes);
     Kokkos::resize(mpcValues, numChildNodes);
-    Plato::CrsMatrixType::RowMapVector mpcRowMap("row map", numChildNodes+1);
-    Plato::CrsMatrixType::OrdinalVector mpcColumnIndices("column indices", numConstraintNonzeros);
-    Plato::CrsMatrixType::ScalarVector mpcEntries("matrix entries", numConstraintNonzeros);
+    Plato::CrsMatrixType::RowMapVectorT mpcRowMap("row map", numChildNodes+1);
+    Plato::CrsMatrixType::OrdinalVectorT mpcColumnIndices("column indices", numConstraintNonzeros);
+    Plato::CrsMatrixType::ScalarVectorT mpcEntries("matrix entries", numConstraintNonzeros);
 
     auto tChildNodes = mChildNodes;
     auto tParentNodes = mParentNodes;
@@ -64,15 +64,15 @@ void MultipointConstraints::get(Teuchos::RCP<Plato::CrsMatrixType> & mpcMatrix,
 }
 
 /****************************************************************************/
-void MultipointConstraints::getMaps(LocalOrdinalVector & nodeTypes,
-                                    LocalOrdinalVector & nodeConNum)
+void MultipointConstraints::getMaps(OrdinalVector & nodeTypes,
+                                    OrdinalVector & nodeConNum)
 /****************************************************************************/
 {
     OrdinalType tNumChildNodes = mChildNodes.size();
 
     Kokkos::resize(nodeTypes, mNumNodes);   // new ID after condensation
     Kokkos::resize(nodeConNum, mNumNodes);  // constraint number for child nodes
-    Plato::LocalOrdinalVector tCondensedNodeCounter("count number of nodes after condensation", mNumNodes);
+    Plato::OrdinalVector tCondensedNodeCounter("count number of nodes after condensation", mNumNodes);
 
     Plato::blas1::fill(static_cast<Plato::OrdinalType>(-1), nodeTypes);  // child nodes marked with -1
     Plato::blas1::fill(static_cast<Plato::OrdinalType>(-1), nodeConNum); // non-child nodes marked with -1
@@ -104,8 +104,8 @@ void MultipointConstraints::getMaps(LocalOrdinalVector & nodeTypes,
 
 /****************************************************************************/
 void MultipointConstraints::assembleTransformMatrix(const Teuchos::RCP<Plato::CrsMatrixType> & aMpcMatrix,
-                                                                        const LocalOrdinalVector & aNodeTypes,
-                                                                        const LocalOrdinalVector & aNodeConNum)
+                                                                        const OrdinalVector  & aNodeTypes,
+                                                                        const OrdinalVector  & aNodeConNum)
 /****************************************************************************/
 {
     OrdinalType tBlockSize = mNumDofsPerNode*mNumDofsPerNode;
@@ -119,9 +119,9 @@ void MultipointConstraints::assembleTransformMatrix(const Teuchos::RCP<Plato::Cr
     OrdinalType tMpcNnz = tMpcEntries.size();
     OrdinalType tOutNnz = tBlockSize*((mNumNodes - tNumChildNodes) + tMpcNnz);
 
-    Plato::CrsMatrixType::RowMapVector outRowMap("transform matrix row map", mNumNodes+1);
-    Plato::CrsMatrixType::OrdinalVector outColumnIndices("transform matrix column indices", tOutNnz);
-    Plato::CrsMatrixType::ScalarVector outEntries("transform matrix entries", tOutNnz);
+    Plato::CrsMatrixType::RowMapVectorT outRowMap("transform matrix row map", mNumNodes+1);
+    Plato::CrsMatrixType::OrdinalVectorT outColumnIndices("transform matrix column indices", tOutNnz);
+    Plato::CrsMatrixType::ScalarVectorT outEntries("transform matrix entries", tOutNnz);
 
     // build row map
     Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, mNumNodes), LAMBDA_EXPRESSION(Plato::OrdinalType iRowOrdinal)
@@ -234,8 +234,8 @@ void MultipointConstraints::setupTransform()
     mNumChildNodes = mChildNodes.size();
 
     // get mappings from global node to node type and constraint number
-    LocalOrdinalVector nodeTypes;
-    LocalOrdinalVector nodeConNum;
+    OrdinalVector nodeTypes;
+    OrdinalVector nodeConNum;
     this->getMaps(nodeTypes, nodeConNum);
 
     // build transformation matrix
@@ -253,7 +253,7 @@ void MultipointConstraints::setupTransform()
 }
 
 /****************************************************************************/
-void MultipointConstraints::checkEssentialBcsConflicts(const LocalOrdinalVector & aBcDofs)
+void MultipointConstraints::checkEssentialBcsConflicts(const OrdinalVector & aBcDofs)
 /****************************************************************************/
 {
     auto tNumDofsPerNode = mNumDofsPerNode;
@@ -284,7 +284,7 @@ void MultipointConstraints::checkEssentialBcsConflicts(const LocalOrdinalVector 
     {
         std::ostringstream tMsg;
         tMsg << "MPC CHILD NODE CONFLICTS WITH ESSENTIAL BC NODE. CHECK MESH SIZES. \n";
-        THROWERR(tMsg.str())
+        ANALYZE_THROWERR(tMsg.str())
     }
     
     // check for parent node conflicts
@@ -306,7 +306,7 @@ void MultipointConstraints::checkEssentialBcsConflicts(const LocalOrdinalVector 
     {
         std::ostringstream tMsg;
         tMsg << "MPC PARENT NODE CONFLICTS WITH ESSENTIAL BC NODE. CHECK MESH SIZES. \n";
-        THROWERR(tMsg.str())
+        ANALYZE_THROWERR(tMsg.str())
     }
 }
 

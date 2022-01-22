@@ -9,7 +9,6 @@
 #include <Teuchos_ParameterList.hpp>
 
 #include "BLAS1.hpp"
-#include "UtilsOmegaH.hpp"
 #include "UtilsTeuchos.hpp"
 #include "PlatoUtilities.hpp"
 
@@ -31,7 +30,7 @@ inline std::string heat_transfer_tag
 {
     if(aInputs.isSublist("Hyperbolic") == false)
     {
-        THROWERR("'Hyperbolic' Parameter List is not defined.")
+        ANALYZE_THROWERR("'Hyperbolic' Parameter List is not defined.")
     }
     auto tHyperbolic = aInputs.sublist("Hyperbolic");
     auto tTag = tHyperbolic.get<std::string>("Heat Transfer", "None");
@@ -56,19 +55,19 @@ inline Type get_material_property(
 {
     if(aInputs.isSublist("Material Models") == false)
     {
-        THROWERR("Parsing 'Plato Problem'. 'Material Models' parameter sublist not defined within 'Plato Problem' parameter list.")
+        ANALYZE_THROWERR("Parsing 'Plato Problem'. 'Material Models' parameter sublist not defined within 'Plato Problem' parameter list.")
     }
     auto tMaterialParamList = aInputs.sublist("Material Models");
     
     if(tMaterialParamList.isSublist(aMaterialBlockName) == false)
     {
-        THROWERR(std::string("Parameter sublist with tag '") + aMaterialBlockName + "' is not defined within 'Material Models' Parameter List.")
+        ANALYZE_THROWERR(std::string("Parameter sublist with tag '") + aMaterialBlockName + "' is not defined within 'Material Models' Parameter List.")
     }
     auto tMyMaterial = tMaterialParamList.sublist(aMaterialBlockName);
     
     if(tMyMaterial.isParameter(aMaterialProperty) == false)
     {
-        THROWERR(std::string("Requested material property with tag '") + aMaterialProperty 
+        ANALYZE_THROWERR(std::string("Requested material property with tag '") + aMaterialProperty 
             + "' is not defined in material Parameter Sublist '" + aMaterialBlockName 
             + "' within the 'Material Models' Parameter List.")
     }
@@ -104,7 +103,7 @@ inline Plato::Scalar forced_convection_thermal_source_dimless_constant(const std
     Plato::is_positive_finite_number(tCharacteristicVelocity, "Characteristic Velocity");
 
     auto tReferenceTemperature = Plato::Fluids::get_material_property<Plato::Scalar>("Reference Temperature", aMaterialName, aInputs);
-    if(tReferenceTemperature == static_cast<Plato::Scalar>(0.0)){ THROWERR(std::string("'Reference Temperature' keyword cannot be set to zero.")) }
+    if(tReferenceTemperature == static_cast<Plato::Scalar>(0.0)){ ANALYZE_THROWERR(std::string("'Reference Temperature' keyword cannot be set to zero.")) }
     
     auto tDimLessConstant = (tCharacteristicLength * tThermalDifussivity) / (tThermalConductivity * tReferenceTemperature * tCharacteristicVelocity);
     return tDimLessConstant;
@@ -131,7 +130,7 @@ inline Plato::Scalar natural_convection_thermal_source_dimless_constant(const st
     Plato::is_positive_finite_number(tCharacteristicLength, "Characteristic Length");
 
     auto tReferenceTemperature = Plato::Fluids::get_material_property<Plato::Scalar>("Reference Temperature", aMaterialName, aInputs);
-    if(tReferenceTemperature == static_cast<Plato::Scalar>(0.0)){ THROWERR(std::string("'Reference Temperature' keyword cannot be set to zero.")) }
+    if(tReferenceTemperature == static_cast<Plato::Scalar>(0.0)){ ANALYZE_THROWERR(std::string("'Reference Temperature' keyword cannot be set to zero.")) }
 
     auto tDimLessConstant = (tCharacteristicLength * tCharacteristicLength) / (tThermalConductivity * tReferenceTemperature);
     return tDimLessConstant;
@@ -159,7 +158,7 @@ inline Plato::Scalar compute_thermal_source_dimensionless_constant(const std::st
     }
     else
     {
-        THROWERR( std::string("Heat transfer mechanism '") + tHeatTransfer + "' is not suported. Supported options are: 'natural' or 'forced'." )
+        ANALYZE_THROWERR( std::string("Heat transfer mechanism '") + tHeatTransfer + "' is not suported. Supported options are: 'natural' or 'forced'." )
     }
     return tDimLessConstant;
 }
@@ -180,13 +179,13 @@ inline bool is_material_property_defined(
 {
     if(aInputs.isSublist("Material Models") == false)
     {
-        THROWERR("'Material Models' parameter list is not defined in the input file.")
+        ANALYZE_THROWERR("'Material Models' parameter list is not defined in the input file.")
     }
     auto tMaterialParamList = aInputs.sublist("Material Models");
     
     if(tMaterialParamList.isSublist(aMaterialBlockName) == false)
     {
-        THROWERR(std::string("Material with tag '") + aMaterialBlockName + "' is not defined in 'Material Models' Parameter List.")
+        ANALYZE_THROWERR(std::string("Material with tag '") + aMaterialBlockName + "' is not defined in 'Material Models' Parameter List.")
     }
     auto tMyMaterial = tMaterialParamList.sublist(aMaterialBlockName);
     
@@ -208,7 +207,7 @@ inline std::string scenario
 {
     if (aInputs.isSublist("Hyperbolic") == false)
     {
-        THROWERR("'Hyperbolic' Parameter List is not defined.")
+        ANALYZE_THROWERR("'Hyperbolic' Parameter List is not defined.")
     }
 
     auto tHyperbolicParaamList = aInputs.sublist("Hyperbolic");
@@ -217,7 +216,7 @@ inline std::string scenario
     auto tScenarioSupported = (tLowerScenario == "density-based topology optimization" || tLowerScenario == "levelset topology optimization" || tLowerScenario == "analysis");
     if( !tScenarioSupported )
     {
-        THROWERR(std::string("Scenario '") + tScenario + 
+        ANALYZE_THROWERR(std::string("Scenario '") + tScenario + 
             "' is not supported. Supported options are: 'analysis', 'density-based topology optimization', 'levelset topology optimization'.")
     }
 
@@ -289,7 +288,7 @@ calculate_effective_conductivity
     }
     else
     {
-        THROWERR(std::string("'Heat Transfer' mechanism with tag '") + tHeatTransfer + "' is not supported.")
+        ANALYZE_THROWERR(std::string("'Heat Transfer' mechanism with tag '") + tHeatTransfer + "' is not supported.")
     }
     return tOutput;
 }
@@ -325,7 +324,7 @@ calculate_viscosity_constant
     }
     else
     {
-        THROWERR(std::string("'Heat Transfer' mechanism with tag '") + tHeatTransfer + "' is not supported.")
+        ANALYZE_THROWERR(std::string("'Heat Transfer' mechanism with tag '") + tHeatTransfer + "' is not supported.")
     }
 }
 // function calculate_viscosity_constant
@@ -357,7 +356,7 @@ buoyancy_constant_mixed_convection_problems
     }
     else
     {
-        THROWERR("Mixed convection properties are not defined. One of these two options should be provided: 'Grashof Number' or 'Richardson Number'")
+        ANALYZE_THROWERR("Mixed convection properties are not defined. One of these two options should be provided: 'Grashof Number' or 'Richardson Number'")
     }
 }
 // function buoyancy_constant_mixed_convection_problems
@@ -390,7 +389,7 @@ buoyancy_constant_natural_convection_problems
     }
     else
     {
-        THROWERR("Natural convection properties are not defined. One of these two options should be provided: 'Grashof Number' or 'Rayleigh Number'")
+        ANALYZE_THROWERR("Natural convection properties are not defined. One of these two options should be provided: 'Grashof Number' or 'Rayleigh Number'")
     }
 }
 // function buoyancy_constant_natural_convection_problems
@@ -431,7 +430,7 @@ calculate_buoyancy_constant
     }
     else
     {
-        THROWERR(std::string("'Heat Transfer' mechanism with tag '") + tHeatTransfer + "' is not supported.")
+        ANALYZE_THROWERR(std::string("'Heat Transfer' mechanism with tag '") + tHeatTransfer + "' is not supported.")
     }
 
     return tBuoyancy;
@@ -465,7 +464,7 @@ rayleigh_number
         auto tRaNum = Plato::Fluids::get_material_property< Teuchos::Array<Plato::Scalar> >("Rayleigh Number", aMaterialName, aInputs);
         if(tRaNum.size() != SpaceDim)
         {
-            THROWERR(std::string("'Rayleigh Number' array length should match the number of spatial dimensions. ")
+            ANALYZE_THROWERR(std::string("'Rayleigh Number' array length should match the number of spatial dimensions. ")
                 + "Array length is '" + std::to_string(tRaNum.size()) + "' and the number of spatial dimensions is '"
                 + std::to_string(SpaceDim) + "'.")
         }
@@ -513,7 +512,7 @@ grashof_number
         auto tGrNum = Plato::Fluids::get_material_property< Teuchos::Array<Plato::Scalar> >("Grashof Number", aMaterialName, aInputs);
         if(tGrNum.size() != SpaceDim)
         {
-            THROWERR(std::string("'Grashof Number' array length should match the number of spatial dimensions. ")
+            ANALYZE_THROWERR(std::string("'Grashof Number' array length should match the number of spatial dimensions. ")
                 + "Array length is '" + std::to_string(tGrNum.size()) + "' and the number of spatial dimensions is '"
                 + std::to_string(SpaceDim) + "'.")
         }
@@ -561,7 +560,7 @@ richardson_number
         auto tRiNum = Plato::Fluids::get_material_property< Teuchos::Array<Plato::Scalar> >("Richardson Number", aMaterialName, aInputs);
         if(tRiNum.size() != SpaceDim)
         {
-            THROWERR(std::string("'Richardson Number' array length should match the number of spatial dimensions. ")
+            ANALYZE_THROWERR(std::string("'Richardson Number' array length should match the number of spatial dimensions. ")
                 + "Array length is '" + std::to_string(tRiNum.size()) + "' and the number of spatial dimensions is '"
                 + std::to_string(SpaceDim) + "'.")
         }
@@ -617,7 +616,7 @@ parse_natural_convection_number
     }
     else
     {
-        THROWERR(std::string("Natural convection properties are not defined. One of these options") +
+        ANALYZE_THROWERR(std::string("Natural convection properties are not defined. One of these options") +
                  " should be provided: 'Grashof Number' (for natural or mixed convection problems), " +
                  "'Rayleigh Number' (for natural convection problems), or 'Richardson Number' (for mixed convection problems).")
     }
@@ -641,7 +640,7 @@ stabilization_constant
 {
     if(aInputs.isSublist("Hyperbolic") == false)
     {
-        THROWERR("'Hyperbolic' Parameter List is not defined.")
+        ANALYZE_THROWERR("'Hyperbolic' Parameter List is not defined.")
     }
 
     auto tOutput = 0.0;
@@ -674,20 +673,21 @@ inline Plato::ScalarVector
 calculate_characteristic_element_size
 (const Plato::SpatialModel & aModel)
 {
-    auto tCoords = aModel.Mesh.coords();
-    auto tCells2Nodes = aModel.Mesh.ask_elem_verts();
+    Plato::OrdinalType tNumCells = aModel.Mesh->NumElements();
+    Plato::OrdinalType tNumNodes = aModel.Mesh->NumNodes();
 
-    Plato::OrdinalType tNumCells = aModel.Mesh.nelems();
-    Plato::OrdinalType tNumNodes = aModel.Mesh.nverts();
+    auto tCoordinates = aModel.Mesh->Coordinates();
+    auto tConnectivity = aModel.Mesh->Connectivity();
+
     Plato::ScalarVector tElemCharSize("element characteristic size", tNumNodes);
     Plato::blas1::fill(std::numeric_limits<Plato::Scalar>::max(), tElemCharSize);
 
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
     {
-        auto tElemSize = Plato::omega_h::calculate_element_size<NumSpatialDims,NumNodesPerCell>(aCellOrdinal, tCells2Nodes, tCoords);
+        auto tElemSize = Plato::calculate_element_size<NumSpatialDims,NumNodesPerCell>(aCellOrdinal, tConnectivity, tCoordinates);
         for(Plato::OrdinalType tNode = 0; tNode < NumNodesPerCell; tNode++)
         {
-            auto tVertexIndex = tCells2Nodes[aCellOrdinal*NumNodesPerCell + tNode];
+            auto tVertexIndex = tConnectivity(aCellOrdinal*NumNodesPerCell + tNode);
             tElemCharSize(tVertexIndex) = tElemSize <= tElemCharSize(tVertexIndex) ? tElemSize : tElemCharSize(tVertexIndex);
         }
     },"calculate characteristic element size");
@@ -715,10 +715,10 @@ calculate_magnitude_convective_velocity
 (const Plato::SpatialModel & aModel,
  const Plato::ScalarVector & aVelocity)
 {
-    auto tCell2Node = aModel.Mesh.ask_elem_verts();
-    Plato::OrdinalType tSpaceDim = aModel.Mesh.dim();
-    Plato::OrdinalType tNumCells = aModel.Mesh.nelems();
-    Plato::OrdinalType tNumNodes = aModel.Mesh.nverts();
+    auto tCell2Node = aModel.Mesh->Connectivity();
+    Plato::OrdinalType tSpaceDim = aModel.Mesh->NumDimensions();
+    Plato::OrdinalType tNumCells = aModel.Mesh->NumElements();
+    Plato::OrdinalType tNumNodes = aModel.Mesh->NumNodes();
 
     Plato::ScalarVector tConvectiveVelocity("convective velocity", tNumNodes);
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCell)
@@ -828,11 +828,11 @@ calculate_critical_convective_time_step
         return std::numeric_limits<Plato::Scalar>::max();
     }
 
-    auto tNumNodes = aModel.Mesh.nverts();
+    auto tNumNodes = aModel.Mesh->NumNodes();
     Plato::ScalarVector tLocalTimeStep("time step", tNumNodes);
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumNodes), LAMBDA_EXPRESSION(const Plato::OrdinalType & aNodeOrdinal)
     {
-        tLocalTimeStep(aNodeOrdinal) = aSafetyFactor * ( aCharElemSize(aNodeOrdinal) / aVelocity(aNodeOrdinal) );
+        tLocalTimeStep(aNodeOrdinal) = (aVelocity(aNodeOrdinal) != 0) ? (aSafetyFactor * (aCharElemSize(aNodeOrdinal) / aVelocity(aNodeOrdinal))) : 1.0;
     }, "calculate local critical time step");
 
     Plato::Scalar tMinValue = 0;

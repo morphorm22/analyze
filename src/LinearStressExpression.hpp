@@ -194,7 +194,7 @@ public:
       // without the XML block.
       else
       {
-        THROWERR("Warning: Failed to find a 'Custom Elasticity Model' block.");
+        ANALYZE_THROWERR("Warning: Failed to find a 'Custom Elasticity Model' block.");
       }
 
       // Input values which is a two-dimensional array. The first

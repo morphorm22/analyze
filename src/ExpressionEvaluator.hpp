@@ -442,7 +442,7 @@ initialize( Kokkos::View< VariableMap *, Plato::UVMSpace > & aVarMaps,
 
         errorMsg << ".";
 
-        THROWERR(  errorMsg.str() );
+        ANALYZE_THROWERR(  errorMsg.str() );
       }
     }
     // Here the expression variable should come from the
@@ -479,7 +479,7 @@ initialize( Kokkos::View< VariableMap *, Plato::UVMSpace > & aVarMaps,
 
         errorMsg << ".";
 
-        THROWERR(  errorMsg.str() );
+        ANALYZE_THROWERR(  errorMsg.str() );
       }
     }
   }
@@ -861,7 +861,7 @@ print_variables( std::ostream &os ) const
       std::stringstream errorMsg;
       errorMsg << "Invalid call to printNode - "
                << "can not find values for variable: " << mVariableMap(thread, i).key;
-      THROWERR( errorMsg.str() );
+      ANALYZE_THROWERR( errorMsg.str() );
     }
 
     os << i << "  " << mVariableMap(thread, i).key << "  ";
@@ -896,7 +896,7 @@ print_variables( std::ostream &os ) const
       std::stringstream errorMsg;
       errorMsg << "Invalid call to print_variables - "
                << "can not find variable: " << mVariableMap(thread, i).key;
-      THROWERR( errorMsg.str() );
+      ANALYZE_THROWERR( errorMsg.str() );
     }
 
     os << std::endl;
@@ -1728,7 +1728,7 @@ parse_expression( const char* expression )
     deleteNode( mNodes[i_root].i_right );
     mNodes[i_root].i_right = (Plato::OrdinalType) -1;
 
-    THROWERR( errorMsg.str() );
+    ANALYZE_THROWERR( errorMsg.str() );
   }
 
   // Get the tru top level root node
@@ -1746,7 +1746,7 @@ parse_expression( const char* expression )
     std::stringstream errorMsg;
     errorMsg << "Could not validate the expression: " << expression;
 
-    THROWERR( errorMsg.str() );
+    ANALYZE_THROWERR( errorMsg.str() );
   }
 
   Kokkos::Profiling::popRegion();
@@ -1871,7 +1871,7 @@ insertNode(       Plato::OrdinalType i_current,
   }
 
   if( errorMsg.str().size() )
-    THROWERR( errorMsg.str() );
+    ANALYZE_THROWERR( errorMsg.str() );
 
   return i_current;
 }
@@ -1895,7 +1895,7 @@ commuteNode( const Plato::OrdinalType i_node )
     std::stringstream errorMsg;
     errorMsg << "Invalid call to commuteNode - "
              << "node index is -1";
-    THROWERR( errorMsg.str() );
+    ANALYZE_THROWERR( errorMsg.str() );
   }
 
   Node & node = mNodes[i_node];
@@ -1907,7 +1907,7 @@ commuteNode( const Plato::OrdinalType i_node )
     std::stringstream errorMsg;
     errorMsg << "Invalid call to commuteNode - "
              << "empty node index is " << i_node;
-    THROWERR( errorMsg.str() );
+    ANALYZE_THROWERR( errorMsg.str() );
   }
 
   // Get the number of children on the left side of the tree.
@@ -2003,7 +2003,7 @@ validateNode( const Plato::OrdinalType i_node,
     std::stringstream errorMsg;
     errorMsg << "Invalid call to validateNode - "
              << "node index is -1";
-    THROWERR( errorMsg.str() );
+    ANALYZE_THROWERR( errorMsg.str() );
   }
 
   const Node & node = mNodes[i_node];
@@ -2015,7 +2015,7 @@ validateNode( const Plato::OrdinalType i_node,
     std::stringstream errorMsg;
     errorMsg << "Invalid call to validateNode - "
              << "empty node index is " << i_node;
-    THROWERR( errorMsg.str() );
+    ANALYZE_THROWERR( errorMsg.str() );
   }
 
   // Validate the left side of the tree.
@@ -2177,7 +2177,7 @@ validateNode( const Plato::OrdinalType i_node,
               std::stringstream errorMsg;
               errorMsg << "Invalid call to validateNode - "
                        << "can not find values for variable: " << node.variable;
-              THROWERR( errorMsg.str() );
+              ANALYZE_THROWERR( errorMsg.str() );
             }
           }
         }
@@ -2195,7 +2195,7 @@ validateNode( const Plato::OrdinalType i_node,
                    << "can not find variable: " << node.variable << ". "
                    << "or bad type " << type << "  "
                    << "or bad index " << index << "  ";
-          THROWERR( errorMsg.str() );
+          ANALYZE_THROWERR( errorMsg.str() );
         }
 
         nodeID = NodeID::EMPTY_NODE;
@@ -2231,7 +2231,7 @@ validateNode( const Plato::OrdinalType i_node,
   }
 
   if( errorMsg.str().size() )
-    THROWERR( errorMsg.str() );
+    ANALYZE_THROWERR( errorMsg.str() );
 
   return nodeID;
 }
@@ -2254,7 +2254,7 @@ traverseNode( const Plato::OrdinalType i_node,
     std::stringstream errorMsg;
     errorMsg << "Invalid call to traverseNode - "
              << "node index is -1";
-    THROWERR( errorMsg.str() );
+    ANALYZE_THROWERR( errorMsg.str() );
   }
 
   Node & node = mNodes[i_node];
@@ -2266,7 +2266,7 @@ traverseNode( const Plato::OrdinalType i_node,
     std::stringstream errorMsg;
     errorMsg << "Invalid call to evaluateNode - "
              << "empty node index is " << i_node;
-    THROWERR( errorMsg.str() );
+    ANALYZE_THROWERR( errorMsg.str() );
   }
 
   // Add additional index(s) to the queue based on the depth of the node.
@@ -2326,7 +2326,7 @@ factorial( ResultType n ) const
 {
   // std::stringstream errorMsg;
   // errorMsg << "Invalid call to uninstantiated template factorial";
-  // THROWERR( errorMsg.str() );
+  // ANALYZE_THROWERR( errorMsg.str() );
 
   long ans = 1, m = (long) n;
 
@@ -2521,7 +2521,7 @@ evaluateNode( const Plato::OrdinalType thread,
             // std::stringstream errorMsg;
             // errorMsg << "Invalid call to evaluateNode - "
             //       << "can not find values for variable: " << node.variable;
-            // THROWERR( errorMsg.str() );
+            // ANALYZE_THROWERR( errorMsg.str() );
 
             GPU_WARNING( "Invalid call to evaluateNode - "
                          "can not find values for variable: ",
@@ -2558,7 +2558,7 @@ evaluateNode( const Plato::OrdinalType thread,
         // std::stringstream errorMsg;
         // errorMsg << "Invalid call to evaluateNode - "
         //       << "can not find storage container for variable: " << variable;
-        // THROWERR( errorMsg.str() );
+        // ANALYZE_THROWERR( errorMsg.str() );
 
         GPU_WARNING( "Invalid call to evaluateNode - "
                      "can not find storage container for variable:",
@@ -2719,7 +2719,7 @@ printNodeID( const Plato::OrdinalType i_node,
             std::stringstream errorMsg;
             errorMsg << "Invalid call to printNode - "
                      << "can not find values for variable: " << node.variable;
-            THROWERR( errorMsg.str() );
+            ANALYZE_THROWERR( errorMsg.str() );
           }
         }
       }
@@ -2754,7 +2754,7 @@ printNodeID( const Plato::OrdinalType i_node,
         std::stringstream errorMsg;
         errorMsg << "Invalid call to printNode - "
                  << "can not find variable: " << node.variable;
-        THROWERR( errorMsg.str() );
+        ANALYZE_THROWERR( errorMsg.str() );
       }
     }
     break;

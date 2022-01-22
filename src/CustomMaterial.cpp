@@ -59,7 +59,7 @@ CustomMaterial::GetCustomExpressionValue(
   }
   else
   {
-    THROWERR( "Unknown equation type specified: " + equationType );
+    ANALYZE_THROWERR( "Unknown equation type specified: " + equationType );
   }
 }
 

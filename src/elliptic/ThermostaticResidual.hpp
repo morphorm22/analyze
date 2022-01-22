@@ -88,7 +88,7 @@ class ThermostaticResidual :
     /**************************************************************************/
     {
         // obligatory: define dof names in order
-        mDofNames.push_back("Temperature");
+        mDofNames.push_back("temperature");
 
         Plato::ThermalConductionModelFactory<mSpaceDim> tMaterialFactory(aProblemParams);
         mMaterialModel = tMaterialFactory.create(aSpatialDomain.getMaterialName());
@@ -121,11 +121,7 @@ class ThermostaticResidual :
     ********************************************************************************/
     Plato::Solutions getSolutionStateOutputData(const Plato::Solutions &aSolutions) const override
     {
-      Plato::ScalarMultiVector tTemperatures = aSolutions.get("State");
-      Plato::Solutions tSolutionsOutput(aSolutions.physics(), aSolutions.pde());
-      tSolutionsOutput.set("Temperature", tTemperatures);
-      tSolutionsOutput.setNumDofs("Temperature", 1);
-      return tSolutionsOutput;
+      return aSolutions;
     }
 
     /**************************************************************************/

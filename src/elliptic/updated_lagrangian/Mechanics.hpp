@@ -200,7 +200,7 @@ struct FunctionFactory
         }
         else
         {
-            THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList")
+            ANALYZE_THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList")
         }
     }
 
