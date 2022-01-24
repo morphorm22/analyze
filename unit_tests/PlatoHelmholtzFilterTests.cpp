@@ -61,8 +61,8 @@ TEUCHOS_UNIT_TEST(HelmholtzFilterTests, LengthScaleKeywordError)
   // create test mesh
   //
   constexpr int meshWidth=20;
-  constexpr int spaceDim=1;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("bar2", meshWidth);
+  constexpr int spaceDim=2;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("tri3", meshWidth);
 
   using SimplexPhysics = ::Plato::HelmholtzFilter<spaceDim>;
 
