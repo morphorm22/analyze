@@ -87,7 +87,7 @@ namespace Plato {
                 auto tSequenceParams = aInputParams.sublist("Sequence");
                 if (!tSequenceParams.isSublist("Steps"))
                 {
-                    THROWERR("Parsing 'Sequence'. Required 'Steps' list not found");
+                    ANALYZE_THROWERR("Parsing 'Sequence'. Required 'Steps' list not found");
                 }
 
                 auto tStepsParams = tSequenceParams.sublist("Steps");
@@ -98,7 +98,7 @@ namespace Plato {
 
                     if (!tEntry.isList())
                     {
-                        THROWERR("Parameter in 'Steps' list not valid.  Expect lists only.");
+                        ANALYZE_THROWERR("Parameter in 'Steps' list not valid.  Expect lists only.");
                     }
 
                     Teuchos::ParameterList& tStepParams = tStepsParams.sublist(tMyName);

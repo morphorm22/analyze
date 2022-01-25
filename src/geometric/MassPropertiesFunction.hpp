@@ -4,12 +4,10 @@
 #include <cassert>
 #include <vector>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_matrix.hpp>
-#include <Omega_h_vector.hpp>
 #include <Omega_h_eigen.hpp>
 
 #include "BLAS1.hpp"
+#include "PlatoMathTypes.hpp"
 #include "geometric/WorksetBase.hpp"
 #include "PlatoStaticsTypes.hpp"
 #include "geometric/ScalarFunctionBaseFactory.hpp"
@@ -61,7 +59,6 @@ private:
 	/******************************************************************************//**
      * \brief Initialization of Mass Properties Function
      * \param [in] aMesh mesh database
-     * \param [in] aMeshSets side sets database
      * \param [in] aProblemParams input parameters database
     **********************************************************************************/
     void
@@ -109,14 +106,14 @@ private:
         {
             const std::string tErrorString = std::string("Number of 'Properties' in '") + mFunctionName + 
                                                          "' parameter list does not equal the number of 'Weights'";
-            THROWERR(tErrorString)
+            ANALYZE_THROWERR(tErrorString)
         }
 
         if (tPropertyNames.size() != tPropertyGoldValues.size())
         {
             const std::string tErrorString = std::string("Number of 'Gold Values' in '") + mFunctionName + 
                                                          "' parameter list does not equal the number of 'Properties'";
-            THROWERR(tErrorString)
+            ANALYZE_THROWERR(tErrorString)
         }
 
         const bool tAllPropertiesSpecifiedByUser = allPropertiesSpecified(tPropertyNames);
@@ -151,7 +148,7 @@ private:
         // Check for duplicate entries from the user
         const unsigned int tUniqueNumberOfProperties = tPropertyNames.size();
         if (tUserSpecifiedNumberOfProperties != tUniqueNumberOfProperties)
-        { THROWERR("User specified mass properties vector contains duplicate entries!") }
+        { ANALYZE_THROWERR("User specified mass properties vector contains duplicate entries!") }
 
         if (tUserSpecifiedNumberOfProperties < 10) return false;
 
@@ -176,7 +173,7 @@ private:
                 const std::string tErrorString = std::string("Specified mass property '") +
                 tCurrentProperty + "' not implemented. Options are: Mass, CGx, CGy, CGz, " 
                                  + "Ixx, Iyy, Izz, Ixy, Ixz, Iyz";
-                THROWERR(tErrorString)
+                ANALYZE_THROWERR(tErrorString)
             }
 
             // property vectors were sorted so check that the properties match in sequence
@@ -332,7 +329,6 @@ private:
     /******************************************************************************//**
      * \brief Create an itemized least squares function for user specified mass properties
      * \param [in] aMesh mesh database
-     * \param [in] aMeshSets side sets database
      * \param [in] aPropertyNames names of properties specified by user 
      * \param [in] aPropertyWeights weights of properties specified by user 
      * \param [in] aPropertyGoldValues gold values of properties specified by user 
@@ -421,7 +417,7 @@ private:
                 const std::string tErrorString = std::string("Specified mass property '") +
                 tPropertyName + "' not implemented. Options are: Mass, CGx, CGy, CGz, " 
                               + "Ixx, Iyy, Izz, Ixy, Ixz, Iyz";
-                THROWERR(tErrorString)
+                ANALYZE_THROWERR(tErrorString)
             }
         }
     }
@@ -632,7 +628,7 @@ private:
             const std::string tErrorString = std::string("Specified axes '") +
             aAxes + "' not implemented for moment of inertia calculation. " 
                           + "Options are: XX, YY, ZZ, XY, XZ, YZ";
-            THROWERR(tErrorString)
+            ANALYZE_THROWERR(tErrorString)
         }
 
         return tMomentOfInertiaFunction;
@@ -767,7 +763,7 @@ private:
             const std::string tErrorString = std::string("Specified axes '") +
             aAxes + "' not implemented for inertia and mass weights calculation. " 
                           + "Options are: XX, YY, ZZ, XY, XZ, YZ";
-            THROWERR(tErrorString)
+            ANALYZE_THROWERR(tErrorString)
         }
     }
 
@@ -798,11 +794,11 @@ public:
      * \param [in] aMesh mesh database
     **********************************************************************************/
     void
-    computeMeshExtent(Omega_h::Mesh& aMesh)
+    computeMeshExtent(Plato::Mesh aMesh)
     {
-        Omega_h::Reals tNodeCoordinates = aMesh.coords();
-        Omega_h::Int   tSpaceDim        = aMesh.dim();
-        Omega_h::LO    tNumVertices     = aMesh.nverts();
+        auto tNodeCoordinates = aMesh->Coordinates();
+        auto tSpaceDim        = aMesh->NumDimensions();
+        auto tNumVertices     = aMesh->NumNodes();
 
         assert(tSpaceDim == 3);
 

@@ -149,7 +149,7 @@ public:
         // evaluate boundary
         {
             Plato::WorkSets tInputWorkSets;
-            auto tNumCells = mSpatialModel.Mesh.nelems();
+            auto tNumCells = mSpatialModel.Mesh->NumElements();
             Plato::Fluids::build_scalar_function_worksets<ResidualEvalT>
                 (tNumCells, aControls, aVariables, mLocalOrdinalMaps, tInputWorkSets);
 
@@ -176,7 +176,7 @@ public:
      const Plato::Primal & aVariables) const
     {
         using ResultScalarT = typename GradConfigEvalT::ResultScalarType;
-        const auto tNumNodes = mSpatialModel.Mesh.nverts();
+        const auto tNumNodes = mSpatialModel.Mesh->NumNodes();
         Plato::ScalarVector tGradient("gradient wrt configuration", mNumSpatialDims * tNumNodes);
 
         // evaluate internal domain
@@ -198,7 +198,7 @@ public:
         // evaluate boundary
         {
             Plato::WorkSets tInputWorkSets;
-            auto tNumCells = mSpatialModel.Mesh.nelems();
+            auto tNumCells = mSpatialModel.Mesh->NumElements();
             Plato::Fluids::build_scalar_function_worksets<GradConfigEvalT>
                 (tNumCells, aControls, aVariables, mLocalOrdinalMaps, tInputWorkSets);
 
@@ -226,7 +226,7 @@ public:
      const Plato::Primal & aVariables) const
     {
         using ResultScalarT = typename GradControlEvalT::ResultScalarType;
-        const auto tNumNodes = mSpatialModel.Mesh.nverts();
+        const auto tNumNodes = mSpatialModel.Mesh->NumNodes();
         Plato::ScalarVector tGradient("gradient wrt control", mNumControlDofsPerNode * tNumNodes);
 
         // evaluate internal domain
@@ -248,7 +248,7 @@ public:
         // evaluate boundary
         {
             Plato::WorkSets tInputWorkSets;
-            auto tNumCells = mSpatialModel.Mesh.nelems();
+            auto tNumCells = mSpatialModel.Mesh->NumElements();
             Plato::Fluids::build_scalar_function_worksets<GradControlEvalT>
                 (tNumCells, aControls, aVariables, mLocalOrdinalMaps, tInputWorkSets);
 
@@ -276,7 +276,7 @@ public:
      const Plato::Primal & aVariables) const
     {
         using ResultScalarT = typename GradCurPressEvalT::ResultScalarType;
-        const auto tNumNodes = mSpatialModel.Mesh.nverts();
+        const auto tNumNodes = mSpatialModel.Mesh->NumNodes();
         Plato::ScalarVector tGradient("gradient wrt current pressure state", mNumMassDofsPerNode * tNumNodes);
 
         // evaluate internal domain
@@ -298,7 +298,7 @@ public:
         // evaluate boundary
         {
             Plato::WorkSets tInputWorkSets;
-            auto tNumCells = mSpatialModel.Mesh.nelems();
+            auto tNumCells = mSpatialModel.Mesh->NumElements();
             Plato::Fluids::build_scalar_function_worksets<GradCurPressEvalT>
                 (tNumCells, aControls, aVariables, mLocalOrdinalMaps, tInputWorkSets);
 
@@ -326,7 +326,7 @@ public:
      const Plato::Primal & aVariables) const
     {
         using ResultScalarT = typename GradCurTempEvalT::ResultScalarType;
-        const auto tNumNodes = mSpatialModel.Mesh.nverts();
+        const auto tNumNodes = mSpatialModel.Mesh->NumNodes();
         Plato::ScalarVector tGradient("gradient wrt current temperature state", mNumEnergyDofsPerNode * tNumNodes);
 
         // evaluate internal domain
@@ -348,7 +348,7 @@ public:
         // evaluate boundary
         {
             Plato::WorkSets tInputWorkSets;
-            auto tNumCells = mSpatialModel.Mesh.nelems();
+            auto tNumCells = mSpatialModel.Mesh->NumElements();
             Plato::Fluids::build_scalar_function_worksets<GradCurTempEvalT>
                 (tNumCells, aControls, aVariables, mLocalOrdinalMaps, tInputWorkSets);
 
@@ -376,7 +376,7 @@ public:
      const Plato::Primal & aVariables) const
     {
         using ResultScalarT = typename GradCurVelEvalT::ResultScalarType;
-        const auto tNumNodes = mSpatialModel.Mesh.nverts();
+        const auto tNumNodes = mSpatialModel.Mesh->NumNodes();
         Plato::ScalarVector tGradient("gradient wrt current velocity state", mNumMomentumDofsPerNode * tNumNodes);
 
         // evaluate internal domain
@@ -398,7 +398,7 @@ public:
         // evaluate boundary
         {
             Plato::WorkSets tInputWorkSets;
-            auto tNumCells = mSpatialModel.Mesh.nelems();
+            auto tNumCells = mSpatialModel.Mesh->NumElements();
             Plato::Fluids::build_scalar_function_worksets<GradCurVelEvalT>
                 (tNumCells, aControls, aVariables, mLocalOrdinalMaps, tInputWorkSets);
 

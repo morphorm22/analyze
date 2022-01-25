@@ -3,9 +3,6 @@
 
 #include <memory>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include "Simplex.hpp"
 #include "SimplexProjection.hpp"
 #include "AbstractVectorFunctionVMS.hpp"
@@ -71,12 +68,12 @@ struct FunctionFactory
             }
             else
             {
-                THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
+                ANALYZE_THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
             }
         }
         else
         {
-            THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
+            ANALYZE_THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
         }
     }
 
@@ -92,7 +89,7 @@ struct FunctionFactory
     /******************************************************************************/
     {
         {
-            THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
+            ANALYZE_THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
         }
     }
     /******************************************************************************/
@@ -108,7 +105,7 @@ struct FunctionFactory
     /******************************************************************************/
     {
         {
-            THROWERR("Unknown 'Objective' specified in 'Plato Problem' ParameterList");
+            ANALYZE_THROWERR("Unknown 'Objective' specified in 'Plato Problem' ParameterList");
         }
     }
     /******************************************************************************/
@@ -124,7 +121,7 @@ struct FunctionFactory
     /******************************************************************************/
     {
         {
-            THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
+            ANALYZE_THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
         }
     }
 }; // struct FunctionFactory

@@ -705,7 +705,7 @@ private:
             const auto tError = std::string("UNKNOWN USER DEFINED SCALAR FUNCTION SUBLIST '")
                     + mFunctionName + "'. USER DEFINED SCALAR FUNCTION SUBLIST '" + mFunctionName
                     + "' IS NOT DEFINED IN THE INPUT FILE.";
-            THROWERR(tError)
+            ANALYZE_THROWERR(tError)
         }
 
         auto tInputData = aInputParams.sublist("Criteria").sublist(mFunctionName);

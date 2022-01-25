@@ -218,7 +218,7 @@ inline void fill(typename XViewType::const_value_type& aAlpha, XViewType& aXvec)
 {
     if(static_cast<Plato::OrdinalType>(aXvec.size()) <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nINPUT VECTOR IS EMPTY.\n");
+        ANALYZE_THROWERR("\nINPUT VECTOR IS EMPTY.\n");
     }
 
     const Plato::OrdinalType tNumEntriesDim0 = aXvec.extent(0);
@@ -247,7 +247,7 @@ inline void scale(typename XViewType::const_value_type& aAlpha, XViewType& aXvec
 {
     if(static_cast<Plato::OrdinalType>(aXvec.size()) <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nINPUT VECTOR IS EMPTY.\n");
+        ANALYZE_THROWERR("\nINPUT VECTOR IS EMPTY.\n");
     }
 
     const Plato::OrdinalType tNumEntriesDim0 = aXvec.extent(0);
@@ -284,14 +284,14 @@ inline void update(typename XViewType::const_value_type& aAlpha,
         std::stringstream tMsg;
         tMsg << "\nDIMENSION MISMATCH. X ARRAY DIM(0) = " << aXvec.extent(0)
                 << " AND Y ARRAY DIM(0) = " << aYvec.extent(0) << ".\n";
-        THROWERR(tMsg.str().c_str());
+        ANALYZE_THROWERR(tMsg.str().c_str());
     }
     if(aXvec.extent(1) != aYvec.extent(1))
     {
         std::stringstream tMsg;
         tMsg << "\nDIMENSION MISMATCH. X ARRAY DIM(1) = " << aXvec.extent(1)
                 << " AND Y ARRAY DIM(1) = " << aYvec.extent(1) << ".\n";
-        THROWERR(tMsg.str().c_str());
+        ANALYZE_THROWERR(tMsg.str().c_str());
     }
 
     const auto tNumEntriesDim0 = aXvec.extent(0);
@@ -321,18 +321,18 @@ inline void axpy(const Plato::Scalar & aAlpha, const Plato::ScalarMultiVector& a
 {
     if(aOut.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nOUT ARRAY IS EMPTY.\n");
+        ANALYZE_THROWERR("\nOUT ARRAY IS EMPTY.\n");
     }
     if(aIn.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nIN ARRAY IS EMPTY.\n");
+        ANALYZE_THROWERR("\nIN ARRAY IS EMPTY.\n");
     }
     if(aOut.extent(0) != aIn.extent(0))
     {
         std::stringstream tMsg;
         tMsg << "\nDIMENSION MISMATCH. X ARRAY DIM(0) = " << aOut.extent(0)
                 << " AND Y ARRAY DIM(0) = " << aIn.extent(0) << ".\n";
-        THROWERR(tMsg.str().c_str());
+        ANALYZE_THROWERR(tMsg.str().c_str());
     }
 
     const auto tInputVecDim0 = aIn.extent(0);
@@ -379,23 +379,23 @@ inline void matrix_times_vector(const char aTransA[],
     // check validity of inputs' dimensions
     if(aAmat.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nInput matrix A is empty, i.e. size <= 0\n")
+        ANALYZE_THROWERR("\nInput matrix A is empty, i.e. size <= 0\n")
     }
     if(aXvec.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nInput vector X is empty, i.e. size <= 0\n")
+        ANALYZE_THROWERR("\nInput vector X is empty, i.e. size <= 0\n")
     }
     if(aYvec.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nOutput vector Y is empty, i.e. size <= 0\n")
+        ANALYZE_THROWERR("\nOutput vector Y is empty, i.e. size <= 0\n")
     }
     if(aAmat.extent(0) != aXvec.extent(0))
     {
-        THROWERR("\nDimension mismatch, matrix A and vector X have different number of cells.\n")
+        ANALYZE_THROWERR("\nDimension mismatch, matrix A and vector X have different number of cells.\n")
     }
     if(aAmat.extent(0) != aYvec.extent(0))
     {
-        THROWERR("\nDimension mismatch, matrix A and vector Y have different number of cells.\n")
+        ANALYZE_THROWERR("\nDimension mismatch, matrix A and vector Y have different number of cells.\n")
     }
 
     // Check validity of transpose argument
@@ -406,7 +406,7 @@ inline void matrix_times_vector(const char aTransA[],
     {
         std::stringstream tMsg;
         tMsg << "\ntransA[0] = '" << aTransA[0] << "'. Valid values include 'N' or 'n' (No transpose) and 'T' or 't' (Transpose).\n";
-        THROWERR(tMsg.str())
+        ANALYZE_THROWERR(tMsg.str())
     }
 
     auto tNumCells = aAmat.extent(0);

@@ -13,10 +13,6 @@
 
 #include <Kokkos_Core.hpp>
 
-#include <Omega_h_library.hpp>
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_file.hpp>
-
 #include "SpatialModel.hpp"
 
 namespace Plato {
@@ -158,12 +154,12 @@ struct GetBasis
     using OrdinalT      = typename ScalarArrayT::size_type;
     using OrdinalArrayT = typename Plato::ScalarVectorT<OrdinalT>;
 
-    const Omega_h::LOs mCells2Nodes;
-    const Omega_h::Reals mCoords;
+    const Plato::OrdinalVectorT<const Plato::OrdinalType> mCells2Nodes;
+    const Plato::ScalarVectorT<const Plato::Scalar> mCoords;
 
-    GetBasis(Omega_h::Mesh& aMesh) :
-      mCells2Nodes(aMesh.ask_elem_verts()),
-      mCoords(aMesh.coords()) {}
+    GetBasis(Plato::Mesh aMesh) :
+      mCells2Nodes(aMesh->Connectivity()),
+      mCoords(aMesh->Coordinates()) {}
 
     /******************************************************************************//**
      * @brief Find local coordinates from global coordinates, compute basis values
@@ -303,7 +299,7 @@ struct GetBasis
 template <typename ScalarT>
 void
 findParentElements(
-  Omega_h::Mesh& aMesh,
+  Plato::Mesh aMesh,
   Plato::ScalarMultiVectorT<ScalarT> aLocations,
   Plato::ScalarMultiVectorT<ScalarT> aMappedLocations,
   Plato::ScalarVectorT<int> aParentElements,
@@ -311,13 +307,13 @@ findParentElements(
 {
     using OrdinalT      = typename Plato::ScalarVectorT<ScalarT>::size_type;
 
-    auto tNElems = aMesh.nelems();
+    auto tNElems = aMesh->NumElements();
     Plato::ScalarMultiVectorT<ScalarT> tMin("min", cSpaceDim, tNElems);
     Plato::ScalarMultiVectorT<ScalarT> tMax("max", cSpaceDim, tNElems);
 
     // fill d_* data
-    auto tCoords = aMesh.coords();
-    Omega_h::LOs tCells2Nodes = aMesh.ask_elem_verts();
+    auto tCoords = aMesh->Coordinates();
+    auto tCells2Nodes = aMesh->Connectivity();
     Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalT>(0, tNElems), KOKKOS_LAMBDA(OrdinalT iCellOrdinal)
     {
         OrdinalT tNVertsPerElem = cSpaceDim+1;
@@ -452,7 +448,7 @@ findParentElements(
 template <typename ScalarT>
 void
 findParentElements(
-  Omega_h::Mesh& aMesh,
+  Plato::Mesh aMesh,
   const Plato::ScalarVectorT<int> & aDomainCellMap,
   Plato::ScalarMultiVectorT<ScalarT> aLocations,
   Plato::ScalarMultiVectorT<ScalarT> aMappedLocations,
@@ -460,15 +456,15 @@ findParentElements(
 {
     using OrdinalT      = typename Plato::ScalarVectorT<ScalarT>::size_type;
 
-    auto tNElems = aDomainCellMap.size();
+    int tNElems = aDomainCellMap.size();
     Plato::ScalarMultiVectorT<ScalarT> tMin("min", cSpaceDim, tNElems);
     Plato::ScalarMultiVectorT<ScalarT> tMax("max", cSpaceDim, tNElems);
 
     constexpr ScalarT cRelativeTol = 1e-2;
 
     // fill d_* data
-    auto tCoords = aMesh.coords();
-    Omega_h::LOs tCells2Nodes = aMesh.ask_elem_verts();
+    auto tCoords = aMesh->Coordinates();
+    auto tCells2Nodes = aMesh->Connectivity();
     auto tDomainCellMap = aDomainCellMap;
 
     Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalT>(0, tNElems), KOKKOS_LAMBDA(OrdinalT iCellOrdinal)

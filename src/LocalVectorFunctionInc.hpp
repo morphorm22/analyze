@@ -4,9 +4,6 @@
 #include <string>
 #include <vector>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include <Teuchos_ParameterList.hpp>
 
 #include "WorksetBase.hpp"
@@ -99,8 +96,8 @@ public:
               Teuchos::ParameterList & aParamList
     ) :
         mWorksetBase  (aSpatialModel.Mesh),
-        mNumCells     (aSpatialModel.Mesh.nelems()),
-        mNumNodes     (aSpatialModel.Mesh.nverts()),
+        mNumCells     (aSpatialModel.Mesh->NumElements()),
+        mNumNodes     (aSpatialModel.Mesh->NumNodes()),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap)
     {
@@ -131,8 +128,8 @@ public:
               Plato::DataMap      & aDataMap
     ) :
         mWorksetBase  (aSpatialModel.Mesh),
-        mNumCells     (aSpatialModel.Mesh.nelems()),
-        mNumNodes     (aSpatialModel.Mesh.nverts()),
+        mNumCells     (aSpatialModel.Mesh->NumElements()),
+        mNumNodes     (aSpatialModel.Mesh->NumNodes()),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap)
     {

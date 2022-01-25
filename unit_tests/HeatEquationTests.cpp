@@ -4,11 +4,6 @@
 */
 
 #include "PlatoTestHelpers.hpp"
-#include "Omega_h_build.hpp"
-#include "Omega_h_map.hpp"
-#include "Omega_h_matrix.hpp"
-#include "Omega_h_file.hpp"
-
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
@@ -77,17 +72,17 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, 3D )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
 
-  int numCells = tMesh->nelems();
+  int numCells = tMesh->NumElements();
   constexpr int nodesPerCell  = Plato::SimplexThermal<spaceDim>::mNumNodesPerCell;
   constexpr int dofsPerCell   = Plato::SimplexThermal<spaceDim>::mNumDofsPerCell;
   constexpr int dofsPerNode   = Plato::SimplexThermal<spaceDim>::mNumDofsPerNode;
 
   // create mesh based temperature from host data
   //
-  std::vector<Plato::Scalar> T_host( tMesh->nverts() );
+  std::vector<Plato::Scalar> T_host( tMesh->NumNodes() );
   Plato::Scalar Tval = 0.0, dval = 1.0;
   for( auto& val : T_host ) val = (Tval += dval);
   Kokkos::View<Plato::Scalar*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>
@@ -95,7 +90,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, 3D )
   auto T = Kokkos::create_mirror_view_and_copy( Kokkos::DefaultExecutionSpace(), T_host_view);
 
 
-  Plato::WorksetBase<Plato::SimplexThermal<spaceDim>> worksetBase(*tMesh);
+  Plato::WorksetBase<Plato::SimplexThermal<spaceDim>> worksetBase(tMesh);
 
   Plato::ScalarArray3DT<Plato::Scalar>
     gradient("gradient",numCells,nodesPerCell,spaceDim);
@@ -203,10 +198,10 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, 3D )
   Kokkos::deep_copy( tTemperature_Host, tTemperature );
 
   std::vector<Plato::Scalar> tTemperature_gold = { 
-     8.5 ,  7.0 , 5.25,  9.75,
-     8.75,  6.5 , 6.25, 10.75,
-    11.00,  8.25, 7.75, 10.0 ,
-    11.75, 10.25, 9.25, 11.0 
+    8.000000000000000, 6.000000000000000, 5.500000000000000, 7.000000000000000,
+    9.000000000000000, 9.500000000000000, 9.000000000000000, 7.000000000000000,
+    6.500000000000000, 8.000000000000000, 10.00000000000000, 10.50000000000000,
+    11.00000000000000, 9.000000000000000, 8.500000000000000, 10.00000000000000
   };
 
   numGoldCells=tTemperature_gold.size();
@@ -224,10 +219,10 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, 3D )
   Kokkos::deep_copy( thermalContent_Host, thermalContent );
 
   std::vector<Plato::Scalar> thermalContent_gold = { 
-     2.550e6, 2.100e6, 1.575e6, 2.925e6,
-     2.625e6, 1.950e6, 1.875e6, 3.225e6,
-     3.300e6, 2.475e6, 2.325e6, 3.000e6,
-     3.525e6, 3.075e6, 2.775e6, 3.300e6
+  2.400000000000000e6, 1.800000000000000e6, 1.650000000000000e6, 2.100000000000000e6,
+  2.700000000000000e6, 2.850000000000000e6, 2.700000000000000e6, 2.100000000000000e6,
+  1.950000000000000e6, 2.400000000000000e6, 3.000000000000000e6, 3.150000000000000e6,
+  3.300000000000000e6, 2.700000000000000e6, 2.550000000000000e6, 3.000000000000000e6
   };
 
   numGoldCells=thermalContent_gold.size();
@@ -245,12 +240,12 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, 3D )
   Kokkos::deep_copy( gradient_Host, gradient );
 
   std::vector<std::vector<std::vector<Plato::Scalar>>> gradient_gold = { 
-    {{0.0,-2.0, 0.0},{ 2.0, 0.0,-2.0},{-2.0, 2.0, 0.0},{ 0.0, 0.0, 2.0}},
-    {{0.0,-2.0, 0.0},{ 0.0, 2.0,-2.0},{-2.0, 0.0, 2.0},{ 2.0, 0.0, 0.0}},
-    {{0.0, 0.0,-2.0},{-2.0, 2.0, 0.0},{ 0.0,-2.0, 2.0},{ 2.0, 0.0, 0.0}},
-    {{0.0, 0.0,-2.0},{ 2.0,-2.0, 0.0},{ 0.0, 2.0, 0.0},{-2.0, 0.0, 2.0}},
-    {{0.0,-2.0, 0.0},{ 2.0, 0.0,-2.0},{-2.0, 2.0, 0.0},{ 0.0, 0.0, 2.0}},
-    {{0.0,-2.0, 0.0},{ 0.0, 2.0,-2.0},{-2.0, 0.0, 2.0},{ 2.0, 0.0, 0.0}}
+    {{ 0.0,-2.0, 0.0}, { 2.0, 0.0,-2.0}, {-2.0, 2.0, 0.0}, {0.0, 0.0, 2.0}},
+    {{ 0.0,-2.0, 0.0}, { 0.0, 2.0,-2.0}, {-2.0, 0.0, 2.0}, {2.0, 0.0, 0.0}},
+    {{ 0.0, 0.0,-2.0}, {-2.0, 2.0, 0.0}, { 0.0,-2.0, 2.0}, {2.0, 0.0, 0.0}},
+    {{ 0.0, 0.0,-2.0}, {-2.0, 0.0, 2.0}, { 2.0,-2.0, 0.0}, {0.0, 2.0, 0.0}},
+    {{-2.0, 0.0, 0.0}, { 0.0,-2.0, 2.0}, { 2.0, 0.0,-2.0}, {0.0, 2.0, 0.0}},
+    {{-2.0, 0.0, 0.0}, { 2.0,-2.0, 0.0}, { 0.0, 2.0,-2.0}, {0.0, 0.0, 2.0}}
   };
 
   numGoldCells=gradient_gold.size();
@@ -272,12 +267,12 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, 3D )
   Kokkos::deep_copy( tgrad_Host, tGrad );
 
   std::vector<std::vector<Plato::Scalar>> tgrad_gold = { 
-    { 2.000 , 16.00, 8.000 },
-    { 20.00 , 16.00,-10.00 },
-    { 20.00 , 4.000, 2.000 },
-    { 40.00 ,-16.00, 2.000 },
-    { 20.00 , 4.000, 2.000 },
-    { 20.00 , 4.000, 2.000 }
+    { 18.000, 6.000, 2.000 },
+    { 18.000, 6.000, 2.000 },
+    { 18.000, 6.000, 2.000 },
+    { 18.000, 6.000, 2.000 },
+    { 18.000, 6.000, 2.000 },
+    { 18.000, 6.000, 2.000 }
   };
 
   for(int iCell=0; iCell<int(tgrad_gold.size()); iCell++){
@@ -296,12 +291,12 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, 3D )
   Kokkos::deep_copy( tflux_Host, tFlux );
 
   std::vector<std::vector<Plato::Scalar>> tflux_gold = { 
-   {-2.0e6,-1.6e7,-8.0e6 },
-   {-2.0e7,-1.6e7, 1.0e7 },
-   {-2.0e7,-4.0e6,-2.0e6 },
-   {-4.0e7, 1.6e7,-2.0e6 },
-   {-2.0e7,-4.0e6,-2.0e6 },
-   {-2.0e7,-4.0e6,-2.0e6 }
+   {-18.0e6, -6.0e6, -2.0e6 },
+   {-18.0e6, -6.0e6, -2.0e6 },
+   {-18.0e6, -6.0e6, -2.0e6 },
+   {-18.0e6, -6.0e6, -2.0e6 },
+   {-18.0e6, -6.0e6, -2.0e6 },
+   {-18.0e6, -6.0e6, -2.0e6 }
   };
 
   for(int iCell=0; iCell<int(tflux_gold.size()); iCell++){
@@ -314,18 +309,15 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, 3D )
     }
   }
 
-  // test residual
+  // test flux divergence
   //
   auto result_Host = Kokkos::create_mirror_view( result );
   Kokkos::deep_copy( result_Host, result );
 
   std::vector<std::vector<Plato::Scalar>> result_gold = { 
-   {  666666.6666666666,  250000.0000000000, -583333.3333333333, -333333.3333333333 },
-   {  666666.6666666666,-1083333.3333333333, 1250000.0000000000, -833333.3333333333 },
-   {   83333.3333333333,  666666.6666666666,   83333.3333333333, -833333.3333333333 },
-   {   83333.3333333333,-2333333.3333333333,  666666.6666666666, 1583333.3333333333 },
-   {  166666.6666666667, -750000.0000000000,  666666.6666666666,  -83333.3333333333 },
-   {  166666.6666666667,  -83333.3333333333,  750000.0000000000, -833333.3333333333 }
+   { 250000.0000000000, -666666.6666666666, 500000.0000000000, -83333.33333333333 },
+   { 250000.0000000000, -166666.6666666667, 666666.6666666666, -750000.0000000000 },
+   { 83333.33333333333,  500000.0000000000, 166666.6666666667, -750000.0000000000 }
   };
 
   for(int iCell=0; iCell<int(result_gold.size()); iCell++){
@@ -338,17 +330,15 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, 3D )
     }
   }
 
-  // test residual
+  // test projected thermal content
   //
   auto mass_result_Host = Kokkos::create_mirror_view( massResult );
   Kokkos::deep_copy( mass_result_Host, massResult );
 
   std::vector<std::vector<Plato::Scalar>> mass_result_gold = { 
-   { 13281.25000000000, 13281.25000000000, 13281.25000000000, 13281.25000000000},
-   { 10937.50000000000, 10937.50000000000, 10937.50000000000, 10937.50000000000},
-   {  8203.12500000000,  8203.12500000000,  8203.12500000000,  8203.12500000000},
-   { 15234.37500000000, 15234.37500000000, 15234.37500000000, 15234.37500000000},
-   { 13671.87500000000, 13671.87500000000, 13671.87500000000, 13671.87500000000}
+   { 12500.00000000000, 12500.00000000000, 12500.00000000000, 12500.00000000000},
+   {  9375.00000000000,  9375.00000000000,  9375.00000000000,  9375.00000000000},
+   {  8593.75000000000,  8593.75000000000,  8593.75000000000,  8593.75000000000}
   };
 
   for(int iCell=0; iCell<int(mass_result_gold.size()); iCell++){
@@ -411,18 +401,15 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, HeatEquationResidual3D )
     "</ParameterList>                                                            \n"
   );
 
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // create test mesh
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
   // create mesh based density from host data
   //
-  std::vector<Plato::Scalar> z_host( tMesh->nverts(), 1.0 );
+  std::vector<Plato::Scalar> z_host( tMesh->NumNodes(), 1.0 );
   Kokkos::View<Plato::Scalar*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>
     z_host_view(z_host.data(),z_host.size());
   auto z = Kokkos::create_mirror_view_and_copy( Kokkos::DefaultExecutionSpace(), z_host_view);
@@ -430,14 +417,14 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, HeatEquationResidual3D )
 
   // create mesh based temperature from host data
   //
-  std::vector<Plato::Scalar> T_host( tMesh->nverts() );
+  std::vector<Plato::Scalar> T_host( tMesh->NumNodes() );
   Plato::Scalar Tval = 0.0, dval = 1.0000;
   for( auto& val : T_host ) val = (Tval += dval);
   Kokkos::View<Plato::Scalar*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>
     T_host_view(T_host.data(),T_host.size());
   auto T = Kokkos::create_mirror_view_and_copy( Kokkos::DefaultExecutionSpace(), T_host_view);
 
-  std::vector<Plato::Scalar> Tdot_host( tMesh->nverts() );
+  std::vector<Plato::Scalar> Tdot_host( tMesh->NumNodes() );
   Tval = 0.0; dval = 0.5000;
   for( auto& val : Tdot_host ) val = (Tval += dval);
   Kokkos::View<Plato::Scalar*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>
@@ -445,12 +432,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, HeatEquationResidual3D )
   auto Tdot = Kokkos::create_mirror_view_and_copy( Kokkos::DefaultExecutionSpace(), Tdot_host_view);
 
 
-  // create constraint evaluator
-  //
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
   Plato::DataMap tDataMap;
   Plato::Parabolic::VectorFunction<::Plato::Thermal<spaceDim>>
@@ -466,22 +448,22 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, HeatEquationResidual3D )
   Kokkos::deep_copy( residual_Host, residual );
 
   std::vector<Plato::Scalar> residual_gold = { 
-    -5.666620572916666e6, -5.499940625000000e6, -1.666653385416667e6,
-    -6.749914257812499e6, -2.166642838541667e6, -1.666654166666667e6,
-    -1.749969726562500e6, -4.999828125000000e5,  2.500064453125001e6,
-    -6.749869726562500e6, -3.666615104166667e6, -9.999796874999998e5,
-     2.500404296875000e5, -2.499735546875003e6, -4.998796874999979e5,
-     1.166740494791667e6,  5.000119921874999e6,  3.334278645833342e5,
-     5.000804687500000e5,  5.001246093749986e5,  6.000182421875003e6,
-     7.000173828125002e6,  3.833386848958333e6,  6.667018229166672e5,
-     1.666739322916666e6,  9.000119921875000e6,  1.666702604166667e6
+    -2.166631510416667e6, -2.999950390625000e6, -8.333220052083333e5,
+    -2.499939843750000e6, -4.499910156250000e6, -1.999973437500000e6,
+    -3.333177083333334e5, -1.499969140625000e6, -1.166651432291667e6,
+    -9.999082031250002e5, -1.499865624999999e6, -4.999605468749995e5,
+    -4.998507812499995e5,  2.624999999972060e2,  5.001132812500009e5,
+     5.000480468750002e5,  1.500128124999999e6,  1.000083203125000e6,
+     1.166695182291666e6,  1.500056640625000e6,  3.333614583333335e5,
+     2.000060937500000e6,  4.500172656250000e6,  2.500114843750000e6,
+     8.333657552083330e5,  3.000125390625000e6,  2.166762760416667e6
   };
 
   for(int iNode=0; iNode<int(residual_gold.size()); iNode++){
     if(residual_gold[iNode] == 0.0){
       TEST_ASSERT(fabs(residual_Host[iNode]) < 1e-12);
     } else {
-      TEST_FLOATING_EQUALITY(residual_Host[iNode], residual_gold[iNode], 1e-13);
+      TEST_FLOATING_EQUALITY(residual_Host[iNode], residual_gold[iNode], 1e-10);
     }
   }
 
@@ -495,17 +477,11 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, HeatEquationResidual3D )
   Kokkos::deep_copy(jac_entriesHost, jac_entries);
 
   std::vector<Plato::Scalar> gold_jac_entries = {
-    4.999999999999999e5, -1.666666666666667e5, -1.666666666666667e5,
-    0.000000000000000,    0.000000000000000,    0.000000000000000,
-    0.000000000000000,   -1.666666666666667e5, -1.666666666666667e5,
-    8.333333333333334e5, -2.500000000000000e5, -1.666666666666667e5,
-    0.000000000000000,    0.000000000000000,    0.000000000000000,
-   -2.500000000000000e5,  0.000000000000000,   -1.666666666666667e5,
-    3.333333333333333e5, -8.333333333333333e4,  0.000000000000000,
-   -8.333333333333333e4,  0.000000000000000,   -2.500000000000000e5,
-    1.500000000000000e6, -2.500000000000000e5, -2.500000000000000e5,
-    0.000000000000000,   -2.500000000000000e5, -4.999999999999999e5,
-    0.000000000000000,    0.000000000000000,    0.000000000000000
+   499999.999999999942, -166666.666666666657, -166666.666666666657, 0,
+  -166666.666666666657, 0, 0, 0, -166666.666666666657,
+   833333.333333333372, -166666.666666666657, -250000.000000000000, 0,
+  -250000.000000000000, 0, 0, 0, -166666.666666666657,
+   333333.333333333314, -83333.3333333333285, -83333.3333333333285, 0
   };
 
   int jac_entriesSize = gold_jac_entries.size();
@@ -523,17 +499,14 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, HeatEquationResidual3D )
   Kokkos::deep_copy(jac_v_entriesHost, jac_v_entries);
 
   std::vector<Plato::Scalar> gold_jac_v_entries = {
-    2.343750000000000,    7.812500000000000e-1,  7.812500000000000e-1,
-    7.812500000000000e-1, 7.812500000000000e-1,  2.343750000000000,
-    7.812500000000000e-1, 7.812500000000000e-1,  7.812500000000000e-1,
-    3.125000000000000,    1.171875000000000,     7.812500000000000e-1,
-    7.812500000000000e-1, 1.562500000000000,     2.343750000000000,
-    1.171875000000000,    7.812500000000000e-1,  7.812500000000000e-1,
-    7.812500000000000e-1, 3.906250000000000e-1,  7.812500000000000e-1,
-    3.906250000000000e-1, 7.812500000000000e-1,  1.171875000000000,
-    4.687500000000000,    1.171875000000000,     1.171875000000000,
-    7.812500000000000e-1, 1.171875000000000,     2.343750000000000,
-    1.562500000000000,    2.343750000000000,     1.562500000000000
+   2.34375000000000000, 0.781250000000000000, 0.781250000000000000,
+   0.781250000000000000, 0.781250000000000000, 0.781250000000000000,
+   0.781250000000000000, 2.34375000000000000, 0.781250000000000000,
+   3.12500000000000000, 0.781250000000000000, 1.17187500000000000,
+   0.781250000000000000, 1.17187500000000000, 0.781250000000000000,
+   1.56250000000000000, 2.34375000000000000, 0.781250000000000000,
+   0.781250000000000000, 0.390625000000000000, 0.390625000000000000,
+   0.781250000000000000
   };
 
   int jac_v_entriesSize = gold_jac_v_entries.size();
@@ -551,17 +524,14 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, HeatEquationResidual3D )
   Kokkos::deep_copy(grad_entriesHost, grad_entries);
 
   std::vector<Plato::Scalar> gold_grad_entries = {
-   -1.41665514322916651e6,  4.16669694010416744e5, -4.16663736979166628e5,
-   -4.79164274088541628e5, -4.79162516276041628e5,  2.50011523437499884e5,
-    6.66671647135416744e5,  1.45833889973958326e6, -4.16637369791666642e4,
-   -1.37498515625000000e6, -3.12495996093749884e5, -4.16663346354166628e5,
-   -3.54164176432291686e5,  4.16738932291665697e4,  1.25011914062500175e5,
-    1.56250751953125000e6,  7.70838460286458256e5, -4.16633463541666715e4,
-   -4.16663346354166628e5, -1.66665445963541686e5,  4.16699869791667152e4,
-    5.83335432942708256e5, -1.87497607421875000e5, -1.04162662760416657e5,
-   -1.68747856445312477e6, -2.08327766927083314e5, -3.74995263671875000e5,
-   -4.16663541666666628e5,  4.79171988932291744e5,  1.08334446614583302e6,
-    4.16673990885416802e5,  4.16678776041666628e5,  5.83341927083333256e5
+  -541657.877604166628, -208330.891927083314, -83330.5989583333139,
+  -291664.420572916628,  291670.279947916628,  83336.4583333333721,
+   208336.751302083372,  541675.455729166511, -41664.2252604166642,
+  -749987.597656250000, -208330.501302083314, -208329.134114583314,
+  -291664.029947916628,  416672.037760416628,  83336.8489583333721,
+   458339.583333333198,  541676.627604166744, -41663.8346354166715,
+  -208330.501302083314, -124998.730468750000,  125001.562500000000,
+   250002.832031250000
   };
 
   int grad_entriesSize = gold_grad_entries.size();
@@ -579,21 +549,17 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, HeatEquationResidual3D )
   Kokkos::deep_copy(grad_x_entriesHost, grad_x_entries);
 
   std::vector<Plato::Scalar> gold_grad_x_entries = {
-   -1.516671119791666e7,  2.333309114583333e6, -1.666901041666665e5,
-    4.999999999999998e5,  1.999975781250000e6, -1.500000000000000e6,
-    4.833333333333333e6, -1.166666666666667e6,  3.999976562500000e6,
-   -1.500000000000000e6,  2.666655729166667e6,  2.666658463541666e6,
-    4.666646744791666e6,  4.666653385416666e6, -5.500000000000000e6,
-    2.166622135416667e6,  1.999975781250000e6,  5.166643229166667e6,
-   -5.000246093750003e5, -4.333333333333333e6, -5.000152343750005e5,
-    4.999955468749998e6, -8.166666666666666e6, -4.166666666666667e6,
-    5.166651432291666e6, -8.333415364583334e5, -3.333309895833333e6,
-   -2.500006015625000e7,  4.999967968750000e6, -1.666669791666667e6
+  -9.00002890625000000e6, -3.00002187499999953e6,
+  -1.00001953124999965e6,  2.83333333333333302e6,
+   833333.333333333023,    2.33331380208333302e6,
+   2.49999999999999953e6,  2.66664479166666651e6,
+  -166666.666666666861,   -666666.666666666628,
+   1.49999062499999977e6,  1.49999140624999977e6
   };
 
   int grad_x_entriesSize = gold_grad_x_entries.size();
   for(int i=0; i<grad_x_entriesSize; i++){
-    TEST_FLOATING_EQUALITY(grad_x_entriesHost(i), gold_grad_x_entries[i], 1.0e-13);
+    TEST_FLOATING_EQUALITY(grad_x_entriesHost(i), gold_grad_x_entries[i], 1.0e-10);
   }
 
 }
@@ -656,13 +622,13 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, InternalThermalEnergy3D )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
 
   // create mesh based temperature from host data
   //
   int tNumSteps = 3;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   Plato::ScalarMultiVector T("temperature history", tNumSteps, tNumNodes);
   Plato::ScalarMultiVector Tdot("temperature rate history", tNumSteps, tNumNodes);
   Plato::ScalarVector z("density", tNumNodes);
@@ -677,12 +643,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, InternalThermalEnergy3D )
   }, "temperature history");
 
 
-  // create objective
-  //
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
   Plato::DataMap dataMap;
   std::string tMyFunction("Internal Energy");
@@ -699,7 +660,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, InternalThermalEnergy3D )
   tSolution.set("StateDot", Tdot);
   auto value = scalarFunction.value(tSolution, z, timeStep);
 
-  Plato::Scalar value_gold = 7.95166666666666603e9;
+  Plato::Scalar value_gold = 4.73200000000000095e9;
   TEST_FLOATING_EQUALITY(value, value_gold, 1e-13);
 
   // compute and test objective gradient wrt state, u
@@ -710,15 +671,12 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, InternalThermalEnergy3D )
   Kokkos::deep_copy( grad_u_Host, grad_u );
 
   std::vector<Plato::Scalar> grad_u_gold = { 
-    -2.266666666666666e7, -2.200000000000000e7, -6.666666666666666e6, 
-    -2.700000000000000e7, -8.666666666666666e6, -6.666666666666667e6, 
-    -6.999999999999999e6, -2.000000000000001e6,  9.999999999999998e6, 
-    -2.699999999999999e7, -1.466666666666667e7, -3.999999999999999e6, 
-     1.000000000000002e6, -1.000000000000000e7, -2.000000000000007e6, 
-     4.666666666666670e6,  2.000000000000000e7,  1.333333333333331e6, 
-     2.000000000000002e6,  2.000000000000002e6,  2.399999999999999e7, 
-     2.800000000000001e7,  1.533333333333333e7,  2.666666666666666e6, 
-     6.666666666666670e6,  3.600000000000000e7,  6.666666666666666e6
+  -8.666666666666668e6, -1.200000000000000e7,
+  -3.333333333333333e6, -1.000000000000000e7,
+  -1.800000000000000e7, -7.999999999999999e6,
+  -1.333333333333333e6, -6.000000000000001e6,
+  -4.666666666666665e6, -3.999999999999999e6,
+  -6.000000000000002e6, -1.999999999999998e6
   };
 
   for(int iNode=0; iNode<int(grad_u_gold.size()); iNode++){
@@ -738,15 +696,20 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, InternalThermalEnergy3D )
   Kokkos::deep_copy( grad_z_Host, grad_z );
 
   std::vector<Plato::Scalar> grad_z_gold = {
-    6.613750000000000e8, 6.175000000000000e8, 1.543750000000000e8, 
-    3.813333333333334e8, 1.121250000000000e8, 5.741666666666666e7, 
-    1.235000000000000e8, 3.900000000000000e7, 1.987916666666666e8, 
-    5.492500000000000e8, 2.334583333333333e8, 2.275000000000000e7, 
-    3.791666666666666e7, 1.168916666666667e9, 5.774166666666667e8, 
-    1.803750000000000e8, 2.074583333333333e8, 1.056250000000000e8, 
-    4.820833333333334e7, 1.197083333333333e8, 4.495833333333334e8, 
-    7.133750000000000e8, 2.811250000000000e8, 1.191666666666667e7, 
-    3.087500000000001e7, 7.659166666666666e8, 1.023750000000000e8
+   1.478750000000000e8, 1.971666666666667e8,
+   4.929166666666666e7, 1.971666666666667e8,
+   2.957500000000000e8, 9.858333333333334e7,
+   4.929166666666667e7, 9.858333333333333e7,
+   4.929166666666666e7, 1.971666666666667e8,
+   2.957500000000000e8, 9.858333333333334e7,
+   2.957500000000000e8, 5.914999999999999e8,
+   2.957500000000000e8, 9.858333333333333e7,
+   2.957500000000000e8, 1.971666666666667e8,
+   4.929166666666667e7, 9.858333333333333e7,
+   4.929166666666666e7, 9.858333333333334e7,
+   2.957499999999999e8, 1.971666666666667e8,
+   4.929166666666666e7, 1.971666666666666e8,
+   1.478750000000000e8
   };
 
   for(int iNode=0; iNode<int(grad_z_gold.size()); iNode++){
@@ -761,33 +724,17 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, InternalThermalEnergy3D )
   Kokkos::deep_copy(grad_x_Host, grad_x);
 
   std::vector<Plato::Scalar> grad_x_gold = {
-     2.457000000000000e9, -2.656333333333333e9, -1.261000000000000e9, 
-     2.437500000000000e9, -2.710500000000000e9,  2.860000000000001e8, 
-     6.825000000000000e8, -8.775000000000000e8,  1.321666666666667e9, 
-     1.895833333333333e9,  1.124500000000000e9, -4.550000000000001e8, 
-     4.506666666666666e8,  1.928333333333333e8,  7.821666666666667e8, 
-     4.073333333333333e8,  4.030000000000000e8,  2.296666666666667e8, 
-     1.603333333333333e8,  8.493333333333333e8, -2.296666666666667e8, 
-     3.900000000000002e7,  2.860000000000000e8, -1.170000000000000e8, 
-    -1.371500000000000e9, -5.156666666666666e8, -5.914999999999999e8, 
-     2.223000000000000e9, -5.134999999999999e8, -1.180833333333333e9, 
-     1.284833333333333e9, -1.852500000000000e9,  1.213333333333331e8, 
-     9.100000000000001e7,  1.950000000000001e8,  1.299999999999999e8, 
-    -4.333333333333340e6,  1.906666666666667e8, -2.903333333333335e8, 
-     1.419166666666667e9,  4.289999999999999e8,  1.219833333333333e9, 
-     6.825000000000000e8,  3.965000000000000e8,  1.759333333333333e9, 
-    -3.943333333333335e8,  3.705000000000000e8,  4.918333333333333e8, 
-    -1.232833333333334e9,  1.690000000000002e8, -1.928333333333334e8, 
-     3.531666666666668e8,  2.665000000000002e8, -1.170000000000002e8, 
-     4.333333333333328e6,  1.083333333333333e8,  1.430000000000000e8, 
-     2.145000000000001e8,  1.083333333333333e8,  3.358333333333334e8, 
-     6.933333333333373e7,  2.329166666666666e9, -3.228333333333337e8, 
-    -4.454666666666666e9, -1.109333333333333e9,  3.293333333333337e8, 
-    -2.433166666666667e9, -6.153333333333334e8,  1.042166666666667e9, 
-    -2.166666666666649e7,  4.333333333333302e7,  4.766666666666681e7, 
-    -4.116666666666666e7,  1.559999999999996e8,  1.755000000000002e8, 
-    -5.650666666666667e9,  2.775500000000000e9, -2.901166666666666e9, 
-     7.323333333333335e8,  4.571666666666666e8, -7.561666666666669e8
+   6.196666666666666e8, -5.633333333333331e7,
+  -2.816666666666667e8,  8.125000000000000e8,
+  -1.235000000000000e8,  1.560000000000000e8,
+   1.928333333333333e8, -6.716666666666669e7,
+   4.376666666666666e8,  5.785000000000000e8,
+   3.900000000000000e8, -4.615000000000000e8,
+   9.230000000000000e8,  7.020000000000001e8,
+   2.340000000000000e8,  3.444999999999999e8,
+   3.119999999999999e8,  6.955000000000000e8,
+  -4.116666666666667e7,  4.463333333333334e8,
+  -1.798333333333333e8,
   };
 
   for(int iNode=0; iNode<int(grad_x_gold.size()); iNode++){
@@ -807,7 +754,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, ComputedField_UniformScalar )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
   // compute fields
   //
@@ -834,9 +781,9 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, ComputedField_UniformScalar )
     "</ParameterList>                                                    \n"
   );
 
-  auto tComputedFields = Plato::ComputedFields<spaceDim>(*tMesh, tParamList->sublist("Computed Fields"));
+  auto tComputedFields = Plato::ComputedFields<spaceDim>(tMesh, tParamList->sublist("Computed Fields"));
 
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   Plato::ScalarVector T("temperature", tNumNodes);
 
   tComputedFields.get("Uniform Initial Temperature", T);
@@ -854,7 +801,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, ComputedField_UniformScalar )
   Plato::ScalarVector xcoords("x", tNumNodes);
   Plato::ScalarVector ycoords("y", tNumNodes);
   Plato::ScalarVector zcoords("z", tNumNodes);
-  auto coords = tMesh->coords();
+  auto coords = tMesh->Coordinates();
   Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), LAMBDA_EXPRESSION(int nodeOrdinal)
   {
     xcoords(nodeOrdinal) = coords[nodeOrdinal*spaceDim+0];

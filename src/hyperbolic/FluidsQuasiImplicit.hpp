@@ -16,9 +16,10 @@
 #include "BLAS2.hpp"
 #include "UtilsIO.hpp"
 #include "Solutions.hpp"
+#include "PlatoMesh.hpp"
 #include "SpatialModel.hpp"
 #include "EssentialBCs.hpp"
-#include "OmegaHUtilities.hpp"
+#include "AnalyzeOutput.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "ApplyConstraints.hpp"
 #include "PlatoAbstractProblem.hpp"
@@ -126,24 +127,22 @@ public:
     /******************************************************************************//**
      * \brief Constructor
      * \param [in] aMesh     finite element mesh metadata
-     * \param [in] aMeshSets mesh entity sets metadata
      * \param [in] aInputs   input file metadata
      * \param [in] aMachine  input file metadata
      **********************************************************************************/
     QuasiImplicit
-    (Omega_h::Mesh          & aMesh,
-     Omega_h::MeshSets      & aMeshSets,
+    (Plato::Mesh              aMesh,
      Teuchos::ParameterList & aInputs,
      Plato::Comm::Machine   & aMachine) :
          mMachine(aMachine),
          mInputs(aInputs),
-         mSpatialModel(aMesh, aMeshSets, aInputs),
+         mSpatialModel(aMesh, aInputs),
          mPressureResidual("Pressure", mSpatialModel, mDataMap, aInputs),
          mCorrectorResidual("Velocity Corrector", mSpatialModel, mDataMap, aInputs),
          mPredictorResidual("Velocity Predictor", mSpatialModel, mDataMap, aInputs),
-         mPressureEssentialBCs(aInputs.sublist("Pressure Essential Boundary Conditions",false),aMeshSets),
-         mVelocityEssentialBCs(aInputs.sublist("Velocity Essential Boundary Conditions",false),aMeshSets),
-         mTemperatureEssentialBCs(aInputs.sublist("Temperature Essential Boundary Conditions",false),aMeshSets)
+         mPressureEssentialBCs(aInputs.sublist("Pressure Essential Boundary Conditions",false),aMesh),
+         mVelocityEssentialBCs(aInputs.sublist("Velocity Essential Boundary Conditions",false),aMesh),
+         mTemperatureEssentialBCs(aInputs.sublist("Temperature Essential Boundary Conditions",false),aMesh)
     {
         this->initialize(aInputs);
     }
@@ -166,36 +165,26 @@ public:
      **********************************************************************************/
     void output(const std::string& aFilePath) override
     {
-        auto tMesh = mSpatialModel.Mesh;
-        auto tWriter = Omega_h::vtk::Writer(aFilePath.c_str(), &tMesh, mNumSpatialDims);
+        auto tWriter = Plato::MeshIOFactory::create(aFilePath, mSpatialModel.Mesh, "Write");
 
-        constexpr auto tStride = 0;
         constexpr auto tCurrentTimeStep = 1;
-        const auto tNumNodes = tMesh.nverts();
 
-        auto tPressSubView = Kokkos::subview(mPressure, 0, Kokkos::ALL());
-        Omega_h::Write<Omega_h::Real> tPressure(tPressSubView.size(), "Pressure");
-        Plato::copy<mNumPressDofsPerNode, mNumPressDofsPerNode>(tStride, tNumNodes, tPressSubView, tPressure);
-        tMesh.add_tag(Omega_h::VERT, "Pressure", mNumPressDofsPerNode, Omega_h::Reals(tPressure));
+        auto tPressSubView = Kokkos::subview(mPressure, /*step_index=*/ 0, Kokkos::ALL());
+        tWriter->AddNodeData("Pressure", tPressSubView, mNumPressDofsPerNode);
 
         auto tVelSubView = Kokkos::subview(mVelocity, tCurrentTimeStep, Kokkos::ALL());
-        Omega_h::Write<Omega_h::Real> tVelocity(tVelSubView.size(), "Velocity");
-        Plato::copy<mNumVelDofsPerNode, mNumVelDofsPerNode>(tStride, tNumNodes, tVelSubView, tVelocity);
-        tMesh.add_tag(Omega_h::VERT, "Velocity", mNumVelDofsPerNode, Omega_h::Reals(tVelocity));
+        tWriter->AddNodeData("Velocity", tVelSubView, mNumVelDofsPerNode);
 
         if(mCalculateHeatTransfer)
         {
             auto tTempSubView = Kokkos::subview(mTemperature, tCurrentTimeStep, Kokkos::ALL());
-            Omega_h::Write<Omega_h::Real> tTemperature(tTempSubView.size(), "Temperature");
-            Plato::copy<mNumTempDofsPerNode, mNumTempDofsPerNode>(tStride, tNumNodes, tTempSubView, tTemperature);
-            tMesh.add_tag(Omega_h::VERT, "Temperature", mNumTempDofsPerNode, Omega_h::Reals(tTemperature));
+            tWriter->AddNodeData("Temperature", tTempSubView, mNumTempDofsPerNode);
         }
         
-        Plato::omega_h::add_state_tags(tMesh, mDataMap, 0 /* step index */);
+        Plato::AddStateData(tWriter, mDataMap.getState(0), mNumSpatialDims);
 
-        auto tTags = Omega_h::vtk::get_all_vtk_tags(&tMesh, mNumSpatialDims);
         auto tTime = static_cast<Plato::Scalar>(tCurrentTimeStep);
-        tWriter.write(tCurrentTimeStep, tTime, tTags);
+        tWriter->Write(/*plot_index=*/0, tTime);
     }
 
     /******************************************************************************//**
@@ -224,8 +213,9 @@ public:
         this->clear();
         this->checkProblemSetup();
 
+        auto tWriter = Plato::MeshIOFactory::create("solution_history", mSpatialModel.Mesh, "Write");
+
         Plato::Primal tPrimal;
-        auto tWriter = Omega_h::vtk::Writer("solution_history", &mSpatialModel.Mesh, mNumSpatialDims);
         this->setInitialConditions(tPrimal, tWriter);
         this->calculateCharacteristicElemSize(tPrimal);
         
@@ -303,22 +293,21 @@ public:
         auto tItr = mCriteria.find(aName);
         if (tItr == mCriteria.end())
         {
-            THROWERR(std::string("Criterion with tag '") + aName + "' is not defined in the criteria list");
+            ANALYZE_THROWERR(std::string("Criterion with tag '") + aName + "' is not defined in the criteria list");
         }
 
-        auto tDirectory = std::string("solution_history");
-        auto tSolutionHistory = Plato::omega_h::read_pvtu_file_paths(tDirectory);
-        if(tSolutionHistory.size() != static_cast<size_t>(mNumForwardSolveTimeSteps + 1))
+        auto tBaseName = std::string("solution_history");
+        auto tReader = Plato::MeshIOFactory::create(tBaseName, mSpatialModel.Mesh, "Read");
+        if( tReader->NumTimeSteps() != static_cast<size_t>(mNumForwardSolveTimeSteps + 1))
         {
-            THROWERR(std::string("Number of time steps read from directory '") + tDirectory
+            ANALYZE_THROWERR(std::string("Number of time steps read from '") + tBaseName
                  + "' does not match the expected number of time steps: '" + std::to_string(mNumForwardSolveTimeSteps + 1) + "'.")
         }
 
         // evaluate steady-state criterion
         Plato::Primal tPrimal;
-        auto tLastTimeStepIndex = tSolutionHistory.size() - 1u;
-        tPrimal.scalar("time step index", tLastTimeStepIndex);
-        this->setPrimal(tSolutionHistory, tPrimal);
+        tPrimal.scalar("time step index", mNumForwardSolveTimeSteps);
+        this->setPrimal(tReader, tPrimal);
         this->setCriticalTimeStep(tPrimal);
         auto tOutput = tItr->second->value(aControl, tPrimal);
 
@@ -362,34 +351,34 @@ public:
         auto tItr = mCriteria.find(aName);
         if (tItr == mCriteria.end())
         {
-            THROWERR(std::string("Criterion with tag '") + aName + "' is not defined in critria map.");
+            ANALYZE_THROWERR(std::string("Criterion with tag '") + aName + "' is not defined in critria map.");
         }
 
         Plato::Dual tDual;
         Plato::Primal tCurrentState, tPreviousState;
-        auto tDirectory = std::string("solution_history");
-        auto tSolutionHistoryPaths = Plato::omega_h::read_pvtu_file_paths(tDirectory);
-        if(tSolutionHistoryPaths.size() != static_cast<size_t>(mNumForwardSolveTimeSteps + 1))
+        auto tBaseName = std::string("solution_history");
+        auto tReader = Plato::MeshIOFactory::create(tBaseName, mSpatialModel.Mesh, "Read");
+        if( tReader->NumTimeSteps() != static_cast<size_t>(mNumForwardSolveTimeSteps + 1))
         {
-            THROWERR(std::string("Number of time steps read from the '") + tDirectory
-                 + "' directory does not match the expected value: '" + std::to_string(mNumForwardSolveTimeSteps + 1) + "'.")
+            ANALYZE_THROWERR(std::string("Number of time steps read from '") + tBaseName
+                 + "' does not match the expected value: '" + std::to_string(mNumForwardSolveTimeSteps + 1) + "'.")
         }
 
-        Plato::ScalarVector tTotalDerivative("total derivative", mSpatialModel.Mesh.nverts());
-        for(auto tItr = tSolutionHistoryPaths.rbegin(); tItr != tSolutionHistoryPaths.rend() - 1; tItr++)
+        Plato::ScalarVector tTotalDerivative("total derivative", mSpatialModel.Mesh->NumNodes());
+        auto tLastStepIndex = mNumForwardSolveTimeSteps;
+        for( decltype(tLastStepIndex) tCurrentStateIndex=tLastStepIndex; tCurrentStateIndex>=1; tCurrentStateIndex-- )
         {
             // set fields for the current primal state
-            auto tCurrentStateIndex = (tSolutionHistoryPaths.size() - 1u) - std::distance(tSolutionHistoryPaths.rbegin(), tItr);
             tCurrentState.scalar("time step index", tCurrentStateIndex);
-            this->setPrimal(tSolutionHistoryPaths, tCurrentState);
+            this->setPrimal(tReader, tCurrentState);
             this->setCriticalTimeStep(tCurrentState);
 
                 // set fields for the previous primal state
             auto tPreviousStateIndex = tCurrentStateIndex + 1u;
             tPreviousState.scalar("time step index", tPreviousStateIndex);
-            if(tPreviousStateIndex != tSolutionHistoryPaths.size())
+            if(tPreviousStateIndex != tReader->NumTimeSteps())
             {
-                this->setPrimal(tSolutionHistoryPaths, tPreviousState);
+                this->setPrimal(tReader, tPreviousState);
                 this->setCriticalTimeStep(tPreviousState);
             }
 
@@ -431,34 +420,34 @@ public:
         auto tItr = mCriteria.find(aName);
         if (tItr == mCriteria.end())
         {
-            THROWERR(std::string("Criterion with tag '") + aName + "' is not defined in critria map.");
+            ANALYZE_THROWERR(std::string("Criterion with tag '") + aName + "' is not defined in critria map.");
         }
 
         Plato::Dual tDual;
         Plato::Primal tCurrentState, tPreviousState;
-        auto tDirectory = std::string("solution_history");
-        auto tSolutionHistoryPaths = Plato::omega_h::read_pvtu_file_paths(tDirectory);
-        if(tSolutionHistoryPaths.size() != static_cast<size_t>(mNumForwardSolveTimeSteps + 1))
+        auto tBaseName = std::string("solution_history");
+        auto tReader = Plato::MeshIOFactory::create(tBaseName, mSpatialModel.Mesh, "Read");
+        if( tReader->NumTimeSteps() != static_cast<size_t>(mNumForwardSolveTimeSteps + 1))
         {
-            THROWERR(std::string("Number of time steps read from the '") + tDirectory
-                 + "' directory does not match the expected value: '" + std::to_string(mNumForwardSolveTimeSteps + 1) + "'.")
+            ANALYZE_THROWERR(std::string("Number of time steps read from '") + tBaseName
+                 + "' does not match the expected value: '" + std::to_string(mNumForwardSolveTimeSteps + 1) + "'.")
         }
 
-        Plato::ScalarVector tTotalDerivative("total derivative", mSpatialModel.Mesh.nverts());
-        for(auto tItr = tSolutionHistoryPaths.rbegin(); tItr != tSolutionHistoryPaths.rend() - 1; tItr++)
+        Plato::ScalarVector tTotalDerivative("total derivative", mSpatialModel.Mesh->NumNodes());
+        auto tLastStepIndex = mNumForwardSolveTimeSteps - 1;
+        for( decltype(tLastStepIndex) tCurrentStateIndex=tLastStepIndex; tCurrentStateIndex>=1; tCurrentStateIndex-- )
         {
             // set fields for the current primal state
-            auto tCurrentStateIndex = (tSolutionHistoryPaths.size() - 1u) - std::distance(tSolutionHistoryPaths.rbegin(), tItr);
             tCurrentState.scalar("time step index", tCurrentStateIndex);
-            this->setPrimal(tSolutionHistoryPaths, tCurrentState);
+            this->setPrimal(tReader, tCurrentState);
             this->setCriticalTimeStep(tCurrentState);
 
             // set fields for the previous primal state
             auto tPreviousStateIndex = tCurrentStateIndex + 1u;
             tPreviousState.scalar("time step index", tPreviousStateIndex);
-            if(tPreviousStateIndex != tSolutionHistoryPaths.size())
+            if(tPreviousStateIndex != tReader->NumTimeSteps())
             {
-                this->setPrimal(tSolutionHistoryPaths, tPreviousState);
+                this->setPrimal(tReader, tPreviousState);
                 this->setCriticalTimeStep(tPreviousState);
             }
 
@@ -510,46 +499,36 @@ private:
      *   memory. Thus, maximizing available GPU memory.
      *
      * \param [in] aPrimal primal state database
-     * \param [in] aWriter interface to allow output to a VTK visualization file
+     * \param [in] aMeshIO interface to allow output to a VTK visualization file
      *
      **********************************************************************************/
-    void write
-    (const Plato::Primal& aPrimal,
-     Omega_h::vtk::Writer& aWriter)
+    void write(
+        const Plato::Primal & aPrimal,
+              Plato::MeshIO   aMeshIO
+    )
     {
-        constexpr auto tStride = 0;
-        const auto tNumNodes = mSpatialModel.Mesh.nverts();
         const Plato::OrdinalType tTimeStepIndex = aPrimal.scalar("time step index");
 
         std::string tTag = tTimeStepIndex != static_cast<Plato::OrdinalType>(0) ? "current pressure" : "previous pressure";
         auto tPressureView = aPrimal.vector(tTag);
-        Omega_h::Write<Omega_h::Real> tPressure(tPressureView.size(), "Pressure");
-        Plato::copy<mNumPressDofsPerNode, mNumPressDofsPerNode>(tStride, tNumNodes, tPressureView, tPressure);
-        mSpatialModel.Mesh.add_tag(Omega_h::VERT, "Pressure", mNumPressDofsPerNode, Omega_h::Reals(tPressure));
+        aMeshIO->AddNodeData("Pressure", tPressureView, mNumPressDofsPerNode);
 
         tTag = tTimeStepIndex != static_cast<Plato::OrdinalType>(0) ? "current velocity" : "previous velocity";
         auto tVelocityView = aPrimal.vector(tTag);
-        Omega_h::Write<Omega_h::Real> tVelocity(tVelocityView.size(), "Velocity");
-        Plato::copy<mNumVelDofsPerNode, mNumVelDofsPerNode>(tStride, tNumNodes, tVelocityView, tVelocity);
-        mSpatialModel.Mesh.add_tag(Omega_h::VERT, "Velocity", mNumVelDofsPerNode, Omega_h::Reals(tVelocity));
+        aMeshIO->AddNodeData("Velocity", tVelocityView, mNumVelDofsPerNode);
 
         tTag = tTimeStepIndex != static_cast<Plato::OrdinalType>(0) ? "current predictor" : "previous predictor";
         auto tPredictorView = aPrimal.vector(tTag);
-        Omega_h::Write<Omega_h::Real> tPredictor(tPredictorView.size(), "Predictor");
-        Plato::copy<mNumVelDofsPerNode, mNumVelDofsPerNode>(tStride, tNumNodes, tPredictorView, tPredictor);
-        mSpatialModel.Mesh.add_tag(Omega_h::VERT, "Predictor", mNumVelDofsPerNode, Omega_h::Reals(tPredictor));
+        aMeshIO->AddNodeData("Predictor", tPredictorView, mNumVelDofsPerNode);
 
         if(mCalculateHeatTransfer)
         {
             tTag = tTimeStepIndex != static_cast<Plato::OrdinalType>(0) ? "current temperature" : "previous temperature";
             auto tTemperatureView = aPrimal.vector(tTag);
-            Omega_h::Write<Omega_h::Real> tTemperature(tTemperatureView.size(), "Temperature");
-            Plato::copy<mNumTempDofsPerNode, mNumTempDofsPerNode>(tStride, tNumNodes, tTemperatureView, tTemperature);
-            mSpatialModel.Mesh.add_tag(Omega_h::VERT, "Temperature", mNumTempDofsPerNode, Omega_h::Reals(tTemperature));
+            aMeshIO->AddNodeData("Temperature", tTemperatureView, mNumTempDofsPerNode);
         }
 
-        auto tTags = Omega_h::vtk::get_all_vtk_tags(&mSpatialModel.Mesh, mNumSpatialDims);
-        aWriter.write(tTimeStepIndex, tTimeStepIndex, tTags);
+        aMeshIO->Write(tTimeStepIndex, tTimeStepIndex);
     }
 
     /******************************************************************************//**
@@ -575,14 +554,17 @@ private:
     /******************************************************************************//**
      * \fn void readCurrentFields
      *
-     * \brief Read current states from visualization file.
-     * \param [in]     aPath   visualization file path
-     * \param [in/out] aStates primal state solution database
+     * \brief Read current states
+     * \param [in]     aReader    Plato mesh reader
+     * \param [in]     aStepIndex Index of the time step to be read
+     * \param [in/out] aPrimal    Primal state solution database
      *
      **********************************************************************************/
-    void readCurrentFields
-    (const Omega_h::filesystem::path & aPath,
-           Plato::Primal             & aPrimal)
+    void readCurrentFields(
+        Plato::MeshIO        aReader,
+        Plato::OrdinalType   aStepIndex,
+        Plato::Primal      & aPrimal
+    )
     {
         Plato::FieldTags tFieldTags;
         tFieldTags.set("Velocity", "current velocity");
@@ -592,20 +574,24 @@ private:
         {
             tFieldTags.set("Temperature", "current temperature");
         }
-        Plato::omega_h::read_fields<Omega_h::VERT>(mSpatialModel.Mesh, aPath, tFieldTags, aPrimal);
+
+        Plato::readNodeFields(aReader, aStepIndex, tFieldTags, aPrimal);
     }
 
     /******************************************************************************//**
      * \fn void readPreviousFields
      *
-     * \brief Read previous states from visualization file.
-     * \param [in]     aPath   visualization file path
-     * \param [in/out] aStates primal state solution database
+     * \brief Read previous states
+     * \param [in]     aReader    Plato mesh reader
+     * \param [in]     aStepIndex Index of the time step to be read
+     * \param [in/out] aPrimal    Primal state solution database
      *
      **********************************************************************************/
-    void readPreviousFields
-    (const Omega_h::filesystem::path & aPath,
-           Plato::Primal             & aPrimal)
+    void readPreviousFields(
+        Plato::MeshIO        aReader,
+        Plato::OrdinalType   aStepIndex,
+        Plato::Primal      & aPrimal
+    )
     {
         Plato::FieldTags tFieldTags;
         tFieldTags.set("Velocity", "previous velocity");
@@ -614,24 +600,27 @@ private:
         {
             tFieldTags.set("Temperature", "previous temperature");
         }
-        Plato::omega_h::read_fields<Omega_h::VERT>(mSpatialModel.Mesh, aPath, tFieldTags, aPrimal);
+
+        Plato::readNodeFields(aReader, aStepIndex, tFieldTags, aPrimal);
     }
 
     /******************************************************************************//**
      * \fn void setPrimal
      *
      * \brief Set primal state solution database for the current optimization iteration.
-     * \param [in]     aPath   list with paths to visualization files
+     * \param [in]     aReader Plato mesh reader
      * \param [in/out] aPrimal primal state solution database
      *
      **********************************************************************************/
-    void setPrimal
-    (const std::vector<Omega_h::filesystem::path> & aPaths,
-           Plato::Primal                          & aPrimal)
+    void setPrimal(
+        Plato::MeshIO   aReader,
+        Plato::Primal & aPrimal
+    )
     {
-        auto tTimeStepIndex = static_cast<size_t>(aPrimal.scalar("time step index"));
-        this->readCurrentFields(aPaths[tTimeStepIndex], aPrimal);
-        this->readPreviousFields(aPaths[tTimeStepIndex - 1u], aPrimal);
+        auto tCurrentStepIndex = static_cast<size_t>(aPrimal.scalar("time step index"));
+        auto tPreviousStepIndex = tCurrentStepIndex - 1;
+        this->readCurrentFields(aReader, tCurrentStepIndex, aPrimal);
+        this->readPreviousFields(aReader, tPreviousStepIndex, aPrimal);
     }
 
     /******************************************************************************//**
@@ -676,12 +665,12 @@ private:
      *
      * \brief Set initial conditions for pressure, temperature and veloctity fields.
      * \param [in] aPrimal primal state database
-     * \param [in] aWriter interface to allow output to a VTK visualization file
+     * \param [in] aMeshIO interface to allow output to a VTK visualization file
      *
      **********************************************************************************/
     void setInitialConditions
     (Plato::Primal & aPrimal,
-     Omega_h::vtk::Writer& aWriter)
+     Plato::MeshIO   aMeshIO)
     {
         const Plato::Scalar tTime = 0.0;
         const Plato::OrdinalType tTimeStep = 0;
@@ -690,14 +679,14 @@ private:
         aPrimal.scalar("critical velocity lower bound", mCriticalVelocityLowerBound);
 
         Plato::ScalarVector tVelBcValues;
-        Plato::LocalOrdinalVector tVelBcDofs;
+        Plato::OrdinalVector tVelBcDofs;
         mVelocityEssentialBCs.get(tVelBcDofs, tVelBcValues, tTime);
         auto tPreviouVel = Kokkos::subview(mVelocity, tTimeStep, Kokkos::ALL());
         Plato::enforce_boundary_condition(tVelBcDofs, tVelBcValues, tPreviouVel);
         aPrimal.vector("previous velocity", tPreviouVel);
 
         Plato::ScalarVector tPressBcValues;
-        Plato::LocalOrdinalVector tPressBcDofs;
+        Plato::OrdinalVector tPressBcDofs;
         mPressureEssentialBCs.get(tPressBcDofs, tPressBcValues, tTime);
         auto tPreviousPress = Kokkos::subview(mPressure, tTimeStep, Kokkos::ALL());
         Plato::enforce_boundary_condition(tPressBcDofs, tPressBcValues, tPreviousPress);
@@ -709,7 +698,7 @@ private:
         if(mCalculateHeatTransfer)
         {
             Plato::ScalarVector tTempBcValues;
-            Plato::LocalOrdinalVector tTempBcDofs;
+            Plato::OrdinalVector tTempBcDofs;
             mTemperatureEssentialBCs.get(tTempBcDofs, tTempBcValues, tTime);
             auto tPreviousTemp  = Kokkos::subview(mTemperature, tTimeStep, Kokkos::ALL());
             Plato::enforce_boundary_condition(tTempBcDofs, tTempBcValues, tPreviousTemp);
@@ -721,7 +710,7 @@ private:
 
         if(this->writeOutput(tTimeStep))
         {
-            this->write(aPrimal, aWriter);
+            this->write(aPrimal, aMeshIO);
         }
     }
 
@@ -906,9 +895,6 @@ private:
         Plato::blas2::fill(0.0, mVelocity);
         Plato::blas2::fill(0.0, mPredictor);
         Plato::blas2::fill(0.0, mTemperature);
-
-        auto tDirectory = std::string("solution_history");
-        Plato::filesystem::remove(tDirectory);
     }
 
     /******************************************************************************//**
@@ -921,17 +907,17 @@ private:
     {
         if(mVelocityEssentialBCs.empty())
         {
-            THROWERR("Velocity essential boundary conditions are not defined.")
+            ANALYZE_THROWERR("Velocity essential boundary conditions are not defined.")
         }
         if(mCalculateHeatTransfer)
         {
             if(mTemperatureEssentialBCs.empty())
             {
-                THROWERR("Temperature essential boundary conditions are not defined.")
+                ANALYZE_THROWERR("Temperature essential boundary conditions are not defined.")
             }
             if(mTemperatureResidual.use_count() == 0)
             {
-                THROWERR("Heat transfer calculation requested but temperature 'Vector Function' is not allocated.")
+                ANALYZE_THROWERR("Heat transfer calculation requested but temperature 'Vector Function' is not allocated.")
             }
         }
     }
@@ -945,7 +931,7 @@ private:
     void allocateDualStates()
     {
         constexpr auto tTimeSnapshotsStored = 2;
-        auto tNumNodes = mSpatialModel.Mesh.nverts();
+        auto tNumNodes = mSpatialModel.Mesh->NumNodes();
         mAdjointPressure = Plato::ScalarMultiVector("Adjoint Pressure Snapshots", tTimeSnapshotsStored, tNumNodes);
         mAdjointVelocity = Plato::ScalarMultiVector("Adjoint Velocity Snapshots", tTimeSnapshotsStored, tNumNodes * mNumVelDofsPerNode);
         mAdjointPredictor = Plato::ScalarMultiVector("Adjoint Predictor Snapshots", tTimeSnapshotsStored, tNumNodes * mNumVelDofsPerNode);
@@ -965,7 +951,7 @@ private:
     void allocatePrimalStates()
     {
         constexpr auto tTimeSnapshotsStored = 2;
-        auto tNumNodes = mSpatialModel.Mesh.nverts();
+        auto tNumNodes = mSpatialModel.Mesh->NumNodes();
         mPressure    = Plato::ScalarMultiVector("Pressure Snapshots", tTimeSnapshotsStored, tNumNodes);
         mVelocity    = Plato::ScalarMultiVector("Velocity Snapshots", tTimeSnapshotsStored, tNumNodes * mNumVelDofsPerNode);
         mPredictor   = Plato::ScalarMultiVector("Predictor Snapshots", tTimeSnapshotsStored, tNumNodes * mNumVelDofsPerNode);
@@ -989,7 +975,7 @@ private:
             const Teuchos::ParameterEntry& tEntry = tCriteriaParams.entry(tIndex);
             if(tEntry.isList() == false)
             {
-                THROWERR("Parameter in Criteria block is not supported. Expect lists only.")
+                ANALYZE_THROWERR("Parameter in Criteria block is not supported. Expect lists only.")
             }
             auto tName = tCriteriaParams.name(tIndex);
             auto tCriterion = tScalarFuncFactory.createCriterion(mSpatialModel, mDataMap, aInputs, tName);
@@ -1026,7 +1012,7 @@ private:
     Plato::Scalar calculateVelocityMisfitNorm
     (const Plato::Primal & aPrimal)
     {
-        auto tNumNodes = mSpatialModel.Mesh.nverts();
+        auto tNumNodes = mSpatialModel.Mesh->NumNodes();
         auto tCurrentVelocity = aPrimal.vector("current velocity");
         auto tPreviousVelocity = aPrimal.vector("previous velocity");
         auto tMisfitError = Plato::blas1::norm(tCurrentVelocity, tPreviousVelocity);
@@ -1045,7 +1031,7 @@ private:
     Plato::Scalar calculatePressureMisfitNorm
     (const Plato::Primal & aPrimal)
     {
-        auto tNumNodes = mSpatialModel.Mesh.nverts();
+        auto tNumNodes = mSpatialModel.Mesh->NumNodes();
         auto tCurrentPressure = aPrimal.vector("current pressure");
         auto tPreviousPressure = aPrimal.vector("previous pressure");
         auto tMisfitError = Plato::blas1::norm(tCurrentPressure, tPreviousPressure);
@@ -1267,7 +1253,7 @@ private:
         {
             // Solver-computed initial critical time step
             Plato::ScalarVector tBcValues;
-            Plato::LocalOrdinalVector tBcDofs;
+            Plato::OrdinalVector tBcDofs;
             mVelocityEssentialBCs.get(tBcDofs, tBcValues);
 
             auto tPreviousVelocity = aPrimal.vector("previous velocity");
@@ -1296,7 +1282,7 @@ private:
         {
             std::ostringstream tOutSStream;
             tOutSStream << tHostCriticalTimeStep(0);
-            THROWERR(std::string("Unstable critical time step (dt = '") + tOutSStream.str()
+            ANALYZE_THROWERR(std::string("Unstable critical time step (dt = '") + tOutSStream.str()
                  + "') detected. Refine the finite element mesh or coarsen the steady state stopping tolerance.")
         }
     }
@@ -1500,15 +1486,15 @@ private:
 
         // apply constraints
         Plato::ScalarVector tBcValues;
-        Plato::LocalOrdinalVector tBcDofs;
+        Plato::OrdinalVector tBcDofs;
         mVelocityEssentialBCs.get(tBcDofs, tBcValues);
 
         // create linear solver
         if( mInputs.isSublist("Linear Solver") == false )
-        { THROWERR("Parameter list 'Linear Solver' is not defined.") }
+        { ANALYZE_THROWERR("Parameter list 'Linear Solver' is not defined.") }
         auto tParamList = mInputs.sublist("Linear Solver");
         Plato::SolverFactory tSolverFactory(tParamList);
-        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh.nverts(), mMachine, mNumVelDofsPerNode);
+        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh->NumNodes(), mMachine, mNumVelDofsPerNode);
 
         // set initial guess for current velocity
         Plato::OrdinalType tIteration = 1;
@@ -1526,10 +1512,10 @@ private:
 
             auto tNormResidual = Plato::blas1::norm(tResidual);
             if( !std::isfinite(tNormResidual) )
-            { THROWERR("The norm of the residual is not a finite number") }
+            { ANALYZE_THROWERR("The norm of the residual is not a finite number") }
             auto tNormStep = Plato::blas1::norm(tDeltaCorrector);
             if( !std::isfinite(tNormStep) )
-            { THROWERR("The norm of the step is not a finite number") }
+            { ANALYZE_THROWERR("The norm of the step is not a finite number") }
             if(tIteration <= 1)
             {
                 tInitialNormStep = tNormStep;
@@ -1640,10 +1626,10 @@ private:
 
         // create linear solver
         if( mInputs.isSublist("Linear Solver") == false )
-        { THROWERR("Parameter list 'Linear Solver' is not defined.") }
+        { ANALYZE_THROWERR("Parameter list 'Linear Solver' is not defined.") }
         auto tParamList = mInputs.sublist("Linear Solver");
         Plato::SolverFactory tSolverFactory(tParamList);
-        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh.nverts(), mMachine, mNumVelDofsPerNode);
+        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh->NumNodes(), mMachine, mNumVelDofsPerNode);
 
         Plato::OrdinalType tIteration = 1;
         Plato::Scalar tInitialNormStep = 0.0, tInitialNormResidual = 0.0;
@@ -1659,10 +1645,10 @@ private:
 
             auto tNormResidual = Plato::blas1::norm(tResidual);
             if( !std::isfinite(tNormResidual) )
-            { THROWERR("The norm of the residual is not a finite number") }
+            { ANALYZE_THROWERR("The norm of the residual is not a finite number") }
             auto tNormStep = Plato::blas1::norm(tDeltaPredictor);
             if( !std::isfinite(tNormStep) )
-            { THROWERR("The norm of the step is not a finite number") }
+            { ANALYZE_THROWERR("The norm of the step is not a finite number") }
             if(tIteration <= 1)
             {
                 tInitialNormStep = tNormStep;
@@ -1727,15 +1713,15 @@ private:
 
         // prepare constraints dofs
         Plato::ScalarVector tBcValues;
-        Plato::LocalOrdinalVector tBcDofs;
+        Plato::OrdinalVector tBcDofs;
         mPressureEssentialBCs.get(tBcDofs, tBcValues);
 
         // create linear solver
         if( mInputs.isSublist("Linear Solver") == false )
-        { THROWERR("Parameter list 'Linear Solver' is not defined.") }
+        { ANALYZE_THROWERR("Parameter list 'Linear Solver' is not defined.") }
         auto tParamList = mInputs.sublist("Linear Solver");
         Plato::SolverFactory tSolverFactory(tParamList);
-        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh.nverts(), mMachine, mNumPressDofsPerNode);
+        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh->NumNodes(), mMachine, mNumPressDofsPerNode);
 
         Plato::OrdinalType tIteration = 1;
         Plato::Scalar tInitialNormStep = 0.0, tInitialNormResidual = 0.0;
@@ -1756,10 +1742,10 @@ private:
 
             auto tNormResidual = Plato::blas1::norm(tResidual);
             if( !std::isfinite(tNormResidual) )
-            { THROWERR("The norm of the residual is not a finite number") }
+            { ANALYZE_THROWERR("The norm of the residual is not a finite number") }
             auto tNormStep = Plato::blas1::norm(tDeltaPressure);
             if( !std::isfinite(tNormStep) )
-            { THROWERR("The norm of the step is not a finite number") }
+            { ANALYZE_THROWERR("The norm of the step is not a finite number") }
             if(tIteration <= 1)
             {
                 tInitialNormStep = tNormStep;
@@ -1822,15 +1808,15 @@ private:
 
         // apply constraints
         Plato::ScalarVector tBcValues;
-        Plato::LocalOrdinalVector tBcDofs;
+        Plato::OrdinalVector tBcDofs;
         mTemperatureEssentialBCs.get(tBcDofs, tBcValues);
 
         // solve energy equation (consistent or mass lumped)
         if( mInputs.isSublist("Linear Solver") == false )
-        { THROWERR("Parameter list 'Linear Solver' is not defined.") }
+        { ANALYZE_THROWERR("Parameter list 'Linear Solver' is not defined.") }
         auto tParamList = mInputs.sublist("Linear Solver");
         Plato::SolverFactory tSolverFactory(tParamList);
-        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh.nverts(), mMachine, mNumTempDofsPerNode);
+        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh->NumNodes(), mMachine, mNumTempDofsPerNode);
 
         Plato::OrdinalType tIteration = 1;
         Plato::Scalar tInitialNormStep = 0.0, tInitialNormResidual = 0.0;
@@ -1854,10 +1840,10 @@ private:
             // calculate stopping criteria
             auto tNormResidual = Plato::blas1::norm(tResidual);
             if( !std::isfinite(tNormResidual) )
-            { THROWERR("The norm of the residual is not a finite number") }
+            { ANALYZE_THROWERR("The norm of the residual is not a finite number") }
             auto tNormStep = Plato::blas1::norm(tDeltaTemperature);
             if( !std::isfinite(tNormStep) )
-            { THROWERR("The norm of the step is not a finite number") }
+            { ANALYZE_THROWERR("The norm of the step is not a finite number") }
             if(tIteration <= 1)
             {
                 tInitialNormStep = tNormStep;
@@ -1912,10 +1898,10 @@ private:
 
         // solve adjoint system of equations
         if( mInputs.isSublist("Linear Solver") == false )
-        { THROWERR("Parameter list 'Linear Solver' is not defined.") }
+        { ANALYZE_THROWERR("Parameter list 'Linear Solver' is not defined.") }
         auto tParamList = mInputs.sublist("Linear Solver");
         Plato::SolverFactory tSolverFactory(tParamList);
-        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh.nverts(), mMachine, mNumVelDofsPerNode);
+        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh->NumNodes(), mMachine, mNumVelDofsPerNode);
         auto tJacobianPredictor = mPredictorResidual.gradientPredictor(aControl, aCurrentPrimal);
         tSolver->solve(*tJacobianPredictor, tCurrentPredictorAdjoint, tRHS);
     }
@@ -1943,7 +1929,7 @@ private:
         Plato::blas1::fill(0.0, tCurrentPressAdjoint);
 
         // add objective function contribution to right hand side adjoint vector
-        auto tNumDofs = mSpatialModel.Mesh.nverts();
+        auto tNumDofs = mSpatialModel.Mesh->NumNodes();
         Plato::ScalarVector tRightHandSide("right hand side vector", tNumDofs);
         if(tCurrentTimeStepIndex == mNumForwardSolveTimeSteps)
         {
@@ -1971,16 +1957,16 @@ private:
 
         // prepare constraints dofs
         Plato::ScalarVector tBcValues;
-        Plato::LocalOrdinalVector tBcDofs;
+        Plato::OrdinalVector tBcDofs;
         mPressureEssentialBCs.get(tBcDofs, tBcValues);
         Plato::blas1::fill(0.0, tBcValues);
 
         // solve adjoint system of equations
         if( mInputs.isSublist("Linear Solver") == false )
-        { THROWERR("Parameter list 'Linear Solver' is not defined.") }
+        { ANALYZE_THROWERR("Parameter list 'Linear Solver' is not defined.") }
         auto tParamList = mInputs.sublist("Linear Solver");
         Plato::SolverFactory tSolverFactory(tParamList);
-        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh.nverts(), mMachine, mNumPressDofsPerNode);
+        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh->NumNodes(), mMachine, mNumPressDofsPerNode);
         auto tJacPressResWrtCurPress = mPressureResidual.gradientCurrentPress(aControl, aCurrentPrimal);
         Plato::apply_constraints<mNumPressDofsPerNode>(tBcDofs, tBcValues, tJacPressResWrtCurPress, tRightHandSide);
         tSolver->solve(*tJacPressResWrtCurPress, tCurrentPressAdjoint, tRightHandSide);
@@ -2009,7 +1995,7 @@ private:
         Plato::blas1::fill(0.0, tCurrentTempAdjoint);
 
         // add objective function contribution to right hand side adjoint vector
-        auto tNumDofs = mSpatialModel.Mesh.nverts();
+        auto tNumDofs = mSpatialModel.Mesh->NumNodes();
         Plato::ScalarVector tRightHandSide("right hand side vector", tNumDofs);
         if(tCurrentTimeStepIndex == mNumForwardSolveTimeSteps)
         {
@@ -2035,16 +2021,16 @@ private:
 
         // prepare constraints dofs
         Plato::ScalarVector tBcValues;
-        Plato::LocalOrdinalVector tBcDofs;
+        Plato::OrdinalVector tBcDofs;
         mTemperatureEssentialBCs.get(tBcDofs, tBcValues);
         Plato::blas1::fill(0.0, tBcValues);
 
         // solve adjoint system of equations
         if( mInputs.isSublist("Linear Solver") == false )
-        { THROWERR("Parameter list 'Linear Solver' is not defined.") }
+        { ANALYZE_THROWERR("Parameter list 'Linear Solver' is not defined.") }
         auto tParamList = mInputs.sublist("Linear Solver");
         Plato::SolverFactory tSolverFactory(tParamList);
-        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh.nverts(), mMachine, mNumTempDofsPerNode);
+        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh->NumNodes(), mMachine, mNumTempDofsPerNode);
         auto tJacobianCurrentTemp = mTemperatureResidual->gradientCurrentTemp(aControl, aCurrentPrimal);
         Plato::apply_constraints<mNumTempDofsPerNode>(tBcDofs, tBcValues, tJacobianCurrentTemp, tRightHandSide);
         tSolver->solve(*tJacobianCurrentTemp, tCurrentTempAdjoint, tRightHandSide);
@@ -2073,7 +2059,7 @@ private:
         Plato::blas1::fill(0.0, tCurrentVelocityAdjoint);
 
         // add objective function contribution to right hand side adjoint vector
-        auto tNumDofs = mSpatialModel.Mesh.nverts() * mNumVelDofsPerNode;
+        auto tNumDofs = mSpatialModel.Mesh->NumNodes() * mNumVelDofsPerNode;
         Plato::ScalarVector tRightHandSide("right hand side vector", tNumDofs);
         if(tCurrentTimeStepIndex == mNumForwardSolveTimeSteps)
         {
@@ -2109,16 +2095,16 @@ private:
 
         // prepare constraints dofs
         Plato::ScalarVector tBcValues;
-        Plato::LocalOrdinalVector tBcDofs;
+        Plato::OrdinalVector tBcDofs;
         mVelocityEssentialBCs.get(tBcDofs, tBcValues);
         Plato::blas1::fill(0.0, tBcValues);
 
         // solve adjoint system of equations
         if( mInputs.isSublist("Linear Solver") == false )
-        { THROWERR("Parameter list 'Linear Solver' is not defined.") }
+        { ANALYZE_THROWERR("Parameter list 'Linear Solver' is not defined.") }
         auto tParamList = mInputs.sublist("Linear Solver");
         Plato::SolverFactory tSolverFactory(tParamList);
-        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh.nverts(), mMachine, mNumVelDofsPerNode);
+        auto tSolver = tSolverFactory.create(mSpatialModel.Mesh->NumNodes(), mMachine, mNumVelDofsPerNode);
         auto tJacCorrectorResWrtCurVel = mCorrectorResidual.gradientCurrentVel(aControl, aCurrentPrimalState);
         Plato::set_dofs_values(tBcDofs, tRightHandSide, 0.0);
         tSolver->solve(*tJacCorrectorResWrtCurVel, tCurrentVelocityAdjoint, tRightHandSide);

@@ -7,14 +7,71 @@
 #ifndef SRC_PLATO_PLATOUTILITIES_HPP_
 #define SRC_PLATO_PLATOUTILITIES_HPP_
 
-#include <Omega_h_array.hpp>
-
 #include "PlatoStaticsTypes.hpp"
 #include "Plato_Solve.hpp"
+#include "PlatoMesh.hpp"
+#include "Variables.hpp"
 #include <typeinfo>
+
+#include <Omega_h_shape.hpp>
 
 namespace Plato
 {
+
+inline void
+readNodeFields(
+    Plato::MeshIO        aReader,
+    Plato::OrdinalType   aStepIndex,
+    Plato::FieldTags     aFieldTags,
+    Plato::Variables   & aVariables
+)
+{
+    auto tTags = aFieldTags.tags();
+    for(auto& tTag : tTags)
+    {
+        auto tData = aReader->ReadNodeData(tTag, aStepIndex);
+        auto tFieldName = aFieldTags.id(tTag);
+        aVariables.vector(tFieldName, tData);
+    }
+}
+
+
+/******************************************************************************//**
+ * \tparam NumSpatialDims  number of spatial dimensions
+ * \tparam NumNodesPerCell number of nodes per cell/element
+ *
+ * \fn Scalar calculate_element_size
+ *
+ * \brief Calculate characteristic element size
+ *
+ * \param [in] aCellOrdinal cell/element ordinal
+ * \param [in] aCells2Nodes map from cells to node ordinal
+ * \param [in] aCoords      cell/element coordinates
+**********************************************************************************/
+template<Plato::OrdinalType NumSpatialDims,
+         Plato::OrdinalType NumNodesPerCell>
+DEVICE_TYPE inline
+Plato::Scalar
+calculate_element_size
+(const Plato::OrdinalType & aCellOrdinal,
+ const Plato::OrdinalVectorT<const Plato::OrdinalType> & aConnectivity,
+ const Plato::OrdinalVectorT<const Plato::Scalar> & aCoordinates)
+{
+    Omega_h::Few<Omega_h::Vector<NumSpatialDims>, NumNodesPerCell> tElemCoords;
+    for(Plato::OrdinalType tNode = 0; tNode < NumNodesPerCell; tNode++)
+    {
+        const Plato::OrdinalType tVertexIndex = aConnectivity(aCellOrdinal*NumNodesPerCell + tNode);
+        for(Plato::OrdinalType tDim = 0; tDim < NumSpatialDims; tDim++)
+        {
+            tElemCoords[tNode][tDim] = aCoordinates(tVertexIndex*NumSpatialDims + tDim);
+        }
+    }
+    auto tSphere = Omega_h::get_inball(tElemCoords);
+
+    return (static_cast<Plato::Scalar>(2.0) * tSphere.r);
+}
+// function calculate_element_size
+
 
 /******************************************************************************//**
  * \fn tolower
@@ -136,7 +193,7 @@ DEVICE_TYPE inline void print_array_3D_device
  * \param [in] aInput 1D container of ordinals
  * \param [in] aName  container name (default = "")
 **********************************************************************************/
-inline void print_array_ordinals_1D(const Plato::LocalOrdinalVector & aInput, std::string aName = "")
+inline void print_array_ordinals_1D(const Plato::OrdinalVector & aInput, std::string aName = "")
 {
     printf("\nBEGIN PRINT: %s\n", aName.c_str());
     Plato::OrdinalType tSize = aInput.size();
@@ -313,64 +370,6 @@ inline void print_array_3D(const ArrayT & aInput, const std::string & aName)
     printf("END PRINT: %s\n", aName.c_str());
 }
 // function print
-
-/******************************************************************************//**
- * \brief Copy 1D view into Omega_h 1D array
- * \param [in] aOffset offset
- * \param [in] aNumVertices number of mesh vertices
- * \param [in] aInput 1D view
- * \param [out] aOutput 1D Omega_h array
-**********************************************************************************/
-template<const Plato::OrdinalType NumDofsPerNodeInInputArray, const Plato::OrdinalType NumDofsPerNodeInOutputArray>
-inline void copy(const Plato::OrdinalType & aOffset,
-                 const Plato::OrdinalType & aNumVertices,
-                 const Plato::ScalarVector & aInput,
-                 Omega_h::Write<Omega_h::Real> & aOutput)
-{
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumVertices), LAMBDA_EXPRESSION(const Plato::OrdinalType & aIndex)
-    {
-        for(Plato::OrdinalType tIndex = 0; tIndex < NumDofsPerNodeInOutputArray; tIndex++)
-        {
-            Plato::OrdinalType tOutputDofIndex = (aIndex * NumDofsPerNodeInOutputArray) + tIndex;
-            Plato::OrdinalType tInputDofIndex = (aIndex * NumDofsPerNodeInInputArray) + (aOffset + tIndex);
-            aOutput[tOutputDofIndex] = aInput(tInputDofIndex);
-        }
-    },"PlatoDriver::copy");
-}
-// function copy
-
-/******************************************************************************//**
- * \brief Copy 2D view into Omega_h 1D array
- * \param [in] aInput 2D view
- * \param [out] aOutput 1D Omega_h array
-**********************************************************************************/
-inline void copy_2Dview_to_write(const Plato::ScalarMultiVector & aInput, Omega_h::Write<Omega_h::Real> & aOutput)
-{
-    auto tNumMajorEntries      = aInput.extent(0);
-    auto tNumDofsPerMajorEntry = aInput.extent(1);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumMajorEntries), LAMBDA_EXPRESSION(const Plato::OrdinalType & tMajorIndex)
-    {
-        for(Plato::OrdinalType tMinorIndex = 0; tMinorIndex < tNumDofsPerMajorEntry; tMinorIndex++)
-        {
-            Plato::OrdinalType tOutputDofIndex = (tMajorIndex * tNumDofsPerMajorEntry) + tMinorIndex;
-            aOutput[tOutputDofIndex] = aInput(tMajorIndex, tMinorIndex);
-        }
-    },"PlatoDriver::compress_copy_2Dview_to_write");
-}
-
-/******************************************************************************//**
- * \brief Copy 1D view into Omega_h 1D array
- * \param [in] aInput 2D view
- * \param [out] aOutput 1D Omega_h array
-**********************************************************************************/
-inline void copy_1Dview_to_write(const Plato::ScalarVector & aInput, Omega_h::Write<Omega_h::Real> & aOutput)
-{
-    auto tNumEntries      = aInput.extent(0);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumEntries), LAMBDA_EXPRESSION(const Plato::OrdinalType & tIndex)
-    {
-        aOutput[tIndex] = aInput(tIndex);
-    },"PlatoDriver::compress_copy_1Dview_to_write");
-}
 
 /******************************************************************************//**
  * \tparam ViewType view type

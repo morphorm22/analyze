@@ -76,7 +76,7 @@ private:
         std::string tPenaltyType = tPenaltyParams.get<std::string>("Type", "SIMP");
         if (tPenaltyType != "SIMP")
         {
-            THROWERR("A penalty function type other than SIMP is not yet implemented for the VolumeIntegralCriterion.")
+            ANALYZE_THROWERR("A penalty function type other than SIMP is not yet implemented for the VolumeIntegralCriterion.")
         }
         mPenalty        = tPenaltyParams.get<Plato::Scalar>("Exponent", 3.0);
         mMinErsatzValue = tPenaltyParams.get<Plato::Scalar>("Minimum Value", 1e-9);

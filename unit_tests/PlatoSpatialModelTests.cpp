@@ -33,26 +33,24 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMask)
 
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
-  Plato::BrickMask<spaceDim> tBrickMask(*tMesh, *tMaskParams);
+  Plato::BrickMask<spaceDim> tBrickMask(tMesh, *tMaskParams);
 
   auto tCellMask = tBrickMask.cellMask();
 
   auto tCellMask_host = Kokkos::create_mirror_view( tCellMask );
   Kokkos::deep_copy( tCellMask_host, tCellMask );
 
-  /* uncomment to write mesh file.  gold data below generate by inspecting mesh.
-  Omega_h::vtk::Writer tWriter = Omega_h::vtk::Writer("Cube", &(*tMesh), spaceDim);
-  tWriter.write();
-  */
   std::vector<int> tCellMask_gold = {
-    1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 0, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    1, 1, 1, 1, 1, 1, 1, 1
+    1, 1, 1, 1, 1, 1,
+    0, 0, 0, 0, 0, 0,
+    1, 1, 1, 1, 1, 1,
+    0, 0, 0, 0, 0, 0,
+    1, 1, 1, 1, 1, 1,
+    0, 0, 0, 0, 0, 0,
+    1, 1, 1, 1, 1, 1,
+    0, 0, 0, 0, 0, 0,
   };
 
   for (int i=0; i<tCellMask_gold.size(); i++) 
@@ -64,14 +62,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMask)
   auto tInactive_host = Kokkos::create_mirror_view( tInactive );
   Kokkos::deep_copy( tInactive_host, tInactive );
 
-  std::vector<int> tInactive_gold = { 2, 4, 5, 14, 15, 18, 19, 22, 23 };
+  std::vector<int> tInactive_gold = { 2, 5, 8, 11, 14, 17, 20, 23, 26 };
 
   for (int i=0; i<tInactive_gold.size(); i++) 
   {
     TEST_ASSERT(tInactive_gold[i] == tInactive_host(i));
   }
 
-  auto tCellCenters = tBrickMask.getCellCenters(*tMesh);
+  auto tCellCenters = tBrickMask.getCellCenters(tMesh);
   auto tCellCenters_host = Kokkos::create_mirror_view( tCellCenters );
   Kokkos::deep_copy( tCellCenters_host, tCellCenters );
 
@@ -116,11 +114,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoModel)
 
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tInputParams);
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
 
   Plato::MaskFactory<spaceDim> tMaskFactory;
   auto tMask = tMaskFactory.create(tSpatialModel.Mesh, *tMaskParams);
@@ -133,9 +129,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoModel)
   Kokkos::deep_copy( tOrdinals_host, tOrdinals );
 
   std::vector<int> tOrdinals_gold = {
-    0, 1, 2, 3, 12, 13, 14, 15,
-    16, 17, 18, 19, 20, 21, 22, 23,
-    40, 41, 42, 43, 44, 45, 46, 47
+    0, 1, 2, 3, 4, 5,
+    12, 13, 14, 15, 16, 17,
+    24, 25, 26, 27, 28, 29,
+    36, 37, 38, 39, 40, 41
   };
 
   for (int i=0; i<tOrdinals_gold.size(); i++) 
@@ -172,14 +169,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, DefaultBlockNotMarkedAsFixed)
   );
 
   constexpr int meshWidth=2;
-  constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tInputParams);
-
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
 
   auto tIsFixed = tSpatialModel.Domains[0].isFixedBlock();
 
@@ -215,14 +207,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, FixedBlockIsMarked)
   );
 
   constexpr int meshWidth=2;
-  constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tInputParams);
-
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
 
   auto tIsFixed = tSpatialModel.Domains[0].isFixedBlock();
 
@@ -260,26 +247,24 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, DefaultBlockWorksetControlUnchanged)
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
   // create spatial model
   //
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tInputParams);
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
 
   // create control
   //
-  int tNumDofs = spaceDim*tMesh->nverts();
+  int tNumDofs = spaceDim*tMesh->NumNodes();
   Plato::ScalarVector tControl("control", tNumDofs);
   Plato::blas1::fill(0.4, tControl);
 
   // workset control
   //
-  auto tNumCells = tMesh->nelems();
+  auto tNumCells = tMesh->NumElements();
   constexpr int tNumNodesPerCell = Plato::SimplexMechanics<spaceDim>::mNumNodesPerCell;
 
-  Plato::WorksetBase<Plato::SimplexMechanics<spaceDim>> tWorksetBase(*tMesh);
+  Plato::WorksetBase<Plato::SimplexMechanics<spaceDim>> tWorksetBase(tMesh);
   Plato::ScalarMultiVectorT<Plato::Scalar> tControlWS("control workset", tNumCells, tNumNodesPerCell);
   tWorksetBase.worksetControl(tControl, tControlWS, tSpatialModel.Domains[0]);
 
@@ -328,26 +313,24 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, FixedBlockWorksetControlGivesOnes)
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
   // create spatial model
   //
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tInputParams);
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
 
   // create control
   //
-  int tNumDofs = spaceDim*tMesh->nverts();
+  int tNumDofs = spaceDim*tMesh->NumNodes();
   Plato::ScalarVector tControl("control", tNumDofs);
   Plato::blas1::fill(0.4, tControl);
 
   // workset control
   //
-  auto tNumCells = tMesh->nelems();
+  auto tNumCells = tMesh->NumElements();
   constexpr int tNumNodesPerCell = Plato::SimplexMechanics<spaceDim>::mNumNodesPerCell;
 
-  Plato::WorksetBase<Plato::SimplexMechanics<spaceDim>> tWorksetBase(*tMesh);
+  Plato::WorksetBase<Plato::SimplexMechanics<spaceDim>> tWorksetBase(tMesh);
   Plato::ScalarMultiVectorT<Plato::Scalar> tControlWS("control workset", tNumCells, tNumNodesPerCell);
   tWorksetBase.worksetControl(tControl, tControlWS, tSpatialModel.Domains[0]);
 

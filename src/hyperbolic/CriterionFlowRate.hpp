@@ -118,23 +118,10 @@ public:
      Plato::ScalarVectorT<ResultT> & aResult) 
     const override
     {
-        // set face to element graph
-        auto tFace2eElems      = mSpatialDomain.Mesh.ask_up(mNumSpatialDimsOnFace, mNumSpatialDims);
-        auto tFace2Elems_map   = tFace2eElems.a2ab;
-        auto tFace2Elems_elems = tFace2eElems.ab2b;
-
-        // get element to face map
-        auto tElem2Faces = mSpatialDomain.Mesh.ask_down(mNumSpatialDims, mNumSpatialDimsOnFace).ab2b;
-
-        // set mesh vertices
-        auto tFace2Verts = mSpatialDomain.Mesh.ask_verts_of(mNumSpatialDimsOnFace);
-        auto tCell2Verts = mSpatialDomain.Mesh.ask_elem_verts();
-
         // allocate local functors
         Plato::CalculateSurfaceArea<mNumSpatialDims> tCalculateSurfaceArea;
-        Plato::NodeCoordinate<mNumSpatialDims> tCoords(&(mSpatialDomain.Mesh));
+        Plato::NodeCoordinate<mNumSpatialDims> tCoords(mSpatialDomain.Mesh);
         Plato::CalculateSurfaceJacobians<mNumSpatialDims> tCalculateSurfaceJacobians;
-        Plato::CreateFaceLocalNode2ElemLocalNodeIndexMap<mNumSpatialDims> tCreateFaceLocalNode2ElemLocalNodeIndexMap;
 
         // set input worksets
         auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
@@ -145,57 +132,56 @@ public:
         auto tBasisFunctions = mSurfaceCubatureRule.getBasisFunctions();
         for(auto& tName : mSideSets)
         {
-            // get faces on this side set
-            auto tFaceOrdinalsOnSideSet = Plato::omega_h::side_set_face_ordinals(mSpatialDomain.MeshSets, tName);
-            auto tNumFaces = tFaceOrdinalsOnSideSet.size();
-            Plato::ScalarArray3DT<ConfigT> tJacobians("face Jacobians", tNumFaces, mNumSpatialDimsOnFace, mNumSpatialDims);
+            auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(tName);
+            auto tFaceOrds    = aSpatialModel.Mesh->GetSideSetFaces(tName);
+            auto tNodeOrds    = aSpatialModel.Mesh->GetSideSetLocalNodes(tName);
+
+            auto tNumFaces = tFaceOrds.size();
+            auto tNumElements = mSpatialDomain.Mesh->NumElements();
 
             // set local worksets
-            auto tNumCells = mSpatialDomain.Mesh.nelems();
-            Plato::ScalarMultiVectorT<CurVelT> tCurVelGP("current velocity at Gauss points", tNumCells, mNumSpatialDims);
+            Plato::ScalarArray3DT<ConfigT> tJacobians("face Jacobians", tNumFaces, mNumSpatialDimsOnFace, mNumSpatialDims);
+            Plato::ScalarMultiVectorT<CurVelT> tCurVelGP("current velocity at Gauss points", tNumElements, mNumSpatialDims);
 
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aFaceI)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aSideOrdinal)
             {
-                auto tFaceOrdinal = tFaceOrdinalsOnSideSet[aFaceI];
-                // for all elements connected to this face, which is either 1 or 2 elements
-                for( Plato::OrdinalType tElem = tFace2Elems_map[tFaceOrdinal]; tElem < tFace2Elems_map[tFaceOrdinal+1]; tElem++ )
+                auto tElementOrdinal = tElementOrds(aSideOrdinal);
+                auto tElemFaceOrdinal = tFaceOrds(aSideOrdinal);
+
+                Plato::OrdinalType tLocalNodeOrdinals[mNumSpatialDims];
+                for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<mNumNodesPerFace; tNodeOrd++)
                 {
-                    // create a map from face local node index to elem local node index
-                    auto tCellOrdinal = tFace2Elems_elems[tElem];
-                    Plato::OrdinalType tLocalNodeOrdinals[mNumSpatialDims];
-                    tCreateFaceLocalNode2ElemLocalNodeIndexMap(tCellOrdinal, tFaceOrdinal, tCell2Verts, tFace2Verts, tLocalNodeOrdinals);
+                    tLocalNodeOrdinals[tNodeOrd] = tNodeOrds(aSideOrdinal*mNumNodesPerFace+tNodeOrd);
+                }
 
-                    // calculate surface Jacobian and surface integral weight
-                    ConfigT tSurfaceAreaTimesCubWeight(0.0);
-                    tCalculateSurfaceJacobians(tCellOrdinal, aFaceI, tLocalNodeOrdinals, tConfigWS, tJacobians);
-                    tCalculateSurfaceArea(aFaceI, tCubatureWeight, tJacobians, tSurfaceAreaTimesCubWeight);
+                // calculate surface Jacobian and surface integral weight
+                ConfigT tSurfaceAreaTimesCubWeight(0.0);
+                tCalculateSurfaceJacobians(tElementOrdinal, aSideOrdinal, tLocalNodeOrdinals, tConfigWS, tJacobians);
+                tCalculateSurfaceArea(aSideOrdinal, tCubatureWeight, tJacobians, tSurfaceAreaTimesCubWeight);
 
-                    // compute unit normal vector
-                    auto tElemFaceOrdinal = Plato::omega_h::get_face_ordinal<mNumSpatialDims>(tCellOrdinal, tFaceOrdinal, tElem2Faces);
-                    auto tUnitNormalVec = Plato::omega_h::unit_normal_vector(tCellOrdinal, tElemFaceOrdinal, tCoords);
+                // compute unit normal vector
+                auto tUnitNormalVec = Plato::omega_h::unit_normal_vector(tElementOrdinal, tElemFaceOrdinal, tCoords);
 
-                    // project current velocity onto surface
-                    for(Plato::OrdinalType tNode = 0; tNode < mNumNodesPerFace; tNode++)
+                // project current velocity onto surface
+                for(Plato::OrdinalType tNode = 0; tNode < mNumNodesPerFace; tNode++)
+                {
+                    for(Plato::OrdinalType tDim = 0; tDim < mNumSpatialDims; tDim++)
                     {
-                        for(Plato::OrdinalType tDim = 0; tDim < mNumSpatialDims; tDim++)
-                        {
-                            auto tLocalCellNode = tLocalNodeOrdinals[tNode];
-                            auto tLocalCellDof = (tLocalCellNode * mNumSpatialDims) + tDim;
-                            tCurVelGP(tCellOrdinal, tDim) += tBasisFunctions(tNode) * tCurrentVelocityWS(tCellOrdinal, tLocalCellDof);
-                        }
+                        auto tLocalElementNode = tLocalNodeOrdinals[tNode];
+                        auto tLocalElementDof = (tLocalElementNode * mNumSpatialDims) + tDim;
+                        tCurVelGP(tElementOrdinal, tDim) += tBasisFunctions(tNode) * tCurrentVelocityWS(tElementOrdinal, tLocalElementDof);
                     }
+                }
 
-                    // calculate flow rate, defined as \int_{\Gamma_e} N_p^a (u_i^n n_i) d\Gamma_e
-                    for( Plato::OrdinalType tNode=0; tNode < mNumNodesPerFace; tNode++)
+                // calculate flow rate, which is defined as \int_{\Gamma_e}N_p^a (u_i^n n_i) d\Gamma_e
+                for( Plato::OrdinalType tNode=0; tNode < mNumNodesPerFace; tNode++)
+                {
+                    for(Plato::OrdinalType tDim = 0; tDim < mNumSpatialDims; tDim++)
                     {
-                        for(Plato::OrdinalType tDim = 0; tDim < mNumSpatialDims; tDim++)
-                        {
-                            aResult(tCellOrdinal) += tBasisFunctions(tNode) * tCurVelGP(tCellOrdinal, tDim) * tUnitNormalVec(tDim) * tSurfaceAreaTimesCubWeight;
-                        }
+                        aResult(tElementOrdinal) += tBasisFunctions(tNode) * tCurVelGP(tElementOrdinal, tDim) * tUnitNormalVec(tDim) * tSurfaceAreaTimesCubWeight;
                     }
                 }
             }, "flow rate");
-
         }
     }
 };

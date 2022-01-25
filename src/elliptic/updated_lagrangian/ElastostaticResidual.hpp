@@ -55,8 +55,11 @@ private:
     using PhysicsType::mNumDofsPerNode;
     using Plato::Simplex<mSpaceDim>::mNumNodesPerCell;
 
-    using Plato::Elliptic::UpdatedLagrangian::AbstractVectorFunction<EvaluationType>::mSpatialDomain;
-    using Plato::Elliptic::UpdatedLagrangian::AbstractVectorFunction<EvaluationType>::mDataMap;
+    using FunctionBaseType = Plato::Elliptic::UpdatedLagrangian::AbstractVectorFunction<EvaluationType>;
+
+    using FunctionBaseType::mSpatialDomain;
+    using FunctionBaseType::mDataMap;
+    using FunctionBaseType::mDofNames;
 
     using GlobalStateScalarType = typename EvaluationType::GlobalStateScalarType;
     using LocalStateScalarType  = typename EvaluationType::LocalStateScalarType;
@@ -64,7 +67,6 @@ private:
     using ConfigScalarType      = typename EvaluationType::ConfigScalarType;
     using ResultScalarType      = typename EvaluationType::ResultScalarType;
 
-    using FunctionBaseType = Plato::Elliptic::UpdatedLagrangian::AbstractVectorFunction<EvaluationType>;
     using CubatureType  = Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>;
     IndicatorFunctionType mIndicatorFunction;
     Plato::ApplyWeighting<mSpaceDim, mNumVoigtTerms, IndicatorFunctionType> mApplyWeighting;
@@ -100,6 +102,11 @@ public:
         mCellForcing       (nullptr),
         mCubatureRule      (std::make_shared<CubatureType>())
     {
+        // obligatory: define dof names in order
+        mDofNames.push_back("displacement X");
+        if(mSpaceDim > 1) mDofNames.push_back("displacement Y");
+        if(mSpaceDim > 2) mDofNames.push_back("displacement Z");
+
         // create material model and get stiffness
         //
         Plato::ElasticModelFactory<mSpaceDim> tMaterialModelFactory(aProblemParams);
@@ -143,8 +150,7 @@ public:
     {
       Plato::ScalarMultiVector tDisplacements = aSolutions.get("State");
       Plato::Solutions tSolutionsOutput(aSolutions.physics(), aSolutions.pde());
-      tSolutionsOutput.set("Displacement", tDisplacements);
-      tSolutionsOutput.setNumDofs("Displacement", 3);
+      tSolutionsOutput.set("Displacement", tDisplacements, mDofNames);
       return tSolutionsOutput;
     }
     

@@ -22,6 +22,7 @@ void printTimingResultsMPMD(MPI_Comm &aComm)
 }
 
 void safeExit(int aExitCode=0){
+  Plato::MeshFactory::finalize();
   Kokkos::finalize_all();
   MPI_Finalize();
   exit(aExitCode);
@@ -37,6 +38,8 @@ int main(int aArgc, char **aArgv)
 
     MPI_Init(&aArgc, &aArgv);
     Kokkos::initialize(aArgc, aArgv);
+
+    Plato::MeshFactory::initialize(aArgc, aArgv);
 
     Plato::Interface* tPlatoInterface = nullptr;
     try

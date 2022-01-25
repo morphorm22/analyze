@@ -19,15 +19,15 @@ namespace Plato {
 template < class Ordinal = Plato::OrdinalType >
 class CrsMatrix {
  public:
-  typedef Kokkos::View<Ordinal*, MemSpace> OrdinalVector;
-  typedef Kokkos::View<Scalar*,  MemSpace> ScalarVector;
-  typedef Kokkos::View<Ordinal*, MemSpace> RowMapVector;
+  typedef Kokkos::View<Ordinal*, MemSpace> OrdinalVectorT;
+  typedef Kokkos::View<Scalar*,  MemSpace> ScalarVectorT;
+  typedef Kokkos::View<Ordinal*, MemSpace> RowMapVectorT;
 
  private:
 
-  RowMapVector  mRowMap;
-  OrdinalVector mColumnIndices;
-  ScalarVector  mEntries;
+  RowMapVectorT  mRowMap;
+  OrdinalVectorT mColumnIndices;
+  ScalarVectorT  mEntries;
 
   int  mNumRows;
   int  mNumCols;
@@ -64,11 +64,11 @@ class CrsMatrix {
             mNumColsPerBlock (aNumColsPerBlock),
             mIsBlockMatrix   (mNumColsPerBlock*mNumRowsPerBlock > 1) {}
 
-  CrsMatrix( RowMapVector  aRowmap,
-             OrdinalVector aColIndices,
-             ScalarVector  aEntries,
-             int           aNumRowsPerBlock=1,
-             int           aNumColsPerBlock=1
+  CrsMatrix( RowMapVectorT  aRowmap,
+             OrdinalVectorT aColIndices,
+             ScalarVectorT  aEntries,
+             int            aNumRowsPerBlock=1,
+             int            aNumColsPerBlock=1
            ) :
             mRowMap          (aRowmap),
             mColumnIndices   (aColIndices),
@@ -79,13 +79,13 @@ class CrsMatrix {
             mNumColsPerBlock (aNumColsPerBlock),
             mIsBlockMatrix   (mNumColsPerBlock*mNumRowsPerBlock > 1) {}
 
-  CrsMatrix( RowMapVector  aRowmap,
-             OrdinalVector aColIndices,
-             ScalarVector  aEntries,
-             int           aNumRows,
-             int           aNumCols,
-             int           aNumRowsPerBlock,
-             int           aNumColsPerBlock
+  CrsMatrix( RowMapVectorT  aRowmap,
+             OrdinalVectorT aColIndices,
+             ScalarVectorT  aEntries,
+             int            aNumRows,
+             int            aNumCols,
+             int            aNumRowsPerBlock,
+             int            aNumColsPerBlock
           ) :
             mRowMap          (aRowmap),
             mColumnIndices   (aColIndices),

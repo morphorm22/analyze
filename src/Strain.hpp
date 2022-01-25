@@ -3,7 +3,7 @@
 #include "SimplexMechanics.hpp"
 #include "PlatoStaticsTypes.hpp"
 
-#include <Omega_h_vector.hpp>
+#include "PlatoMathTypes.hpp"
 
 namespace Plato
 {
@@ -37,7 +37,7 @@ public:
     DEVICE_TYPE inline void operator()(Plato::OrdinalType aCellOrdinal,
                                        Kokkos::View<ScalarType**, Plato::Layout, Plato::MemSpace> const& aStrain,
                                        Kokkos::View<ScalarType**, Plato::Layout, Plato::MemSpace> const& aState,
-                                       Omega_h::Vector<mNumVoigtTerms> const* aGradientMatrix) const
+                                       Plato::Array<mNumVoigtTerms> const* aGradientMatrix) const
     {
 
         // compute strain

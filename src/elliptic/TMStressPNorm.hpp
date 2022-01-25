@@ -23,8 +23,6 @@
 #include "PlatoMeshExpr.hpp"
 #include "UtilsOmegaH.hpp"
 #include "alg/Cubature.hpp"
-#include <Omega_h_expr.hpp>
-#include <Omega_h_mesh.hpp>
 
 namespace Plato
 {

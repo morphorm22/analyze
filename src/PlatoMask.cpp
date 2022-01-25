@@ -13,7 +13,7 @@ namespace Plato {
     ) : mLimits(aParams)
     {
         if (!aParams.isType<std::string>("Operation")) {
-            THROWERR("Primitive definition is missing required parameter 'Operation'");
+            ANALYZE_THROWERR("Primitive definition is missing required parameter 'Operation'");
         }
 
         auto tOperation = aParams.get<std::string>("Operation");
@@ -28,13 +28,13 @@ namespace Plato {
         }
         else
         {
-            THROWERR("Primitive definition: 'Operation' must be either 'Add' or 'Subtract'");
+            ANALYZE_THROWERR("Primitive definition: 'Operation' must be either 'Add' or 'Subtract'");
         }
     }
 
     void
     BrickPrimitive::apply(
-        Plato::LocalOrdinalVector aCellMask,
+        Plato::OrdinalVector     aCellMask,
         Plato::ScalarMultiVector aCellCenters
     ) const
     {

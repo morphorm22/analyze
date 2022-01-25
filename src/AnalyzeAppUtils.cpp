@@ -28,6 +28,21 @@ get_vector_component
 }
 // function get_vector_component
 
+void
+set_vector_component
+(Plato::ScalarVector aTo,
+ Plato::ScalarVector aFrom,
+ Plato::OrdinalType aDof,
+ Plato::OrdinalType aStride)
+{
+    Plato::OrdinalType tNumLocalVals = aFrom.size();
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), LAMBDA_EXPRESSION(const Plato::OrdinalType & aNodeOrdinal)
+    {
+        aTo(aStride*aNodeOrdinal+aDof) = aFrom(aNodeOrdinal);
+    }, "copy component to vector");
+}
+// function set_vector_component
+
 void parse_inline
 (Teuchos::ParameterList& aParams,
  const std::string& aTarget,
@@ -115,7 +130,7 @@ find_solution_tag
     auto tLowerName = Plato::tolower(aName);
     auto tItr = tSupportedTags.find(tLowerName);
     if( tItr == tSupportedTags.end() )
-    { THROWERR(std::string("Solution tag '") + tItr->first + "' is not a supported output key.") }
+    { ANALYZE_THROWERR(std::string("Solution tag '") + tItr->first + "' is not a supported output key.") }
     return tItr->second;
 }
 // function find_solution_tag
@@ -128,11 +143,11 @@ extract_solution
  const Plato::OrdinalType & aStride)
  {
     if(aSolution.empty()) 
-    { THROWERR("Plato::Solutions database is empty.") }
+    { ANALYZE_THROWERR("Plato::Solutions database is empty.") }
     auto tTag = Plato::find_solution_tag(aName, aSolution);
     auto tState = aSolution.get(tTag);
     const Plato::OrdinalType tTIME_STEP_INDEX = tState.extent(0)-1;
-    if(tTIME_STEP_INDEX < 0) { THROWERR("Negative time step index. State solution is most likely empty.") }
+    if(tTIME_STEP_INDEX < 0) { ANALYZE_THROWERR("Negative time step index. State solution is most likely empty.") }
     auto tStatesSubView = Kokkos::subview(tState, tTIME_STEP_INDEX, Kokkos::ALL());
     auto tDeviceData = Plato::get_vector_component(tStatesSubView, aDof, aStride);
     return tDeviceData;

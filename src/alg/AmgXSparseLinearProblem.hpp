@@ -196,11 +196,11 @@ public:
         AMGX_solver_get_status(mSolver, &tStatus);
         if (tStatus == AMGX_SOLVE_FAILED)
         {
-            THROWERR("AMGX Solver Failed!");
+            ANALYZE_THROWERR("AMGX Solver Failed!");
         }
         else if (tStatus == AMGX_SOLVE_DIVERGED)
         {
-            THROWERR("AMGX Solver Diverged!");
+            ANALYZE_THROWERR("AMGX Solver Diverged!");
         }
         Kokkos::Profiling::popRegion();
         Kokkos::Profiling::pushRegion("AMGX_vector_download");

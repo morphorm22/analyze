@@ -37,7 +37,7 @@ public:
         }
         else
         {
-            THROWERR("Unknown 'Local Measure' specified in 'Plato Problem' ParameterList")
+            ANALYZE_THROWERR("Unknown 'Local Measure' specified in 'Plato Problem' ParameterList")
         }
     }
 };

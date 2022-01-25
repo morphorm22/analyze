@@ -45,7 +45,7 @@ public:
                                                                SimplexPhysics>
                              (aMaterialInfo, aParamList) );
 #else
-        THROWERR("Plato Analyze was not built with expression support. "
+        ANALYZE_THROWERR("Plato Analyze was not built with expression support. "
                  "Rebuild with the cmake EXPRESSION option ON")
 #endif
       }

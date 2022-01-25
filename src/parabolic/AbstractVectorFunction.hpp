@@ -16,18 +16,21 @@ template<typename EvaluationType>
 class AbstractVectorFunction
 /******************************************************************************/
 {
+    using StrVec = std::vector<std::string>;
+
 protected:
     const Plato::SpatialDomain & mSpatialDomain;
 
     Plato::DataMap& mDataMap;
-    std::vector<std::string> mDofNames;
+    StrVec mDofNames;
+    StrVec mDofDotNames;
 
 public:
     /******************************************************************************/
     explicit 
     AbstractVectorFunction(
-        const Plato::SpatialDomain     & aSpatialDomain,
-              Plato::DataMap           & aDataMap
+        const Plato::SpatialDomain & aSpatialDomain,
+              Plato::DataMap       & aDataMap
     ) :
     /******************************************************************************/
         mSpatialDomain (aSpatialDomain),
@@ -41,7 +44,7 @@ public:
     }
 
     /****************************************************************************//**
-    * \brief Return reference to Omega_h mesh data base 
+    * \brief Return reference to mesh data base 
     ********************************************************************************/
     decltype(mSpatialDomain.Mesh) getMesh() const
     {
@@ -49,19 +52,19 @@ public:
     }
 
     /****************************************************************************//**
-    * \brief Return reference to Omega_h mesh sets 
+    * \brief Return reference to state names
     ********************************************************************************/
-    decltype(mSpatialDomain.MeshSets) getMeshSets() const
+    const decltype(mDofNames)& getDofNames() const
     {
-        return (mSpatialDomain.MeshSets);
+        return (mDofNames);
     }
 
     /****************************************************************************//**
-    * \brief Return reference to state index map
+    * \brief Return reference to state dot names
     ********************************************************************************/
-    decltype(mDofNames) getDofNames() const
+    const decltype(mDofDotNames)& getDofDotNames() const
     {
-        return (mDofNames);
+        return (mDofDotNames);
     }
 
     /****************************************************************************//**

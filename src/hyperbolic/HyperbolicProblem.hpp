@@ -35,7 +35,7 @@ namespace Plato
         static constexpr Plato::OrdinalType SpatialDim = SimplexPhysics::mNumSpatialDims;
         static constexpr Plato::OrdinalType mNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
 
-        Plato::SpatialModel mSpatialModel; /*!< SpatialModel instance contains the mesh, meshsets, domains, etc. */
+        Plato::SpatialModel mSpatialModel; /*!< SpatialModel instance contains the mesh, domains, etc. */
 
         using VectorFunctionType = Plato::Hyperbolic::VectorFunction<SimplexPhysics>;
 
@@ -70,15 +70,17 @@ namespace Plato
         Teuchos::RCP<Plato::ComputedFields<SpatialDim>> mComputedFields;
 
         Plato::EssentialBCs<SimplexPhysics> mStateBoundaryConditions;
-        Plato::LocalOrdinalVector mStateBcDofs;
+
+        Plato::OrdinalVector mStateBcDofs;
+
         Plato::ScalarVector mStateBcValues;
 
         Plato::EssentialBCs<SimplexPhysics> mStateDotBoundaryConditions;
-        Plato::LocalOrdinalVector mStateDotBcDofs;
+        Plato::OrdinalVector mStateDotBcDofs;
         Plato::ScalarVector mStateDotBcValues;
 
         Plato::EssentialBCs<SimplexPhysics> mStateDotDotBoundaryConditions;
-        Plato::LocalOrdinalVector mStateDotDotBcDofs;
+        Plato::OrdinalVector mStateDotDotBcDofs;
         Plato::ScalarVector mStateDotDotBcValues;
 
         rcp<Plato::AbstractSolver> mSolver;
@@ -89,23 +91,22 @@ namespace Plato
       public:
         /******************************************************************************/
         HyperbolicProblem(
-          Omega_h::Mesh& aMesh,
-          Omega_h::MeshSets& aMeshSets,
-          Teuchos::ParameterList& aProblemParams,
-          Comm::Machine aMachine
+          Plato::Mesh              aMesh,
+          Teuchos::ParameterList & aProblemParams,
+          Comm::Machine            aMachine
         ) :
-            mSpatialModel     (aMesh, aMeshSets, aProblemParams),
-            mPDEConstraint    (mSpatialModel, mDataMap, aProblemParams, aProblemParams.get<std::string>("PDE Constraint")),
-            mSaveState        (aProblemParams.sublist("Hyperbolic").isType<Teuchos::Array<std::string>>("Plottable")),
+            mSpatialModel    (aMesh, aProblemParams),
+            mPDEConstraint   (mSpatialModel, mDataMap, aProblemParams, aProblemParams.get<std::string>("PDE Constraint")),
+            mSaveState       (aProblemParams.sublist("Hyperbolic").isType<Teuchos::Array<std::string>>("Plottable")),
             mInitDisplacement ("Init Displacement", mPDEConstraint.size()),
             mInitVelocity     ("Init Velocity",     mPDEConstraint.size()),
             mInitAcceleration ("Init Acceleration", mPDEConstraint.size()),
-            mJacobianU        (Teuchos::null),
-            mJacobianV        (Teuchos::null),
-            mJacobianA        (Teuchos::null),
-            mStateBoundaryConditions      (aProblemParams.sublist("State Essential Boundary Conditions",false), aMeshSets),
-            mStateDotBoundaryConditions   (aProblemParams.sublist("State Dot Essential Boundary Conditions",false), aMeshSets),
-            mStateDotDotBoundaryConditions(aProblemParams.sublist("State Dot Dot Essential Boundary Conditions",false), aMeshSets),
+            mJacobianU     (Teuchos::null),
+            mJacobianV     (Teuchos::null),
+            mJacobianA     (Teuchos::null),
+            mStateBoundaryConditions      (aProblemParams.sublist("State Essential Boundary Conditions",false), aMesh),
+            mStateDotBoundaryConditions   (aProblemParams.sublist("State Dot Essential Boundary Conditions",false), aMesh),
+            mStateDotDotBoundaryConditions(aProblemParams.sublist("State Dot Dot Essential Boundary Conditions",false), aMesh),
             mPDE           (aProblemParams.get<std::string>("PDE Constraint")),
             mPhysics       (aProblemParams.get<std::string>("Physics"))
         /******************************************************************************/
@@ -214,7 +215,7 @@ namespace Plato
         /******************************************************************************/
         void parseComputedFields(
           Teuchos::ParameterList & aProblemParams,
-          Omega_h::Mesh          & aMesh
+          Plato::Mesh              aMesh
         )
         /******************************************************************************/
         {
@@ -235,7 +236,7 @@ namespace Plato
             if(aProblemParams.isSublist("Initial State"))
             {
                 if(mComputedFields == Teuchos::null) {
-                  THROWERR("No 'Computed Fields' have been defined");
+                  ANALYZE_THROWERR("No 'Computed Fields' have been defined");
                 }
 
                 auto tDofNames = mPDEConstraint.getDofNames();
@@ -277,7 +278,7 @@ namespace Plato
                             }
                             else
                             {
-                                THROWERR("Attempted to initialize state variable that doesn't exist.");
+                                ANALYZE_THROWERR("Attempted to initialize state variable that doesn't exist.");
                             }
                         }
                     }
@@ -288,13 +289,13 @@ namespace Plato
         /******************************************************************************/
         void parseLinearSolver(
           Teuchos::ParameterList & aProblemParams,
-          Omega_h::Mesh          & aMesh,
+          Plato::Mesh              aMesh,
           Comm::Machine            aMachine
         )
         /******************************************************************************/
         {
             Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
-            mSolver = tSolverFactory.create(aMesh.nverts(), aMachine, SimplexPhysics::mNumDofsPerNode);
+            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, SimplexPhysics::mNumDofsPerNode);
         }
 
         /******************************************************************************/
@@ -304,7 +305,7 @@ namespace Plato
             auto tDataMap = getDataMap();
             auto tSolution = getSolution();
             auto tSolutionOutput = mPDEConstraint.getSolutionStateOutputData(tSolution);
-            Plato::universal_solution_output<SpatialDim>(aFilepath, tSolutionOutput, tDataMap, mSpatialModel.Mesh);
+            Plato::universal_solution_output(aFilepath, tSolutionOutput, tDataMap, mSpatialModel.Mesh);
         }
 
         /******************************************************************************/
@@ -328,7 +329,7 @@ namespace Plato
         void applyConstraintType(
           const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
           const Plato::ScalarVector                & aVector,
-          const Plato::LocalOrdinalVector          & aBcDofs,
+          const Plato::OrdinalVector               & aBcDofs,
           const Plato::ScalarVector                & aBcValues
         )
         /******************************************************************************/
@@ -688,7 +689,7 @@ namespace Plato
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -713,7 +714,7 @@ namespace Plato
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -738,7 +739,7 @@ namespace Plato
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -763,7 +764,7 @@ namespace Plato
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -783,7 +784,7 @@ namespace Plato
         {
             if(aCriterion == nullptr)
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
 
             Plato::Solutions tSolution(mPhysics);
@@ -937,7 +938,7 @@ namespace Plato
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -962,7 +963,7 @@ namespace Plato
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -982,7 +983,7 @@ namespace Plato
         {
             if(aCriterion == nullptr)
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
 
             Plato::Solutions tSolution(mPhysics);
@@ -1124,9 +1125,9 @@ namespace Plato
         Plato::Solutions getSolution() const override
         {
             Plato::Solutions tSolution(mPhysics, mPDE);
-            tSolution.set("State", mDisplacement);
-            tSolution.set("StateDot", mVelocity);
-            tSolution.set("StateDotDot", mAcceleration);
+            tSolution.set("State",       mDisplacement, mPDEConstraint.getDofNames());
+            tSolution.set("StateDot",    mVelocity,     mPDEConstraint.getDofDotNames());
+            tSolution.set("StateDotDot", mAcceleration, mPDEConstraint.getDofDotDotNames());
             return tSolution;
         }
     };

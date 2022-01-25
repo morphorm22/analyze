@@ -124,7 +124,7 @@ public:
             auto tNumCells = mSpatialDomain.numCells();
             if (tNumCells != static_cast<Plato::OrdinalType>(aResultWS.extent(0)) )
             {
-                THROWERR(std::string("Number of elements mismatch. Spatial domain and output/result workset ") 
+                ANALYZE_THROWERR(std::string("Number of elements mismatch. Spatial domain and output/result workset ") 
                     + "cell number does not match. " + "Spatial domain has '" + std::to_string(tNumCells) 
                     + "' cells/elements and output workset has '" + std::to_string(aResultWS.extent(0)) + "' cells/elements.")
             }
@@ -325,7 +325,7 @@ public:
             auto tNumCells = mSpatialDomain.numCells();
             if (tNumCells != static_cast<Plato::OrdinalType>(aResultWS.extent(0)) )
             {
-                THROWERR(std::string("Number of elements mismatch. Spatial domain and output/result workset ") 
+                ANALYZE_THROWERR(std::string("Number of elements mismatch. Spatial domain and output/result workset ") 
                     + "cell number does not match. " + "Spatial domain has '" + std::to_string(tNumCells) 
                     + "' cells/elements and output workset has '" + std::to_string(aResultWS.extent(0)) + "' cells/elements.")
             }

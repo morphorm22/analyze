@@ -87,6 +87,17 @@ public:
         this->initialize(aProblemParams);
     }
 
+    /****************************************************************************//**
+    * \brief Pure virtual function to get output solution data
+    * \param [in] state solution database
+    * \return output state solution database
+    ********************************************************************************/
+    Plato::Solutions getSolutionStateOutputData(const Plato::Solutions &aSolutions) const override
+    {
+      Plato::Solutions tSolutionsOutput(aSolutions.physics(), aSolutions.pde());
+      return tSolutionsOutput;
+    }
+
     /******************************************************************************//**
      * \brief Evaluate stabilized elastostatics residual
      * \param [in] aNodalPGradWS pressure gradient workset on H^1(\Omega)

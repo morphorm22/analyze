@@ -51,15 +51,9 @@
 #define PLATO_MESHMAP_HPP_
 
 #include <ArborX.hpp>
-
 #include <Kokkos_Core.hpp>
 
 #include "alg/PlatoLambda.hpp"
-
-#include <Omega_h_library.hpp>
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_file.hpp>
-
 #include "Plato_MeshMapUtils.hpp"
 
 namespace Plato {
@@ -214,7 +208,7 @@ class MeshMap
     using OrdinalArrayT = typename Plato::ScalarVectorT<OrdinalT>;
     using IntegerArrayT = typename Plato::ScalarVectorT<int>;
 
-    MeshMap(Omega_h::Mesh& aMesh, Plato::InputData& aInput) :
+    MeshMap(Plato::Mesh aMesh, Plato::InputData& aInput) :
       mFilter(nullptr),
       mFilterT(nullptr),
       mFilterFirst(Plato::Get::Bool(aInput, "FilterFirst", /*default=*/ true)),
@@ -245,9 +239,9 @@ class MeshMap
     /***************************************************************************//**
     * @brief Set map matrix values from parent element
     *******************************************************************************/
-    void setMatrixValues(Omega_h::Mesh& aMesh, IntegerArrayT aParentElements, VectorArrayT aLocation, SparseMatrix& aMatrix)
+    void setMatrixValues(Plato::Mesh aMesh, IntegerArrayT aParentElements, VectorArrayT aLocation, SparseMatrix& aMatrix)
     {
-        auto tNVerts = aMesh.nverts();
+        auto tNVerts = aMesh->NumNodes();
         aMatrix.mNumRows = tNVerts;
         aMatrix.mNumCols = tNVerts;
         
@@ -265,7 +259,7 @@ class MeshMap
         {
             std::ostringstream tMsg;
             tMsg << "WARNING: NO PARENT ELEMENT COULD BE FOUND FOR AT LEAST ONE MAPPED NODE IN MESH MAP. TRY INCREASING SEARCH TOLERANCE \n";
-            PRINTERR(tMsg.str())
+            ANALYZE_PRINTERR(tMsg.str())
         }
 
         // determine rowmap
@@ -642,13 +636,13 @@ class MeshMapDerived : public Plato::Geometry::MeshMap<typename MathMapType::Sca
 
   public:
 
-    MeshMapDerived(Omega_h::Mesh& aMesh, Plato::InputData& aInput) :
+    MeshMapDerived(Plato::Mesh aMesh, Plato::InputData& aInput) :
       MeshMap<typename MathMapType::ScalarT>(aMesh, aInput),
       mMathMap(aInput.get<Plato::InputData>("LinearMap"))
     {
         // compute mapped values
         //
-        auto tNVerts = aMesh.nverts();
+        auto tNVerts = aMesh->NumNodes();
         VectorArrayT tVertexLocations       ("mesh node locations",        cSpaceDim, tNVerts);
         VectorArrayT tMappedVertexLocations ("mapped mesh node locations", cSpaceDim, tNVerts);
         mapVertexLocations(aMesh, tVertexLocations, tMappedVertexLocations);
@@ -676,16 +670,16 @@ class MeshMapDerived : public Plato::Geometry::MeshMap<typename MathMapType::Sca
         mFilterT = MapBase::createTranspose(mFilter);
     }
 
-    void mapVertexLocations(Omega_h::Mesh& aMesh, VectorArrayT aLocations, VectorArrayT aMappedLocations)
+    void mapVertexLocations(Plato::Mesh aMesh, VectorArrayT aLocations, VectorArrayT aMappedLocations)
     {
-        auto tCoords = aMesh.coords();
-        auto tNVerts = aMesh.nverts();
+        auto tCoords = aMesh->Coordinates();
+        auto tNVerts = aMesh->NumNodes();
         auto tMathMap = mMathMap;
         Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalT>(0, tNVerts), KOKKOS_LAMBDA(OrdinalT iOrdinal)
         {
             for(size_t iDim=0; iDim<cSpaceDim; ++iDim)
             {
-                aLocations(iDim, iOrdinal) = tCoords[iOrdinal*cSpaceDim+iDim];
+                aLocations(iDim, iOrdinal) = tCoords(iOrdinal*cSpaceDim+iDim);
             }
             tMathMap(iOrdinal, aLocations, aMappedLocations);
         }, "get verts and apply map");
@@ -708,15 +702,13 @@ struct MeshMapFactory
         // load mesh
         //
         auto tMeshFileName = Plato::Get::String(aInput, "Mesh");
-        Omega_h::Library tLibOSH(0, nullptr);
-        Omega_h::Mesh tMesh = Omega_h::read_mesh_file(tMeshFileName, tLibOSH.world());
-        tMesh.set_parting(Omega_h_Parting::OMEGA_H_GHOSTED);
+        auto tMesh = Plato::MeshFactory::create(tMeshFileName);
 
         return create(tMesh, aInput);
     }
 
     inline std::shared_ptr<Plato::Geometry::MeshMap<ScalarT>>
-    create(Omega_h::Mesh& aMesh, Plato::InputData aInput)
+    create(Plato::Mesh aMesh, Plato::InputData aInput)
     {
         auto tLinearMapInputs = aInput.getByName<Plato::InputData>("LinearMap");
         if( tLinearMapInputs.size() == 0 )

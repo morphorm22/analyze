@@ -89,13 +89,13 @@ AmgXLinearSolver::checkStatusAndPrintIteration()
     AMGX_solver_get_status(mSolverHandle, &tStatus);
     if (tStatus == AMGX_SOLVE_FAILED)
     {
-        THROWERR("AMGX Solver Failed!");
+        ANALYZE_THROWERR("AMGX Solver Failed!");
     }
     else if (tStatus == AMGX_SOLVE_DIVERGED)
     {
         if (mDivergenceIsFatal)
         {
-            THROWERR("AMGX Solver Diverged!");
+            ANALYZE_THROWERR("AMGX Solver Diverged!");
         }
         else
         {

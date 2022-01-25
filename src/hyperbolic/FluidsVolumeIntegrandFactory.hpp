@@ -67,7 +67,7 @@ createInternalThermalForces
     }
     else
     {
-        THROWERR( std::string("Requested Use Case: Scenario '") + tScenario + "' & Heat Transfer Mechanism '" + tHeatTransfer + "' is not supported. " +
+        ANALYZE_THROWERR( std::string("Requested Use Case: Scenario '") + tScenario + "' & Heat Transfer Mechanism '" + tHeatTransfer + "' is not supported. " +
             "Supported use cases are: Scenario = 'Density-Based Topology Optimization' and Heat Transfer = 'Natural or Forced', " + 
             "Scenario = 'Levelset Topology Optimization' & Heat Transfer = 'Natural or Forced', " + 
             "Scenario = 'Analysis' & Heat Transfer = 'Natural or Forced'" )

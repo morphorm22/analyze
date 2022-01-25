@@ -17,7 +17,7 @@ Plato::Scalar Variables::scalar(const std::string& aTag) const
     auto tItr = mScalars.find(tLowerTag);
     if(tItr == mScalars.end())
     {
-        THROWERR(std::string("Scalar with tag '") + aTag + "' is not defined in the variables map.")
+        ANALYZE_THROWERR(std::string("Scalar with tag '") + aTag + "' is not defined in the variables map.")
     }
     return tItr->second;
 }
@@ -34,7 +34,7 @@ Plato::ScalarVector Variables::vector(const std::string& aTag) const
     auto tItr = mVectors.find(tLowerTag);
     if(tItr == mVectors.end())
     {
-        THROWERR(std::string("Vector with tag '") + aTag + "' is not defined in the variables map.")
+        ANALYZE_THROWERR(std::string("Vector with tag '") + aTag + "' is not defined in the variables map.")
     }
     return tItr->second;
 }
@@ -129,7 +129,7 @@ std::string FieldTags::id(const std::string& aTag) const
     auto tItr = mFields.find(aTag);
     if(tItr == mFields.end())
     {
-        THROWERR(std::string("Field with tag '") + aTag + "' is not defined.")
+        ANALYZE_THROWERR(std::string("Field with tag '") + aTag + "' is not defined.")
     }
     return tItr->second;
 }

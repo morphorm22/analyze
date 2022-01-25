@@ -57,7 +57,7 @@ public:
     void getTypedValue( const Plato::Scalar val,
                         const size_t ith, const size_t size,
                         T &value ) const {
-      THROWERR( "Unknown type value requested." );
+      ANALYZE_THROWERR( "Unknown type value requested." );
     };
 
     KOKKOS_INLINE_FUNCTION

@@ -63,7 +63,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ComputeStateWorkset)
     // ****** TEST STATE WORKSET TOOLS ****** //
     const Plato::OrdinalType tSpaceDim = 3;
     const Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // ******************** SET ELASTOSTATICS' EVALUATION TYPES FOR UNIT TEST ********************
     using ResidualT = typename Plato::Evaluation<typename Plato::Mechanics<tSpaceDim>::SimplexT>::Residual;
@@ -73,10 +73,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ComputeStateWorkset)
     using StrainT = typename Plato::fad_type_t<Plato::Mechanics<tSpaceDim>, ResidualT::StateScalarType, ResidualT::ConfigScalarType>;
 
     // ALLOCATE ELASTOSTATICS RESIDUAL
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
 
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -93,8 +91,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ComputeStateWorkset)
     tElastostatics.setEvaluator(tResidual, tJacobianState, tOnlyDomain.getDomainName());
 
     // SET PROBLEM-RELATED DIMENSIONS
-    Plato::OrdinalType tNumCells = tMesh.get()->nelems();
-    Plato::OrdinalType tNumVertices = tMesh.get()->nverts();
+    Plato::OrdinalType tNumCells = tMesh->NumElements();
+    Plato::OrdinalType tNumVertices = tMesh->NumNodes();
     Plato::OrdinalType tTotalNumDofs = tNumVertices * tSpaceDim;
     
     // ALLOCATE STATES VECTOR FOR ELASTODYNAMICS EXAMPLE
@@ -188,7 +186,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearStrainsToComplexStrains)
     // BUILD OMEGA_H MESH
     const Plato::OrdinalType tSpaceDim = 3;
     const Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // ******************** SET ELASTOSTATICS' EVALUATION TYPES FOR UNIT TEST ********************
     using ResidualT = typename Plato::Evaluation<typename Plato::Mechanics<tSpaceDim>::SimplexT>::Residual;
@@ -198,10 +196,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearStrainsToComplexStrains)
     using StrainT = typename Plato::fad_type_t<Plato::Mechanics<tSpaceDim>, ResidualT::StateScalarType, ResidualT::ConfigScalarType>;
     
     // ALLOCATE ELASTOSTATICS VECTOR FUNCTION
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
 
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -218,9 +214,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearStrainsToComplexStrains)
     tElastostatics.setEvaluator(tResidual, tJacobianState, tOnlyDomain.getDomainName());
 
     // SET PROBLEM-RELATED DIMENSIONS
-    Plato::OrdinalType tNumCells = tMesh.get()->nelems();
+    Plato::OrdinalType tNumCells = tMesh->NumElements();
     TEST_EQUALITY(tNumCells, static_cast<Plato::OrdinalType>(6));
-    Plato::OrdinalType tNumVertices = tMesh.get()->nverts();
+    Plato::OrdinalType tNumVertices = tMesh->NumNodes();
     TEST_EQUALITY(tNumVertices, static_cast<Plato::OrdinalType>(8));
     Plato::OrdinalType tTotalNumDofs = tNumVertices * tSpaceDim;
     TEST_EQUALITY(tTotalNumDofs, static_cast<Plato::OrdinalType>(24));
@@ -350,7 +346,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearStressToComplexStress)
 
     using SimplexPhysics = typename Plato::SimplexMechanics<tSpaceDim>;
 
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // ******************** SET ELASTOSTATICS' EVALUATION TYPES FOR UNIT TEST ********************
     using ResidualT = typename Plato::Evaluation<typename Plato::Mechanics<tSpaceDim>::SimplexT>::Residual;
@@ -360,10 +356,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearStressToComplexStress)
     using StrainT = typename Plato::fad_type_t<Plato::Mechanics<tSpaceDim>, ResidualT::StateScalarType, ResidualT::ConfigScalarType>;
 
     // ALLOCATE ELASTOSTATICS RESIDUAL
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
 
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -380,9 +374,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearStressToComplexStress)
     tElastostatics.setEvaluator(tResidual, tJacobianState, tOnlyDomain.getDomainName());
     
     // SET PROBLEM-RELATED DIMENSIONS
-    Plato::OrdinalType tNumCells = tMesh.get()->nelems();
+    Plato::OrdinalType tNumCells = tMesh->NumElements();
     TEST_EQUALITY(tNumCells, static_cast<Plato::OrdinalType>(6));
-    Plato::OrdinalType tNumVertices = tMesh.get()->nverts();
+    Plato::OrdinalType tNumVertices = tMesh->NumNodes();
     TEST_EQUALITY(tNumVertices, static_cast<Plato::OrdinalType>(8));
     Plato::OrdinalType tTotalNumDofs = tNumVertices * tSpaceDim;
     TEST_EQUALITY(tTotalNumDofs, static_cast<Plato::OrdinalType>(24));
@@ -532,7 +526,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearElasticForcesToComplexElas
 
     using SimplexPhysics = typename Plato::SimplexMechanics<tSpaceDim>;
 
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // ******************** SET ELASTOSTATICS' EVALUATION TYPES FOR UNIT TEST ********************
     using ResidualT = typename Plato::Evaluation<typename Plato::Mechanics<tSpaceDim>::SimplexT>::Residual;
@@ -542,10 +536,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearElasticForcesToComplexElas
     using StrainT = typename Plato::fad_type_t<Plato::Mechanics<tSpaceDim>, ResidualT::StateScalarType, ResidualT::ConfigScalarType>;
 
     // ALLOCATE ELASTOSTATICS RESIDUAL
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
 
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -562,9 +554,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearElasticForcesToComplexElas
     tElastostatics.setEvaluator(tResidual, tJacobianState, tOnlyDomain.getDomainName());
 
     // SET PROBLEM-RELATED DIMENSIONS
-    Plato::OrdinalType tNumCells = tMesh.get()->nelems();
+    Plato::OrdinalType tNumCells = tMesh->NumElements();
     TEST_EQUALITY(tNumCells, static_cast<Plato::OrdinalType>(6));
-    Plato::OrdinalType tNumVertices = tMesh.get()->nverts();
+    Plato::OrdinalType tNumVertices = tMesh->NumNodes();
     TEST_EQUALITY(tNumVertices, static_cast<Plato::OrdinalType>(8));
     Plato::OrdinalType tTotalNumDofs = tNumVertices * tSpaceDim;
     TEST_EQUALITY(tTotalNumDofs, static_cast<Plato::OrdinalType>(24));

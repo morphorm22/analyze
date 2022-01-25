@@ -40,7 +40,7 @@ public:
      * \brief Constructor
      * \param [in] aCellStiffness material element stiffness matrix
     **********************************************************************************/
-    EllipticUpLagLinearStress(const Omega_h::Matrix<mNumVoigtTerms,
+    EllipticUpLagLinearStress(const Plato::Matrix<mNumVoigtTerms,
                  mNumVoigtTerms> aCellStiffness) :
       AbstractEllipticUpLagLinearStress< EvaluationType, SimplexPhysics >(aCellStiffness)
     {

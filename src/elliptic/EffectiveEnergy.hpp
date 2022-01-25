@@ -53,8 +53,8 @@ class EffectiveEnergy :
     IndicatorFunctionType mIndicatorFunction;
     Plato::ApplyWeighting<mSpaceDim,mNumVoigtTerms,IndicatorFunctionType> mApplyWeighting;
 
-    Omega_h::Matrix< mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;
-    Omega_h::Vector<mNumVoigtTerms> mAssumedStrain;
+    Plato::Matrix< mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;
+    Plato::Array<mNumVoigtTerms> mAssumedStrain;
     Plato::OrdinalType mColumnIndex;
     Plato::Scalar mQuadratureWeight;
 

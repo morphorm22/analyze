@@ -50,7 +50,7 @@ public:
           return Teuchos::rcp( new Plato::Elliptic::UpdatedLagrangian::EllipticUpLagLinearStressExpression<EvaluationType, SimplexPhysics>
                              (aMaterialInfo, aParamList) );
 #else
-          THROWERR("Plato Analyze was not built with expression support. "
+          ANALYZE_THROWERR("Plato Analyze was not built with expression support. "
                    "Rebuild with the cmake EXPRESSION option ON")
 #endif
       }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Omega_h_mesh.hpp>
+#include <memory>
 #include <Teuchos_ParameterList.hpp>
 
 #include "ImplicitFunctors.hpp"
@@ -48,7 +48,7 @@ namespace Plato {
     class ConstructivePrimitive
     {
       public:
-        virtual void apply( LocalOrdinalVector aCellMask, Plato::ScalarMultiVector aCellCenters ) const = 0;
+        virtual void apply( OrdinalVector aCellMask, Plato::ScalarMultiVector aCellCenters ) const = 0;
     };
 
     class BrickPrimitive : public ConstructivePrimitive
@@ -58,7 +58,7 @@ namespace Plato {
 
       public:
         BrickPrimitive( Teuchos::ParameterList& aParams );
-        void apply( LocalOrdinalVector aCellMask, Plato::ScalarMultiVector aCellCenters ) const override;
+        void apply( OrdinalVector aCellMask, Plato::ScalarMultiVector aCellCenters ) const override;
     };
 
     /******************************************************************************/
@@ -71,22 +71,20 @@ namespace Plato {
     {
 
       protected:
-        LocalOrdinalVector mCellMask;
-        LocalOrdinalVector mNodeMask;
+        OrdinalVector mCellMask;
+        OrdinalVector mNodeMask;
 
       public:
         /******************************************************************************//**
          * \brief Compute node mask from element mask
-         * \param [in] aMesh Omega_h mesh
+         * \param [in] aMesh Plato abstract mesh
         **********************************************************************************/
         void
-        computeNodeMask(
-            Omega_h::Mesh & aMesh
-        )
+        computeNodeMask(Plato::Mesh aMesh)
         {
             Kokkos::deep_copy(mNodeMask, 0.0);
 
-            NodeOrdinal<mSpaceDim> tNodeOrdinalFunctor(&aMesh);
+            NodeOrdinal<mSpaceDim> tNodeOrdinalFunctor(aMesh);
 
             auto tCellMask = mCellMask;
             auto tNodeMask = mNodeMask;
@@ -107,16 +105,14 @@ namespace Plato {
 
         /******************************************************************************//**
          * \brief get location of cell centers in physical space
-         * \param [in] aMesh Omega_h mesh
+         * \param [in] aMesh Plato abstract mesh
         **********************************************************************************/
         Plato::ScalarMultiVector
-        getCellCenters(
-            Omega_h::Mesh & aMesh
-        )
+        getCellCenters(Plato::Mesh aMesh)
         {
-            Plato::NodeCoordinate<mSpaceDim> tNodeCoordsFunctor(&aMesh);
+            Plato::NodeCoordinate<mSpaceDim> tNodeCoordsFunctor(aMesh);
 
-            auto tNumCells = aMesh.nelems();
+            auto tNumCells = aMesh->NumElements();
             Plato::ScalarMultiVector tCellCenters("cell centers", tNumCells, mSpaceDim);
 
             Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells),
@@ -139,19 +135,19 @@ namespace Plato {
         }
 
         Mask(
-            const Omega_h::Mesh & aMesh
+            const Plato::Mesh aMesh
         ) :
-            mCellMask("cell mask", aMesh.nelems()),
-            mNodeMask("node mask", aMesh.nverts()){}
+            mCellMask("cell mask", aMesh->NumElements()),
+            mNodeMask("node mask", aMesh->NumNodes()){}
 
         decltype(mCellMask) cellMask() const {return mCellMask;}
         decltype(mNodeMask) nodeMask() const {return mNodeMask;}
 
         /******************************************************************************//**
          * \brief Compute node mask from element mask
-         * \param [in] aMesh Omega_h mesh
+         * \param [in] aMesh Plato abstract mesh
         **********************************************************************************/
-        LocalOrdinalVector
+        OrdinalVector
         getInactiveNodes(
         ) const
         {
@@ -169,7 +165,7 @@ namespace Plato {
             }, tSum);
 
             auto tNumFixed = tNumEntries - tSum;
-            LocalOrdinalVector tNodes("inactive nodes", tNumFixed);
+            OrdinalVector tNodes("inactive nodes", tNumFixed);
 
             if (tNumFixed > 0)
             {
@@ -200,11 +196,11 @@ namespace Plato {
       public:
         /******************************************************************************//**
          * \brief Constructor for Plato::Mask
-         * \param [in] aMesh Omega_h mesh
+         * \param [in] aMesh Plato abstract mesh
          * \param [in] aInputParams Mask definition
         **********************************************************************************/
         BrickMask(
-                  Omega_h::Mesh          & aMesh,
+                  Plato::Mesh              aMesh,
             const Teuchos::ParameterList & aInputParams
         ) :
             Plato::Mask<mSpaceDim>(aMesh),
@@ -214,7 +210,7 @@ namespace Plato {
         }
 
         void initialize(
-                  Omega_h::Mesh          & aMesh,
+                  Plato::Mesh              aMesh,
             const Teuchos::ParameterList & aInputParams
         )
         {
@@ -252,11 +248,11 @@ namespace Plato {
       public:
         /******************************************************************************//**
          * \brief Constructor for Plato::Mask
-         * \param [in] aMesh Omega_h mesh
+         * \param [in] aMesh Plato abstract mesh
          * \param [in] aInputParams Mask definition
         **********************************************************************************/
         ConstructiveMask(
-                  Omega_h::Mesh          & aMesh,
+                  Plato::Mesh              aMesh,
             const Teuchos::ParameterList & aInputParams
         ) :
             Plato::Mask<mSpaceDim>(aMesh),
@@ -266,7 +262,7 @@ namespace Plato {
         }
 
         void initialize(
-                  Omega_h::Mesh          & aMesh,
+                  Plato::Mesh              aMesh,
             const Teuchos::ParameterList & aInputParams
         )
         {
@@ -279,13 +275,13 @@ namespace Plato {
 
                 if (!tEntry.isList())
                 {
-                    THROWERR("Parameter in Primitives list not valid.  Expect lists only.");
+                    ANALYZE_THROWERR("Parameter in Primitives list not valid.  Expect lists only.");
                 }   
 
                 Teuchos::ParameterList& tPrimitiveParams = tPrimitivesParams.sublist(tMyName);
 
                 if (!tPrimitiveParams.isType<std::string>("Type")) {
-                    THROWERR("Primitive definition is missing required parameter 'Type'");
+                    ANALYZE_THROWERR("Primitive definition is missing required parameter 'Type'");
                 }
 
                 auto tType = tPrimitiveParams.get<std::string>("Type");
@@ -295,7 +291,7 @@ namespace Plato {
                 }
                 else
                 {
-                    THROWERR("Unknown Primitive type requested");
+                    ANALYZE_THROWERR("Unknown Primitive type requested");
                 }
 
             }
@@ -317,20 +313,20 @@ namespace Plato {
       public:
         std::shared_ptr<Plato::Mask<mSpaceDim>>
         create(
-                  Omega_h::Mesh          & aMesh,
+                  Plato::Mesh              aMesh,
             const Teuchos::ParameterList & aInputParams
         )
         {
             if (!aInputParams.isSublist("Mask"))
             {
-                THROWERR("Required parameter list ('Mask') is missing.");
+                ANALYZE_THROWERR("Required parameter list ('Mask') is missing.");
             }
             else
             {
                 auto tMaskParams = aInputParams.sublist("Mask");
                 if(!tMaskParams.isType<std::string>("Mask Type"))
                 {
-                    THROWERR("Parsing Mask: Required parameter ('Mask Type') is missing.");
+                    ANALYZE_THROWERR("Parsing Mask: Required parameter ('Mask Type') is missing.");
                 }
                 else
                 {
@@ -346,7 +342,7 @@ namespace Plato {
                     }
                     else
                     {
-                        THROWERR("Unknown 'Mask Type' requested");
+                        ANALYZE_THROWERR("Unknown 'Mask Type' requested");
                     }
                 }
             }

@@ -92,7 +92,11 @@ class RelaxedMicromorphicResidual :
                                {"Velocity X", "Velocity Y", "Velocity Z",
                                "Micro Velocity XX", "Micro Velocity YX", "Micro Velocity ZX",
                                "Micro Velocity XY", "Micro Velocity YY", "Micro Velocity ZY",
-                               "Micro Velocity XZ", "Micro Velocity YZ", "Micro Velocity ZZ"}),
+                               "Micro Velocity XZ", "Micro Velocity YZ", "Micro Velocity ZZ"},
+                               {"Acceleration X", "Acceleration Y", "Acceleration Z",
+                               "Micro Acceleration XX", "Micro Acceleration YX", "Micro Acceleration ZX",
+                               "Micro Acceleration XY", "Micro Acceleration YY", "Micro Acceleration ZY",
+                               "Micro Acceleration XZ", "Micro Acceleration YZ", "Micro Acceleration ZZ"}),
         mIndicatorFunction    (aPenaltyParams),
         mApplyStressWeighting (mIndicatorFunction),
         mApplyMassWeighting   (mIndicatorFunction),
@@ -150,16 +154,16 @@ class RelaxedMicromorphicResidual :
             auto tBeta = aIntegratorParams.get<double>("Newmark Beta");
             if (tAForm == false)
             {
-                THROWERR("In RelaxedMicromorphicResidual constructor: Newmark A-Form must be specified for micromorphic mechanics")
+                ANALYZE_THROWERR("In RelaxedMicromorphicResidual constructor: Newmark A-Form must be specified for micromorphic mechanics")
             }
             else if (tBeta != 0.0)
             {
-                THROWERR("In RelaxedMicromorphicResidual constructor: Newmark explicit (beta=0, gamma=0.5) must be specified for micromorphic mechanics")
+                ANALYZE_THROWERR("In RelaxedMicromorphicResidual constructor: Newmark explicit (beta=0, gamma=0.5) must be specified for micromorphic mechanics")
             }
         }
         else
         {
-            THROWERR("In RelaxedMicromorphicResidual constructor: Newmark A-Form must be specified for micromorphic mechanics")
+            ANALYZE_THROWERR("In RelaxedMicromorphicResidual constructor: Newmark A-Form must be specified for micromorphic mechanics")
         }
     }
 
@@ -204,61 +208,7 @@ class RelaxedMicromorphicResidual :
     ******************************************************************************/
     Plato::Solutions getSolutionStateOutputData(const Plato::Solutions &aSolutions) const override
     {
-      Plato::ScalarMultiVector tSolutionFromSolutions    = aSolutions.get("State");
-      Plato::ScalarMultiVector tSolutionDotFromSolutions = aSolutions.get("StateDot");
-      Plato::ScalarMultiVector tSolutionDotDotFromSolutions = aSolutions.get("StateDotDot");
-
-      auto tNumTimeSteps = tSolutionFromSolutions.extent(0);
-      auto tNumVertices  = mSpatialDomain.Mesh.nverts();
-
-      if (tSolutionFromSolutions.extent(0) != tSolutionDotFromSolutions.extent(0))
-          THROWERR("Number of steps provided for State and StateDot differ.")
-
-      if (tSolutionFromSolutions.extent(0) != tSolutionDotDotFromSolutions.extent(0))
-          THROWERR("Number of steps provided for State and StateDotDot differ.")
-
-      Plato::ScalarMultiVector tDisplacements("displacements for all time steps", tNumTimeSteps, tNumVertices*SpaceDim);
-      Plato::ScalarMultiVector tVelocities("velocities for all time steps", tNumTimeSteps, tNumVertices*SpaceDim);
-      Plato::ScalarMultiVector tAccelerations("accelerations for all time steps", tNumTimeSteps, tNumVertices*SpaceDim);
-
-      Plato::blas2::extract<mNumDofsPerNode/*stride*/, SpaceDim/* dofs per node*/, 0/*offset*/>
-                          (tNumVertices, tSolutionFromSolutions, tDisplacements);
-      Plato::blas2::extract<mNumDofsPerNode/*stride*/, SpaceDim/* dofs per node*/, 0/*offset*/>
-                          (tNumVertices, tSolutionDotFromSolutions, tVelocities);
-      Plato::blas2::extract<mNumDofsPerNode/*stride*/, SpaceDim/* dofs per node*/, 0/*offset*/>
-                          (tNumVertices, tSolutionDotDotFromSolutions, tAccelerations);
-
-      Plato::Solutions tSolutionsOutput(aSolutions.physics(), aSolutions.pde());
-      tSolutionsOutput.set("Displacement", tDisplacements);
-      tSolutionsOutput.set("Velocity", tVelocities);
-      tSolutionsOutput.set("Acceleration", tAccelerations);
-
-      const auto cSpaceDim = SpaceDim;
-      tSolutionsOutput.setNumDofs("Displacement", cSpaceDim);
-      tSolutionsOutput.setNumDofs("Velocity", cSpaceDim);
-      tSolutionsOutput.setNumDofs("Acceleration", cSpaceDim);
-
-      Plato::ScalarMultiVector tMicroDistortion("micro-distortion for all time steps", tNumTimeSteps, tNumVertices*mNumFullTerms);
-      Plato::ScalarMultiVector tMicroDistortionDot("micro-distortion dot for all time steps", tNumTimeSteps, tNumVertices*mNumFullTerms);
-      Plato::ScalarMultiVector tMicroDistortionDotDot("micro-distortion dot dot for all time steps", tNumTimeSteps, tNumVertices*mNumFullTerms);
-
-      Plato::blas2::extract<mNumDofsPerNode/*stride*/, mNumFullTerms/* dofs per node*/, SpaceDim/*offset*/>
-                          (tNumVertices, tSolutionFromSolutions, tMicroDistortion);
-      Plato::blas2::extract<mNumDofsPerNode/*stride*/, mNumFullTerms/* dofs per node*/, SpaceDim/*offset*/>
-                          (tNumVertices, tSolutionDotFromSolutions, tMicroDistortionDot);
-      Plato::blas2::extract<mNumDofsPerNode/*stride*/, mNumFullTerms/* dofs per node*/, SpaceDim/*offset*/>
-                          (tNumVertices, tSolutionDotDotFromSolutions, tMicroDistortionDotDot);
-
-      tSolutionsOutput.set("Micro Distortion", tMicroDistortion);
-      tSolutionsOutput.set("Micro Distortion Dot", tMicroDistortionDot);
-      tSolutionsOutput.set("Micro Distortion Dot Dot", tMicroDistortionDotDot);
-
-      const auto cNumFullTerms = mNumFullTerms;
-      tSolutionsOutput.setNumDofs("Micro Distortion", cNumFullTerms);
-      tSolutionsOutput.setNumDofs("Micro Distortion Dot", cNumFullTerms);
-      tSolutionsOutput.setNumDofs("Micro Distortion Dot Dot", cNumFullTerms);
-
-      return tSolutionsOutput;
+      return aSolutions;
     }
 
     /**************************************************************************/
@@ -445,7 +395,7 @@ class RelaxedMicromorphicResidual :
     ) const
     /**************************************************************************/
     {
-        THROWERR("Relaxed Micromorphic residual does not support damping currently.")
+        ANALYZE_THROWERR("Relaxed Micromorphic residual does not support damping currently.")
     }
     /**************************************************************************/
     void

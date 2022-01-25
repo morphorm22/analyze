@@ -1,10 +1,9 @@
 #pragma once
 
 #include <Omega_h_expr.hpp>
-#include <Omega_h_mesh.hpp>
 
 #include "SpatialModel.hpp"
-#include "OmegaHUtilities.hpp"
+#include "UtilsOmegaH.hpp"
 #include "ImplicitFunctors.hpp"
 #include "Plato_TopOptFunctors.hpp"
 
@@ -24,9 +23,9 @@ getFunctionValues(
     Plato::OrdinalType numCells = aQuadraturePoints.extent(0);
     Plato::OrdinalType numPoints = aQuadraturePoints.extent(1);
 
-    auto x_coords = Plato::create_omega_h_write_array<Plato::Scalar>("forcing function x coords", numCells * numPoints);
-    auto y_coords = Plato::create_omega_h_write_array<Plato::Scalar>("forcing function y coords", numCells * numPoints);
-    auto z_coords = Plato::create_omega_h_write_array<Plato::Scalar>("forcing function z coords", numCells * numPoints);
+    auto x_coords = Plato::omega_h::create_omega_h_write_array<Plato::Scalar>("forcing function x coords", numCells * numPoints);
+    auto y_coords = Plato::omega_h::create_omega_h_write_array<Plato::Scalar>("forcing function y coords", numCells * numPoints);
+    auto z_coords = Plato::omega_h::create_omega_h_write_array<Plato::Scalar>("forcing function z coords", numCells * numPoints);
 
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, numCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
     {
@@ -68,7 +67,7 @@ mapPoints(
 
     Kokkos::deep_copy(aMappedPoints, Plato::Scalar(0.0)); // initialize to 0
 
-    Plato::NodeCoordinate<SpaceDim> tNodeCoordinate(&(aSpatialDomain.Mesh));
+    Plato::NodeCoordinate<SpaceDim> tNodeCoordinate(aSpatialDomain.Mesh);
 
     auto tCellOrdinals = aSpatialDomain.cellOrdinals();
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
@@ -106,7 +105,7 @@ mapPoints(
 )
 /******************************************************************************/
 {
-    Plato::OrdinalType tNumCells = aSpatialModel.Mesh.nelems();
+    Plato::OrdinalType tNumCells = aSpatialModel.Mesh->NumElements();
     Plato::OrdinalType tNumPoints = aMappedPoints.extent(1);
 
     Kokkos::deep_copy(aMappedPoints, Plato::Scalar(0.0)); // initialize to 0

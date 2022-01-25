@@ -6,9 +6,6 @@
 #include <iostream>
 #include <math.h>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include <Plato_InputData.hpp>
 #include <Plato_Application.hpp>
 #include <Plato_Exceptions.hpp>
@@ -20,6 +17,7 @@
 #include "Solutions.hpp"
 #include "AnalyzeAppUtils.hpp"
 #include "PlatoUtilities.hpp"
+#include "PlatoMesh.hpp"
 #include "PlatoAbstractProblem.hpp"
 #include "alg/ParseInput.hpp"
 
@@ -577,13 +575,8 @@ public:
     }
 
 private:
-    // data
-    //
 
-    Omega_h::Mesh mMesh;
-    Omega_h::Assoc mAssoc;
-    Omega_h::Library mLibOsh;
-    Omega_h::MeshSets mMeshSets;
+    Plato::Mesh mMesh;
     Plato::Comm::Machine mMachine;
 
     bool mDebugAnalyzeApp;
@@ -621,7 +614,7 @@ private:
 #ifdef PLATO_MESHMAP
         aMeshMap->apply(aInput, aOutput);
 #else
-        THROWERR("Not compiled with MeshMap.");
+        ANALYZE_THROWERR("Not compiled with MeshMap.");
 #endif
     }
     void applyT(decltype(mMeshMap) aMeshMap, const Plato::ScalarVector & aInput, Plato::ScalarVector aOutput)
@@ -629,7 +622,7 @@ private:
 #ifdef PLATO_MESHMAP
         aMeshMap->applyT(aInput, aOutput);
 #else
-        THROWERR("Not compiled with MeshMap.");
+        ANALYZE_THROWERR("Not compiled with MeshMap.");
 #endif
     }
 

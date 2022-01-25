@@ -1,7 +1,7 @@
 #ifndef LINEARTHERMOELASTICMATERIAL_HPP
 #define LINEARTHERMOELASTICMATERIAL_HPP
 
-#include <Omega_h_matrix.hpp>
+#include "PlatoMathTypes.hpp"
 #include <Teuchos_ParameterList.hpp>
 
 #include "PlatoStaticsTypes.hpp"
@@ -24,9 +24,9 @@ namespace Plato {
 
     Plato::Scalar mCellDensity;
     Plato::Scalar mCellSpecificHeat;
-    Omega_h::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffness;
-    Omega_h::Vector<SpatialDim> mCellThermalExpansionCoef;
-    Omega_h::Matrix<SpatialDim, SpatialDim> mCellThermalConductivity;
+    Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffness;
+    Plato::Array<SpatialDim> mCellThermalExpansionCoef;
+    Plato::Matrix<SpatialDim, SpatialDim> mCellThermalConductivity;
     Plato::Scalar mCellReferenceTemperature;
 
     Plato::Scalar mTemperatureScaling;
@@ -146,7 +146,7 @@ LinearThermoelasticModelFactory<SpatialDim>::create(std::string aModelName)
         {
             std::stringstream ss;
             ss << "Requested a material model ('" << aModelName << "') that isn't defined";
-            THROWERR(ss.str());
+            ANALYZE_THROWERR(ss.str());
         }
 
         auto tModelParamList = tModelsParamList.sublist(aModelName);

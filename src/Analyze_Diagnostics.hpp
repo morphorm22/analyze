@@ -6,10 +6,9 @@
 
 #pragma once
 
-#include <Omega_h_mesh.hpp>
-
 #include "BLAS1.hpp"
 #include "Solutions.hpp"
+#include "PlatoMesh.hpp"
 #include "WorksetBase.hpp"
 #include "SimplexFadTypes.hpp"
 #include "PlatoMathHelpers.hpp"
@@ -26,21 +25,21 @@ namespace Plato
 /******************************************************************************//**
  * \brief Test partial derivative of criterion with respect to the controls
  * \param [in] aProblem Plato problem interface
- * \param [in] aMesh    Omega_H mesh database
+ * \param [in] aMesh    mesh database
  * return minimum finite difference error
 **********************************************************************************/
 template<class PlatoProblem>
 inline Plato::Scalar
 test_criterion_grad_wrt_control(
-    PlatoProblem  & aProblem,
-    Omega_h::Mesh & aMesh,
-    std::string     aCriterionName,
-    Plato::OrdinalType aSuperscriptLowerBound = 1,
-    Plato::OrdinalType aSuperscriptUpperBound = 6
+    PlatoProblem      & aProblem,
+    Plato::Mesh         aMesh,
+    std::string         aCriterionName,
+    Plato::OrdinalType  aSuperscriptLowerBound = 1,
+    Plato::OrdinalType  aSuperscriptUpperBound = 6
 )
 {
     // Allocate Data
-    const Plato::OrdinalType tNumVerts = aMesh.nverts();
+    const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
     Plato::ScalarVector tControls = Plato::ScalarVector("Controls", tNumVerts);
     Plato::blas1::fill(0.5, tControls);
 
@@ -110,7 +109,7 @@ test_criterion_grad_wrt_control(
  * \param [in] aSuperscriptLowerBound lower bound on the superscript used to compute the step (e.g. \f$10^{lb}/$f
 **********************************************************************************/
 template<typename EvaluationType, typename SimplexPhysics>
-inline void test_partial_control(Omega_h::Mesh & aMesh,
+inline void test_partial_control(Plato::Mesh aMesh,
                                  Plato::Elliptic::AbstractScalarFunction<EvaluationType> & aCriterion,
                                  Plato::OrdinalType aSuperscriptLowerBound = 1,
                                  Plato::OrdinalType aSuperscriptUpperBound = 10)
@@ -120,7 +119,7 @@ inline void test_partial_control(Omega_h::Mesh & aMesh,
     using ResultT = typename EvaluationType::ResultScalarType;
     using ControlT = typename EvaluationType::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = aMesh.nelems();
+    const Plato::OrdinalType tNumCells = aMesh->NumElements();
     constexpr Plato::OrdinalType tSpaceDim = EvaluationType::SpatialDim;
     constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
     constexpr Plato::OrdinalType tDofsPerCell = SimplexPhysics::mNumDofsPerCell;
@@ -132,7 +131,7 @@ inline void test_partial_control(Omega_h::Mesh & aMesh,
     tWorksetBase.worksetConfig(tConfigWS);
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = aMesh.nverts();
+    const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
     Plato::ScalarVector tControl("Control", tNumVerts);
     auto tHostControl = Kokkos::create_mirror(tControl);
     Plato::blas1::random(0.5, 0.75, tHostControl);
@@ -156,7 +155,7 @@ inline void test_partial_control(Omega_h::Mesh & aMesh,
     aCriterion.evaluate(tStateWS, tControlWS, tConfigWS, tResultWS);
     constexpr Plato::OrdinalType tNumControlFields = 1;
     Plato::ScalarVector tPartialZ("objective partial control", tNumVerts);
-    Plato::VectorEntryOrdinal<tSpaceDim, tNumControlFields> tControlEntryOrdinal(&aMesh);
+    Plato::VectorEntryOrdinal<tSpaceDim, tNumControlFields> tControlEntryOrdinal(aMesh);
     Plato::assemble_scalar_gradient_fad<tNodesPerCell>(tNumCells, tControlEntryOrdinal, tResultWS, tPartialZ);
 
     Plato::ScalarVector tStep("step", tNumVerts);
@@ -220,14 +219,14 @@ inline void test_partial_control(Omega_h::Mesh & aMesh,
  * \param [in] aCriterion scalar function (i.e. scalar criterion) interface
 **********************************************************************************/
 template<typename EvaluationType, typename SimplexPhysics>
-inline void test_partial_state(Omega_h::Mesh & aMesh, Plato::Elliptic::AbstractScalarFunction<EvaluationType> & aCriterion)
+inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::AbstractScalarFunction<EvaluationType> & aCriterion)
 {
     using StateT = typename EvaluationType::StateScalarType;
     using ConfigT = typename EvaluationType::ConfigScalarType;
     using ResultT = typename EvaluationType::ResultScalarType;
     using ControlT = typename EvaluationType::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = aMesh.nelems();
+    const Plato::OrdinalType tNumCells = aMesh->NumElements();
     constexpr Plato::OrdinalType tSpaceDim = EvaluationType::SpatialDim;
     constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
     constexpr Plato::OrdinalType tDofsPerCell = SimplexPhysics::mNumDofsPerCell;
@@ -239,7 +238,7 @@ inline void test_partial_state(Omega_h::Mesh & aMesh, Plato::Elliptic::AbstractS
     tWorksetBase.worksetConfig(tConfigWS);
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = aMesh.nverts();
+    const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
     Plato::ScalarVector tControl("Control", tNumVerts);
     auto tHostControl = Kokkos::create_mirror(tControl);
     Plato::blas1::random(0.5, 0.75, tHostControl);
@@ -262,7 +261,7 @@ inline void test_partial_state(Omega_h::Mesh & aMesh, Plato::Elliptic::AbstractS
     // finite difference
     aCriterion.evaluate(tStateWS, tControlWS, tConfigWS, tResultWS);
     Plato::ScalarVector tPartialU("objective partial state", tTotalNumDofs);
-    Plato::VectorEntryOrdinal<tSpaceDim, tDofsPerNode> tStateEntryOrdinal(&aMesh);
+    Plato::VectorEntryOrdinal<tSpaceDim, tDofsPerNode> tStateEntryOrdinal(aMesh);
     Plato::assemble_vector_gradient_fad<tNodesPerCell, tDofsPerNode>(tNumCells, tStateEntryOrdinal, tResultWS, tPartialU);
 
     Plato::ScalarVector tStep("step", tTotalNumDofs);
@@ -324,7 +323,7 @@ inline void test_partial_state(Omega_h::Mesh & aMesh, Plato::Elliptic::AbstractS
 
 
 template<typename EvaluationType, typename Simplex>
-inline void test_partial_control(Omega_h::Mesh & aMesh,
+inline void test_partial_control(Plato::Mesh aMesh,
                                  Plato::Geometric::ScalarFunctionBase & aScalarFuncBase,
                                  Plato::OrdinalType aSuperscriptLowerBound = 1,
                                  Plato::OrdinalType aSuperscriptUpperBound = 10)
@@ -333,10 +332,10 @@ inline void test_partial_control(Omega_h::Mesh & aMesh,
     using ResultT  = typename EvaluationType::ResultScalarType;
     using ControlT = typename EvaluationType::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = aMesh.nelems();
+    const Plato::OrdinalType tNumCells = aMesh->NumElements();
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = aMesh.nverts();
+    const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
     Plato::ScalarVector tControl("Control", tNumVerts);
     auto tHostControl = Kokkos::create_mirror(tControl);
     Plato::blas1::random(0.5, 0.75, tHostControl);
@@ -389,7 +388,7 @@ inline void test_partial_control(Omega_h::Mesh & aMesh,
 
 // function test_partial_control
 template<typename EvaluationType, typename SimplexPhysics>
-inline void test_partial_control(Omega_h::Mesh & aMesh,
+inline void test_partial_control(Plato::Mesh aMesh,
                                  Plato::Elliptic::ScalarFunctionBase & aScalarFuncBase,
                                  Plato::OrdinalType aSuperscriptLowerBound = 1,
                                  Plato::OrdinalType aSuperscriptUpperBound = 10)
@@ -399,11 +398,11 @@ inline void test_partial_control(Omega_h::Mesh & aMesh,
     using ResultT = typename EvaluationType::ResultScalarType;
     using ControlT = typename EvaluationType::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = aMesh.nelems();
+    const Plato::OrdinalType tNumCells = aMesh->NumElements();
     constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = aMesh.nverts();
+    const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
     Plato::ScalarVector tControl("Control", tNumVerts);
     auto tHostControl = Kokkos::create_mirror(tControl);
     Plato::blas1::random(0.5, 0.75, tHostControl);
@@ -472,18 +471,18 @@ inline void test_partial_control(Omega_h::Mesh & aMesh,
  * \param [in] aCriterion scalar function (i.e. scalar criterion) interface
 **********************************************************************************/
 template<typename EvaluationType, typename SimplexPhysics>
-inline void test_partial_state(Omega_h::Mesh & aMesh, Plato::Elliptic::ScalarFunctionBase & aScalarFuncBase)
+inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::ScalarFunctionBase & aScalarFuncBase)
 {
     using StateT = typename EvaluationType::StateScalarType;
     using ConfigT = typename EvaluationType::ConfigScalarType;
     using ResultT = typename EvaluationType::ResultScalarType;
     using ControlT = typename EvaluationType::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = aMesh.nelems();
+    const Plato::OrdinalType tNumCells = aMesh->NumElements();
     constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = aMesh.nverts();
+    const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
     Plato::ScalarVector tControl("Control", tNumVerts);
     auto tHostControl = Kokkos::create_mirror(tControl);
     Plato::blas1::random(0.5, 0.75, tHostControl);
@@ -656,7 +655,7 @@ control_workset_matrix_vector_multiply(const Plato::ScalarArray3D & aWorkset,
 **********************************************************************************/
 template<typename EvaluationType, typename SimplexPhysics>
 inline void
-test_partial_global_state(Omega_h::Mesh & aMesh, Plato::LocalVectorFunctionInc<SimplexPhysics> & aLocalVectorFuncInc)
+test_partial_global_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<SimplexPhysics> & aLocalVectorFuncInc)
 {
     using StateT   = typename EvaluationType::StateScalarType;
     using LocalStateT   = typename EvaluationType::LocalStateScalarType;
@@ -664,13 +663,13 @@ test_partial_global_state(Omega_h::Mesh & aMesh, Plato::LocalVectorFunctionInc<S
     using ResultT  = typename EvaluationType::ResultScalarType;
     using ControlT = typename EvaluationType::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = aMesh.nelems();
+    const Plato::OrdinalType tNumCells = aMesh->NumElements();
     constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
     constexpr Plato::OrdinalType tLocalDofsPerCell = SimplexPhysics::mNumLocalDofsPerCell;
     constexpr Plato::OrdinalType tNumNodesPerCell = SimplexPhysics::mNumNodesPerCell;
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = aMesh.nverts();
+    const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
     Plato::ScalarVector tControl("Control", tNumVerts);
     auto tHostControl = Kokkos::create_mirror(tControl);
     Plato::blas1::random(0.5, 0.75, tHostControl);
@@ -714,7 +713,7 @@ test_partial_global_state(Omega_h::Mesh & aMesh, Plato::LocalVectorFunctionInc<S
                                            tControl, tTimeData);
 
     constexpr Plato::OrdinalType tSpaceDim = EvaluationType::SpatialDim;
-    Plato::VectorEntryOrdinal<tSpaceDim, tDofsPerNode> tEntryOrdinal(&aMesh);
+    Plato::VectorEntryOrdinal<tSpaceDim, tDofsPerNode> tEntryOrdinal(aMesh);
 
     Plato::ScalarVector tStep("global state step", tTotalNumDofs); 
     auto tHostStep = Kokkos::create_mirror(tStep);
@@ -794,7 +793,7 @@ test_partial_global_state(Omega_h::Mesh & aMesh, Plato::LocalVectorFunctionInc<S
 **********************************************************************************/
 template<typename EvaluationType, typename SimplexPhysics>
 inline void
-test_partial_prev_global_state(Omega_h::Mesh & aMesh, Plato::LocalVectorFunctionInc<SimplexPhysics> & aLocalVectorFuncInc)
+test_partial_prev_global_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<SimplexPhysics> & aLocalVectorFuncInc)
 {
     using StateT   = typename EvaluationType::StateScalarType;
     using LocalStateT = typename EvaluationType::LocalStateScalarType;
@@ -802,13 +801,13 @@ test_partial_prev_global_state(Omega_h::Mesh & aMesh, Plato::LocalVectorFunction
     using ResultT  = typename EvaluationType::ResultScalarType;
     using ControlT = typename EvaluationType::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = aMesh.nelems();
+    const Plato::OrdinalType tNumCells = aMesh->NumElements();
     constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
     constexpr Plato::OrdinalType tLocalDofsPerCell = SimplexPhysics::mNumLocalDofsPerCell;
     constexpr Plato::OrdinalType tNumNodesPerCell = SimplexPhysics::mNumNodesPerCell;
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = aMesh.nverts();
+    const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
     Plato::ScalarVector tControl("Control", tNumVerts);
     auto tHostControl = Kokkos::create_mirror(tControl);
     Plato::blas1::random(0.5, 0.75, tHostControl);
@@ -852,7 +851,7 @@ test_partial_prev_global_state(Omega_h::Mesh & aMesh, Plato::LocalVectorFunction
                                             tControl, tTimeData);
 
     constexpr Plato::OrdinalType tSpaceDim = EvaluationType::SpatialDim;
-    Plato::VectorEntryOrdinal<tSpaceDim, tDofsPerNode> tEntryOrdinal(&aMesh);
+    Plato::VectorEntryOrdinal<tSpaceDim, tDofsPerNode> tEntryOrdinal(aMesh);
 
     Plato::ScalarVector tStep("prev global state step", tTotalNumDofs); 
     auto tHostStep = Kokkos::create_mirror(tStep);
@@ -933,7 +932,7 @@ test_partial_prev_global_state(Omega_h::Mesh & aMesh, Plato::LocalVectorFunction
 **********************************************************************************/
 template<typename EvaluationType, typename SimplexPhysics>
 inline void
-test_partial_local_state(Omega_h::Mesh & aMesh, Plato::LocalVectorFunctionInc<SimplexPhysics> & aLocalVectorFuncInc)
+test_partial_local_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<SimplexPhysics> & aLocalVectorFuncInc)
 {
     using StateT   = typename EvaluationType::StateScalarType;
     using LocalStateT   = typename EvaluationType::LocalStateScalarType;
@@ -941,12 +940,12 @@ test_partial_local_state(Omega_h::Mesh & aMesh, Plato::LocalVectorFunctionInc<Si
     using ResultT  = typename EvaluationType::ResultScalarType;
     using ControlT = typename EvaluationType::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = aMesh.nelems();
+    const Plato::OrdinalType tNumCells = aMesh->NumElements();
     constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
     constexpr Plato::OrdinalType tLocalDofsPerCell = SimplexPhysics::mNumLocalDofsPerCell;
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = aMesh.nverts();
+    const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
     Plato::ScalarVector tControl("Control", tNumVerts);
     auto tHostControl = Kokkos::create_mirror(tControl);
     Plato::blas1::random(0.5, 0.75, tHostControl);
@@ -1067,7 +1066,7 @@ test_partial_local_state(Omega_h::Mesh & aMesh, Plato::LocalVectorFunctionInc<Si
 **********************************************************************************/
 template<typename EvaluationType, typename SimplexPhysics>
 inline void
-test_partial_prev_local_state(Omega_h::Mesh & aMesh, Plato::LocalVectorFunctionInc<SimplexPhysics> & aLocalVectorFuncInc)
+test_partial_prev_local_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<SimplexPhysics> & aLocalVectorFuncInc)
 {
     using StateT   = typename EvaluationType::StateScalarType;
     using LocalStateT   = typename EvaluationType::LocalStateScalarType;
@@ -1075,12 +1074,12 @@ test_partial_prev_local_state(Omega_h::Mesh & aMesh, Plato::LocalVectorFunctionI
     using ResultT  = typename EvaluationType::ResultScalarType;
     using ControlT = typename EvaluationType::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = aMesh.nelems();
+    const Plato::OrdinalType tNumCells = aMesh->NumElements();
     constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
     constexpr Plato::OrdinalType tLocalDofsPerCell = SimplexPhysics::mNumLocalDofsPerCell;
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = aMesh.nverts();
+    const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
     Plato::ScalarVector tControl("Control", tNumVerts);
     auto tHostControl = Kokkos::create_mirror(tControl);
     Plato::blas1::random(0.5, 0.75, tHostControl);
@@ -1201,7 +1200,7 @@ test_partial_prev_local_state(Omega_h::Mesh & aMesh, Plato::LocalVectorFunctionI
 **********************************************************************************/
 template<typename EvaluationType, typename SimplexPhysics>
 inline void
-test_partial_local_vect_func_inc_wrt_control(Omega_h::Mesh & aMesh, Plato::LocalVectorFunctionInc<SimplexPhysics> & aLocalVectorFuncInc)
+test_partial_local_vect_func_inc_wrt_control(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<SimplexPhysics> & aLocalVectorFuncInc)
 {
     using StateT   = typename EvaluationType::StateScalarType;
     using LocalStateT   = typename EvaluationType::LocalStateScalarType;
@@ -1209,12 +1208,12 @@ test_partial_local_vect_func_inc_wrt_control(Omega_h::Mesh & aMesh, Plato::Local
     using ResultT  = typename EvaluationType::ResultScalarType;
     using ControlT = typename EvaluationType::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = aMesh.nelems();
+    const Plato::OrdinalType tNumCells = aMesh->NumElements();
     constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
     constexpr Plato::OrdinalType tLocalDofsPerCell = SimplexPhysics::mNumLocalDofsPerCell;
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = aMesh.nverts();
+    const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
     Plato::ScalarVector tControl("Control", tNumVerts);
     auto tHostControl = Kokkos::create_mirror(tControl);
     Plato::blas1::random(0.5, 0.75, tHostControl);
@@ -1259,7 +1258,7 @@ test_partial_local_vect_func_inc_wrt_control(Omega_h::Mesh & aMesh, Plato::Local
 
     constexpr Plato::OrdinalType tSpaceDim   = EvaluationType::SpatialDim;
     constexpr Plato::OrdinalType tNumControl = EvaluationType::NumControls;;
-    Plato::VectorEntryOrdinal<tSpaceDim, tNumControl> tEntryOrdinal(&aMesh);
+    Plato::VectorEntryOrdinal<tSpaceDim, tNumControl> tEntryOrdinal(aMesh);
 
     Plato::ScalarVector tStep("control step", tNumVerts); 
     auto tHostStep = Kokkos::create_mirror(tStep);

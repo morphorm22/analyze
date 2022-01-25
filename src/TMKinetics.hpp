@@ -164,9 +164,9 @@ class StabilizedTMKinetics : public Plato::SimplexStabilizedThermomechanics<Spac
     using Plato::SimplexStabilizedThermomechanics<SpaceDim>::mNumDofsPerNode;
     using Plato::SimplexStabilizedThermomechanics<SpaceDim>::mNumDofsPerCell;
 
-    const Omega_h::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffness;
-    const Omega_h::Vector<SpaceDim> mCellThermalExpansionCoef;
-    const Omega_h::Matrix<SpaceDim, SpaceDim> mCellThermalConductivity;
+    const Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffness;
+    const Plato::Array<SpaceDim> mCellThermalExpansionCoef;
+    const Plato::Matrix<SpaceDim, SpaceDim> mCellThermalConductivity;
     const Plato::Scalar mCellReferenceTemperature;
     Plato::Scalar mBulkModulus, mShearModulus;
 

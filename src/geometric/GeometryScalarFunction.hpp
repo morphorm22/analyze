@@ -7,8 +7,6 @@
 #include <cassert>
 #include <vector>
 
-#include <Omega_h_mesh.hpp>
-
 #include "PlatoStaticsTypes.hpp"
 #include "Assembly.hpp"
 #include "geometric/WorksetBase.hpp"
@@ -110,7 +108,6 @@ public:
     /******************************************************************************//**
      * \brief Secondary physics scalar function constructor, used for unit testing
      * \param [in] aMesh mesh database
-     * \param [in] aMeshSets side sets database
     **********************************************************************************/
     GeometryScalarFunction(
         const Plato::SpatialModel & aSpatialModel,
@@ -239,7 +236,7 @@ public:
         auto tFirstBlockName = tFirstBlock.getDomainName();
         if( mValueFunctions.at(tFirstBlockName)->hasBoundaryTerm() )
         {
-            auto tNumCells = mSpatialModel.Mesh.nelems();
+            auto tNumCells = mSpatialModel.Mesh->NumElements();
 
             // workset control
             //
@@ -322,7 +319,7 @@ public:
         auto tFirstBlockName = tFirstBlock.getDomainName();
         if( mValueFunctions.at(tFirstBlockName)->hasBoundaryTerm() )
         {
-            auto tNumCells = mSpatialModel.Mesh.nelems();
+            auto tNumCells = mSpatialModel.Mesh->NumElements();
 
             // workset control
             //
@@ -409,7 +406,7 @@ public:
         auto tFirstBlockName = tFirstBlock.getDomainName();
         if( mValueFunctions.at(tFirstBlockName)->hasBoundaryTerm() )
         {
-            auto tNumCells = mSpatialModel.Mesh.nelems();
+            auto tNumCells = mSpatialModel.Mesh->NumElements();
 
             // workset control
             //

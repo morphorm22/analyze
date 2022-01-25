@@ -2,12 +2,11 @@
 #define BODYLOADS_HPP
 
 #include <Omega_h_expr.hpp>
-#include <Omega_h_mesh.hpp>
 
 #include <Teuchos_ParameterList.hpp>
 
 #include "alg/Basis.hpp"
-#include "UtilsOmegaH.hpp"
+//#include "UtilsOmegaH.hpp"
 #include "alg/Cubature.hpp"
 #include "PlatoTypes.hpp"
 #include "SpatialModel.hpp"
@@ -99,8 +98,8 @@ public:
         //
         auto tDof = mDof;
         auto tCellOrdinals = aSpatialDomain.cellOrdinals();
-        Plato::JacobianDet<mSpaceDim> tJacobianDet(&(aSpatialDomain.Mesh));
-        Plato::VectorEntryOrdinal<mSpaceDim, mSpaceDim> tVectorEntryOrdinal(&(aSpatialDomain.Mesh));
+        Plato::JacobianDet<mSpaceDim> tJacobianDet(aSpatialDomain.Mesh);
+        Plato::VectorEntryOrdinal<mSpaceDim, mSpaceDim> tVectorEntryOrdinal(aSpatialDomain.Mesh);
         Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType &aCellOrdinal)
         {
             auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
@@ -153,7 +152,7 @@ public:
 
             if(!tEntry.isList())
             {
-                THROWERR("Parameter in Body Loads block not valid.  Expect lists only.");
+                ANALYZE_THROWERR("Parameter in Body Loads block not valid.  Expect lists only.");
             }
 
             Teuchos::ParameterList& tSublist = aParams.sublist(tName);

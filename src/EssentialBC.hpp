@@ -1,9 +1,7 @@
 #pragma once
 
-#include <Omega_h_array.hpp>
 #include <sstream>
 
-#include <Omega_h_assoc.hpp>
 #include <Teuchos_ParameterList.hpp>
 
 #include "PlatoMathExpr.hpp"
@@ -43,11 +41,11 @@ public:
     {
         if (aParam.isType<Plato::Scalar>("Value") && aParam.isType<std::string>("Function") )
         {
-            THROWERR("Specify either 'Value' or 'Function' in Boundary Condition definition");
+            ANALYZE_THROWERR("Specify either 'Value' or 'Function' in Boundary Condition definition");
         } 
         if (!aParam.isType<Plato::Scalar>("Value") && !aParam.isType<std::string>("Function") )
         {
-            THROWERR("Specify either 'Value' or 'Function' in Boundary Condition definition");
+            ANALYZE_THROWERR("Specify either 'Value' or 'Function' in Boundary Condition definition");
         } 
     }
 
@@ -67,36 +65,29 @@ public:
 
     /*!
      \brief Get the ordinals/values of the constrained nodeset.
-     \param aMeshSets Omega_h mesh sets that contains the constrained nodeset.
+     \param aMesh Plato mesh that contains the constrained nodeset.
      \param bcDofs Ordinal list to which the constrained dofs will be added.
      \param bcValues Value list to which the constrained value will be added.
      \param offset Starting location in bcDofs/bcValues where constrained dofs/values will be added.
      */
     void get(
-        const Omega_h::MeshSets         & aMeshSets,
-              Plato::LocalOrdinalVector & aBcDofs,
-              Plato::ScalarVector       & aBcValues,
-        const Plato::OrdinalType          aOffset,
-        const Plato::Scalar               aTime=0.0)
+        const Plato::Mesh          & aMesh,
+              Plato::OrdinalVector & aBcDofs,
+              Plato::ScalarVector  & aBcValues,
+        const Plato::OrdinalType     aOffset,
+        const Plato::Scalar          aTime=0.0)
     {
-        auto tNodeIds = this->parseConstrainedNodeSets(aMeshSets);
+        auto tNodeIds = this->parseConstrainedNodeSets(aMesh);
         auto tValue = this->get_value(aTime);
-        this->fillBcData(aBcDofs,aBcValues,tNodeIds,aOffset,tValue);
+        this->fillBcData(aBcDofs, aBcValues, tNodeIds, aOffset, tValue);
     }
 
-    Omega_h::LOs parseConstrainedNodeSets(
-        const Omega_h::MeshSets  & aMeshSets)
+    Plato::OrdinalVectorT<const Plato::OrdinalType>
+    parseConstrainedNodeSets(
+        const Plato::Mesh  aMesh)
     {
-        auto& tNodeSets = aMeshSets[Omega_h::NODE_SET];
-        auto tNodeSetsIter = tNodeSets.find(mNodeSetName);
-        if(tNodeSetsIter == tNodeSets.end())
-        {
-            std::ostringstream tMsg;
-            tMsg << "COULD NOT FIND NODE SET WITH NAME = '" << mNodeSetName.c_str()
-                    << "'.  NODE SET IS NOT DEFINED IN INPUT MESH FILE, I.E. EXODUS FILE.\n";
-            THROWERR(tMsg.str())
-        }
-        return tNodeSetsIter->second;
+        auto tNodeLids = aMesh->GetNodeSetNodes(mNodeSetName);
+        return tNodeLids;
     }
 
     Plato::Scalar get_value(
@@ -113,11 +104,11 @@ public:
     }
 
     void fillBcData(
-              Plato::LocalOrdinalVector & aBcDofs,
-              Plato::ScalarVector       & aBcValues,
-        const Omega_h::LOs              & aNodeIds,
-        const Plato::OrdinalType          aOffset,
-        const Plato::Scalar               aValue)
+              Plato::OrdinalVector                            & aBcDofs,
+              Plato::ScalarVector                             & aBcValues,
+        const Plato::OrdinalVectorT<const Plato::OrdinalType> & aNodeIds,
+        const Plato::OrdinalType                                aOffset,
+        const Plato::Scalar                                     aValue)
     {
         auto tNumberConstrainedNodes = aNodeIds.size();
         constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysicsType::mNumDofsPerNode;
@@ -130,9 +121,9 @@ public:
     }
 
     Plato::OrdinalType get_length(
-        const Omega_h::MeshSets& aMeshSets)
+        const Plato::Mesh aMesh)
     {
-        auto tNodeIds = this->parseConstrainedNodeSets(aMeshSets);
+        auto tNodeIds = this->parseConstrainedNodeSets(aMesh);
         auto tNumberConstrainedNodes = tNodeIds.size();
         this->checkForZeroLength(tNumberConstrainedNodes);
 

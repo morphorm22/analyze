@@ -115,7 +115,7 @@ public:
         auto tNumCells = mSpatialDomain.numCells();
         if( tNumCells != static_cast<Plato::OrdinalType>(aResultWS.extent(0)) )
         {
-            THROWERR(std::string("Number of elements mismatch. Spatial domain and output/result workset ")
+            ANALYZE_THROWERR(std::string("Number of elements mismatch. Spatial domain and output/result workset ")
                 + "have different number of cells. " + "Spatial domain has '" + std::to_string(tNumCells)
                 + "' elements and output workset has '" + std::to_string(aResultWS.extent(0)) + "' elements.")
         }
@@ -321,7 +321,7 @@ public:
         auto tNumCells = mSpatialDomain.numCells();
         if( tNumCells != static_cast<Plato::OrdinalType>(aResultWS.extent(0)) )
         {
-            THROWERR(std::string("Number of elements mismatch. Spatial domain and output/result workset ")
+            ANALYZE_THROWERR(std::string("Number of elements mismatch. Spatial domain and output/result workset ")
                 + "have different number of cells. " + "Spatial domain has '" + std::to_string(tNumCells)
                 + "' elements and output workset has '" + std::to_string(aResultWS.extent(0)) + "' elements.")
         }
@@ -431,7 +431,7 @@ private:
     {
         if(aInputs.isSublist("Hyperbolic") == false)
         {
-            THROWERR("'Hyperbolic' Parameter List is not defined.")
+            ANALYZE_THROWERR("'Hyperbolic' Parameter List is not defined.")
         }
         auto tHyperbolicParamList = aInputs.sublist("Hyperbolic");
 

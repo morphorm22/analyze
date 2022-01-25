@@ -39,8 +39,8 @@ public:
         return Teuchos::rcp( new Plato::YieldStressExpression<EvaluationType>
                              (mParamList) );
 #else
-	THROWERR("Plato Analyze was not built with expression support. "
-		 "Rebuild with the cmake EXPRESSION option ON")
+	ANALYZE_THROWERR("Plato Analyze was not built with expression support. "
+		 "Rebuild with the cmake EXPRESSION option ON");
 #endif
       }
       else

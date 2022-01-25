@@ -101,9 +101,9 @@ public:
         mCubatureRule      (std::make_shared<CubatureType>())
     {
         // obligatory: define dof names in order
-        mDofNames.push_back("Displacement X");
-        if(mSpaceDim > 1) mDofNames.push_back("Displacement Y");
-        if(mSpaceDim > 2) mDofNames.push_back("Displacement Z");
+        mDofNames.push_back("displacement X");
+        if(mSpaceDim > 1) mDofNames.push_back("displacement Y");
+        if(mSpaceDim > 2) mDofNames.push_back("displacement Z");
 
         // create material model and get stiffness
         //
@@ -146,12 +146,8 @@ public:
     ********************************************************************************/
     Plato::Solutions getSolutionStateOutputData(const Plato::Solutions &aSolutions) const override
     {
-      Plato::ScalarMultiVector tDisplacements = aSolutions.get("State");
-      Plato::Solutions tSolutionsOutput(aSolutions.physics(), aSolutions.pde());
-      tSolutionsOutput.set("Displacement", tDisplacements);
-      Plato::OrdinalType tSpaceDim = mSpaceDim;
-      tSolutionsOutput.setNumDofs("Displacement", tSpaceDim);
-      return tSolutionsOutput;
+      // No scaling, addition, or removal of data necessary for this physics.
+      return aSolutions;
     }
 
     /******************************************************************************//**

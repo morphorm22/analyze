@@ -3,9 +3,6 @@
 
 #include <memory>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include "Simplex.hpp"
 #include "SimplexThermomechanics.hpp"
 
@@ -57,15 +54,14 @@ namespace ThermomechanicsFactory
         }
         else
         {
-          THROWERR("Unknown 'Local Measure' specified in 'Plato Problem' ParameterList")
+          ANALYZE_THROWERR("Unknown 'Local Measure' specified in 'Plato Problem' ParameterList")
         }
     }
 
     /******************************************************************************//**
      * \brief Create augmented Lagrangian local constraint criterion with quadratic constraint formulation
      * \param [in] aMesh mesh database
-     * \param [in] aMeshSets side sets database
-     * \param [in] aDataMap PLATO Analyze physics-based database
+     * \param [in] aDataMap Plato Analyze physics-based database
      * \param [in] aInputParams input parameters
     **********************************************************************************/
     template<typename EvaluationType>
@@ -84,7 +80,7 @@ namespace ThermomechanicsFactory
         std::shared_ptr<Plato::AugLagStressCriterionQuadratic<EvaluationType,SimplexT>> tOutput;
         tOutput = std::make_shared< Plato::AugLagStressCriterionQuadratic<EvaluationType,SimplexT> >
                     (aSpatialDomain, aDataMap, aInputParams, aFuncName);
-        //THROWERR("Not finished implementing this for thermomechanics... need local measure that is compatible.")
+        //ANALYZE_THROWERR("Not finished implementing this for thermomechanics... need local measure that is compatible.")
         tOutput->setLocalMeasure(EvalMeasure, PODMeasure);
         return (tOutput);
     }
@@ -133,12 +129,12 @@ struct FunctionFactory
             }
             else
             {
-                THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
+                ANALYZE_THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
             }
         }
         else
         {
-            THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
+            ANALYZE_THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
         }
     }
 
@@ -172,12 +168,12 @@ struct FunctionFactory
                 return std::make_shared<Plato::Parabolic::TransientThermomechResidual<EvaluationType, Plato::Heaviside>>
                          (aSpatialDomain, aDataMap, aParamList, tPenaltyParams);
             } else {
-                THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
+                ANALYZE_THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
             }
         }
         else
         {
-            THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
+            ANALYZE_THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
         }
     }
     /******************************************************************************/
@@ -217,7 +213,7 @@ struct FunctionFactory
             }
             else
             {
-                THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
+                ANALYZE_THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
             }
         }
         else
@@ -273,12 +269,12 @@ struct FunctionFactory
             }
             else
             {
-                THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
+                ANALYZE_THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
             }
         }
         else
         {
-            THROWERR("Unknown 'Objective' specified in 'Plato Problem' ParameterList");
+            ANALYZE_THROWERR("Unknown 'Objective' specified in 'Plato Problem' ParameterList");
         }
     }
     /******************************************************************************/
@@ -316,12 +312,12 @@ struct FunctionFactory
             }
             else
             {
-                THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
+                ANALYZE_THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
             }
         }
         else
         {
-            THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
+            ANALYZE_THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
         }
     }
 

@@ -14,6 +14,7 @@
 #include "UtilsOmegaH.hpp"
 #include "SpatialModel.hpp"
 #include "EssentialBCs.hpp"
+#include "AnalyzeOutput.hpp"
 #include "NewtonRaphsonSolver.hpp"
 #include "PlatoAbstractProblem.hpp"
 #include "alg/PlatoSolverFactory.hpp"
@@ -23,6 +24,9 @@
 #include "InfinitesimalStrainThermoPlasticity.hpp"
 #include "PathDependentScalarFunctionFactory.hpp"
 #include "TimeData.hpp"
+
+//temporary (until mesh IO is done)
+#include "OmegaHMesh.hpp"
 
 namespace Plato
 {
@@ -83,7 +87,7 @@ private:
     std::shared_ptr<Plato::EssentialBCs<PhysicsT>> mEssentialBCs; /*!< essential boundary conditions shared pointer */
     Plato::ScalarVector mPreviousStepDirichletValues;            /*!< previous time step values associated with the Dirichlet boundary conditions */
     Plato::ScalarVector mDirichletValues;         /*!< values associated with the Dirichlet boundary conditions */
-    Plato::LocalOrdinalVector mDirichletDofs;     /*!< list of degrees of freedom associated with the Dirichlet boundary conditions */
+    Plato::OrdinalVector mDirichletDofs;     /*!< list of degrees of freedom associated with the Dirichlet boundary conditions */
 
     Plato::WorksetBase<PhysicsT> mWorksetBase;    /*!< assembly routine interface */
 
@@ -103,17 +107,15 @@ public:
     /***************************************************************************//**
      * \brief Plasticity problem constructor
      * \param [in] aMesh mesh database
-     * \param [in] aMeshSets side sets database
      * \param [in] aInputs input parameters database
      * \param [in] aMachine MPI communicator wrapper
     *******************************************************************************/
     PlasticityProblem(
-      Omega_h::Mesh& aMesh,
-      Omega_h::MeshSets& aMeshSets,
-      Teuchos::ParameterList& aInputs,
-      Comm::Machine& aMachine
+      Plato::Mesh              aMesh,
+      Teuchos::ParameterList & aInputs,
+      Comm::Machine          & aMachine
     ) :
-      mSpatialModel(aMesh, aMeshSets, aInputs),
+      mSpatialModel(aMesh, aInputs),
       mLocalEquation(std::make_shared<Plato::LocalVectorFunctionInc<PlasticityT>>(mSpatialModel, mDataMap, aInputs)),
       mGlobalEquation(std::make_shared<Plato::GlobalVectorFunctionInc<PhysicsT>>(mSpatialModel, mDataMap, aInputs, aInputs.get<std::string>("PDE Constraint"))),
       mProjectionEquation(std::make_shared<Plato::VectorFunctionVMS<ProjectorT>>(mSpatialModel, mDataMap, aInputs, std::string("State Gradient Projection"))),
@@ -123,14 +125,14 @@ public:
       mReferenceTemperature(1.0),
       mInitialNormResidual(std::numeric_limits<Plato::Scalar>::max()),
       mDispControlConstant(std::numeric_limits<Plato::Scalar>::min()),
-      mPressure("Previous Pressure Field", aMesh.nverts()),
+      mPressure("Previous Pressure Field", aMesh->NumNodes()),
       mLocalStates("Local States", mTimeData->mNumTimeSteps, mLocalEquation->size()),
       mGlobalStates("Global States", mTimeData->mNumTimeSteps, mGlobalEquation->size()),
-      mReactionForce("Reaction Force", mTimeData->mNumTimeSteps, aMesh.nverts()),
+      mReactionForce("Reaction Force", mTimeData->mNumTimeSteps, aMesh->NumNodes()),
       mProjectedPressGrad("Projected Pressure Gradient", mTimeData->mNumTimeSteps, mProjectionEquation->size()),
       mWorksetBase(aMesh),
       mLinearSolverFactory(aInputs.sublist("Linear Solver")),
-      mLinearSolver(mLinearSolverFactory.create(aMesh.nverts(), aMachine, PhysicsT::mNumDofsPerNode)),
+      mLinearSolver(mLinearSolverFactory.create(aMesh->NumNodes(), aMachine, PhysicsT::mNumDofsPerNode)),
       mNewtonSolver(std::make_shared<Plato::NewtonRaphsonSolver<PhysicsT>>(aMesh, aInputs, mLinearSolver)),
       mAdjointSolver(std::make_shared<Plato::PathDependentAdjointSolver<PhysicsT>>(aMesh, aInputs, mLinearSolver)),
       mStopOptimization(false),
@@ -167,7 +169,7 @@ public:
     {
         if(aInputs.isSublist("Essential Boundary Conditions") == false)
         {
-            THROWERR("Plasticity Problem: Essential Boundary Conditions are not defined for this problem.")
+            ANALYZE_THROWERR("Plasticity Problem: Essential Boundary Conditions are not defined for this problem.")
         }
         Plato::OrdinalType tPressureDofOffset    = mPressureDofOffset;
         Plato::OrdinalType tTemperatureDofOffset = mTemperatureDofOffset;
@@ -178,7 +180,7 @@ public:
 
         mEssentialBCs =
         std::make_shared<Plato::EssentialBCs<PhysicsT>>
-             (aInputs.sublist("Essential Boundary Conditions", false), mSpatialModel.MeshSets, tDofOffsetToScaleFactor);
+             (aInputs.sublist("Essential Boundary Conditions", false), mSpatialModel.Mesh, tDofOffsetToScaleFactor);
         mEssentialBCs->get(mDirichletDofs, mDirichletValues); // BCs at time = 0
         Kokkos::resize(mPreviousStepDirichletValues, mDirichletValues.size());
         Plato::blas1::fill(0.0, mPreviousStepDirichletValues);
@@ -189,14 +191,14 @@ public:
      * \param [in] aDirichletDofs   degrees of freedom associated with Dirichlet boundary conditions
      * \param [in] aDirichletValues values associated with Dirichlet degrees of freedom
     *******************************************************************************/
-    void setEssentialBoundaryConditions(const Plato::LocalOrdinalVector & aDirichletDofs, const Plato::ScalarVector & aDirichletValues)
+    void setEssentialBoundaryConditions(const Plato::OrdinalVector & aDirichletDofs, const Plato::ScalarVector & aDirichletValues)
     {
         if(aDirichletDofs.size() != aDirichletValues.size())
         {
             std::ostringstream tError;
             tError << "PLASTICITY PROBLEM: DIMENSION MISMATCH: THE NUMBER OF ELEMENTS IN INPUT DOFS AND VALUES ARRAY DO NOT MATCH."
                 << "DOFS SIZE = " << aDirichletDofs.size() << " AND VALUES SIZE = " << aDirichletValues.size();
-            THROWERR(tError.str())
+            ANALYZE_THROWERR(tError.str())
         }
         mDirichletDofs   = aDirichletDofs;
         mDirichletValues = aDirichletValues;
@@ -210,12 +212,10 @@ public:
     *******************************************************************************/
     void output(const std::string& aFilepath)
     {
-        auto tMesh = mSpatialModel.Mesh;
-
         auto tNumNodes = mGlobalEquation->numNodes();
-        Plato::ScalarMultiVector tPressure("Pressure", mGlobalStates.extent(0), tNumNodes);
-        Plato::ScalarMultiVector tTemperature("Temperature", mGlobalStates.extent(0), tNumNodes);
-        Plato::ScalarMultiVector tDisplacements("Displacements", mGlobalStates.extent(0), tNumNodes*mSpaceDim);
+        Plato::ScalarMultiVector tPressure("pressure", mGlobalStates.extent(0), tNumNodes);
+        Plato::ScalarMultiVector tTemperature("temperature", mGlobalStates.extent(0), tNumNodes);
+        Plato::ScalarMultiVector tDisplacements("displacement", mGlobalStates.extent(0), tNumNodes*mSpaceDim);
         Plato::blas2::extract<mNumGlobalDofsPerNode, mPressureDofOffset>(mGlobalStates, tPressure);
         Plato::blas2::extract<mNumGlobalDofsPerNode, mSpaceDim>(tNumNodes, mGlobalStates, tDisplacements);
         Plato::blas2::scale(mPressureScaling, tPressure);
@@ -225,28 +225,30 @@ public:
           Plato::blas2::scale(mTemperatureScaling, tTemperature);
         }
 
-        Omega_h::vtk::Writer tWriter = Omega_h::vtk::Writer(aFilepath.c_str(), &tMesh, mSpaceDim);
+        auto tWriter = Plato::MeshIOFactory::create(aFilepath, mSpatialModel.Mesh, "Write");
+
         for(Plato::OrdinalType tSnapshot = 0; tSnapshot < tDisplacements.extent(0); tSnapshot++)
         {
             auto tPressSubView = Kokkos::subview(tPressure, tSnapshot, Kokkos::ALL());
-            auto tPressSubViewDefaultMirror = Kokkos::create_mirror_view(Kokkos::DefaultExecutionSpace(), tPressSubView);
-            tMesh.add_tag(Omega_h::VERT, "Pressure", 1, Omega_h::Reals(Omega_h::Write<Omega_h::Real>(tPressSubViewDefaultMirror)));
+            tWriter->AddNodeData("pressure", tPressSubView);
+
             auto tForceSubView = Kokkos::subview(mReactionForce, tSnapshot, Kokkos::ALL());
-            auto tForceSubViewDefaultMirror = Kokkos::create_mirror_view(Kokkos::DefaultExecutionSpace(), tForceSubView);
-            tMesh.add_tag(Omega_h::VERT, "Reaction Force", 1, Omega_h::Reals(Omega_h::Write<Omega_h::Real>(tForceSubViewDefaultMirror)));
+            tWriter->AddNodeData("reaction force", tForceSubView);
+
             auto tDispSubView = Kokkos::subview(tDisplacements, tSnapshot, Kokkos::ALL());
-            auto tDispSubViewDefaultMirror = Kokkos::create_mirror_view(Kokkos::DefaultExecutionSpace(), tDispSubView);
-            tMesh.add_tag(Omega_h::VERT, "Displacements", mSpaceDim, Omega_h::Reals(Omega_h::Write<Omega_h::Real>(tDispSubViewDefaultMirror)));
+            tWriter->AddNodeData("displacement", tDispSubView, mSpaceDim);
+
             if (mTemperatureDofOffset > 0)
             {
               auto tTemperatureSubView = Kokkos::subview(tTemperature, tSnapshot, Kokkos::ALL());
-              auto tTemperatureSubViewDefaultMirror = Kokkos::create_mirror_view(Kokkos::DefaultExecutionSpace(), tTemperatureSubView);
-              tMesh.add_tag(Omega_h::VERT, "Temperature", 1, Omega_h::Reals(Omega_h::Write<Omega_h::Real>(tTemperatureSubViewDefaultMirror)));
+              tWriter->AddNodeData("temperature", tTemperatureSubView);
+
             }
-            Plato::add_state_tags(tMesh, mDataMap, tSnapshot);
-            auto tTags = Omega_h::vtk::get_all_vtk_tags(&tMesh, mSpaceDim);
+
+            Plato::AddStateData(tWriter, mDataMap.getState(tSnapshot), mSpaceDim);
+
             auto tTime = mTimeData->mCurrentTimeStepSize * static_cast<Plato::Scalar>(tSnapshot + 1);
-            tWriter.write(tSnapshot, tTime, tTags);
+            tWriter->Write(tSnapshot, tTime);
         }
     }
 
@@ -290,7 +292,7 @@ public:
         // 4. HOW WILL OUTPUT DATA BE PRESENTED TO THE USERS, WE CANNOT SEND TIME-DEPENDENT DATA THROUGH THE ENGINE.
         if(aControls.size() <= static_cast<Plato::OrdinalType>(0))
         {
-            THROWERR("PLASTICITY PROBLEM: INPUT CONTROL VECTOR IS EMPTY.")
+            ANALYZE_THROWERR("PLASTICITY PROBLEM: INPUT CONTROL VECTOR IS EMPTY.")
         }
         
         mDataMap.scalarNodeFields["Topology"] = aControls;
@@ -351,11 +353,11 @@ public:
     {
         if(aControls.size() <= static_cast<Plato::OrdinalType>(0))
         {
-            THROWERR("PLASTICITY PROBLEM: CONTROL 1D VIEW IS EMPTY.");
+            ANALYZE_THROWERR("PLASTICITY PROBLEM: CONTROL 1D VIEW IS EMPTY.");
         }
         if(aSolution.empty())
         {
-            THROWERR("PLASTICITY PROBLEM: SOLUTION DATABASE IS EMPTY.");
+            ANALYZE_THROWERR("PLASTICITY PROBLEM: SOLUTION DATABASE IS EMPTY.");
         }
 
         if( mCriteria.count(aName) )
@@ -371,7 +373,7 @@ public:
         else
         {
             const std::string tErrorMessage = std::string("REQUESTED CRITERION '") + aName + "' NOT DEFINED BY THE USER.";
-            THROWERR(tErrorMessage);
+            ANALYZE_THROWERR(tErrorMessage);
         }
     }
 
@@ -389,7 +391,7 @@ public:
     {
         if(aControls.size() <= static_cast<Plato::OrdinalType>(0))
         {
-            THROWERR("PLASTICITY PROBLEM: CONTROL 1D VIEW IS EMPTY.");
+            ANALYZE_THROWERR("PLASTICITY PROBLEM: CONTROL 1D VIEW IS EMPTY.");
         }
 
         if( mCriteria.count(aName) )
@@ -404,7 +406,7 @@ public:
         else
         {
             const std::string tErrorMessage = std::string("REQUESTED CRITERION '") + aName + "' NOT DEFINED BY THE USER.";
-            THROWERR(tErrorMessage);
+            ANALYZE_THROWERR(tErrorMessage);
         }
 
     }
@@ -423,7 +425,7 @@ public:
     {
         if(aControls.size() <= static_cast<Plato::OrdinalType>(0))
         {
-            THROWERR("PLASTICITY PROBLEM: CONTROL 1D VIEW IS EMPTY.");
+            ANALYZE_THROWERR("PLASTICITY PROBLEM: CONTROL 1D VIEW IS EMPTY.");
         }
 
         if( mCriteria.count(aName) )
@@ -440,7 +442,7 @@ public:
         else
         {
             const std::string tErrorMessage = std::string("REQUESTED CRITERION '") + aName + "' NOT DEFINED BY THE USER.";
-            THROWERR(tErrorMessage);
+            ANALYZE_THROWERR(tErrorMessage);
         }
     }
 
@@ -460,11 +462,11 @@ public:
     {
         if(aControls.size() <= static_cast<Plato::OrdinalType>(0))
         {
-            THROWERR("PLASTICITY PROBLEM: CONTROL 1D VIEW IS EMPTY.");
+            ANALYZE_THROWERR("PLASTICITY PROBLEM: CONTROL 1D VIEW IS EMPTY.");
         }
         if(aSolution.empty())
         {
-            THROWERR("PLASTICITY PROBLEM: SOLUTION DATABASE IS EMPTY.");
+            ANALYZE_THROWERR("PLASTICITY PROBLEM: SOLUTION DATABASE IS EMPTY.");
         }
 
         if( mCriteria.count(aName) )
@@ -479,7 +481,7 @@ public:
         else
         {
             const std::string tErrorMessage = std::string("REQUESTED CRITERION '") + aName + "' NOT DEFINED BY THE USER.";
-            THROWERR(tErrorMessage);
+            ANALYZE_THROWERR(tErrorMessage);
         }
     }
 
@@ -499,11 +501,11 @@ public:
     {
         if(aControls.size() <= static_cast<Plato::OrdinalType>(0))
         {
-            THROWERR("PLASTICITY PROBLEM: CONTROL 1D VIEW IS EMPTY.");
+            ANALYZE_THROWERR("PLASTICITY PROBLEM: CONTROL 1D VIEW IS EMPTY.");
         }
         if(aSolution.empty())
         {
-            THROWERR("PLASTICITY PROBLEM: SOLUTION DATABASE IS EMPTY.");
+            ANALYZE_THROWERR("PLASTICITY PROBLEM: SOLUTION DATABASE IS EMPTY.");
         }
 
         this->shouldOptimizationProblemStop();
@@ -531,7 +533,7 @@ public:
     {
         if(aControls.size() <= static_cast<Plato::OrdinalType>(0))
         {
-            THROWERR("PLASTICITY PROBLEM: CONTROL 1D VIEW IS EMPTY.");
+            ANALYZE_THROWERR("PLASTICITY PROBLEM: CONTROL 1D VIEW IS EMPTY.");
         }
 
         if( mCriteria.count(aName) )
@@ -548,7 +550,7 @@ public:
         else
         {
             const std::string tErrorMessage = std::string("REQUESTED CRITERION '") + aName + "' NOT DEFINED BY THE USER.";
-            THROWERR(tErrorMessage);
+            ANALYZE_THROWERR(tErrorMessage);
         }
 
     }
@@ -569,11 +571,11 @@ public:
     {
         if(aControls.size() <= static_cast<Plato::OrdinalType>(0))
         {
-            THROWERR("PLASTICITY PROBLEM: CONTROL 1D VIEW IS EMPTY.");
+            ANALYZE_THROWERR("PLASTICITY PROBLEM: CONTROL 1D VIEW IS EMPTY.");
         }
         if(aSolution.empty())
         {
-            THROWERR("PLASTICITY PROBLEM: SOLUTIONS DATABASE IS EMPTY.");
+            ANALYZE_THROWERR("PLASTICITY PROBLEM: SOLUTIONS DATABASE IS EMPTY.");
         }
 
         if( mCriteria.count(aName) )
@@ -586,7 +588,7 @@ public:
         else
         {
             const std::string tErrorMessage = std::string("REQUESTED CRITERION '") + aName + "' NOT DEFINED BY THE USER.";
-            THROWERR(tErrorMessage);
+            ANALYZE_THROWERR(tErrorMessage);
         }
     }
 
@@ -606,11 +608,11 @@ public:
     {
         if(aControls.size() <= static_cast<Plato::OrdinalType>(0))
         {
-            THROWERR("PLASTICITY PROBLEM: CONTROL 1D VIEW IS EMPTY.");
+            ANALYZE_THROWERR("PLASTICITY PROBLEM: CONTROL 1D VIEW IS EMPTY.");
         }
         if(aSolution.empty())
         {
-            THROWERR("PLASTICITY PROBLEM: SOLUTION DATABASE IS EMPTY.");
+            ANALYZE_THROWERR("PLASTICITY PROBLEM: SOLUTION DATABASE IS EMPTY.");
         }
 
 
@@ -660,7 +662,7 @@ public:
         auto tTemperatureScaling   = mTemperatureScaling;
         auto tNumGlobalDofsPerNode = mNumGlobalDofsPerNode;
         auto tTemperatureDofOffset = mTemperatureDofOffset;
-        auto tNumVerts             = mSpatialModel.Mesh.nverts();
+        auto tNumVerts             = mSpatialModel.Mesh->NumNodes();
 
         if (tTemperatureDofOffset > static_cast<Plato::OrdinalType>(0))
         {
@@ -685,7 +687,7 @@ private:
 
         if(aInputParams.isSublist("Material Models") == false)
         {
-            THROWERR("Plasticity Problem: 'Material Models' Parameter Sublist is not defined.")
+            ANALYZE_THROWERR("Plasticity Problem: 'Material Models' Parameter Sublist is not defined.")
         }
         Teuchos::ParameterList tMaterialsInputs = aInputParams.get<Teuchos::ParameterList>("Material Models");
 
@@ -712,7 +714,7 @@ private:
             }
             if (tReferenceTemperatures.empty())
             {
-                THROWERR("Reference temperature should be set for at least one material.")
+                ANALYZE_THROWERR("Reference temperature should be set for at least one material.")
             }
             else if (tReferenceTemperatures.size() == 1)
             {
@@ -723,7 +725,7 @@ private:
                 mReferenceTemperature = tReferenceTemperatures[0];
                 for (Plato::OrdinalType tIndex = 0; tIndex < tReferenceTemperatures.size(); ++tIndex)
                     if (std::abs(mReferenceTemperature - tReferenceTemperatures[tIndex]) > 5.0e-7)
-                        THROWERR("All materials must have the same reference temperature.")
+                        ANALYZE_THROWERR("All materials must have the same reference temperature.")
             }
         }
 
@@ -740,7 +742,7 @@ private:
             std::stringstream tMsg;
             tMsg << "\n**** Plasticity Problem: Newton-Raphson solver failed to converge during optimization. "
                     << "Optimization results are going to be impacted by the solver's failure to converge. ****\n";
-            THROWERR(tMsg.str().c_str())
+            ANALYZE_THROWERR(tMsg.str().c_str())
         }
     }
 
@@ -853,7 +855,7 @@ private:
         if (mEssentialBCs != nullptr)
           mEssentialBCs->get(mDirichletDofs, mDirichletValues, tCurrentTime);
         else
-          THROWERR("EssentialBCs pointer is null!")
+          ANALYZE_THROWERR("EssentialBCs pointer is null!")
 
         Plato::ScalarVector tNewtonUpdateDirichletValues("Dirichlet Increment Values", mDirichletValues.size());
         Plato::blas1::copy(mDirichletValues, tNewtonUpdateDirichletValues);
@@ -1098,7 +1100,7 @@ private:
         aStateData.mProjectedPressGrad = Kokkos::subview(mProjectedPressGrad, aStateData.mCurrentStepIndex, Kokkos::ALL());
         if(aStateData.mPressure.size() <= static_cast<Plato::OrdinalType>(0))
         {
-            auto tNumVerts = mSpatialModel.Mesh.nverts();
+            auto tNumVerts = mSpatialModel.Mesh->NumNodes();
             aStateData.mPressure = Plato::ScalarVector("Current Pressure Field", tNumVerts);
         }
         Plato::blas1::extract<mNumGlobalDofsPerNode, mPressureDofOffset>(aStateData.mCurrentGlobalState, aStateData.mPressure);

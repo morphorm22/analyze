@@ -1,24 +1,27 @@
 #include "Teuchos_UnitTestRepository.hpp"
 #include <mpi.h>
-// #include <fenv.h>
 #include <Kokkos_Core.hpp>
 #include "PlatoTestHelpers.hpp"
 
+#ifdef WATCH_ARITHMETIC
 #include <fenv.h>
+#endif
 
 int main( int argc, char* argv[] )
 {
 
-  // feclearexcept(FE_ALL_EXCEPT);
-  // feenableexcept(FE_ALL_EXCEPT - FE_INEXACT - FE_UNDERFLOW);
+#ifdef WATCH_ARITHMETIC
+  feclearexcept(FE_ALL_EXCEPT);
+  feenableexcept(FE_ALL_EXCEPT - FE_INEXACT - FE_UNDERFLOW);
+#endif
 
   MPI_Init(&argc, &argv);
   Kokkos::initialize(argc, argv);
-  PlatoUtestHelpers::initializeOmegaH(&argc, &argv);
+  Plato::MeshFactory::initialize(argc, argv);
 
   auto result = Teuchos::UnitTestRepository::runUnitTestsFromMain(argc, argv);
 
-  PlatoUtestHelpers::finalizeOmegaH();
+  Plato::MeshFactory::finalize();
   Kokkos::finalize();
   MPI_Finalize();
 

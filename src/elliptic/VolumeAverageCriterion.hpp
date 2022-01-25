@@ -4,13 +4,9 @@
 #include <cassert>
 #include <vector>
 
-#include <Omega_h_expr.hpp>
-#include <Omega_h_mesh.hpp>
-
 #include "alg/Cubature.hpp"
 #include "AnalyzeMacros.hpp"
 #include "PlatoMeshExpr.hpp"
-#include "UtilsOmegaH.hpp"
 #include "PlatoStaticsTypes.hpp"
 #include "WorksetBase.hpp"
 #include "elliptic/ScalarFunctionBaseFactory.hpp"

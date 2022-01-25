@@ -6,7 +6,6 @@
 #include "BLAS1.hpp"
 #include "alg/Basis.hpp"
 #include "Plato_TopOptFunctors.hpp"
-#include <Omega_h_mesh.hpp>
 
 namespace Plato
 {

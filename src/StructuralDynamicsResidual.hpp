@@ -71,7 +71,7 @@ private:
     Plato::ApplyPenalty<PenaltyFunctionType> mApplyPenalty;
     Plato::ApplyProjection<ProjectionType> mApplyProjection;
 
-    Omega_h::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;
+    Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;
 
     std::shared_ptr<Plato::BodyLoads<EvaluationType, PhysicsType>> mBodyLoads;
     std::shared_ptr<Plato::LinearTetCubRuleDegreeOne<mNumSpatialDims>> mCubatureRule;
@@ -213,7 +213,7 @@ public:
      * \param [in] aInput material stiffness constants
      *
     **********************************************************************************/
-    void setMaterialStiffnessConstants(const Omega_h::Matrix<mNumVoigtTerms, mNumVoigtTerms>& aInput)
+    void setMaterialStiffnessConstants(const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms>& aInput)
     {
         mCellStiffness = aInput;
     }
@@ -238,9 +238,7 @@ public:
     ********************************************************************************/
     Plato::Solutions getSolutionStateOutputData(const Plato::Solutions &aSolutions) const override 
     {
-        THROWERR("Structural dynamics output not implemented yet.")
-        /* TODO */ Plato::Solutions tSolutions;
-        return tSolutions;
+        return aSolutions;
     }
 
     /******************************************************************************//**

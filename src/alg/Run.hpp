@@ -42,7 +42,6 @@
 #define ANALYZE_RUN_HPP
 
 #include "alg/ParallelComm.hpp"
-#include <Omega_h_library.hpp>
 #include <Teuchos_ParameterList.hpp>
 
 //----------------------------------------------------------------------------
@@ -50,7 +49,6 @@
 namespace Plato {
 
 void run(
-    Omega_h::Library*       lib_osh,
     Teuchos::ParameterList& problem,
     Comm::Machine           machine);
 }

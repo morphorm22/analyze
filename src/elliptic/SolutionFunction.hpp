@@ -39,7 +39,7 @@ private:
     std::string mFunctionName; /*!< User defined function name */
     std::string mDomainName;   /*!< Name of the node set that represents the domain of interest */
 
-    Omega_h::Vector<mNumDofsPerNode> mNormal;  /*!< Direction of solution criterion */
+    Plato::Array<mNumDofsPerNode> mNormal;  /*!< Direction of solution criterion */
     bool mMagnitude;  /*!< Whether or not to compute magnitude of solution at each node in the domain */
 
     const Plato::SpatialModel & mSpatialModel;
@@ -63,7 +63,7 @@ private:
         {
             if (mNumDofsPerNode != 1)
             {
-                THROWERR("Parsing 'Solution' criterion:  'Normal' parameter missing.");
+                ANALYZE_THROWERR("Parsing 'Solution' criterion:  'Normal' parameter missing.");
             }
             else
             {
@@ -111,16 +111,6 @@ private:
                 }
             }
         }
-
-        // parse constrained nodesets
-        auto& tNodeSets = mSpatialModel.MeshSets[Omega_h::NODE_SET];
-        auto tNodeSetsIter = tNodeSets.find(mDomainName);
-        if(tNodeSetsIter == tNodeSets.end())
-        {
-            std::ostringstream tMsg;
-            tMsg << "Could not find mesh set with name = '" << mDomainName << std::endl;
-            THROWERR(tMsg.str())
-        }
     }
 
 public:
@@ -164,10 +154,8 @@ public:
         auto tLastIndex = tState.extent(0) - 1;
         auto tStateSubView = Kokkos::subview(tState, tLastIndex, Kokkos::ALL());
 
-        auto& tNodeSets = mSpatialModel.MeshSets[Omega_h::NODE_SET];
-        auto  tNodeIter = tNodeSets.find(mDomainName);
-        auto  tNodeIds  = tNodeIter->second;
-        auto  tNumNodes = tNodeIds.size();
+        auto tNodeIds = mSpatialModel.Mesh->GetNodeSetNodes(mDomainName);
+        auto tNumNodes = tNodeIds.size();
 
         auto tNormal = mNormal;
         auto tNumDofsPerNode = mNumDofsPerNode;
@@ -251,10 +239,8 @@ public:
         auto tState = aSolution.get("State");
         auto tStateSubView = Kokkos::subview(tState, aStepIndex, Kokkos::ALL());
 
-        auto& tNodeSets = mSpatialModel.MeshSets[Omega_h::NODE_SET];
-        auto  tNodeIter = tNodeSets.find(mDomainName);
-        auto  tNodeIds  = tNodeIter->second;
-        auto  tNumNodes = tNodeIds.size();
+        auto tNodeIds = mSpatialModel.Mesh->GetNodeSetNodes(mDomainName);
+        auto tNumNodes = tNodeIds.size();
 
         auto tNormal = mNormal;
         auto tNumDofsPerNode = mNumDofsPerNode;

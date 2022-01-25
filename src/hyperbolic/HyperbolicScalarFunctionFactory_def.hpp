@@ -12,8 +12,7 @@ namespace Hyperbolic
     /******************************************************************************//**
      * \brief Create method
      * \param [in] aMesh mesh database
-     * \param [in] aMeshSets side sets database
-     * \param [in] aDataMap PLATO Engine and Analyze data map
+     * \param [in] aDataMap Plato Engine and Analyze data map
      * \param [in] aInputParams parameter input
      * \param [in] aFunctionName name of function in parameter list
      **********************************************************************************/
@@ -37,7 +36,7 @@ namespace Hyperbolic
         {
             const std::string tErrorString = std::string("Unknown function Type '") + tFunctionType +
                             "' specified in function name " + aFunctionName + " ParameterList";
-            THROWERR(tErrorString)
+            ANALYZE_THROWERR(tErrorString)
         }
     }
 } //namespace Hyperbolic

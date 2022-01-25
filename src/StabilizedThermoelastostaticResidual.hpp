@@ -3,6 +3,7 @@
 
 #include <memory>
 
+#include "BLAS2.hpp"
 #include "PlatoTypes.hpp"
 #include "SimplexFadTypes.hpp"
 #include "SimplexThermomechanics.hpp"
@@ -49,8 +50,11 @@ private:
     using PhysicsType::mNumDofsPerNode;
     using PhysicsType::mNumDofsPerCell;
 
-    using Plato::AbstractVectorFunctionVMS<EvaluationType>::mSpatialDomain;
-    using Plato::AbstractVectorFunctionVMS<EvaluationType>::mDataMap;
+    using FunctionBaseType = Plato::AbstractVectorFunctionVMS<EvaluationType>;
+
+    using FunctionBaseType::mSpatialDomain;
+    using FunctionBaseType::mDataMap;
+    using FunctionBaseType::mDofNames;
 
     using StateScalarType     = typename EvaluationType::StateScalarType;
     using NodeStateScalarType = typename EvaluationType::NodeStateScalarType;
@@ -58,7 +62,6 @@ private:
     using ConfigScalarType    = typename EvaluationType::ConfigScalarType;
     using ResultScalarType    = typename EvaluationType::ResultScalarType;
 
-    using FunctionBaseType = Plato::AbstractVectorFunctionVMS<EvaluationType>;
     using CubatureType = Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>;
 
     IndicatorFunctionType mIndicatorFunction;
@@ -96,6 +99,13 @@ public:
         mCubatureRule         (std::make_shared<CubatureType>())
     /**************************************************************************/
     {
+        // obligatory: define dof names in order
+        mDofNames.push_back("displacement X");
+        if(SpaceDim > 1) mDofNames.push_back("displacement Y");
+        if(SpaceDim > 2) mDofNames.push_back("displacement Z");
+        mDofNames.push_back("pressure");
+        mDofNames.push_back("temperature");
+
         // create material model and get stiffness
         //
         Plato::LinearThermoelasticModelFactory<SpaceDim> mmfactory(aProblemParams);
@@ -129,6 +139,16 @@ public:
         if( tResidualParams.isType<Teuchos::Array<std::string>>("Plottable") )
           mPlottable = tResidualParams.get<Teuchos::Array<std::string>>("Plottable").toVector();
 
+    }
+
+    /****************************************************************************//**
+    * \brief Pure virtual function to get output solution data
+    * \param [in] state solution database
+    * \return output state solution database
+    ********************************************************************************/
+    Plato::Solutions getSolutionStateOutputData(const Plato::Solutions &aSolutions) const override
+    {
+      return aSolutions;
     }
 
     /**************************************************************************/

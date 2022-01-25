@@ -61,6 +61,10 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     Solutions.cpp
     AnalyzeAppUtils.cpp
     PlatoMask.cpp
+    OmegaHMesh.cpp
+    OmegaHMeshIO.cpp
+    EngineMesh.cpp
+    EngineMeshIO.cpp
     alg/ParseInput.cpp
     alg/Basis.cpp
     alg/Cubature.cpp
@@ -240,8 +244,10 @@ if( CMAKE_INSTALL_PREFIX )
 endif()
 # for AnalyzeConfig.hpp
 target_include_directories(analyzelib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(analyzelib PRIVATE "${PLATOENGINE_PREFIX}/include")
 
 set(LINK_LIBS
+    ${PLATO_LIBS}
     ${Trilinos_LIBRARIES}
     Omega_h::omega_h
     ${Trilinos_TPL_LIBRARIES}

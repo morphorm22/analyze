@@ -2,7 +2,6 @@
 #define COMPUTED_FIELD_HPP
 
 #include <Omega_h_expr.hpp>
-#include <Omega_h_mesh.hpp>
 
 #include <Teuchos_ParameterList.hpp>
 
@@ -28,12 +27,12 @@ class ComputedField
   
   /**************************************************************************/
   ComputedField<SpaceDim>(
-    const Omega_h::Mesh& aMesh, 
-    const std::string &aName, 
-    const std::string &aFunc) :
+    const Plato::Mesh   aMesh, 
+    const std::string & aName, 
+    const std::string & aFunc) :
     mName(aName),
     mFuncString(aFunc),
-    mValues(aName, aMesh.nverts())
+    mValues(aName, aMesh->NumNodes())
   /**************************************************************************/
   {
     initialize(aMesh, aName, aFunc);
@@ -41,17 +40,17 @@ class ComputedField
 
   /**************************************************************************/
   void initialize(
-    const Omega_h::Mesh& aMesh, 
-    const std::string &aName, 
-    const std::string &aFunc)
+    const Plato::Mesh   aMesh, 
+    const std::string & aName, 
+    const std::string & aFunc)
   /**************************************************************************/
   {
-    auto numPoints = aMesh.nverts();
+    auto numPoints = aMesh->NumNodes();
     auto x_coords = Plato::omega_h::create_omega_h_write_array<Plato::Scalar>("x coords", numPoints);
     auto y_coords = Plato::omega_h::create_omega_h_write_array<Plato::Scalar>("y coords", numPoints);
     auto z_coords = Plato::omega_h::create_omega_h_write_array<Plato::Scalar>("z coords", numPoints);
   
-    auto coords = aMesh.coords();
+    auto coords = aMesh->Coordinates();
     auto values = mValues;
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0,numPoints), LAMBDA_EXPRESSION(Plato::OrdinalType aPointOrdinal)
     {
@@ -125,7 +124,7 @@ class ComputedFields
     \brief Constructor that parses and creates a vector of ComputedField objects
     based on the ParameterList.
   */
-  ComputedFields(const Omega_h::Mesh& aMesh, Teuchos::ParameterList &params) : CFs()
+  ComputedFields(const Plato::Mesh aMesh, Teuchos::ParameterList &params) : CFs()
   /****************************************************************************/
   {
     for (Teuchos::ParameterList::ConstIterator i = params.begin(); i != params.end(); ++i)

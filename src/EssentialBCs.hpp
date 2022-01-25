@@ -1,10 +1,11 @@
 #pragma once
 
+#include <memory>
 #include <sstream>
 
-#include <Omega_h_assoc.hpp>
 #include <Teuchos_ParameterList.hpp>
 
+#include "PlatoMesh.hpp"
 #include "PlatoMathExpr.hpp"
 #include "AnalyzeMacros.hpp"
 #include "PlatoStaticsTypes.hpp"
@@ -31,9 +32,9 @@ public:
      */
     EssentialBCs(
               Teuchos::ParameterList & aParams,
-        const Omega_h::MeshSets      & aMeshSets
+        const Plato::Mesh              aMesh
     ) : 
-        mMeshSets(aMeshSets),
+        mMesh(aMesh),
         mBCs()
     {
         for(Teuchos::ParameterList::ConstIterator tIndex = aParams.begin(); tIndex != aParams.end(); ++tIndex)
@@ -52,10 +53,10 @@ public:
      */
     EssentialBCs(
               Teuchos::ParameterList                      & aParams,
-        const Omega_h::MeshSets                           & aMeshSets, 
+        const Plato::Mesh                                   aMesh,
         const std::map<Plato::OrdinalType, Plato::Scalar> & aDofOffsetToScaleFactor
     ) :
-        mMeshSets(aMeshSets),
+        mMesh(aMesh),
         mBCs()
     {
         for(Teuchos::ParameterList::ConstIterator tIndex = aParams.begin(); tIndex != aParams.end(); ++tIndex)
@@ -108,37 +109,37 @@ public:
      \param [in]     aTime     Current time (default=0.0).
      */
     void get(
-              Plato::LocalOrdinalVector & aBcDofs,
-              Plato::ScalarVector       & aBcValues,
-        const Plato::Scalar               aTime=0.0)
+              Plato::OrdinalVector & aBcDofs,
+              Plato::ScalarVector  & aBcValues,
+        const Plato::Scalar          aTime=0.0)
     {
         this->sizeBcArrays(aBcDofs,aBcValues);
         this->fillBcData(aBcDofs,aBcValues,aTime);
     }
 
     void sizeBcArrays(
-        Plato::LocalOrdinalVector & aBcDofs,
-        Plato::ScalarVector       & aBcValues)
+        Plato::OrdinalVector & aBcDofs,
+        Plato::ScalarVector  & aBcValues)
     {
         Plato::OrdinalType tNumDofs(0);
         for(auto &tBC : mBCs)
         {
-            tNumDofs += tBC->get_length(mMeshSets);
+            tNumDofs += tBC->get_length(mMesh);
         }
         Kokkos::resize(aBcDofs, tNumDofs);
         Kokkos::resize(aBcValues, tNumDofs);
     }
 
     void fillBcData(
-              Plato::LocalOrdinalVector & aBcDofs,
-              Plato::ScalarVector       & aBcValues,
-        const Plato::Scalar               aTime=0.0)
+              Plato::OrdinalVector & aBcDofs,
+              Plato::ScalarVector  & aBcValues,
+        const Plato::Scalar          aTime=0.0)
     {
         Plato::OrdinalType tOffset(0);
         for(auto &tBC : mBCs)
         {
-            tBC->get(mMeshSets,aBcDofs,aBcValues,tOffset,aTime);
-            tOffset += tBC->get_length(mMeshSets);
+            tBC->get(mMesh, aBcDofs, aBcValues, tOffset, aTime);
+            tOffset += tBC->get_length(mMesh);
         }
     }
 
@@ -148,7 +149,8 @@ public:
     }
 
 private:
-    const Omega_h::MeshSets  & mMeshSets;
+    const Plato::Mesh mMesh;
+
     std::vector<std::shared_ptr<EssentialBC<SimplexPhysicsType>>> mBCs;
 };
 

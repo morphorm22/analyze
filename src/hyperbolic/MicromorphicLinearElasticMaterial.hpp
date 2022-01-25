@@ -1,9 +1,9 @@
 #pragma once
 
-#include <Omega_h_matrix.hpp>
 #include <Teuchos_ParameterList.hpp>
 
 #include "AnalyzeMacros.hpp"
+#include "PlatoMathTypes.hpp"
 #include "PlatoStaticsTypes.hpp"
 
 namespace Plato
@@ -29,10 +29,10 @@ protected:
 
     static_assert(mNumVoigtTerms, "SpatialDim must be 1, 2, or 3."); /*!< number of stress-strain terms */
 
-    Omega_h::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffnessCe;   /*!< cell stiffness matrix Ce, i.e. fourth-order material tensor for symmetric part of mesoscale strain */
-    Omega_h::Matrix<mNumSkwTerms,mNumSkwTerms> mCellStiffnessCc;   /*!< cell stiffness matrix Cc, i.e. fourth-order material tensor for skew-symmetric part of mesoscale strain */
-    Omega_h::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffnessCm;   /*!< cell stiffness matrix Cm, i.e. fourth-order material tensor for symmetric part of micro-distortion */
-    Omega_h::Vector<mNumVoigtTerms> mReferenceStrain;                /*!< reference strain tensor */
+    Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffnessCe;   /*!< cell stiffness matrix Ce, i.e. fourth-order material tensor for symmetric part of mesoscale strain */
+    Plato::Matrix<mNumSkwTerms,mNumSkwTerms> mCellStiffnessCc;   /*!< cell stiffness matrix Cc, i.e. fourth-order material tensor for skew-symmetric part of mesoscale strain */
+    Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffnessCm;   /*!< cell stiffness matrix Cm, i.e. fourth-order material tensor for symmetric part of micro-distortion */
+    Plato::Array<mNumVoigtTerms> mReferenceStrain;                /*!< reference strain tensor */
 
     Plato::Scalar mRayleighB; // stiffness coefficient
 

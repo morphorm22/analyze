@@ -51,7 +51,7 @@ public:
             {
                 std::stringstream ss;
                 ss << "Requested an inertia material model ('" << aModelName << "') that isn't defined";
-                THROWERR(ss.str());
+                ANALYZE_THROWERR(ss.str());
             }
 
             auto tModelParamList = tModelsParamList.sublist(aModelName);

@@ -3,7 +3,6 @@
 
 #include <sstream>
 
-#include <Omega_h_assoc.hpp>
 #include <Teuchos_ParameterList.hpp>
 
 #include "AnalyzeMacros.hpp"
@@ -33,7 +32,6 @@ public:
     /*!
      \brief Pure virtual function 
      \Get constraint matrix and RHS data.
-     \param aMeshSets Omega_h mesh sets that contains nodeset data.
      \param mpcRowMap CRS-style rowMap for constraint data.
      \param mpcColumnIndices CRS-style columnIndices for constraint data.
      \param mpcEntries CRS-style entries for constraint data.
@@ -42,11 +40,11 @@ public:
      \param offsetParent Starting location for storage of parent nodes.
      \param offsetNnz Starting location in columnIndices/entries where constraining nodes/coefficients will be added.
      */
-    virtual void get(LocalOrdinalVector & aMpcChildNodes,
-                 LocalOrdinalVector & aMpcParentNodes,
-                 Plato::CrsMatrixType::RowMapVector & aMpcRowMap,
-                 Plato::CrsMatrixType::OrdinalVector & aMpcColumnIndices,
-                 Plato::CrsMatrixType::ScalarVector & aMpcEntries,
+    virtual void get(OrdinalVector & aMpcChildNodes,
+                 OrdinalVector & aMpcParentNodes,
+                 Plato::CrsMatrixType::RowMapVectorT & aMpcRowMap,
+                 Plato::CrsMatrixType::OrdinalVectorT & aMpcColumnIndices,
+                 Plato::CrsMatrixType::ScalarVectorT & aMpcEntries,
                  ScalarVector & aMpcValues,
                  OrdinalType aOffsetChild,
                  OrdinalType aOffsetParent,

@@ -31,6 +31,24 @@ get_vector_component
 
 /******************************************************************************//**
  *
+ * \brief Set vector component in strided storage
+ *
+ * \param [in] aTo scalar vector containing strided data
+ * \param [in] aFrom scalar vector containing data to be copied
+ * \param [in] aDof    degree of freedom
+ * \param [in] aStride locations in memory between beginnings of successive array elements
+ * 
+ * \return scalar vector
+**********************************************************************************/
+void
+set_vector_component
+(Plato::ScalarVector aTo,
+ Plato::ScalarVector aFrom,
+ Plato::OrdinalType aDof,
+ Plato::OrdinalType aStride);
+
+/******************************************************************************//**
+ *
  * \brief Parse parameter list inline and set value of parsed parameter
  *
  * \param [in] aParams parameter list

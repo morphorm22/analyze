@@ -1,6 +1,9 @@
 #ifndef PLATO_LINEAR_STRESS_HPP
 #define PLATO_LINEAR_STRESS_HPP
 
+#include "SimplexMechanics.hpp"
+#include "LinearElasticMaterial.hpp"
+#include "PlatoMathTypes.hpp"
 #include "AbstractLinearStress.hpp"
 
 namespace Plato
@@ -32,9 +35,8 @@ public:
      * \brief Constructor
      * \param [in] aCellStiffness material element stiffness matrix
     **********************************************************************************/
-    LinearStress(const Omega_h::Matrix<mNumVoigtTerms,
-                 mNumVoigtTerms> aCellStiffness) :
-      AbstractLinearStress< EvaluationType, SimplexPhysics >(aCellStiffness)
+    LinearStress(const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> aCellStiffness) :
+        AbstractLinearStress< EvaluationType, SimplexPhysics >(aCellStiffness)
     {
     }
 
@@ -43,7 +45,7 @@ public:
      * \param [in] aMaterialModel material model interface
     **********************************************************************************/
     LinearStress(const Teuchos::RCP<Plato::LinearElasticMaterial<mSpaceDim>> aMaterialModel) :
-      AbstractLinearStress< EvaluationType, SimplexPhysics >(aMaterialModel)
+        AbstractLinearStress< EvaluationType, SimplexPhysics >(aMaterialModel)
     {
     }
 

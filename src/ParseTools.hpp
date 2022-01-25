@@ -84,7 +84,7 @@ T getParam(
     {
         std::stringstream sstream;
         sstream << "Missing required parameter " << aParamName << std::endl;
-        THROWERR(sstream.str());
+        ANALYZE_THROWERR(sstream.str());
     }
 }
 

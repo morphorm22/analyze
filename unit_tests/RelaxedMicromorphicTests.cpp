@@ -576,8 +576,8 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
     //
     constexpr int tMeshWidth=2;
     constexpr int tSpaceDim=3;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    int tNumCells = tMesh->nelems();
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    int tNumCells = tMesh->NumElements();
 
     // set material model
     //
@@ -626,7 +626,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
     
     // create mesh based state
     //
-    int tNumNodes = tMesh->nverts();
+    int tNumNodes = tMesh->NumNodes();
     int tNumDofs = tNumNodes*tNumDofsPerNode;
     Plato::ScalarVector tState("state", tNumDofs);
     Plato::ScalarVector tStateDotDot("state dot dot", tNumDofs);
@@ -680,7 +680,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
     Plato::ScalarArray3DT<Plato::Scalar>     tConfigWS("config workset",tNumCells,tNumNodesPerCell,tSpaceDim);
     Plato::ScalarMultiVectorT<Plato::Scalar> tStateWS("state workset",tNumCells, tNumDofsPerCell);
     Plato::ScalarMultiVectorT<Plato::Scalar> tStateDotDotWS("state dot dot workset",tNumCells, tNumDofsPerCell);
-    Plato::WorksetBase<Plato::SimplexMicromorphicMechanics<tSpaceDim>> tWorksetBase(*tMesh);
+    Plato::WorksetBase<Plato::SimplexMicromorphicMechanics<tSpaceDim>> tWorksetBase(tMesh);
     tWorksetBase.worksetConfig(tConfigWS);
     tWorksetBase.worksetState(tState, tStateWS);
     tWorksetBase.worksetState(tStateDotDot, tStateDotDotWS);
@@ -756,12 +756,12 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
     Kokkos::deep_copy( tGradient_host, tGradient );
 
     std::vector<std::vector<std::vector<Plato::Scalar>>> tGradient_gold = { 
-      {{0.0,-2.0, 0.0},{ 2.0, 0.0,-2.0},{-2.0, 2.0, 0.0},{ 0.0, 0.0, 2.0}},
-      {{0.0,-2.0, 0.0},{ 0.0, 2.0,-2.0},{-2.0, 0.0, 2.0},{ 2.0, 0.0, 0.0}},
-      {{0.0, 0.0,-2.0},{-2.0, 2.0, 0.0},{ 0.0,-2.0, 2.0},{ 2.0, 0.0, 0.0}},
-      {{0.0, 0.0,-2.0},{ 2.0,-2.0, 0.0},{ 0.0, 2.0, 0.0},{-2.0, 0.0, 2.0}},
-      {{0.0,-2.0, 0.0},{ 2.0, 0.0,-2.0},{-2.0, 2.0, 0.0},{ 0.0, 0.0, 2.0}},
-      {{0.0,-2.0, 0.0},{ 0.0, 2.0,-2.0},{-2.0, 0.0, 2.0},{ 2.0, 0.0, 0.0}}
+      {{0.0,-2.0, 0.0},{ 2.0, 0.0, -2.0},{-2.0, 2.0, 0.0},{ 0.0, 0.0, 2.0}},
+      {{0.0,-2.0, 0.0},{ 0.0, 2.0, -2.0},{-2.0, 0.0, 2.0},{ 2.0, 0.0, 0.0}},
+      {{0.0, 0.0, -2.0},{-2.0, 2.0, 0.0},{ 0.0, -2.0, 2.0},{ 2.0, 0.0, 0.0}},
+      {{0.0, 0.0, -2.0},{ -2.0, 0.0, 2.0},{ 2.0, -2.0, 0.0},{0.0, 2.0, 0.0}},
+      {{-2.0,0.0, 0.0},{ 0.0, -2.0, 2.0},{2.0, 0.0, -2.0},{ 0.0, 2.0, 0.0}},
+      {{-2.0, 0.0, 0.0},{ 2.0, -2.0, 0.0},{0.0, 2.0, -2.0},{ 0.0, 0.0, 2.0}}
     };
 
     int tNumGoldCells = tGradient_gold.size();
@@ -783,10 +783,10 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
   Kokkos::deep_copy( tSymDisplacementGradient_Host, tSymDisplacementGradient );
 
   std::vector<std::vector<Plato::Scalar>> tSymDisplacementGradient_Gold = { 
-    {2.0e-07,  3.2e-06,  2.4e-06, 6.4e-06, 1.4e-06, 2.0e-06}, 
-    {2.0e-06,  3.2e-06, -3.0e-06, 2.8e-06, 5.0e-06, 5.6e-06},
-    {2.0e-06,  8.0e-07,  6.0e-07, 1.6e-06, 6.2e-06, 4.4e-06},
-    {4.0e-06, -3.2e-06,  6.0e-07, -4.4e-06, 1.22e-05, 6.4e-06}
+    {1.8e-06,  1.2e-06,  6.0e-07, 2.2e-06, 5.6e-06, 4.2e-06}, 
+    {1.8e-06,  1.2e-06,  6.0e-07, 2.2e-06, 5.6e-06, 4.2e-06}, 
+    {1.8e-06,  1.2e-06,  6.0e-07, 2.2e-06, 5.6e-06, 4.2e-06}, 
+    {1.8e-06,  1.2e-06,  6.0e-07, 2.2e-06, 5.6e-06, 4.2e-06}, 
   };
 
   for(int iCell=0; iCell<int(tSymDisplacementGradient_Gold.size()); iCell++){
@@ -805,10 +805,10 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
   Kokkos::deep_copy( tSkwDisplacementGradient_Host, tSkwDisplacementGradient );
 
   std::vector<std::vector<Plato::Scalar>> tSkwDisplacementGradient_Gold = { 
-    {-3.2e-06,  2.0e-07,  1.2e-06}, 
-    {-6.8e-06,  -7.0e-06, -2.4e-06},
-    {-8.0e-07,  -5.8e-06,  -3.6e-06},
-    {5.2e-06, -1.18e-05, -9.6e-06}
+    {-1.4e-06, -5.2e-06, -3.0e-06}, 
+    {-1.4e-06, -5.2e-06, -3.0e-06}, 
+    {-1.4e-06, -5.2e-06, -3.0e-06}, 
+    {-1.4e-06, -5.2e-06, -3.0e-06}, 
   };
 
   for(int iCell=0; iCell<int(tSkwDisplacementGradient_Gold.size()); iCell++){
@@ -827,10 +827,10 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
   Kokkos::deep_copy( tSymMicroDistortionTensor_Host, tSymMicroDistortionTensor );
 
   std::vector<std::vector<Plato::Scalar>> tSymMicroDistortionTensor_Gold = { 
-    {3.0e-06,  3.75e-06,  4.5e-06, 1.275e-05, 1.425e-05, 1.575e-05}, 
-    {2.4e-06,  3.0e-06, 3.6e-06, 1.02e-05, 1.14e-05, 1.26e-05},
-    {1.7e-06,  2.125e-06, 2.55e-06, 7.225e-06, 8.075e-06, 8.925e-06},
-    {3.5e-06, 4.375e-06,  5.25e-06, 1.4875e-05, 1.6625e-05, 1.8375e-05}
+    {2.8e-06, 3.5e-06,  4.2e-06, 1.19e-05, 1.33e-05, 1.47e-05}, 
+    {2.0e-06, 2.5e-06,  3.0e-06, 8.5e-06,  9.5e-06,  1.05e-05},
+    {1.8e-06, 2.25e-06, 2.7e-06, 7.65e-06, 8.55e-06, 9.45e-06},
+    {2.4e-06, 3.0e-06,  3.6e-06, 1.02e-05, 1.14e-05, 1.26e-05}
   };
 
   for(int iCell=0; iCell<int(tSymMicroDistortionTensor_Gold.size()); iCell++){
@@ -849,10 +849,10 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
   Kokkos::deep_copy( tSkwMicroDistortionTensor_Host, tSkwMicroDistortionTensor );
 
   std::vector<std::vector<Plato::Scalar>> tSkwMicroDistortionTensor_Gold = { 
-    {-2.25e-06,  -2.25e-06,  -2.25e-06}, 
-    {-1.8e-06,  -1.8e-06, -1.8e-06},
-    {-1.275e-06,  -1.275e-06, -1.275e-06},
-    {-2.625e-06, -2.625e-06, -2.625e-06}
+    {-2.1e-06,  -2.1e-06,  -2.1e-06}, 
+    {-1.5e-06,  -1.5e-06,  -1.5e-06},
+    {-1.35e-06, -1.35e-06, -1.35e-06},
+    {-1.8e-06,  -1.8e-06,  -1.8e-06}
   };
 
   for(int iCell=0; iCell<int(tSkwMicroDistortionTensor_Gold.size()); iCell++){
@@ -871,9 +871,9 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
   Kokkos::deep_copy( tSymCauchyStress_Host, tSymCauchyStress );
 
   std::vector<std::vector<Plato::Scalar>> tSymCauchyStress_Gold = { 
-    {-2.461783e-03, 45.2119999999998e-06, -1.681829e-03, -53.1495e-06, -107.5545e-06, -115.0875e-06}, 
-    {375.344e-06, 1.043876e-03, -6.53282e-03, -61.938e-06, -53.568e-06, -58.59e-06},
-    {693.4675e-06, -1.11714e-03, -1.8135275e-03, -47.08125e-06, -15.69375e-06, -37.87425e-06}
+    {-2.811140000000000e-04, -1.729600000000000e-03, -3.178086000000000e-03, -8.118899999999998e-05, -6.444900000000001e-05, -8.788499999999998e-05}, 
+    {2.480420000000000e-04, -9.775999999999999e-04, -2.203242000000000e-03, -5.273099999999999e-05, -3.264300000000001e-05, -5.273100000000001e-05},
+    {3.803310000000000e-04, -7.896000000000001e-04, -1.959531000000000e-03, -4.561649999999999e-05, -2.469150000000000e-05, -4.394249999999999e-05}
   };
 
   for(int iCell=0; iCell<int(tSymCauchyStress_Gold.size()); iCell++){
@@ -892,9 +892,9 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
   Kokkos::deep_copy( tSkwCauchyStress_Host, tSkwCauchyStress );
 
   std::vector<std::vector<Plato::Scalar>> tSkwCauchyStress_Gold = { 
-    {0.0, 0.0, 0.0, -171.0e-12,  441.0e-12,  621.0e-12}, 
-    {0.0, 0.0, 0.0, -900.0e-12, -936.0e-012, -108.0e-012},
-    {0.0, 0.0, 0.0, 85.5e-012,  -814.5e-012, -418.5e-012}
+    {0.0, 0.0, 0.0, 1.260000000000001e-10,  -5.579999999999998e-10,  -1.620000000000001e-10}, 
+    {0.0, 0.0, 0.0, 1.799999999999994e-11, -6.660000000000001e-10, -2.700000000000000e-10},
+    {0.0, 0.0, 0.0, -8.999999999999953e-12, -6.930000000000001e-10, -2.970000000000001e-10}
   };
 
   for(int iCell=0; iCell<int(tSkwCauchyStress_Gold.size()); iCell++){
@@ -913,9 +913,9 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
   Kokkos::deep_copy( tSymMicroStress_Host, tSymMicroStress );
 
   std::vector<std::vector<Plato::Scalar>> tSymMicroStress_Gold = { 
-    {3.5663475e-03, 3.9499125e-03, 4.3334775e-03, 2.31132e-03, 2.58324e-03, 2.85516e-03}, 
-    {2.853078e-03, 3.15993e-03, 3.466782e-03, 1.849056e-03, 2.066592e-03, 2.284128e-03},
-    {2.02093025e-03, 2.23828375e-03, 2.45563725e-03, 1.309748e-03, 1.463836e-03, 1.617924e-03}
+    {3.328591000000000e-03, 3.686585000000000e-03, 4.044579000000000e-03, 2.157232000000000e-03, 2.411024000000000e-03, 2.664816000000000e-03}, 
+    {2.377565000000000e-03, 2.633275000000000e-03, 2.888985000000000e-03, 1.540880000000000e-03, 1.722160000000000e-03, 1.903440000000000e-03},
+    {2.139808500000000e-03, 2.369947500000000e-03, 2.600086500000000e-03, 1.386792000000000e-03, 1.549944000000000e-03, 1.713096000000000e-03}
   };
 
   for(int iCell=0; iCell<int(tSymMicroStress_Gold.size()); iCell++){
@@ -934,14 +934,14 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
   Kokkos::deep_copy( tResidual_Host, tResidual );
 
   std::vector<std::vector<Plato::Scalar>> tResidual_gold = { 
-   {4.79528662499999e-06, -1.88383333333332e-06, 2.214555375e-06, 31.3965130208333e-06, 20.3369817708333e-06, 31.3297213541666e-06, 12.3149462031250e-06, 14.0145523906250e-06, 15.470035828125e-06, 12.314944421875e-06, 14.014556984375e-06, 15.470042296875e-06,
-    -98.0928725416665e-06, -2.58076875e-06, 65.5947524583332e-06, 31.3965130208333e-06, 20.3369817708333e-06, 31.3297213541666e-06, 12.314946203125e-06, 14.014552390625e-06, 15.470035828125e-06, 12.314944421875e-06, 14.014556984375e-06, 15.470042296875e-06,
-    97.7790050416665e-06, 6.67917170833331e-06, 2.2669005e-06, 31.3965130208333e-06, 20.3369817708333e-06, 31.3297213541666e-06, 12.314946203125e-06, 14.014552390625e-06, 15.470035828125e-06, 12.314944421875e-06, 14.014556984375e-06, 15.470042296875e-06,
-    -4.48141912499999e-06, -2.214569625e-06, -70.0762083333332e-06, 31.3965130208333e-06, 20.3369817708333e-06, 31.3297213541666e-06, 12.3149462031250e-06, 14.0145523906250e-06, 15.470035828125e-06, 12.314944421875e-06, 14.014556984375e-06, 15.470042296875e-06},
-   {2.4412545e-06, -43.4948333333332e-06, 2.5807125e-06, 12.9048645833333e-06, 11.0211145833333e-06, 52.0812604166666e-06, 9.95309843749999e-06, 11.042504875e-06, 12.2016568125e-06, 9.95308906249998e-06, 11.042495125e-06, 12.2016556875000e-06,
-    -209.2155e-09, 46.0756208333332e-06, 269.620120833333e-06, 12.9048645833333e-06, 11.0211145833333e-06, 52.0812604166666e-06, 9.95309843749999e-06, 11.042504875e-06, 12.2016568125e-06, 9.95308906249998e-06, 11.042495125e-06, 12.2016556875000e-06,
-    -17.8713723333333e-06, -139.542e-09, -269.968872333333e-06, 12.9048645833333e-06, 11.0211145833333e-06, 52.0812604166666e-06, 9.95309843749999e-06, 11.042504875e-06, 12.2016568125e-06, 9.95308906249998e-06, 11.042495125e-06, 12.2016556875000e-06,
-    15.6393333333333e-06, -2.4412455e-06, -2.231961e-06, 12.9048645833333e-06, 11.0211145833333e-06, 52.0812604166666e-06, 9.95309843749999e-06, 11.042504875e-06, 12.2016568125e-06, 9.95308906249998e-06, 11.042495125e-06, 12.2016556875000e-06}
+   {3.66188174999999e-06, 7.20666666666666e-05, 3.38288024999999e-06, 1.8800546875e-05, 2.8209296875e-05, 3.76180468749999e-05, 1.16584420520833e-05, 1.28930914479166e-05, 1.433698521875e-05, 1.16584433645833e-05, 1.28930856354166e-05, 1.433698353125e-05,
+    -9.02768508333332e-06, -2.78998499999999e-07, 0.00012973489825, 1.8800546875e-05, 2.8209296875e-05, 3.76180468749999e-05, 1.16584420520833e-05, 1.28930914479166e-05, 1.433698521875e-05, 1.16584433645833e-05, 1.28930856354166e-05, 1.433698353125e-05,
+    8.05120158333332e-06, -6.84047984166666e-05, -6.97528499999998e-07, 1.8800546875e-05, 2.8209296875e-05, 3.76180468749999e-05, 1.16584420520833e-05, 1.28930914479166e-05, 1.433698521875e-05, 1.16584433645833e-05, 1.28930856354166e-05, 1.433698353125e-05,
+    -2.68539825e-06, -3.38286974999999e-06, -0.00013242025, 1.8800546875e-05, 2.8209296875e-05, 3.76180468749999e-05, 1.16584420520833e-05, 1.28930914479166e-05, 1.433698521875e-05, 1.16584433645833e-05, 1.28930856354166e-05, 1.433698353125e-05},
+   {2.19713625e-06, 4.07333333333333e-05, 2.19712575e-06, 1.1091265625e-05, 1.8806640625e-05, 2.6522015625e-05, 8.30005719791665e-06, 9.13960242708332e-06, 1.018839203125e-05, 8.30005738541665e-06, 9.13959548958332e-06, 1.018838921875e-05,
+    -8.36983499999999e-07, -3.85362090833333e-05, 8.96046242499999e-05, 1.1091265625e-05, 1.8806640625e-05, 2.6522015625e-05, 8.30005719791665e-06, 9.13960242708332e-06, 1.018839203125e-05, 8.30005738541665e-06, 9.13959548958332e-06, 1.018838921875e-05,
+    -1.16952360833333e-05, -1.04999999994353e-11, -9.04416527499998e-05, 1.1091265625e-05, 1.8806640625e-05, 2.6522015625e-05, 8.30005719791665e-06, 9.13960242708332e-06, 1.018839203125e-05, 8.30005738541665e-06, 9.13959548958332e-06, 1.018838921875e-05,
+    1.03350833333333e-05, -2.19711375e-06, -1.36009725e-06, 1.1091265625e-05, 1.8806640625e-05, 2.6522015625e-05, 8.30005719791665e-06, 9.13960242708332e-06, 1.018839203125e-05, 8.30005738541665e-06, 9.13959548958332e-06, 1.018838921875e-05}
   };
 
   for(int iCell=0; iCell<int(tResidual_gold.size()); iCell++){
@@ -949,7 +949,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
       if(tResidual_gold[iCell][iDof] == 0.0){
         TEST_ASSERT(fabs(tResidual_Host(iCell,iDof)) < 1e-12);
       } else {
-        TEST_FLOATING_EQUALITY(tResidual_Host(iCell,iDof), tResidual_gold[iCell][iDof], 1e-13);
+        TEST_FLOATING_EQUALITY(tResidual_Host(iCell,iDof), tResidual_gold[iCell][iDof], 1e-10);
       }
     }
   }
@@ -960,10 +960,10 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
   Kokkos::deep_copy( tSymGradientMicroInertia_Host, tSymGradientMicroInertia );
 
   std::vector<std::vector<Plato::Scalar>> tSymGradientMicroInertia_Gold = { 
-    {2.0e-05,  3.2e-04,  2.4e-04, 6.4e-04, 1.4e-04, 2.0e-04}, 
-    {2.0e-04,  3.2e-04, -3.0e-04, 2.8e-04, 5.0e-04, 5.6e-04},
-    {2.0e-04,  8.0e-05,  6.0e-05, 1.6e-04, 6.2e-04, 4.4e-04},
-    {4.0e-04, -3.2e-04,  6.0e-05, -4.4e-04, 1.22e-03, 6.4e-04}
+    {1.8e-04,  1.2e-04,  6.0e-05, 2.2e-04, 5.6e-04, 4.2e-04}, 
+    {1.8e-04,  1.2e-04,  6.0e-05, 2.2e-04, 5.6e-04, 4.2e-04}, 
+    {1.8e-04,  1.2e-04,  6.0e-05, 2.2e-04, 5.6e-04, 4.2e-04}, 
+    {1.8e-04,  1.2e-04,  6.0e-05, 2.2e-04, 5.6e-04, 4.2e-04}, 
   };
 
   for(int iCell=0; iCell<int(tSymGradientMicroInertia_Gold.size()); iCell++){
@@ -982,10 +982,10 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
   Kokkos::deep_copy( tSkwGradientMicroInertia_Host, tSkwGradientMicroInertia );
 
   std::vector<std::vector<Plato::Scalar>> tSkwGradientMicroInertia_Gold = { 
-    {-3.2e-04,  2.0e-05,  1.2e-04}, 
-    {-6.8e-04,  -7.0e-04, -2.4e-04},
-    {-8.0e-05,  -5.8e-04,  -3.6e-04},
-    {5.2e-04, -1.18e-03, -9.6e-04}
+    {-1.4e-04, -5.2e-04, -3.0e-04}, 
+    {-1.4e-04, -5.2e-04, -3.0e-04}, 
+    {-1.4e-04, -5.2e-04, -3.0e-04}, 
+    {-1.4e-04, -5.2e-04, -3.0e-04}, 
   };
 
   for(int iCell=0; iCell<int(tSkwGradientMicroInertia_Gold.size()); iCell++){
@@ -1004,10 +1004,10 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
   Kokkos::deep_copy( tSymFreeMicroInertia_Host, tSymFreeMicroInertia );
 
   std::vector<std::vector<Plato::Scalar>> tSymFreeMicroInertia_Gold = { 
-    {3.0e-04,  3.75e-04,  4.5e-04, 1.275e-03, 1.425e-03, 1.575e-03}, 
-    {2.4e-04,  3.0e-04, 3.6e-04, 1.02e-03, 1.14e-03, 1.26e-03},
-    {1.7e-04,  2.125e-04, 2.55e-04, 7.225e-04, 8.075e-04, 8.925e-04},
-    {3.5e-04, 4.375e-04,  5.25e-04, 1.4875e-03, 1.6625e-03, 1.8375e-03}
+    {2.8e-04, 3.5e-04,  4.2e-04, 1.19e-03, 1.33e-03, 1.47e-03}, 
+    {2.0e-04, 2.5e-04,  3.0e-04, 8.5e-04,  9.5e-04,  1.05e-03},
+    {1.8e-04, 2.25e-04, 2.7e-04, 7.65e-04, 8.55e-04, 9.45e-04},
+    {2.4e-04, 3.0e-04,  3.6e-04, 1.02e-03, 1.14e-03, 1.26e-03}
   };
 
   for(int iCell=0; iCell<int(tSymFreeMicroInertia_Gold.size()); iCell++){
@@ -1026,10 +1026,10 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
   Kokkos::deep_copy( tSkwFreeMicroInertia_Host, tSkwFreeMicroInertia );
 
   std::vector<std::vector<Plato::Scalar>> tSkwFreeMicroInertia_Gold = { 
-    {-2.25e-04,  -2.25e-04,  -2.25e-04}, 
-    {-1.8e-04,  -1.8e-04, -1.8e-04},
-    {-1.275e-04,  -1.275e-04, -1.275e-04},
-    {-2.625e-04, -2.625e-04, -2.625e-04}
+    {-2.1e-04,  -2.1e-04,  -2.1e-04}, 
+    {-1.5e-04,  -1.5e-04,  -1.5e-04},
+    {-1.35e-04, -1.35e-04, -1.35e-04},
+    {-1.8e-04,  -1.8e-04,  -1.8e-04}
   };
 
   for(int iCell=0; iCell<int(tSkwFreeMicroInertia_Gold.size()); iCell++){
@@ -1048,9 +1048,9 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
   Kokkos::deep_copy( tSymGradientInertiaStress_Host, tSymGradientInertiaStress );
 
   std::vector<std::vector<Plato::Scalar>> tSymGradientInertiaStress_Gold = { 
-    {1.184e-03, 1.544e-03, 1.448e-03, 128.0e-06, 28.0e-06, 40.0e-06}, 
-    {680.0e-06, 824.0e-06, 80.0000000000002e-06, 56.0e-06, 100.0e-06, 112.0e-06},
-    {920.0e-06, 776.0e-06, 752.0e-06, 32.0e-06, 124.0e-06, 88.0e-06}
+    {0.000936, 0.000864, 0.000792, 4.4e-05, 0.000112, 8.4e-05}, 
+    {0.000936, 0.000864, 0.000792, 4.4e-05, 0.000112, 8.4e-05}, 
+    {0.000936, 0.000864, 0.000792, 4.4e-05, 0.000112, 8.4e-05}, 
   };
 
   for(int iCell=0; iCell<int(tSymGradientInertiaStress_Gold.size()); iCell++){
@@ -1069,9 +1069,9 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
   Kokkos::deep_copy( tSkwGradientInertiaStress_Host, tSkwGradientInertiaStress );
 
   std::vector<std::vector<Plato::Scalar>> tSkwGradientInertiaStress_Gold = { 
-    {0.0, 0.0, 0.0, -32.0e-09,  2.0e-09, 12.0e-09}, 
-    {0.0, 0.0, 0.0, -68.0e-09, -70.0e-09, -24.0e-09},
-    {0.0, 0.0, 0.0, -8.0e-09,  -58.0e-09, -36.0e-09}
+    {0.0, 0.0, 0.0, -1.4e-08, -5.2e-08, -3e-08}, 
+    {0.0, 0.0, 0.0, -1.4e-08, -5.2e-08, -3e-08}, 
+    {0.0, 0.0, 0.0, -1.4e-08, -5.2e-08, -3e-08}, 
   };
 
   for(int iCell=0; iCell<int(tSkwGradientInertiaStress_Gold.size()); iCell++){
@@ -1090,9 +1090,9 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
   Kokkos::deep_copy( tSymFreeInertiaStress_Host, tSymFreeInertiaStress );
 
   std::vector<std::vector<Plato::Scalar>> tSymFreeInertiaStress_Gold = { 
-    {-645.0e-03, -300.0e-03, 45.0000000000001e-03, 5.7375e+00, 6.4125e+00, 7.0875e+00}, 
-    {-516.0e-03, -240.0e-03, 36.0000000000001e-03, 4.59e+00, 5.13e+00, 5.67e+00},
-    {-365.5e-03, -170.0e-03, 25.5e-03, 3.25125e+00, 3.63375e+00, 4.01625e+00}
+    {-0.602, -0.28, 0.0420000000000003, 5.355, 5.985, 6.615}, 
+    {-0.43, -0.2, 0.03, 3.825, 4.275, 4.725},
+    {-0.387, -0.18, 0.0270000000000001, 3.4425, 3.8475, 4.2525}
   };
 
   for(int iCell=0; iCell<int(tSymFreeInertiaStress_Gold.size()); iCell++){
@@ -1111,9 +1111,9 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
   Kokkos::deep_copy( tSkwFreeInertiaStress_Host, tSkwFreeInertiaStress );
 
   std::vector<std::vector<Plato::Scalar>> tSkwFreeInertiaStress_Gold = { 
-    {0.0, 0.0, 0.0, -22.5e-09, -22.5e-09, -22.5e-09}, 
-    {0.0, 0.0, 0.0, -18.0e-09, -18.0e-09, -18.0e-09},
-    {0.0, 0.0, 0.0, -12.75e-09, -12.75e-09, -12.75e-09}
+    {0.0, 0.0, 0.0, -2.1e-08, -2.1e-08, -2.1e-08}, 
+    {0.0, 0.0, 0.0, -1.5e-08, -1.5e-08, -1.5e-08},
+    {0.0, 0.0, 0.0, -1.35e-08, -1.35e-08, -1.35e-08}
   };
 
   for(int iCell=0; iCell<int(tSkwFreeInertiaStress_Gold.size()); iCell++){
@@ -1132,14 +1132,14 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
   Kokkos::deep_copy( tInertiaResidual_Host, tInertiaResidual );
 
   std::vector<std::vector<Plato::Scalar>> tInertiaResidual_gold = { 
-   {565.442208333332e-06, 1.06988541666667e-03, 1.69599345833333e-03, -3.35937499999999e-03, -1.5625e-03, 234.375e-06, 29.8828123828125e-03, 33.3984373828125e-03, 36.9140623828124e-03, 29.8828126171875e-03, 33.3984376171875e-03, 36.9140626171874e-03,
-    615.275958333332e-06, 1.13055291666667e-03, 1.642161375e-03, -3.35937499999999e-03, -1.5625e-03, 234.375e-06, 29.8828123828125e-03, 33.3984373828125e-03, 36.9140623828124e-03, 29.8828126171875e-03, 33.3984376171875e-03, 36.9140626171874e-03,
-    519.443208333333e-06, 1.19688591666666e-03, 1.70549620833333e-03, -3.35937499999999e-03, -1.5625e-03, 234.375e-06, 29.8828123828125e-03, 33.3984373828125e-03, 36.9140623828124e-03, 29.8828126171875e-03, 33.3984376171875e-03, 36.9140626171874e-03,
-    568.276124999999e-06, 1.13955075e-03, 1.76166145833333e-03, -3.35937499999999e-03, -1.5625e-03, 234.375e-06, 29.8828123828125e-03, 33.3984373828125e-03, 36.9140623828124e-03, 29.8828126171875e-03, 33.3984376171875e-03, 36.9140626171874e-03},
-   {449.021833333333e-06, 873.041666666665e-06, 1.35872633333333e-03, -2.6875e-03, -1.25e-03, 187.5e-06, 23.90624990625e-03, 26.71874990625e-03, 29.53124990625e-03, 23.90625009375e-03, 26.71875009375e-03, 29.53125009375e-03,
-    454.189416666666e-06, 939.377833333332e-06, 1.36006533333333e-03, -2.6875e-03, -1.25e-03, 187.5e-06, 23.90624990625e-03, 26.71874990625e-03, 29.53124990625e-03, 23.90625009375e-03, 26.71875009375e-03, 29.53125009375e-03,
-    429.517916666666e-06, 905.037833333332e-06, 1.36022625e-03, -2.6875e-03, -1.25e-03, 187.5e-06, 23.90624990625e-03, 26.71874990625e-03, 29.53124990625e-03, 23.90625009375e-03, 26.71875009375e-03, 29.53125009375e-03,
-    482.020833333333e-06, 912.042666666665e-06, 1.36523208333333e-03, -2.6875e-03, -1.25e-03, 187.5e-06, 23.90624990625e-03, 26.71874990625e-03, 29.53124990625e-03, 23.90625009375e-03, 26.71875009375e-03, 29.53125009375e-03}
+   {0.000525803333333333, 0.00102260416666667, 0.00158607233333333, -0.00313541666666666, -0.00145833333333333, 0.000218750000000001, 0.027890624890625, 0.031171874890625, 0.034453124890625, 0.027890625109375, 0.031171875109375, 0.034453125109375,
+    0.000563637583333333, 0.00106027266666667, 0.00155957508333333, -0.00313541666666666, -0.00145833333333333, 0.000218750000000001, 0.027890624890625, 0.031171874890625, 0.034453124890625, 0.027890625109375, 0.031171875109375, 0.034453125109375,
+    0.000493800833333333, 0.00109110291666667, 0.00158507133333333, -0.00313541666666666, -0.00145833333333333, 0.000218750000000001, 0.027890624890625, 0.031171874890625, 0.034453124890625, 0.027890625109375, 0.031171875109375, 0.034453125109375,
+    0.000533966583333333, 0.00106043691666667, 0.00162090625, -0.00313541666666666, -0.00145833333333333, 0.000218750000000001, 0.027890624890625, 0.031171874890625, 0.034453124890625, 0.027890625109375, 0.031171875109375, 0.034453125109375},
+   {0.000374574166666666, 0.000720145833333332, 0.00113238483333333, -0.00223958333333333, -0.00104166666666667, 0.00015625, 0.019921874921875, 0.022265624921875, 0.024609374921875, 0.019921875078125, 0.022265625078125, 0.024609375078125,
+    0.000376907166666666, 0.000790313083333332, 0.00110305266666666, -0.00223958333333333, -0.00104166666666667, 0.00015625, 0.019921874921875, 0.022265624921875, 0.024609374921875, 0.019921875078125, 0.022265625078125, 0.024609375078125,
+    0.000343737416666666, 0.000754477333333332, 0.00116254991666667, -0.00223958333333333, -0.00104166666666667, 0.00015625, 0.019921874921875, 0.022265624921875, 0.024609374921875, 0.019921875078125, 0.022265625078125, 0.024609375078125,
+    0.000417072916666666, 0.000759647083333332, 0.00113888758333333, -0.00223958333333333, -0.00104166666666667, 0.00015625, 0.019921874921875, 0.022265624921875, 0.024609374921875, 0.019921875078125, 0.022265625078125, 0.024609375078125}
   };
 
   for(int iCell=0; iCell<int(tInertiaResidual_gold.size()); iCell++){
@@ -1159,9 +1159,8 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ErrorAFormNotSpecified)
     // create test mesh
     //
     constexpr int tMeshWidth=2;
-    constexpr int tSpaceDim=3;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    int tNumCells = tMesh->nelems();
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    int tNumCells = tMesh->NumElements();
 
     // set parameters
     //
@@ -1224,12 +1223,8 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ErrorAFormNotSpecified)
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
     
-    // get mesh sets
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
     Plato::ProblemFactory<3> tProblemFactory;
-    TEST_THROW(tProblemFactory.create(*tMesh, tMeshSets, *tParams, tMachine), std::runtime_error);
+    TEST_THROW(tProblemFactory.create(tMesh, *tParams, tMachine), std::runtime_error);
 }
 
 TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ErrorAFormFalse)
@@ -1237,9 +1232,8 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ErrorAFormFalse)
     // create test mesh
     //
     constexpr int tMeshWidth=2;
-    constexpr int tSpaceDim=3;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    int tNumCells = tMesh->nelems();
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    int tNumCells = tMesh->NumElements();
 
     // set parameters
     //
@@ -1303,12 +1297,8 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ErrorAFormFalse)
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
     
-    // get mesh sets
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
     Plato::ProblemFactory<3> tProblemFactory;
-    TEST_THROW(tProblemFactory.create(*tMesh, tMeshSets, *tParams, tMachine), std::runtime_error);
+    TEST_THROW(tProblemFactory.create(tMesh, *tParams, tMachine), std::runtime_error);
 }
 
 TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ErrorExplicitNotSpecified)
@@ -1316,9 +1306,8 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ErrorExplicitNotSpecified)
     // create test mesh
     //
     constexpr int tMeshWidth=2;
-    constexpr int tSpaceDim=3;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    int tNumCells = tMesh->nelems();
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    int tNumCells = tMesh->NumElements();
 
     // set parameters
     //
@@ -1382,12 +1371,8 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ErrorExplicitNotSpecified)
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
     
-    // get mesh sets
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
     Plato::ProblemFactory<3> tProblemFactory;
-    TEST_THROW(tProblemFactory.create(*tMesh, tMeshSets, *tParams, tMachine), std::runtime_error);
+    TEST_THROW(tProblemFactory.create(tMesh, *tParams, tMachine), std::runtime_error);
 }
 
 TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, CreateProblem)
@@ -1395,9 +1380,8 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, CreateProblem)
     // create test mesh
     //
     constexpr int tMeshWidth=2;
-    constexpr int tSpaceDim=3;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    int tNumCells = tMesh->nelems();
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    int tNumCells = tMesh->NumElements();
 
     // set parameters
     //
@@ -1460,13 +1444,9 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, CreateProblem)
     MPI_Comm myComm;
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
-    
-    // get mesh sets
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
 
     Plato::ProblemFactory<3> tProblemFactory;
-    TEST_NOTHROW(tProblemFactory.create(*tMesh, tMeshSets, *tParams, tMachine));
+    TEST_NOTHROW(tProblemFactory.create(tMesh, *tParams, tMachine));
 }
 
 }

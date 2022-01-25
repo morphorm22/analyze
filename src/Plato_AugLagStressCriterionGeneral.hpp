@@ -63,7 +63,7 @@ private:
     Plato::Scalar mAugLagPenaltyExpansionMultiplier; /*!< expansion parameter for augmented Lagrangian penalty */
 
     Plato::ScalarVector mLagrangeMultipliers; /*!< Lagrange multipliers */
-    Omega_h::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffMatrix; /*!< cell/element Lame constants matrix */
+    Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffMatrix; /*!< cell/element Lame constants matrix */
 
 private:
     /******************************************************************************//**
@@ -138,7 +138,7 @@ public:
         mMassNormalizationMultiplier(1.0),
         mInitialLagrangeMultipliersValue(0.01),
         mAugLagPenaltyExpansionMultiplier(1.05),
-        mLagrangeMultipliers("Lagrange Multipliers", aSpatialDomain.Mesh.nelems())
+        mLagrangeMultipliers("Lagrange Multipliers", aSpatialDomain.Mesh->NumElements())
     {
         this->initialize(aInputParams);
         this->computeStructuralMass();
@@ -165,7 +165,7 @@ public:
         mMassNormalizationMultiplier(1.0),
         mInitialLagrangeMultipliersValue(0.01),
         mAugLagPenaltyExpansionMultiplier(1.05),
-        mLagrangeMultipliers("Lagrange Multipliers", aSpatialDomain.Mesh.nelems())
+        mLagrangeMultipliers("Lagrange Multipliers", aSpatialDomain.Mesh->NumElements())
     {
         Plato::blas1::fill(mInitialLagrangeMultipliersValue, mLagrangeMultipliers);
     }
@@ -245,7 +245,7 @@ public:
      * \brief Set cell material stiffness matrix
      * \param [in] aInput cell material stiffness matrix
     **********************************************************************************/
-    void setCellStiffMatrix(const Omega_h::Matrix<mNumVoigtTerms, mNumVoigtTerms> & aInput)
+    void setCellStiffMatrix(const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> & aInput)
     {
         mCellStiffMatrix = aInput;
     }
@@ -435,7 +435,7 @@ public:
 
             // Compute Lagrange multiplier
             tTrialMultiplier(aCellOrdinal) = tLagrangeMultipliers(aCellOrdinal) + ( tAugLagPenalty * tTrueConstraint(aCellOrdinal) );
-            tLagrangeMultipliers(aCellOrdinal) = Omega_h::max2(tTrialMultiplier(aCellOrdinal), static_cast<Plato::Scalar>(0.0));
+            tLagrangeMultipliers(aCellOrdinal) = Plato::max2(tTrialMultiplier(aCellOrdinal), static_cast<Plato::Scalar>(0.0));
         }, "Update Multipliers");
     }
 
@@ -446,7 +446,7 @@ public:
     {
         auto tNumCells = mSpatialDomain.numCells();
 
-        Plato::NodeCoordinate<mSpaceDim> tCoordinates(&(mSpatialDomain.Mesh));
+        Plato::NodeCoordinate<mSpaceDim> tCoordinates(mSpatialDomain.Mesh);
         Plato::ScalarArray3D tConfig("configuration", tNumCells, mNumNodesPerCell, mSpaceDim);
         Plato::workset_config_scalar<mSpaceDim, mNumNodesPerCell>(tNumCells, tCoordinates, tConfig);
         Plato::ComputeCellVolume<mSpaceDim> tComputeCellVolume;

@@ -12,10 +12,7 @@
 #include <cassert>
 #include <unistd.h>
 
-#include <Omega_h_tag.hpp>
-#include <Omega_h_file.hpp>
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_array.hpp>
+#include "PlatoMesh.hpp"
 
 #include "SimplexStructuralDynamics.hpp"
 
@@ -29,36 +26,20 @@ private:
     static constexpr Plato::OrdinalType mSpatialDim = Plato::SimplexStructuralDynamics<SpaceDim>::mNumSpatialDims;
     static constexpr Plato::OrdinalType mNumDofsPerNode = Plato::SimplexStructuralDynamics<SpaceDim>::mNumDofsPerNode;
 
-    std::shared_ptr<Omega_h::vtk::Writer> mWriter;
-
-private:
-    void insert(const Omega_h::Int & aEntity,
-                const std::string & aName,
-                const Omega_h::Write<Omega_h::Real> & aData,
-                Omega_h::Mesh& aMesh)
-    {
-        if(aMesh.has_tag(aEntity, aName) == false)
-        {
-            aMesh.add_tag(aEntity, aName, mSpatialDim /*numDof_per_node*/, Omega_h::Reals(aData));
-        }
-        else
-        {
-            aMesh.set_tag(aEntity, aName, Omega_h::Reals(aData));
-        }
-    }
+    Plato::MeshIO mMeshIO;
 
 public:
-    StructuralDynamicsOutput(Omega_h::Mesh& aMesh, Plato::Scalar aRestartFreq = 0) :
-            mWriter(nullptr)
+    StructuralDynamicsOutput(Plato::Mesh aMesh, Plato::Scalar aRestartFreq = 0) :
+            mMeshIO(nullptr)
     {
         char tTemp[FILENAME_MAX];
         auto tFilePath = getcwd(tTemp, FILENAME_MAX) ? std::string( tTemp ) : std::string("");
         assert(tFilePath.empty() == false);
-        mWriter = std::make_shared<Omega_h::vtk::Writer>(tFilePath, &aMesh, mSpatialDim, aRestartFreq);
+        mMeshIO = Plato::MeshIOFactory::create(tFilePath, aMesh);
     }
 
-    StructuralDynamicsOutput(Omega_h::Mesh& aMesh, const std::string & aFilePath, Plato::Scalar aRestartFreq = 0) :
-            mWriter(std::make_shared<Omega_h::vtk::Writer>(aFilePath, &aMesh, mSpatialDim, aRestartFreq))
+    StructuralDynamicsOutput(Plato::Mesh aMesh, const std::string & aFilePath, Plato::Scalar aRestartFreq = 0) :
+            mMeshIO(Plato::MeshIOFactory::create(aFilePath, aMesh))
     {
     }
 
@@ -67,31 +48,31 @@ public:
     }
 
     template<typename ArrayT>
-    void output(const ArrayT& tFreqArray,
-                const Plato::ScalarMultiVector& aState,
-                Omega_h::Mesh& aMesh)
+    void output(
+      const ArrayT                   & tFreqArray,
+      const Plato::ScalarMultiVector & aState,
+            Plato::Mesh                aMesh
+    )
     {
-        auto tNumVertices = aMesh.nverts();
+        auto tNumVertices = aMesh->nverts();
         auto tOutputNumDofs = tNumVertices * mSpatialDim;
-        Omega_h::Write<Omega_h::Real> tRealDisp(tOutputNumDofs, "RealDisp");
-        Omega_h::Write<Omega_h::Real> tImagDisp(tOutputNumDofs, "ImagDisp");
+
+        Plato::ScalarVector tRealDisp("RealDisp", tOutputNumDofs);
+        Plato::ScalarVector tImagDisp("ImagDisp", tOutputNumDofs);
 
         auto tNumFrequencies = tFreqArray.size();
         for(Plato::OrdinalType tIndex = 0; tIndex < tNumFrequencies; tIndex++)
         {
             auto tMyState = Kokkos::subview(aState, tIndex, Kokkos::ALL());
-            Plato::copy<mNumDofsPerNode /*input_numDof_per_node*/, mSpatialDim /*output_numDof_per_node*/>
-                (0 /*stride*/, tNumVertices, tMyState, tRealDisp);
-            this->insert(Omega_h::VERT, "RealDisp", tRealDisp, aMesh);
+            Plato::copy<mNumDofsPerNode, mSpatialDim>(/*offset=*/0, tNumVertices, tMyState, tRealDisp);
+            mMeshIO->AddNodeData("RealDisp", mSpatialDim, tRealDisp);
 
-            Plato::copy<mNumDofsPerNode /*input_numDof_per_node*/, mSpatialDim /*output_numDof_per_node*/>
-                (mSpatialDim /*stride*/, tNumVertices, tMyState, tImagDisp);
-            this->insert(Omega_h::VERT, "ImagDisp", tImagDisp, aMesh);
+            Plato::copy<mNumDofsPerNode, mSpatialDim>(/*offset=*/mSpatialDim, tNumVertices, tMyState, tImagDisp);
+            mMeshIO->AddNodeData("ImagDisp", mSpatialDim, tImagDisp);
 
             auto tMyFreq = tFreqArray[tIndex];
-            Omega_h::TagSet tTags = Omega_h::vtk::get_all_vtk_tags(&aMesh, mSpatialDim);
             auto tFreqIndex = tIndex + static_cast<Plato::OrdinalType>(1);
-            mWriter->write(tFreqIndex, tMyFreq, tTags);
+            mMeshIO->Write(tFreqIndex, tMyFreq);
         }
     }
 };

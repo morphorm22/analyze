@@ -138,7 +138,7 @@ void NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::appendNaturalBC
         {
             std::stringstream tMsg;
             tMsg << "Natural Boundary Condition Type '" << tType.c_str() << "' is NOT supported.";
-            THROWERR(tMsg.str().c_str())
+            ANALYZE_THROWERR(tMsg.str().c_str())
         }
     }
     mBCs.push_back(tBC);
@@ -164,7 +164,7 @@ NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::setUniformNaturalBC
         std::stringstream tMsg;
         tMsg << "Natural Boundary Condition: 'Values' OR 'Value' Parameter Keyword in "
             << "Parameter Sublist: '" << aName.c_str() << "' is NOT defined.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
     else if (tBC_Values)
     {
@@ -182,7 +182,7 @@ NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::setUniformNaturalBC
             std::stringstream tMsg;
             tMsg << "Natural Boundary Condition: unexpected type encountered for 'Values' Parameter Keyword."
                  << "Specify 'type' of 'Array(double)' or 'Array(string)'.";
-            THROWERR(tMsg.str().c_str())
+            ANALYZE_THROWERR(tMsg.str().c_str())
         }
     }
     else if (tBC_Value)
@@ -208,7 +208,7 @@ NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::setUniformNaturalBC
             std::stringstream tMsg;
             tMsg << "Natural Boundary Condition: unexpected type encountered for 'Value' Parameter Keyword."
                  << "Specify 'type' of 'double' or 'string'.";
-            THROWERR(tMsg.str().c_str())
+            ANALYZE_THROWERR(tMsg.str().c_str())
         }
     }
     else
@@ -216,7 +216,7 @@ NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::setUniformNaturalBC
         std::stringstream tMsg;
         tMsg << "Natural Boundary Condition: Uniform Boundary Condition in Parameter Sublist: '"
             << aName.c_str() << "' was NOT parsed. Check input Parameter Keywords.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     tBC = std::make_shared<Plato::NaturalBC<SpatialDim, NumDofs, DofsPerNode, DofOffset>>(aName, aSubList);
@@ -236,7 +236,7 @@ NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::setUniformPressureNatur
         std::stringstream tMsg;
         tMsg << "Natural Boundary Condition: 'Value' Parameter Keyword in "
             << "Parameter Sublist: '" << aName.c_str() << "' is NOT defined.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     if(aSubList.isType<Plato::Scalar>("Value"))
@@ -253,7 +253,7 @@ NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::setUniformPressureNatur
         std::stringstream tMsg;
         tMsg << "Natural Boundary Condition: unexpected type encountered for 'Value' Parameter Keyword."
                 << "Specify 'type' of 'double' or 'string'.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     auto tBC = std::make_shared<Plato::NaturalBC<SpatialDim, NumDofs, DofsPerNode, DofOffset>>(aName, aSubList);
@@ -273,7 +273,7 @@ NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::setUniformComponentNatu
         std::stringstream tMsg;
         tMsg << "Natural Boundary Condition: 'Value' Parameter Keyword in "
             << "Parameter Sublist: '" << aName.c_str() << "' is NOT defined.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
     auto tValue = aSubList.get<Plato::Scalar>("Value");
 
@@ -282,7 +282,7 @@ NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::setUniformComponentNatu
         std::stringstream tMsg;
         tMsg << "Natural Boundary Condition: 'Component' Parameter Keyword in "
             << "Parameter Sublist: '" << aName.c_str() << "' is NOT defined.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
     Teuchos::Array<Plato::Scalar> tFluxVector(NumDofs, 0.0);
     auto tFluxComponent = aSubList.get<std::string>("Component");
@@ -308,7 +308,7 @@ NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::setUniformComponentNatu
         tMsg << "Natural Boundary Condition: 'Component' Parameter Keyword: '" << tFluxComponent.c_str()
             << "' in Parameter Sublist: '" << aName.c_str() << "' is NOT supported. "
             << "Options are: 'X' or 'x', 'Y' or 'y', and 'Z' or 'z'.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     aSubList.set("Vector", tFluxVector);
@@ -328,7 +328,7 @@ mBCs()
         const Teuchos::ParameterEntry &tEntry = aParams.entry(tItr);
         if (!tEntry.isList())
         {
-            THROWERR("Natural Boundary Condition: Parameter in Boundary Conditions block not valid.  Expect lists only.")
+            ANALYZE_THROWERR("Natural Boundary Condition: Parameter in Boundary Conditions block not valid.  Expect lists only.")
         }
 
         const std::string &tName = aParams.name(tItr);
@@ -336,7 +336,7 @@ mBCs()
         {
             std::stringstream tMsg;
             tMsg << "Natural Boundary Condition: Sublist: '" << tName.c_str() << "' is NOT defined.";
-            THROWERR(tMsg.str().c_str())
+            ANALYZE_THROWERR(tMsg.str().c_str())
         }
         Teuchos::ParameterList &tSubList = aParams.sublist(tName);
 
@@ -345,7 +345,7 @@ mBCs()
             std::stringstream tMsg;
             tMsg << "Natural Boundary Condition: 'Type' Parameter Keyword in Parameter Sublist: '"
                 << tName.c_str() << "' is NOT defined.";
-            THROWERR(tMsg.str().c_str())
+            ANALYZE_THROWERR(tMsg.str().c_str())
         }
 
         this->appendNaturalBC(tName, tSubList);

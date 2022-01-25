@@ -9,7 +9,7 @@
 #include "PlatoTestHelpers.hpp"
 
 #include "Solutions.hpp"
-#include "Plato_Diagnostics.hpp"
+#include "Analyze_Diagnostics.hpp"
 #include "IsotropicLinearElasticMaterial.hpp"
 #include "ThermalMassMaterial.hpp"
 #include "Plato_AugLagStressCriterion.hpp"
@@ -161,7 +161,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateVonMises)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     using Residual = typename Plato::Evaluation<Plato::SimplexMechanics<tSpaceDim>>::Residual;
     using StateT = typename Residual::StateScalarType;
@@ -169,17 +169,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateVonMises)
     using ResultT = typename Residual::ResultScalarType;
     using ControlT = typename Residual::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
     constexpr Plato::OrdinalType tDofsPerCell = Plato::SimplexMechanics<tSpaceDim>::mNumDofsPerCell;
     constexpr Plato::OrdinalType tNodesPerCell = Plato::SimplexMechanics<tSpaceDim>::mNumNodesPerCell;
 
     // Create configuration workset
-    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(*tMesh);
+    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(tMesh);
     Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfigWS);
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset", tNumCells, tNodesPerCell);
     Plato::ScalarVector tControl("Controls", tNumVerts);
     Plato::blas1::fill(1.0, tControl);
@@ -221,9 +221,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateVonMises)
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -238,7 +236,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateVonMises)
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
 
     const auto tLocalMeasure =
         std::make_shared<Plato::VonMisesLocalMeasure<Residual,Plato::SimplexMechanics<tSpaceDim>>>
@@ -249,7 +247,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateVonMises)
 
     // ****** TEST OUTPUT/RESULT VALUE FOR EACH CELL ******
     constexpr Plato::Scalar tTolerance = 1e-4;
-    std::vector<Plato::Scalar> tGold = {0.00140738, 0.00750674, 0.00140738, 0.0183732, 0.0861314, 0.122407};
+    std::vector<Plato::Scalar> tGold = {0.01322740, 0.01322740, 0.01322740, 0.01322740, 0.01322740, 0.01322740};
     auto tHostResultWS = Kokkos::create_mirror(tResultWS);
     Kokkos::deep_copy(tHostResultWS, tResultWS);
     for(Plato::OrdinalType tIndex = 0; tIndex < tNumCells; tIndex++)
@@ -259,7 +257,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateVonMises)
 
     // ****** TEST GLOBAL SUM ******
     auto tObjFuncVal = Plato::local_result_sum<Plato::Scalar>(tNumCells, tResultWS);
-    TEST_FLOATING_EQUALITY(0.237233, tObjFuncVal, tTolerance);
+    TEST_FLOATING_EQUALITY(0.079364, tObjFuncVal, tTolerance);
 }
 
 
@@ -267,7 +265,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateTensileEnergyDe
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     using Residual = typename Plato::Evaluation<Plato::SimplexMechanics<tSpaceDim>>::Residual;
     using StateT = typename Residual::StateScalarType;
@@ -275,17 +273,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateTensileEnergyDe
     using ResultT = typename Residual::ResultScalarType;
     using ControlT = typename Residual::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
     constexpr Plato::OrdinalType tDofsPerCell = Plato::SimplexMechanics<tSpaceDim>::mNumDofsPerCell;
     constexpr Plato::OrdinalType tNodesPerCell = Plato::SimplexMechanics<tSpaceDim>::mNumNodesPerCell;
 
     // Create configuration workset
-    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(*tMesh);
+    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(tMesh);
     Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfigWS);
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset", tNumCells, tNodesPerCell);
     Plato::ScalarVector tControl("Controls", tNumVerts);
     Plato::blas1::fill(1.0, tControl);
@@ -328,9 +326,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateTensileEnergyDe
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -355,7 +351,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateTensileEnergyDe
 
     // ****** TEST OUTPUT/RESULT VALUE FOR EACH CELL ******
     constexpr Plato::Scalar tTolerance = 1e-4;
-    std::vector<Plato::Scalar> tGold = {158.526064959, 4.77842781597};
+    std::vector<Plato::Scalar> tGold = {387.53864555, 387.53864555};
     auto tHostResultWS = Kokkos::create_mirror(tResultWS);
     Kokkos::deep_copy(tHostResultWS, tResultWS);
     for(Plato::OrdinalType tIndex = 0; tIndex < tNumCells; tIndex++)
@@ -365,7 +361,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateTensileEnergyDe
 
     // ****** TEST GLOBAL SUM ******
     auto tObjFuncVal = Plato::local_result_sum<Plato::Scalar>(tNumCells, tResultWS);
-    TEST_FLOATING_EQUALITY(163.304492775, tObjFuncVal, tTolerance);
+    TEST_FLOATING_EQUALITY(775.0772911, tObjFuncVal, tTolerance);
 }
 
 
@@ -373,7 +369,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvalTensileEnergyScalar
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     using Residual = typename Plato::Evaluation<Plato::SimplexMechanics<tSpaceDim>>::Residual;
     using StateT = typename Residual::StateScalarType;
@@ -381,10 +377,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvalTensileEnergyScalar
     using ResultT = typename Residual::ResultScalarType;
     using ControlT = typename Residual::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarVector tControl("Controls", tNumVerts);
     Plato::blas1::fill(1.0, tControl);
 
@@ -419,9 +415,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvalTensileEnergyScalar
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -458,14 +452,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvalTensileEnergyScalar
 
     // ****** TEST OUTPUT/RESULT VALUE FOR EACH CELL ******
     constexpr Plato::Scalar tTolerance = 1e-4;
-    TEST_FLOATING_EQUALITY(163.304492775, tObjFuncVal, tTolerance);
+    TEST_FLOATING_EQUALITY(775.0772911, tObjFuncVal, tTolerance);
 }
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_CheckThermalVonMises3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     using Residual = typename Plato::Evaluation<Plato::SimplexThermomechanics<tSpaceDim>>::Residual;
 
@@ -476,14 +470,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_CheckThermalVonMises3D)
     constexpr Plato::OrdinalType tDofsPerCell = Plato::SimplexThermomechanics<tSpaceDim>::mNumDofsPerCell;
     constexpr Plato::OrdinalType tNodesPerCell = Plato::SimplexThermomechanics<tSpaceDim>::mNumNodesPerCell;
 
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
 
-    Plato::WorksetBase<Plato::SimplexThermomechanics<tSpaceDim>> tWorksetBase(*tMesh);
+    Plato::WorksetBase<Plato::SimplexThermomechanics<tSpaceDim>> tWorksetBase(tMesh);
     Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfigWS);
 
     // Create state workset
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     const Plato::OrdinalType tNumDofs  = tNumVerts * tDofsPerNode;
     Plato::ScalarVector tState("States", tNumDofs);
     Plato::blas1::fill(0.0, tState);
@@ -497,9 +491,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_CheckThermalVonMises3D)
         tState(tIndex) = tTemperature;
     }
     , "fill specific vector entry globally");
-    PlatoUtestHelpers::set_dof_value_in_vector_on_boundary_3D(*tMesh, "x1", tState, tDofStride, 0, 0.1 - 0.05);
-    PlatoUtestHelpers::set_dof_value_in_vector_on_boundary_3D(*tMesh, "y1", tState, tDofStride, 1, 0.1 - 0.10);
-    PlatoUtestHelpers::set_dof_value_in_vector_on_boundary_3D(*tMesh, "z1", tState, tDofStride, 2, 0.1 + 0.05);
+    PlatoUtestHelpers::set_dof_value_in_vector_on_boundary_3D(tMesh, "x+", tState, tDofStride, 0, 0.1 - 0.05);
+    PlatoUtestHelpers::set_dof_value_in_vector_on_boundary_3D(tMesh, "y+", tState, tDofStride, 1, 0.1 - 0.10);
+    PlatoUtestHelpers::set_dof_value_in_vector_on_boundary_3D(tMesh, "z+", tState, tDofStride, 2, 0.1 + 0.05);
     Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
     tWorksetBase.worksetState(tState, tStateWS);
 
@@ -532,9 +526,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_CheckThermalVonMises3D)
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -560,13 +552,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     Plato::Elliptic::WeightedSumFunction<Plato::Mechanics<tSpaceDim>> tWeightedSum(tSpatialModel, tDataMap);
 
@@ -598,7 +588,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFunc);
     tWeightedSum.appendFunctionWeight(1.0);
 
-    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tWeightedSum);
+    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tWeightedSum);
 }
 
 
@@ -606,13 +596,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
     Plato::Elliptic::WeightedSumFunction<Plato::Mechanics<tSpaceDim>> tWeightedSum(tSpatialModel, tDataMap);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
@@ -644,7 +632,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFunc);
     tWeightedSum.appendFunctionWeight(1.0);
 
-    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tWeightedSum);
+    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tWeightedSum);
 }
 
 
@@ -652,13 +640,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
     Plato::Elliptic::WeightedSumFunction<Plato::Mechanics<tSpaceDim>> tWeightedSum(tSpatialModel, tDataMap);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
@@ -690,7 +676,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFunc);
     tWeightedSum.appendFunctionWeight(1.0);
 
-    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tWeightedSum);
+    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tWeightedSum);
 }
 
 
@@ -698,7 +684,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateTensileEnergyDe
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     using Residual = typename Plato::Evaluation<Plato::SimplexMechanics<tSpaceDim>>::Residual;
     using StateT = typename Residual::StateScalarType;
@@ -706,17 +692,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateTensileEnergyDe
     using ResultT = typename Residual::ResultScalarType;
     using ControlT = typename Residual::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
     constexpr Plato::OrdinalType tDofsPerCell = Plato::SimplexMechanics<tSpaceDim>::mNumDofsPerCell;
     constexpr Plato::OrdinalType tNodesPerCell = Plato::SimplexMechanics<tSpaceDim>::mNumNodesPerCell;
 
     // Create configuration workset
-    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(*tMesh);
+    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(tMesh);
     Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfigWS);
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset", tNumCells, tNodesPerCell);
     Plato::ScalarVector tControl("Controls", tNumVerts);
     Plato::blas1::fill(1.0, tControl);
@@ -737,9 +723,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateTensileEnergyDe
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -763,8 +747,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateTensileEnergyDe
 
     // ****** TEST OUTPUT/RESULT VALUE FOR EACH CELL ******
     constexpr Plato::Scalar tTolerance = 1e-4;
-    std::vector<Plato::Scalar> tGold = {0.0290519854871, 0.148180507407, 0.0290519854871,
-                                         0.439464476224,  3.34517161484,    5.3805864727};
+    std::vector<Plato::Scalar> tGold = {
+      3.024956014559, 3.024956014559, 3.024956014559,
+      3.024956014559, 3.024956014559, 3.024956014559};
     auto tHostResultWS = Kokkos::create_mirror(tResultWS);
     Kokkos::deep_copy(tHostResultWS, tResultWS);
     for(Plato::OrdinalType tIndex = 0; tIndex < tNumCells; tIndex++)
@@ -774,7 +759,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateTensileEnergyDe
 
     // ****** TEST GLOBAL SUM ******
     auto tObjFuncVal = Plato::local_result_sum<Plato::Scalar>(tNumCells, tResultWS);
-    TEST_FLOATING_EQUALITY(9.37150704214, tObjFuncVal, tTolerance);
+    TEST_FLOATING_EQUALITY(18.14973609, tObjFuncVal, tTolerance);
 }
 
 
@@ -782,13 +767,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -805,7 +788,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
                                               (tOnlyDomain, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     tCriterion.setLocalMeasure(tLocalMeasureEvaluationType, tLocalMeasurePODType);
 
-    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tCriterion);
+    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tCriterion);
 }
 
 
@@ -813,13 +796,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -836,7 +817,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
                                               (tOnlyDomain, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     tCriterion.setLocalMeasure(tLocalMeasureEvaluationType, tLocalMeasurePODType);
 
-    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tCriterion);
+    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tCriterion);
 }
 
 
@@ -844,13 +825,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -868,7 +847,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
                                               (tOnlyDomain, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     tCriterion.setLocalMeasure(tLocalMeasureEvaluationType, tLocalMeasurePODType);
 
-    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tCriterion);
+    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tCriterion);
 }
 
 
@@ -876,13 +855,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -900,7 +877,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
                                               (tOnlyDomain, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     tCriterion.setLocalMeasure(tLocalMeasureEvaluationType, tLocalMeasurePODType);
 
-    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tCriterion);
+    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tCriterion);
 }
 
 
@@ -908,13 +885,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_UpdateMultipliers1)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -922,13 +897,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_UpdateMultipliers1)
     Plato::AugLagStressCriterionQuadratic<Residual,Plato::SimplexMechanics<tSpaceDim>> tCriterion(tOnlyDomain, tDataMap);
 
     // SET INPUT DATA
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
 
     constexpr Plato::Scalar tYoungsModulus = 1;
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
 
     const auto tLocalMeasure =
         std::make_shared<Plato::VonMisesLocalMeasure<Residual,Plato::SimplexMechanics<tSpaceDim>>>
@@ -940,12 +915,12 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_UpdateMultipliers1)
     constexpr Plato::OrdinalType tNumNodesPerCell = Plato::SimplexMechanics<tSpaceDim>::mNumNodesPerCell;
 
     // Create configuration workset
-    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(*tMesh);
+    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(tMesh);
     Plato::ScalarArray3DT<Plato::Scalar> tConfigWS("config workset", tNumCells, tNumNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfigWS);
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarVector tControl("controls", tNumVerts);
     Plato::blas1::fill(1.0, tControl);
     Plato::ScalarMultiVectorT<Plato::Scalar> tControlWS("control workset", tNumCells, tNumNodesPerCell);
@@ -987,13 +962,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_UpdateMultipliers2)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -1001,13 +974,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_UpdateMultipliers2)
     Plato::AugLagStressCriterionQuadratic<Residual,Plato::SimplexMechanics<tSpaceDim>> tCriterion(tOnlyDomain, tDataMap);
 
     // SET INPUT DATA
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
 
     constexpr Plato::Scalar tYoungsModulus = 1;
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
 
     const auto tLocalMeasure =
         std::make_shared<Plato::VonMisesLocalMeasure<Residual,Plato::SimplexMechanics<tSpaceDim>>>
@@ -1019,12 +992,12 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_UpdateMultipliers2)
     constexpr Plato::OrdinalType tNumNodesPerCell = Plato::SimplexMechanics<tSpaceDim>::mNumNodesPerCell;
 
     // Create configuration workset
-    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(*tMesh);
+    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(tMesh);
     Plato::ScalarArray3DT<Plato::Scalar> tConfigWS("config workset", tNumCells, tNumNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfigWS);
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarVector tControl("controls", tNumVerts);
     Plato::blas1::fill(0.5, tControl);
     Plato::ScalarMultiVectorT<Plato::Scalar> tControlWS("control workset", tNumCells, tNumNodesPerCell);
@@ -1052,7 +1025,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_UpdateMultipliers2)
 
     constexpr Plato::Scalar tTolerance = 1e-4;
     std::vector<Plato::Scalar> tGoldLagrangeMultipliers =
-        {0.041727, 0.050998, 0.122774, 0.12715, 0.130626, 0.0671748};
+      {0.131739476, 0.112932370, 0.064022544, 0.111203340, 0.042183347, 0.219975864};
+
     auto tHostLagrangeMultipliers = Kokkos::create_mirror(tLagrangeMultipliers);
     Kokkos::deep_copy(tHostLagrangeMultipliers, tLagrangeMultipliers);
 
@@ -1171,13 +1145,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_ComputeStructuralMass_3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -1196,7 +1168,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_CriterionEval_3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     using Residual = typename Plato::Evaluation<Plato::SimplexMechanics<tSpaceDim>>::Residual;
     using StateT = typename Residual::StateScalarType;
@@ -1204,17 +1176,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_CriterionEval_3D)
     using ResultT = typename Residual::ResultScalarType;
     using ControlT = typename Residual::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
     constexpr Plato::OrdinalType tDofsPerCell = Plato::SimplexMechanics<tSpaceDim>::mNumDofsPerCell;
     constexpr Plato::OrdinalType tNodesPerCell = Plato::SimplexMechanics<tSpaceDim>::mNumNodesPerCell;
 
     // Create configuration workset
-    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(*tMesh);
+    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(tMesh);
     Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfigWS);
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset", tNumCells, tNodesPerCell);
     Plato::ScalarVector tControl("Controls", tNumVerts);
     Plato::blas1::fill(1.0, tControl);
@@ -1234,9 +1206,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_CriterionEval_3D)
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -1254,13 +1224,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_CriterionEval_3D)
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     tCriterion.setCellStiffMatrix(tCellStiffMatrix);
     tCriterion.evaluate(tStateWS, tControlWS, tConfigWS, tResultWS);
 
     // ****** TEST OUTPUT/RESULT VALUE FOR EACH CELL ******
     constexpr Plato::Scalar tTolerance = 1e-4;
-    std::vector<Plato::Scalar> tGold = {0.00307405, 0.00917341, 0.00307405, 0.0200399, 0.0877981, 0.124073};
+    std::vector<Plato::Scalar> tGold = {0.01489406, 0.01489406, 0.01489406, 0.01489406, 0.01489406, 0.01489406};
     auto tHostResultWS = Kokkos::create_mirror(tResultWS);
     Kokkos::deep_copy(tHostResultWS, tResultWS);
     for(Plato::OrdinalType tIndex = 0; tIndex < tNumCells; tIndex++)
@@ -1270,20 +1240,18 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_CriterionEval_3D)
 
     // ****** TEST GLOBAL SUM ******
     auto tObjFuncVal = Plato::local_result_sum<Plato::Scalar>(tNumCells, tResultWS);
-    TEST_FLOATING_EQUALITY(0.247233, tObjFuncVal, tTolerance);
+    TEST_FLOATING_EQUALITY(0.0893644, tObjFuncVal, tTolerance);
 }
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_FiniteDiff_CriterionGradZ_2D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -1291,7 +1259,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_FiniteDiff_CriterionGradZ_2D)
     Plato::AugLagStressCriterion<GradientZ> tCriterion(tOnlyDomain, tDataMap);
 
     // SET INPUT DATA
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
     Plato::ScalarVector tMassMultipliers("Mass Multiplier", tNumCells);
     Plato::blas1::fill(0.1, tMassMultipliers);
     tCriterion.setMassMultipliers(tMassMultipliers);
@@ -1300,22 +1268,20 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_FiniteDiff_CriterionGradZ_2D)
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     tCriterion.setCellStiffMatrix(tCellStiffMatrix);
-    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tCriterion);
+    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tCriterion);
 }
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_FiniteDiff_CriterionGradU_2D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -1323,7 +1289,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_FiniteDiff_CriterionGradU_2D)
     Plato::AugLagStressCriterion<Jacobian> tCriterion(tOnlyDomain, tDataMap);
 
     // SET INPUT DATA
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
     Plato::ScalarVector tMassMultipliers("Mass Multiplier", tNumCells);
     Plato::blas1::fill(0.1, tMassMultipliers);
     tCriterion.setMassMultipliers(tMassMultipliers);
@@ -1332,16 +1298,16 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_FiniteDiff_CriterionGradU_2D)
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     tCriterion.setCellStiffMatrix(tCellStiffMatrix);
-    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tCriterion);
+    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tCriterion);
 }
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_FiniteDiff_CriterionGradZ_3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     using GradientZ = typename Plato::Evaluation<Plato::SimplexMechanics<tSpaceDim>>::GradientZ;
     using StateT = typename GradientZ::StateScalarType;
@@ -1351,16 +1317,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_FiniteDiff_CriterionGradZ_3D)
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
     Plato::AugLagStressCriterion<GradientZ> tCriterion(tOnlyDomain, tDataMap);
 
     // SET INPUT DATA
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
     Plato::ScalarVector tMassMultipliers("Mass Multiplier", tNumCells);
     Plato::blas1::fill(0.1, tMassMultipliers);
     tCriterion.setMassMultipliers(tMassMultipliers);
@@ -1369,16 +1333,16 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_FiniteDiff_CriterionGradZ_3D)
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     tCriterion.setCellStiffMatrix(tCellStiffMatrix);
-    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tCriterion);
+    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tCriterion);
 }
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_FiniteDiff_CriterionGradU_3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     using Jacobian = typename Plato::Evaluation<Plato::SimplexMechanics<tSpaceDim>>::Jacobian;
     using StateT = Jacobian::StateScalarType;
@@ -1388,16 +1352,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_FiniteDiff_CriterionGradU_3D)
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
     Plato::AugLagStressCriterion<Jacobian> tCriterion(tOnlyDomain, tDataMap);
 
     // SET INPUT DATA
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
     Plato::ScalarVector tMassMultipliers("Mass Multiplier", tNumCells);
     Plato::blas1::fill(0.1, tMassMultipliers);
     tCriterion.setMassMultipliers(tMassMultipliers);
@@ -1406,22 +1368,20 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_FiniteDiff_CriterionGradU_3D)
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     tCriterion.setCellStiffMatrix(tCellStiffMatrix);
-    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tCriterion);
+    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tCriterion);
 }
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_UpdateMultipliers1)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -1429,7 +1389,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_UpdateMultipliers1)
     Plato::AugLagStressCriterion<Residual> tCriterion(tOnlyDomain, tDataMap);
 
     // SET INPUT DATA
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
     Plato::ScalarVector tMassMultipliers("Mass Multiplier", tNumCells);
     Plato::blas1::fill(0.01, tMassMultipliers);
     tCriterion.setMassMultipliers(tMassMultipliers);
@@ -1438,7 +1398,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_UpdateMultipliers1)
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     tCriterion.setCellStiffMatrix(tCellStiffMatrix);
 
     // CREATE WORKSETS FOR TEST
@@ -1446,12 +1406,12 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_UpdateMultipliers1)
     constexpr Plato::OrdinalType tNumNodesPerCell = Plato::SimplexMechanics<tSpaceDim>::mNumNodesPerCell;
 
     // Create configuration workset
-    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(*tMesh);
+    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(tMesh);
     Plato::ScalarArray3DT<Plato::Scalar> tConfigWS("config workset", tNumCells, tNumNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfigWS);
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarVector tControl("controls", tNumVerts);
     Plato::blas1::fill(1.0, tControl);
     Plato::ScalarMultiVectorT<Plato::Scalar> tControlWS("control workset", tNumCells, tNumNodesPerCell);
@@ -1497,13 +1457,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_UpdateMultipliers2)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -1511,7 +1469,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_UpdateMultipliers2)
     Plato::AugLagStressCriterion<Residual> tCriterion(tOnlyDomain, tDataMap);
 
     // SET INPUT DATA
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
     Plato::ScalarVector tMassMultipliers("Mass Multiplier", tNumCells);
     Plato::blas1::fill(0.01, tMassMultipliers);
     tCriterion.setMassMultipliers(tMassMultipliers);
@@ -1520,7 +1478,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_UpdateMultipliers2)
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     tCriterion.setCellStiffMatrix(tCellStiffMatrix);
 
     // CREATE WORKSETS FOR TEST
@@ -1528,12 +1486,12 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_UpdateMultipliers2)
     constexpr Plato::OrdinalType tNumNodesPerCell = Plato::SimplexMechanics<tSpaceDim>::mNumNodesPerCell;
 
     // Create configuration workset
-    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(*tMesh);
+    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(tMesh);
     Plato::ScalarArray3DT<Plato::Scalar> tConfigWS("config workset", tNumCells, tNumNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfigWS);
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarVector tControl("controls", tNumVerts);
     Plato::blas1::fill(0.5, tControl);
     Plato::ScalarMultiVectorT<Plato::Scalar> tControlWS("control workset", tNumCells, tNumNodesPerCell);
@@ -1563,7 +1521,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_UpdateMultipliers2)
     constexpr Plato::Scalar tTolerance = 1e-4;
     std::vector<Plato::Scalar> tGoldMassMultipliers(tNumCells, 0.);
     std::vector<Plato::Scalar> tGoldLagrangeMultipliers =
-        {0.041727, 0.050998, 0.122774, 0.12715, 0.130626, 0.0671748};
+      {0.131739476, 0.112932370, 0.064022544, 0.111203340, 0.042183347, 0.219975864};
     auto tHostMassMultipliers = Kokkos::create_mirror(tMassMultipliers);
     Kokkos::deep_copy(tHostMassMultipliers, tMassMultipliers);
     auto tHostLagrangeMultipliers = Kokkos::create_mirror(tLagrangeMultipliers);
@@ -1580,13 +1538,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_FiniteDiff_CriterionGradZ
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -1598,22 +1554,20 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_FiniteDiff_CriterionGradZ
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     tCriterion.setCellStiffMatrix(tCellStiffMatrix);
-    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tCriterion);
+    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tCriterion);
 }
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_FiniteDiff_CriterionGradU_2D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -1625,16 +1579,16 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_FiniteDiff_CriterionGradU
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     tCriterion.setCellStiffMatrix(tCellStiffMatrix);
-    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tCriterion);
+    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tCriterion);
 }
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_FiniteDiff_CriterionGradZ_3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     using GradientZ = typename Plato::Evaluation<Plato::SimplexMechanics<tSpaceDim>>::GradientZ;
     using StateT = typename GradientZ::StateScalarType;
@@ -1644,9 +1598,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_FiniteDiff_CriterionGradZ
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -1657,16 +1609,16 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_FiniteDiff_CriterionGradZ
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     tCriterion.setCellStiffMatrix(tCellStiffMatrix);
-    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tCriterion);
+    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tCriterion);
 }
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_FiniteDiff_CriterionGradU_3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     using Jacobian = typename Plato::Evaluation<Plato::SimplexMechanics<tSpaceDim>>::Jacobian;
     using StateT = Jacobian::StateScalarType;
@@ -1676,9 +1628,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_FiniteDiff_CriterionGradU
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -1689,22 +1639,20 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_FiniteDiff_CriterionGradU
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     tCriterion.setCellStiffMatrix(tCellStiffMatrix);
-    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tCriterion);
+    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tCriterion);
 }
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_computeStructuralMass)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -1722,13 +1670,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_UpdateProbelm1)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -1740,7 +1686,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_UpdateProbelm1)
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     tCriterion.setCellStiffMatrix(tCellStiffMatrix);
 
     // CREATE WORKSETS FOR TEST
@@ -1748,13 +1694,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_UpdateProbelm1)
     constexpr Plato::OrdinalType tNumNodesPerCell = Plato::SimplexMechanics<tSpaceDim>::mNumNodesPerCell;
 
     // Create configuration workset
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
-    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(*tMesh);
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
+    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(tMesh);
     Plato::ScalarArray3DT<Plato::Scalar> tConfigWS("config workset", tNumCells, tNumNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfigWS);
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarVector tControl("controls", tNumVerts);
     Plato::blas1::fill(1.0, tControl);
     Plato::ScalarMultiVectorT<Plato::Scalar> tControlWS("control workset", tNumCells, tNumNodesPerCell);
@@ -1795,13 +1741,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_UpdateProblem2)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -1813,7 +1757,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_UpdateProblem2)
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     tCriterion.setCellStiffMatrix(tCellStiffMatrix);
 
     // CREATE WORKSETS FOR TEST
@@ -1821,13 +1765,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_UpdateProblem2)
     constexpr Plato::OrdinalType tNumNodesPerCell = Plato::SimplexMechanics<tSpaceDim>::mNumNodesPerCell;
 
     // Create configuration workset
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
-    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(*tMesh);
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
+    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(tMesh);
     Plato::ScalarArray3DT<Plato::Scalar> tConfigWS("config workset", tNumCells, tNumNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfigWS);
 
     // Create control workset
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarVector tControl("controls", tNumVerts);
     Plato::blas1::fill(0.5, tControl);
     Plato::ScalarMultiVectorT<Plato::Scalar> tControlWS("control workset", tNumCells, tNumNodesPerCell);
@@ -1854,7 +1798,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_UpdateProblem2)
 
     constexpr Plato::Scalar tTolerance = 1e-4;
     std::vector<Plato::Scalar> tGoldLagrangeMultipliers =
-        {0.041727, 0.050998, 0.122774, 0.12715, 0.130626, 0.0671748};
+      {0.131739476, 0.112932370, 0.064022544, 0.111203340, 0.042183347, 0.219975864};
     auto tLagrangeMultipliers = tCriterion.getLagrangeMultipliers();
     auto tHostLagrangeMultipliers = Kokkos::create_mirror(tLagrangeMultipliers);
     Kokkos::deep_copy(tHostLagrangeMultipliers, tLagrangeMultipliers);
@@ -1905,7 +1849,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusTensileEnergy2D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     using Residual = typename Plato::Evaluation<Plato::SimplexMechanics<tSpaceDim>>::Residual;
     using StateT = typename Residual::StateScalarType;
@@ -1913,11 +1857,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusTensileEnergy2D)
     using ResultT = typename Residual::ResultScalarType;
     using ControlT = typename Residual::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
 
     // Create control workset
     const Plato::Scalar tPseudoDensity = 1.0;
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarVector tControl("Controls", tNumVerts);
     Plato::blas1::fill(tPseudoDensity, tControl);
 
@@ -1930,9 +1874,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusTensileEnergy2D)
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -1984,7 +1926,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusTensileEnergy2D)
     Plato::Scalar tMassGoldValue = pow(static_cast<Plato::Scalar>(tMeshWidth), tSpaceDim)
                                    * tPseudoDensity * tMassFunctionWeight * tMaterialDensity;
 
-    Plato::Scalar tTensileEnergyGoldValue = tTensileEnergyFunctionWeight * 163.304492775;
+    Plato::Scalar tTensileEnergyGoldValue = tTensileEnergyFunctionWeight * 775.0772911;
 
     Plato::Scalar tGoldWeightedSum = tMassGoldValue + tTensileEnergyGoldValue;
 
@@ -1998,15 +1940,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradZ_2D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -2024,7 +1964,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradZ_2D)
     constexpr Plato::Scalar tYoungsModulus = 1.0;
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     const auto tLocalMeasureGradZ =
         std::make_shared<Plato::VonMisesLocalMeasure<GradientZ,Plato::SimplexMechanics<tSpaceDim>>>
         (tOnlyDomain, tCellStiffMatrix, "VonMises");
@@ -2068,7 +2008,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradZ_2D)
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncMass);
     tWeightedSum.appendFunctionWeight(tMassFunctionWeight);
 
-    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tWeightedSum);
+    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tWeightedSum);
 }
 
 
@@ -2076,15 +2016,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradZ_3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -2102,7 +2040,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradZ_3D)
     constexpr Plato::Scalar tYoungsModulus = 1.0;
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     const auto tLocalMeasureGradZ =
         std::make_shared<Plato::VonMisesLocalMeasure<GradientZ,Plato::SimplexMechanics<tSpaceDim>>>
         (tOnlyDomain, tCellStiffMatrix, "VonMises");
@@ -2146,7 +2084,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradZ_3D)
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncMass);
     tWeightedSum.appendFunctionWeight(tMassFunctionWeight);
 
-    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tWeightedSum);
+    Plato::test_partial_control<GradientZ, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tWeightedSum);
 }
 
 
@@ -2154,15 +2092,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradU_2D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -2180,7 +2116,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradU_2D)
     constexpr Plato::Scalar tYoungsModulus = 1.0;
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     const auto tLocalMeasureGradU =
         std::make_shared<Plato::VonMisesLocalMeasure<Jacobian,Plato::SimplexMechanics<tSpaceDim>>>
         (tOnlyDomain, tCellStiffMatrix, "VonMises");
@@ -2224,7 +2160,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradU_2D)
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncMass);
     tWeightedSum.appendFunctionWeight(tMassFunctionWeight);
 
-    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tWeightedSum);
+    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tWeightedSum);
 }
 
 
@@ -2232,15 +2168,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradU_3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    Teuchos::RCP<Omega_h::Mesh> tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     constexpr Plato::OrdinalType tNumVoigtTerms = Plato::SimplexMechanics<tSpaceDim>::mNumVoigtTerms;
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tGenericParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -2258,7 +2192,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradU_3D)
     constexpr Plato::Scalar tYoungsModulus = 1.0;
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Omega_h::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     const auto tLocalMeasureGradU =
         std::make_shared<Plato::VonMisesLocalMeasure<Jacobian,Plato::SimplexMechanics<tSpaceDim>>>(tOnlyDomain, tCellStiffMatrix, "VonMises");
     const auto tLocalMeasurePODType =
@@ -2298,7 +2232,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradU_3D)
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncMass);
     tWeightedSum.appendFunctionWeight(tMassFunctionWeight);
 
-    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(*tMesh, tWeightedSum);
+    Plato::test_partial_state<Jacobian, Plato::SimplexMechanics<tSpaceDim>>(tMesh, tWeightedSum);
 }
 
 } // namespace AugLagStressTest

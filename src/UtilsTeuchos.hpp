@@ -31,12 +31,12 @@ is_positive_finite_number
 {
     if(!std::isfinite(aInput))
     {
-        THROWERR(std::string("Paramater '") + aTag + "' is set to a non-finite number")
+        ANALYZE_THROWERR(std::string("Paramater '") + aTag + "' is set to a non-finite number")
     }
 
     if(aInput <= static_cast<Plato::Scalar>(0.0))
     {
-        THROWERR(std::string("Expected a positive non-zero number and instead user-defined parameter '")
+        ANALYZE_THROWERR(std::string("Expected a positive non-zero number and instead user-defined parameter '")
              + aTag + "' was set to '" + std::to_string(aInput) + "'.")
     }
 }
@@ -59,7 +59,7 @@ inline void is_material_defined
 {
     if(!aInputs.sublist("Material Models").isSublist(aMaterialName))
     {
-        THROWERR(std::string("Material with tag '") + aMaterialName + "' is not defined in 'Material Models' block")
+        ANALYZE_THROWERR(std::string("Material with tag '") + aMaterialName + "' is not defined in 'Material Models' block")
     }
 }
 // function is_material_defined
@@ -121,13 +121,13 @@ inline Type parse_parameter
 {
     if( !aInputs.isSublist(aBlock) )
     {
-        THROWERR(std::string("Parameter Sublist '") + aBlock + "' within Paramater List '" + aInputs.name() + "' is not defined.")
+        ANALYZE_THROWERR(std::string("Parameter Sublist '") + aBlock + "' within Paramater List '" + aInputs.name() + "' is not defined.")
     }
     auto tSublist = aInputs.sublist(aBlock);
 
     if( !tSublist.isParameter(aTag) )
     {
-        THROWERR(std::string("Parameter with tag '") + aTag + "' is not defined in Parameter Sublist '" + aBlock + "'.")
+        ANALYZE_THROWERR(std::string("Parameter with tag '") + aTag + "' is not defined in Parameter Sublist '" + aBlock + "'.")
     }
     auto tOutput = tSublist.get<Type>(aTag);
     return tOutput;

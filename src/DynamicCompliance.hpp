@@ -9,8 +9,7 @@
 
 #include <memory>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_matrix.hpp>
+#include "PlatoMathTypes.hpp"
 
 #include <Teuchos_ParameterList.hpp>
 
@@ -64,7 +63,7 @@ private:
     Plato::ApplyPenalty<PenaltyFuncType> mApplyPenalty;
     Plato::ApplyProjection<ProjectionFuncType> mApplyProjection;
 
-    Omega_h::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;
+    Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;
     std::shared_ptr<Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>> mCubatureRule;
 
 public:

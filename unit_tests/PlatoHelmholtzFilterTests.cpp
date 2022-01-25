@@ -9,8 +9,6 @@
 #include "helmholtz/Problem.hpp"
 
 #include "BLAS1.hpp"
-#include "UtilsOmegaH.hpp"
-#include "OmegaHUtilities.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "alg/PlatoSolverFactory.hpp"
 
@@ -18,29 +16,38 @@
 #include <alg/AmgXSparseLinearProblem.hpp>
 #endif
 
-#include <fenv.h>
 #include <memory>
 
-TEUCHOS_UNIT_TEST(HelmholtzFilterTests, TestOmegaH)
+template <typename DataType>
+void print_view(const Plato::ScalarVectorT<DataType> & aView)
 {
-  constexpr Plato::OrdinalType tSpaceDim = 2;
-  constexpr Plato::OrdinalType tMeshWidth = 1;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-  //Plato::write_exodus_file("mesh.exo", *tMesh);
+    auto tView_host = Kokkos::create_mirror(aView);
+    Kokkos::deep_copy(tView_host, aView);
+    std::cout << '\n';
+    for (unsigned int i = 0; i < aView.extent(0); ++i)
+    {
+        std::cout << tView_host(i) << '\n';
+    }
+}
 
-  auto tBoundaryEntitiesIDs = Plato::omega_h::get_boundary_entities<Omega_h::EDGE>(*tMesh);
-  //Plato::omega_h::print<Omega_h::LOs>(tBoundaryEntitiesIDs, "IDs");
-  
-  auto tCopy = Plato::omega_h::copy<Plato::OrdinalType>(tBoundaryEntitiesIDs);
-  auto tHostCopy = Kokkos::create_mirror_view(tCopy);
-  Kokkos::deep_copy(tHostCopy, tCopy);
+// print full matrix entries
+void PrintFullMatrix(const Teuchos::RCP<Plato::CrsMatrixType> & aInMatrix)
+{
+    auto tNumRows = aInMatrix->numRows();
+    auto tNumCols = aInMatrix->numCols();
 
-  std::vector<Plato::OrdinalType> tGold = {0, 2, 3, 4};
-  for (auto &tValue : tGold)
-  {
-    auto tIndex = &tValue - &tGold[0];
-    TEST_EQUALITY(tValue, tHostCopy(tIndex));
-  }
+    auto tFullMat = ::PlatoUtestHelpers::toFull(aInMatrix);
+
+    printf("\n Full matrix entries: \n");
+    for (auto iRow = 0; iRow < tNumRows; iRow++)
+    {
+        for (auto iCol = 0; iCol < tNumCols; iCol++)
+        {
+            printf("%f ",tFullMat[iRow][iCol]);
+        }
+        printf("\n");
+    
+    }
 }
 
 /******************************************************************************/
@@ -54,8 +61,8 @@ TEUCHOS_UNIT_TEST(HelmholtzFilterTests, LengthScaleKeywordError)
   // create test mesh
   //
   constexpr int meshWidth=20;
-  constexpr int spaceDim=1;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  constexpr int spaceDim=2;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("tri3", meshWidth);
 
   using SimplexPhysics = ::Plato::HelmholtzFilter<spaceDim>;
 
@@ -79,13 +86,9 @@ TEUCHOS_UNIT_TEST(HelmholtzFilterTests, LengthScaleKeywordError)
     "</ParameterList>                                                        \n"
   );
 
-  // get mesh sets
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
   // create PDE
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
   TEST_THROW(Plato::Helmholtz::VectorFunction<SimplexPhysics> vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint")), std::runtime_error);
 }
@@ -102,13 +105,13 @@ TEUCHOS_UNIT_TEST(HelmholtzFilterTests, HelmholtzProblemError)
   //
   constexpr int meshWidth=4;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
   
   // create mesh based density
   //
   using SimplexPhysics = ::Plato::HelmholtzFilter<spaceDim>;
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   Plato::ScalarVector control("density", tNumDofs);
@@ -137,17 +140,13 @@ TEUCHOS_UNIT_TEST(HelmholtzFilterTests, HelmholtzProblemError)
     "</ParameterList>                                                        \n"
   );
 
-  // get mesh sets
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
   // get machine
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
   // construct problem
-  auto tProblem = Plato::Helmholtz::Problem<::Plato::HelmholtzFilter<spaceDim>>(*tMesh, tMeshSets, *tParamList, tMachine);
+  auto tProblem = Plato::Helmholtz::Problem<::Plato::HelmholtzFilter<spaceDim>>(tMesh, *tParamList, tMachine);
 
   // perform necessary operations
   auto tSolution = tProblem.solution(control);
@@ -173,12 +172,12 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, Helmholtz2DUniformFieldTest )
   //
   constexpr int meshWidth=8;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::HelmholtzFilter<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   // create mesh based density
@@ -217,13 +216,9 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, Helmholtz2DUniformFieldTest )
     "</ParameterList>                                                        \n"
   );
 
-  // get mesh sets
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
   // create PDE
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
   Plato::Helmholtz::VectorFunction<SimplexPhysics>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
@@ -253,7 +248,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, Helmholtz2DUniformFieldTest )
   );
   Plato::SolverFactory tSolverFactory(*tSolverParams);
 
-  auto tSolver = tSolverFactory.create(tMesh->nverts(), tMachine, tNumDofsPerNode);
+  auto tSolver = tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
   
   // solve linear system
   //
@@ -272,5 +267,4 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, Helmholtz2DUniformFieldTest )
   for(int iDof=0; iDof<tNumDofs; iDof++){
     TEST_FLOATING_EQUALITY(stateView_host(iDof), 1.0, 1.0e-14);
   }
-
 }

@@ -51,15 +51,15 @@ inline void flatten_vector_workset(const Plato::OrdinalType& aNumCells,
 {
     if(aInput.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nInput Kokkos::View is empty, i.e. size <= 0.\n")
+        ANALYZE_THROWERR("\nInput Kokkos::View is empty, i.e. size <= 0.\n")
     }
     if(aOutput.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nOutput Kokkos::View is empty, i.e. size <= 0.\n")
+        ANALYZE_THROWERR("\nOutput Kokkos::View is empty, i.e. size <= 0.\n")
     }
     if(aNumCells <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nNumber of cells, i.e. elements, argument is <= zero.\n");
+        ANALYZE_THROWERR("\nNumber of cells, i.e. elements, argument is <= zero.\n");
     }
 
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells),LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
@@ -97,15 +97,15 @@ flatten_vector_workset(
 
     if(aInput.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nInput Kokkos::View is empty, i.e. size <= 0.\n")
+        ANALYZE_THROWERR("\nInput Kokkos::View is empty, i.e. size <= 0.\n")
     }
     if(aOutput.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nOutput Kokkos::View is empty, i.e. size <= 0.\n")
+        ANALYZE_THROWERR("\nOutput Kokkos::View is empty, i.e. size <= 0.\n")
     }
     if(tNumCells <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nNumber of cells, i.e. elements, argument is <= zero.\n");
+        ANALYZE_THROWERR("\nNumber of cells, i.e. elements, argument is <= zero.\n");
     }
 
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells),LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
@@ -144,15 +144,15 @@ assemble_vector_workset(
 
     if(aInput.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nInput Kokkos::View is empty, i.e. size <= 0.\n")
+        ANALYZE_THROWERR("\nInput Kokkos::View is empty, i.e. size <= 0.\n")
     }
     if(aOutput.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nOutput Kokkos::View is empty, i.e. size <= 0.\n")
+        ANALYZE_THROWERR("\nOutput Kokkos::View is empty, i.e. size <= 0.\n")
     }
     if(tNumCells <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nNumber of cells, i.e. elements, argument is <= zero.\n");
+        ANALYZE_THROWERR("\nNumber of cells, i.e. elements, argument is <= zero.\n");
     }
 
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells),LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
@@ -216,11 +216,11 @@ inline void transform_ad_type_to_pod_2Dview(const Plato::ScalarVectorT<ADType>& 
 {
     if(aInput.extent(0) != aOutput.extent(0))
     {
-        THROWERR("Dimension mismatch, input and output containers have different number of rows.")
+        ANALYZE_THROWERR("Dimension mismatch, input and output containers have different number of rows.")
     }
     if(NumDofsPerCell != aOutput.extent(1))
     {
-        THROWERR("Input number of degrees of freedom does not match the number of columns in output container.")
+        ANALYZE_THROWERR("Input number of degrees of freedom does not match the number of columns in output container.")
     }
 
     Plato::OrdinalType tNumCells = aOutput.extent(0);
@@ -255,11 +255,11 @@ transform_ad_type_to_pod_2Dview(
 {
     if(aInput.extent(0) != aDomain.numCells())
     {
-        THROWERR("Dimension mismatch, input container and domain have different number of rows.")
+        ANALYZE_THROWERR("Dimension mismatch, input container and domain have different number of rows.")
     }
     if(NumDofsPerCell != aOutput.extent(1))
     {
-        THROWERR("Input number of degrees of freedom does not match the number of columns in output container.")
+        ANALYZE_THROWERR("Input number of degrees of freedom does not match the number of columns in output container.")
     }
 
     auto tNumCells = aDomain.numCells();
@@ -298,15 +298,15 @@ transform_ad_type_to_pod_3Dview(
 {
     if(aInput.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nInput 2D array size is zero.\n");
+        ANALYZE_THROWERR("\nInput 2D array size is zero.\n");
     }
     if(aDomain.numCells() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nNumber of input cells, i.e. elements, is zero.\n");
+        ANALYZE_THROWERR("\nNumber of input cells, i.e. elements, is zero.\n");
     }
     if(aOutput.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nOutput 3D array size is zero.\n");
+        ANALYZE_THROWERR("\nOutput 3D array size is zero.\n");
     }
 
     auto tNumCells = aDomain.numCells();
@@ -344,15 +344,15 @@ inline void transform_ad_type_to_pod_3Dview(const Plato::OrdinalType& aNumCells,
 {
     if(aInput.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nInput 2D array size is zero.\n");
+        ANALYZE_THROWERR("\nInput 2D array size is zero.\n");
     }
     if(aNumCells <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nNumber of input cells, i.e. elements, is zero.\n");
+        ANALYZE_THROWERR("\nNumber of input cells, i.e. elements, is zero.\n");
     }
     if(aOutput.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nOutput 3D array size is zero.\n");
+        ANALYZE_THROWERR("\nOutput 3D array size is zero.\n");
     }
 
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)

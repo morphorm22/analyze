@@ -21,8 +21,6 @@
 #include <alg/AmgXSparseLinearProblem.hpp>
 #endif
 
-
-#include <fenv.h>
 #include <memory>
 #include <typeinfo>
 #include <vector>
@@ -39,28 +37,6 @@ void setViewFromVector( Plato::ScalarVectorT<DataType> aView, std::vector<DataTy
 {
   Kokkos::View<DataType*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged> tHostView(aVector.data(),aVector.size());
   Kokkos::deep_copy(aView, tHostView);
-}
-
-/******************************************************************************//**
- *
-  \brief Set std::vector data from Omega_h::LOs
- *
- **********************************************************************************/
-template <typename DataType>
-void setVectorFromLOs( Omega_h::LOs & aInput, std::vector<DataType> & aVector)
-{
-    auto tRange = aInput.size();
-    Plato::LocalOrdinalVector tView("view of LOs",tRange);
-
-    Kokkos::parallel_for("set view values", tRange, LAMBDA_EXPRESSION(const int & aIndex)
-    {
-        tView(aIndex) = aInput[aIndex]; 
-    });
-
-    auto tView_host = Kokkos::create_mirror_view(tView);
-    Kokkos::deep_copy(tView_host, tView); // view on host
-
-    aVector.assign(tView_host.data(),tView_host.data()+tView_host.extent(0));
 }
 
 /******************************************************************************/
@@ -94,8 +70,8 @@ void fromFull( Teuchos::RCP<Plato::CrsMatrixType>            aOutMatrix,
     using Plato::OrdinalType;
     using Plato::Scalar;
 
-    if( aOutMatrix->numRows() != aInMatrix.size()    ) { THROWERR("matrices have incompatible shapes"); }
-    if( aOutMatrix->numCols() != aInMatrix[0].size() ) { THROWERR("matrices have incompatible shapes"); }
+    if( aOutMatrix->numRows() != aInMatrix.size()    ) { ANALYZE_THROWERR("matrices have incompatible shapes"); }
+    if( aOutMatrix->numCols() != aInMatrix[0].size() ) { ANALYZE_THROWERR("matrices have incompatible shapes"); }
 
     auto tNumRowsPerBlock = aOutMatrix->numRowsPerBlock();
     auto tNumColsPerBlock = aOutMatrix->numColsPerBlock();
@@ -164,7 +140,7 @@ void SlowDumbMatrixMatrixMultiply(
     auto tNumOutMatrixRows = aInMatrixOne->numRows();
     auto tNumOutMatrixCols = aInMatrixTwo->numCols();
 
-    if( aInMatrixOne->numCols() != aInMatrixTwo->numRows() ) { THROWERR("input matrices have incompatible shapes"); }
+    if( aInMatrixOne->numCols() != aInMatrixTwo->numRows() ) { ANALYZE_THROWERR("input matrices have incompatible shapes"); }
 
     auto tNumInner = aInMatrixOne->numCols();
 
@@ -188,7 +164,6 @@ void SlowDumbMatrixMatrixMultiply(
 
     fromFull(aOutMatrix, tFullMatrix);
 }
-
 
 } // end namespace PlatoDevel
 
@@ -305,176 +280,6 @@ void print_view2(const Plato::ScalarVectorT<DataType> & aView)
     });
  }
 
-
-/******************************************************************************/
-/*!
-  \brief test Omega-H parsing of node sets
-*/
-/******************************************************************************/
-/* TEUCHOS_UNIT_TEST( MultipointConstraintTests, OmegaHNodeSetParsingTest ) */
-/* { */
-/*   // specify mesh */
-/*   // */
-/*   Teuchos::RCP<Teuchos::ParameterList> tMeshParams = */
-/*     Teuchos::getParametersFromXmlString( */
-/*     "<ParameterList name='Mesh File'>                                      \n" */
-/*     "  <Parameter  name='Input Mesh' type='string' value='test_mesh_rve.exo'/> \n" */
-/*     "  <Parameter  name='Node Set 1' type='string' value='ChildFaceX'/> \n" */
-/*     "  <Parameter  name='Node Set 2' type='string' value='ChildEdge15'/> \n" */
-/*     "</ParameterList>                                                      \n" */
-/*   ); */
-
-/*   // read in mesh */
-/*   // */
-/*   auto tLibOmegaH = PlatoUtestHelpers::getLibraryOmegaH(); */
-/*   auto tInputMesh = tMeshParams->get<std::string>("Input Mesh"); */
-
-/*   Omega_h::Mesh mesh = Omega_h::read_mesh_file(tInputMesh, tLibOmegaH->world()); */
-  
-/*   // get mesh data */
-/*   // */
-/*   constexpr int spaceDim=3; */
-/*   using SimplexPhysics = ::Plato::Mechanics<spaceDim>; */
-
-/*   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode; */
-/*   int tNumNodes = mesh.nverts(); */
-/*   int tNumDofs = tNumNodes*tNumDofsPerNode; */
-
-/*   std::cout << '\n' << "Number of Nodes: " << tNumNodes << std::endl; */
-
-/*   // get mesh sets */
-/*   // */
-/*   Omega_h::Assoc tAssoc; */
-/*   tAssoc[Omega_h::ELEM_SET] = mesh.class_sets; */
-/*   tAssoc[Omega_h::NODE_SET] = mesh.class_sets; */
-/*   tAssoc[Omega_h::SIDE_SET] = mesh.class_sets; */
-/*   Omega_h::MeshSets tMeshSets = Omega_h::invert(&mesh, tAssoc); */
-
-/*   // parse mesh node set 1 */
-/*   // */
-/*   auto& tNodeSets = tMeshSets[Omega_h::NODE_SET]; */
-/*   std::string tChildNodeSet1 = tMeshParams->get<std::string>("Node Set 1"); */
-/*   auto tChildNodeSets1Iter = tNodeSets.find(tChildNodeSet1); */
-/*   if(tChildNodeSets1Iter == tNodeSets.end()) */
-/*   { */
-/*       std::ostringstream tMsg; */
-/*       tMsg << "Could not find Node Set with name = '" << tChildNodeSet1.c_str() */
-/*               << "'. Node Set is not defined in input geometry/mesh file.\n"; */
-/*       THROWERR(tMsg.str()) */
-/*   } */
-/*   auto tChildNodeLids1 = (tChildNodeSets1Iter->second); */
-/*   auto tNumberChildNodes1 = tChildNodeLids1.size(); */
-
-/*   std::cout << '\n' << "Nodes in Set 1: " << tNumberChildNodes1 << std::endl; */
-  
-/*   // parse mesh node set 2 */
-/*   // */
-/*   std::string tChildNodeSet2 = tMeshParams->get<std::string>("Node Set 2"); */
-/*   auto tChildNodeSets2Iter = tNodeSets.find(tChildNodeSet2); */
-/*   if(tChildNodeSets2Iter == tNodeSets.end()) */
-/*   { */
-/*       std::ostringstream tMsg; */
-/*       tMsg << "Could not find Node Set with name = '" << tChildNodeSet2.c_str() */
-/*               << "'. Node Set is not defined in input geometry/mesh file.\n"; */
-/*       THROWERR(tMsg.str()) */
-/*   } */
-/*   auto tChildNodeLids2 = (tChildNodeSets2Iter->second); */
-/*   auto tNumberChildNodes2 = tChildNodeLids2.size(); */
-
-/*   std::cout << '\n' << "Nodes in Set 2: " << tNumberChildNodes2 << std::endl; */
-
-/* } */
-
-/******************************************************************************/
-/*!
-  \brief test periodic BCs on RVE
-*/
-/******************************************************************************/
-/* TEUCHOS_UNIT_TEST( MultipointConstraintTests, RVEPeridicBCsTest ) */
-/* { */
-/*   // create test mesh */
-/*   // */
-/*   constexpr int meshWidth=4; */
-/*   constexpr int spaceDim=3; */
-/*   auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth); */
-
-/*   using SimplexPhysics = ::Plato::Mechanics<spaceDim>; */
-
-/*   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode; */
-/*   int tNumNodes = tMesh->nverts(); */
-/*   int tNumDofs = tNumNodes*tNumDofsPerNode; */
-
-/*   // create mesh based density */
-/*   // */
-/*   Plato::ScalarVector control("density", tNumDofs); */
-/*   Kokkos::deep_copy(control, 1.0); */
-
-/*   // create mesh based state */
-/*   // */
-/*   Plato::ScalarVector state("state", tNumDofs); */
-/*   Kokkos::deep_copy(state, 0.0); */
-  
-/*   // get edge nodes as intersection */
-/*   auto tMeshObject = *tMesh; */
-/*   std::cout << '\n' << "Face 12 (x0) Nodes:" << std::endl; */
-/*   auto tX0Marks = Omega_h::mark_class_closure(&tMeshObject, Omega_h::VERT, Omega_h::FACE, 12 /1* class id *1/); */
-/*   auto tX0Ordinals = Omega_h::collect_marked(tX0Marks); */
-/*   PlatoUtestHelpers::print_ordinals(tX0Ordinals); */
-/*   PlatoUtestHelpers::print_3d_coords(*tMesh,tX0Ordinals); */
-
-/*   std::vector<Omega_h::LO> tVectorX0; */
-/*   PlatoDevel::setVectorFromLOs(tX0Ordinals,tVectorX0); */
-
-/*   std::cout << '\n' << "Face 10 (y0) Nodes:" << std::endl; */
-/*   auto tY0Marks = Omega_h::mark_class_closure(&tMeshObject, Omega_h::VERT, Omega_h::FACE, 10 /1* class id *1/); */
-/*   auto tY0Ordinals = Omega_h::collect_marked(tY0Marks); */
-/*   PlatoUtestHelpers::print_ordinals(tY0Ordinals); */
-/*   PlatoUtestHelpers::print_3d_coords(*tMesh,tY0Ordinals); */
-
-/*   std::vector<Omega_h::LO> tVectorY0; */
-/*   PlatoDevel::setVectorFromLOs(tY0Ordinals,tVectorY0); */
-
-/*   std::vector<Omega_h::LO> tVectorEdge14; */
-/*   std::sort(tVectorX0.begin(), tVectorX0.end()); // set_intersection assumes sorted */
-/*   std::sort(tVectorY0.begin(), tVectorY0.end()); // set_intersection assumes sorted */
-/*   std::set_intersection(tVectorX0.begin(),tVectorX0.end(),tVectorY0.begin(),tVectorY0.end(),std::back_inserter(tVectorEdge14)); */
-
-
-
-
-/*   std::cout << "\n OY! Vector contents below \n"; */
-/*   printf("\n Vector length %d \n",tVectorEdge14.size()); */
-/*   for (std::vector<Omega_h::LO>::const_iterator i = tVectorEdge14.begin(); i != tVectorEdge14.end(); ++i) */
-/*       std::cout << *i << ' '; */
-
-/*   /1* std::cout << '\n' << "Face 14 (x1) Nodes:" << std::endl; *1/ */
-/*   auto tX1Marks = Omega_h::mark_class_closure(&tMeshObject, Omega_h::VERT, Omega_h::FACE, 14 /1* class id *1/); */
-/*   auto tX1Ordinals = Omega_h::collect_marked(tX1Marks); */
-/*   /1* PlatoUtestHelpers::print_ordinals(tX1Ordinals); *1/ */
-/*   /1* PlatoUtestHelpers::print_3d_coords(*tMesh,tX1Ordinals); *1/ */
-
-
-/*   /1* std::cout << '\n' << "Face 16 (y1) Nodes:" << std::endl; *1/ */
-/*   auto tY1Marks = Omega_h::mark_class_closure(&tMeshObject, Omega_h::VERT, Omega_h::FACE, 16 /1* class id *1/); */
-/*   auto tY1Ordinals = Omega_h::collect_marked(tY1Marks); */
-/*   PlatoUtestHelpers::print_ordinals(tY1Ordinals); */
-/*   PlatoUtestHelpers::print_3d_coords(*tMesh,tY1Ordinals); */
-
-/*   /1* std::cout << '\n' << "Face 4 (z0) Nodes:" << std::endl; *1/ */
-/*   auto tZ0Marks = Omega_h::mark_class_closure(&tMeshObject, Omega_h::VERT, Omega_h::FACE, 4 /1* class id *1/); */
-/*   auto tZ0Ordinals = Omega_h::collect_marked(tZ0Marks); */
-/*   /1* PlatoUtestHelpers::print_ordinals(tZ0Ordinals); *1/ */
-/*   /1* PlatoUtestHelpers::print_3d_coords(*tMesh,tZ0Ordinals); *1/ */
-
-/*   /1* std::cout << '\n' << "Face 22 (z1) Nodes:" << std::endl; *1/ */
-/*   auto tZ1Marks = Omega_h::mark_class_closure(&tMeshObject, Omega_h::VERT, Omega_h::FACE, 22 /1* class id *1/); */
-/*   auto tZ1Ordinals = Omega_h::collect_marked(tZ1Marks); */
-/*   /1* PlatoUtestHelpers::print_ordinals(tZ1Ordinals); *1/ */
-/*   /1* PlatoUtestHelpers::print_3d_coords(*tMesh,tZ1Ordinals); *1/ */
-
-
-/* } */
-
 /******************************************************************************/
 /*!
   \brief test operations that form condensed systen
@@ -485,9 +290,6 @@ void print_view2(const Plato::ScalarVectorT<DataType> & aView)
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( MultipointConstraintTests, BuildCondensedSystem )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // specify parameter input
   //
   Teuchos::RCP<Teuchos::ParameterList> params =
@@ -521,26 +323,26 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, BuildCondensedSystem )
     "    <ParameterList  name='Traction Vector Boundary Condition'>          \n"
     "      <Parameter name='Type'   type='string'        value='Uniform'/>   \n"
     "      <Parameter name='Values' type='Array(double)' value='{1e3, 0}'/>  \n"
-    "      <Parameter name='Sides'  type='string'        value='Load'/>      \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>        \n"
     "    </ParameterList>                                                    \n"
     "  </ParameterList>                                                      \n"
     "  <ParameterList  name='Essential Boundary Conditions'>                 \n"
     "    <ParameterList  name='X Fixed Displacement Boundary Condition'>     \n"
     "      <Parameter  name='Type'     type='string' value='Zero Value'/>    \n"
     "      <Parameter  name='Index'    type='int'    value='0'/>             \n"
-    "      <Parameter  name='Sides'    type='string' value='Fix'/>           \n"
+    "      <Parameter  name='Sides'    type='string' value='x-'/>            \n"
     "    </ParameterList>                                                    \n"
     "    <ParameterList  name='Y Fixed Displacement Boundary Condition'>     \n"
     "      <Parameter  name='Type'     type='string' value='Zero Value'/>    \n"
     "      <Parameter  name='Index'    type='int'    value='1'/>             \n"
-    "      <Parameter  name='Sides'    type='string' value='Fix'/>           \n"
+    "      <Parameter  name='Sides'    type='string' value='x-'/>            \n"
     "    </ParameterList>                                                    \n"
     "  </ParameterList>                                                      \n"
     "  <ParameterList  name='Multipoint Constraints'>                        \n"
     "    <ParameterList  name='Node Tie Constraint 1'>                       \n"
     "      <Parameter  name='Type'     type='string'    value='Tie'/>        \n"
-    "      <Parameter  name='Child'    type='string'    value='MPC Child'/>  \n"
-    "      <Parameter  name='Parent'   type='string'    value='MPC Parent'/> \n"
+    "      <Parameter  name='Child'    type='string'    value='y+'/>         \n"
+    "      <Parameter  name='Parent'   type='string'    value='y-'/>         \n"
     "      <Parameter  name='Value'    type='double'    value='4.2'/>        \n"
     "    </ParameterList>                                                    \n"
     "  </ParameterList>                                                      \n"
@@ -551,12 +353,12 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, BuildCondensedSystem )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   // create mesh based density
@@ -569,37 +371,18 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, BuildCondensedSystem )
   Plato::ScalarVector state("state", tNumDofs);
   Kokkos::deep_copy(state, 0.0);
 
-  // assign edges for load and boundary conditions
-  //
-  Plato::DataMap tDataMap;
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
-  Omega_h::Read<Omega_h::I8> tMarksLoad = Omega_h::mark_class_closure(tMesh.get(), Omega_h::EDGE, Omega_h::EDGE, 5 /* class id */);
-  tMeshSets[Omega_h::SIDE_SET]["Load"] = Omega_h::collect_marked(tMarksLoad);
-
-  Omega_h::Read<Omega_h::I8> tMarksFix = Omega_h::mark_class_closure(tMesh.get(), Omega_h::VERT, Omega_h::EDGE, 3 /* class id */);
-  tMeshSets[Omega_h::NODE_SET]["Fix"] = Omega_h::collect_marked(tMarksFix);
-  
-  // assign edges for MPCs
-  //
-  Omega_h::Read<Omega_h::I8> tMarksParent = Omega_h::mark_class_closure(tMesh.get(), Omega_h::VERT, Omega_h::EDGE, 1 /* class id */); // bottom edge is parent
-  tMeshSets[Omega_h::NODE_SET]["MPC Parent"] = Omega_h::collect_marked(tMarksParent);
-
-  Omega_h::Read<Omega_h::I8> tMarksChild = Omega_h::mark_class_closure(tMesh.get(), Omega_h::VERT, Omega_h::EDGE, 7 /* class id */); // top edge is child
-  tMeshSets[Omega_h::NODE_SET]["MPC Child"] = Omega_h::collect_marked(tMarksChild);
-  
   // parse essential BCs
   //
-  Plato::LocalOrdinalVector mBcDofs;
+  Plato::OrdinalVector mBcDofs;
   Plato::ScalarVector mBcValues;
   Plato::EssentialBCs<SimplexPhysics>
-      tEssentialBoundaryConditions(params->sublist("Essential Boundary Conditions",false), tMeshSets);
+      tEssentialBoundaryConditions(params->sublist("Essential Boundary Conditions",false), tMesh);
   tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
 
   // create vector function
   //
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *params);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *params);
   Plato::Elliptic::VectorFunction<SimplexPhysics>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
 
@@ -671,9 +454,6 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, BuildCondensedSystem )
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic2DTieMPC )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // specify parameter input
   //
   Teuchos::RCP<Teuchos::ParameterList> params =
@@ -707,26 +487,26 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic2DTieMPC )
     "    <ParameterList  name='Traction Vector Boundary Condition'>          \n"
     "      <Parameter name='Type'   type='string'        value='Uniform'/>   \n"
     "      <Parameter name='Values' type='Array(double)' value='{1e3, 0}'/>  \n"
-    "      <Parameter name='Sides'  type='string'        value='Load'/>      \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>        \n"
     "    </ParameterList>                                                    \n"
     "  </ParameterList>                                                      \n"
     "  <ParameterList  name='Essential Boundary Conditions'>                 \n"
     "    <ParameterList  name='X Fixed Displacement Boundary Condition'>     \n"
     "      <Parameter  name='Type'     type='string' value='Zero Value'/>    \n"
     "      <Parameter  name='Index'    type='int'    value='0'/>             \n"
-    "      <Parameter  name='Sides'    type='string' value='Fix'/>           \n"
+    "      <Parameter  name='Sides'    type='string' value='x-'/>            \n"
     "    </ParameterList>                                                    \n"
     "    <ParameterList  name='Y Fixed Displacement Boundary Condition'>     \n"
     "      <Parameter  name='Type'     type='string' value='Zero Value'/>    \n"
     "      <Parameter  name='Index'    type='int'    value='1'/>             \n"
-    "      <Parameter  name='Sides'    type='string' value='Fix'/>           \n"
+    "      <Parameter  name='Sides'    type='string' value='x-'/>            \n"
     "    </ParameterList>                                                    \n"
     "  </ParameterList>                                                      \n"
     "  <ParameterList  name='Multipoint Constraints'>                        \n"
     "    <ParameterList  name='Node Tie Constraint 1'>                       \n"
     "      <Parameter  name='Type'     type='string'    value='Tie'/>        \n"
-    "      <Parameter  name='Child'    type='string'    value='MPC Child'/>  \n"
-    "      <Parameter  name='Parent'   type='string'    value='MPC Parent'/> \n"
+    "      <Parameter  name='Child'    type='string'    value='y+'/>         \n"
+    "      <Parameter  name='Parent'   type='string'    value='y-'/>         \n"
     "      <Parameter  name='Value'    type='double'    value='4.2'/>        \n"
     "    </ParameterList>                                                    \n"
     "  </ParameterList>                                                      \n"
@@ -737,12 +517,12 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic2DTieMPC )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   // create mesh based density
@@ -755,37 +535,18 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic2DTieMPC )
   Plato::ScalarVector state("state", tNumDofs);
   Kokkos::deep_copy(state, 0.0);
 
-  // assign edges for load and boundary conditions
-  //
-  Plato::DataMap tDataMap;
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
-  Omega_h::Read<Omega_h::I8> tMarksLoad = Omega_h::mark_class_closure(tMesh.get(), Omega_h::EDGE, Omega_h::EDGE, 5 /* class id */);
-  tMeshSets[Omega_h::SIDE_SET]["Load"] = Omega_h::collect_marked(tMarksLoad);
-
-  Omega_h::Read<Omega_h::I8> tMarksFix = Omega_h::mark_class_closure(tMesh.get(), Omega_h::VERT, Omega_h::EDGE, 3 /* class id */);
-  tMeshSets[Omega_h::NODE_SET]["Fix"] = Omega_h::collect_marked(tMarksFix);
-  
-  // assign edges for MPCs
-  //
-  Omega_h::Read<Omega_h::I8> tMarksParent = Omega_h::mark_class_closure(tMesh.get(), Omega_h::VERT, Omega_h::EDGE, 1 /* class id */); // bottom edge is parent
-  tMeshSets[Omega_h::NODE_SET]["MPC Parent"] = Omega_h::collect_marked(tMarksParent);
-
-  Omega_h::Read<Omega_h::I8> tMarksChild = Omega_h::mark_class_closure(tMesh.get(), Omega_h::VERT, Omega_h::EDGE, 7 /* class id */); // top edge is child
-  tMeshSets[Omega_h::NODE_SET]["MPC Child"] = Omega_h::collect_marked(tMarksChild);
-  
   // parse essential BCs
   //
-  Plato::LocalOrdinalVector mBcDofs;
+  Plato::OrdinalVector mBcDofs;
   Plato::ScalarVector mBcValues;
   Plato::EssentialBCs<SimplexPhysics>
-      tEssentialBoundaryConditions(params->sublist("Essential Boundary Conditions",false), tMeshSets);
+      tEssentialBoundaryConditions(params->sublist("Essential Boundary Conditions",false), tMesh);
   tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
 
   // create vector function
   //
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *params);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *params);
   Plato::Elliptic::VectorFunction<SimplexPhysics>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
 
@@ -812,15 +573,15 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic2DTieMPC )
   Teuchos::RCP<Teuchos::ParameterList> tSolverParams =
     Teuchos::getParametersFromXmlString(
     "<ParameterList name='Linear Solver'>                              \n"
-    "  <Parameter name='Solver' type='string' value='AztecOO'/>        \n"
+    "  <Parameter name='Solver' type='string' value='gmres'/>          \n"
     "  <Parameter name='Display Iterations' type='int' value='0'/>     \n"
-    "  <Parameter name='Iterations' type='int' value='50'/>            \n"
+    "  <Parameter name='Iterations' type='int' value='200'/>           \n"
     "  <Parameter name='Tolerance' type='double' value='1e-14'/>       \n"
     "</ParameterList>                                                  \n"
   );
   Plato::SolverFactory tSolverFactory(*tSolverParams);
 
-  auto tSolver = tSolverFactory.create(tMesh->nverts(), tMachine, tNumDofsPerNode, tMPCs);
+  auto tSolver = tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode, tMPCs);
 
   // apply essential BCs
   //
@@ -840,8 +601,8 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic2DTieMPC )
 
   // test difference between constrained nodes
   //
-  Plato::OrdinalType checkChildNode = 4;
-  Plato::OrdinalType checkParentNode = 7;
+  Plato::OrdinalType checkChildNode = 5;
+  Plato::OrdinalType checkParentNode = 3;
   Plato::Scalar      checkValue = 4.2;
 
   Plato::OrdinalType checkChildDof0 = checkChildNode*tNumDofsPerNode;
@@ -868,19 +629,16 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic2DTieMPC )
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // create test mesh
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   // create mesh based density
@@ -893,8 +651,6 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
   Plato::ScalarVector state("state", tNumDofs);
   Kokkos::deep_copy(state, 0.0);
   
-  auto tMeshObject = *tMesh;
-
   // specify parameter input
   //
   Teuchos::RCP<Teuchos::ParameterList> params =
@@ -928,30 +684,30 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
     "    <ParameterList  name='Traction Vector Boundary Condition'>          \n"
     "      <Parameter name='Type'   type='string'        value='Uniform'/>   \n"
     "      <Parameter name='Values' type='Array(double)' value='{1e3, 0, 0}'/>  \n"
-    "      <Parameter name='Sides'  type='string'        value='Load'/>      \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>        \n"
     "    </ParameterList>                                                    \n"
     "  </ParameterList>                                                      \n"
     "  <ParameterList  name='Essential Boundary Conditions'>                 \n"
     "    <ParameterList  name='X Fixed Displacement Boundary Condition'>     \n"
     "      <Parameter  name='Type'     type='string' value='Zero Value'/>    \n"
     "      <Parameter  name='Index'    type='int'    value='0'/>             \n"
-    "      <Parameter  name='Sides'    type='string' value='Fix'/>           \n"
+    "      <Parameter  name='Sides'    type='string' value='x-'/>            \n"
     "    </ParameterList>                                                    \n"
     "    <ParameterList  name='Y Fixed Displacement Boundary Condition'>     \n"
     "      <Parameter  name='Type'     type='string' value='Zero Value'/>    \n"
     "      <Parameter  name='Index'    type='int'    value='1'/>             \n"
-    "      <Parameter  name='Sides'    type='string' value='Fix'/>           \n"
+    "      <Parameter  name='Sides'    type='string' value='x-'/>            \n"
     "    </ParameterList>                                                    \n"
     "    <ParameterList  name='Z Fixed Displacement Boundary Condition'>     \n"
     "      <Parameter  name='Type'     type='string' value='Zero Value'/>    \n"
     "      <Parameter  name='Index'    type='int'    value='2'/>             \n"
-    "      <Parameter  name='Sides'    type='string' value='Fix'/>           \n"
+    "      <Parameter  name='Sides'    type='string' value='x-'/>            \n"
     "    </ParameterList>                                                    \n"
     "  </ParameterList>                                                      \n"
     "  <ParameterList  name='Multipoint Constraints'>                        \n"
     "    <ParameterList  name='PBC Constraint 1'>                            \n"
     "      <Parameter  name='Type'     type='string'    value='PBC'/>        \n"
-    "      <Parameter  name='Child'    type='string'    value='MPC Child'/>  \n"
+    "      <Parameter  name='Child'    type='string'    value='y-'/>         \n"
     "      <Parameter  name='Parent'   type='string'    value='Design Volume'/>  \n"
     "      <Parameter  name='Vector'  type='Array(double)' value='{0, 1, 0}'/>  \n"
     "      <Parameter  name='Value'    type='double'    value='0.0'/>        \n"
@@ -960,34 +716,18 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
     "</ParameterList>                                                        \n"
   );
 
-  // assign edges for load and boundary conditions
-  //
-  Plato::DataMap tDataMap;
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
-  Omega_h::Read<Omega_h::I8> tMarksLoad = Omega_h::mark_class_closure(tMesh.get(), Omega_h::EDGE, Omega_h::FACE, 14 /* class id */);
-  tMeshSets[Omega_h::SIDE_SET]["Load"] = Omega_h::collect_marked(tMarksLoad);
-
-  Omega_h::Read<Omega_h::I8> tMarksFix = Omega_h::mark_class_closure(tMesh.get(), Omega_h::VERT, Omega_h::FACE, 12 /* class id */);
-  tMeshSets[Omega_h::NODE_SET]["Fix"] = Omega_h::collect_marked(tMarksFix);
-  
-  // assign faces for MPCs
-  //
-  Omega_h::Read<Omega_h::I8> tMarksChild = Omega_h::mark_class_closure(tMesh.get(), Omega_h::VERT, Omega_h::FACE, 10 /* class id */); // y0 face is child
-  tMeshSets[Omega_h::NODE_SET]["MPC Child"] = Omega_h::collect_marked(tMarksChild);
-  
   // parse essential BCs
   //
-  Plato::LocalOrdinalVector mBcDofs;
+  Plato::OrdinalVector mBcDofs;
   Plato::ScalarVector mBcValues;
   Plato::EssentialBCs<SimplexPhysics>
-      tEssentialBoundaryConditions(params->sublist("Essential Boundary Conditions",false), tMeshSets);
+      tEssentialBoundaryConditions(params->sublist("Essential Boundary Conditions",false), tMesh);
   tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
 
   // create vector function
   //
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *params);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *params);
   Plato::Elliptic::VectorFunction<SimplexPhysics>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
 
@@ -1014,15 +754,15 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
   Teuchos::RCP<Teuchos::ParameterList> tSolverParams =
     Teuchos::getParametersFromXmlString(
     "<ParameterList name='Linear Solver'>                              \n"
-    "  <Parameter name='Solver' type='string' value='AztecOO'/>        \n"
+    "  <Parameter name='Solver' type='string' value='gmres'/>          \n"
     "  <Parameter name='Display Iterations' type='int' value='0'/>     \n"
-    "  <Parameter name='Iterations' type='int' value='50'/>            \n"
+    "  <Parameter name='Iterations' type='int' value='200'/>           \n"
     "  <Parameter name='Tolerance' type='double' value='1e-14'/>       \n"
     "</ParameterList>                                                  \n"
   );
   Plato::SolverFactory tSolverFactory(*tSolverParams);
 
-  auto tSolver = tSolverFactory.create(tMesh->nverts(), tMachine, tNumDofsPerNode, tMPCs);
+  auto tSolver = tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode, tMPCs);
 
   // apply essential BCs
   //
@@ -1042,8 +782,8 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
 
   // test difference between constrained nodes
   //
-  Plato::OrdinalType checkChildNode = 22;
-  Plato::OrdinalType checkParentNode = 15;
+  Plato::OrdinalType checkChildNode = 0;
+  Plato::OrdinalType checkParentNode = 3;
   Plato::Scalar      checkValue = 0.0;
 
   Plato::OrdinalType checkChildDof0 = checkChildNode*tNumDofsPerNode;

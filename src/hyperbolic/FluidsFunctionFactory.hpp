@@ -78,7 +78,7 @@ public:
         }
         else
         {
-            THROWERR(std::string("Vector function with tag '") + aTag + "' is not supported.")
+            ANALYZE_THROWERR(std::string("Vector function with tag '") + aTag + "' is not supported.")
         }
     }
 
@@ -108,18 +108,18 @@ public:
     {
         if( !aInputs.isSublist("Criteria") )
         {
-            THROWERR("'Criteria' block is not defined.")
+            ANALYZE_THROWERR("'Criteria' block is not defined.")
         }
         auto tCriteriaList = aInputs.sublist("Criteria");
         if( !tCriteriaList.isSublist(aTag) )
         {
-            THROWERR(std::string("Criteria Block with name '") + aTag + "' is not defined.")
+            ANALYZE_THROWERR(std::string("Criteria Block with name '") + aTag + "' is not defined.")
         }
         auto tCriterion = tCriteriaList.sublist(aTag);
 
         if(!tCriterion.isParameter("Scalar Function Type"))
         {
-            THROWERR(std::string("'Scalar Function Type' keyword is not defined in Criterion with name '") + aTag + "'.")
+            ANALYZE_THROWERR(std::string("'Scalar Function Type' keyword is not defined in Criterion with name '") + aTag + "'.")
         }
 
         auto tCriterionTag = tCriterion.get<std::string>("Scalar Function Type", "Not Defined");
@@ -167,7 +167,7 @@ public:
         }
         else
         {
-            THROWERR(std::string("'Scalar Function Type' with tag '") + tCriterionTag
+            ANALYZE_THROWERR(std::string("'Scalar Function Type' with tag '") + tCriterionTag
                 + "' in Criterion Block '" + aTag + "' is not supported.")
         }
     }

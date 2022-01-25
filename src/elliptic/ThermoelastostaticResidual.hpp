@@ -97,10 +97,10 @@ public:
     /**************************************************************************/
     {
         // obligatory: define dof names in order
-        mDofNames.push_back("Displacement X");
-        if(SpaceDim > 1) mDofNames.push_back("Displacement Y");
-        if(SpaceDim > 2) mDofNames.push_back("Displacement Z");
-        mDofNames.push_back("Temperature");
+        mDofNames.push_back("displacement X");
+        if(SpaceDim > 1) mDofNames.push_back("displacement Y");
+        if(SpaceDim > 2) mDofNames.push_back("displacement Z");
+        mDofNames.push_back("temperature");
 
         // create material model and get stiffness
         //
@@ -144,27 +144,7 @@ public:
     ********************************************************************************/
     Plato::Solutions getSolutionStateOutputData(const Plato::Solutions &aSolutions) const override
     {
-      Plato::ScalarMultiVector tSolutionFromSolutions = aSolutions.get("State");
-
-      auto tNumTimeSteps = tSolutionFromSolutions.extent(0);
-      auto tNumVertices  = mSpatialDomain.Mesh.nverts();
-
-      Plato::ScalarMultiVector tDisplacements("displacements for all time steps", tNumTimeSteps, tNumVertices*NMechDims);
-      Plato::ScalarMultiVector tTemperatures("temperatures for all time steps", tNumTimeSteps, tNumVertices*NThrmDims);
-      Plato::blas2::extract<mNumDofsPerNode/*stride*/, NMechDims/*dofs per node*/, MDofOffset/*offset*/>
-                    (tNumVertices, tSolutionFromSolutions, tDisplacements);
-      Plato::blas2::extract<mNumDofsPerNode/*stride*/, NThrmDims/*dofs per node*/, TDofOffset/*offset*/>
-                    (tNumVertices, tSolutionFromSolutions, tTemperatures);
-
-      Plato::OrdinalType tNMechDims = static_cast<Plato::OrdinalType>(NMechDims);
-      Plato::OrdinalType tNThrmDims = static_cast<Plato::OrdinalType>(NThrmDims);
-      Plato::Solutions tSolutionsOutput(aSolutions.physics(), aSolutions.pde());
-      tSolutionsOutput.set("Displacement", tDisplacements);
-      tSolutionsOutput.setNumDofs("Displacement", tNMechDims);
-      tSolutionsOutput.set("Temperature", tTemperatures);
-      tSolutionsOutput.setNumDofs("Temperature", tNThrmDims);
-
-      return tSolutionsOutput;
+      return aSolutions;
     }
     /**************************************************************************/
     void evaluate(
