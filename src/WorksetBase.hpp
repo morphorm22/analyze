@@ -8,6 +8,7 @@
 #include "ImplicitFunctors.hpp"
 #include "SimplexFadTypes.hpp"
 #include "AnalyzeMacros.hpp"
+#include "BLAS1.hpp"
 
 #include "Assembly.hpp"
 
@@ -98,8 +99,18 @@ public:
         const Plato::SpatialDomain                      & aDomain
     ) const
     {
-        Plato::workset_control_scalar_scalar<mNumNodesPerCell>(
-            aDomain, mControlEntryOrdinal, aControl, aControlWS);
+        if(aDomain.isFixedBlock())
+        {
+            Plato::ScalarVector tFixedControl("fixed control", aControl.size());
+            Plato::blas1::fill(1.0, tFixedControl);
+            Plato::workset_control_scalar_scalar<mNumNodesPerCell>(
+                aDomain, mControlEntryOrdinal, tFixedControl, aControlWS);
+        }
+        else
+        {
+            Plato::workset_control_scalar_scalar<mNumNodesPerCell>(
+                aDomain, mControlEntryOrdinal, aControl, aControlWS);
+        }
     }
 
     /******************************************************************************//**
@@ -131,8 +142,18 @@ public:
         const Plato::SpatialDomain                      & aDomain
     ) const
     {
-        Plato::workset_control_scalar_fad<mNumNodesPerCell, ControlFad>(
-            aDomain, mControlEntryOrdinal, aControl, aFadControlWS);
+        if(aDomain.isFixedBlock())
+        {
+            Plato::ScalarVector tFixedControl("fixed control", aControl.size());
+            Plato::blas1::fill(1.0, tFixedControl);
+            Plato::workset_control_scalar_fad<mNumNodesPerCell, ControlFad>(
+                aDomain, mControlEntryOrdinal, tFixedControl, aFadControlWS);
+        }
+        else
+        {
+            Plato::workset_control_scalar_fad<mNumNodesPerCell, ControlFad>(
+                aDomain, mControlEntryOrdinal, aControl, aFadControlWS);
+        }
     }
 
     /******************************************************************************//**
