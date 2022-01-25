@@ -593,7 +593,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_CheckCrit
             "  <ParameterList name='Criteria'>"
             "    <ParameterList name='Volume Criterion'>"
             "      <Parameter name='Type' type='string' value='Scalar Function'/> "
-            "      <Parameter  name='Blocks' type='Array(string)' value='{body}'/>"
+            "      <Parameter  name='Domains' type='Array(string)' value='{body}'/>"
             "      <Parameter name='Scalar Function Type' type='string' value='Volume'/>"
             "    </ParameterList>"
             "  </ParameterList>"
@@ -1064,7 +1064,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "      <Parameter  name='Kinematic Viscocity'   type='double' value='1.5111e-5'/>"
             "      <Parameter  name='Thermal Conductivity'  type='double' value='1'/>"
             "      <Parameter  name='Characteristic Length' type='double' value='1'/>"
-            "      <Parameter  name='Reference Temperature'  type='double'  value='1'/>"
+            "      <Parameter  name='Temperature Difference'  type='double'  value='1'/>"
             "      <Parameter  name='Prandtl Number'  type='double' value='0.7'/>"
             "      <Parameter  name='Rayleigh Number' type='Array(double)' value='{0,1e3}'/>"
             "    </ParameterList>"
@@ -1136,7 +1136,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "    <ParameterList  name='Thermal Source'>"
             "      <Parameter  name='Type'   type='string'  value='Uniform'/>"
             "      <Parameter  name='Value'  type='double'  value='1'/>"
-            "      <Parameter  name='Element Block'  type='string'  value='body'/>"
+            "      <Parameter  name='Domains' type='Array(string)' value='{body}'/>"
             "    </ParameterList>"
             "  </ParameterList>"
             "  <ParameterList  name='Time Integration'>"
@@ -1207,7 +1207,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "      <Parameter  name='Kinematic Viscocity'   type='double' value='1.5111e-5'/>"
             "      <Parameter  name='Thermal Conductivity'  type='double' value='1'/>"
             "      <Parameter  name='Characteristic Length' type='double' value='1'/>"
-            "      <Parameter  name='Reference Temperature'  type='double'  value='1'/>"
+            "      <Parameter  name='Temperature Difference'  type='double'  value='1'/>"
             "      <Parameter  name='Prandtl Number'  type='double' value='0.7'/>"
             "      <Parameter  name='Rayleigh Number' type='Array(double)' value='{0,1e3}'/>"
             "    </ParameterList>"
@@ -1286,7 +1286,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "    <ParameterList  name='Thermal Source'>"
             "      <Parameter  name='Type'   type='string'  value='Uniform'/>"
             "      <Parameter  name='Value'  type='double'  value='1'/>"
-            "      <Parameter  name='Element Block'  type='string'  value='body'/>"
+            "      <Parameter  name='Domains' type='Array(string)' value='{body}'/>"
             "    </ParameterList>"
             "  </ParameterList>"
             "  <ParameterList  name='Time Integration'>"
@@ -1355,7 +1355,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "      <Parameter  name='Kinematic Viscocity'   type='double' value='1.5111e-5'/>"
             "      <Parameter  name='Thermal Conductivity'  type='double' value='1'/>"
             "      <Parameter  name='Characteristic Length' type='double' value='1'/>"
-            "      <Parameter  name='Reference Temperature'  type='double'  value='1'/>"
+            "      <Parameter  name='Temperature Difference'  type='double'  value='1'/>"
             "      <Parameter  name='Prandtl Number'  type='double' value='0.7'/>"
             "      <Parameter  name='Rayleigh Number' type='Array(double)' value='{0,1e3}'/>"
             "    </ParameterList>"
@@ -1434,7 +1434,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "    <ParameterList  name='Thermal Source'>"
             "      <Parameter  name='Type'   type='string'  value='Uniform'/>"
             "      <Parameter  name='Value'  type='double'  value='1'/>"
-            "      <Parameter  name='Element Block'  type='string'  value='body'/>"
+            "      <Parameter  name='Domains' type='Array(string)' value='{body}'/>"
             "    </ParameterList>"
             "  </ParameterList>"
             "  <ParameterList  name='Time Integration'>"
@@ -1842,7 +1842,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IntegrateDivergenceOperator)
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizeHeatSourceConstant)
 {
     // set input data for unit test
-    constexpr auto tNumCells = 2;
+    constexpr auto tNumCells = 3;
     constexpr auto tSpaceDims = 2;
     constexpr auto tNumNodesPerCell = tSpaceDims + 1;
 
@@ -1853,6 +1853,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizeHeatSourceConstant)
     auto tHostControl = Kokkos::create_mirror(tControl);
     tHostControl(0,0) = 0.5; tHostControl(0,1) = 0.5; tHostControl(0,2) = 0.5;
     tHostControl(1,0) = 1.0; tHostControl(1,1) = 1.0; tHostControl(1,2) = 1.0;
+    tHostControl(2,0) = 0.0; tHostControl(2,1) = 0.0; tHostControl(2,2) = 0.0;
     Kokkos::deep_copy(tControl, tHostControl);
 
     // call device function
@@ -1863,7 +1864,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizeHeatSourceConstant)
     }, "unit test penalize_heat_source_constant");
 
     auto tTol = 1e-4;
-    std::vector<Plato::Scalar> tGold = {3.5,0.0};
+    std::vector<Plato::Scalar> tGold = {0.5,4.0,0.0};
     auto tHostResult = Kokkos::create_mirror(tResult);
     Kokkos::deep_copy(tHostResult, tResult);
     for (auto &tValue : tGold)

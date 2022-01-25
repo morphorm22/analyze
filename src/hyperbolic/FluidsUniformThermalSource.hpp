@@ -52,7 +52,7 @@ private:
     Plato::Scalar mDimLessConstant = 1.0; /*!< dimensionless constant applied to source term */
 
     std::string mFuncName; /*!< scalar funciton name */
-    std::string mElemBlock; /*!< element block name where thermal source is applied */
+    std::vector<std::string> mElemDomains; /*!< element blocks considered for thermal source evaluation */
 
     // member metadata
     Plato::DataMap& mDataMap; /*!< holds output metadata */
@@ -114,10 +114,9 @@ public:
      Plato::Scalar aMultiplier = 1.0) 
      const override
     {
-        if(mElemBlock.empty()) { return; }
-
-        auto tMySpatialDomainElemBlockName = mSpatialDomain.getElementBlockName();
-        if(mElemBlock == tMySpatialDomainElemBlockName)
+        auto tMyBlockName = mSpatialDomain.getElementBlockName();
+        auto tEvaluateDomain = std::find(mElemDomains.begin(), mElemDomains.end(), tMyBlockName) != mElemDomains.end();
+        if( tEvaluateDomain )
         {
             auto tNumCells = mSpatialDomain.numCells();
             if (tNumCells != static_cast<Plato::OrdinalType>(aResultWS.extent(0)) )
@@ -171,13 +170,14 @@ private:
     {
         if( aInputs.isSublist("Thermal Sources") )
         {
-            this->initializeTopologyPenalizationModel(aInputs);
             auto tMaterialName = mSpatialDomain.getMaterialName();
             mDimLessConstant = Plato::Fluids::compute_thermal_source_dimensionless_constant(tMaterialName, aInputs);
 
             auto tThermalSourceParamList = aInputs.sublist("Thermal Sources");
             mMagnitude = Plato::teuchos::parse_parameter<Plato::Scalar>("Value", mFuncName, tThermalSourceParamList);
-            mElemBlock = Plato::teuchos::parse_parameter<std::string>("Element Block", mFuncName, tThermalSourceParamList);
+            
+            this->parseDomains(aInputs);
+            this->parseMaterialPenaltyModel(aInputs);
         }
     }
 
@@ -185,13 +185,29 @@ private:
      * \brief Initialize topology penalization model parameters.
      * \param [in] aInputs  input database
      ******************************************************************************/
-    void initializeTopologyPenalizationModel(Teuchos::ParameterList& aInputs)
+    void parseMaterialPenaltyModel(Teuchos::ParameterList& aInputs)
     {
         auto tMaterialName = mSpatialDomain.getMaterialName();
         if(Plato::Fluids::is_material_property_defined("Source Term Penalty Exponent", tMaterialName, aInputs))
         {
             mPenaltyExponent = Plato::Fluids::get_material_property<Plato::Scalar>("Source Term Penalty Exponent", tMaterialName, aInputs);
             Plato::is_positive_finite_number(mPenaltyExponent, "Source Term Penalty Exponent");
+        }
+    }
+
+    /***************************************************************************//**
+     * \brief Parse domains where thermal source will be evaluated.
+     * \param [in] aInputs input database
+     ******************************************************************************/
+    void parseDomains(Teuchos::ParameterList& aInputs)
+    {
+        auto tParamList = aInputs.sublist("Thermal Source");
+        mElemDomains = Plato::teuchos::parse_array<std::string>("Domains", tParamList);
+        if( mElemDomains.empty() )
+        {
+            // default: use all the element blocks for the thermal source evaluation
+            auto tMyBlockName = mSpatialDomain.getElementBlockName();
+            mElemDomains.push_back(tMyBlockName);
         }
     }
 };
@@ -217,7 +233,7 @@ private:
     Plato::Scalar mDimLessConstant = 1.0; /*!< dimensionless constant applied to source term */
 
     std::string mFuncName; /*!< scalar funciton name */
-    std::string mElemBlock; /*!< block name where thermal source is applied */
+    std::vector<std::string> mElemDomains; /*!< element blocks considered for thermal source evaluation */
 
     // member metadata
     Plato::DataMap& mDataMap; /*!< holds output metadata */
@@ -279,10 +295,9 @@ public:
      Plato::Scalar aMultiplier = 1.0) 
      const override
     {
-        if(mElemBlock.empty()) { return; }
-
-        auto tMySpatialDomainElemBlockName = mSpatialDomain.getElementBlockName();
-        if(mElemBlock == tMySpatialDomainElemBlockName)
+        auto tMyBlockName = mSpatialDomain.getElementBlockName();
+        auto tEvaluateDomain = std::find(mElemDomains.begin(), mElemDomains.end(), tMyBlockName) != mElemDomains.end();
+        if( tEvaluateDomain )
         {
             auto tNumCells = mSpatialDomain.numCells();
             if (tNumCells != static_cast<Plato::OrdinalType>(aResultWS.extent(0)) )
@@ -337,7 +352,24 @@ private:
 
             auto tThermalSourceParamList = aInputs.sublist("Thermal Source");
             mMagnitude = Plato::teuchos::parse_parameter<Plato::Scalar>("Value", mFuncName, tThermalSourceParamList);
-            mElemBlock = Plato::teuchos::parse_parameter<std::string>("Element Block", mFuncName, tThermalSourceParamList);
+
+            this->parseDomains(aInputs);
+        }
+    }
+
+    /***************************************************************************//**
+     * \brief Parse domains where thermal source will be evaluated.
+     * \param [in] aInputs input database
+     ******************************************************************************/
+    void parseDomains(Teuchos::ParameterList& aInputs)
+    {
+        auto tParamList = aInputs.sublist("Thermal Source");
+        mElemDomains = Plato::teuchos::parse_array<std::string>("Domains", tParamList);
+        if( mElemDomains.empty() )
+        {
+            // default: use all the element blocks for the thermal source evaluation
+            auto tMyBlockName = mSpatialDomain.getElementBlockName();
+            mElemDomains.push_back(tMyBlockName);
         }
     }
 };

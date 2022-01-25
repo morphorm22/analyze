@@ -75,14 +75,15 @@ class Volume : public Plato::Geometric::AbstractScalarFunction<EvaluationType>
       // if not specified compute all
       if(!tMyCriteria.isParameter("Domains"))
       {
-          std::cout<<"Volume for all";
+          WARNING(std::string("'Domains' parameter is not defined in Volume criterion. All domains will be included in the volume computation."));
           mCompute = true;
       }
 
       // check for a case we don't handle
       if (tMyCriteria.isParameter("Domains") && tDomains.size() == 0)
       {
-        ANALYZE_THROWERR(std::string("Empty Domains in Volume criteria, either have at least one domain specified or remove from input. No specification indicates we include all domains in volume computation"));
+          WARNING(std::string("Empty Domains array in Volume criterion. All domains will be included in the volume computation."));
+          mCompute = true;
       }
 
       mQuadratureWeight = 1.0; // for a 1-point quadrature rule for simplices
