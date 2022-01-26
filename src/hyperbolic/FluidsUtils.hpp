@@ -103,7 +103,7 @@ inline Plato::Scalar forced_convection_thermal_source_dimless_constant(const std
     Plato::is_positive_finite_number(tCharacteristicLength, "Characteristic Length");
 
     auto tTemperatureDifference = Plato::Fluids::get_material_property<Plato::Scalar>("Temperature Difference", aMaterialName, aInputs);
-    if(tTemperatureDifference == static_cast<Plato::Scalar>(0.0)){ THROWERR(std::string("'Temperature Difference' keyword cannot be set to zero.")) }
+    if(tTemperatureDifference == static_cast<Plato::Scalar>(0.0)){ ANALYZE_THROWERR(std::string("'Temperature Difference' keyword cannot be set to zero.")) }
    
     auto tDimLessConstant = (tCharacteristicLength * tCharacteristicLength) / (tThermalConductivity * tTemperatureDifference * tPrNum * tReNum);
     return tDimLessConstant;
@@ -130,7 +130,7 @@ inline Plato::Scalar natural_convection_thermal_source_dimless_constant(const st
     Plato::is_positive_finite_number(tCharacteristicLength, "Characteristic Length");
 
     auto tReferenceTemperature = Plato::Fluids::get_material_property<Plato::Scalar>("Temperature Difference", aMaterialName, aInputs);
-    if(tReferenceTemperature == static_cast<Plato::Scalar>(0.0)){ THROWERR(std::string("'Temperature Difference' keyword cannot be set to zero.")) }
+    if(tReferenceTemperature == static_cast<Plato::Scalar>(0.0)){ ANALYZE_THROWERR(std::string("'Temperature Difference' keyword cannot be set to zero.")) }
 
     auto tDimLessConstant = (tCharacteristicLength * tCharacteristicLength) / (tThermalConductivity * tReferenceTemperature);
     return tDimLessConstant;
