@@ -1,4 +1,6 @@
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
+
 #include <structmember.h>
 #include <map>
 #include <vector>
@@ -244,9 +246,13 @@ Analyze_finalize(Analyze* self)
     return Py_BuildValue("i", 1);
 }
 
-static PyMethodDef Plato_methods[] = {
-    {NULL}  /* Sentinel */
+static PyModuleDef Plato_module = {
+    PyModuleDef_HEAD_INIT,
+    .m_name = "Plato Analyze",
+    .m_doc = "Plato Analyze module",
+    .m_size = -1,
 };
+
 
 static void
 Analyze_dealloc(Analyze* self)
@@ -404,19 +410,30 @@ static PyTypeObject AnalyzeType = {
 #define PyMODINIT_FUNC void
 #endif
 PyMODINIT_FUNC
-initPlatoPython(void)
+PyInit_PlatoPython(void)
 {
     PyObject* m;
 
-    AnalyzeType.tp_new = PyType_GenericNew;
     if (PyType_Ready(&AnalyzeType) < 0)
-        return;
+    {
+        return NULL;
+    }
 
-    m = Py_InitModule3("PlatoPython", Plato_methods,
-                       "Example module that creates an extension type.");
+    m = PyModule_Create(&Plato_module);
+    if (m == NULL)
+    {
+        return NULL;
+    }
 
     Py_INCREF(&AnalyzeType);
-    PyModule_AddObject(m, "Analyze", (PyObject *)&AnalyzeType);
+    if (PyModule_AddObject(m, "Analyze", (PyObject *)&AnalyzeType) < 0)
+    {
+        Py_DECREF(&AnalyzeType);
+        Py_DECREF(m);
+        return NULL;
+    }
+
+    return m;
 }
 
 /*****************************************************************************/
