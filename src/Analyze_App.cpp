@@ -681,7 +681,9 @@ void MPMD_App::ComputeCriterion::operator()()
 
     tValue = mMyApp->mProblem->criterionValue(tControl, mMyApp->mGlobalSolution, mStrCriterion);
     std::cout << "Criterion with name '" << mStrCriterion << "' has a value of '" << tValue << "'.\n";
+    std::cout << "Criterion " << mStrCriterion << " target: " << mTarget << "\n";
     tValue -= mTarget;
+    std::cout << "Criterion value minus target:  " << tValue << "\n";
     tGradZ = mMyApp->mProblem->criterionGradient(tControl, mMyApp->mGlobalSolution, mStrCriterion);
 
     if(mMyApp->mDebugAnalyzeApp == true)
@@ -891,7 +893,9 @@ void MPMD_App::ComputeCriterionValue::operator()()
     }
     tValue = mMyApp->mProblem->criterionValue(tControl, mMyApp->mGlobalSolution, mStrCriterion);
     std::cout << "Criterion with name '" << mStrCriterion << "' has a value of '" << tValue << "'.\n";
+    std::cout << "Criterion " << mStrCriterion << " target: " << mTarget << "\n";
     tValue -= mTarget;
+    std::cout << "Criterion value minus target:  " << tValue << "\n";
 
     if(mMyApp->mDebugAnalyzeApp == true)
     {
