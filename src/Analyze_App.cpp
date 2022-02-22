@@ -119,29 +119,20 @@ getArgumentName(
     }
 }
 
-
 /******************************************************************************/
-MPMD_App::MPMD_App(int aArgc, char **aArgv, MPI_Comm& aLocalComm) :
-        mDebugAnalyzeApp(false),
-        mMachine(aLocalComm),
-        mNumSpatialDims(0),
-        mMesh(nullptr)
+void MPMD_App::createLocalData()
 /******************************************************************************/
 {
-  // parse app file
-  //
-  const char* tInputChar = std::getenv("PLATO_APP_FILE");
-  Plato::Parser* parser = new Plato::PugiParser();
-  mInputData = parser->parseFile(tInputChar);
+    this->createMeshMapData();
+    this->createESPData();
+    this->createMLSData();
+}
 
-  auto tInputParams = Plato::input_file_parsing(aArgc, aArgv, mMachine);
-
-  auto tProblemName = tInputParams.sublist("Runtime").get<std::string>("Input Config");
-  mDefaultProblem = Teuchos::rcp(new ProblemDefinition(tProblemName));
-  mDefaultProblem->params = tInputParams;
-
-  this->createProblem(*mDefaultProblem);
-  this->resetProblemMetaData();
+/******************************************************************************/
+void MPMD_App::createMeshMapData()
+/******************************************************************************/
+{
+  mMeshMap = nullptr;
 
   // parse/create the MeshMap instance
   auto tMeshMapInputs = mInputData.getByName<Plato::InputData>("MeshMap");
@@ -150,11 +141,7 @@ MPMD_App::MPMD_App(int aArgc, char **aArgv, MPI_Comm& aLocalComm) :
       ANALYZE_THROWERR("Multiple MeshMap blocks found.");
   }
   else
-  if( tMeshMapInputs.size() == 0 )
-  {
-      mMeshMap = nullptr;
-  }
-  else
+  if( tMeshMapInputs.size() == 1 )
   {
 #ifdef PLATO_MESHMAP
       auto tMeshMapInput = tMeshMapInputs[0];
@@ -164,6 +151,13 @@ MPMD_App::MPMD_App(int aArgc, char **aArgv, MPI_Comm& aLocalComm) :
       ANALYZE_THROWERR("MeshMap requested but Plato was compiled without MeshMap.");
 #endif
   }
+}
+
+/******************************************************************************/
+void MPMD_App::createESPData()
+/******************************************************************************/
+{
+  mESP.clear();
 
   // parse/create the ESP instance(s)
   auto tESPInputs = mInputData.getByName<Plato::InputData>("ESP");
@@ -185,6 +179,14 @@ MPMD_App::MPMD_App(int aArgc, char **aArgv, MPI_Comm& aLocalComm) :
       throw Plato::ParsingException("PlatoApp was not compiled with ESP support.  Turn on 'PLATO_ESP' option and rebuild.");
 #endif // PLATO_ESP
   }
+
+}
+
+/******************************************************************************/
+void MPMD_App::createMLSData()
+/******************************************************************************/
+{
+  mMLS.clear();
 
   // parse/create the MLS PointArrays
   auto tPointArrayInputs = mInputData.getByName<Plato::InputData>("PointArray");
@@ -212,6 +214,34 @@ MPMD_App::MPMD_App(int aArgc, char **aArgv, MPI_Comm& aLocalComm) :
       throw Plato::ParsingException("PlatoApp was not compiled with PointArray support.  Turn on 'PLATO_GEOMETRY' option and rebuild.");
 #endif // PLATO_GEOMETRY
   }
+}
+
+
+
+/******************************************************************************/
+MPMD_App::MPMD_App(int aArgc, char **aArgv, MPI_Comm& aLocalComm) :
+        mDebugAnalyzeApp(false),
+        mMachine(aLocalComm),
+        mNumSpatialDims(0),
+        mMesh(nullptr)
+/******************************************************************************/
+{
+  // parse app file
+  //
+  const char* tInputChar = std::getenv("PLATO_APP_FILE");
+  Plato::Parser* parser = new Plato::PugiParser();
+  mInputData = parser->parseFile(tInputChar);
+
+  auto tInputParams = Plato::input_file_parsing(aArgc, aArgv, mMachine);
+
+  auto tProblemName = tInputParams.sublist("Runtime").get<std::string>("Input Config");
+  mDefaultProblem = Teuchos::rcp(new ProblemDefinition(tProblemName));
+  mDefaultProblem->params = tInputParams;
+
+  this->createProblem(*mDefaultProblem);
+  this->resetProblemMetaData();
+
+  this->createLocalData();
 }
 
 /******************************************************************************/
@@ -453,6 +483,15 @@ void MPMD_App::initialize()
   #endif // PLATO_GEOMETRY
     }
   }
+}
+/******************************************************************************/
+void MPMD_App::reinitialize()
+/******************************************************************************/
+{
+    auto def = mProblemDefinitions[mCurrentProblemName];
+    this->createProblem(*def);
+    this->resetProblemMetaData();
+    this->createLocalData();
 }
 /******************************************************************************/
 void
