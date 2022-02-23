@@ -23,6 +23,16 @@ namespace Elliptic
 template<typename PhysicsT>
 class SolutionFunction : public Plato::Elliptic::ScalarFunctionBase, public Plato::WorksetBase<PhysicsT>
 {
+    enum solution_type_t
+    {
+        UNKNOWN_TYPE = 0,
+        SOLUTION_IN_DIRECTION = 1,
+        SOLUTION_MAG_IN_DIRECTION = 2,
+        DIFF_BETWEEN_SOLUTION_MAG_IN_DIRECTION_AND_TARGET = 3,
+        DIFF_BETWEEN_SOLUTION_VECTOR_AND_TARGET_VECTOR = 4,
+        DIFF_BETWEEN_SOLUTION_IN_DIRECTION_AND_TARGET_SOLUTION_IN_DIRECTION = 5
+    };
+
 private:
     using Plato::WorksetBase<PhysicsT>::mNumDofsPerCell;  /*!< number of degree of freedom per cell/element */
     using Plato::WorksetBase<PhysicsT>::mNumNodesPerCell; /*!< number of nodes per cell/element */
@@ -40,9 +50,17 @@ private:
     std::string mDomainName;   /*!< Name of the node set that represents the domain of interest */
 
     Plato::Array<mNumDofsPerNode> mNormal;  /*!< Direction of solution criterion */
-    bool mMagnitude;  /*!< Whether or not to compute magnitude of solution at each node in the domain */
+    Plato::Array<mNumDofsPerNode> mTargetSolutionVector;  /*!< Target solution vector */
+    Plato::Scalar mTargetMagnitude; /*!< Target magnitude */
+    Plato::Scalar mTargetSolution; /*!< Target solution */
+    bool mMagnitudeSpecified;
+    bool mNormalSpecified;
+    bool mTargetSolutionVectorSpecified;
+    bool mTargetMagnitudeSpecified;
+    bool mTargetSolutionSpecified;
 
     const Plato::SpatialModel & mSpatialModel;
+    solution_type_t mSolutionType;
 
     /******************************************************************************//**
      * \brief Initialization of Solution Function
@@ -57,9 +75,199 @@ private:
 
         mDomainName = tFunctionParams.get<std::string>("Domain");
 
-        mMagnitude = tFunctionParams.get<bool>("Magnitude", false);
+        mMagnitudeSpecified = tFunctionParams.get<bool>("Magnitude", false);
+        mNormalSpecified = tFunctionParams.isType<Teuchos::Array<Plato::Scalar>>("Normal");
+        mTargetSolutionVectorSpecified = tFunctionParams.isType<Teuchos::Array<Plato::Scalar>>("TargetSolutionVector");
+        mTargetSolutionSpecified = tFunctionParams.isType<Plato::Scalar>("TargetSolution");
+        mTargetMagnitudeSpecified = tFunctionParams.isType<Plato::Scalar>("TargetMagnitude");
 
-        if (tFunctionParams.isType<Teuchos::Array<Plato::Scalar>>("Normal") == false)
+        mSolutionType = solution_type_t::UNKNOWN_TYPE;
+        auto tNumDofsPerNode = mNumDofsPerNode;
+
+        if(mTargetSolutionVectorSpecified)
+        {
+            // user only needs to specify the target solution vector
+            mSolutionType = solution_type_t::DIFF_BETWEEN_SOLUTION_VECTOR_AND_TARGET_VECTOR;
+        }
+        else if(mTargetMagnitudeSpecified)
+        {
+            // user must specify target magnitude and normal vector
+            if(!mNormalSpecified)
+            {
+                ANALYZE_THROWERR("Parsing 'Solution' criterion:  'Normal' must be specified in addition to 'TargetMagnitude' in order to know what direction to consider.");
+            }
+            mSolutionType = solution_type_t::DIFF_BETWEEN_SOLUTION_MAG_IN_DIRECTION_AND_TARGET;
+        }
+        else if(mTargetSolutionSpecified)
+        {
+            // user must specify target solution value and normal vector
+            if(!mNormalSpecified)
+            {
+                ANALYZE_THROWERR("Parsing 'Solution' criterion:  'Normal' must be specified in addition to 'TargetSolution' in order to know what direction to consider.");
+            }
+            mSolutionType = solution_type_t::DIFF_BETWEEN_SOLUTION_IN_DIRECTION_AND_TARGET_SOLUTION_IN_DIRECTION;
+        }
+        else if(mMagnitudeSpecified)
+        {
+            // user must specify a direction that the magnitude will be measured in
+            if(!mNormalSpecified)
+            {
+                ANALYZE_THROWERR("Parsing 'Solution' criterion:  'Normal' must be specified in addition to 'Magnitude' in order to know what direction to consider.");
+            }
+            mSolutionType = solution_type_t::SOLUTION_MAG_IN_DIRECTION;
+        }
+        else if(mNormalSpecified)
+        {
+            mSolutionType = solution_type_t::SOLUTION_IN_DIRECTION;
+        }
+        if(mSolutionType == solution_type_t::UNKNOWN_TYPE)
+        {
+            ANALYZE_THROWERR("Parsing 'Solution' criterion:  Could not determine solution type based on user-provided input.");
+        }
+        switch (mSolutionType)
+        {
+            case solution_type_t::DIFF_BETWEEN_SOLUTION_VECTOR_AND_TARGET_VECTOR:
+                {
+                    initialize_target_vector(tFunctionParams);
+                    auto tTargetSolutionVector = mTargetSolutionVector;
+                    std::stringstream ss;
+                    ss << "Solution Type: Measure the magnitude of the difference between the solution vector and the user-specified target vector." << std::endl;
+                    ss << "Target Vector:";
+                    for(int h=0; h<tNumDofsPerNode; ++h)
+                    {
+                        ss << " " << tTargetSolutionVector[h];
+                    }
+                    ss << std::endl;
+                    REPORT(ss.str());
+                }
+                break; 
+            case solution_type_t::DIFF_BETWEEN_SOLUTION_MAG_IN_DIRECTION_AND_TARGET:
+                {
+                    mTargetMagnitude = tFunctionParams.get<Plato::Scalar>("TargetMagnitude");
+                    initialize_normal_vector(tFunctionParams);
+                    auto tTargetMagnitude = mTargetMagnitude;
+                    auto tNormal = mNormal;
+                    std::stringstream ss;
+                    ss << "Solution Type: Measure the difference between the solution magnitude in the specified direction and the target magnitude in that direction." << std::endl;
+                    ss << "Normal Vector:";
+                    for(int h=0; h<tNumDofsPerNode; ++h)
+                    {
+                        ss << " " << tNormal[h];
+                    }
+                    ss << std::endl;
+                    ss << "Target Magnitude: " << tTargetMagnitude << std::endl;
+                    REPORT(ss.str());
+                }
+                break;
+            case solution_type_t::SOLUTION_MAG_IN_DIRECTION:
+                {
+                    initialize_normal_vector(tFunctionParams);
+                    auto tNormal = mNormal;
+                    std::stringstream ss;
+                    ss << "Solution Type: Measure the magnitude of the solution in the specified direction." << std::endl;
+                    ss << "Normal Vector:";
+                    for(int h=0; h<tNumDofsPerNode; ++h)
+                    {
+                        ss << " " << tNormal[h];
+                    }
+                    ss << std::endl;
+                    REPORT(ss.str());
+                }
+                break;
+            case solution_type_t::SOLUTION_IN_DIRECTION:
+                {
+                    initialize_normal_vector(tFunctionParams);
+                    auto tNormal = mNormal;
+                    std::stringstream ss;
+                    ss << "Solution Type: Measure the solution in the specified direction." << std::endl;
+                    ss << "Normal Vector:";
+                    for(int h=0; h<tNumDofsPerNode; ++h)
+                    {
+                        ss << " " << tNormal[h];
+                    }
+                    ss << std::endl;
+                    REPORT(ss.str());
+                }
+                break; 
+            case solution_type_t::DIFF_BETWEEN_SOLUTION_IN_DIRECTION_AND_TARGET_SOLUTION_IN_DIRECTION:
+                {
+                    initialize_normal_vector(tFunctionParams);
+                    auto tNormal = mNormal;
+                    auto tTargetSolution = mTargetSolution;
+                    std::stringstream ss;
+                    ss << "Solution Type: Measure the solution in the specified direction." << std::endl;
+                    ss << "Normal Vector:";
+                    for(int h=0; h<tNumDofsPerNode; ++h)
+                    {
+                        ss << " " << tNormal[h];
+                    }
+                    ss << std::endl;
+                    ss << "Target Solution: " << tTargetSolution << std::endl;
+                    REPORT(ss.str());
+                }
+                break; 
+        }
+    }
+  
+    void initialize_target_vector(Teuchos::ParameterList &aFunctionParams)
+    {
+        if (aFunctionParams.isType<Teuchos::Array<Plato::Scalar>>("TargetSolutionVector") == false)
+        {
+            if (mNumDofsPerNode != 1)
+            {
+                ANALYZE_THROWERR("Parsing 'Solution' criterion:  'TargetSolutionVector' parameter missing.");
+            }
+            else
+            {
+                mTargetSolutionVector[0] = 1.0;
+            }
+        }
+        else
+        {
+            auto tTargetArray = aFunctionParams.get<Teuchos::Array<Plato::Scalar>>("TargetSolutionVector");
+
+            if(tTargetArray.size() > mNumDofsPerNode)
+            {
+                std::stringstream ss;
+                ss << "Extra terms in 'TargetSolutionVector' array." << std::endl;
+                ss << "Number of terms provided: " << tTargetArray.size() << std::endl;
+                ss << "Expected number of dofs per node (" << mNumDofsPerNode << ")." << std::endl;
+                ss << "Ignoring extra terms." << std::endl;
+                REPORT(ss.str());
+
+                for(int i=0; i<mNumDofsPerNode; i++)
+                {
+                    mTargetSolutionVector[i] = tTargetArray[i];
+                }
+            }
+            else
+            if(tTargetArray.size() < mNumDofsPerNode)
+            {
+                std::stringstream ss;
+                ss << "'TargetSolutionVector' array is missing terms." << std::endl;
+                ss << "Number of terms provided: " << tTargetArray.size() << std::endl;
+                ss << "Expected number of dofs per node (" << mNumDofsPerNode << ")." << std::endl;
+                ss << "Missing terms will be set to zero." << std::endl;
+                REPORT(ss.str());
+
+                for(int i=0; i<tTargetArray.size(); i++)
+                {
+                    mTargetSolutionVector[i] = tTargetArray[i];
+                }
+            }
+            else
+            {
+                for(int i=0; i<tTargetArray.size(); i++)
+                {
+                    mTargetSolutionVector[i] = tTargetArray[i];
+                }
+            }
+        }
+    }
+
+    void initialize_normal_vector(Teuchos::ParameterList &aFunctionParams)
+    {
+        if (aFunctionParams.isType<Teuchos::Array<Plato::Scalar>>("Normal") == false)
         {
             if (mNumDofsPerNode != 1)
             {
@@ -72,7 +280,7 @@ private:
         }
         else
         {
-            auto tNormalArray = tFunctionParams.get<Teuchos::Array<Plato::Scalar>>("Normal");
+            auto tNormalArray = aFunctionParams.get<Teuchos::Array<Plato::Scalar>>("Normal");
 
             if(tNormalArray.size() > mNumDofsPerNode)
             {
@@ -158,42 +366,123 @@ public:
         auto tNumNodes = tNodeIds.size();
 
         auto tNormal = mNormal;
+        auto tTargetSolutionVector = mTargetSolutionVector;
+        auto tTargetSolution = mTargetSolution;
+        auto tTargetMagnitude = mTargetMagnitude;
         auto tNumDofsPerNode = mNumDofsPerNode;
 
         Scalar tReturnValue(0.0);
 
-        if( mMagnitude )
+        switch (mSolutionType)
         {
-            Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNumNodes), 
-            LAMBDA_EXPRESSION(const Plato::OrdinalType& aNodeOrdinal, Scalar & aLocalValue)
-            {
-                auto tIndex = tNodeIds[aNodeOrdinal];
-                Plato::Scalar ds(0.0);
-                for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
+            case solution_type_t::DIFF_BETWEEN_SOLUTION_VECTOR_AND_TARGET_VECTOR:
                 {
-                    auto dv = tStateSubView(tNumDofsPerNode*tIndex+iDof);
-                    ds += (tNormal[iDof]*dv) * (tNormal[iDof]*dv);
-                }
-                ds = (ds > 0.0) ? sqrt(ds) : ds;
-      
-                aLocalValue += ds;
-            }, tReturnValue);
-        }
-        else
-        {
-            Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNumNodes), 
-            LAMBDA_EXPRESSION(const Plato::OrdinalType& aNodeOrdinal, Scalar & aLocalValue)
-            {
-                auto tIndex = tNodeIds[aNodeOrdinal];
-                for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
-                {
-                    auto dv = tStateSubView(tNumDofsPerNode*tIndex+iDof);
-                    aLocalValue += (tNormal[iDof]*dv);
-                }
-            }, tReturnValue);
-        }
+                    Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNumNodes), 
+                    LAMBDA_EXPRESSION(const Plato::OrdinalType& aNodeOrdinal, Scalar & aLocalValue)
+                    {
+                        auto tIndex = tNodeIds[aNodeOrdinal];
+                        Plato::Scalar ds(0.0);
+                        for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
+                        {
+                            auto dv = tStateSubView(tNumDofsPerNode*tIndex+iDof);
+                            ds += (dv-tTargetSolutionVector[iDof])*(dv-tTargetSolutionVector[iDof]);
+                        }
+                        ds = (ds > 0.0) ? sqrt(ds) : ds;
 
-        tReturnValue /= tNumNodes;
+                        aLocalValue += ds;
+                    }, tReturnValue);
+                    tReturnValue /= tNumNodes;
+                    std::stringstream ss;
+                    ss << "Magnitude of the difference vector between actual solution and target solution vectors: " << tReturnValue << std::endl;
+                    REPORT(ss.str());
+                }
+                break; 
+            case solution_type_t::DIFF_BETWEEN_SOLUTION_MAG_IN_DIRECTION_AND_TARGET:
+                {
+                    Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNumNodes), 
+                    LAMBDA_EXPRESSION(const Plato::OrdinalType& aNodeOrdinal, Scalar & aLocalValue)
+                    {
+                        auto tIndex = tNodeIds[aNodeOrdinal];
+                        Plato::Scalar ds(0.0);
+                        for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
+                        {
+                            auto dv = tStateSubView(tNumDofsPerNode*tIndex+iDof);
+                            ds += (tNormal[iDof]*dv) * (tNormal[iDof]*dv);
+                        }
+                        ds = (ds > 0.0) ? sqrt(ds) : ds;
+      
+                        aLocalValue += ds;
+                    }, tReturnValue);
+                    tReturnValue /= tNumNodes;
+                    tReturnValue = fabs(tReturnValue - tTargetMagnitude); 
+                    std::stringstream ss;
+                    ss << "Absolute value of difference between actual magnitude and target magnitude: " << tReturnValue << std::endl;
+                    REPORT(ss.str());
+                }
+                break;
+
+            case solution_type_t::SOLUTION_MAG_IN_DIRECTION:
+                {
+                    Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNumNodes), 
+                    LAMBDA_EXPRESSION(const Plato::OrdinalType& aNodeOrdinal, Scalar & aLocalValue)
+                    {
+                        auto tIndex = tNodeIds[aNodeOrdinal];
+                        Plato::Scalar ds(0.0);
+                        for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
+                        {
+                            auto dv = tStateSubView(tNumDofsPerNode*tIndex+iDof);
+                            ds += (tNormal[iDof]*dv) * (tNormal[iDof]*dv);
+                        }
+                        ds = (ds > 0.0) ? sqrt(ds) : ds;
+      
+                        aLocalValue += ds;
+                    }, tReturnValue);
+                    tReturnValue /= tNumNodes;
+                    std::stringstream ss;
+                    ss << "Magnitude of solution in given direction: " << tReturnValue << std::endl;
+                    REPORT(ss.str());
+                }
+                break;
+
+            case solution_type_t::SOLUTION_IN_DIRECTION:
+                {
+                    Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNumNodes), 
+                    LAMBDA_EXPRESSION(const Plato::OrdinalType& aNodeOrdinal, Scalar & aLocalValue)
+                    {
+                        auto tIndex = tNodeIds[aNodeOrdinal];
+                        for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
+                        {
+                            auto dv = tStateSubView(tNumDofsPerNode*tIndex+iDof);
+                            aLocalValue += (tNormal[iDof]*dv);
+                        }
+                    }, tReturnValue);
+                    tReturnValue /= tNumNodes;
+                    std::stringstream ss;
+                    ss << "Solution in given direction: " << tReturnValue << std::endl;
+                    REPORT(ss.str());
+                }
+                break; 
+
+            case solution_type_t::DIFF_BETWEEN_SOLUTION_IN_DIRECTION_AND_TARGET_SOLUTION_IN_DIRECTION:
+                {
+                    Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNumNodes), 
+                    LAMBDA_EXPRESSION(const Plato::OrdinalType& aNodeOrdinal, Scalar & aLocalValue)
+                    {
+                        auto tIndex = tNodeIds[aNodeOrdinal];
+                        for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
+                        {
+                            auto dv = tStateSubView(tNumDofsPerNode*tIndex+iDof);
+                            aLocalValue += (tNormal[iDof]*dv);
+                        }
+                    }, tReturnValue);
+                    tReturnValue /= tNumNodes;
+                    tReturnValue = fabs(tReturnValue - tTargetSolution); 
+                    std::stringstream ss;
+                    ss << "Absolute value of difference between current solution in given direction and target solution in given direction: " << tReturnValue << std::endl;
+                    REPORT(ss.str());
+                }
+                break; 
+        }
 
         return tReturnValue;
     }
@@ -243,48 +532,129 @@ public:
         auto tNumNodes = tNodeIds.size();
 
         auto tNormal = mNormal;
+        auto tTargetSolutionVector = mTargetSolutionVector;
         auto tNumDofsPerNode = mNumDofsPerNode;
+        auto tTargetMagnitude = mTargetMagnitude;
+        auto tTargetSolution = mTargetSolution;
 
-        if( mMagnitude )
+        switch (mSolutionType)
         {
-            Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumNodes),
-            LAMBDA_EXPRESSION(Plato::OrdinalType aNodeOrdinal)
-            {
-                auto tIndex = tNodeIds[aNodeOrdinal];
-                Plato::Scalar ds(0.0);
-                for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
+            case solution_type_t::DIFF_BETWEEN_SOLUTION_VECTOR_AND_TARGET_VECTOR:
+                Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumNodes),
+                LAMBDA_EXPRESSION(Plato::OrdinalType aNodeOrdinal)
                 {
-                    auto dv = tStateSubView(tNumDofsPerNode*tIndex+iDof);
-                    ds += (tNormal[iDof]*dv) * (tNormal[iDof]*dv);
-                }
-                ds = (ds > 0.0) ? sqrt(ds) : ds;
-
-                for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
-                {
-                    auto dv = tStateSubView(tNumDofsPerNode*tIndex+iDof);
-                    if( ds != 0.0 )
+                    auto tIndex = tNodeIds[aNodeOrdinal];
+                    Plato::Scalar ds(0.0);
+                    for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
                     {
-                        tGradientU(tNumDofsPerNode*tIndex+iDof) = tNormal[iDof] * (tNormal[iDof] * dv) / (ds*tNumNodes);
+                        auto dv = tStateSubView(tNumDofsPerNode*tIndex+iDof);
+                        ds += (dv-tTargetSolutionVector[iDof])*(dv-tTargetSolutionVector[iDof]);
                     }
-                    else
-                    {
-                        tGradientU(tNumDofsPerNode*tIndex+iDof) = 0.0;
-                    }
-                }
+                    ds = (ds > 0.0) ? sqrt(ds) : ds;
 
-            }, "gradient_u");
-        }
-        else
-        {
-            Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumNodes),
-            LAMBDA_EXPRESSION(Plato::OrdinalType aNodeOrdinal)
-            {
-                auto tIndex = tNodeIds[aNodeOrdinal];
-                for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
+                    for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
+                    {
+                        auto dv = tStateSubView(tNumDofsPerNode*tIndex+iDof);
+                        if( ds != 0.0 )
+                        {
+                            tGradientU(tNumDofsPerNode*tIndex+iDof) = (dv-tTargetSolutionVector[iDof]) / (ds*tNumNodes);
+                        }
+                        else
+                        {
+                            tGradientU(tNumDofsPerNode*tIndex+iDof) = 0.0;
+                        }
+                    }
+                }, "gradient_u");
+                break; 
+
+            case solution_type_t::DIFF_BETWEEN_SOLUTION_MAG_IN_DIRECTION_AND_TARGET:
+                Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumNodes),
+                LAMBDA_EXPRESSION(Plato::OrdinalType aNodeOrdinal)
                 {
-                    tGradientU(tNumDofsPerNode*tIndex+iDof) = tNormal[iDof] / tNumNodes;
-                }
-            }, "gradient_u");
+                    auto tIndex = tNodeIds[aNodeOrdinal];
+                    Plato::Scalar ds(0.0);
+                    for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
+                    {
+                        auto dv = tStateSubView(tNumDofsPerNode*tIndex+iDof);
+                        ds += (tNormal[iDof]*dv) * (tNormal[iDof]*dv);
+                    }
+                    ds = (ds > 0.0) ? sqrt(ds) : ds;
+                    Plato::Scalar tSign = (ds < tTargetMagnitude) ? -1.0 : 1.0;
+
+                    for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
+                    {
+                        auto dv = tStateSubView(tNumDofsPerNode*tIndex+iDof);
+                        if( ds != 0.0 )
+                        {
+                            tGradientU(tNumDofsPerNode*tIndex+iDof) = tSign * (tNormal[iDof] * (tNormal[iDof] * dv) / (ds*tNumNodes));
+                        }
+                        else
+                        {
+                            tGradientU(tNumDofsPerNode*tIndex+iDof) = 0.0;
+                        }
+                    }
+                }, "gradient_u");
+                break;
+
+            case solution_type_t::SOLUTION_MAG_IN_DIRECTION:
+                Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumNodes),
+                LAMBDA_EXPRESSION(Plato::OrdinalType aNodeOrdinal)
+                {
+                    auto tIndex = tNodeIds[aNodeOrdinal];
+                    Plato::Scalar ds(0.0);
+                    for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
+                    {
+                        auto dv = tStateSubView(tNumDofsPerNode*tIndex+iDof);
+                        ds += (tNormal[iDof]*dv) * (tNormal[iDof]*dv);
+                    }
+                    ds = (ds > 0.0) ? sqrt(ds) : ds;
+
+                    for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
+                    {
+                        auto dv = tStateSubView(tNumDofsPerNode*tIndex+iDof);
+                        if( ds != 0.0 )
+                        {
+                            tGradientU(tNumDofsPerNode*tIndex+iDof) = tNormal[iDof] * (tNormal[iDof] * dv) / (ds*tNumNodes);
+                        }
+                        else
+                        {
+                            tGradientU(tNumDofsPerNode*tIndex+iDof) = 0.0;
+                        }
+                    }
+                }, "gradient_u");
+                break;
+
+            case solution_type_t::SOLUTION_IN_DIRECTION:
+                Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumNodes),
+                LAMBDA_EXPRESSION(Plato::OrdinalType aNodeOrdinal)
+                {
+                    auto tIndex = tNodeIds[aNodeOrdinal];
+                    for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
+                    {
+                        tGradientU(tNumDofsPerNode*tIndex+iDof) = tNormal[iDof] / tNumNodes;
+                    }
+                }, "gradient_u");
+                break; 
+
+            case solution_type_t::DIFF_BETWEEN_SOLUTION_IN_DIRECTION_AND_TARGET_SOLUTION_IN_DIRECTION:
+                Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumNodes),
+                LAMBDA_EXPRESSION(Plato::OrdinalType aNodeOrdinal)
+                {
+                    Plato::Scalar tLocalValue(0.0);
+                    auto tIndex = tNodeIds[aNodeOrdinal];
+                    for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
+                    {
+                        auto dv = tStateSubView(tNumDofsPerNode*tIndex+iDof);
+                        tLocalValue += (tNormal[iDof]*dv);
+                    }
+                    Plato::Scalar tSign = (tLocalValue < tTargetSolution) ? -1.0 : 1.0;
+
+                    for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
+                    {
+                        tGradientU(tNumDofsPerNode*tIndex+iDof) = tSign * tNormal[iDof] / tNumNodes;
+                    }
+                }, "gradient_u");
+                break; 
         }
 
         return tGradientU;
