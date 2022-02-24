@@ -605,6 +605,12 @@ private:
 
     Plato::OrdinalType mNumSpatialDims;
 
+    void *mESPInterface;
+    void loadESPInterface();
+    typedef ESPType* (*create_t)(std::string, std::string, int);
+    typedef void (*destroy_t)(ESPType *esp);
+    create_t mCreateESP;
+    destroy_t mDestroyESP;
     std::map<std::string,std::shared_ptr<ESPType>> mESP;
     void mapToParameters(std::shared_ptr<ESPType> aESP, std::vector<Plato::Scalar>& mGradientP, Plato::ScalarVector mGradientX);
 
