@@ -160,6 +160,10 @@ void MPMD_App::createESPData()
   mESP.clear();
 
   // parse/create the ESP instance(s)
+#ifdef PLATO_ESP
+  loadESPInterface();
+#endif
+
   auto tESPInputs = mInputData.getByName<Plato::InputData>("ESP");
   for(auto tESPInput=tESPInputs.begin(); tESPInput!=tESPInputs.end(); ++tESPInput)
   {
@@ -173,7 +177,7 @@ void MPMD_App::createESPData()
       {
           auto tModelFileName = Plato::Get::String(*tESPInput,"ModelFileName");
           auto tTessFileName = Plato::Get::String(*tESPInput,"TessFileName");
-          mESP[tESPName] = std::make_shared<ESPType>(tModelFileName, tTessFileName);
+          mESP[tESPName] = std::shared_ptr<ESPType>(mCreateESP(tModelFileName, tTessFileName, -1), mDestroyESP);
       }
 #else
       throw Plato::ParsingException("PlatoApp was not compiled with ESP support.  Turn on 'PLATO_ESP' option and rebuild.");
@@ -484,6 +488,23 @@ void MPMD_App::initialize()
     }
   }
 }
+
+void
+MPMD_App::loadESPInterface()
+{
+    const std::string libraryName("libPlatoGeometryESPImpl.so");
+    mESPInterface = dlopen(libraryName.c_str(), RTLD_LAZY);
+    if (mESPInterface == nullptr) {
+        throw Plato::LogicException(libraryName + " not found.");
+    }
+
+    mCreateESP = reinterpret_cast<create_t>(dlsym(mESPInterface, "createESP"));
+    mDestroyESP = reinterpret_cast<destroy_t>(dlsym(mESPInterface, "destroyESP"));
+    if (mCreateESP == nullptr || mDestroyESP == nullptr) {
+        throw Plato::LogicException("Unable to load functions from " + libraryName);
+    }
+}
+
 /******************************************************************************/
 void MPMD_App::reinitialize()
 /******************************************************************************/
@@ -1235,7 +1256,7 @@ void MPMD_App::ReinitializeESP::operator()()
         auto& tESP = mMyApp->mESP[mESPName];
         auto tModelFileName = tESP->getModelFileName();
         auto tTessFileName  = tESP->getTessFileName();
-        tESP.reset( new ESPType(tModelFileName, tTessFileName) );
+        tESP.reset( mMyApp->mCreateESP(tModelFileName, tTessFileName, -1), mMyApp->mDestroyESP);
         mMyApp->createProblem(*def);
         mMyApp->resetProblemMetaData();
     }
