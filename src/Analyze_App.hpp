@@ -138,7 +138,7 @@ public:
      /******************************************************************************//**
      * \brief reinitialize
     **********************************************************************************/
-    void reinitialize() {};
+    void reinitialize();
 
     /******************************************************************************//**
      * \brief Compute this operation
@@ -494,6 +494,34 @@ public:
 private:
     // functions
     //
+
+    /******************************************************************************//**
+     * \fn createLocalData
+     * \brief parse and create member data such as MeshMap, ESP, etc.
+    **********************************************************************************/
+    void createLocalData();
+
+    /******************************************************************************//**
+     * \fn createMeshMapData
+     * \brief parse and create MeshMap object.  This function should be called if the 
+     * underlying mesh changes.  The current MeshMap object is freed.
+    **********************************************************************************/
+    void createMeshMapData();
+
+    /******************************************************************************//**
+     * \fn createESPData
+     * \brief parse and create ESP object.  This function should be called if the 
+     * underlying mesh changes.  Any existing ESP objects are freed.
+    **********************************************************************************/
+    void createESPData();
+
+    /******************************************************************************//**
+     * \fn createMLSData
+     * \brief parse and create MLS object.  This function should be called if the 
+     * underlying mesh changes.  Any existing MLS objects are freed.
+    **********************************************************************************/
+    void createMLSData();
+
 
     /******************************************************************************//**
      * \fn resetProblemMetaData

@@ -3,7 +3,31 @@
 
 #include <Analyze_App.hpp>
 
+std::shared_ptr<Plato::MPMD_App> createApp(std::string inputFile, std::string appFile);
+void objectiveFiniteDifferenceTest(std::shared_ptr<Plato::MPMD_App> aApp, Plato::Scalar& val1, Plato::Scalar& val2, Plato::Scalar tol);
 void objectiveFiniteDifferenceTest(std::string inputFile, std::string appFile, Plato::Scalar& val1, Plato::Scalar& val2, Plato::Scalar tol);
+
+TEUCHOS_UNIT_TEST( AnalyzeAppTests, Reinitialize )
+{ 
+  /*
+   * Create an MPMD_App, test it, reinitialize, and test it.
+   * 
+   */
+  std::string inputFile = "Displacement_input.xml";
+  std::string appFile = "Displacement_appfile.xml";
+  Plato::Scalar val1(0.0), val2(0.0), tol(1e-7);
+
+  auto tApp = createApp(inputFile, appFile);
+  objectiveFiniteDifferenceTest(tApp, val1, val2, tol);
+
+  TEST_FLOATING_EQUALITY(val1, val2, tol);
+
+  tApp->reinitialize();
+
+  objectiveFiniteDifferenceTest(tApp, val1, val2, tol);
+
+  TEST_FLOATING_EQUALITY(val1, val2, tol);
+}
 
 TEUCHOS_UNIT_TEST( AnalyzeAppTests, MultipleProblemDefinitions )
 { 
@@ -353,6 +377,12 @@ TEUCHOS_UNIT_TEST( AnalyzeAppTests, Displacement )
 
 void objectiveFiniteDifferenceTest(std::string inputFile, std::string appFile, Plato::Scalar& val1, Plato::Scalar& val2, Plato::Scalar tol)
 {
+  auto tApp = createApp(inputFile, appFile);
+  objectiveFiniteDifferenceTest(tApp, val1, val2, tol);
+}
+
+std::shared_ptr<Plato::MPMD_App> createApp(std::string inputFile, std::string appFile)
+{
   int argc = 2;
   char exeName[] = "exeName";
   std::stringstream input;
@@ -365,12 +395,18 @@ void objectiveFiniteDifferenceTest(std::string inputFile, std::string appFile, P
 
   setenv("PLATO_APP_FILE", appFile.c_str(), true);
 
-  Plato::MPMD_App app(argc, argv, myComm);
+  auto tApp = std::make_shared<Plato::MPMD_App>(argc, argv, myComm);
 
-  app.initialize();
+  tApp->initialize();
+
+  return tApp;
+}
+
+void objectiveFiniteDifferenceTest(std::shared_ptr<Plato::MPMD_App> aApp, Plato::Scalar& val1, Plato::Scalar& val2, Plato::Scalar tol)
+{
 
   std::vector<int> localIDs;
-  app.exportDataMap(Plato::data::layout_t::SCALAR_FIELD, localIDs);
+  aApp->exportDataMap(Plato::data::layout_t::SCALAR_FIELD, localIDs);
 
   // create input data
   //
@@ -380,25 +416,25 @@ void objectiveFiniteDifferenceTest(std::string inputFile, std::string appFile, P
   // import data
   //
   fauxControlIn.setData(stdControlIn);
-  app.importDataT("Topology", fauxControlIn);
+  aApp->importDataT("Topology", fauxControlIn);
 
   // create output data
   //
 
   // solve
   //
-  app.compute("Compute Objective");
+  aApp->compute("Compute Objective");
 
   // export data
   //
   FauxSharedField fauxObjGradOut(localIDs.size(),0.0);
-  app.exportDataT("Objective Gradient", fauxObjGradOut);
+  aApp->exportDataT("Objective Gradient", fauxObjGradOut);
 
   std::vector<Plato::Scalar> stdObjGradOut(localIDs.size());
   fauxObjGradOut.getData(stdObjGradOut);
 
   FauxSharedValue fauxObjValOut(1,0.0);
-  app.exportDataT("Objective Value", fauxObjValOut);
+  aApp->exportDataT("Objective Value", fauxObjValOut);
 
   std::vector<Plato::Scalar> stdObjValOne(1);
   fauxObjValOut.getData(stdObjValOne);
@@ -418,10 +454,10 @@ void objectiveFiniteDifferenceTest(std::string inputFile, std::string appFile, P
   }
 
   fauxControlIn.setData(stdControlIn);
-  app.importDataT("Topology", fauxControlIn);
-  app.compute("Compute Objective");
+  aApp->importDataT("Topology", fauxControlIn);
+  aApp->compute("Compute Objective");
 
-  app.exportDataT("Objective Value", fauxObjValOut);
+  aApp->exportDataT("Objective Value", fauxObjValOut);
   std::vector<Plato::Scalar> stdObjValTwo(1);
   fauxObjValOut.getData(stdObjValTwo);
   
