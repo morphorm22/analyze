@@ -64,7 +64,7 @@ class HeatEquationResidual :
     Plato::ApplyWeighting<SpaceDim,SpaceDim,IndicatorFunctionType> mApplyFluxWeighting;
     Plato::ApplyWeighting<SpaceDim,mNumDofsPerNode,IndicatorFunctionType> mApplyMassWeighting;
 
-    using CubatureType = Plato::LinearTetCubRuleDegreeOne<SpaceDim>;
+    using CubatureType = Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>;
 
     std::shared_ptr<CubatureType> mCubatureRule;
 

@@ -396,7 +396,7 @@ namespace Plato
             auto tStride = tNodeVar.DofNames.size();
             for( decltype(tStride) tIndex=0; tIndex<tStride; tIndex++)
             {
-                Plato::HostScalarVector tSubView = Kokkos::subview(tHostData, tIndex, Kokkos::ALL());
+                auto tSubView = Kokkos::subview(tHostData, tIndex, Kokkos::ALL());
                 mMeshIO->writeNodePlot(tSubView.data(), tNodeVar.VarIndices[tIndex], mPlotIndex);
             }
             tNodeVar.isStale = true;
@@ -419,7 +419,7 @@ namespace Plato
             auto tStride = tElementVar.DofNames.size();
             for( decltype(tStride) tIndex=0; tIndex<tStride; tIndex++)
             {
-                Plato::HostScalarVector tSubView = Kokkos::subview(tHostData, tIndex, Kokkos::ALL());
+                auto tSubView = Kokkos::subview(tHostData, tIndex, Kokkos::ALL());
                 mMeshIO->writeElemPlot(tSubView.data(), tElementVar.VarIndices[tIndex], mPlotIndex);
             }
             tElementVar.isStale = true;

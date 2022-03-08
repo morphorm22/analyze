@@ -70,7 +70,7 @@ class TransientThermomechResidual :
     using ConfigScalarType   = typename EvaluationType::ConfigScalarType;
     using ResultScalarType   = typename EvaluationType::ResultScalarType;
 
-    using CubatureType = Plato::LinearTetCubRuleDegreeOne<SpaceDim>;
+    using CubatureType = Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>;
 
     IndicatorFunctionType mIndicatorFunction;
     Plato::ApplyWeighting<SpaceDim, mNumVoigtTerms, IndicatorFunctionType> mApplyStressWeighting;
