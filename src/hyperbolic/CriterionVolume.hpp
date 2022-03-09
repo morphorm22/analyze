@@ -38,7 +38,7 @@ private:
 
     Plato::DataMap& mDataMap; /*!< output database */
     const Plato::SpatialDomain& mSpatialDomain; /*!< spatial domain metadata */
-    Plato::LinearTetCubRuleDegreeOne<mNumSpatialDims> mCubatureRule; /*!< cubature integration rule */
+    Plato::LinearTetCubRuleDegreeOne<PhysicsT::SimplexT::mNumSpatialDims> mCubatureRule; /*!< cubature integration rule */
     
     std::string mFuncName; /*!< scalar funciton name */
     std::vector<std::string> mElemDomains; /*!< element blocks considered for volume caclulation */

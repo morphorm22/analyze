@@ -66,7 +66,7 @@ private:
     using ConfigT          = typename EvaluationType::ConfigScalarType;          /*!< config variables automatic differentiation type */
     using ResultT          = typename EvaluationType::ResultScalarType;          /*!< result variables automatic differentiation type */
 
-    using CubatureType = Plato::LinearTetCubRuleDegreeOne<mSpaceDim>;
+    using CubatureType = Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>;
 
     Plato::Scalar mElasticShearModulus;            /*!< elastic shear modulus */
 
