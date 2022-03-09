@@ -190,7 +190,9 @@ void MPMD_App::createESPData()
 void MPMD_App::createMLSData()
 /******************************************************************************/
 {
+#ifdef PLATO_GEOMETRY
   mMLS.clear();
+#endif // PLATO_GEOMETRY
 
   // parse/create the MLS PointArrays
   auto tPointArrayInputs = mInputData.getByName<Plato::InputData>("PointArray");
