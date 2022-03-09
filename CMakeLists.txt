@@ -50,6 +50,9 @@ endif()
 MESSAGE("-- BUILD_SHARED_LIBS: ${BUILD_SHARED_LIBS}")
 
 SET(CMAKE_C_FLAGS ${Trilinos_C_COMPILER_FLAGS} )
+
+FIND_PACKAGE(MPI REQUIRED)
+
 ## this has to be conditional, or building without cuda fails
 IF (DEFINED AMGX_PREFIX)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CUSTOM_CXX_FLAGS} -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored")
@@ -296,6 +299,9 @@ if (PLATOANALYZE_ENABLE_MPMD)
   if( CMAKE_INSTALL_PREFIX )
     install( TARGETS Analyze_App DESTINATION ${CMAKE_INSTALL_PREFIX}/lib )
   endif()
+
+  find_package(HDF5 REQUIRED)
+  target_link_libraries(Analyze_App HDF5::HDF5)
 
   add_executable( analyze_MPMD src/Analyze_MPMD.cpp)
   if( CMAKE_INSTALL_PREFIX )
