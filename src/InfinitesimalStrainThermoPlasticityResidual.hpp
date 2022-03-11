@@ -130,7 +130,7 @@ private:
         }
         else
         {
-            THROWERR("Infinitesimal Strain Thermoplasticity Residual: 'Elliptic' sublist is not defined in XML input file.")
+            ANALYZE_THROWERR("Infinitesimal Strain Thermoplasticity Residual: 'Elliptic' sublist is not defined in XML input file.")
         }
     }
 
@@ -154,7 +154,7 @@ private:
         }
         else
         {
-            THROWERR("Infinitesimal Strain Thermoplasticity Residual: 'Elliptic' sublist is not defined in XML input file.")
+            ANALYZE_THROWERR("Infinitesimal Strain Thermoplasticity Residual: 'Elliptic' sublist is not defined in XML input file.")
         }
     }
 
@@ -207,7 +207,7 @@ private:
         }
         else
         {
-            THROWERR("Infinitesimal Strain Thermoplasticity Residual: 'Material Models' sublist is not defined.")
+            ANALYZE_THROWERR("Infinitesimal Strain Thermoplasticity Residual: 'Material Models' sublist is not defined.")
         }
     }
 
@@ -241,7 +241,7 @@ private:
         {
             std::stringstream ss;
             ss << "Infinitesimal Strain Thermoplasticity Residual: 'Isotropic Linear Thermoelastic' sublist of '" << tMaterialName << "' is not defined.";
-            THROWERR(ss.str());
+            ANALYZE_THROWERR(ss.str());
         }
     }
 
@@ -306,7 +306,7 @@ private:
         auto tSearch = mDataMap.mScalarValues.find("LoadControlConstant");
         if(tSearch == mDataMap.mScalarValues.end())
         {
-            THROWERR("Infinitesimal Strain Thermoplasticity Residual: 'Load Control Constant' is NOT defined in data map.")
+            ANALYZE_THROWERR("Infinitesimal Strain Thermoplasticity Residual: 'Load Control Constant' is NOT defined in data map.")
         }
 
         auto tMultiplier = static_cast<Plato::Scalar>(-1.0) * tSearch->second;
@@ -351,7 +351,6 @@ public:
     /***************************************************************************//**
      * \brief Constructor
      * \param [in] aMesh          mesh metadata
-     * \param [in] aMeshSets      side-sets metadata
      * \param [in] aDataMap       output data map
      * \param [in] aProblemParams input XML data
      * \param [in] aPenaltyParams penalty function input XML data

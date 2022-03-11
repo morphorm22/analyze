@@ -11,6 +11,7 @@
 #include "BLAS2.hpp"
 #include "MetaData.hpp"
 #include "WorkSets.hpp"
+#include "FluidsUtils.hpp"
 #include "SpatialModel.hpp"
 #include "UtilsTeuchos.hpp"
 #include "ExpInstMacros.hpp"
@@ -48,12 +49,10 @@ private:
     // member parameters
     Plato::Scalar mMagnitude = 0.0; /*!< thermal source magnitude */
     Plato::Scalar mPenaltyExponent = 3.0; /*!< thermal source simp penalty model exponent */
-    Plato::Scalar mThermalConductivity = 1.0; /*!< thermal conductivity */
-    Plato::Scalar mCharacteristicLength = 0.0; /*!< characteristic lenght */
-    Plato::Scalar mReferenceTemperature = 1.0; /*!< reference temperature */
+    Plato::Scalar mDimLessConstant = 1.0; /*!< dimensionless constant applied to source term */
 
     std::string mFuncName; /*!< scalar funciton name */
-    std::string mElemBlock; /*!< element block name where thermal source is applied */
+    std::vector<std::string> mElemDomains; /*!< element blocks considered for thermal source evaluation */
 
     // member metadata
     Plato::DataMap& mDataMap; /*!< holds output metadata */
@@ -61,6 +60,13 @@ private:
     Plato::LinearTetCubRuleDegreeOne<mNumSpatialDims> mCubatureRule; /*!< cubature integration rule */
 
 public:
+    /***************************************************************************//**
+     * \brief Constructor.
+     * \param [in] aFuncName function name
+     * \param [in] aDomain   spatail domain database
+     * \param [in] aDataMap  output database
+     * \param [in] aInputs   input database
+     ******************************************************************************/
     UniformThermalSource    
     (const std::string          & aFuncName,
      const Plato::SpatialDomain & aDomain,
@@ -73,33 +79,49 @@ public:
         this->initialize(aInputs);
     }
 
-    virtual ~UniformThermalSource(){}
+    /***************************************************************************//**
+     * \brief Destructor.
+     ******************************************************************************/
+    virtual ~UniformThermalSource(){ return; }
     
+    /***************************************************************************//**
+     * \brief Return function type.
+     * \return function type
+     ******************************************************************************/
     std::string type() const override
     {
         return "uniform";
     }
-
+    
+    /***************************************************************************//**
+     * \brief Return function name.
+     * \return function name
+     ******************************************************************************/
     std::string name() const override
     {
         return mFuncName;
     }
 
+    /***************************************************************************//**
+     * \brief Evaluate thermal source integral.
+     * \param [in]  aWorkSets   workset database
+     * \param [out] aResultWS   output/result workset
+     * \param [in]  aMultiplier scalar multiplier (default = 1.0)
+     ******************************************************************************/
     void evaluate
     (const Plato::WorkSets & aWorkSets, 
      Plato::ScalarMultiVectorT<ResultT> & aResultWS,
      Plato::Scalar aMultiplier = 1.0) 
      const override
     {
-        if(mElemBlock.empty()) { return; }
-
-        auto tMySpatialDomainElemBlockName = mSpatialDomain.getElementBlockName();
-        if(mElemBlock == tMySpatialDomainElemBlockName)
+        auto tMyBlockName = mSpatialDomain.getElementBlockName();
+        auto tEvaluateDomain = std::find(mElemDomains.begin(), mElemDomains.end(), tMyBlockName) != mElemDomains.end();
+        if( tEvaluateDomain )
         {
             auto tNumCells = mSpatialDomain.numCells();
             if (tNumCells != static_cast<Plato::OrdinalType>(aResultWS.extent(0)) )
             {
-                THROWERR(std::string("Number of elements mismatch. Spatial domain and output/result workset ") 
+                ANALYZE_THROWERR(std::string("Number of elements mismatch. Spatial domain and output/result workset ") 
                     + "cell number does not match. " + "Spatial domain has '" + std::to_string(tNumCells) 
                     + "' cells/elements and output workset has '" + std::to_string(aResultWS.extent(0)) + "' cells/elements.")
             }
@@ -120,9 +142,7 @@ public:
             auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlT>>(aWorkSets.get("control"));
 
             // transfer member data to device
-            auto tRefTemp = mReferenceTemperature;
-            auto tCharLength = mCharacteristicLength;
-            auto tThermalCond = mThermalConductivity;
+            auto tDimLessConstant = mDimLessConstant;
             auto tPenaltyExponent = mPenaltyExponent;
 
             auto tCubWeight = mCubatureRule.getCubWeight();
@@ -132,11 +152,11 @@ public:
                 tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
                 tCellVolume(aCellOrdinal) = tCellVolume(aCellOrdinal) * tCubWeight;
 
-                auto tDimlessConstant = aMultiplier * ( (tCharLength * tCharLength) / (tThermalCond * tRefTemp) );
-                ControlT tPenalizedDimlessConstant = Plato::Fluids::penalize_heat_source_constant<mNumNodesPerCell>
-                    (aCellOrdinal, tDimlessConstant, tPenaltyExponent, tControlWS);
+                auto tUnpenalizedDimLessConstant = aMultiplier * tDimLessConstant;
+                ControlT tPenalizedDimLessConstant = Plato::Fluids::penalize_heat_source_constant<mNumNodesPerCell>
+                    (aCellOrdinal, tUnpenalizedDimLessConstant, tPenaltyExponent, tControlWS);
                 Plato::Fluids::integrate_scalar_field<mNumTempDofsPerCell>
-                    (aCellOrdinal, tBasisFunctions, tCellVolume, tThermalSource, aResultWS, -tPenalizedDimlessConstant);
+                    (aCellOrdinal, tBasisFunctions, tCellVolume, tThermalSource, aResultWS, -tPenalizedDimLessConstant);
             },"intergate thermal source term");
         }
     }
@@ -150,35 +170,44 @@ private:
     {
         if( aInputs.isSublist("Thermal Sources") )
         {
+            auto tMaterialName = mSpatialDomain.getMaterialName();
+            mDimLessConstant = Plato::Fluids::compute_thermal_source_dimensionless_constant(tMaterialName, aInputs);
+
             auto tThermalSourceParamList = aInputs.sublist("Thermal Sources");
             mMagnitude = Plato::teuchos::parse_parameter<Plato::Scalar>("Value", mFuncName, tThermalSourceParamList);
-            mElemBlock = Plato::teuchos::parse_parameter<std::string>("Element Block", mFuncName, tThermalSourceParamList);
-
-            this->initializeMaterialProperties(aInputs);
+            
+            this->parseDomains(aInputs);
+            this->parseMaterialPenaltyModel(aInputs);
         }
     }
 
     /***************************************************************************//**
-     * \brief Initialize material proerties.
+     * \brief Initialize topology penalization model parameters.
      * \param [in] aInputs  input database
      ******************************************************************************/
-    void initializeMaterialProperties(Teuchos::ParameterList& aInputs)
+    void parseMaterialPenaltyModel(Teuchos::ParameterList& aInputs)
     {
         auto tMaterialName = mSpatialDomain.getMaterialName();
-        mThermalConductivity = Plato::Fluids::get_material_property<Plato::Scalar>("Thermal Conductivity", tMaterialName, aInputs);
-        Plato::is_positive_finite_number(mThermalConductivity, "Thermal Conductivity");
-
-        mCharacteristicLength = Plato::Fluids::get_material_property<Plato::Scalar>("Characteristic Length", tMaterialName, aInputs);
-        Plato::is_positive_finite_number(mCharacteristicLength, "Characteristic Length");
-
-        mReferenceTemperature = Plato::Fluids::get_material_property<Plato::Scalar>("Reference Temperature", tMaterialName, aInputs);
-        if(mReferenceTemperature == static_cast<Plato::Scalar>(0.0))
-            { THROWERR(std::string("'Reference Temperature' keyword cannot be set to zero.")) }
-            
-        if(Plato::Fluids::is_material_property_defined("Thermal Source Penalty Exponent", tMaterialName, aInputs))
+        if(Plato::Fluids::is_material_property_defined("Source Term Penalty Exponent", tMaterialName, aInputs))
         {
-            mPenaltyExponent = Plato::Fluids::get_material_property<Plato::Scalar>("Thermal Source Penalty Exponent", tMaterialName, aInputs);
-            Plato::is_positive_finite_number(mPenaltyExponent, "Thermal Source Penalty Exponent");
+            mPenaltyExponent = Plato::Fluids::get_material_property<Plato::Scalar>("Source Term Penalty Exponent", tMaterialName, aInputs);
+            Plato::is_positive_finite_number(mPenaltyExponent, "Source Term Penalty Exponent");
+        }
+    }
+
+    /***************************************************************************//**
+     * \brief Parse domains where thermal source will be evaluated.
+     * \param [in] aInputs input database
+     ******************************************************************************/
+    void parseDomains(Teuchos::ParameterList& aInputs)
+    {
+        auto tParamList = aInputs.sublist("Thermal Source");
+        mElemDomains = Plato::teuchos::parse_array<std::string>("Domains", tParamList);
+        if( mElemDomains.empty() )
+        {
+            // default: use all the element blocks for the thermal source evaluation
+            auto tMyBlockName = mSpatialDomain.getElementBlockName();
+            mElemDomains.push_back(tMyBlockName);
         }
     }
 };
@@ -201,12 +230,10 @@ private:
 
     // member parameters
     Plato::Scalar mMagnitude = 0.0; /*!< thermal source magnitude */
-    Plato::Scalar mThermalConductivity = 1.0; /*!< thermal conductivity */
-    Plato::Scalar mCharacteristicLength = 0.0; /*!< characteristic lenght */
-    Plato::Scalar mReferenceTemperature = 1.0; /*!< reference temperature */
+    Plato::Scalar mDimLessConstant = 1.0; /*!< dimensionless constant applied to source term */
 
     std::string mFuncName; /*!< scalar funciton name */
-    std::string mElemBlock; /*!< block name where thermal source is applied */
+    std::vector<std::string> mElemDomains; /*!< element blocks considered for thermal source evaluation */
 
     // member metadata
     Plato::DataMap& mDataMap; /*!< holds output metadata */
@@ -214,6 +241,13 @@ private:
     Plato::LinearTetCubRuleDegreeOne<mNumSpatialDims> mCubatureRule; /*!< cubature integration rule */
 
 public:
+    /***************************************************************************//**
+     * \brief Constructor.
+     * \param [in] aFuncName function name
+     * \param [in] aDomain   spatail domain database
+     * \param [in] aDataMap  output database
+     * \param [in] aInputs   input database
+     ******************************************************************************/
     UniformThermalSource    
     (const std::string          & aFuncName,
      const Plato::SpatialDomain & aDomain,
@@ -225,34 +259,50 @@ public:
     {
         this->initialize(aInputs);
     }
-
-    virtual ~UniformThermalSource(){}
     
+    /***************************************************************************//**
+     * \brief Destructor
+     ******************************************************************************/
+    virtual ~UniformThermalSource(){ return; }
+    
+    /***************************************************************************//**
+     * \brief Return function type.
+     * \return function type
+     ******************************************************************************/
     std::string type() const override
     {
         return "uniform";
     }
 
+    /***************************************************************************//**
+     * \brief Return function name.
+     * \return function name
+     ******************************************************************************/
     std::string name() const override
     {
         return mFuncName;
     }
 
+    /***************************************************************************//**
+     * \brief Evaluate thermal source integral.
+     * \param [in]  aWorkSets   workset database
+     * \param [out] aResultWS   output/result workset
+     * \param [in]  aMultiplier scalar multiplier (default = 1.0)
+     ******************************************************************************/
     void evaluate
     (const Plato::WorkSets & aWorkSets, 
      Plato::ScalarMultiVectorT<ResultT> & aResultWS,
      Plato::Scalar aMultiplier = 1.0) 
      const override
     {
-        if(mElemBlock.empty()) { return; }
-
-        auto tMySpatialDomainElemBlockName = mSpatialDomain.getElementBlockName();
-        if(mElemBlock == tMySpatialDomainElemBlockName)
+        auto tMyBlockName = mSpatialDomain.getElementBlockName();
+        auto tEvaluateDomain = std::find(mElemDomains.begin(), mElemDomains.end(), tMyBlockName) != mElemDomains.end();
+        if( tEvaluateDomain )
         {
             auto tNumCells = mSpatialDomain.numCells();
             if (tNumCells != static_cast<Plato::OrdinalType>(aResultWS.extent(0)) )
             {
-                THROWERR(std::string("Number of elements mismatch. Spatial domain and output/result workset ") 
+                ANALYZE_THROWERR(std::string("Number of elements mismatch. Spatial domain and output/result workset ") 
                     + "cell number does not match. " + "Spatial domain has '" + std::to_string(tNumCells) 
                     + "' cells/elements and output workset has '" + std::to_string(aResultWS.extent(0)) + "' cells/elements.")
             }
@@ -272,9 +322,7 @@ public:
             auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
 
             // transfer member data to device
-            auto tRefTemp = mReferenceTemperature;
-            auto tCharLength = mCharacteristicLength;
-            auto tThermalCond = mThermalConductivity;
+            auto tDimLessConstant = mDimLessConstant;
 
             auto tCubWeight = mCubatureRule.getCubWeight();
             auto tBasisFunctions = mCubatureRule.getBasisFunctions();
@@ -283,9 +331,9 @@ public:
                 tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
                 tCellVolume(aCellOrdinal) = tCellVolume(aCellOrdinal) * tCubWeight;
 
-                auto tDimlessConstant = aMultiplier * ( (tCharLength * tCharLength) / (tThermalCond * tRefTemp) );
+                auto tScalarConstant = aMultiplier * tDimLessConstant;
                 Plato::Fluids::integrate_scalar_field<mNumTempDofsPerCell>
-                    (aCellOrdinal, tBasisFunctions, tCellVolume, tThermalSource, aResultWS, -tDimlessConstant);
+                    (aCellOrdinal, tBasisFunctions, tCellVolume, tThermalSource, aResultWS, -tScalarConstant);
             },"intergate thermal source term");
         }
     }
@@ -299,30 +347,30 @@ private:
     {
         if( aInputs.isSublist("Thermal Source") )
         {
+            auto tMaterialName = mSpatialDomain.getMaterialName();
+            mDimLessConstant = Plato::Fluids::compute_thermal_source_dimensionless_constant(tMaterialName, aInputs);
+
             auto tThermalSourceParamList = aInputs.sublist("Thermal Source");
             mMagnitude = Plato::teuchos::parse_parameter<Plato::Scalar>("Value", mFuncName, tThermalSourceParamList);
-            mElemBlock = Plato::teuchos::parse_parameter<std::string>("Element Block", mFuncName, tThermalSourceParamList);
 
-            this->initializeMaterialProperties(aInputs);
+            this->parseDomains(aInputs);
         }
     }
 
     /***************************************************************************//**
-     * \brief Initialize material proerties.
-     * \param [in] aInputs  input database
+     * \brief Parse domains where thermal source will be evaluated.
+     * \param [in] aInputs input database
      ******************************************************************************/
-    void initializeMaterialProperties(Teuchos::ParameterList& aInputs)
+    void parseDomains(Teuchos::ParameterList& aInputs)
     {
-        auto tMaterialName = mSpatialDomain.getMaterialName();
-        mThermalConductivity = Plato::Fluids::get_material_property<Plato::Scalar>("Thermal Conductivity", tMaterialName, aInputs);
-        Plato::is_positive_finite_number(mThermalConductivity, "Thermal Conductivity");
-
-        mCharacteristicLength = Plato::Fluids::get_material_property<Plato::Scalar>("Characteristic Length", tMaterialName, aInputs);
-        Plato::is_positive_finite_number(mCharacteristicLength, "Characteristic Length");
-
-        mReferenceTemperature = Plato::Fluids::get_material_property<Plato::Scalar>("Reference Temperature", tMaterialName, aInputs);
-        if(mReferenceTemperature == static_cast<Plato::Scalar>(0.0))
-            { THROWERR(std::string("'Reference Temperature' keyword cannot be set to zero.")) }
+        auto tParamList = aInputs.sublist("Thermal Source");
+        mElemDomains = Plato::teuchos::parse_array<std::string>("Domains", tParamList);
+        if( mElemDomains.empty() )
+        {
+            // default: use all the element blocks for the thermal source evaluation
+            auto tMyBlockName = mSpatialDomain.getElementBlockName();
+            mElemDomains.push_back(tMyBlockName);
+        }
     }
 };
 // class UniformThermalSource

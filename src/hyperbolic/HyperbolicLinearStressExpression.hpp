@@ -92,7 +92,7 @@ public:
      * \param [in] aCellStiffness material element stiffness matrix
      * \param [in] aParamList input parameter list
     **********************************************************************************/
-    HyperbolicLinearStressExpression(const Omega_h::Matrix<mNumVoigtTerms,
+    HyperbolicLinearStressExpression(const Plato::Matrix<mNumVoigtTerms,
                                      mNumVoigtTerms> aCellStiffness,
                                      const Teuchos::ParameterList& aInputParams) :
       AbstractHyperbolicLinearStress< EvaluationType, SimplexPhysics >(aCellStiffness),
@@ -147,7 +147,7 @@ public:
 
       // Because a view of views is used in the expression which are
       // reference counted and deleting the parent view DOES NOT
-      // de-reference so do not use the Omega_h structures
+      // de-reference so do not use the structures
       // directly. Instead use a Kokkos::view and make a local copy
       // which is needed anyways for the reasons above, that view can
       // be re-referenced directly.
@@ -229,7 +229,7 @@ public:
       ExpressionEvaluator< Plato::ScalarMultiVectorT<ResultT>,
                            Plato::ScalarMultiVectorT<ResultT>,
                            Plato::ScalarVectorT<Plato::Scalar>,
-                           // Omega_h::Vector<mNumVoigtTerms>,
+                           // Plato::Array<mNumVoigtTerms>,
                            Plato::Scalar > tExpEval;
 
       // Look for a Custom Elasticity Model
@@ -244,7 +244,7 @@ public:
       // without the XML block.
       else
       {
-        THROWERR("Warning: Failed to find a 'Custom Elasticity Model' block.");
+        ANALYZE_THROWERR("Warning: Failed to find a 'Custom Elasticity Model' block.");
       }
 
       // Input values which is a two-dimensional array. The first

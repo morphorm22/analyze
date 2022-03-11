@@ -32,8 +32,7 @@ public:
     /******************************************************************************//**
      * \brief Create method
      * \param [in] aMesh mesh database
-     * \param [in] aMeshSets side sets database
-     * \param [in] aDataMap PLATO Engine and Analyze data map
+     * \param [in] aDataMap Plato Engine and Analyze data map
      * \param [in] aInputParams parameter input
      * \param [in] aFunctionName name of function in parameter list
      **********************************************************************************/

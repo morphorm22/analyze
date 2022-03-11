@@ -99,7 +99,7 @@ struct FunctionFactory
         }
         else
         {
-            THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
+            ANALYZE_THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
         }
     }
 
@@ -146,7 +146,7 @@ struct FunctionFactory
         }
         else
         {
-            THROWERR("Unknown scalar function specified in 'Plato Problem' ParameterList");
+            ANALYZE_THROWERR("Unknown scalar function specified in 'Plato Problem' ParameterList");
         }
         return (tOutput);
     }

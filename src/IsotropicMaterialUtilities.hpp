@@ -56,7 +56,7 @@ inline Plato::Scalar parse_elastic_modulus(Teuchos::ParameterList & aParamList)
     }
     else
     {
-        THROWERR("Youngs Modulus parameter is not defined in 'Isotropic Linear Elastic' sublist.")
+        ANALYZE_THROWERR("Youngs Modulus parameter is not defined in 'Isotropic Linear Elastic' sublist.")
     }
 }
 // function parse_elastic_modulus
@@ -75,7 +75,7 @@ inline Plato::Scalar parse_poissons_ratio(Teuchos::ParameterList & aParamList)
     }
     else
     {
-        THROWERR("Poisson's ratio parameter is not defined in 'Isotropic Linear Elastic' sublist.")
+        ANALYZE_THROWERR("Poisson's ratio parameter is not defined in 'Isotropic Linear Elastic' sublist.")
     }
 }
 // function parse_poissons_ratio
@@ -98,7 +98,7 @@ inline Plato::Scalar compute_bulk_modulus(const Teuchos::ParameterList &aInputPa
     }
     else
     {
-        THROWERR("Compute Bulk Modulus: 'Isotropic Linear Elastic' sublist in 'Material Model' parameter list is not defined.")
+        ANALYZE_THROWERR("Compute Bulk Modulus: 'Isotropic Linear Elastic' sublist in 'Material Model' parameter list is not defined.")
     }
 }
 // function compute_bulk_modulus
@@ -121,7 +121,7 @@ inline Plato::Scalar compute_shear_modulus(const Teuchos::ParameterList &aInputP
     }
     else
     {
-        THROWERR("Compute Shear Modulus: 'Isotropic Linear Elastic' sublist in 'Material Model' parameter list is not defined.")
+        ANALYZE_THROWERR("Compute Shear Modulus: 'Isotropic Linear Elastic' sublist in 'Material Model' parameter list is not defined.")
     }
 }
 // function compute_shear_modulus

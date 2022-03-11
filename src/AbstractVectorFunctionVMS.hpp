@@ -3,6 +3,7 @@
 
 #include "PlatoStaticsTypes.hpp"
 #include "SpatialModel.hpp"
+#include "Solutions.hpp"
 
 namespace Plato
 {
@@ -44,21 +45,12 @@ public:
     }
 
     /****************************************************************************//**
-    * \brief Return reference to Omega_h mesh database
+    * \brief Return reference to mesh database
     * \return volume mesh database
     ********************************************************************************/
     decltype(mSpatialDomain.Mesh) getMesh() const
     {
         return (mSpatialDomain.Mesh);
-    }
-
-    /****************************************************************************//**
-    * \brief Return reference to Omega_h mesh sets
-    * \return surface mesh database
-    ********************************************************************************/
-    decltype(mSpatialDomain.MeshSets) getMeshSets() const
-    {
-        return (mSpatialDomain.MeshSets);
     }
 
     /****************************************************************************//**
@@ -69,6 +61,14 @@ public:
     {
         return mDofNames;
     }
+
+    /****************************************************************************//**
+    * \brief Pure virtual function to get output solution data
+    * \param [in] state solution database
+    * \return output state solution database
+    ********************************************************************************/
+    virtual Plato::Solutions 
+    getSolutionStateOutputData(const Plato::Solutions &aSolutions) const = 0;
 
     /******************************************************************************//**
      * \brief Evaluate vector function

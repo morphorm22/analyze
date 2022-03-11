@@ -2,7 +2,10 @@
 #define PLATO_YEILD_STRESS_FACTORY_HPP
 
 #include "YieldStress.hpp"
-#include "YieldStressExpression.hpp"
+
+#ifdef PLATO_EXPRESSION
+  #include "YieldStressExpression.hpp"
+#endif
 
 namespace Plato
 {
@@ -32,8 +35,13 @@ public:
       // Look for a yield stress block.
       if( mParamList.isSublist("Custom Plasticity Model") )
       {
+#ifdef PLATO_EXPRESSION
         return Teuchos::rcp( new Plato::YieldStressExpression<EvaluationType>
                              (mParamList) );
+#else
+	ANALYZE_THROWERR("Plato Analyze was not built with expression support. "
+		 "Rebuild with the cmake EXPRESSION option ON");
+#endif
       }
       else
       {

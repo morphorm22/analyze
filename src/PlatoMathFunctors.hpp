@@ -13,8 +13,8 @@ namespace Plato
 class RowSum
 {
 private:
-    const typename Plato::CrsMatrixType::RowMapVector mRowMap;
-    const typename Plato::CrsMatrixType::ScalarVector mEntries;
+    const typename Plato::CrsMatrixType::RowMapVectorT mRowMap;
+    const typename Plato::CrsMatrixType::ScalarVectorT mEntries;
     const Plato::OrdinalType mNumDofsPerNode_I;
     const Plato::OrdinalType mNumDofsPerNode_J;
 
@@ -108,8 +108,8 @@ public:
 class DiagonalInverseMultiply
 {
 private:
-    const typename Plato::CrsMatrixType::RowMapVector mRowMap;
-    const typename Plato::CrsMatrixType::ScalarVector mEntries;
+    const typename Plato::CrsMatrixType::RowMapVectorT mRowMap;
+    const typename Plato::CrsMatrixType::ScalarVectorT mEntries;
     const Plato::OrdinalType mNumDofsPerNode_I;
     const Plato::OrdinalType mNumDofsPerNode_J;
 

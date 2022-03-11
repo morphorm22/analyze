@@ -55,7 +55,7 @@ private:
     Plato::OrdinalType mCurrentSolverIter; /*!< current number of iterations */
 
     Plato::ScalarVector mDirichletValues;     /*!< Dirichlet boundary conditions values */
-    Plato::LocalOrdinalVector mDirichletDofs; /*!< Dirichlet boundary conditions degrees of freedom */
+    Plato::OrdinalVector mDirichletDofs; /*!< Dirichlet boundary conditions degrees of freedom */
 
     bool mDebugFlag;              /*!< debug problem flag */
     bool mUseAbsoluteTolerance;   /*!< use absolute stopping tolerance flag */
@@ -120,7 +120,7 @@ private:
     {
         if(mDirichletValues.size() <= static_cast<Plato::OrdinalType>(0))
         {
-            THROWERR("Newton-Raphson Solver: Essential Boundary Conditions are empty.")
+            ANALYZE_THROWERR("Newton-Raphson Solver: Essential Boundary Conditions are empty.")
         }
 
         Plato::ScalarVector tDispControlledDirichletValues("Dirichlet Values", mDirichletValues.size());
@@ -166,7 +166,7 @@ private:
         const Plato::Scalar tAlpha = 1.0;
         Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), aStates.mDeltaGlobalState);
         if (mLinearSolver == nullptr)
-            THROWERR("Linear solver object not initialized.")
+            ANALYZE_THROWERR("Linear solver object not initialized.")
         mLinearSolver->solve(*aMatrix, aStates.mDeltaGlobalState, aResidual);
 
         if(mDebugFlag == true)
@@ -267,8 +267,8 @@ private:
 
         // Assemble full Jacobian
         auto tMesh = mGlobalEquation->getMesh();
-        auto tGlobalJacobian = Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumGlobalDofsPerNode, mNumGlobalDofsPerNode>(&tMesh);
-        Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumGlobalDofsPerNode> tGlobalJacEntryOrdinal(tGlobalJacobian, &tMesh);
+        auto tGlobalJacobian = Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumGlobalDofsPerNode, mNumGlobalDofsPerNode>(tMesh);
+        Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumGlobalDofsPerNode> tGlobalJacEntryOrdinal(tGlobalJacobian, tMesh);
         auto tJacEntries = tGlobalJacobian->entries();
         Plato::assemble_jacobian(tNumCells, mNumGlobalDofsPerCell, mNumGlobalDofsPerCell, tGlobalJacEntryOrdinal, tDrDu, tJacEntries);
 
@@ -445,11 +445,11 @@ private:
 public:
     /***************************************************************************//**
      * \brief Constructor
-     * \param [in] aMesh   Omega_h mesh database
+     * \param [in] aMesh   Plato abstract mesh database
      * \param [in] aInputs input parameters database
      * \param [in] aLinearSolver linear solver object
     *******************************************************************************/
-    NewtonRaphsonSolver(Omega_h::Mesh& aMesh, Teuchos::ParameterList& aInputs, std::shared_ptr<Plato::AbstractSolver> &aLinearSolver) :
+    NewtonRaphsonSolver(Plato::Mesh aMesh, Teuchos::ParameterList& aInputs, std::shared_ptr<Plato::AbstractSolver> &aLinearSolver) :
         mWorksetBase(aMesh),
         mStoppingTolerance(Plato::ParseTools::getSubParam<Plato::Scalar>(aInputs, "Newton-Raphson", "Stopping Tolerance", 1e-8)),
         mCurrentResidualNormTolerance(Plato::ParseTools::getSubParam<Plato::Scalar>(aInputs, "Newton-Raphson", "Current Residual Norm Stopping Tolerance", 1e-8)),
@@ -466,9 +466,9 @@ public:
 
     /***************************************************************************//**
      * \brief Constructor
-     * \param [in] aMesh Omega_h mesh database
+     * \param [in] aMesh Plato abstract mesh database
     *******************************************************************************/
-    explicit NewtonRaphsonSolver(Omega_h::Mesh& aMesh) :
+    explicit NewtonRaphsonSolver(Plato::Mesh aMesh) :
         mWorksetBase(aMesh),
         mStoppingTolerance(1e-6),
         mCurrentResidualNormTolerance(5e-7),
@@ -532,7 +532,7 @@ public:
      * \brief Append vector of Dirichlet degrees of freedom
      * \param [in] aInput vector of Dirichlet degrees of freedom
     *******************************************************************************/
-    void appendDirichletDofs(const Plato::LocalOrdinalVector & aInput)
+    void appendDirichletDofs(const Plato::OrdinalVector & aInput)
     {
         mDirichletDofs = aInput;
     }

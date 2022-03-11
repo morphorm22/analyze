@@ -2,8 +2,6 @@
 
 #include <cassert>
 
-#include <Omega_h_mesh.hpp>
-
 #include "ImplicitFunctors.hpp"
 #include "AnalyzeMacros.hpp"
 #include "Assembly.hpp"
@@ -65,12 +63,12 @@ public:
      * \brief Constructor
      * \param [in] aMesh mesh metadata
     **********************************************************************************/
-    WorksetBase(Omega_h::Mesh& aMesh) :
-            mNumCells(aMesh.nelems()),
-            mNumNodes(aMesh.nverts()),
-            mControlEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumControl>(&aMesh)),
-            mConfigEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mSpaceDim>(&aMesh)),
-            mNodeCoordinate(Plato::NodeCoordinate<mSpaceDim>(&aMesh))
+    WorksetBase(Plato::Mesh aMesh) :
+            mNumCells(aMesh->NumElements()),
+            mNumNodes(aMesh->NumNodes()),
+            mControlEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumControl>(aMesh)),
+            mConfigEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mSpaceDim>(aMesh)),
+            mNodeCoordinate(Plato::NodeCoordinate<mSpaceDim>(aMesh))
     {
     }
 

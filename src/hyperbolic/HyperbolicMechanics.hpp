@@ -58,12 +58,12 @@ namespace Plato
                 return std::make_shared<TransientMechanicsResidual<EvaluationType, Plato::Heaviside>>
                          (aSpatialDomain, aDataMap, aProblemParams, tPenaltyParams);
             } else {
-                THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
+                ANALYZE_THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
             }
         }
         else
         {
-            THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
+            ANALYZE_THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
         }
       }
       /******************************************************************************/

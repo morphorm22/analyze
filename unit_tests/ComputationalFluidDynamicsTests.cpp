@@ -8,7 +8,7 @@
 #include <Teuchos_XMLParameterListCoreHelpers.hpp>
 
 #include "BLAS3.hpp"
-#include "Plato_Diagnostics.hpp"
+#include "Analyze_Diagnostics.hpp"
 
 #include "hyperbolic/FluidsQuasiImplicit.hpp"
 
@@ -106,15 +106,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, setState)
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='2'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='2'/>"
             "  </ParameterList>"
             "</ParameterList>"
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,10,10);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
-    Plato::SpatialDomain tDomain(tMesh.operator*(), tMeshSets, "box");
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10);
+    Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
     // create communicator
@@ -124,16 +123,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, setState)
 
     // create and run incompressible cfd problem
     constexpr auto tSpaceDim = 2;
-    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(*tMesh, tMeshSets, *tInputs, tMachine);
-    const auto tNumVerts = tMesh->nverts();
+    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(tMesh, *tInputs, tMachine);
+    const auto tNumVerts = tMesh->NumNodes();
     auto tControls = Plato::ScalarVector("Controls", tNumVerts);
     Plato::blas1::fill(1.0, tControls);
     auto tSolution = tProblem.solution(tControls);
 
-    // read pvtu file path
-    Plato::Primal tPrimal;
-    auto tPaths = Plato::omega_h::read_pvtu_file_paths("solution_history");
-    TEST_EQUALITY(3u, tPaths.size());
+    auto tReader = Plato::MeshIOFactory::create("solution_history", tMesh, "Read");
+
+    // check number of steps
+    auto tNumSteps = tReader->NumTimeSteps();
+    TEST_EQUALITY(3u, tNumSteps);
 
     // fill field tags and names
     Plato::FieldTags tCurrentFieldTags;
@@ -149,10 +149,12 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, setState)
     std::vector<Plato::Scalar> tGoldMinVel = {0.0, -0.0795658, -0.0916226};
     std::vector<Plato::Scalar> tGoldMaxPress = {0.0, 6.40268, 4.27897};
     std::vector<Plato::Scalar> tGoldMinPress = {0.0, 0.0, 0.0};
-    for(auto tItr = tPaths.rbegin(); tItr != tPaths.rend() - 1; tItr++)
+
+    Plato::Primal tPrimal;
+    auto tLastStepIndex = tNumSteps - 1;
+    for(decltype(tNumSteps) tCurrentIndex=tLastStepIndex; tCurrentIndex>=1; tCurrentIndex--)
     {
-	auto tCurrentIndex = (tPaths.size() - 1u) - std::distance(tPaths.rbegin(), tItr);
-	Plato::omega_h::read_fields<Omega_h::VERT>(*tMesh, tPaths[tCurrentIndex], tCurrentFieldTags, tPrimal);
+	Plato::readNodeFields(tReader, tCurrentIndex, tCurrentFieldTags, tPrimal);
 
         Plato::Scalar tMaxVel = 0;
         Plato::blas1::max(tPrimal.vector("current velocity"), tMaxVel);
@@ -169,7 +171,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, setState)
         TEST_FLOATING_EQUALITY(tGoldMinPress[tCurrentIndex], tMinPress, tTol);
 
 	auto tPreviousIndex = tCurrentIndex - 1u;
-	Plato::omega_h::read_fields<Omega_h::VERT>(*tMesh, tPaths[tPreviousIndex], tPreviousFieldTags, tPrimal);
+	Plato::readNodeFields(tReader, tPreviousIndex, tPreviousFieldTags, tPrimal);
 
         tMaxVel = 0;
         Plato::blas1::max(tPrimal.vector("previous velocity"), tMaxVel);
@@ -262,15 +264,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ReadFields)
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='2'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='2'/>"
             "  </ParameterList>"
             "</ParameterList>"
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,10,10);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
-    Plato::SpatialDomain tDomain(tMesh.operator*(), tMeshSets, "box");
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10);
+    Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
     // create communicator
@@ -280,16 +281,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ReadFields)
 
     // create and run incompressible cfd problem
     constexpr auto tSpaceDim = 2;
-    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(*tMesh, tMeshSets, *tInputs, tMachine);
-    const auto tNumVerts = tMesh->nverts();
+    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(tMesh, *tInputs, tMachine);
+    const auto tNumVerts = tMesh->NumNodes();
     auto tControls = Plato::ScalarVector("Controls", tNumVerts);
     Plato::blas1::fill(1.0, tControls);
     auto tSolution = tProblem.solution(tControls);
 
-    // read pvtu file path
-    Plato::Primal tCurrentState;
-    auto tPaths = Plato::omega_h::read_pvtu_file_paths("solution_history");
-    TEST_EQUALITY(3u, tPaths.size());
+    auto tReader = Plato::MeshIOFactory::create("solution_history", tMesh, "Read");
+
+    // check number of steps
+    auto tNumSteps = tReader->NumTimeSteps();
+    TEST_EQUALITY(3u, tNumSteps);
 
     // fill field tags and names
     Plato::FieldTags tFieldTags;
@@ -304,10 +306,12 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ReadFields)
     std::vector<Plato::Scalar> tGoldMinPred = {0.0, -0.125735, -0.113359};
     std::vector<Plato::Scalar> tGoldMaxPress = {0.0, 6.40268, 4.27897};
     std::vector<Plato::Scalar> tGoldMinPress = {0.0, 0.0, 0.0};
-    for(auto tItr = tPaths.rbegin(); tItr != tPaths.rend(); tItr++)
+
+    Plato::Primal tCurrentState;
+    auto tLastStepIndex = tNumSteps - 1;
+    for(decltype(tNumSteps) tIndex=tLastStepIndex; tIndex>=1; tIndex--)
     {
-	auto tIndex = (tPaths.size() - 1u) - std::distance(tPaths.rbegin(), tItr);
-	Plato::omega_h::read_fields<Omega_h::VERT>(*tMesh, tPaths[tIndex], tFieldTags, tCurrentState);
+	Plato::readNodeFields(tReader, tIndex, tFieldTags, tCurrentState);
 
         Plato::Scalar tMaxVel = 0;
         Plato::blas1::max(tCurrentState.vector("current velocity"), tMaxVel);
@@ -332,7 +336,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ReadFields)
     }
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Test_Omega_h_ReadParallel)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Test_Read)
 {
     // set xml file inputs
     Teuchos::RCP<Teuchos::ParameterList> tInputs =
@@ -407,15 +411,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Test_Omega_h_ReadParallel)
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='2'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='2'/>"
             "  </ParameterList>"
             "</ParameterList>"
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,10,10);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
-    Plato::SpatialDomain tDomain(tMesh.operator*(), tMeshSets, "box");
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10);
+    Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
     // create communicator
@@ -425,15 +428,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Test_Omega_h_ReadParallel)
 
     // create and run incompressible cfd problem
     constexpr auto tSpaceDim = 2;
-    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(*tMesh, tMeshSets, *tInputs, tMachine);
-    const auto tNumVerts = tMesh->nverts();
+    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(tMesh, *tInputs, tMachine);
+    const auto tNumVerts = tMesh->NumNodes();
     auto tControls = Plato::ScalarVector("Controls", tNumVerts);
     Plato::blas1::fill(1.0, tControls);
     auto tSolution = tProblem.solution(tControls);
 
-    // read pvtu file paths
-    auto tPaths = Plato::omega_h::read_pvtu_file_paths("solution_history");
-    TEST_EQUALITY(3u, tPaths.size());
+    auto tReader = Plato::MeshIOFactory::create("solution_history", tMesh, "Read");
+
+    // check number of steps
+    auto tNumSteps = tReader->NumTimeSteps();
+    TEST_EQUALITY(3u, tNumSteps);
 
     auto tTol = 1e-2;
     std::vector<Plato::Scalar> tGoldMaxVel = {1.0, 1.0, 1.0};
@@ -442,13 +447,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Test_Omega_h_ReadParallel)
     std::vector<Plato::Scalar> tGoldMinPred = {0.0, -0.125735, -0.113359};
     std::vector<Plato::Scalar> tGoldMaxPress = {0.0, 6.40268, 4.27897};
     std::vector<Plato::Scalar> tGoldMinPress = {0.0, 0.0, 0.0};
-    for(auto& tPath : tPaths)
-    {
-	auto tIndex = &tPath - &tPaths[0];
-	Omega_h::Mesh tReadMesh(tMesh->library());
-	Omega_h::vtk::read_parallel(tPath, tMesh->library()->world(), &tReadMesh);
 
-	auto tVelocity = Plato::omega_h::read_metadata_from_mesh(tReadMesh, Omega_h::VERT, "Velocity");
+    for(decltype(tNumSteps) tIndex=0; tIndex<tNumSteps; tIndex++)
+    {
+	auto tVelocity = tReader->ReadNodeData("Velocity", tIndex);
 	TEST_EQUALITY(242, tVelocity.size());
         Plato::Scalar tMaxVel = 0;
         Plato::blas1::max(tVelocity, tMaxVel);
@@ -457,7 +459,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Test_Omega_h_ReadParallel)
         Plato::blas1::min(tVelocity, tMinVel);
         TEST_FLOATING_EQUALITY(tGoldMinVel[tIndex], tMinVel, tTol);
 
-	auto tPredictor = Plato::omega_h::read_metadata_from_mesh(tReadMesh, Omega_h::VERT, "Predictor");
+	auto tPredictor = tReader->ReadNodeData("Predictor", tIndex);
 	TEST_EQUALITY(242, tPredictor.size());
         Plato::Scalar tMaxPred = 0;
         Plato::blas1::max(tPredictor, tMaxPred);
@@ -466,7 +468,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Test_Omega_h_ReadParallel)
         Plato::blas1::min(tPredictor, tMinPred);
         TEST_FLOATING_EQUALITY(tGoldMinPred[tIndex], tMinPred, tTol);
 
-	auto tPressure = Plato::omega_h::read_metadata_from_mesh(tReadMesh, Omega_h::VERT, "Pressure");
+	auto tPressure = tReader->ReadNodeData("Pressure", tIndex);
 	TEST_EQUALITY(121, tPressure.size());
         Plato::Scalar tMaxPress = 0;
         Plato::blas1::max(tPressure, tMaxPress);
@@ -477,7 +479,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Test_Omega_h_ReadParallel)
     }
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ReadPvtuFilePaths)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ReadSteps)
 {
     // set xml file inputs
     Teuchos::RCP<Teuchos::ParameterList> tInputs =
@@ -552,15 +554,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ReadPvtuFilePaths)
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='10'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='10'/>"
             "  </ParameterList>"
             "</ParameterList>"
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,10,10);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
-    Plato::SpatialDomain tDomain(tMesh.operator*(), tMeshSets, "box");
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10);
+    Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
     // create communicator
@@ -570,40 +571,30 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ReadPvtuFilePaths)
 
     // create and run incompressible cfd problem
     constexpr auto tSpaceDim = 2;
-    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(*tMesh, tMeshSets, *tInputs, tMachine);
-    const auto tNumVerts = tMesh->nverts();
+    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(tMesh, *tInputs, tMachine);
+    const auto tNumVerts = tMesh->NumNodes();
     auto tControls = Plato::ScalarVector("Controls", tNumVerts);
     Plato::blas1::fill(1.0, tControls);
     auto tSolution = tProblem.solution(tControls);
 
-    // read pvtu file paths
-    auto tPaths = Plato::omega_h::read_pvtu_file_paths("solution_history");
-    TEST_EQUALITY(11u, tPaths.size());
+    auto tReader = Plato::MeshIOFactory::create("solution_history", tMesh, "Read");
 
-    // test paths
-    std::vector<std::string> tGold = 
-        {"solution_history/steps/step_0/pieces.pvtu", "solution_history/steps/step_1/pieces.pvtu", "solution_history/steps/step_2/pieces.pvtu",
-	 "solution_history/steps/step_3/pieces.pvtu", "solution_history/steps/step_4/pieces.pvtu", "solution_history/steps/step_5/pieces.pvtu",
-	 "solution_history/steps/step_6/pieces.pvtu", "solution_history/steps/step_7/pieces.pvtu", "solution_history/steps/step_8/pieces.pvtu",
-	 "solution_history/steps/step_9/pieces.pvtu", "solution_history/steps/step_10/pieces.pvtu"};
-    for(auto& tPath : tPaths)
-    {
-	auto tIndex = &tPath - &tPaths[0];
-	TEST_EQUALITY(tGold[tIndex], tPath.string());
-    }
+    // check number of steps
+    auto tNumSteps = tReader->NumTimeSteps();
+    TEST_EQUALITY(11u, tNumSteps);
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_CheckCriterionAvgSurfPress_Gradient)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_CheckCriterionVolume_Gradient)
 {
     // set xml file inputs
     Teuchos::RCP<Teuchos::ParameterList> tInputs =
         Teuchos::getParametersFromXmlString(
             "<ParameterList name='Plato Problem'>"
             "  <ParameterList name='Criteria'>"
-            "    <ParameterList name='Inlet Average Surface Pressure'>"
+            "    <ParameterList name='Volume Criterion'>"
             "      <Parameter name='Type' type='string' value='Scalar Function'/> "
-            "      <Parameter  name='Sides' type='Array(string)' value='{x-}'/>"
-            "      <Parameter name='Scalar Function Type' type='string' value='Average Surface Pressure'/>"
+            "      <Parameter  name='Domains' type='Array(string)' value='{body}'/>"
+            "      <Parameter name='Scalar Function Type' type='string' value='Volume'/>"
             "    </ParameterList>"
             "  </ParameterList>"
             "  <ParameterList name='Hyperbolic'>"
@@ -677,16 +668,15 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_CheckCrit
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='5'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='5'/>"
             "    <Parameter name='Steady State Tolerance' type='double' value='1e-3'/>"
             "  </ParameterList>"
             "</ParameterList>"
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,10,10);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
-    Plato::SpatialDomain tDomain(tMesh.operator*(), tMeshSets, "box");
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10);
+    Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
     // create communicator
@@ -696,8 +686,115 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_CheckCrit
 
     // create and test gradient wrt control for incompressible cfd problem
     constexpr auto tSpaceDim = 2;
-    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(*tMesh, tMeshSets, *tInputs, tMachine);
-    auto tError = Plato::test_criterion_grad_wrt_control(tProblem, *tMesh, "Inlet Average Surface Pressure", 1, 6);
+    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(tMesh, *tInputs, tMachine);
+    auto tError = Plato::test_criterion_grad_wrt_control(tProblem, tMesh, "Volume Criterion", 1, 4);
+    TEST_ASSERT(tError < 1e-4);
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_CheckCriterionAvgSurfPress_Gradient)
+{
+    // set xml file inputs
+    Teuchos::RCP<Teuchos::ParameterList> tInputs =
+        Teuchos::getParametersFromXmlString(
+            "<ParameterList name='Plato Problem'>"
+            "  <ParameterList name='Criteria'>"
+            "    <ParameterList name='Inlet Mean Surface Pressure'>"
+            "      <Parameter name='Type' type='string' value='Scalar Function'/> "
+            "      <Parameter  name='Sides' type='Array(string)' value='{x-}'/>"
+            "      <Parameter name='Scalar Function Type' type='string' value='Mean Surface Pressure'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList name='Hyperbolic'>"
+            "    <Parameter name='Heat Transfer' type='string' value='None'/>"     
+            "    <Parameter name='Scenario' type='string' value='Density-Based Topology Optimization'/>"
+            "    <ParameterList  name='Momentum Conservation'>"
+            "      <Parameter  name='Stabilization Constant' type='double' value='1'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList name='Spatial Model'>"
+            "    <ParameterList name='Domains'>"
+            "      <ParameterList name='Design Volume'>"
+            "        <Parameter name='Element Block' type='string' value='body'/>"
+            "        <Parameter name='Material Model' type='string' value='water'/>"
+            "      </ParameterList>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList name='Material Models'>"
+            "    <ParameterList name='water'>"
+            "      <Parameter  name='Reynolds Number'  type='double'  value='1e2'/>"
+            "      <Parameter  name='Impermeability Number'  type='double'  value='1'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Velocity Essential Boundary Conditions'>"
+            "    <ParameterList  name='X-Dir Inlet Velocity'>"
+            "      <Parameter  name='Type'     type='string' value='Fixed Value'/>"
+            "      <Parameter  name='Value'    type='double' value='1'/>"
+            "      <Parameter  name='Index'    type='int'    value='0'/>"
+            "      <Parameter  name='Sides'    type='string' value='x-'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='Y-Dir Inlet Velocity'>"
+            "      <Parameter  name='Type'     type='string' value='Fixed Value'/>"
+            "      <Parameter  name='Value'    type='double' value='0'/>"
+            "      <Parameter  name='Index'    type='int'    value='1'/>"
+            "      <Parameter  name='Sides'    type='string' value='x-'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='X-Dir No-Slip on Y+'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='0'/>"
+            "      <Parameter  name='Sides'    type='string' value='y+'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='Y-Dir No-Slip on Y+'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='1'/>"
+            "      <Parameter  name='Sides'    type='string' value='y+'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='X-Dir No-Slip on Y-'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='0'/>"
+            "      <Parameter  name='Sides'    type='string' value='y-'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='Y-Dir No-Slip on Y-'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='1'/>"
+            "      <Parameter  name='Sides'    type='string' value='y-'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Pressure Essential Boundary Conditions'>"
+            "    <ParameterList  name='Outlet Pressure'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='0'/>"
+            "      <Parameter  name='Sides'    type='string' value='x+'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Time Integration'>"
+            "    <Parameter name='Safety Factor' type='double' value='0.7'/>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Linear Solver'>"
+            "    <Parameter name='Solver Stack' type='string' value='Epetra'/>"
+            "    <Parameter name='Display Diagnostics' type='bool' value='false'/>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Convergence'>"
+            "    <Parameter name='Output Frequency' type='int' value='1'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='5'/>"
+            "    <Parameter name='Steady State Tolerance' type='double' value='1e-3'/>"
+            "  </ParameterList>"
+            "</ParameterList>"
+            );
+
+    // build mesh, spatial domain, and spatial model
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10);
+    Plato::SpatialDomain tDomain(tMesh, "box");
+    tDomain.cellOrdinals("body");
+
+    // create communicator
+    MPI_Comm tMyComm;
+    MPI_Comm_dup(MPI_COMM_WORLD, &tMyComm);
+    Plato::Comm::Machine tMachine(tMyComm);
+
+    // create and test gradient wrt control for incompressible cfd problem
+    constexpr auto tSpaceDim = 2;
+    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(tMesh, *tInputs, tMachine);
+    auto tError = Plato::test_criterion_grad_wrt_control(tProblem, tMesh, "Inlet Mean Surface Pressure", 1, 6);
     TEST_ASSERT(tError < 1e-4);
 }
 
@@ -785,16 +882,15 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_TestCrite
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='5'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='5'/>"
             "    <Parameter name='Steady State Tolerance' type='double' value='1e-3'/>"
             "  </ParameterList>"
             "</ParameterList>"
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,10,10);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
-    Plato::SpatialDomain tDomain(tMesh.operator*(), tMeshSets, "box");
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10);
+    Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
     // create communicator
@@ -804,8 +900,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_TestCrite
 
     // create and test gradient wrt control for incompressible cfd problem
     constexpr auto tSpaceDim = 2;
-    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(*tMesh, tMeshSets, *tInputs, tMachine);
-    auto tError = Plato::test_criterion_grad_wrt_control(tProblem, *tMesh, "Inlet Flow Rate", 1, 6);
+    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(tMesh, *tInputs, tMachine);
+    auto tError = Plato::test_criterion_grad_wrt_control(tProblem, tMesh, "Inlet Flow Rate", 1, 6);
     TEST_ASSERT(tError < 1e-4);
 }
 
@@ -816,10 +912,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
         Teuchos::getParametersFromXmlString(
             "<ParameterList name='Plato Problem'>"
             "  <ParameterList name='Criteria'>"
-            "    <ParameterList name='Average Surface Temperature'>"
+            "    <ParameterList name='Mean Surface Temperature'>"
             "      <Parameter name='Type' type='string' value='Scalar Function'/> "
             "      <Parameter  name='Sides' type='Array(string)' value='{y+}'/>"
-            "      <Parameter name='Scalar Function Type' type='string' value='Average Surface Temperature'/>"
+            "      <Parameter name='Scalar Function Type' type='string' value='Mean Surface Temperature'/>"
             "    </ParameterList>"
             "  </ParameterList>"
             "  <ParameterList name='Hyperbolic'>"
@@ -841,7 +937,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "    <ParameterList name='air'>"
             "      <Parameter  name='Impermeability Number'  type='double'  value='100'/>"
             "      <Parameter  name='Thermal Diffusivity' type='double' value='2.1117e-5'/>"
-            "      <Parameter  name='Thermal Diffusivity Ratio' type='double' value='0.75' />"
             "      <Parameter  name='Kinematic Viscocity' type='double' value='1.5111e-5'/>"
             "      <Parameter  name='Prandtl Number'  type='double' value='0.7'/>"
             "      <Parameter  name='Rayleigh Number' type='Array(double)' value='{0,1e3}'/>"
@@ -912,16 +1007,15 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='2'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='2'/>"
             "    <Parameter name='Steady State Tolerance' type='double' value='1e-4'/>"
             "  </ParameterList>"
             "</ParameterList>"
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,50,50);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
-    Plato::SpatialDomain tDomain(tMesh.operator*(), tMeshSets, "box");
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 50);
+    Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
     // create communicator
@@ -931,8 +1025,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
 
     // create and test gradient wrt control for incompressible cfd problem
     constexpr auto tSpaceDim = 2;
-    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(*tMesh, tMeshSets, *tInputs, tMachine);
-    auto tError = Plato::test_criterion_grad_wrt_control(tProblem, *tMesh, "Average Surface Temperature", 1, 4);
+    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(tMesh, *tInputs, tMachine);
+    auto tError = Plato::test_criterion_grad_wrt_control(tProblem, tMesh, "Mean Surface Temperature", 1, 4);
     TEST_ASSERT(tError < 1e-4);
 }
 
@@ -968,10 +1062,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "      <Parameter  name='Impermeability Number'  type='double'  value='100'/>"
             "      <Parameter  name='Thermal Diffusivity' type='double' value='2.1117e-5'/>"
             "      <Parameter  name='Kinematic Viscocity'   type='double' value='1.5111e-5'/>"
-            "      <Parameter  name='Thermal Diffusivity Ratio' type='double' value='0.75' />"
             "      <Parameter  name='Thermal Conductivity'  type='double' value='1'/>"
             "      <Parameter  name='Characteristic Length' type='double' value='1'/>"
-            "      <Parameter  name='Reference Temperature'  type='double'  value='1'/>"
+            "      <Parameter  name='Temperature Difference'  type='double'  value='1'/>"
             "      <Parameter  name='Prandtl Number'  type='double' value='0.7'/>"
             "      <Parameter  name='Rayleigh Number' type='Array(double)' value='{0,1e3}'/>"
             "    </ParameterList>"
@@ -1043,7 +1136,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "    <ParameterList  name='Thermal Source'>"
             "      <Parameter  name='Type'   type='string'  value='Uniform'/>"
             "      <Parameter  name='Value'  type='double'  value='1'/>"
-            "      <Parameter  name='Element Block'  type='string'  value='body'/>"
+            "      <Parameter  name='Domains' type='Array(string)' value='{body}'/>"
             "    </ParameterList>"
             "  </ParameterList>"
             "  <ParameterList  name='Time Integration'>"
@@ -1055,16 +1148,15 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             "  </ParameterList>"
             "  <ParameterList  name='Convergence'>"
             "    <Parameter name='Output Frequency' type='int' value='1'/>"
-            "    <Parameter name='Maximum Iterations' type='int' value='2'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='2'/>"
             "    <Parameter name='Steady State Tolerance' type='double' value='1e-4'/>"
             "  </ParameterList>"
             "</ParameterList>"
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,50,50);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
-    Plato::SpatialDomain tDomain(tMesh.operator*(), tMeshSets, "box");
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 50);
+    Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
     // create communicator
@@ -1074,8 +1166,306 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
 
     // create and test gradient wrt control for incompressible cfd problem
     constexpr auto tSpaceDim = 2;
-    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(*tMesh, tMeshSets, *tInputs, tMachine);
-    auto tError = Plato::test_criterion_grad_wrt_control(tProblem, *tMesh, "Thermal Compliance", 1, 4);
+    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(tMesh, *tInputs, tMachine);
+    auto tError = Plato::test_criterion_grad_wrt_control(tProblem, tMesh, "Thermal Compliance", 1, 4);
+    TEST_ASSERT(tError < 1e-4);
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_CheckCriterionSurfaceThermalFluxGradient)
+{
+    // set xml file inputs
+    Teuchos::RCP<Teuchos::ParameterList> tInputs =
+        Teuchos::getParametersFromXmlString(
+            "<ParameterList name='Plato Problem'>"
+            "  <ParameterList name='Criteria'>"
+            "    <ParameterList name='Thermal Flux'>"
+            "      <Parameter name='Type' type='string' value='Scalar Function'/> "
+            "      <Parameter name='Sides' type='Array(string)' value='{x+}'/>"
+            "      <Parameter name='Conductivity Ratios' type='Array(double)' value='{1.0}'/>" // surface material conductivity over fluid conductivity 
+            "      <Parameter name='Scalar Function Type' type='string' value='Thermal Flux'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList name='Hyperbolic'>"
+            "    <Parameter name='Heat Transfer' type='string' value='Natural'/>"      
+            "    <Parameter name='Scenario' type='string' value='Density-Based Topology Optimization'/>"
+            "    <ParameterList  name='Momentum Conservation'>"
+            "      <Parameter  name='Stabilization Constant' type='double' value='1.0'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList name='Spatial Model'>"
+            "    <ParameterList name='Domains'>"
+            "      <ParameterList name='Design Volume'>"
+            "        <Parameter name='Element Block' type='string' value='body'/>"
+            "        <Parameter name='Material Model' type='string' value='air'/>"
+            "      </ParameterList>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList name='Material Models'>"
+            "    <ParameterList name='air'>"
+            "      <Parameter  name='Impermeability Number'  type='double'  value='100'/>"
+            "      <Parameter  name='Thermal Diffusivity' type='double' value='2.1117e-5'/>"
+            "      <Parameter  name='Kinematic Viscocity'   type='double' value='1.5111e-5'/>"
+            "      <Parameter  name='Thermal Conductivity'  type='double' value='1'/>"
+            "      <Parameter  name='Characteristic Length' type='double' value='1'/>"
+            "      <Parameter  name='Temperature Difference'  type='double'  value='1'/>"
+            "      <Parameter  name='Prandtl Number'  type='double' value='0.7'/>"
+            "      <Parameter  name='Rayleigh Number' type='Array(double)' value='{0,1e3}'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Velocity Essential Boundary Conditions'>"
+            "    <ParameterList  name='X-Dir No-Slip on X-'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='0'/>"
+            "      <Parameter  name='Sides'    type='string' value='x-'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='Y-Dir No-Slip on X-'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='1'/>"
+            "      <Parameter  name='Sides'    type='string' value='x-'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='X-Dir No-Slip on X+'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='0'/>"
+            "      <Parameter  name='Sides'    type='string' value='x+'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='Y-Dir No-Slip on X+'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='1'/>"
+            "      <Parameter  name='Sides'    type='string' value='x+'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='X-Dir No-Slip on Y-'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='0'/>"
+            "      <Parameter  name='Sides'    type='string' value='y-'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='Y-Dir No-Slip on Y-'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='1'/>"
+            "      <Parameter  name='Sides'    type='string' value='y-'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='X-Dir No-Slip on Y+'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='0'/>"
+            "      <Parameter  name='Sides'    type='string' value='y+'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='Y-Dir No-Slip on Y+'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='1'/>"
+            "      <Parameter  name='Sides'    type='string' value='y+'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Temperature Essential Boundary Conditions'>"
+            "    <ParameterList  name='Hot Wall'>"
+            "      <Parameter  name='Type'     type='string' value='Fixed Value'/>"
+            "      <Parameter  name='Value'    type='double' value='1.0'/>"
+            "      <Parameter  name='Index'    type='int'    value='0'/>"
+            "      <Parameter  name='Sides'    type='string' value='x-'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='Cold Wall'>"
+            "      <Parameter  name='Type'     type='string' value='Fixed Value'/>"
+            "      <Parameter  name='Value'    type='double' value='0.0'/>"
+            "      <Parameter  name='Index'    type='int'    value='0'/>"
+            "      <Parameter  name='Sides'    type='string' value='x+'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList name='Pressure Essential Boundary Conditions'>"
+            "    <ParameterList name='Pressure Boundary Condition with ID 5 applied to Dof with tag PRESS'>"
+            "      <Parameter name='Type' type='string' value='Zero Value'/>"
+            "      <Parameter name='Index' type='int' value='0'/>"
+            "      <Parameter name='Sides' type='string' value='x-'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Thermal Natural Boundary Conditions'>"
+            "    <ParameterList  name='Thermal Flux Boundary Condition'>"
+            "      <Parameter  name='Type'   type='string'  value='Uniform'/>"
+            "      <Parameter  name='Value'  type='double'  value='-3.0'/>"
+            "      <Parameter  name='Sides'  type='string'  value='y-'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Thermal Sources'>"
+            "    <ParameterList  name='Thermal Source'>"
+            "      <Parameter  name='Type'   type='string'  value='Uniform'/>"
+            "      <Parameter  name='Value'  type='double'  value='1'/>"
+            "      <Parameter  name='Domains' type='Array(string)' value='{body}'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Time Integration'>"
+            "    <Parameter name='Safety Factor' type='double' value='0.4'/>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Linear Solver'>"
+            "    <Parameter name='Solver Stack' type='string' value='Epetra'/>"
+            "    <Parameter name='Display Diagnostics' type='bool' value='false'/>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Convergence'>"
+            "    <Parameter name='Output Frequency' type='int' value='1'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='2'/>"
+            "    <Parameter name='Steady State Tolerance' type='double' value='1e-3'/>"
+            "  </ParameterList>"
+            "</ParameterList>"
+            );
+
+    // build mesh, spatial domain, and spatial model
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 50);
+    Plato::SpatialDomain tDomain(tMesh, "box");
+    tDomain.cellOrdinals("body");
+
+    // create communicator
+    MPI_Comm tMyComm;
+    MPI_Comm_dup(MPI_COMM_WORLD, &tMyComm);
+    Plato::Comm::Machine tMachine(tMyComm);
+
+    // create and test gradient wrt control for incompressible cfd problem
+    constexpr auto tSpaceDim = 2;
+    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(tMesh, *tInputs, tMachine);
+    auto tError = Plato::test_criterion_grad_wrt_control(tProblem, tMesh, "Thermal Flux", 1, 4);
+    TEST_ASSERT(tError < 1e-4);
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_CheckCriterionMeanTemperatureGradient)
+{
+    // set xml file inputs
+    Teuchos::RCP<Teuchos::ParameterList> tInputs =
+        Teuchos::getParametersFromXmlString(
+            "<ParameterList name='Plato Problem'>"
+            "  <ParameterList name='Criteria'>"
+            "    <ParameterList name='Mean Temperature'>"
+            "      <Parameter name='Type' type='string' value='Scalar Function'/> "
+            "      <Parameter name='Scalar Function Type' type='string' value='Mean Temperature'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList name='Hyperbolic'>"
+            "    <Parameter name='Heat Transfer' type='string' value='Natural'/>"      
+            "    <Parameter name='Scenario' type='string' value='Density-Based Topology Optimization'/>"
+            "    <ParameterList  name='Momentum Conservation'>"
+            "      <Parameter  name='Stabilization Constant' type='double' value='1.0'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList name='Spatial Model'>"
+            "    <ParameterList name='Domains'>"
+            "      <ParameterList name='Design Volume'>"
+            "        <Parameter name='Element Block' type='string' value='body'/>"
+            "        <Parameter name='Material Model' type='string' value='air'/>"
+            "      </ParameterList>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList name='Material Models'>"
+            "    <ParameterList name='air'>"
+            "      <Parameter  name='Impermeability Number'  type='double'  value='100'/>"
+            "      <Parameter  name='Thermal Diffusivity' type='double' value='2.1117e-5'/>"
+            "      <Parameter  name='Kinematic Viscocity'   type='double' value='1.5111e-5'/>"
+            "      <Parameter  name='Thermal Conductivity'  type='double' value='1'/>"
+            "      <Parameter  name='Characteristic Length' type='double' value='1'/>"
+            "      <Parameter  name='Temperature Difference'  type='double'  value='1'/>"
+            "      <Parameter  name='Prandtl Number'  type='double' value='0.7'/>"
+            "      <Parameter  name='Rayleigh Number' type='Array(double)' value='{0,1e3}'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Velocity Essential Boundary Conditions'>"
+            "    <ParameterList  name='X-Dir No-Slip on X-'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='0'/>"
+            "      <Parameter  name='Sides'    type='string' value='x-'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='Y-Dir No-Slip on X-'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='1'/>"
+            "      <Parameter  name='Sides'    type='string' value='x-'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='X-Dir No-Slip on X+'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='0'/>"
+            "      <Parameter  name='Sides'    type='string' value='x+'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='Y-Dir No-Slip on X+'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='1'/>"
+            "      <Parameter  name='Sides'    type='string' value='x+'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='X-Dir No-Slip on Y-'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='0'/>"
+            "      <Parameter  name='Sides'    type='string' value='y-'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='Y-Dir No-Slip on Y-'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='1'/>"
+            "      <Parameter  name='Sides'    type='string' value='y-'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='X-Dir No-Slip on Y+'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='0'/>"
+            "      <Parameter  name='Sides'    type='string' value='y+'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='Y-Dir No-Slip on Y+'>"
+            "      <Parameter  name='Type'     type='string' value='Zero Value'/>"
+            "      <Parameter  name='Index'    type='int'    value='1'/>"
+            "      <Parameter  name='Sides'    type='string' value='y+'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Temperature Essential Boundary Conditions'>"
+            "    <ParameterList  name='Hot Wall'>"
+            "      <Parameter  name='Type'     type='string' value='Fixed Value'/>"
+            "      <Parameter  name='Value'    type='double' value='1.0'/>"
+            "      <Parameter  name='Index'    type='int'    value='0'/>"
+            "      <Parameter  name='Sides'    type='string' value='x-'/>"
+            "    </ParameterList>"
+            "    <ParameterList  name='Cold Wall'>"
+            "      <Parameter  name='Type'     type='string' value='Fixed Value'/>"
+            "      <Parameter  name='Value'    type='double' value='0.0'/>"
+            "      <Parameter  name='Index'    type='int'    value='0'/>"
+            "      <Parameter  name='Sides'    type='string' value='x+'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList name='Pressure Essential Boundary Conditions'>"
+            "    <ParameterList name='Pressure Boundary Condition with ID 5 applied to Dof with tag PRESS'>"
+            "      <Parameter name='Type' type='string' value='Zero Value'/>"
+            "      <Parameter name='Index' type='int' value='0'/>"
+            "      <Parameter name='Sides' type='string' value='x-'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Thermal Natural Boundary Conditions'>"
+            "    <ParameterList  name='Thermal Flux Boundary Condition'>"
+            "      <Parameter  name='Type'   type='string'  value='Uniform'/>"
+            "      <Parameter  name='Value'  type='double'  value='-3.0'/>"
+            "      <Parameter  name='Sides'  type='string'  value='y-'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Thermal Sources'>"
+            "    <ParameterList  name='Thermal Source'>"
+            "      <Parameter  name='Type'   type='string'  value='Uniform'/>"
+            "      <Parameter  name='Value'  type='double'  value='1'/>"
+            "      <Parameter  name='Domains' type='Array(string)' value='{body}'/>"
+            "    </ParameterList>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Time Integration'>"
+            "    <Parameter name='Safety Factor' type='double' value='0.4'/>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Linear Solver'>"
+            "    <Parameter name='Solver Stack' type='string' value='Epetra'/>"
+            "    <Parameter name='Display Diagnostics' type='bool' value='false'/>"
+            "  </ParameterList>"
+            "  <ParameterList  name='Convergence'>"
+            "    <Parameter name='Output Frequency' type='int' value='1'/>"
+            "    <Parameter name='Steady State Iterations' type='int' value='2'/>"
+            "    <Parameter name='Steady State Tolerance' type='double' value='1e-3'/>"
+            "  </ParameterList>"
+            "</ParameterList>"
+            );
+
+    // build mesh, spatial domain, and spatial model
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 40);
+    Plato::SpatialDomain tDomain(tMesh, "box");
+    tDomain.cellOrdinals("body");
+
+    // create communicator
+    MPI_Comm tMyComm;
+    MPI_Comm_dup(MPI_COMM_WORLD, &tMyComm);
+    Plato::Comm::Machine tMachine(tMyComm);
+
+    // create and test gradient wrt control for incompressible cfd problem
+    constexpr auto tSpaceDim = 2;
+    Plato::Fluids::QuasiImplicit<Plato::IncompressibleFluids<tSpaceDim>> tProblem(tMesh, *tInputs, tMachine);
+    auto tError = Plato::test_criterion_grad_wrt_control(tProblem, tMesh, "Mean Temperature", 1, 4);
     TEST_ASSERT(tError < 1e-4);
 }
 
@@ -1111,13 +1501,12 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateMisfitInfNorm)
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateConvectiveVelocityMagnitude)
 {
     // build mesh and spatial model
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
-    Plato::SpatialModel tSpatialModel(tMesh.operator*(), tMeshSets);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    Plato::SpatialModel tSpatialModel(tMesh);
 
     // set velocity field
-    auto tNumNodes = tMesh->nverts();
-    auto tNumSpaceDims = tMesh->dim();
+    auto tNumNodes = tMesh->NumNodes();
+    auto tNumSpaceDims = tMesh->NumDimensions();
     Plato::ScalarVector tVelocity("velocity", tNumNodes * tNumSpaceDims);
     auto tHostVelocity = Kokkos::create_mirror(tVelocity);
     tHostVelocity(0) = 1;
@@ -1150,9 +1539,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateConvectiveVelocityMagnitude)
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateElementCharacteristicSizes)
 {
     // build mesh and spatial model
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
-    Plato::SpatialModel tSpatialModel(tMesh.operator*(), tMeshSets);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    Plato::SpatialModel tSpatialModel(tMesh);
 
     constexpr auto tNumSpaceDims = 2;
     constexpr auto tNumNodesPerCell = tNumSpaceDims + 1;
@@ -1165,7 +1553,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateElementCharacteristicSizes)
     Kokkos::deep_copy(tHostElemCharSize, tElemCharSize);
     std::vector<Plato::Scalar> tGold = {5.857864e-01,5.857864e-01,5.857864e-01,5.857864e-01};
 
-    auto tNumNodes = tSpatialModel.Mesh.nverts();
+    auto tNumNodes = tSpatialModel.Mesh->NumNodes();
     for (Plato::OrdinalType tNode = 0; tNode < tNumNodes; tNode++)
     {
         TEST_FLOATING_EQUALITY(tGold[tNode], tHostElemCharSize(tNode), tTol);
@@ -1203,24 +1591,23 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PressureIncrementResidual_EvaluateBound
     using EvaluationT = Plato::Fluids::Evaluation<PhysicsT::SimplexT>::Residual;
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
     auto tSpatialDomainName = std::string("my box");
-    Plato::SpatialDomain tDomain(tMesh.operator*(), tMeshSets, tSpatialDomainName);
+    Plato::SpatialDomain tDomain(tMesh, tSpatialDomainName);
     auto tElementBlockName = std::string("body");
     tDomain.cellOrdinals(tElementBlockName);
-    Plato::SpatialModel tSpatialModel(tMesh.operator*(), tMeshSets);
+    Plato::SpatialModel tSpatialModel(tMesh);
     tSpatialModel.append(tDomain);
 
     // set workset
     Plato::WorkSets tWorkSets;
-    auto tNumCells = tMesh->nelems();
+    auto tNumCells = tMesh->NumElements();
     constexpr auto tNumNodesPerCell = tNumSpaceDims + 1;
     using ConfigT = EvaluationT::ConfigScalarType;
-    Plato::NodeCoordinate<tNumSpaceDims> tNodeCoordinate( (&tMesh.operator*()) );
+    Plato::NodeCoordinate<tNumSpaceDims> tNodeCoordinate(tMesh);
     auto tConfig = std::make_shared< Plato::MetaData< Plato::ScalarArray3DT<ConfigT> > >
         ( Plato::ScalarArray3DT<ConfigT>("configuration", tNumCells, tNumNodesPerCell, tNumSpaceDims) );
-    Plato::workset_config_scalar<tNumSpaceDims, tNumNodesPerCell>(tMesh->nelems(), tNodeCoordinate, tConfig->mData);
+    Plato::workset_config_scalar<tNumSpaceDims, tNumNodesPerCell>(tMesh->NumElements(), tNodeCoordinate, tConfig->mData);
     tWorkSets.set("configuration", tConfig);
 
     using PrevVelT = EvaluationT::PreviousMomentumScalarType;
@@ -1253,7 +1640,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PressureIncrementResidual_EvaluateBound
     auto tHostResult = Kokkos::create_mirror(tResult);
     Kokkos::deep_copy(tHostResult, tResult);
     std::vector<std::vector<Plato::Scalar>> tGold =
-        {{0.0,0.0,0.0},{0.0,-217.0,-217.0}};
+        {{0.0,0.0,0.0},{-201.5,0.0,-201.5}};
     for (Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++)
     {
         for (Plato::OrdinalType tDof = 0; tDof < tNumNodesPerCell; tDof++)
@@ -1272,22 +1659,21 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PressureResidual)
     using EvaluationT = Plato::Fluids::Evaluation<PhysicsT::SimplexT>::Residual;
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
     auto tSpatialDomainName = std::string("my box");
-    Plato::SpatialDomain tDomain(tMesh.operator*(), tMeshSets, tSpatialDomainName);
+    Plato::SpatialDomain tDomain(tMesh, tSpatialDomainName);
     auto tElementBlockName = std::string("body");
     tDomain.cellOrdinals(tElementBlockName);
 
     // set workset
     Plato::WorkSets tWorkSets;
-    auto tNumCells = tMesh->nelems();
+    auto tNumCells = tMesh->NumElements();
     constexpr auto tNumNodesPerCell = tNumSpaceDims + 1;
     using ConfigT = EvaluationT::ConfigScalarType;
-    Plato::NodeCoordinate<tNumSpaceDims> tNodeCoordinate( (&tMesh.operator*()) );
+    Plato::NodeCoordinate<tNumSpaceDims> tNodeCoordinate(tMesh);
     auto tConfig = std::make_shared< Plato::MetaData< Plato::ScalarArray3DT<ConfigT> > >
         ( Plato::ScalarArray3DT<ConfigT>("configuration", tNumCells, tNumNodesPerCell, tNumSpaceDims) );
-    Plato::workset_config_scalar<tNumSpaceDims, tNumNodesPerCell>(tMesh->nelems(), tNodeCoordinate, tConfig->mData);
+    Plato::workset_config_scalar<tNumSpaceDims, tNumNodesPerCell>(tMesh->NumElements(), tNodeCoordinate, tConfig->mData);
     tWorkSets.set("configuration", tConfig);
 
     using PrevVelT = EvaluationT::PreviousMomentumScalarType;
@@ -1353,7 +1739,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PressureResidual)
     auto tHostResult = Kokkos::create_mirror(tResult);
     Kokkos::deep_copy(tHostResult, tResult);
     std::vector<std::vector<Plato::Scalar>> tGold =
-        {{4.5,1.66667,-6.16667},{-15.5,-1.66667,17.1667}};
+        {{4.5,1.66667,-6.16667},{15.66667,-15.5,-0.166667}};
     for (Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++)
     {
         for (Plato::OrdinalType tDof = 0; tDof < tNumNodesPerCell; tDof++)
@@ -1456,7 +1842,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IntegrateDivergenceOperator)
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizeHeatSourceConstant)
 {
     // set input data for unit test
-    constexpr auto tNumCells = 2;
+    constexpr auto tNumCells = 3;
     constexpr auto tSpaceDims = 2;
     constexpr auto tNumNodesPerCell = tSpaceDims + 1;
 
@@ -1467,6 +1853,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizeHeatSourceConstant)
     auto tHostControl = Kokkos::create_mirror(tControl);
     tHostControl(0,0) = 0.5; tHostControl(0,1) = 0.5; tHostControl(0,2) = 0.5;
     tHostControl(1,0) = 1.0; tHostControl(1,1) = 1.0; tHostControl(1,2) = 1.0;
+    tHostControl(2,0) = 0.0; tHostControl(2,1) = 0.0; tHostControl(2,2) = 0.0;
     Kokkos::deep_copy(tControl, tHostControl);
 
     // call device function
@@ -1477,7 +1864,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizeHeatSourceConstant)
     }, "unit test penalize_heat_source_constant");
 
     auto tTol = 1e-4;
-    std::vector<Plato::Scalar> tGold = {3.5,0.0};
+    std::vector<Plato::Scalar> tGold = {0.5,4.0,0.0};
     auto tHostResult = Kokkos::create_mirror(tResult);
     Kokkos::deep_copy(tHostResult, tResult);
     for (auto &tValue : tGold)
@@ -1488,7 +1875,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizeHeatSourceConstant)
     //Plato::print(tResult, "result");
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizeThermalDiffusivity)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizedEffectiveThermalProperty)
 {
     // set input data for unit test
     constexpr auto tNumCells = 2;
@@ -1501,17 +1888,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizeThermalDiffusivity)
     tHostControl(1,0) = 1.0; tHostControl(1,1) = 1.0; tHostControl(1,2) = 1.0;
     Kokkos::deep_copy(tControl, tHostControl);
     constexpr auto tPenaltyExp = 3.0;
-    constexpr auto tDiffusivityRatio  = 4.0;
+    constexpr auto tEffectiveThermalProperty  = 4.0;
 
     // call device function
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
     {
         tResult(aCellOrdinal) =
-            Plato::Fluids::penalize_thermal_diffusivity<tNumNodesPerCell>(aCellOrdinal, tDiffusivityRatio, tPenaltyExp, tControl);
-    }, "unit test penalize_thermal_diffusivity");
+            Plato::Fluids::penalized_effective_thermal_property<tNumNodesPerCell>(aCellOrdinal, tEffectiveThermalProperty, tPenaltyExp, tControl);
+    }, "unit test penalized_effective_thermal_property");
 
     auto tTol = 1e-4;
-    std::vector<Plato::Scalar> tGold = {3.6250,1.0};
+    std::vector<Plato::Scalar> tGold = {1.375,4.0};
     auto tHostResult = Kokkos::create_mirror(tResult);
     Kokkos::deep_copy(tHostResult, tResult);
     for (auto &tValue : tGold)
@@ -1570,10 +1957,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateFluxDivergence)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
 
     // set input data for unit test
-    auto tNumCells = tMesh->nelems();
+    auto tNumCells = tMesh->NumElements();
     constexpr auto tNumNodesPerCell = tSpaceDims + 1;
     Plato::ScalarVector tCellVolume("cell weight", tNumCells);
     Plato::ScalarArray3D tConfigWS("configuration", tNumCells, tNumNodesPerCell, tSpaceDims);
@@ -1587,10 +1974,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateFluxDivergence)
 
     // set functors for unit test
     Plato::ComputeGradientWorkset<tSpaceDims> tComputeGradient;
-    Plato::NodeCoordinate<tSpaceDims> tNodeCoordinate( (&tMesh.operator*()) );
+    Plato::NodeCoordinate<tSpaceDims> tNodeCoordinate(tMesh);
 
     // call device function
-    Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->nelems(), tNodeCoordinate, tConfigWS);
+    Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->NumElements(), tNodeCoordinate, tConfigWS);
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
     {
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
@@ -1598,7 +1985,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateFluxDivergence)
     }, "unit test calculate_flux_divergence");
 
     auto tTol = 1e-4;
-    std::vector<std::vector<Plato::Scalar>> tGold = {{-1.0,-1.0,2.0}, {3.0,1.0,-4.0}};
+    std::vector<std::vector<Plato::Scalar>> tGold = {{-1.0,-1.0,2.0}, {-4.0,3.0,1.0}};
     auto tHostResult = Kokkos::create_mirror(tResult);
     Kokkos::deep_copy(tHostResult, tResult);
     for(auto& tGArray : tGold)
@@ -1657,10 +2044,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateConvectiveForces)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
 
     // set input data for unit test
-    auto tNumCells = tMesh->nelems();
+    auto tNumCells = tMesh->NumElements();
     constexpr auto tNumNodesPerCell = tSpaceDims + 1;
     Plato::ScalarVector tCellVolume("cell weight", tNumCells);
     Plato::ScalarArray3D tConfigWS("configuration", tNumCells, tNumNodesPerCell, tSpaceDims);
@@ -1679,9 +2066,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateConvectiveForces)
 
     // set functors for unit test
     Plato::ComputeGradientWorkset<tSpaceDims> tComputeGradient;
-    Plato::NodeCoordinate<tSpaceDims> tNodeCoordinate( (&tMesh.operator*()) );
+    Plato::NodeCoordinate<tSpaceDims> tNodeCoordinate(tMesh);
 
-    Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->nelems(), tNodeCoordinate, tConfigWS);
+    Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->NumElements(), tNodeCoordinate, tConfigWS);
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
     {
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
@@ -1689,7 +2076,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateConvectiveForces)
     }, "unit test calculate_convective_forces");
 
     auto tTol = 1e-4;
-    std::vector<Plato::Scalar> tGold = {3.0,-7.0};
+    std::vector<Plato::Scalar> tGold = {3.0,5.0};
     auto tHostForces = Kokkos::create_mirror(tForces);
     Kokkos::deep_copy(tHostForces, tForces);
     for (auto &tValue : tGold)
@@ -1721,11 +2108,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VelocityCorrectorResidual)
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
-    Plato::SpatialDomain tDomain(tMesh.operator*(), tMeshSets, "box");
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
-    Plato::SpatialModel tModel(tMesh.operator*(), tMeshSets);
+    Plato::SpatialModel tModel(tMesh);
     tModel.append(tDomain);
 
     // set physics and evaluation type
@@ -1733,7 +2119,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VelocityCorrectorResidual)
     using PhysicsT = Plato::IncompressibleFluids<tNumSpaceDims>::MomentumPhysicsT;
 
     // set control variables
-    auto tNumNodes = tMesh->nverts();
+    auto tNumNodes = tMesh->NumNodes();
     Plato::ScalarVector tControls("control", tNumNodes);
     Plato::blas1::fill(1.0, tControls);
 
@@ -1784,7 +2170,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VelocityCorrectorResidual)
     auto tTol = 1e-4;
     auto tHostResidual = Kokkos::create_mirror(tResidual);
     Kokkos::deep_copy(tHostResidual, tResidual);
-    std::vector<Plato::Scalar> tGold = {-2.43333,-2.77778,-1.48333,-1.65,-2.43333,-2.77778,-0.95,-1.1277};
+    std::vector<Plato::Scalar> tGold = {-1.82222,-2.07778,-0.855556,-0.983333,-0.966667,-1.09444,-1.82222,-2.07778};
     for(auto& tValue : tGold)
     {
         auto tIndex = &tValue - &tGold[0];
@@ -1797,10 +2183,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculatePressureGradient)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
 
     // set input data for unit test
-    auto tNumCells = tMesh->nelems();
+    auto tNumCells = tMesh->NumElements();
     constexpr auto tNumNodesPerCell = tSpaceDims + 1;
     Plato::ScalarVector tCellVolume("cell weight", tNumCells);
     Plato::ScalarArray3D tConfigWS("configuration", tNumCells, tNumNodesPerCell, tSpaceDims);
@@ -1819,11 +2205,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculatePressureGradient)
 
     // set functors for unit test
     Plato::ComputeGradientWorkset<tSpaceDims> tComputeGradient;
-    Plato::NodeCoordinate<tSpaceDims> tNodeCoordinate( (&tMesh.operator*()) );
+    Plato::NodeCoordinate<tSpaceDims> tNodeCoordinate(tMesh);
 
     // call device kernel
     auto tTheta = 0.2;
-    Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->nelems(), tNodeCoordinate, tConfigWS);
+    Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->NumElements(), tNodeCoordinate, tConfigWS);
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
     {
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
@@ -1832,7 +2218,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculatePressureGradient)
     }, "unit test calculate_pressure_gradient");
 
     auto tTol = 1e-4;
-    std::vector<std::vector<Plato::Scalar>> tGold = {{9.0,-7.0}, {-9.0,7.0}};
+    std::vector<std::vector<Plato::Scalar>> tGold = {{9.0,-7.0}, {7.0,2.0}};
     auto tHostPressGrad = Kokkos::create_mirror(tPressGrad);
     Kokkos::deep_copy(tHostPressGrad, tPressGrad);
     for(auto& tGoldVector : tGold)
@@ -1885,10 +2271,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IntegrateStabilizingForces)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
 
     // set input data for unit test
-    auto tNumCells = tMesh->nelems();
+    auto tNumCells = tMesh->NumElements();
     constexpr auto tNumNodesPerCell = tSpaceDims + 1;
     constexpr auto tNumDofsPerCell = tNumNodesPerCell * tSpaceDims;
     Plato::ScalarVector tCellVolume("cell weight", tNumCells);
@@ -1910,12 +2296,12 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IntegrateStabilizingForces)
     // set functors for unit test
     Plato::LinearTetCubRuleDegreeOne<tSpaceDims> tCubRule;
     Plato::ComputeGradientWorkset<tSpaceDims> tComputeGradient;
-    Plato::NodeCoordinate<tSpaceDims> tNodeCoordinate( (&tMesh.operator*()) );
+    Plato::NodeCoordinate<tSpaceDims> tNodeCoordinate(tMesh);
 
     // call device kernel
     auto tCubWeight = tCubRule.getCubWeight();
     auto tBasisFunctions = tCubRule.getBasisFunctions();
-    Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->nelems(), tNodeCoordinate, tConfigWS);
+    Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->NumElements(), tNodeCoordinate, tConfigWS);
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
     {
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
@@ -1926,7 +2312,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IntegrateStabilizingForces)
 
     auto tTol = 1e-4;
     std::vector<std::vector<Plato::Scalar>> tGold =
-        {{-0.5,-0.5,-0.5,-0.5,1.0,1.0}, {1.5,1.5,0.5,0.5,-2.0,-2.0}};
+        {{-0.5,-0.5,-0.5,-0.5,1.0,1.0}, {-2.0,-2.0,1.5,1.5,0.5,0.5}};
     auto tHostResult = Kokkos::create_mirror(tResult);
     Kokkos::deep_copy(tHostResult, tResult);
     for(auto& tGoldVector : tGold)
@@ -1988,10 +2374,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateAdvectedInternalForces)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
 
     // set input data for unit test
-    auto tNumCells = tMesh->nelems();
+    auto tNumCells = tMesh->NumElements();
     constexpr auto tNumVelDofsPerNode = tSpaceDims;
     constexpr auto tNumNodesPerCell = tSpaceDims + 1;
     constexpr auto tNumDofsPerCell = tNumNodesPerCell * tSpaceDims;
@@ -2009,13 +2395,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateAdvectedInternalForces)
     // set functors for unit test
     Plato::LinearTetCubRuleDegreeOne<tSpaceDims> tCubRule;
     Plato::ComputeGradientWorkset<tSpaceDims> tComputeGradient;
-    Plato::NodeCoordinate<tSpaceDims> tNodeCoordinate( (&tMesh.operator*()) );
+    Plato::NodeCoordinate<tSpaceDims> tNodeCoordinate(tMesh);
     Plato::InterpolateFromNodal<tSpaceDims, tNumVelDofsPerNode, 0, tSpaceDims> tIntrplVectorField;
 
     // call device kernel
     auto tCubWeight = tCubRule.getCubWeight();
     auto tBasisFunctions = tCubRule.getBasisFunctions();
-    Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->nelems(), tNodeCoordinate, tConfigWS);
+    Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->NumElements(), tNodeCoordinate, tConfigWS);
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
     {
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
@@ -2027,7 +2413,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateAdvectedInternalForces)
     }, "unit test calculate_advected_momentum_forces");
 
     auto tTol = 1e-4;
-    std::vector<std::vector<Plato::Scalar>> tGold = {{14.0,14.0},{-38.0,-38.0}};
+    std::vector<std::vector<Plato::Scalar>> tGold = {{14.0,14.0},{22.0,22.0}};
     auto tHostInternalForces = Kokkos::create_mirror(tInternalForces);
     Kokkos::deep_copy(tHostInternalForces, tInternalForces);
     for(auto& tGoldVector : tGold)
@@ -2084,10 +2470,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IntegrateViscousForces)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
 
     // set input data for unit test
-    auto tNumCells = tMesh->nelems();
+    auto tNumCells = tMesh->NumElements();
     constexpr auto tNumNodesPerCell = tSpaceDims + 1;
     constexpr auto tNumDofsPerCell = tNumNodesPerCell * tSpaceDims;
     Plato::ScalarVector tCellVolume("cell weight", tNumCells);
@@ -2105,11 +2491,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IntegrateViscousForces)
     // set functors for unit test
     Plato::LinearTetCubRuleDegreeOne<tSpaceDims> tCubRule;
     Plato::ComputeGradientWorkset<tSpaceDims> tComputeGradient;
-    Plato::NodeCoordinate<tSpaceDims> tNodeCoordinate( (&tMesh.operator*()) );
+    Plato::NodeCoordinate<tSpaceDims> tNodeCoordinate(tMesh);
 
     // call device kernel
     auto tCubWeight = tCubRule.getCubWeight();
-    Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->nelems(), tNodeCoordinate, tConfigWS);
+    Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->NumElements(), tNodeCoordinate, tConfigWS);
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
     {
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
@@ -2122,7 +2508,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IntegrateViscousForces)
     }, "unit test integrate_viscous_forces");
 
     auto tTol = 1e-4;
-    std::vector<std::vector<Plato::Scalar>> tGold = {{-1.0,-1.0,0.0,0.0,1.0,1.0},{-1.0,-1.0,0.0,0.0,1.0,1.0}};
+    std::vector<std::vector<Plato::Scalar>> tGold = {{-1.0,-1.0,0.0,0.0,1.0,1.0},{-0.5,-2.0,-1.0,0.5,1.5,1.5}};
     auto tHostResultWS = Kokkos::create_mirror(tResultWS);
     Kokkos::deep_copy(tHostResultWS, tResultWS);
     for(auto& tGoldVector : tGold)
@@ -2169,46 +2555,28 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BLAS2_update)
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, EntityFaceOrdinals)
 {
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
 
     // test: node sets
-    auto tMyNodeSetOrdinals = Plato::omega_h::get_entity_ordinals<Omega_h::NODE_SET>(tMeshSets, "x+");
+    auto tMyNodeSetOrdinals = tMesh->GetNodeSetNodes("x+");
     auto tLength = tMyNodeSetOrdinals.size();
-    Plato::LocalOrdinalVector tNodeSetOrdinals("node set ordinals", tLength);
+    Plato::OrdinalVector tNodeSetOrdinals("node set ordinals", tLength);
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
     {
-        tNodeSetOrdinals(aOrdinal) = tMyNodeSetOrdinals[aOrdinal];
+        tNodeSetOrdinals(aOrdinal) = tMyNodeSetOrdinals(aOrdinal);
     }, "copy");
     auto tHostNodeSetOrdinals = Kokkos::create_mirror(tNodeSetOrdinals);
     Kokkos::deep_copy(tHostNodeSetOrdinals, tNodeSetOrdinals);
     TEST_EQUALITY(2, tHostNodeSetOrdinals(0));
     TEST_EQUALITY(3, tHostNodeSetOrdinals(1));
-    //Plato::omega_h::print(tMyNodeSetOrdinals, "ordinals");
+    //Plato::print(tMyNodeSetOrdinals, "ordinals");
 
     // test: side sets
-    auto tMySideSetOrdinals = Plato::omega_h::get_entity_ordinals<Omega_h::SIDE_SET>(tMeshSets, "x+");
-    tLength = tMySideSetOrdinals.size();
-    Plato::LocalOrdinalVector tSideSetOrdinals("side set ordinals", tLength);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
-    {
-        tSideSetOrdinals(aOrdinal) = tMySideSetOrdinals[aOrdinal];
-    }, "copy");
-    auto tHostSideSetOrdinals = Kokkos::create_mirror(tSideSetOrdinals);
-    Kokkos::deep_copy(tHostSideSetOrdinals, tSideSetOrdinals);
-    TEST_EQUALITY(4, tHostSideSetOrdinals(0));
-    //Plato::omega_h::print(tMySideSetOrdinals, "ordinals");
-}
-
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsEntitySetDefined)
-{
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
-    TEST_EQUALITY(true, Plato::omega_h::is_entity_set_defined<Omega_h::NODE_SET>(tMeshSets, "x+"));
-    TEST_EQUALITY(false, Plato::omega_h::is_entity_set_defined<Omega_h::NODE_SET>(tMeshSets, "dog"));
-
-    TEST_EQUALITY(true, Plato::omega_h::is_entity_set_defined<Omega_h::SIDE_SET>(tMeshSets, "x+"));
-    TEST_EQUALITY(false, Plato::omega_h::is_entity_set_defined<Omega_h::SIDE_SET>(tMeshSets, "dog"));
+    auto tMySideSetOrdinals = tMesh->GetSideSetFaces("x+");
+    auto tHostSideSetOrdinals = Kokkos::create_mirror(tMySideSetOrdinals);
+    Kokkos::deep_copy(tHostSideSetOrdinals, tMySideSetOrdinals);
+    TEST_EQUALITY(1, tHostSideSetOrdinals(0));
+    //Plato::print(tMySideSetOrdinals, "ordinals");
 }
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionBrinkman)
@@ -2252,13 +2620,12 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionBrinkman)
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
-    Plato::SpatialDomain tDomain(tMesh.operator*(), tMeshSets, "box");
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
     tDomain.setMaterialName("water");
     tDomain.setDomainName("Design Volume");
-    Plato::SpatialModel tModel(tMesh.operator*(), tMeshSets);
+    Plato::SpatialModel tModel(tMesh);
     tModel.append(tDomain);
 
     // set physics and evaluation type
@@ -2266,7 +2633,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionBrinkman)
     using PhysicsT = Plato::IncompressibleFluids<tNumSpaceDims>::MomentumPhysicsT;
 
     // set control variables
-    auto tNumNodes = tMesh->nverts();
+    auto tNumNodes = tMesh->NumNodes();
     Plato::ScalarVector tControls("control", tNumNodes);
     Plato::blas1::fill(1.0, tControls);
 
@@ -2310,7 +2677,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionBrinkman)
     auto tHostResidual = Kokkos::create_mirror(tResidual);
     Kokkos::deep_copy(tHostResidual, tResidual);
     std::vector<Plato::Scalar> tGold =
-        {-0.318111, -0.379111, -0.191667, -0.225, -0.318111, -0.329111, -0.126444, -0.104111};
+        {-0.282444, -0.340667, -0.134222, -0.163222, -0.148222, -0.127444, -0.282444, -0.290667};
     auto tTol = 1e-4;
     for(auto& tValue : tGold)
     {
@@ -2320,30 +2687,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionBrinkman)
     //Plato::print(tResidual, "residual");
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, GetNumEntities)
-{
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
-    auto tNumEntities = Plato::omega_h::get_num_entities(Omega_h::VERT, tMesh.operator*());
-    TEST_EQUALITY(4, tNumEntities);
-    tNumEntities = Plato::omega_h::get_num_entities(Omega_h::EDGE, tMesh.operator*());
-    TEST_EQUALITY(5, tNumEntities);
-    tNumEntities = Plato::omega_h::get_num_entities(Omega_h::FACE, tMesh.operator*());
-    TEST_EQUALITY(2, tNumEntities);
-    tNumEntities = Plato::omega_h::get_num_entities(Omega_h::REGION, tMesh.operator*());
-    TEST_EQUALITY(2, tNumEntities);
-}
-
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrainRate)
 {
     constexpr Plato::OrdinalType tNumSpaceDims = 2;
     constexpr Plato::OrdinalType tNumNodesPerCell = 3;
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
-    TEST_EQUALITY(2, tMesh->nelems());
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    TEST_EQUALITY(2, tMesh->NumElements());
 
-    auto const tNumCells = tMesh->nelems();
-    Plato::NodeCoordinate<tNumSpaceDims> tNodeCoordinate( (&tMesh.operator*()) );
+    auto const tNumCells = tMesh->NumElements();
+    Plato::NodeCoordinate<tNumSpaceDims> tNodeCoordinate(tMesh);
     Plato::ScalarArray3D tConfig("configuration", tNumCells, tNumNodesPerCell, tNumSpaceDims);
-    Plato::workset_config_scalar<tNumSpaceDims,tNumNodesPerCell>(tMesh->nelems(), tNodeCoordinate, tConfig);
+    Plato::workset_config_scalar<tNumSpaceDims,tNumNodesPerCell>(tMesh->NumElements(), tNodeCoordinate, tConfig);
 
     Plato::ScalarVector tVolume("volume", tNumCells);
     Plato::ScalarArray3D tGradient("gradient", tNumCells, tNumNodesPerCell, tNumSpaceDims);
@@ -2376,10 +2730,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrainRate)
     TEST_FLOATING_EQUALITY(-0.195, tHostStrainRate(0, 1, 0), tTol);
     TEST_FLOATING_EQUALITY(0.28,   tHostStrainRate(0, 1, 1), tTol);
     // cell 2
-    TEST_FLOATING_EQUALITY(-0.64, tHostStrainRate(1, 0, 0), tTol);
-    TEST_FLOATING_EQUALITY(0.29,  tHostStrainRate(1, 0, 1), tTol);
-    TEST_FLOATING_EQUALITY(0.29,  tHostStrainRate(1, 1, 0), tTol);
-    TEST_FLOATING_EQUALITY(0.46,  tHostStrainRate(1, 1, 1), tTol);
+    TEST_FLOATING_EQUALITY(0.68,  tHostStrainRate(1, 0, 0), tTol);
+    TEST_FLOATING_EQUALITY(0.21,  tHostStrainRate(1, 0, 1), tTol);
+    TEST_FLOATING_EQUALITY(0.21,  tHostStrainRate(1, 1, 0), tTol);
+    TEST_FLOATING_EQUALITY(-0.36, tHostStrainRate(1, 1, 1), tTol);
 }
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BLAS2_DeviceScale)
@@ -2536,9 +2890,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BrinkmanPenalization)
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets_SpatialDomain)
 {
     // build mesh and spatial domain
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
-    Plato::SpatialDomain tDomain(tMesh.operator*(), tMeshSets, "box");
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
     // set physics and evaluation type
@@ -2548,8 +2901,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets_SpatialDoma
 
     // set current state
     Plato::Variables tPrimal;
-    auto tNumCells = tMesh->nelems();
-    auto tNumNodes = tMesh->nverts();
+    auto tNumCells = tMesh->NumElements();
+    auto tNumNodes = tMesh->NumNodes();
     auto tNumVelDofs = tNumNodes * tNumSpaceDim;
     Plato::ScalarVector tControls("controls", tNumNodes);
     Plato::blas1::fill(0.5, tControls);
@@ -2568,7 +2921,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets_SpatialDoma
 
     // call build_scalar_function_worksets
     Plato::WorkSets tWorkSets;
-    Plato::LocalOrdinalMaps<PhysicsT> tOrdinalMaps(*tMesh);
+    Plato::LocalOrdinalMaps<PhysicsT> tOrdinalMaps(tMesh);
     Plato::Fluids::build_scalar_function_worksets<ResidualEvalT>
         (tDomain, tControls, tPrimal, tOrdinalMaps, tWorkSets);
 
@@ -2644,9 +2997,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets_SpatialDoma
     Plato::ScalarArray3D tGoldConfigWS("gold configuration", tNumCells, tNumNodesPerCell, tNumConfigDofsPerNode);
     auto tHostGoldConfigWS = Kokkos::create_mirror(tGoldConfigWS);
     tHostGoldConfigWS(0,0,0) = 0; tHostGoldConfigWS(0,1,0) = 1; tHostGoldConfigWS(0,2,0) = 1;
-    tHostGoldConfigWS(1,0,0) = 1; tHostGoldConfigWS(1,1,0) = 0; tHostGoldConfigWS(1,2,0) = 0;
+    tHostGoldConfigWS(1,0,0) = 0; tHostGoldConfigWS(1,1,0) = 1; tHostGoldConfigWS(1,2,0) = 0;
     tHostGoldConfigWS(0,0,1) = 0; tHostGoldConfigWS(0,1,1) = 0; tHostGoldConfigWS(0,2,1) = 1;
-    tHostGoldConfigWS(1,0,1) = 1; tHostGoldConfigWS(1,1,1) = 1; tHostGoldConfigWS(1,2,1) = 0;
+    tHostGoldConfigWS(1,0,1) = 0; tHostGoldConfigWS(1,1,1) = 1; tHostGoldConfigWS(1,2,1) = 1;
     for (decltype(tNumCells) tCell = 0; tCell < tNumCells; tCell++)
     {
         for (decltype(tNumNodesPerCell) tNode = 0; tNode < tNumNodesPerCell; tNode++)
@@ -2662,9 +3015,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets_SpatialDoma
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets_SpatialDomain)
 {
     // build mesh and spatial domain
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
-    auto tMeshSets = PlatoUtestHelpers::get_box_mesh_sets(tMesh.operator*());
-    Plato::SpatialDomain tDomain(tMesh.operator*(), tMeshSets, "box");
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
     // set physics and evaluation type
@@ -2674,8 +3026,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets_SpatialDoma
 
     // set current state
     Plato::Variables tPrimal;
-    auto tNumCells = tMesh->nelems();
-    auto tNumNodes = tMesh->nverts();
+    auto tNumCells = tMesh->NumElements();
+    auto tNumNodes = tMesh->NumNodes();
     auto tNumVelDofs = tNumNodes * tNumSpaceDim;
     Plato::ScalarVector tControls("controls", tNumNodes);
     Plato::blas1::fill(0.5, tControls);
@@ -2706,7 +3058,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets_SpatialDoma
 
     // call build_vector_function_worksets
     Plato::WorkSets tWorkSets;
-    Plato::LocalOrdinalMaps<PhysicsT> tOrdinalMaps(*tMesh);
+    Plato::LocalOrdinalMaps<PhysicsT> tOrdinalMaps(tMesh);
     Plato::Fluids::build_vector_function_worksets<ResidualEvalT>
         (tNumCells, tControls, tPrimal, tOrdinalMaps, tWorkSets);
 
@@ -2831,9 +3183,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets_SpatialDoma
     Plato::ScalarArray3D tGoldConfigWS("gold configuration", tNumCells, tNumNodesPerCell, tNumConfigDofsPerNode);
     auto tHostGoldConfigWS = Kokkos::create_mirror(tGoldConfigWS);
     tHostGoldConfigWS(0,0,0) = 0; tHostGoldConfigWS(0,1,0) = 1; tHostGoldConfigWS(0,2,0) = 1;
-    tHostGoldConfigWS(1,0,0) = 1; tHostGoldConfigWS(1,1,0) = 0; tHostGoldConfigWS(1,2,0) = 0;
+    tHostGoldConfigWS(1,0,0) = 0; tHostGoldConfigWS(1,1,0) = 1; tHostGoldConfigWS(1,2,0) = 0;
     tHostGoldConfigWS(0,0,1) = 0; tHostGoldConfigWS(0,1,1) = 0; tHostGoldConfigWS(0,2,1) = 1;
-    tHostGoldConfigWS(1,0,1) = 1; tHostGoldConfigWS(1,1,1) = 1; tHostGoldConfigWS(1,2,1) = 0;
+    tHostGoldConfigWS(1,0,1) = 0; tHostGoldConfigWS(1,1,1) = 1; tHostGoldConfigWS(1,2,1) = 1;
     for (decltype(tNumCells) tCell = 0; tCell < tNumCells; tCell++)
     {
         for (decltype(tNumNodesPerCell) tNode = 0; tNode < tNumNodesPerCell; tNode++)
@@ -2885,8 +3237,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets)
     tPrimal.vector("critical time step", tTimeSteps);
 
     // set ordinal maps;
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
-    Plato::LocalOrdinalMaps<PhysicsT> tOrdinalMaps(*tMesh);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    Plato::LocalOrdinalMaps<PhysicsT> tOrdinalMaps(tMesh);
 
     // call build_vector_function_worksets
     Plato::WorkSets tWorkSets;
@@ -3014,9 +3366,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets)
     Plato::ScalarArray3D tGoldConfigWS("gold configuration", tNumCells, tNumNodesPerCell, tNumConfigDofsPerNode);
     auto tHostGoldConfigWS = Kokkos::create_mirror(tGoldConfigWS);
     tHostGoldConfigWS(0,0,0) = 0; tHostGoldConfigWS(0,1,0) = 1; tHostGoldConfigWS(0,2,0) = 1;
-    tHostGoldConfigWS(1,0,0) = 1; tHostGoldConfigWS(1,1,0) = 0; tHostGoldConfigWS(1,2,0) = 0;
+    tHostGoldConfigWS(1,0,0) = 0; tHostGoldConfigWS(1,1,0) = 1; tHostGoldConfigWS(1,2,0) = 0;
     tHostGoldConfigWS(0,0,1) = 0; tHostGoldConfigWS(0,1,1) = 0; tHostGoldConfigWS(0,2,1) = 1;
-    tHostGoldConfigWS(1,0,1) = 1; tHostGoldConfigWS(1,1,1) = 1; tHostGoldConfigWS(1,2,1) = 0;
+    tHostGoldConfigWS(1,0,1) = 0; tHostGoldConfigWS(1,1,1) = 1; tHostGoldConfigWS(1,2,1) = 1;
     for (decltype(tNumCells) tCell = 0; tCell < tNumCells; tCell++)
     {
         for (decltype(tNumNodesPerCell) tNode = 0; tNode < tNumNodesPerCell; tNode++)
@@ -3068,8 +3420,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksetsTwo)
     tPrimal.vector("critical time step", tTimeSteps);
 
     // set ordinal maps;
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
-    Plato::LocalOrdinalMaps<PhysicsT> tOrdinalMaps(*tMesh);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    Plato::LocalOrdinalMaps<PhysicsT> tOrdinalMaps(tMesh);
 
     // call build_vector_function_worksets
     Plato::WorkSets tWorkSets;
@@ -3106,8 +3458,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets)
     tPrimal.vector("critical time step", tCriticalTimeStep);
     
     // set ordinal maps;
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(1,1,1,1);
-    Plato::LocalOrdinalMaps<PhysicsT> tOrdinalMaps(*tMesh);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    Plato::LocalOrdinalMaps<PhysicsT> tOrdinalMaps(tMesh);
 
     // call build_scalar_function_worksets
     Plato::WorkSets tWorkSets;
@@ -3186,9 +3538,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets)
     Plato::ScalarArray3D tGoldConfigWS("gold configuration", tNumCells, tNumNodesPerCell, tNumConfigDofsPerNode);
     auto tHostGoldConfigWS = Kokkos::create_mirror(tGoldConfigWS);
     tHostGoldConfigWS(0,0,0) = 0; tHostGoldConfigWS(0,1,0) = 1; tHostGoldConfigWS(0,2,0) = 1;
-    tHostGoldConfigWS(1,0,0) = 1; tHostGoldConfigWS(1,1,0) = 0; tHostGoldConfigWS(1,2,0) = 0;
+    tHostGoldConfigWS(1,0,0) = 0; tHostGoldConfigWS(1,1,0) = 1; tHostGoldConfigWS(1,2,0) = 0;
     tHostGoldConfigWS(0,0,1) = 0; tHostGoldConfigWS(0,1,1) = 0; tHostGoldConfigWS(0,2,1) = 1;
-    tHostGoldConfigWS(1,0,1) = 1; tHostGoldConfigWS(1,1,1) = 1; tHostGoldConfigWS(1,2,1) = 0;
+    tHostGoldConfigWS(1,0,1) = 0; tHostGoldConfigWS(1,1,1) = 1; tHostGoldConfigWS(1,2,1) = 1;
     for (decltype(tNumCells) tCell = 0; tCell < tNumCells; tCell++)
     {
         for (decltype(tNumNodesPerCell) tNode = 0; tNode < tNumNodesPerCell; tNode++)
@@ -3211,12 +3563,12 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ParseArray)
             "  <Parameter  name='Weights'      type='Array(double)'  value='{1.0,-1.0}'/>"
             "  <ParameterList  name='My Inlet Pressure'>"
             "    <Parameter  name='Type'                   type='string'           value='Scalar Function'/>"
-            "    <Parameter  name='Scalar Function Type'   type='string'           value='Average Surface Pressure'/>"
+            "    <Parameter  name='Scalar Function Type'   type='string'           value='Mean Surface Pressure'/>"
             "    <Parameter  name='Sides'                  type='Array(string)'    value='{ss_1}'/>"
             "  </ParameterList>"
             "  <ParameterList  name='My Outlet Pressure'>"
             "    <Parameter  name='Type'                   type='string'           value='Scalar Function'/>"
-            "    <Parameter  name='Scalar Function Type'   type='string'           value='Average Surface Pressure'/>"
+            "    <Parameter  name='Scalar Function Type'   type='string'           value='Mean Surface Pressure'/>"
             "    <Parameter  name='Sides'                  type='Array(string)'    value='{ss_2}'/>"
             "  </ParameterList>"
             "</ParameterList>"
@@ -3299,10 +3651,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, LocalOrdinalMaps)
 {
     constexpr Plato::OrdinalType tNumSpaceDim = 3;
     using PhysicsT = Plato::MomentumConservation<tNumSpaceDim>;
-    auto tMesh = PlatoUtestHelpers::build_3d_box_mesh(1.0, 1.0, 1.0, 1, 1, 1);
-    Plato::LocalOrdinalMaps<PhysicsT> tLocalOrdinalMaps(tMesh.operator*());
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", 1.0, 1, 1.0, 1, 1.0, 1);
+    Plato::LocalOrdinalMaps<PhysicsT> tLocalOrdinalMaps(tMesh);
 
-    auto tNumCells = tMesh->nelems();
+    auto tNumCells = tMesh->NumElements();
     Plato::ScalarArray3D tCoords("coordinates", tNumCells, PhysicsT::mNumNodesPerCell, tNumSpaceDim);
     Plato::ScalarMultiVector tControlOrdinals("control", tNumCells, PhysicsT::mNumNodesPerCell);
     Plato::ScalarMultiVector tScalarFieldOrdinals("scalar field ordinals", tNumCells, PhysicsT::mNumNodesPerCell);
@@ -3336,44 +3688,46 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, LocalOrdinalMaps)
     tHostGoldCoords(0,0,0) = 0; tHostGoldCoords(0,1,0) = 1; tHostGoldCoords(0,2,0) = 0; tHostGoldCoords(0,3,0) = 1;
     tHostGoldCoords(1,0,0) = 0; tHostGoldCoords(1,1,0) = 0; tHostGoldCoords(1,2,0) = 0; tHostGoldCoords(1,3,0) = 1;
     tHostGoldCoords(2,0,0) = 0; tHostGoldCoords(2,1,0) = 0; tHostGoldCoords(2,2,0) = 0; tHostGoldCoords(2,3,0) = 1;
-    tHostGoldCoords(3,0,0) = 0; tHostGoldCoords(3,1,0) = 1; tHostGoldCoords(3,2,0) = 1; tHostGoldCoords(3,3,0) = 0;
-    tHostGoldCoords(4,0,0) = 1; tHostGoldCoords(4,1,0) = 1; tHostGoldCoords(4,2,0) = 1; tHostGoldCoords(4,3,0) = 0;
-    tHostGoldCoords(5,0,0) = 1; tHostGoldCoords(5,1,0) = 1; tHostGoldCoords(5,2,0) = 1; tHostGoldCoords(5,3,0) = 0;
+    tHostGoldCoords(3,0,0) = 0; tHostGoldCoords(3,1,0) = 0; tHostGoldCoords(3,2,0) = 1; tHostGoldCoords(3,3,0) = 1;
+    tHostGoldCoords(4,0,0) = 0; tHostGoldCoords(4,1,0) = 1; tHostGoldCoords(4,2,0) = 1; tHostGoldCoords(4,3,0) = 1;
+    tHostGoldCoords(5,0,0) = 0; tHostGoldCoords(5,1,0) = 1; tHostGoldCoords(5,2,0) = 1; tHostGoldCoords(5,3,0) = 1;
     tHostGoldCoords(0,0,1) = 0; tHostGoldCoords(0,1,1) = 1; tHostGoldCoords(0,2,1) = 1; tHostGoldCoords(0,3,1) = 1;
     tHostGoldCoords(1,0,1) = 0; tHostGoldCoords(1,1,1) = 1; tHostGoldCoords(1,2,1) = 1; tHostGoldCoords(1,3,1) = 1;
     tHostGoldCoords(2,0,1) = 0; tHostGoldCoords(2,1,1) = 1; tHostGoldCoords(2,2,1) = 0; tHostGoldCoords(2,3,1) = 1;
-    tHostGoldCoords(3,0,1) = 0; tHostGoldCoords(3,1,1) = 0; tHostGoldCoords(3,2,1) = 1; tHostGoldCoords(3,3,1) = 0;
-    tHostGoldCoords(4,0,1) = 0; tHostGoldCoords(4,1,1) = 0; tHostGoldCoords(4,2,1) = 1; tHostGoldCoords(4,3,1) = 0;
-    tHostGoldCoords(5,0,1) = 0; tHostGoldCoords(5,1,1) = 1; tHostGoldCoords(5,2,1) = 1; tHostGoldCoords(5,3,1) = 0;
+    tHostGoldCoords(3,0,1) = 0; tHostGoldCoords(3,1,1) = 0; tHostGoldCoords(3,2,1) = 0; tHostGoldCoords(3,3,1) = 1;
+    tHostGoldCoords(4,0,1) = 0; tHostGoldCoords(4,1,1) = 0; tHostGoldCoords(4,2,1) = 0; tHostGoldCoords(4,3,1) = 1;
+    tHostGoldCoords(5,0,1) = 0; tHostGoldCoords(5,1,1) = 0; tHostGoldCoords(5,2,1) = 1; tHostGoldCoords(5,3,1) = 1;
     tHostGoldCoords(0,0,2) = 0; tHostGoldCoords(0,1,2) = 0; tHostGoldCoords(0,2,2) = 0; tHostGoldCoords(0,3,2) = 1;
     tHostGoldCoords(1,0,2) = 0; tHostGoldCoords(1,1,2) = 0; tHostGoldCoords(1,2,2) = 1; tHostGoldCoords(1,3,2) = 1;
     tHostGoldCoords(2,0,2) = 0; tHostGoldCoords(2,1,2) = 1; tHostGoldCoords(2,2,2) = 1; tHostGoldCoords(2,3,2) = 1;
     tHostGoldCoords(3,0,2) = 0; tHostGoldCoords(3,1,2) = 1; tHostGoldCoords(3,2,2) = 1; tHostGoldCoords(3,3,2) = 1;
-    tHostGoldCoords(4,0,2) = 0; tHostGoldCoords(4,1,2) = 1; tHostGoldCoords(4,2,2) = 1; tHostGoldCoords(4,3,2) = 0;
-    tHostGoldCoords(5,0,2) = 0; tHostGoldCoords(5,1,2) = 1; tHostGoldCoords(5,2,2) = 0; tHostGoldCoords(5,3,2) = 0;
+    tHostGoldCoords(4,0,2) = 0; tHostGoldCoords(4,1,2) = 1; tHostGoldCoords(4,2,2) = 0; tHostGoldCoords(4,3,2) = 1;
+    tHostGoldCoords(5,0,2) = 0; tHostGoldCoords(5,1,2) = 0; tHostGoldCoords(5,2,2) = 0; tHostGoldCoords(5,3,2) = 1;
     auto tHostCoords = Kokkos::create_mirror(tCoords);
     Kokkos::deep_copy(tHostCoords, tCoords);
 
     Plato::ScalarArray3D tGoldVectorOrdinals("vector field", tNumCells, PhysicsT::mNumNodesPerCell, PhysicsT::mNumMomentumDofsPerNode);
     auto tHostGoldVecOrdinals = Kokkos::create_mirror(tGoldVectorOrdinals);
-    tHostGoldVecOrdinals(0,0,0) = 0;  tHostGoldVecOrdinals(0,1,0) = 12; tHostGoldVecOrdinals(0,2,0) = 9;  tHostGoldVecOrdinals(0,3,0) = 15;
-    tHostGoldVecOrdinals(1,0,0) = 0;  tHostGoldVecOrdinals(1,1,0) = 9;  tHostGoldVecOrdinals(1,2,0) = 6;  tHostGoldVecOrdinals(1,3,0) = 15;
-    tHostGoldVecOrdinals(2,0,0) = 0;  tHostGoldVecOrdinals(2,1,0) = 6;  tHostGoldVecOrdinals(2,2,0) = 3;  tHostGoldVecOrdinals(2,3,0) = 15;
-    tHostGoldVecOrdinals(3,0,0) = 0;  tHostGoldVecOrdinals(3,1,0) = 18; tHostGoldVecOrdinals(3,2,0) = 15; tHostGoldVecOrdinals(3,3,0) = 3;
-    tHostGoldVecOrdinals(4,0,0) = 21; tHostGoldVecOrdinals(4,1,0) = 18; tHostGoldVecOrdinals(4,2,0) = 15; tHostGoldVecOrdinals(4,3,0) = 0;
-    tHostGoldVecOrdinals(5,0,0) = 21; tHostGoldVecOrdinals(5,1,0) = 15; tHostGoldVecOrdinals(5,2,0) = 12; tHostGoldVecOrdinals(5,3,0) = 0;
-    tHostGoldVecOrdinals(0,0,1) = 1;  tHostGoldVecOrdinals(0,1,1) = 13; tHostGoldVecOrdinals(0,2,1) = 10; tHostGoldVecOrdinals(0,3,1) = 16;
-    tHostGoldVecOrdinals(1,0,1) = 1;  tHostGoldVecOrdinals(1,1,1) = 10; tHostGoldVecOrdinals(1,2,1) = 7;  tHostGoldVecOrdinals(1,3,1) = 16;
-    tHostGoldVecOrdinals(2,0,1) = 1;  tHostGoldVecOrdinals(2,1,1) = 7;  tHostGoldVecOrdinals(2,2,1) = 4;  tHostGoldVecOrdinals(2,3,1) = 16;
-    tHostGoldVecOrdinals(3,0,1) = 1;  tHostGoldVecOrdinals(3,1,1) = 19; tHostGoldVecOrdinals(3,2,1) = 16; tHostGoldVecOrdinals(3,3,1) = 4;
-    tHostGoldVecOrdinals(4,0,1) = 22; tHostGoldVecOrdinals(4,1,1) = 19; tHostGoldVecOrdinals(4,2,1) = 16; tHostGoldVecOrdinals(4,3,1) = 1;
-    tHostGoldVecOrdinals(5,0,1) = 22; tHostGoldVecOrdinals(5,1,1) = 16; tHostGoldVecOrdinals(5,2,1) = 13; tHostGoldVecOrdinals(5,3,1) = 1;
-    tHostGoldVecOrdinals(0,0,2) = 2;  tHostGoldVecOrdinals(0,1,2) = 14; tHostGoldVecOrdinals(0,2,2) = 11; tHostGoldVecOrdinals(0,3,2) = 17;
-    tHostGoldVecOrdinals(1,0,2) = 2;  tHostGoldVecOrdinals(1,1,2) = 11; tHostGoldVecOrdinals(1,2,2) = 8;  tHostGoldVecOrdinals(1,3,2) = 17;
-    tHostGoldVecOrdinals(2,0,2) = 2;  tHostGoldVecOrdinals(2,1,2) = 8;  tHostGoldVecOrdinals(2,2,2) = 5;  tHostGoldVecOrdinals(2,3,2) = 17;
-    tHostGoldVecOrdinals(3,0,2) = 2;  tHostGoldVecOrdinals(3,1,2) = 20; tHostGoldVecOrdinals(3,2,2) = 17; tHostGoldVecOrdinals(3,3,2) = 5;
-    tHostGoldVecOrdinals(4,0,2) = 23; tHostGoldVecOrdinals(4,1,2) = 20; tHostGoldVecOrdinals(4,2,2) = 17; tHostGoldVecOrdinals(4,3,2) = 2;
-    tHostGoldVecOrdinals(5,0,2) = 23; tHostGoldVecOrdinals(5,1,2) = 17; tHostGoldVecOrdinals(5,2,2) = 14; tHostGoldVecOrdinals(5,3,2) = 2;
+    tHostGoldVecOrdinals(0,0,0) = 0;  tHostGoldVecOrdinals(0,1,0) = 18; tHostGoldVecOrdinals(0,2,0) = 6;  tHostGoldVecOrdinals(0,3,0) = 21;
+    tHostGoldVecOrdinals(1,0,0) = 0;  tHostGoldVecOrdinals(1,1,0) = 6;  tHostGoldVecOrdinals(1,2,0) = 9;  tHostGoldVecOrdinals(1,3,0) = 21;
+    tHostGoldVecOrdinals(2,0,0) = 0;  tHostGoldVecOrdinals(2,1,0) = 9;  tHostGoldVecOrdinals(2,2,0) = 3;  tHostGoldVecOrdinals(2,3,0) = 21;
+    tHostGoldVecOrdinals(3,0,0) = 0;  tHostGoldVecOrdinals(3,1,0) = 3;  tHostGoldVecOrdinals(3,2,0) = 15; tHostGoldVecOrdinals(3,3,0) = 21;
+    tHostGoldVecOrdinals(4,0,0) = 0;  tHostGoldVecOrdinals(4,1,0) = 15; tHostGoldVecOrdinals(4,2,0) = 12; tHostGoldVecOrdinals(4,3,0) = 21;
+    tHostGoldVecOrdinals(5,0,0) = 0;  tHostGoldVecOrdinals(5,1,0) = 12; tHostGoldVecOrdinals(5,2,0) = 18; tHostGoldVecOrdinals(5,3,0) = 21;
+
+    tHostGoldVecOrdinals(0,0,1) = 1;  tHostGoldVecOrdinals(0,1,1) = 19; tHostGoldVecOrdinals(0,2,1) = 7;  tHostGoldVecOrdinals(0,3,1) = 22;
+    tHostGoldVecOrdinals(1,0,1) = 1;  tHostGoldVecOrdinals(1,1,1) = 7;  tHostGoldVecOrdinals(1,2,1) = 10; tHostGoldVecOrdinals(1,3,1) = 22;
+    tHostGoldVecOrdinals(2,0,1) = 1;  tHostGoldVecOrdinals(2,1,1) = 10; tHostGoldVecOrdinals(2,2,1) = 4;  tHostGoldVecOrdinals(2,3,1) = 22;
+    tHostGoldVecOrdinals(3,0,1) = 1;  tHostGoldVecOrdinals(3,1,1) = 4;  tHostGoldVecOrdinals(3,2,1) = 16; tHostGoldVecOrdinals(3,3,1) = 22;
+    tHostGoldVecOrdinals(4,0,1) = 1;  tHostGoldVecOrdinals(4,1,1) = 16; tHostGoldVecOrdinals(4,2,1) = 13; tHostGoldVecOrdinals(4,3,1) = 22;
+    tHostGoldVecOrdinals(5,0,1) = 1;  tHostGoldVecOrdinals(5,1,1) = 13; tHostGoldVecOrdinals(5,2,1) = 19; tHostGoldVecOrdinals(5,3,1) = 22;
+
+    tHostGoldVecOrdinals(0,0,2) = 2;  tHostGoldVecOrdinals(0,1,2) = 20; tHostGoldVecOrdinals(0,2,2) = 8;  tHostGoldVecOrdinals(0,3,2) = 23;
+    tHostGoldVecOrdinals(1,0,2) = 2;  tHostGoldVecOrdinals(1,1,2) = 8;  tHostGoldVecOrdinals(1,2,2) = 11; tHostGoldVecOrdinals(1,3,2) = 23;
+    tHostGoldVecOrdinals(2,0,2) = 2;  tHostGoldVecOrdinals(2,1,2) = 11; tHostGoldVecOrdinals(2,2,2) = 5;  tHostGoldVecOrdinals(2,3,2) = 23;
+    tHostGoldVecOrdinals(3,0,2) = 2;  tHostGoldVecOrdinals(3,1,2) = 5;  tHostGoldVecOrdinals(3,2,2) = 17; tHostGoldVecOrdinals(3,3,2) = 23;
+    tHostGoldVecOrdinals(4,0,2) = 2;  tHostGoldVecOrdinals(4,1,2) = 17; tHostGoldVecOrdinals(4,2,2) = 14; tHostGoldVecOrdinals(4,3,2) = 23;
+    tHostGoldVecOrdinals(5,0,2) = 2;  tHostGoldVecOrdinals(5,1,2) = 14; tHostGoldVecOrdinals(5,2,2) = 20; tHostGoldVecOrdinals(5,3,2) = 23;
     auto tHostVectorFieldOrdinals = Kokkos::create_mirror(tVectorFieldOrdinals);
     Kokkos::deep_copy(tHostVectorFieldOrdinals, tVectorFieldOrdinals);
 
@@ -3393,23 +3747,23 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, LocalOrdinalMaps)
     // TEST 2D ARRAYS
     Plato::ScalarMultiVector tGoldControlOrdinals("control", tNumCells, PhysicsT::mNumNodesPerCell);
     auto tHostGoldControlOrdinals = Kokkos::create_mirror(tGoldControlOrdinals);
-    tHostGoldControlOrdinals(0,0) = 0; tHostGoldControlOrdinals(0,1) = 4; tHostGoldControlOrdinals(0,2) = 3; tHostGoldControlOrdinals(0,3) = 5;
-    tHostGoldControlOrdinals(1,0) = 0; tHostGoldControlOrdinals(1,1) = 3; tHostGoldControlOrdinals(1,2) = 2; tHostGoldControlOrdinals(1,3) = 5;
-    tHostGoldControlOrdinals(2,0) = 0; tHostGoldControlOrdinals(2,1) = 2; tHostGoldControlOrdinals(2,2) = 1; tHostGoldControlOrdinals(2,3) = 5;
-    tHostGoldControlOrdinals(3,0) = 0; tHostGoldControlOrdinals(3,1) = 6; tHostGoldControlOrdinals(3,2) = 5; tHostGoldControlOrdinals(3,3) = 1;
-    tHostGoldControlOrdinals(4,0) = 7; tHostGoldControlOrdinals(4,1) = 6; tHostGoldControlOrdinals(4,2) = 5; tHostGoldControlOrdinals(4,3) = 0;
-    tHostGoldControlOrdinals(5,0) = 7; tHostGoldControlOrdinals(5,1) = 5; tHostGoldControlOrdinals(5,2) = 4; tHostGoldControlOrdinals(5,3) = 0;
+    tHostGoldControlOrdinals(0,0) = 0; tHostGoldControlOrdinals(0,1) = 6; tHostGoldControlOrdinals(0,2) = 2; tHostGoldControlOrdinals(0,3) = 7;
+    tHostGoldControlOrdinals(1,0) = 0; tHostGoldControlOrdinals(1,1) = 2; tHostGoldControlOrdinals(1,2) = 3; tHostGoldControlOrdinals(1,3) = 7;
+    tHostGoldControlOrdinals(2,0) = 0; tHostGoldControlOrdinals(2,1) = 3; tHostGoldControlOrdinals(2,2) = 1; tHostGoldControlOrdinals(2,3) = 7;
+    tHostGoldControlOrdinals(3,0) = 0; tHostGoldControlOrdinals(3,1) = 1; tHostGoldControlOrdinals(3,2) = 5; tHostGoldControlOrdinals(3,3) = 7;
+    tHostGoldControlOrdinals(4,0) = 0; tHostGoldControlOrdinals(4,1) = 5; tHostGoldControlOrdinals(4,2) = 4; tHostGoldControlOrdinals(4,3) = 7;
+    tHostGoldControlOrdinals(5,0) = 0; tHostGoldControlOrdinals(5,1) = 4; tHostGoldControlOrdinals(5,2) = 6; tHostGoldControlOrdinals(5,3) = 7;
     auto tHostControlOrdinals = Kokkos::create_mirror(tControlOrdinals);
     Kokkos::deep_copy(tHostControlOrdinals, tControlOrdinals);
 
     Plato::ScalarMultiVector tGoldScalarOrdinals("scalar field", tNumCells, PhysicsT::mNumNodesPerCell);
     auto tHostGoldScalarOrdinals = Kokkos::create_mirror(tGoldScalarOrdinals);
-    tHostGoldScalarOrdinals(0,0) = 0; tHostGoldScalarOrdinals(0,1) = 4; tHostGoldScalarOrdinals(0,2) = 3; tHostGoldScalarOrdinals(0,3) = 5;
-    tHostGoldScalarOrdinals(1,0) = 0; tHostGoldScalarOrdinals(1,1) = 3; tHostGoldScalarOrdinals(1,2) = 2; tHostGoldScalarOrdinals(1,3) = 5;
-    tHostGoldScalarOrdinals(2,0) = 0; tHostGoldScalarOrdinals(2,1) = 2; tHostGoldScalarOrdinals(2,2) = 1; tHostGoldScalarOrdinals(2,3) = 5;
-    tHostGoldScalarOrdinals(3,0) = 0; tHostGoldScalarOrdinals(3,1) = 6; tHostGoldScalarOrdinals(3,2) = 5; tHostGoldScalarOrdinals(3,3) = 1;
-    tHostGoldScalarOrdinals(4,0) = 7; tHostGoldScalarOrdinals(4,1) = 6; tHostGoldScalarOrdinals(4,2) = 5; tHostGoldScalarOrdinals(4,3) = 0;
-    tHostGoldScalarOrdinals(5,0) = 7; tHostGoldScalarOrdinals(5,1) = 5; tHostGoldScalarOrdinals(5,2) = 4; tHostGoldScalarOrdinals(5,3) = 0;
+    tHostGoldScalarOrdinals(0,0) = 0; tHostGoldScalarOrdinals(0,1) = 6; tHostGoldScalarOrdinals(0,2) = 2; tHostGoldScalarOrdinals(0,3) = 7;
+    tHostGoldScalarOrdinals(1,0) = 0; tHostGoldScalarOrdinals(1,1) = 2; tHostGoldScalarOrdinals(1,2) = 3; tHostGoldScalarOrdinals(1,3) = 7;
+    tHostGoldScalarOrdinals(2,0) = 0; tHostGoldScalarOrdinals(2,1) = 3; tHostGoldScalarOrdinals(2,2) = 1; tHostGoldScalarOrdinals(2,3) = 7;
+    tHostGoldScalarOrdinals(3,0) = 0; tHostGoldScalarOrdinals(3,1) = 1; tHostGoldScalarOrdinals(3,2) = 5; tHostGoldScalarOrdinals(3,3) = 7;
+    tHostGoldScalarOrdinals(4,0) = 0; tHostGoldScalarOrdinals(4,1) = 5; tHostGoldScalarOrdinals(4,2) = 4; tHostGoldScalarOrdinals(4,3) = 7;
+    tHostGoldScalarOrdinals(5,0) = 0; tHostGoldScalarOrdinals(5,1) = 4; tHostGoldScalarOrdinals(5,2) = 6; tHostGoldScalarOrdinals(5,3) = 7;
     auto tHostScalarFieldOrdinals = Kokkos::create_mirror(tScalarFieldOrdinals);
     Kokkos::deep_copy(tHostScalarFieldOrdinals, tScalarFieldOrdinals);
 

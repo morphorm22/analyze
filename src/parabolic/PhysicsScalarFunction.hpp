@@ -4,8 +4,6 @@
 #include <cassert>
 #include <vector>
 
-#include <Omega_h_mesh.hpp>
-
 #include "WorksetBase.hpp"
 #include "PlatoStaticsTypes.hpp"
 

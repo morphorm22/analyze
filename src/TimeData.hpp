@@ -50,7 +50,7 @@ public:
         mNumTimeSteps = std::min(mNumTimeSteps, mMaxNumTimeSteps);
         if (mTimeStepExpansionMultiplier < static_cast<Plato::Scalar>(1.0))
         {
-            THROWERR("Time Step Expansion Multiplier must be greater than or equal to 1.")
+            ANALYZE_THROWERR("Time Step Expansion Multiplier must be greater than or equal to 1.")
         }
     }
 
@@ -99,7 +99,7 @@ public:
     {
         if (aUpdatedTimeStepIndex < static_cast<Plato::OrdinalType>(0))
         {
-            THROWERR("Provided time step index is less than 0.")
+            ANALYZE_THROWERR("Provided time step index is less than 0.")
         }
         mCurrentTimeStepIndex = aUpdatedTimeStepIndex;
         mCurrentTime = mCurrentTimeStepSize * static_cast<Plato::Scalar>(mCurrentTimeStepIndex + 1);

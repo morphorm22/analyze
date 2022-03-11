@@ -107,7 +107,7 @@ public:
                  << "incorrect number of parameters, expected 2, received "
                    << aParameters.extent(0) << ".";
 
-          THROWERR( errorMsg.str() );
+          ANALYZE_THROWERR( errorMsg.str() );
         }
 
         // For ease get the parameters based on their true names.

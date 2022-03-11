@@ -8,12 +8,8 @@
 #include <Teuchos_Array.hpp>
 #include <Teuchos_ParameterList.hpp>
 
-#include <Omega_h_tag.hpp>
-#include <Omega_h_file.hpp>
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_array.hpp>
-#include <Omega_h_assoc.hpp>
-
+#include "PlatoMesh.hpp"
+#include "OmegaHMesh.hpp"
 #include "AnalyzeOutput.hpp"
 #include "PlatoUtilities.hpp"
 #include "PlatoProblemFactory.hpp"
@@ -29,23 +25,21 @@ namespace Plato
  *
  * \param [in] aInputData   input parameters list
  * \param [in] aMesh        mesh database
- * \param [in] aMeshSets    side sets database
- * \param [in] aVizFilePath output visualization file path
 *******************************************************************************/
 template<const Plato::OrdinalType SpatialDim>
-void run(Teuchos::ParameterList& aInputData,
-         Comm::Machine           aMachine,
-         Omega_h::Mesh&          aMesh,
-         Omega_h::MeshSets&      aMeshSets)
+void run(
+    Teuchos::ParameterList& aInputData,
+    Comm::Machine           aMachine,
+    Plato::Mesh             aMesh)
 {
     // create mesh based density from host data
-    std::vector<Plato::Scalar> tControlHost(aMesh.nverts(), 1.0);
+    std::vector<Plato::Scalar> tControlHost(aMesh->NumNodes(), 1.0);
     Kokkos::View<Plato::Scalar*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged> tControlHostView(tControlHost.data(), tControlHost.size());
     auto tControl = Kokkos::create_mirror_view_and_copy(Kokkos::DefaultExecutionSpace(), tControlHostView);
 
     // Solve Plato problem
     Plato::ProblemFactory<SpatialDim> tProblemFactory;
-    std::shared_ptr<::Plato::AbstractProblem> tPlatoProblem = tProblemFactory.create(aMesh, aMeshSets, aInputData, aMachine);
+    std::shared_ptr<::Plato::AbstractProblem> tPlatoProblem = tProblemFactory.create(aMesh, aInputData, aMachine);
     auto tSolution = tPlatoProblem->solution(tControl);
     if(false){ tSolution.print(); }
 
@@ -72,42 +66,31 @@ void run(Teuchos::ParameterList& aInputData,
  *
  * \tparam SpatialDim spatial dimensions
  *
- * \param [in] aLibOSH      pointer to Omega_h library database
  * \param [in] aInputData   input parameters list
  * \param [in] aInputFile   Plato Analyze input file name
- * \param [in] aVizFilePath output visualization file path
 *******************************************************************************/
 template<const Plato::OrdinalType SpatialDim>
-void driver(Omega_h::Library*        aLibOSH,
-            Teuchos::ParameterList & aInputData,
-            Comm::Machine            aMachine)
+void driver(
+    Teuchos::ParameterList & aInputData,
+    Comm::Machine            aMachine)
 {
     auto tInputMesh = aInputData.get<std::string>("Input Mesh");
 
-    Omega_h::Mesh tMesh = Omega_h::read_mesh_file(tInputMesh, aLibOSH->world());
-    tMesh.set_parting(Omega_h_Parting::OMEGA_H_GHOSTED);
+    Plato::Mesh tMesh = Plato::MeshFactory::create(tInputMesh);
 
-    Omega_h::Assoc tAssoc;
-    tAssoc[Omega_h::ELEM_SET] = tMesh.class_sets;
-    tAssoc[Omega_h::NODE_SET] = tMesh.class_sets;
-    tAssoc[Omega_h::SIDE_SET] = tMesh.class_sets;
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&tMesh, tAssoc);
-    
-    Plato::run<SpatialDim>(aInputData, aMachine, tMesh, tMeshSets);
+    Plato::run<SpatialDim>(aInputData, aMachine, tMesh);
 }
 // function driver
 
 /***************************************************************************//**
  * \brief Run simulation with Plato Analyze.
  *
- * \param [in] aLibOSH      pointer to Omega_h library database
  * \param [in] aInputData   input parameters list
  * \param [in] aInputFile   Plato Analyze input file name
- * \param [in] aVizFilePath output visualization file path
 *******************************************************************************/
-void driver(Omega_h::Library* aLibOmegaH,
-            Teuchos::ParameterList & aInputData,
-            Comm::Machine            aMachine)
+void driver(
+    Teuchos::ParameterList & aInputData,
+    Comm::Machine            aMachine)
 {
     const Plato::OrdinalType tSpaceDim = aInputData.get<Plato::OrdinalType>("Spatial Dimension", 3);
 
@@ -115,7 +98,7 @@ void driver(Omega_h::Library* aLibOmegaH,
     if(tSpaceDim == static_cast<Plato::OrdinalType>(3))
     {
         #ifdef PLATOANALYZE_3D
-        driver<3>(aLibOmegaH, aInputData, aMachine);
+        driver<3>(aInputData, aMachine);
         #else
         throw std::runtime_error("3D physics option is not compiled.");
         #endif
@@ -123,7 +106,7 @@ void driver(Omega_h::Library* aLibOmegaH,
     else if(tSpaceDim == static_cast<Plato::OrdinalType>(2))
     {
         #ifdef PLATOANALYZE_2D
-        driver<2>(aLibOmegaH, aInputData, aMachine);
+        driver<2>(aInputData, aMachine);
         #else
         throw std::runtime_error("2D physics option is not compiled.");
         #endif
@@ -131,7 +114,7 @@ void driver(Omega_h::Library* aLibOmegaH,
     else if(tSpaceDim == static_cast<Plato::OrdinalType>(1))
     {
         #ifdef PLATOANALYZE_1D
-        driver<1>(aLibOmegaH, aInputData, aMachine);
+        driver<1>(aInputData, aMachine);
         #else
         throw std::runtime_error("1D physics option is not compiled.");
         #endif

@@ -21,6 +21,7 @@ SET_PROPERTY(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS TRUE)
 
 # Get Trilinos as one entity
 FIND_PACKAGE(Trilinos REQUIRED)
+list(REMOVE_DUPLICATES Trilinos_TPL_LIBRARIES)
 
 IF(NOT Trilinos_FOUND)
   MESSAGE(FATAL_ERROR "Cannot find Trilinos - build exiting!!!")
@@ -49,6 +50,9 @@ endif()
 MESSAGE("-- BUILD_SHARED_LIBS: ${BUILD_SHARED_LIBS}")
 
 SET(CMAKE_C_FLAGS ${Trilinos_C_COMPILER_FLAGS} )
+
+FIND_PACKAGE(MPI REQUIRED)
+
 ## this has to be conditional, or building without cuda fails
 IF (DEFINED AMGX_PREFIX)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CUSTOM_CXX_FLAGS} -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored")
@@ -87,21 +91,21 @@ IF(OMEGA_H_PREFIX)
 ENDIF()
 FIND_PACKAGE(Omega_h 9.17.0 REQUIRED)
 
-FIND_PROGRAM(
-  VTKDIFF
-  NAMES vtkdiff
-     PATHS ${OMEGA_H_PREFIX}/bin
-     NO_DEFAULT_PATH
-  )
-
-IF(VTKDIFF)
-  MESSAGE("-- VTKDIFF=${VTKDIFF}")
+option(PLATOANALYZE_ENABLE_ENGINEMESH "Enable EngineMesh" OFF)
+if (PLATOANALYZE_ENABLE_ENGINEMESH)
+  FIND_PROGRAM( EXODIFF NAMES exodiff PATHS ${Trilinos_PREFIX}/bin NO_DEFAULT_PATH)
+  IF(EXODIFF)
+    MESSAGE("-- EXODIFF=${EXODIFF}")
+  ELSE()
+    MESSAGE(FATAL_ERROR "Cannot locate the executable for exodiff, exiting")
+  ENDIF()
 ELSE()
-  MESSAGE(FATAL_ERROR "Cannot locate the executable for vtkdiff, exiting")
-ENDIF()
-
-IF( TRILINOS_ROL_BRANCH )
-  ADD_DEFINITIONS(-DTRILINOS_ROL_BRANCH)
+  FIND_PROGRAM( VTKDIFF NAMES vtkdiff PATHS ${OMEGA_H_PREFIX}/bin NO_DEFAULT_PATH)
+  IF(VTKDIFF)
+    MESSAGE("-- VTKDIFF=${VTKDIFF}")
+  ELSE()
+    MESSAGE(FATAL_ERROR "Cannot locate the executable for vtkdiff, exiting")
+  ENDIF()
 ENDIF()
 
 # DAI: omega_h2 has a vtkdiff which by default compares all timesteps.
@@ -165,19 +169,6 @@ endif()
 target_include_directories(analyze PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 #target_link_libraries(analyze analyzelib)
 target_link_libraries( analyze analyzelib ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} )
-
-option(PLATOANALYZE_ENABLE_ROCKET "Enable building the rocket app" OFF)
-if(PLATOANALYZE_ENABLE_ROCKET)
-  add_executable(
-    ROCKET
-    src/AlgebraicRocketMain.cpp
-  )
-  if( CMAKE_INSTALL_PREFIX )
-    install( TARGETS ROCKET DESTINATION ${CMAKE_INSTALL_PREFIX}/bin )
-  endif()
-  target_include_directories(ROCKET PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
-  target_link_libraries(ROCKET analyzelib)
-endif()
 
 IF (DEFINED AMGX_PREFIX)
   ADD_DEFINITIONS(-DHAVE_AMGX)
@@ -257,7 +248,7 @@ if(HELMHOLTZ)
   ADD_DEFINITIONS(-DPLATO_HELMHOLTZ)
 endif()
 
-option(EXPRESSION "Compile with Expression evaluator" ON)
+option(EXPRESSION "Compile with Expression evaluator" OFF)
 if(EXPRESSION)
   message("-- Plato: Expression evaluator added")
   ADD_DEFINITIONS(-DPLATO_EXPRESSION)
@@ -275,6 +266,7 @@ if (PLATOANALYZE_ENABLE_MPMD)
   find_library(PLATO_PARSER_LIB NAMES PlatoParser PATHS ${PLATOENGINE_PREFIX}/lib)
   find_library(PLATO_EXCEPTIONS_LIB NAMES PlatoExceptions PATHS ${PLATOENGINE_PREFIX}/lib)
   find_library(PLATO_CONSOLE_LIB NAMES PlatoConsole PATHS ${PLATOENGINE_PREFIX}/lib)
+  find_library(PLATO_BAMG_LIB NAMES BamGlib PATHS ${PLATOENGINE_PREFIX}/lib)
   find_package(Epetra REQUIRED)
   find_package(AztecOO REQUIRED)
   find_package(SEACASExodus REQUIRED)
@@ -290,6 +282,7 @@ if (PLATOANALYZE_ENABLE_MPMD)
       ${PLATO_PARSER_LIB}
       ${PLATO_EXCEPTIONS_LIB}
       ${PLATO_CONSOLE_LIB}
+      ${PLATO_BAMG_LIB}
       aztecoo
       epetra
       intrepid
@@ -307,12 +300,17 @@ if (PLATOANALYZE_ENABLE_MPMD)
     install( TARGETS Analyze_App DESTINATION ${CMAKE_INSTALL_PREFIX}/lib )
   endif()
 
+  find_package(HDF5 REQUIRED)
+  target_link_libraries(Analyze_App HDF5::HDF5)
+
   add_executable( analyze_MPMD src/Analyze_MPMD.cpp)
   if( CMAKE_INSTALL_PREFIX )
     install( TARGETS analyze_MPMD DESTINATION ${CMAKE_INSTALL_PREFIX}/bin )
   endif()
   target_include_directories(analyze_MPMD PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_include_directories(analyze_MPMD PRIVATE "${PLATOENGINE_PREFIX}/include")
+
+  target_include_directories(analyze PRIVATE "${PLATOENGINE_PREFIX}/include")
 
   option(PLATOANALYZE_ENABLE_GEOMETRY "Enable Plato Geometry" OFF)
   if (PLATOANALYZE_ENABLE_GEOMETRY)
@@ -321,6 +319,13 @@ if (PLATOANALYZE_ENABLE_MPMD)
     find_library(PLATO_GEOMETRY_COGENT_LIB NAMES PlatoGeometryCogent PATHS ${PLATOENGINE_PREFIX}/lib)
     find_package(Pamgen REQUIRED)
     set(PLATO_LIBS ${PLATO_LIBS} ${PLATO_GEOMETRY_MLS_LIB} ${PLATO_GEOMETRY_COGENT_LIB} pamgen)
+  endif()
+
+  if (PLATOANALYZE_ENABLE_ENGINEMESH)
+    message("Default mesh is EngineMesh")
+  else()
+    add_definitions(-DUSE_OMEGAH_MESH)
+    message("Default mesh is Omega-h mesh")
   endif()
 
   # string(REPLACE "-std=c++11" "-std=c++14" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
@@ -371,36 +376,23 @@ if (PLATOANALYZE_ENABLE_MPMD)
     set(PLATO_LIBS ${PLATO_LIBS} ${SuperLU_LIBRARIES} tpetra belos amesos2)
   endif()
 
+  target_link_libraries(analyze ${PLATO_LIBS} ${Trilinos_LIBRARIES})
   target_link_libraries(Analyze_App ${PLATO_LIBS} ${PLATO_LIBS} analyzelib)
   target_link_libraries(analyze_MPMD Analyze_App ${PLATO_LIBS} ${PLATO_LIBS} analyzelib)
 
   option(PLATOANALYZE_ENABLE_PYTHON "Enable the Plato Python interface" OFF)
   if (PLATOANALYZE_ENABLE_PYTHON)
-      find_package(Python2 COMPONENTS Development)
-      include_directories( ${Python2_INCLUDE_DIRS} )
+      find_package(Python3 COMPONENTS Development)
+      include_directories( ${Python3_INCLUDE_DIRS} )
       add_library( PlatoPython SHARED src/PlatoPythonModule.cpp )
       target_include_directories( PlatoPython PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
       target_include_directories( PlatoPython PRIVATE "${PLATOENGINE_PREFIX}/include")
-      target_link_libraries( PlatoPython Analyze_App analyzelib ${PLATO_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${Python2_LIBRARIES} )
+      target_link_libraries( PlatoPython Analyze_App analyzelib ${PLATO_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${Python3_LIBRARIES} )
       set_target_properties( PlatoPython PROPERTIES PREFIX "" )
       target_compile_options( PlatoPython PRIVATE "-lmpi" )
       if( CMAKE_INSTALL_PREFIX )
         install( TARGETS PlatoPython DESTINATION ${CMAKE_INSTALL_PREFIX}/lib )
       endif()
-  endif()
-
-  if(PLATOANALYZE_ENABLE_ROCKET)
-    add_executable(
-      ROCKET_MPMD
-      src/PlatoRocketApp.cpp
-      src/PlatoRocketAppMPMD.cpp
-    )
-    if( CMAKE_INSTALL_PREFIX )
-      install( TARGETS ROCKET_MPMD DESTINATION ${CMAKE_INSTALL_PREFIX}/bin )
-    endif()
-    target_include_directories(ROCKET_MPMD PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
-    target_include_directories(ROCKET_MPMD PRIVATE "${PLATOENGINE_PREFIX}/include")
-    target_link_libraries(ROCKET_MPMD ${PLATO_LIBS} ${PLATO_LIBS} analyzelib)
   endif()
 
 endif()

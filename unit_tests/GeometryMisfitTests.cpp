@@ -54,19 +54,16 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Misfit)
 
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
-    Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+    Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
     using GeometryT = typename Plato::Geometrical<tSpaceDim>;
     using ResidualT = typename Plato::Geometric::Evaluation<typename GeometryT::SimplexT>::Residual;
 
+    Plato::DataMap tDataMap;
     std::string tFunctionName("Geometry Misfit");
     auto tGeometryMisfit = Plato::Geometric::GeometryMisfit<ResidualT>(tOnlyDomain, tDataMap, *tParamList, tFunctionName);
 
@@ -101,14 +98,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Misfit)
         }
     }
 
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
     Plato::ScalarMultiVectorT<ResidualT::ControlScalarType> tControlWS("design variables", tNumCells, GeometryT::mNumNodesPerCell);
     Kokkos::deep_copy(tControlWS, 1.0);
 
     // evaluate the function
     //
     using WorksetBaseT = typename Plato::Geometric::WorksetBase<GeometryT>;
-    WorksetBaseT tWorksetBase(*tMesh);
+    WorksetBaseT tWorksetBase(tMesh);
 
     {
         Plato::ScalarArray3DT<ResidualT::ConfigScalarType> tConfigWS("configuration", tNumCells, GeometryT::mNumNodesPerCell, tSpaceDim);
@@ -161,9 +158,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Misfit)
           {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
           {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
           {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-          {0, 0, -0.5, 1, -0.5, 0.5, 0, 0.5, 0, 0, 0, 0},
-          {0, -0.5, 0, 0, 0, 0.5, 1, 0.5, -0.5, 0, 0, 0}
-        };
+          {0, 0, 0, 1, -0.5, 0.5, 0, 0, -0.5, 0, 0.5, 0},
+          {0, 0, 0, 0, -0.5, 0, 1, 0.5, -0.5, 0, 0, 0.5}};
 
         for (int iCell=0; iCell<tResultWS.extent(0); iCell++)
         {

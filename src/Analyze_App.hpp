@@ -6,9 +6,6 @@
 #include <iostream>
 #include <math.h>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include <Plato_InputData.hpp>
 #include <Plato_Application.hpp>
 #include <Plato_Exceptions.hpp>
@@ -20,6 +17,7 @@
 #include "Solutions.hpp"
 #include "AnalyzeAppUtils.hpp"
 #include "PlatoUtilities.hpp"
+#include "PlatoMesh.hpp"
 #include "PlatoAbstractProblem.hpp"
 #include "alg/ParseInput.hpp"
 
@@ -140,7 +138,7 @@ public:
      /******************************************************************************//**
      * \brief reinitialize
     **********************************************************************************/
-    void reinitialize() {};
+    void reinitialize();
 
     /******************************************************************************//**
      * \brief Compute this operation
@@ -498,6 +496,34 @@ private:
     //
 
     /******************************************************************************//**
+     * \fn createLocalData
+     * \brief parse and create member data such as MeshMap, ESP, etc.
+    **********************************************************************************/
+    void createLocalData();
+
+    /******************************************************************************//**
+     * \fn createMeshMapData
+     * \brief parse and create MeshMap object.  This function should be called if the 
+     * underlying mesh changes.  The current MeshMap object is freed.
+    **********************************************************************************/
+    void createMeshMapData();
+
+    /******************************************************************************//**
+     * \fn createESPData
+     * \brief parse and create ESP object.  This function should be called if the 
+     * underlying mesh changes.  Any existing ESP objects are freed.
+    **********************************************************************************/
+    void createESPData();
+
+    /******************************************************************************//**
+     * \fn createMLSData
+     * \brief parse and create MLS object.  This function should be called if the 
+     * underlying mesh changes.  Any existing MLS objects are freed.
+    **********************************************************************************/
+    void createMLSData();
+
+
+    /******************************************************************************//**
      * \fn resetProblemMetaData
      * \brief Reset Analyze problem metadata. Metadata includes state, control, and \n
      * respective gradients.
@@ -577,13 +603,8 @@ public:
     }
 
 private:
-    // data
-    //
 
-    Omega_h::Mesh mMesh;
-    Omega_h::Assoc mAssoc;
-    Omega_h::Library mLibOsh;
-    Omega_h::MeshSets mMeshSets;
+    Plato::Mesh mMesh;
     Plato::Comm::Machine mMachine;
 
     bool mDebugAnalyzeApp;
@@ -612,6 +633,12 @@ private:
 
     Plato::OrdinalType mNumSpatialDims;
 
+    void *mESPInterface;
+    void loadESPInterface();
+    typedef ESPType* (*create_t)(std::string, std::string, int);
+    typedef void (*destroy_t)(ESPType *esp);
+    create_t mCreateESP;
+    destroy_t mDestroyESP;
     std::map<std::string,std::shared_ptr<ESPType>> mESP;
     void mapToParameters(std::shared_ptr<ESPType> aESP, std::vector<Plato::Scalar>& mGradientP, Plato::ScalarVector mGradientX);
 
@@ -621,7 +648,7 @@ private:
 #ifdef PLATO_MESHMAP
         aMeshMap->apply(aInput, aOutput);
 #else
-        THROWERR("Not compiled with MeshMap.");
+        ANALYZE_THROWERR("Not compiled with MeshMap.");
 #endif
     }
     void applyT(decltype(mMeshMap) aMeshMap, const Plato::ScalarVector & aInput, Plato::ScalarVector aOutput)
@@ -629,7 +656,7 @@ private:
 #ifdef PLATO_MESHMAP
         aMeshMap->applyT(aInput, aOutput);
 #else
-        THROWERR("Not compiled with MeshMap.");
+        ANALYZE_THROWERR("Not compiled with MeshMap.");
 #endif
     }
 
@@ -718,6 +745,7 @@ private:
     private:
         std::string mStrValName;
         std::string mStrGradName;
+        std::string mOutputFile;
     };
     friend class ComputeCriterionX;
     /******************************************************************************/

@@ -31,7 +31,7 @@ CriterionFactory<PhysicsT>::createCriterion
     auto tCriteriaParam = aInputs.sublist("Criteria");
     if(tCriteriaParam.isSublist(aTag) == false) 
     {
-        THROWERR(std::string("Parameter list block with tag '") + aTag + "' is not defined")
+        ANALYZE_THROWERR(std::string("Parameter list block with tag '") + aTag + "' is not defined")
     }       
     auto tFunctionTag = tCriteriaParam.sublist(aTag);
     auto tType = tFunctionTag.get<std::string>("Type", "Not Defined");
@@ -60,7 +60,7 @@ CriterionFactory<PhysicsT>::createCriterion
     }
     else
     {
-        THROWERR(std::string("Scalar function in block '") + aTag + "' with Type '" + tType + "' is not supported.")
+        ANALYZE_THROWERR(std::string("Scalar function in block '") + aTag + "' with Type '" + tType + "' is not supported.")
     }
 }
 

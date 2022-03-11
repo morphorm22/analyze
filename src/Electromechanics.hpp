@@ -3,9 +3,6 @@
 
 #include <memory>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include "Simplex.hpp"
 #include "SimplexElectromechanics.hpp"
 

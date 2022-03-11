@@ -81,19 +81,19 @@ private:
                 const Teuchos::ParameterEntry &tEntry = tThermalSourcesParamList.entry(tItr);
                 if ( !tEntry.isList() )
                 {
-                    THROWERR("Parameter in 'Thermal Sources' block not valid. Expects a Parameter List only.")
+                    ANALYZE_THROWERR("Parameter in 'Thermal Sources' block not valid. Expects a Parameter List only.")
                 }
 
                 std::string tName = tThermalSourcesParamList.name(tItr);
                 if(tThermalSourcesParamList.isSublist(tName) == false)
                 {
-                    THROWERR(std::string("Parameter Sublist '") + tName.c_str() + "' is NOT defined in 'Thermal Sources' block.")
+                    ANALYZE_THROWERR(std::string("Parameter Sublist '") + tName.c_str() + "' is NOT defined in 'Thermal Sources' block.")
                 }
                 Teuchos::ParameterList &tSubList = tThermalSourcesParamList.sublist(tName);
 
                 if(tSubList.isParameter("Type") == false)
                 {
-                    THROWERR(std::string("'Type' Keyword in Parameter Sublist '") + tName.c_str() + "' is NOT defined.")
+                    ANALYZE_THROWERR(std::string("'Type' Keyword in Parameter Sublist '") + tName.c_str() + "' is NOT defined.")
                 }
 
                 auto tFuncType = tSubList.get<std::string>("Type");
@@ -117,19 +117,19 @@ private:
                 const Teuchos::ParameterEntry &tEntry = tThermalSourcesParamList.entry(tItr);
                 if ( !tEntry.isList() )
                 {
-                    THROWERR("Parameter in 'Thermal Sources' block not valid. Expects a Parameter List only.")
+                    ANALYZE_THROWERR("Parameter in 'Thermal Sources' block not valid. Expects a Parameter List only.")
                 }
 
                 std::string tName = tThermalSourcesParamList.name(tItr);
                 if(tThermalSourcesParamList.isSublist(tName) == false)
                 {
-                    THROWERR(std::string("Parameter Sublist '") + tName.c_str() + "' is NOT defined in 'Thermal Sources' block.")
+                    ANALYZE_THROWERR(std::string("Parameter Sublist '") + tName.c_str() + "' is NOT defined in 'Thermal Sources' block.")
                 }
                 Teuchos::ParameterList &tSubList = tThermalSourcesParamList.sublist(tName);
 
                 if(tSubList.isParameter("Type") == false)
                 {
-                    THROWERR(std::string("'Type' Keyword in Parameter Sublist '") + tName.c_str() + "' is NOT defined.")
+                    ANALYZE_THROWERR(std::string("'Type' Keyword in Parameter Sublist '") + tName.c_str() + "' is NOT defined.")
                 }
 
                 auto tFuncType = tSubList.get<std::string>("Type");

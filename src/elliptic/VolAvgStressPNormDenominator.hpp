@@ -21,7 +21,6 @@
 #include "alg/Cubature.hpp"
 #include "BLAS2.hpp"
 #include <Omega_h_expr.hpp>
-#include <Omega_h_mesh.hpp>
 
 namespace Plato
 {

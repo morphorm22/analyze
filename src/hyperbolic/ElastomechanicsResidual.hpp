@@ -81,8 +81,9 @@ class TransientMechanicsResidual :
               Teuchos::ParameterList & aPenaltyParams
     ) :
         FunctionBaseType      (aSpatialDomain, aDataMap,
-                               {"Displacement X", "Displacement Y", "Displacement Z"},
-                               {"Velocity X",     "Velocity Y",     "Velocity Z"    }),
+                               {"displacement X", "displacement Y", "displacement Z"},
+                               {"velocity X",     "velocity Y",     "velocity Z"    },
+                               {"acceleration X", "acceleration Y", "acceleration Z"}),
         mIndicatorFunction    (aPenaltyParams),
         mApplyStressWeighting (mIndicatorFunction),
         mApplyMassWeighting   (mIndicatorFunction),
@@ -163,40 +164,7 @@ class TransientMechanicsResidual :
     ******************************************************************************/
     Plato::Solutions getSolutionStateOutputData(const Plato::Solutions &aSolutions) const override
     {
-      Plato::ScalarMultiVector tSolutionFromSolutions    = aSolutions.get("State");
-      Plato::ScalarMultiVector tSolutionDotFromSolutions = aSolutions.get("StateDot");
-      Plato::ScalarMultiVector tSolutionDotDotFromSolutions = aSolutions.get("StateDotDot");
-
-      auto tNumTimeSteps = tSolutionFromSolutions.extent(0);
-      auto tNumVertices  = mSpatialDomain.Mesh.nverts();
-
-      Plato::ScalarMultiVector tDisplacements("displacements for all time steps", tNumTimeSteps, tNumVertices*mNumDofsPerNode);
-      Plato::ScalarMultiVector tVelocities("velocities for all time steps", tNumTimeSteps, tNumVertices*mNumDofsPerNode);
-      Plato::ScalarMultiVector tAccelerations("accelerations for all time steps", tNumTimeSteps, tNumVertices*mNumDofsPerNode);
-
-      if (tSolutionFromSolutions.extent(0) != tSolutionDotFromSolutions.extent(0))
-          THROWERR("Number of steps provided for State and StateDot differ.")
-
-      if (tSolutionFromSolutions.extent(0) != tSolutionDotDotFromSolutions.extent(0))
-          THROWERR("Number of steps provided for State and StateDotDot differ.")
-
-      Plato::blas2::extract<mNumDofsPerNode/*stride*/, mNumDofsPerNode/* dofs per node*/, 0/*offset*/>
-                          (tNumVertices, tSolutionFromSolutions, tDisplacements);
-      Plato::blas2::extract<mNumDofsPerNode/*stride*/, mNumDofsPerNode/* dofs per node*/, 0/*offset*/>
-                          (tNumVertices, tSolutionDotFromSolutions, tVelocities);
-      Plato::blas2::extract<mNumDofsPerNode/*stride*/, mNumDofsPerNode/* dofs per node*/, 0/*offset*/>
-                          (tNumVertices, tSolutionDotDotFromSolutions, tAccelerations);
-
-      Plato::Solutions tSolutionsOutput(aSolutions.physics(), aSolutions.pde());
-      tSolutionsOutput.set("Displacement",    tDisplacements);
-      tSolutionsOutput.set("Velocity", tVelocities);
-      tSolutionsOutput.set("Acceleration", tAccelerations);
-
-      tSolutionsOutput.setNumDofs("Displacement", 3);
-      tSolutionsOutput.setNumDofs("Velocity", 3);
-      tSolutionsOutput.setNumDofs("Acceleration", 3);
-
-      return tSolutionsOutput;
+      return aSolutions;
     }
 
     /**************************************************************************/

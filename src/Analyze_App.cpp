@@ -1,7 +1,5 @@
 #include <limits>
 
-#include <Omega_h_file.hpp>
-
 #include "Analyze_App.hpp"
 #include "AnalyzeOutput.hpp"
 #include "AnalyzeAppUtils.hpp"
@@ -121,54 +119,51 @@ getArgumentName(
     }
 }
 
-
 /******************************************************************************/
-MPMD_App::MPMD_App(int aArgc, char **aArgv, MPI_Comm& aLocalComm) :
-        mDebugAnalyzeApp(false),
-        mLibOsh(&aArgc, &aArgv),
-        mMachine(aLocalComm),
-        mNumSpatialDims(0),
-        mMesh(&mLibOsh)
+void MPMD_App::createLocalData()
 /******************************************************************************/
 {
-  // parse app file
-  //
-  const char* tInputChar = std::getenv("PLATO_APP_FILE");
-  Plato::Parser* parser = new Plato::PugiParser();
-  mInputData = parser->parseFile(tInputChar);
+    this->createMeshMapData();
+    this->createESPData();
+    this->createMLSData();
+}
 
-  auto tInputParams = Plato::input_file_parsing(aArgc, aArgv, mMachine);
-
-  auto tProblemName = tInputParams.sublist("Runtime").get<std::string>("Input Config");
-  mDefaultProblem = Teuchos::rcp(new ProblemDefinition(tProblemName));
-  mDefaultProblem->params = tInputParams;
-
-  this->createProblem(*mDefaultProblem);
-  this->resetProblemMetaData();
+/******************************************************************************/
+void MPMD_App::createMeshMapData()
+/******************************************************************************/
+{
+  mMeshMap = nullptr;
 
   // parse/create the MeshMap instance
   auto tMeshMapInputs = mInputData.getByName<Plato::InputData>("MeshMap");
   if( tMeshMapInputs.size() > 1 )
   {
-      THROWERR("Multiple MeshMap blocks found.");
+      ANALYZE_THROWERR("Multiple MeshMap blocks found.");
   }
   else
-  if( tMeshMapInputs.size() == 0 )
-  {
-      mMeshMap = nullptr;
-  }
-  else
+  if( tMeshMapInputs.size() == 1 )
   {
 #ifdef PLATO_MESHMAP
       auto tMeshMapInput = tMeshMapInputs[0];
       Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
       mMeshMap = tMeshMapFactory.create(mMesh, tMeshMapInput);
 #else
-      THROWERR("MeshMap requested but Plato was compiled without MeshMap.");
+      ANALYZE_THROWERR("MeshMap requested but Plato was compiled without MeshMap.");
 #endif
   }
+}
+
+/******************************************************************************/
+void MPMD_App::createESPData()
+/******************************************************************************/
+{
+  mESP.clear();
 
   // parse/create the ESP instance(s)
+#ifdef PLATO_ESP
+  loadESPInterface();
+#endif
+
   auto tESPInputs = mInputData.getByName<Plato::InputData>("ESP");
   for(auto tESPInput=tESPInputs.begin(); tESPInput!=tESPInputs.end(); ++tESPInput)
   {
@@ -182,12 +177,22 @@ MPMD_App::MPMD_App(int aArgc, char **aArgv, MPI_Comm& aLocalComm) :
       {
           auto tModelFileName = Plato::Get::String(*tESPInput,"ModelFileName");
           auto tTessFileName = Plato::Get::String(*tESPInput,"TessFileName");
-          mESP[tESPName] = std::make_shared<ESPType>(tModelFileName, tTessFileName);
+          mESP[tESPName] = std::shared_ptr<ESPType>(mCreateESP(tModelFileName, tTessFileName, -1), mDestroyESP);
       }
 #else
       throw Plato::ParsingException("PlatoApp was not compiled with ESP support.  Turn on 'PLATO_ESP' option and rebuild.");
 #endif // PLATO_ESP
   }
+
+}
+
+/******************************************************************************/
+void MPMD_App::createMLSData()
+/******************************************************************************/
+{
+#ifdef PLATO_GEOMETRY
+  mMLS.clear();
+#endif // PLATO_GEOMETRY
 
   // parse/create the MLS PointArrays
   auto tPointArrayInputs = mInputData.getByName<Plato::InputData>("PointArray");
@@ -217,6 +222,34 @@ MPMD_App::MPMD_App(int aArgc, char **aArgv, MPI_Comm& aLocalComm) :
   }
 }
 
+
+
+/******************************************************************************/
+MPMD_App::MPMD_App(int aArgc, char **aArgv, MPI_Comm& aLocalComm) :
+        mDebugAnalyzeApp(false),
+        mMachine(aLocalComm),
+        mNumSpatialDims(0),
+        mMesh(nullptr)
+/******************************************************************************/
+{
+  // parse app file
+  //
+  const char* tInputChar = std::getenv("PLATO_APP_FILE");
+  Plato::Parser* parser = new Plato::PugiParser();
+  mInputData = parser->parseFile(tInputChar);
+
+  auto tInputParams = Plato::input_file_parsing(aArgc, aArgv, mMachine);
+
+  auto tProblemName = tInputParams.sublist("Runtime").get<std::string>("Input Config");
+  mDefaultProblem = Teuchos::rcp(new ProblemDefinition(tProblemName));
+  mDefaultProblem->params = tInputParams;
+
+  this->createProblem(*mDefaultProblem);
+  this->resetProblemMetaData();
+
+  this->createLocalData();
+}
+
 /******************************************************************************/
 void
 MPMD_App::
@@ -234,18 +267,11 @@ createProblem(ProblemDefinition& aDefinition)
   {
       std::string tMsg = std::string("Analyze Application: 'Input Mesh' keyword was not defined. ")
           + "Use the 'Input Mesh' keyword to provide the name of the mesh file.";
-      THROWERR(tMsg)
+      ANALYZE_THROWERR(tMsg)
   }
   auto tInputMesh = aDefinition.params.get<std::string>("Input Mesh");
 
-  mMesh = Omega_h::read_mesh_file(tInputMesh, mLibOsh.world());
-  mMesh.set_parting(Omega_h_Parting::OMEGA_H_GHOSTED);
-
-  Omega_h::Assoc tAssoc;
-  tAssoc[Omega_h::ELEM_SET] = mMesh.class_sets;
-  tAssoc[Omega_h::NODE_SET] = mMesh.class_sets;
-  tAssoc[Omega_h::SIDE_SET] = mMesh.class_sets;
-  mMeshSets = Omega_h::invert(&mMesh, tAssoc);
+  mMesh = Plato::MeshFactory::create(tInputMesh);
 
   mDebugAnalyzeApp = aDefinition.params.get<bool>("Debug", false);
   mNumSpatialDims = aDefinition.params.get<int>("Spatial Dimension");
@@ -255,7 +281,7 @@ createProblem(ProblemDefinition& aDefinition)
     #ifdef PLATOANALYZE_3D
     Plato::ProblemFactory<3> tProblemFactory;
     mProblem = nullptr; // otherwise destructor of previous problem not called
-    mProblem = tProblemFactory.create(mMesh, mMeshSets, aDefinition.params, mMachine);
+    mProblem = tProblemFactory.create(mMesh, aDefinition.params, mMachine);
     #else
     throw Plato::ParsingException("3D physics is not compiled.");
     #endif
@@ -265,7 +291,7 @@ createProblem(ProblemDefinition& aDefinition)
     #ifdef PLATOANALYZE_2D
     Plato::ProblemFactory<2> tProblemFactory;
     mProblem = nullptr; // otherwise destructor of previous problem not called
-    mProblem = tProblemFactory.create(mMesh, mMeshSets, aDefinition.params, mMachine);
+    mProblem = tProblemFactory.create(mMesh, aDefinition.params, mMachine);
     #else
     throw Plato::ParsingException("2D physics is not compiled.");
     #endif
@@ -275,7 +301,7 @@ createProblem(ProblemDefinition& aDefinition)
     #ifdef PLATOANALYZE_1D
     Plato::ProblemFactory<1> tProblemFactory;
     mProblem = nullptr; // otherwise destructor of previous problem not called
-    mProblem = tProblemFactory.create(mMesh, mMeshSets, aDefinition.params, mMachine);
+    mProblem = tProblemFactory.create(mMesh, aDefinition.params, mMachine);
     #else
     throw Plato::ParsingException("1D physics is not compiled.");
     #endif
@@ -290,7 +316,7 @@ void MPMD_App::resetProblemMetaData()
 {
   //mGlobalSolution  = mProblem->getGlobalSolution();
 
-  auto tNumLocalVals = mMesh.nverts();
+  auto tNumLocalVals = mMesh->NumNodes();
   if(mControl.extent(0) != tNumLocalVals)
   {
     Kokkos::resize(mControl, tNumLocalVals);
@@ -317,7 +343,7 @@ void MPMD_App::initialize()
       REPORT("Analyze Application: Initialize");
   }
 
-  auto tNumLocalVals = mMesh.nverts();
+  auto tNumLocalVals = mMesh->NumNodes();
 
   mControl    = Plato::ScalarVector("control", tNumLocalVals);
   Kokkos::deep_copy(mControl, 1.0);
@@ -463,6 +489,32 @@ void MPMD_App::initialize()
   #endif // PLATO_GEOMETRY
     }
   }
+}
+
+void
+MPMD_App::loadESPInterface()
+{
+    const std::string libraryName("libPlatoGeometryESPImpl.so");
+    mESPInterface = dlopen(libraryName.c_str(), RTLD_LAZY);
+    if (mESPInterface == nullptr) {
+        throw Plato::LogicException(libraryName + " not found.");
+    }
+
+    mCreateESP = reinterpret_cast<create_t>(dlsym(mESPInterface, "createESP"));
+    mDestroyESP = reinterpret_cast<destroy_t>(dlsym(mESPInterface, "destroyESP"));
+    if (mCreateESP == nullptr || mDestroyESP == nullptr) {
+        throw Plato::LogicException("Unable to load functions from " + libraryName);
+    }
+}
+
+/******************************************************************************/
+void MPMD_App::reinitialize()
+/******************************************************************************/
+{
+    auto def = mProblemDefinitions[mCurrentProblemName];
+    this->createProblem(*def);
+    this->resetProblemMetaData();
+    this->createLocalData();
 }
 /******************************************************************************/
 void
@@ -664,7 +716,7 @@ ComputeCriterion(MPMD_App* aMyApp, Plato::InputData& aOpNode, Teuchos::RCP<Probl
 
     if(aMyApp->mCriterionGradientsZ.count(mStrCriterion) == 0)
     {
-        auto tNumLocalVals = aMyApp->mMesh.nverts();
+        auto tNumLocalVals = aMyApp->mMesh->NumNodes();
         aMyApp->mCriterionGradientsZ[mStrCriterion] = Plato::ScalarVector("gradient_z", tNumLocalVals);
     }
 
@@ -691,7 +743,9 @@ void MPMD_App::ComputeCriterion::operator()()
 
     tValue = mMyApp->mProblem->criterionValue(tControl, mMyApp->mGlobalSolution, mStrCriterion);
     std::cout << "Criterion with name '" << mStrCriterion << "' has a value of '" << tValue << "'.\n";
+    std::cout << "Criterion " << mStrCriterion << " target: " << mTarget << "\n";
     tValue -= mTarget;
+    std::cout << "Criterion value minus target:  " << tValue << "\n";
     tGradZ = mMyApp->mProblem->criterionGradient(tControl, mMyApp->mGlobalSolution, mStrCriterion);
 
     if(mMyApp->mDebugAnalyzeApp == true)
@@ -714,7 +768,8 @@ ComputeCriterionX(MPMD_App* aMyApp, Plato::InputData& aOpNode, Teuchos::RCP<Prob
     LocalOp      (aMyApp, aOpNode, aOpDef),
     CriterionOp  (aMyApp, aOpNode),
     mStrValName  (getArgumentName(aOpNode, "Value",    "ComputeCriterion")),
-    mStrGradName (getArgumentName(aOpNode, "Gradient", "ComputeCriterion"))
+    mStrGradName (getArgumentName(aOpNode, "Gradient", "ComputeCriterion")),
+    mOutputFile  (Plato::Get::String(aOpNode,"OutputFile"))
 /******************************************************************************/
 {
     if(aMyApp->mCriterionValues.count(mStrCriterion) == 0)
@@ -723,7 +778,7 @@ ComputeCriterionX(MPMD_App* aMyApp, Plato::InputData& aOpNode, Teuchos::RCP<Prob
     }
     if(aMyApp->mCriterionGradientsX.count(mStrCriterion) == 0)
     {
-        auto tNumLocalVals   = aMyApp->mMesh.nverts();
+        auto tNumLocalVals   = aMyApp->mMesh->NumNodes();
         auto tNumSpatialDims = aMyApp->mNumSpatialDims;
         aMyApp->mCriterionGradientsX[mStrCriterion] = Plato::ScalarVector("gradient_x", tNumSpatialDims*tNumLocalVals);
     }
@@ -753,7 +808,34 @@ void MPMD_App::ComputeCriterionX::operator()()
     std::cout << "Criterion with name '" << mStrCriterion << "' has a value of '" << tValue << "'.\n";
     tValue -= mTarget;
     tGradX = mMyApp->mProblem->criterionGradientX(tControl, mMyApp->mGlobalSolution, mStrCriterion);
+    if(!mOutputFile.empty())
+    {
+        // create file
+        hid_t tFileId = Plato::create_hdf5_file( mOutputFile );
+        
+        for(int i = 0; i < mMyApp->mNumSpatialDims; i++)
+        {
+            // device data
+            Plato::ScalarVector tDeviceData;
 
+            // get the vector component from data above
+            tDeviceData = Plato::get_vector_component(tGradX,/*component=*/i, /*stride=*/mMyApp->mNumSpatialDims);
+
+            // create a mirror on host
+            Plato::ScalarVector::HostMirror tScalarFieldHostMirror = Kokkos::create_mirror(tDeviceData);
+
+            // copy to host from device
+            Kokkos::deep_copy(tScalarFieldHostMirror, tDeviceData);
+
+            // write to hdf5
+            herr_t tErrCode;
+            Plato::save_scalar_vector_to_hdf5_file(tFileId, "data" + std::to_string(i), tScalarFieldHostMirror,tErrCode);
+        }
+
+
+        // close the file
+        herr_t tErrCode = Plato::close_hdf5_file( tFileId );
+    }
     if(mMyApp->mDebugAnalyzeApp == true)
     {
         REPORT("Analyze Application - Compute Criterion X Operation - Print Controls.\n");
@@ -873,7 +955,9 @@ void MPMD_App::ComputeCriterionValue::operator()()
     }
     tValue = mMyApp->mProblem->criterionValue(tControl, mMyApp->mGlobalSolution, mStrCriterion);
     std::cout << "Criterion with name '" << mStrCriterion << "' has a value of '" << tValue << "'.\n";
+    std::cout << "Criterion " << mStrCriterion << " target: " << mTarget << "\n";
     tValue -= mTarget;
+    std::cout << "Criterion value minus target:  " << tValue << "\n";
 
     if(mMyApp->mDebugAnalyzeApp == true)
     {
@@ -897,7 +981,7 @@ ComputeCriterionGradient(MPMD_App* aMyApp, Plato::InputData& aOpNode,  Teuchos::
 {
     if(aMyApp->mCriterionGradientsZ.count(mStrCriterion) == 0)
     {
-        auto tNumLocalVals = aMyApp->mMesh.nverts();
+        auto tNumLocalVals = aMyApp->mMesh->NumNodes();
         aMyApp->mCriterionGradientsZ[mStrCriterion] = Plato::ScalarVector("gradient_z", tNumLocalVals);
     }
     addUnique(aMyApp->mGradientZNameToCriterionName, mStrGradName, mStrCriterion, "ComputeCriterion");
@@ -938,7 +1022,7 @@ ComputeCriterionGradientX(MPMD_App* aMyApp, Plato::InputData& aOpNode, Teuchos::
 {
     if(aMyApp->mCriterionGradientsX.count(mStrCriterion) == 0)
     {
-        auto tNumLocalVals = aMyApp->mMesh.nverts();
+        auto tNumLocalVals = aMyApp->mMesh->NumNodes();
         auto tNumSpatialDims = aMyApp->mNumSpatialDims;
         aMyApp->mCriterionGradientsX[mStrCriterion] = Plato::ScalarVector("gradient_x", tNumSpatialDims*tNumLocalVals);
     }
@@ -1174,7 +1258,7 @@ void MPMD_App::ReinitializeESP::operator()()
         auto& tESP = mMyApp->mESP[mESPName];
         auto tModelFileName = tESP->getModelFileName();
         auto tTessFileName  = tESP->getTessFileName();
-        tESP.reset( new ESPType(tModelFileName, tTessFileName) );
+        tESP.reset( mMyApp->mCreateESP(tModelFileName, tTessFileName, -1), mMyApp->mDestroyESP);
         mMyApp->createProblem(*def);
         mMyApp->resetProblemMetaData();
     }
@@ -1378,7 +1462,7 @@ void MPMD_App::Visualization::operator()()
     
     if(tOuptutFile.is_open() == false)
     {
-        THROWERR(std::string("Visualization operation failed to open file with path '") + mVizDirectory + "/steps.pvd" + "'.")
+        ANALYZE_THROWERR(std::string("Visualization operation failed to open file with path '") + mVizDirectory + "/steps.pvd" + "'.")
     }
 
     tOuptutFile << "<VTKFile type=\"Collection\" version=\"0.1\">\n";
@@ -1533,7 +1617,7 @@ void MPMD_App::exportDataMap(const Plato::data::layout_t & aDataLayout, std::vec
 
     if(aDataLayout == Plato::data::layout_t::SCALAR_FIELD)
     {
-        Plato::OrdinalType tNumLocalVals = mMesh.nverts();
+        Plato::OrdinalType tNumLocalVals = mMesh->NumNodes();
         aMyOwnedGlobalIDs.resize(tNumLocalVals);
         for(Plato::OrdinalType tLocalID = 0; tLocalID < tNumLocalVals; tLocalID++)
         {
@@ -1542,7 +1626,7 @@ void MPMD_App::exportDataMap(const Plato::data::layout_t & aDataLayout, std::vec
     }
     else if(aDataLayout == Plato::data::layout_t::ELEMENT_FIELD)
     {
-        Plato::OrdinalType tNumLocalVals = mMesh.nelems();
+        Plato::OrdinalType tNumLocalVals = mMesh->NumElements();
         aMyOwnedGlobalIDs.resize(tNumLocalVals);
         for(Plato::OrdinalType tLocalID = 0; tLocalID < tNumLocalVals; tLocalID++)
         {
@@ -1616,9 +1700,9 @@ void MPMD_App::getScalarFieldHostMirror
 Plato::ScalarMultiVector MPMD_App::getCoords()
 /******************************************************************************/
 {
-    auto tCoords = mMesh.coords();
-    auto tNumVerts = mMesh.nverts();
-    auto tNumDims = mMesh.dim();
+    auto tCoords = mMesh->Coordinates();
+    auto tNumVerts = mMesh->NumNodes();
+    auto tNumDims = mMesh->NumDimensions();
     Plato::ScalarMultiVector retval("coords", tNumVerts, tNumDims);
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumVerts), LAMBDA_EXPRESSION(const Plato::OrdinalType & tVertOrdinal){
         for (int iDim=0; iDim<tNumDims; iDim++){

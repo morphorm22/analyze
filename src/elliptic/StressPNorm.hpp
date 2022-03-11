@@ -20,8 +20,6 @@
 #include "PlatoMeshExpr.hpp"
 #include "UtilsOmegaH.hpp"
 #include "alg/Cubature.hpp"
-#include <Omega_h_expr.hpp>
-#include <Omega_h_mesh.hpp>
 
 namespace Plato
 {
@@ -51,7 +49,7 @@ class StressPNorm :
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
-    Omega_h::Matrix< mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;
+    Plato::Matrix< mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;
     
     Plato::Scalar mQuadratureWeight;
 

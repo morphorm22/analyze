@@ -180,7 +180,7 @@ private:
     Plato::WorksetBase<PhysicsT> mWorksetBase;   /*!< interface for assembly routines */
 
     Plato::OrdinalType mNumPseudoTimeSteps;   /*!< current number of pseudo time steps*/
-    Plato::LocalOrdinalVector mDirichletDofs; /*!< Dirichlet boundary conditions degrees of freedom */
+    Plato::OrdinalVector mDirichletDofs; /*!< Dirichlet boundary conditions degrees of freedom */
 
     std::shared_ptr<Plato::AbstractSolver> mLinearSolver; /*!< linear solver object */
 
@@ -266,8 +266,8 @@ private:
 
         // Assemble full Jacobian
         auto tMesh = mGlobalEquation->getMesh();
-        auto tGlobalJacobian = Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumGlobalDofsPerNode, mNumGlobalDofsPerNode>(&tMesh);
-        Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumGlobalDofsPerNode> tGlobalJacEntryOrdinal(tGlobalJacobian, &tMesh);
+        auto tGlobalJacobian = Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumGlobalDofsPerNode, mNumGlobalDofsPerNode>(tMesh);
+        Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumGlobalDofsPerNode> tGlobalJacEntryOrdinal(tGlobalJacobian, tMesh);
         auto tJacEntries = tGlobalJacobian->entries();
         Plato::assemble_jacobian_transpose_pod(tNumCells, mNumGlobalDofsPerCell, mNumGlobalDofsPerCell, tGlobalJacEntryOrdinal, tDrDu, tJacEntries);
 
@@ -478,7 +478,7 @@ private:
     {
         if(mDirichletDofs.size() <= static_cast<Plato::OrdinalType>(0))
         {
-            THROWERR("Path-Dependent Adjoint Solver: Essential Boundary Conditions are empty.")
+            ANALYZE_THROWERR("Path-Dependent Adjoint Solver: Essential Boundary Conditions are empty.")
         }
 
         Plato::ScalarVector tDirichletValues("Dirichlet Values", mDirichletDofs.size());
@@ -615,7 +615,7 @@ public:
      * \param [in] aInputs input parameters list
      * \param [in] aLinearSolver linear solver object
     *******************************************************************************/
-    PathDependentAdjointSolver(Omega_h::Mesh & aMesh, Teuchos::ParameterList & aInputs, std::shared_ptr<Plato::AbstractSolver> &aLinearSolver) :
+    PathDependentAdjointSolver(Plato::Mesh aMesh, Teuchos::ParameterList & aInputs, std::shared_ptr<Plato::AbstractSolver> &aLinearSolver) :
         mWorksetBase(aMesh),
         mNumPseudoTimeSteps(Plato::ParseTools::getSubParam<Plato::OrdinalType>(aInputs, "Time Stepping", "Initial Num. Pseudo Time Steps", 20)),
         mLinearSolver(aLinearSolver)
@@ -625,7 +625,7 @@ public:
      * \brief Constructor
      * \param [in] aMesh mesh database
     *******************************************************************************/
-    explicit PathDependentAdjointSolver(Omega_h::Mesh & aMesh) :
+    explicit PathDependentAdjointSolver(Plato::Mesh aMesh) :
         mWorksetBase(aMesh),
         mNumPseudoTimeSteps(20),
         mLinearSolver(nullptr)
@@ -685,7 +685,7 @@ public:
      * \brief Append vector of Dirichlet degrees of freedom
      * \param [in] aInput vector of Dirichlet degrees of freedom
     *******************************************************************************/
-    void appendDirichletDofs(const Plato::LocalOrdinalVector & aInput)
+    void appendDirichletDofs(const Plato::OrdinalVector & aInput)
     {
         mDirichletDofs = aInput;
     }
@@ -793,7 +793,7 @@ public:
         // Solve for lambda_k = (K_{tangent})_k^{-T} * F_k^{adjoint}
         Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), aAdjointVars.mCurrentGlobalAdjoint);
         if (mLinearSolver == nullptr)
-            THROWERR("Linear solver object not initialized.")
+            ANALYZE_THROWERR("Linear solver object not initialized.")
         mLinearSolver->solve(*tJacobian, aAdjointVars.mCurrentGlobalAdjoint, tResidual);
     }
 
@@ -919,7 +919,7 @@ public:
             }
             default:
             {
-                PRINTERR("PARTIAL DERIVATIVE IS NOT DEFINED. OPTIONS ARE CONTROL AND CONFIGURATION")
+                ANALYZE_PRINTERR("PARTIAL DERIVATIVE IS NOT DEFINED. OPTIONS ARE CONTROL AND CONFIGURATION")
             }
         }
     }

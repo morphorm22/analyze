@@ -50,7 +50,7 @@ public:
         }
         else
         {
-            THROWERR("Unknown Material Model Type")
+            ANALYZE_THROWERR("Unknown Material Model Type")
         }
     }
 };

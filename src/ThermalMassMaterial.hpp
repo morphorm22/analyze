@@ -63,7 +63,7 @@ namespace Plato {
           {
               std::stringstream ss;
               ss << "Requested a material model ('" << aModelName << "') that isn't defined";
-              THROWERR(ss.str());
+              ANALYZE_THROWERR(ss.str());
           }
 
           auto tModelParamList = tModelsParamList.sublist(aModelName);
@@ -74,7 +74,7 @@ namespace Plato {
           }
           else
           {
-              THROWERR("Expected 'Thermal Mass' ParameterList");
+              ANALYZE_THROWERR("Expected 'Thermal Mass' ParameterList");
           }
       }
   }

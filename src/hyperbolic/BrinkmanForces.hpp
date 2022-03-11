@@ -106,7 +106,7 @@ public:
         auto tNumCells = mSpatialDomain.numCells();
         if( tNumCells != static_cast<Plato::OrdinalType>(aResultWS.extent(0)) )
         {
-            THROWERR(std::string("Number of elements mismatch. Spatial domain and output/result workset ")
+            ANALYZE_THROWERR(std::string("Number of elements mismatch. Spatial domain and output/result workset ")
                 + "have different number of cells. " + "Spatial domain has '" + std::to_string(tNumCells)
                 + "' elements and output workset has '" + std::to_string(aResultWS.extent(0)) + "' elements.")
         }
@@ -168,17 +168,28 @@ private:
         auto tMyMaterialName = mSpatialDomain.getMaterialName();
         if( Plato::Fluids::is_material_property_defined("Impermeability Number", tMyMaterialName, aInputs) )
         {
+            // all use cases
             mImpermeability = Plato::Fluids::get_material_property<Plato::Scalar>("Impermeability Number", tMyMaterialName, aInputs);
         }
         else if( Plato::Fluids::is_material_property_defined("Darcy Number", tMyMaterialName, aInputs) && 
             Plato::Fluids::is_material_property_defined("Prandtl Number", tMyMaterialName, aInputs) )
         {
+            // natural buoyancy 
             auto tDaNum = Plato::Fluids::get_material_property<Plato::Scalar>("Darcy Number", tMyMaterialName, aInputs);
             auto tPrNum = Plato::Fluids::get_material_property<Plato::Scalar>("Prandtl Number", tMyMaterialName, aInputs);
             mImpermeability = tPrNum / tDaNum;
         }
+        else if( Plato::Fluids::is_material_property_defined("Darcy Number", tMyMaterialName, aInputs) && 
+            Plato::Fluids::is_material_property_defined("Reynolds Number", tMyMaterialName, aInputs) )
+        {
+            // forced convection
+            auto tDaNum = Plato::Fluids::get_material_property<Plato::Scalar>("Darcy Number", tMyMaterialName, aInputs);
+            auto tReNum = Plato::Fluids::get_material_property<Plato::Scalar>("Reynolds Number", tMyMaterialName, aInputs);
+            mImpermeability = static_cast<Plato::Scalar>(1.0) / (tDaNum * tReNum);
+        }
         else
         {
+            // default value for all cases
             mImpermeability = 1e2;
         }
     }

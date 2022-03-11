@@ -6,9 +6,6 @@
 #include <memory>
 #include <sstream>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include "BLAS1.hpp"
 #include "Solutions.hpp"
 #include "NaturalBCs.hpp"
@@ -18,6 +15,7 @@
 #include "ApplyConstraints.hpp"
 #include "MultipointConstraints.hpp"
 #include "SpatialModel.hpp"
+#include "PlatoMesh.hpp"
 
 #include "ParseTools.hpp"
 #include "PlatoMathHelpers.hpp"
@@ -82,7 +80,7 @@ private:
 
     Teuchos::RCP<Plato::CrsMatrixType> mJacobian; /*!< Jacobian matrix */
 
-    Plato::LocalOrdinalVector mBcDofs; /*!< list of degrees of freedom associated with the Dirichlet boundary conditions */
+    Plato::OrdinalVector mBcDofs; /*!< list of degrees of freedom associated with the Dirichlet boundary conditions */
     Plato::ScalarVector mBcValues; /*!< values associated with the Dirichlet boundary conditions */
 
     std::shared_ptr<Plato::MultipointConstraints> mMPCs; /*!< multipoint constraint interface */
@@ -96,16 +94,14 @@ public:
     /******************************************************************************//**
      * \brief PLATO problem constructor
      * \param [in] aMesh mesh database
-     * \param [in] aMeshSets side sets database
      * \param [in] aProblemParams input parameters database
     **********************************************************************************/
     Problem(
-      Omega_h::Mesh& aMesh,
-      Omega_h::MeshSets& aMeshSets,
-      Teuchos::ParameterList& aProblemParams,
-      Comm::Machine aMachine
+      Plato::Mesh              aMesh,
+      Teuchos::ParameterList & aProblemParams,
+      Comm::Machine            aMachine
     ) :
-      mSpatialModel  (aMesh, aMeshSets, aProblemParams),
+      mSpatialModel  (aMesh, aProblemParams),
       mPDE(std::make_shared<VectorFunctionType>(mSpatialModel, mDataMap, aProblemParams, aProblemParams.get<std::string>("PDE Constraint"))),
       mNumNewtonSteps(Plato::ParseTools::getSubParam<int>   (aProblemParams, "Newton Iteration", "Maximum Iterations",  1  )),
       mNewtonIncTol  (Plato::ParseTools::getSubParam<double>(aProblemParams, "Newton Iteration", "Increment Tolerance", 0.0)),
@@ -123,9 +119,9 @@ public:
 
         Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
         if(mMPCs)
-            mSolver = tSolverFactory.create(aMesh.nverts(), aMachine, PhysicsT::mNumDofsPerNode, mMPCs);
+            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, PhysicsT::mNumDofsPerNode, mMPCs);
         else
-            mSolver = tSolverFactory.create(aMesh.nverts(), aMachine, PhysicsT::mNumDofsPerNode);
+            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, PhysicsT::mNumDofsPerNode);
     }
 
     ~Problem(){}
@@ -187,7 +183,7 @@ public:
         auto tDataMap = this->getDataMap();
         auto tSolution = this->getSolution();
         auto tSolutionOutput = mPDE->getSolutionStateOutputData(tSolution);
-        Plato::universal_solution_output<mSpatialDim>(aFilepath, tSolutionOutput, tDataMap, mSpatialModel.Mesh);
+        Plato::universal_solution_output(aFilepath, tSolutionOutput, tDataMap, mSpatialModel.Mesh);
     }
 
     /******************************************************************************//**
@@ -322,7 +318,7 @@ public:
         }
         else
         {
-            THROWERR(std::string("CRITERION WITH NAME '") + aName + "' IS NOT DEFINED IN THE CRITERION MAP.")
+            ANALYZE_THROWERR(std::string("CRITERION WITH NAME '") + aName + "' IS NOT DEFINED IN THE CRITERION MAP.")
         }
     }
 
@@ -353,7 +349,7 @@ public:
         }
         else
         {
-            THROWERR(std::string("CRITERION WITH NAME '") + aName + "' IS NOT DEFINED IN THE CRITERION MAP.")
+            ANALYZE_THROWERR(std::string("CRITERION WITH NAME '") + aName + "' IS NOT DEFINED IN THE CRITERION MAP.")
         }
     }
 
@@ -384,7 +380,7 @@ public:
         }
         else
         {
-            THROWERR(std::string("CRITERION WITH NAME '") + aName + "' IS NOT DEFINED IN THE CRITERION MAP.")
+            ANALYZE_THROWERR(std::string("CRITERION WITH NAME '") + aName + "' IS NOT DEFINED IN THE CRITERION MAP.")
         }
     }
 
@@ -405,11 +401,11 @@ public:
     {
         if(aCriterion == nullptr)
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
         if(aSolution.empty())
         {
-            THROWERR("SOLUTION DATABASE IS EMPTY")
+            ANALYZE_THROWERR("SOLUTION DATABASE IS EMPTY")
         }
 
         if(static_cast<Plato::OrdinalType>(mAdjoint.size()) <= static_cast<Plato::OrdinalType>(0))
@@ -480,7 +476,7 @@ public:
         }
         else
         {
-            THROWERR(std::string("CRITERION WITH NAME '") + aName + "' IS NOT DEFINED IN THE CRITERION MAP.")
+            ANALYZE_THROWERR(std::string("CRITERION WITH NAME '") + aName + "' IS NOT DEFINED IN THE CRITERION MAP.")
         }
     }
 
@@ -500,11 +496,11 @@ public:
     {
         if(aCriterion == nullptr)
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
         if(aSolution.empty())
         {
-            THROWERR("SOLUTION DATABASE IS EMPTY")
+            ANALYZE_THROWERR("SOLUTION DATABASE IS EMPTY")
         }
 
         // compute partial derivative wrt x
@@ -572,7 +568,7 @@ public:
         }
         else
         {
-            THROWERR(std::string("CRITERION WITH NAME '") + aName + "' IS NOT DEFINED IN THE CRITERION MAP.");
+            ANALYZE_THROWERR(std::string("CRITERION WITH NAME '") + aName + "' IS NOT DEFINED IN THE CRITERION MAP.");
         }
     }
 
@@ -603,7 +599,7 @@ public:
         }
         else
         {
-            THROWERR(std::string("CRITERION WITH NAME '") + aName + "' IS NOT DEFINED IN THE CRITERION MAP.");
+            ANALYZE_THROWERR(std::string("CRITERION WITH NAME '") + aName + "' IS NOT DEFINED IN THE CRITERION MAP.");
         }
     }
 
@@ -615,10 +611,10 @@ public:
     {
         if(aProblemParams.isSublist("Essential Boundary Conditions") == false)
         {
-            THROWERR("ESSENTIAL BOUNDARY CONDITIONS SUBLIST IS NOT DEFINED IN THE INPUT FILE.")
+            ANALYZE_THROWERR("ESSENTIAL BOUNDARY CONDITIONS SUBLIST IS NOT DEFINED IN THE INPUT FILE.")
         }
         Plato::EssentialBCs<PhysicsT>
-        tEssentialBoundaryConditions(aProblemParams.sublist("Essential Boundary Conditions", false), mSpatialModel.MeshSets);
+        tEssentialBoundaryConditions(aProblemParams.sublist("Essential Boundary Conditions", false), mSpatialModel.Mesh);
         tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
 
         if(mMPCs)
@@ -632,14 +628,14 @@ public:
      * \param [in] aDofs   degrees of freedom associated with Dirichlet boundary conditions
      * \param [in] aValues values associated with Dirichlet degrees of freedom
     *******************************************************************************/
-    void setEssentialBoundaryConditions(const Plato::LocalOrdinalVector & aDofs, const Plato::ScalarVector & aValues)
+    void setEssentialBoundaryConditions(const Plato::OrdinalVector & aDofs, const Plato::ScalarVector & aValues)
     {
         if(aDofs.size() != aValues.size())
         {
             std::ostringstream tError;
             tError << "DIMENSION MISMATCH: THE NUMBER OF ELEMENTS IN INPUT DOFS AND VALUES ARRAY DO NOT MATCH."
                 << "DOFS SIZE = " << aDofs.size() << " AND VALUES SIZE = " << aValues.size();
-            THROWERR(tError.str())
+            ANALYZE_THROWERR(tError.str())
         }
         mBcDofs = aDofs;
         mBcValues = aValues;

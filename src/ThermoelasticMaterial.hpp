@@ -95,7 +95,7 @@ namespace Plato {
           {
               std::stringstream ss;
               ss << "Requested a material model ('" << aModelName << "') that isn't defined";
-              THROWERR(ss.str());
+              ANALYZE_THROWERR(ss.str());
           }
 
           auto tModelParamList = tModelsParamList.sublist(aModelName);
@@ -105,7 +105,7 @@ namespace Plato {
             return Teuchos::rcp(new Plato::ThermoelasticMaterial<SpatialDim>(tModelParamList.sublist("Thermoelastic")));
           }
           else
-          THROWERR("Expected 'Thermoelastic' ParameterList");
+          ANALYZE_THROWERR("Expected 'Thermoelastic' ParameterList");
       }
 
   }

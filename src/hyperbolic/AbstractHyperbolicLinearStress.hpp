@@ -7,7 +7,7 @@
 #include "hyperbolic/HyperbolicExpInstMacros.hpp"
 #include "hyperbolic/HyperbolicSimplexFadTypes.hpp"
 
-#include <Omega_h_matrix.hpp>
+#include "PlatoMathTypes.hpp"
 
 namespace Plato
 {
@@ -46,7 +46,7 @@ public:
      * \brief Constructor
      * \param [in] aCellStiffness material element stiffness matrix
     **********************************************************************************/
-    AbstractHyperbolicLinearStress(const Omega_h::Matrix<mNumVoigtTerms,
+    AbstractHyperbolicLinearStress(const Plato::Matrix<mNumVoigtTerms,
                                    mNumVoigtTerms> aCellStiffness)
     {
     }

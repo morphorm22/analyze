@@ -93,15 +93,15 @@ Plato::Scalar testProblem_Total_z(ProblemT& aProblem, VectorT aControl, std::str
 template <class MeshT, class VectorT>
 void perturbMesh(MeshT& aMesh, VectorT aPerturb)
 {
-    auto tCoords = aMesh.coords();
-    auto tNumDims = aMesh.dim();
-    auto tNumDofs = tNumDims*aMesh.nverts();
-    Omega_h::Write<Omega_h::Real> tCoordsCopy(tNumDofs);
+    auto tCoords = aMesh->Coordinates();
+    auto tNumDims = aMesh->NumDimensions();
+    auto tNumDofs = tNumDims*aMesh->NumNodes();
+    Plato::ScalarVector tCoordsCopy("coordinates", tNumDofs);
     Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumDofs), LAMBDA_EXPRESSION(const Plato::OrdinalType &aDofOrdinal)
     {
-        tCoordsCopy[aDofOrdinal] = tCoords[aDofOrdinal] + aPerturb(aDofOrdinal);
+        tCoordsCopy(aDofOrdinal) = tCoords[aDofOrdinal] + aPerturb(aDofOrdinal);
     }, "tweak mesh");
-    aMesh.set_coords(tCoordsCopy);
+    aMesh->SetCoordinates(tCoordsCopy);
 }
 template <class VectorFunctionT, class SolutionT, class ControlT>
 Plato::Scalar testVectorFunction_Partial_u(VectorFunctionT& aVectorFunction, SolutionT aSolution, ControlT aControl, int aStepIndex)
@@ -398,12 +398,7 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
   //
   constexpr int cMeshWidth=2;
   constexpr int cSpaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(cSpaceDim, cMeshWidth);
-
-  // create mesh sets
-  //
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(cSpaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
 
   // create input
   //
@@ -508,11 +503,11 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
 
   using PhysicsType = Plato::Elliptic::UpdatedLagrangian::Mechanics<cSpaceDim>;
 
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   Plato::ScalarVector tControl("control", tNumNodes);
   Plato::blas1::fill(1.0, tControl);
 
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tInputParams);
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
   Plato::Sequence<cSpaceDim> tSequence(tSpatialModel, *tInputParams);
   Plato::DataMap tDataMap;
 
@@ -524,7 +519,7 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
 
   Plato::Solutions tSolution;
   {
-    Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> tProblem(*tMesh, tMeshSets, *tInputParams, tMachine);
+    Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> tProblem(tMesh, *tInputParams, tMachine);
     tSolution = tProblem.solution(tControl);
   }
 
@@ -584,7 +579,7 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
     // set exact solution
     auto tState = tSolution.get("State");
     auto tGlobalState_Host = Kokkos::create_mirror(tState);
-    std::vector<int> tDispIndices({5,11,20,41,50,53,62,65,74});
+    std::vector<int> tDispIndices({5,14,23,32,41,50,59,68,77});
     for(int i=0; i<tDispIndices.size(); i++)
     {
       tGlobalState_Host(0, tDispIndices[i]) = 5.0e-7;
@@ -618,18 +613,18 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
     Plato::blas1::scale(-tAlpha/tNorm, tStep);
 
     // compute F at z - deltaZ
-    perturbMesh(*tMesh, tStep);
+    perturbMesh(tMesh, tStep);
     FunctionType scalarFunctionNeg(tSpatialModel, tSequence, tDataMap, *tInputParams, tMyFunction);
     auto t_valueNeg = scalarFunctionNeg.value(tSolution, tLocalState, tControl);
 
     // compute F at z + deltaZ
     Plato::blas1::scale(-2.0, tStep);
-    perturbMesh(*tMesh, tStep);
+    perturbMesh(tMesh, tStep);
     FunctionType scalarFunctionPos(tSpatialModel, tSequence, tDataMap, *tInputParams, tMyFunction);
     auto t_valuePos = scalarFunctionPos.value(tSolution, tLocalState, tControl);
 
     Plato::blas1::scale(-1.0/2.0, tStep);
-    perturbMesh(*tMesh, tStep);
+    perturbMesh(tMesh, tStep);
 
     // compute actual change in F over 2 * deltaZ
     auto tDeltaFD = (t_valuePos - t_valueNeg);
@@ -651,15 +646,15 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
   Kokkos::deep_copy(t_dFdz_Host, t_dFdz);
 
   std::vector<Plato::Scalar> t_dFdz_Gold = {
-   -0.00003906250000000001,-0.00005208333333333334,-0.00001302083333333333,
-   -0.00007812500000000002,-0.00002604166666666666,-0.00001302083333333333,
-   -0.00002604166666666667,-0.00001302083333333334,-0.00005208333333333334,
-   -0.00007812500000000002,-0.00002604166666666667,-0.00001302083333333334,
-   -0.00002604166666666667,-0.0001562500000000000,-0.00007812500000000000,
-   -0.00005208333333333334,-0.00007812500000000002,-0.00005208333333333334,
-   -0.00003906250000000000,-0.00005208333333333334,-0.00007812500000000002,
-   -0.00007812500000000002,-0.00002604166666666666,-0.00001302083333333333,
-   -0.00002604166666666667,-0.00005208333333333334,-0.00001302083333333334
+  -0.00003906250000000001, -0.00005208333333333334, -0.00001302083333333333,
+  -0.00005208333333333334, -0.00007812500000000000, -0.00002604166666666666,
+  -0.00001302083333333334, -0.00002604166666666667, -0.00001302083333333333,
+  -0.00005208333333333334, -0.00007812500000000000, -0.00002604166666666666,
+  -0.00007812500000000002, -0.0001562500000000000,  -0.00007812500000000000,
+  -0.00002604166666666667, -0.00007812500000000002, -0.00005208333333333334,
+  -0.00001302083333333334, -0.00002604166666666667, -0.00001302083333333333,
+  -0.00002604166666666667, -0.00007812500000000002, -0.00005208333333333334,
+  -0.00001302083333333334, -0.00005208333333333334, -0.00003906250000000000
   };
   for(Plato::OrdinalType tIndex = 0; tIndex < t_dFdz_Gold.size(); tIndex++)
   {
@@ -686,7 +681,7 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
   auto tCriterionName = "Internal Energy";
   Plato::ScalarVector t_dFdx;
   {
-    Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> tProblem(*tMesh, tMeshSets, *tInputParams, tMachine);
+    Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> tProblem(tMesh, *tInputParams, tMachine);
     tSolution = tProblem.solution(tControl);
 
     /*****************************************************
@@ -726,15 +721,15 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
   // compute F at x - deltax
   Plato::Scalar t_valueNeg(0);
   {
-    perturbMesh(*tMesh, tStep);
-    Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> tProblem2(*tMesh, tMeshSets, *tInputParams, tMachine);
+    perturbMesh(tMesh, tStep);
+    Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> tProblem2(tMesh, *tInputParams, tMachine);
     tSolution = tProblem2.solution(tControl);
     t_valueNeg = tProblem2.criterionValue(tControl, tCriterionName);
   }
 
   Plato::Scalar t_valueNegToo(0);
   {
-    Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> tProblem3(*tMesh, tMeshSets, *tInputParams, tMachine);
+    Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> tProblem3(tMesh, *tInputParams, tMachine);
     tSolution = tProblem3.solution(tControl);
     t_valueNegToo = tProblem3.criterionValue(tControl, tCriterionName);
   }
@@ -744,8 +739,8 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
   Plato::blas1::scale(-2.0, tStep);
   Plato::Scalar t_valuePos(0);
   {
-    perturbMesh(*tMesh, tStep);
-    Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> tProblem4(*tMesh, tMeshSets, *tInputParams, tMachine);
+    perturbMesh(tMesh, tStep);
+    Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> tProblem4(tMesh, *tInputParams, tMachine);
     tSolution = tProblem4.solution(tControl);
     t_valuePos = tProblem4.criterionValue(tControl, tCriterionName);
   }
@@ -763,7 +758,7 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
 
   // change mesh back 
   Plato::blas1::scale(-1.0/2.0, tStep);
-  perturbMesh(*tMesh, tStep);
+  perturbMesh(tMesh, tStep);
 }
 
 
@@ -774,12 +769,7 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_full )
   //
   constexpr int cMeshWidth=2;
   constexpr int cSpaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(cSpaceDim, cMeshWidth);
-
-  // create mesh sets
-  //
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(cSpaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
 
   // create input
   //
@@ -868,15 +858,15 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_full )
   Plato::Comm::Machine tMachine(myComm);
 
   using PhysicsType = Plato::Elliptic::UpdatedLagrangian::Mechanics<cSpaceDim>;
-  auto* tProblem = new Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> (*tMesh, tMeshSets, *tInputParams, tMachine);
+  auto* tProblem = new Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> (tMesh, *tInputParams, tMachine);
 
   TEST_ASSERT(tProblem != nullptr);
 
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   Plato::ScalarVector tControl("control", tNumNodes);
   Plato::blas1::fill(1.0, tControl);
 
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tInputParams);
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
   Plato::Sequence<cSpaceDim> tSequence(tSpatialModel, *tInputParams);
   Plato::DataMap tDataMap;
 
@@ -948,18 +938,18 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_full )
     Plato::blas1::scale(-tAlpha/tNorm, tStep);
 
     // compute F at z - deltaZ
-    perturbMesh(*tMesh, tStep);
+    perturbMesh(tMesh, tStep);
     FunctionType scalarFunctionNeg(tSpatialModel, tSequence, tDataMap, *tInputParams, tMyFunction);
     auto t_valueNeg = scalarFunctionNeg.value(tSolution, tLocalState, tControl);
 
     // compute F at z + deltaZ
     Plato::blas1::scale(-2.0, tStep);
-    perturbMesh(*tMesh, tStep);
+    perturbMesh(tMesh, tStep);
     FunctionType scalarFunctionPos(tSpatialModel, tSequence, tDataMap, *tInputParams, tMyFunction);
     auto t_valuePos = scalarFunctionPos.value(tSolution, tLocalState, tControl);
 
     Plato::blas1::scale(-1.0/2.0, tStep);
-    perturbMesh(*tMesh, tStep);
+    perturbMesh(tMesh, tStep);
 
     // compute actual change in F over 2 * deltaZ
     auto tDeltaFD = (t_valuePos - t_valueNeg);
@@ -1019,23 +1009,23 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_full )
   Plato::blas1::scale(-tAlpha/tNorm, tStep);
 
   // compute F at x - deltax
-  perturbMesh(*tMesh, tStep);
+  perturbMesh(tMesh, tStep);
   delete tProblem;
-  tProblem = new Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> (*tMesh, tMeshSets, *tInputParams, tMachine);
+  tProblem = new Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> (tMesh, *tInputParams, tMachine);
   tSolution = tProblem->solution(tControl);
   auto t_valueNeg = tProblem->criterionValue(tControl, tCriterionName);
 
   delete tProblem;
-  tProblem = new Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> (*tMesh, tMeshSets, *tInputParams, tMachine);
+  tProblem = new Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> (tMesh, *tInputParams, tMachine);
   tSolution = tProblem->solution(tControl);
   auto t_valueNegToo = tProblem->criterionValue(tControl, tCriterionName);
   TEST_FLOATING_EQUALITY(t_valueNeg, t_valueNegToo, 1e-15);
 
   // compute F at x + deltax
   Plato::blas1::scale(-2.0, tStep);
-  perturbMesh(*tMesh, tStep);
+  perturbMesh(tMesh, tStep);
   delete tProblem;
-  tProblem = new Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> (*tMesh, tMeshSets, *tInputParams, tMachine);
+  tProblem = new Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> (tMesh, *tInputParams, tMachine);
   tSolution = tProblem->solution(tControl);
   auto t_valuePos = tProblem->criterionValue(tControl, tCriterionName);
 
@@ -1052,9 +1042,10 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_full )
 
   // change mesh back 
   Plato::blas1::scale(-1.0/2.0, tStep);
-  perturbMesh(*tMesh, tStep);
-}
+  perturbMesh(tMesh, tStep);
 
+  delete tProblem;
+}
 
 TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_LagrangianUpdate )
 {
@@ -1097,14 +1088,9 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_LagrangianUpdate )
   //
   constexpr int cMeshWidth=2;
   constexpr int cSpaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(cSpaceDim, cMeshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth, "omfg.exo");
 
-  // create mesh sets
-  //
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(cSpaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tInputParams);
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
 
   /*****************************************************
    Test Elliptic::LagrangianUpdate(aMesh);
@@ -1122,15 +1108,15 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_LagrangianUpdate )
 
    Plato::Scalar tTestVal = 1.0;
    // create 'strain increment' view
-   Plato::ScalarMultiVectorT<Plato::Scalar> tStrainIncrement("strain increment", tMesh->nelems(), PhysicsType::mNumVoigtTerms);
+   Plato::ScalarMultiVectorT<Plato::Scalar> tStrainIncrement("strain increment", tMesh->NumElements(), PhysicsType::mNumVoigtTerms);
    Kokkos::deep_copy(tStrainIncrement, tTestVal);
 
    // add 'strain increment' view to datamap
    Plato::toMap(tDataMap, tStrainIncrement, "strain increment");
 
    // define current and updated state view
-   Plato::ScalarVector tLocalState("current state", tMesh->nelems() * PhysicsType::mNumVoigtTerms);
-   Plato::ScalarVector tUpdatedLocalState("current state", tMesh->nelems() * PhysicsType::mNumVoigtTerms);
+   Plato::ScalarVector tLocalState("current state", tMesh->NumElements() * PhysicsType::mNumVoigtTerms);
+   Plato::ScalarVector tUpdatedLocalState("current state", tMesh->NumElements() * PhysicsType::mNumVoigtTerms);
 
    // compute updated local state
    tLagrangianUpdate->operator()(tDataMap, tLocalState, tUpdatedLocalState);
@@ -1148,8 +1134,8 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_LagrangianUpdate )
    *****************************************************/
 
   // create a displacement field, u_x = x, u_y = 0, u_z = 0
-  auto tNumNodes = tMesh->nverts();
-  auto tCoords = tMesh->coords();
+  auto tNumNodes = tMesh->NumNodes();
+  auto tCoords = tMesh->Coordinates();
   Plato::ScalarVector tU("displacement", tNumNodes * cSpaceDim);
   Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), LAMBDA_EXPRESSION(int aNodeOrdinal)
   {
@@ -1269,14 +1255,9 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_LagrangianUpdate_2layer )
   //
   constexpr int cMeshWidth=2;
   constexpr int cSpaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(cSpaceDim, cMeshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
 
-  // create mesh sets
-  //
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(cSpaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tInputParams);
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
   Plato::Sequence<cSpaceDim> tSequence(tSpatialModel, *tInputParams);
 
   /*****************************************************
@@ -1286,14 +1267,14 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_LagrangianUpdate_2layer )
   using PhysicsType = Plato::Elliptic::UpdatedLagrangian::Mechanics<cSpaceDim>;
   auto* tLagrangianUpdate = new Plato::LagrangianUpdate<PhysicsType> (tSpatialModel);
 
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   Plato::ScalarVector tControl("control", tNumNodes);
   Plato::blas1::fill(1.0, tControl);
 
   // create solution 
   Plato::DataMap tDataMap;
-  Plato::ScalarMultiVector tGlobalStates("global state", /*numsteps=*/ 2, tMesh->nverts() * PhysicsType::mNumDofsPerNode);
-  Plato::ScalarMultiVector tLocalStates("local state", /*numsteps=*/ 2, tMesh->nelems() * PhysicsType::mNumVoigtTerms);
+  Plato::ScalarMultiVector tGlobalStates("global state", /*numsteps=*/ 2, tMesh->NumNodes() * PhysicsType::mNumDofsPerNode);
+  Plato::ScalarMultiVector tLocalStates("local state", /*numsteps=*/ 2, tMesh->NumElements() * PhysicsType::mNumVoigtTerms);
   {
     auto tGlobalStates_Host = Kokkos::create_mirror(tGlobalStates);
     std::vector<int> tDispIndices({5,11,20,41,50,53,62,65,74});
@@ -1318,7 +1299,7 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_LagrangianUpdate_2layer )
     Kokkos::deep_copy(tLocalStates, tLocalStates_Host);
 
     // create 'strain increment' view
-    Plato::ScalarMultiVector tStrainIncrement("strain increment", tMesh->nelems(), PhysicsType::mNumVoigtTerms);
+    Plato::ScalarMultiVector tStrainIncrement("strain increment", tMesh->NumElements(), PhysicsType::mNumVoigtTerms);
 
     // add 'strain increment' view to datamap
     Plato::toMap(tDataMap, tStrainIncrement, "strain increment");
@@ -1343,13 +1324,13 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_LagrangianUpdate_2layer )
   // compute gradient_x at x_0
   auto t_dHdx = tLagrangianUpdate->gradient_x(tGlobalState, tUpdatedLocalState_0, tLocalState);
 
-  Plato::ScalarVector tStep = Plato::ScalarVector("Step", tMesh->nverts() * PhysicsType::mNumSpatialDims);
+  Plato::ScalarVector tStep = Plato::ScalarVector("Step", tMesh->NumNodes() * PhysicsType::mNumSpatialDims);
   auto tHostStep = Kokkos::create_mirror(tStep);
   Plato::blas1::random(0.0, 0.00001, tHostStep);
   Kokkos::deep_copy(tStep, tHostStep);
 
   // perturb mesh with deltaX (now at x_1)
-  perturbMesh(*tMesh, tStep);
+  perturbMesh(tMesh, tStep);
   tResidualFunction = nullptr;
   tResidualFunction = std::make_shared<VectorFunctionType>(tSpatialModel, tDataMap, *tInputParams, tInputParams->get<std::string>("PDE Constraint"));
 
@@ -1371,11 +1352,11 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_LagrangianUpdate_2layer )
 
   // perturb mesh back to x_0 (just in case more test are added later)
   Plato::blas1::scale( -1.0, tStep);
-  perturbMesh(*tMesh, tStep);
+  perturbMesh(tMesh, tStep);
 
   Plato::Scalar tPer = fabs(tNormFD) + fabs(tNormAD);
   Plato::Scalar t_dHdx_error = std::fabs(tNormFD - tNormAD) / (tPer != 0 ? tPer : 1.0);
-  TEST_ASSERT(t_dHdx_error < 1.0e-6);
+  TEST_ASSERT(t_dHdx_error < 5.0e-6);
 
   delete tLagrangianUpdate;
 }

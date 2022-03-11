@@ -67,7 +67,7 @@ private:
     Plato::ApplyPenalty<PenaltyFunctionType> mApplyPenalty;
     Plato::ApplyProjection<ProjectionType> mApplyProjection;
 
-    Omega_h::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;
+    Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;
     std::shared_ptr<CubatureType> mCubatureRule;
 
 public:
@@ -203,7 +203,7 @@ public:
      * \param [in] aInput material stiffness constants
      *
     **********************************************************************************/
-    void setMaterialStiffnessConstants(const Omega_h::Matrix<mNumVoigtTerms, mNumVoigtTerms>& aInput)
+    void setMaterialStiffnessConstants(const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms>& aInput)
     {
         mCellStiffness = aInput;
     }

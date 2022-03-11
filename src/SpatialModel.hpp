@@ -1,9 +1,8 @@
 #pragma once
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
 #include <Teuchos_ParameterList.hpp>
 
+#include "PlatoMesh.hpp"
 #include "PlatoMask.hpp"
 #include "PlatoStaticsTypes.hpp"
 
@@ -18,17 +17,16 @@ class SpatialDomain
 /******************************************************************************/
 {
 public:
-    Omega_h::Mesh     & Mesh;     /*!< mesh database */
-    Omega_h::MeshSets & MeshSets; /*!< element, side, node sets database */
+    Plato::Mesh Mesh;     /*!< mesh database */
 
 private:
     std::string         mElementBlockName;  /*!< element block name */
     std::string         mMaterialModelName; /*!< material model name */
     std::string         mSpatialDomainName; /*!< element block name */
-    Omega_h::LOs        mElemLids;          /*!< local element identification numbers (i.e. element ids) */
+    bool                mIsFixedBlock;      /*!< flag for fixed block */
 
-    Plato::LocalOrdinalVector mTotalElemLids;   /*!< List of local elements ids in this domain */
-    Plato::LocalOrdinalVector mMaskedElemLids;  /*!< List of local elements ids after application of a masked operation */
+    Plato::OrdinalVector mTotalElemLids;   /*!< List of local elements ids in this domain */
+    Plato::OrdinalVector mMaskedElemLids;  /*!< List of local elements ids after application of a masked operation */
 
 public:
     /******************************************************************************//**
@@ -96,6 +94,16 @@ public:
     }
 
     /******************************************************************************//**
+     * \fn isFixedBlock
+     * \brief Return whether block has fixed control field.
+     **********************************************************************************/
+    decltype(mIsFixedBlock) 
+    isFixedBlock() const
+    {
+        return mIsFixedBlock;
+    }
+
+    /******************************************************************************//**
      * \fn numCells
      * \brief Return the number of cells.
      * \return number of cells
@@ -107,10 +115,21 @@ public:
     }
 
     /******************************************************************************//**
+     * \fn Plato::OrdinalType numNodes
+     * \brief Returns the number of nodes in the mesh.
+     * \return number of nodes
+     **********************************************************************************/
+    Plato::OrdinalType
+    numNodes() const
+    {
+        return Mesh->NumNodes();
+    }
+
+    /******************************************************************************//**
      * \brief get cell ordinal list
      * Note: A const reference is returned to prevent the ref count from being modified.  
     **********************************************************************************/
-    const Plato::LocalOrdinalVector &
+    const Plato::OrdinalVector &
     cellOrdinals() const
     {
         return mMaskedElemLids;
@@ -129,33 +148,29 @@ public:
     /******************************************************************************//**
      * \brief Constructor for Plato::SpatialModel base class
      * \param [in] aMesh Default mesh
-     * \param [in] aMeshSets mesh sets (nodesets, sidesets)
      * \param [in] aInputParams Spatial model definition
      **********************************************************************************/
     SpatialDomain
-    (      Omega_h::Mesh     & aMesh,
-           Omega_h::MeshSets & aMeshSets,
-     const std::string       & aName) :
+    (      Plato::Mesh   aMesh,
+     const std::string & aName) :
         Mesh(aMesh),
-        MeshSets(aMeshSets),
-        mSpatialDomainName(aName)
+        mSpatialDomainName(aName),
+        mIsFixedBlock(false)
     {}
 
     /******************************************************************************//**
      * \brief Constructor for Plato::SpatialModel base class
      * \param [in] aMesh        Default mesh
-     * \param [in] aMeshSets    mesh sets (nodesets, sidesets)
      * \param [in] aInputParams Spatial model definition
      * \param [in] aName        Spatial model name
      **********************************************************************************/
     SpatialDomain
-    (      Omega_h::Mesh          & aMesh,
-           Omega_h::MeshSets      & aMeshSets,
+    (      Plato::Mesh              aMesh,
      const Teuchos::ParameterList & aInputParams,
      const std::string            & aName) :
         Mesh(aMesh),
-        MeshSets(aMeshSets),
-        mSpatialDomainName(aName)
+        mSpatialDomainName(aName),
+        mIsFixedBlock(false)
     {
         this->initialize(aInputParams);
     }
@@ -213,29 +228,13 @@ public:
         Kokkos::deep_copy(mMaskedElemLids, mTotalElemLids);
     }
     
-    Omega_h::LOs 
-    getLocalElemIDs
-    (const std::string& aBlockName) const
-    {
-        auto& tElemSets = MeshSets[Omega_h::ELEM_SET];
-        auto tElemSetsI = tElemSets.find(aBlockName);
-        if(tElemSetsI == tElemSets.end())
-        {
-            std::ostringstream tMsg;
-            tMsg << "Did not find element set (i.e. element block) with name = '" << aBlockName << "'.";
-            THROWERR(tMsg.str())
-        }
-
-        return (tElemSetsI->second);
-    }
-
     void setMaskLocalElemIDs
     (const std::string& aBlockName)
     {
-        auto tElemLids = this->getLocalElemIDs(aBlockName);
+        auto tElemLids = Mesh->GetLocalElementIDs(aBlockName);
         auto tNumElems = tElemLids.size();
-        mTotalElemLids = Plato::LocalOrdinalVector("element list", tNumElems);
-        mMaskedElemLids = Plato::LocalOrdinalVector("masked element list", tNumElems);
+        mTotalElemLids = Plato::OrdinalVector("element list", tNumElems);
+        mMaskedElemLids = Plato::OrdinalVector("masked element list", tNumElems);
 
         auto tTotalElemLids = mTotalElemLids;
         Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumElems), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
@@ -256,7 +255,7 @@ public:
         }
         else
         {
-            THROWERR("Parsing new Domain. Required keyword 'Element Block' not found");
+            ANALYZE_THROWERR("Parsing new Domain. Required keyword 'Element Block' not found");
         }
 
         if(aInputParams.isType<std::string>("Material Model"))
@@ -265,7 +264,11 @@ public:
         }
         else
         {
-            THROWERR("Parsing new Domain. Required keyword 'Material Model' not found");
+            ANALYZE_THROWERR("Parsing new Domain. Required keyword 'Material Model' not found");
+        }
+        if(aInputParams.isType<bool>("Fixed Control"))
+        {
+            mIsFixedBlock = aInputParams.get<bool>("Fixed Control");
         }
 
         this->setMaskLocalElemIDs(mElementBlockName);
@@ -282,41 +285,33 @@ class SpatialModel
 /******************************************************************************/
 {
 public:
-    Omega_h::Mesh     & Mesh;     /*!< mesh database */
-    Omega_h::MeshSets & MeshSets; /*!< element, side, node sets database */
+    Plato::Mesh Mesh;     /*!< mesh database */
 
     std::vector<Plato::SpatialDomain> Domains; /*!< list of spatial domains, i.e. element blocks */
 
     /******************************************************************************//**
      * \brief Constructor for Plato::SpatialModel base class
      * \param [in] aMesh     Default mesh
-     * \param [in] aMeshSets mesh sets (nodesets, sidesets)
      **********************************************************************************/
-    SpatialModel
-    (Omega_h::Mesh     & aMesh,
-     Omega_h::MeshSets & aMeshSets) :
-         Mesh(aMesh),
-         MeshSets(aMeshSets)
-    {}
+    SpatialModel(Plato::Mesh aMesh) : Mesh(aMesh) {}
 
     /******************************************************************************//**
      * \brief Constructor for Plato::SpatialModel base class
      * \param [in] aMesh Default mesh
-     * \param [in] aMeshSets mesh sets (nodesets, sidesets)
      * \param [in] aInputParams Spatial model definition
      **********************************************************************************/
-    SpatialModel(Omega_h::Mesh &aMesh,
-                 Omega_h::MeshSets &aMeshSets,
-                 const Teuchos::ParameterList &aInputParams) :
-        Mesh(aMesh),
-        MeshSets(aMeshSets)
+    SpatialModel(
+              Plato::Mesh              aMesh,
+        const Teuchos::ParameterList & aInputParams
+    ) :
+        Mesh(aMesh)
     {
         if (aInputParams.isSublist("Spatial Model"))
         {
             auto tModelParams = aInputParams.sublist("Spatial Model");
             if (!tModelParams.isSublist("Domains"))
             {
-                THROWERR("Parsing 'Spatial Model' parameter list. Required 'Domains' parameter sublist not found");
+                ANALYZE_THROWERR("Parsing 'Spatial Model' parameter list. Required 'Domains' parameter sublist not found");
             }
 
             auto tDomainsParams = tModelParams.sublist("Domains");
@@ -327,16 +322,16 @@ public:
 
                 if (!tEntry.isList())
                 {
-                    THROWERR("Parameter in 'Domains' parameter sublist within 'Spatial Model' parameter list not valid.  Expect lists only.");
+                    ANALYZE_THROWERR("Parameter in 'Domains' parameter sublist within 'Spatial Model' parameter list not valid.  Expect lists only.");
                 }
 
                 Teuchos::ParameterList &tDomainParams = tDomainsParams.sublist(tMyName);
-                Domains.push_back( { aMesh, aMeshSets, tDomainParams, tMyName });
+                Domains.push_back( { aMesh, tDomainParams, tMyName });
             }
         }
         else
         {
-            THROWERR("Parsing 'Plato Problem'. Required 'Spatial Model' parameter list not found");
+            ANALYZE_THROWERR("Parsing 'Plato Problem'. Required 'Spatial Model' parameter list not found");
         }
     }
 

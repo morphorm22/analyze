@@ -78,18 +78,18 @@ namespace PlatoTestMeshMap
     //
     constexpr int cMeshWidth=5;
     constexpr int cSpaceDim=3;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(cSpaceDim, cMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
 
     // create GetBasis functor
     //
-    Plato::Geometry::GetBasis<Plato::Scalar> tGetBasis(*tMesh);
+    Plato::Geometry::GetBasis<Plato::Scalar> tGetBasis(tMesh);
 
-    auto tNElems = tMesh->nelems();
+    auto tNElems = tMesh->NumElements();
     Plato::ScalarMultiVector tInPoints("centroids", cSpaceDim, tNElems);
     Plato::ScalarMultiVector tBases("basis values", cSpaceDim+1, tNElems);
 
-    auto tCoords = tMesh->coords();
-    Omega_h::LOs tCells2Nodes = tMesh->ask_elem_verts();
+    auto tCoords = tMesh->Coordinates();
+    auto tCells2Nodes = tMesh->Connectivity();
 
     // map from input to output
     //
@@ -99,10 +99,10 @@ namespace PlatoTestMeshMap
         // compute element centroid
         for(int iVert=0; iVert<(cSpaceDim+1); iVert++)
         {
-            auto iVertOrdinal = tCells2Nodes[aOrdinal*(cSpaceDim+1)+iVert];
+            auto iVertOrdinal = tCells2Nodes(aOrdinal*(cSpaceDim+1)+iVert);
             for(int iDim=0; iDim<cSpaceDim; iDim++)
             {
-                tInPoints(iDim, aOrdinal) += tCoords[iVertOrdinal*cSpaceDim+iDim];
+                tInPoints(iDim, aOrdinal) += tCoords(iVertOrdinal*cSpaceDim+iDim);
             }
         }
         for(int iDim=0; iDim<cSpaceDim; iDim++)
@@ -325,20 +325,20 @@ namespace PlatoTestMeshMap
 
     constexpr int cMeshWidth=5;
     constexpr int cSpaceDim=3;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(cSpaceDim, cMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
 
     Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
-    auto tMeshMap = tMeshMapFactory.create(*tMesh, tMeshMapParams);
+    auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
 
-    auto tCoords = tMesh->coords();
-    auto tNVerts = tMesh->nverts();
+    auto tCoords = tMesh->Coordinates();
+    auto tNVerts = tMesh->NumNodes();
 
-    auto tDim = tMesh->dim();
+    auto tDim = tMesh->NumDimensions();
     Kokkos::View<double*, MemSpace> tInField("not symmetric", tNVerts);
     using OrdinalType = typename Kokkos::View<double*, MemSpace>::size_type;
     Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalType>(0, tNVerts), LAMBDA_EXPRESSION(OrdinalType iVertOrdinal)
     {
-        tInField(iVertOrdinal) = tCoords[iVertOrdinal*tDim+2];
+        tInField(iVertOrdinal) = tCoords(iVertOrdinal*tDim+2);
     }, "compute field");
 
     Kokkos::View<double*, MemSpace> tOutField("symmetric", tNVerts);
@@ -429,15 +429,15 @@ namespace PlatoTestMeshMap
 
     constexpr int cMeshWidth=5;
     constexpr int cSpaceDim=3;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(cSpaceDim, cMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
 
     Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
-    auto tMeshMap = tMeshMapFactory.create(*tMesh, tMeshMapParams);
+    auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
 
-    auto tCoords = tMesh->coords();
-    auto tNVerts = tMesh->nverts();
+    auto tCoords = tMesh->Coordinates();
+    auto tNVerts = tMesh->NumNodes();
 
-    auto tDim = tMesh->dim();
+    auto tDim = tMesh->NumDimensions();
     Kokkos::View<double*, MemSpace> tInField("uniform", tNVerts);
     Kokkos::View<double*, MemSpace> tOutField("also uniform", tNVerts);
     Kokkos::deep_copy(tInField, 1.0);
@@ -516,10 +516,10 @@ namespace PlatoTestMeshMap
 
     constexpr int cMeshWidth=5;
     constexpr int cSpaceDim=3;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(cSpaceDim, cMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
 
     Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
-    auto tMeshMap = tMeshMapFactory.create(*tMesh, tMeshMapParams);
+    auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
 
     auto tMatrix  = toFull(tMeshMap->mMatrix);
     auto tMatrixT = toFull(tMeshMap->mMatrixT);

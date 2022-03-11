@@ -24,21 +24,81 @@
 namespace Plato
 {
 
+/******************************************************************************//**
+ * \brief Copy 1D view into Omega_h 1D array
+ * \param [in] aOffset offset
+ * \param [in] aNumVertices number of mesh vertices
+ * \param [in] aInput 1D view
+ * \param [out] aOutput 1D Omega_h array
+**********************************************************************************/
+template<const Plato::OrdinalType NumDofsPerNodeInInputArray, const Plato::OrdinalType NumDofsPerNodeInOutputArray>
+inline void copy(const Plato::OrdinalType & aOffset,
+                 const Plato::OrdinalType & aNumVertices,
+                 const Plato::ScalarVector & aInput,
+                       Plato::ScalarVector & aOutput)
+{
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumVertices), LAMBDA_EXPRESSION(const Plato::OrdinalType & aIndex)
+    {
+        for(Plato::OrdinalType tIndex = 0; tIndex < NumDofsPerNodeInOutputArray; tIndex++)
+        {
+            Plato::OrdinalType tOutputDofIndex = (aIndex * NumDofsPerNodeInOutputArray) + tIndex;
+            Plato::OrdinalType tInputDofIndex = (aIndex * NumDofsPerNodeInInputArray) + (aOffset + tIndex);
+            aOutput(tOutputDofIndex) = aInput(tInputDofIndex);
+        }
+    },"PlatoDriver::copy");
+}
+// function copy
+
+/******************************************************************************//**
+ * \brief Copy 2D view into Omega_h 1D array
+ * \param [in] aInput 2D view
+ * \param [out] aOutput 1D Omega_h array
+**********************************************************************************/
+inline void copy_2Dview_to_write(const Plato::ScalarMultiVector & aInput, Omega_h::Write<Omega_h::Real> & aOutput)
+{
+    auto tNumMajorEntries      = aInput.extent(0);
+    auto tNumDofsPerMajorEntry = aInput.extent(1);
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumMajorEntries), LAMBDA_EXPRESSION(const Plato::OrdinalType & tMajorIndex)
+    {
+        for(Plato::OrdinalType tMinorIndex = 0; tMinorIndex < tNumDofsPerMajorEntry; tMinorIndex++)
+        {
+            Plato::OrdinalType tOutputDofIndex = (tMajorIndex * tNumDofsPerMajorEntry) + tMinorIndex;
+            aOutput[tOutputDofIndex] = aInput(tMajorIndex, tMinorIndex);
+        }
+    },"PlatoDriver::compress_copy_2Dview_to_write");
+}
+
+/******************************************************************************//**
+ * \brief Copy 1D view into Omega_h 1D array
+ * \param [in] aInput 2D view
+ * \param [out] aOutput 1D Omega_h array
+**********************************************************************************/
+inline void copy_1Dview_to_write(const Plato::ScalarVector & aInput, Omega_h::Write<Omega_h::Real> & aOutput)
+{
+    auto tNumEntries      = aInput.extent(0);
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumEntries), LAMBDA_EXPRESSION(const Plato::OrdinalType & tIndex)
+    {
+        aOutput[tIndex] = aInput(tIndex);
+    },"PlatoDriver::compress_copy_1Dview_to_write");
+}
+
+
+// TODO: empty out this namespace, i.e., stop using omega_h types for basic operations
+// that aren't contained inside OmegaHMesh or OmegaHWriter.
 namespace omega_h
 {
 
 /******************************************************************************//**
  * \tparam ViewType view type
  *
- * \fn inline void print_fad_dx_values
+ * \fn inline void copy
  *
  * \brief Copy Kokkos view into an Omega_h LOs array.
  *
  * \param [in] aInput input 1D view
 **********************************************************************************/
 template<typename ViewType>
-inline Omega_h::LOs copy
-(const ScalarVectorT<ViewType> & aInput)
+inline Omega_h::LOs copy(const ScalarVectorT<ViewType> & aInput)
 {
     auto tLength = aInput.size();
     Omega_h::Write<ViewType> tWrite(tLength);
@@ -50,6 +110,25 @@ inline Omega_h::LOs copy
     return (Omega_h::LOs(tWrite));
 }
 // function copy
+
+/******************************************************************************//**
+ * \tparam ViewType view type
+ * \fn inline void copy
+ * \brief Copy Omega_h LOs array into a one-dimensional kokkos view.
+ * \param [in] aInput Omega_h LOs array
+ * \return one-dimensional kokkos view
+**********************************************************************************/
+template<typename ViewType>
+inline ScalarVectorT<ViewType> copy(const Omega_h::LOs & aInput)
+{
+  auto tLength = aInput.size();
+  Plato::ScalarVectorT<ViewType> tOutput("kokkos-view-copy", tLength);
+  Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+  {
+      tOutput(aOrdinal) = aInput[aOrdinal];
+  }, "copy");
+  return tOutput;
+}
 
 /******************************************************************************//**
  * \tparam ViewType Omega_h array type
@@ -77,42 +156,6 @@ void print
 // function print
 
 /******************************************************************************//**
- * \tparam NumSpatialDims  number of spatial dimensions
- * \tparam NumNodesPerCell number of nodes per cell/element
- *
- * \fn Scalar calculate_element_size
- *
- * \brief Calculate characteristic element size
- *
- * \param [in] aCellOrdinal cell/element ordinal
- * \param [in] aCells2Nodes map from cells to node ordinal
- * \param [in] aCoords      cell/element coordinates
-**********************************************************************************/
-template<Plato::OrdinalType NumSpatialDims,
-         Plato::OrdinalType NumNodesPerCell>
-DEVICE_TYPE inline
-Plato::Scalar
-calculate_element_size
-(const Plato::OrdinalType & aCellOrdinal,
- const Omega_h::LOs & aCells2Nodes,
- const Omega_h::Reals & aCoords)
-{
-    Omega_h::Few<Omega_h::Vector<NumSpatialDims>, NumNodesPerCell> tElemCoords;
-    for(Plato::OrdinalType tNode = 0; tNode < NumNodesPerCell; tNode++)
-    {
-        const Plato::OrdinalType tVertexIndex = aCells2Nodes[aCellOrdinal*NumNodesPerCell + tNode];
-        for(Plato::OrdinalType tDim = 0; tDim < NumSpatialDims; tDim++)
-        {
-            tElemCoords[tNode][tDim] = aCoords[tVertexIndex*NumSpatialDims + tDim];
-        }
-    }
-    auto tSphere = Omega_h::get_inball(tElemCoords);
-
-    return (static_cast<Plato::Scalar>(2.0) * tSphere.r);
-}
-// function calculate_element_size
-
-/******************************************************************************//**
  * \fn inline std::string get_entity_name
  *
  * \brief Return entity type in string format.
@@ -129,7 +172,7 @@ get_entity_name
     auto tItr = tMap.find(aEntityDim);
     if(tItr == tMap.end())
     {
-        THROWERR(std::string("Entity dimension '") + std::to_string(aEntityDim) + "' is not supported. "
+        ANALYZE_THROWERR(std::string("Entity dimension '") + std::to_string(aEntityDim) + "' is not supported. "
             + "Supported entity dimensions are: Omega_h::VERT=0, Omega_h::EDGE=1, Omega_h::FACE=2, and Omega_h::REGION=3")
     }
     return tItr->second;
@@ -156,13 +199,13 @@ read_metadata_from_mesh
     if(aMesh.has_tag(aEntityDim, aTagName) == false)
     {
         auto tEntityName = Plato::omega_h::get_entity_name(aEntityDim);
-        THROWERR(std::string("Tag '") + aTagName + "' with entity dimension '" + tEntityName + "' is not defined in mesh.")
+        ANALYZE_THROWERR(std::string("Tag '") + aTagName + "' with entity dimension '" + tEntityName + "' is not defined in mesh.")
     }
     auto tTag = aMesh.get_tag<Omega_h::Real>(aEntityDim, aTagName);
     auto tData = tTag->array();
     if(tData.size() <= static_cast<Omega_h::LO>(0))
     {
-        THROWERR(std::string("Read array with name '") + aTagName + "' is empty.")
+        ANALYZE_THROWERR(std::string("Read array with name '") + aTagName + "' is empty.")
     }
     const Plato::OrdinalType tSize = tData.size();
     Plato::ScalarVector tOutput(aTagName, tSize);
@@ -193,7 +236,7 @@ read_pvtu_file_paths
     Omega_h::vtk::read_pvd(tPvdPath, &tTimes, &tPvtuPaths);
     if(tPvtuPaths.empty())
     {
-        THROWERR("Array with .pvtu file paths is empty.")
+        ANALYZE_THROWERR("Array with .pvtu file paths is empty.")
     }
     return tPvtuPaths;
 }
@@ -222,7 +265,7 @@ entity_ordinals
     auto tEntitySetMapIterator = tEntitySets.find(aSetName);
     if( (tEntitySetMapIterator == tEntitySets.end()) && (aThrow) )
     {
-        THROWERR(std::string("DID NOT FIND NODE SET WITH NAME '") + aSetName + "'. NODE SET '"
+        ANALYZE_THROWERR(std::string("DID NOT FIND NODE SET WITH NAME '") + aSetName + "'. NODE SET '"
                  + aSetName + "' IS NOT DEFINED IN INPUT MESH FILE, I.E. INPUT EXODUS FILE");
     }
     auto tFaceLids = (tEntitySetMapIterator->second);
@@ -279,7 +322,7 @@ get_entity_ordinals
     }
     else
     {
-        THROWERR(std::string("Entity set, i.e. side or node set, with name '") + aSetName + "' is not defined.")
+        ANALYZE_THROWERR(std::string("Entity set, i.e. side or node set, with name '") + aSetName + "' is not defined.")
     }
 }
 // function get_entity_ordinals
@@ -304,7 +347,7 @@ get_num_entities
     auto tItr = tMap.find(aEntityDim);
     if(tItr == tMap.end())
     {
-        THROWERR(std::string("Entity with dimension id '") + std::to_string(aEntityDim) + " is not supported. "
+        ANALYZE_THROWERR(std::string("Entity with dimension id '") + std::to_string(aEntityDim) + " is not supported. "
             + "Supported options are: Omega_h::VERT=0, Omega_h::EDGE=1, Omega_h::FACE=2, and Omega_h::REGION=3")
     }
     return tItr->second;
@@ -357,6 +400,50 @@ find_entities_on_non_prescribed_boundary
 }
 // function find_entities_on_non_prescribed_boundary
 
+/******************************************************************************//**
+ * \tparam EntityDim  entity dimension (e.g. vertex, edge, face, or region)
+ * \fn Omega_h::LOs get_boundary_entities
+ * \brief Return list of boundary entities' ids.
+ * \param [in] aMesh finite element mesh metadata
+ * \return list of boundary entities' ids
+**********************************************************************************/
+template<Omega_h::Int EntityDim>
+Omega_h::LOs get_boundary_entities(Omega_h::Mesh& aMesh)
+{
+  auto tBoundaryEntities = Omega_h::mark_by_class_dim(&aMesh, EntityDim, EntityDim);
+  auto tBoundaryEntitiesIDs = Omega_h::collect_marked(tBoundaryEntities);
+  return tBoundaryEntitiesIDs;
+}
+// function get_boundary_entities
+
+/******************************************************************************//**
+ * \tparam EntityDim entity dimension (e.g. vertex, edge, face, or region)
+ * \tparam EntitySet entity set type (e.g. nodeset or sideset)
+ * \fn inline Omega_h::LOs get_boundary_entities
+ * \brief Return list of boundary entities' ids.
+ * \param [in] aEntitySetNames list of prescribed entity set names
+ * \param [in] aMesh           computational mesh metadata
+ * \param [in] aMeshSets       list of mesh sets
+ * \return list of boundary entities' ids
+**********************************************************************************/
+template
+<Omega_h::Int EntityDim,
+ Omega_h::SetType EntitySet>
+inline Omega_h::LOs get_boundary_entities
+(const std::vector<std::string> & aEntitySetNames,
+       Omega_h::Mesh            & aMesh,
+       Omega_h::MeshSets        & aMeshSets)
+{
+    if(aEntitySetNames.empty())
+    {
+        auto tBoundaryEntities = Plato::omega_h::get_boundary_entities<EntityDim>(aMesh);
+        return tBoundaryEntities;
+    }
+    auto tBoundaryEntities = Plato::omega_h::find_entities_on_non_prescribed_boundary<EntityDim,EntitySet>(aEntitySetNames, aMesh, aMeshSets);
+    return tBoundaryEntities;
+}
+
+
 /***************************************************************************//**
  * \tparam EntityDim Oemga_h entity dimension
  * \fn inline void read_fields
@@ -408,7 +495,7 @@ inline Omega_h::LOs side_set_face_ordinals(const Omega_h::MeshSets& aMeshSets, c
         std::ostringstream tMsg;
         tMsg << "COULD NOT FIND SIDE SET WITH NAME = '" << aSideSetName.c_str()
             << "'.  SIDE SET IS NOT DEFINED IN THE INPUT MESH FILE, I.E. EXODUS FILE.\n";
-        THROWERR(tMsg.str());
+        ANALYZE_THROWERR(tMsg.str());
     }
     auto tFaceLids = (tSideSetMapIterator->second);
     return tFaceLids;
@@ -499,38 +586,6 @@ inline void add_state_tags(Omega_h::Mesh& aMesh, const Plato::DataMap& aStateDat
     }
 }
 // function add_state_tags
-
-/***************************************************************************//**
- * \brief Return the local identifiers/ordinals associated with this element face.
- * Here, local is used in the context of domain decomposition.  Therefore, the
- * identifiers/ordinals are local to the subdomain.  Return -100 if the element
- * ordinal is not found.  The Analyze Error Macros can be used since they rely on
- * C++ standard functions on the the host.
- *
- * \param [in] aCellOrdinal  element ordinal
- * \param [in] aFaceOrdinal  face ordinal
- * \param [in] aElem2FaceMap element-to-face map
- *
- * \return local identifiers/ordinals associated with this element face.
- *
-*******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-DEVICE_TYPE inline Omega_h::LO get_face_ordinal
-(const Plato::OrdinalType& aCellOrdinal,
- const Plato::OrdinalType& aFaceOrdinal,
- const Omega_h::LOs& aElem2FaceMap)
-{
-    Omega_h::LO tOut = -100;
-    auto tNumFacesPerCell = SpaceDim + 1;
-    for(Plato::OrdinalType tFace = 0; tFace < tNumFacesPerCell; tFace++)
-    {
-        if(aElem2FaceMap[aCellOrdinal*tNumFacesPerCell+tFace] == aFaceOrdinal)
-        {
-            return tFace;
-        }
-    }
-    return (tOut);
-}
 
 /***************************************************************************//**
  * \brief Return local element/cell coordinates, i.e. coordinates for each node.

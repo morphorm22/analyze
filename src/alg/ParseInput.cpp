@@ -44,7 +44,6 @@
 #include <string>
 
 //----------------------------------------------------------------------------
-#include <Omega_h_file.hpp>
 #include <Teuchos_XMLParameterListHelpers.hpp>
 #include <Teuchos_CommandLineProcessor.hpp>
 #include <Teuchos_FileInputStream.hpp>
@@ -159,12 +158,12 @@ Teuchos::ParameterList input_file_parsing(
   const std::string query_doc = "Query and Print machine parameters and exit.";
   My_CLP.setOption("query", "no-query", &query, query_doc.c_str());
 
-  std::string       input_mesh = "input.osh";
-  const std::string input_mesh_doc = "Name of the input osh file to use.";
+  std::string       input_mesh = "input.exo";
+  const std::string input_mesh_doc = "Name of the input exodus file to use.";
   My_CLP.setOption("input-mesh", &input_mesh, input_mesh.c_str());
 
-  std::string       output_viz = "out_vtk";
-  const std::string output_viz_doc = "Name of visualization output directory.";
+  std::string       output_viz = "output";
+  const std::string output_viz_doc = "Base name of visualization output.";
   My_CLP.setOption("output-viz", &output_viz, output_viz_doc.c_str());
 
   std::string input_config = "input.xml";

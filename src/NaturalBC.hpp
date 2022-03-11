@@ -55,7 +55,7 @@ inline Plato::Neumann::bc_t natural_boundary_condition_type(const std::string& a
     }
     else
     {
-        THROWERR(std::string("Natural Boundary Condition: 'Type' Parameter Keyword: '") + tLowerTag + "' is not supported.")
+        ANALYZE_THROWERR(std::string("Natural Boundary Condition: 'Type' Parameter Keyword: '") + tLowerTag + "' is not supported.")
     }
 }
 // function natural_boundary_condition_type
@@ -75,7 +75,7 @@ class NaturalBC
     const std::string mName;         /*!< user-defined load sublist name */
     const std::string mType;         /*!< natural boundary condition type */
     const std::string mSideSetName;  /*!< side set name */
-    Omega_h::Vector<NumDofs> mFlux;  /*!< force vector values */
+    Plato::Array<NumDofs> mFlux;  /*!< force vector values */
     std::shared_ptr<Plato::MathExpr> mFluxExpr[NumDofs];
 
 public:
@@ -221,7 +221,7 @@ void NaturalBC<SpatialDim,NumDofs,DofsPerNode,DofOffset>::get(
         {
             std::stringstream tMsg;
             tMsg << "Natural Boundary Condition: Natural Boundary Condition Type '" << mType.c_str() << "' is NOT supported.";
-            THROWERR(tMsg.str().c_str())
+            ANALYZE_THROWERR(tMsg.str().c_str())
         }
     }
 }

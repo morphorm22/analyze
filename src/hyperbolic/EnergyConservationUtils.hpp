@@ -98,7 +98,7 @@ integrate_scalar_field
  const Plato::ScalarVectorT<ConfigT> & aCellVolume,
  const Plato::ScalarVectorT<SourceT> & aField,
  const Plato::ScalarMultiVectorT<ResultT> & aResult,
-       ScalarT aMultiplier)
+ const ScalarT & aMultiplier)
 {
     for(Plato::OrdinalType tNode = 0; tNode < NumNodes; tNode++)
     {
@@ -209,14 +209,17 @@ calculate_flux
  * \tparam NumNodesPerCell number of nodes per cell/element (integer)
  * \tparam ControlT control Forward Automatic Differentiation (FAD) evaluation type
  *
- * \fn DEVICE_TYPE inline ControlT penalize_thermal_diffusivity
+ * \fn DEVICE_TYPE inline ControlT penalized_effective_thermal_property
  *
- * \brief Penalize thermal diffusivity ratio.
+ * \brief Penalize effective thermal properties. The penalization model is given by
+ * \f$ \pi^{\alpha}(\theta) = \frac{\alpha*(1-\theta) + \theta}{\alpha}\f$, where
+ * \f$\alpha\f$ is the efective thermal property to be penalized and \f$\theta\f$
+ * is the control field.
  *
- * \param [in] aCellOrdinal      cell/element ordinal
- * \param [in] aThermalDiffRatio thermal diffusivity ratio (solid diffusivity/fluid diffusivity)
- * \param [in] aPenaltyExponent  SIMP penalty model exponent
- * \param [in] aControl          control work set
+ * \param [in] aCellOrdinal              cell/element ordinal
+ * \param [in] aEffectiveThermalProperty effective thermal property
+ * \param [in] aPenaltyExponent          density-based penalty model exponent
+ * \param [in] aControl                  control work set
  *
  * \return penalized thermal diffusivity ratio
  ******************************************************************************/
@@ -224,18 +227,18 @@ template
 <Plato::OrdinalType NumNodesPerCell,
  typename ControlT>
 DEVICE_TYPE inline ControlT
-penalize_thermal_diffusivity
+penalized_effective_thermal_property
 (const Plato::OrdinalType & aCellOrdinal,
- const Plato::Scalar & aThermalDiffRatio,
+ const Plato::Scalar & aEffectiveThermalProperty,
  const Plato::Scalar & aPenaltyExponent,
  const Plato::ScalarMultiVectorT<ControlT> & aControl)
 {
     ControlT tDensity = Plato::cell_density<NumNodesPerCell>(aCellOrdinal, aControl);
     ControlT tPenalizedDensity = pow(tDensity, aPenaltyExponent);
-    ControlT tPenalizedThermalDiff = aThermalDiffRatio + ( (static_cast<Plato::Scalar>(1.0) - aThermalDiffRatio) * tPenalizedDensity);
-    return tPenalizedThermalDiff;
+    ControlT tPenalizedThermalProperty = (static_cast<Plato::Scalar>(1.0) - tPenalizedDensity) + (tPenalizedDensity * aEffectiveThermalProperty);
+    return tPenalizedThermalProperty;
 }
-// function penalize_thermal_diffusivity
+// function penalized_effective_thermal_property
 
 
 
@@ -267,7 +270,7 @@ penalize_heat_source_constant
 {
     ControlT tDensity = Plato::cell_density<NumNodesPerCell>(aCellOrdinal, aControl);
     ControlT tPenalizedDensity = pow(tDensity, aPenalty);
-    auto tPenalizedProperty = (static_cast<Plato::Scalar>(1) - tPenalizedDensity) * aConstant;
+    auto tPenalizedProperty = tPenalizedDensity * aConstant;
     return tPenalizedProperty;
 }
 // function penalize_heat_source_constant

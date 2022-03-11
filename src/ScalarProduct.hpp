@@ -1,8 +1,7 @@
 #ifndef SCALAR_PRODUCT_HPP
 #define SCALAR_PRODUCT_HPP
 
-#include <Omega_h_vector.hpp>
-
+#include "PlatoMathTypes.hpp"
 #include "PlatoStaticsTypes.hpp"
 
 namespace Plato
@@ -48,7 +47,7 @@ class ScalarProduct
     operator()( Plato::OrdinalType cellOrdinal,
                 Plato::ScalarVectorT<ProductScalarType> scalarProduct,
                 Plato::ScalarMultiVectorT<Tensor1ScalarType> voigtTensor1,
-                Omega_h::Vector<NumElements> voigtTensor2,
+                Plato::Array<NumElements> voigtTensor2,
                 Plato::ScalarVectorT<VolumeScalarType> cellVolume,
                 Plato::Scalar scale = 1.0 ) const {
 

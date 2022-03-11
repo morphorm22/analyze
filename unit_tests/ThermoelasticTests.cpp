@@ -4,11 +4,6 @@
 */
 
 #include "PlatoTestHelpers.hpp"
-#include "Omega_h_build.hpp"
-#include "Omega_h_map.hpp"
-#include "Omega_h_matrix.hpp"
-#include "Omega_h_file.hpp"
-
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
@@ -56,13 +51,13 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
 
   // create mesh based solution from host data
   //
   int tNumDofsPerNode = (spaceDim+1);
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
   Plato::ScalarMultiVector states("states", /*numSteps=*/1, tNumDofs);
   auto state = Kokkos::subview(states, 0, Kokkos::ALL());
@@ -129,9 +124,7 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   );
 
   Plato::DataMap tDataMap;
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *params);
+  Plato::SpatialModel tSpatialModel(tMesh, *params);
   Plato::Elliptic::VectorFunction<::Plato::Thermomechanics<spaceDim>>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
 
@@ -144,15 +137,15 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   Kokkos::deep_copy(residualHost, residual);
 
   std::vector<Plato::Scalar> residual_gold = { 
-    -74678.38301282050,    -59614.82211538460,     -78204.58653846153,
-    -0.002062666666666666, -69710.05929487177,     -62980.04006410255,
-    -66346.07051282052,    -0.002002000000000000,   6250.406250000000,
-    -25480.55048076922,    -6731.394230769230,     -0.0006066666666666668,
-    -80767.10576923075,    -38781.71794871794,     -102564.2275641025,
-    -0.002457000000000000, -12659.43349358974,     -12820.45032051281,
-    -481.6546474358953,    -0.0007886666666666667, -10255.82692307692,
-    -3365.665865384615,    -13301.58413461538,     -0.0006066666666666667,
-    -6248.854166666652,    -161.3189102564033,     -26282.13461538462
+  -60255.72275641025,     -45512.32051282050,    -46153.40865384614,
+  -0.0007886666666666667, -63460.51762820510,    -57691.53685897433,
+  -37499.91666666666,     -0.001092000000000000, -3204.836538461539,
+  -12179.25801282051,      8653.325320512817,    -0.0003033333333333334,
+  -70191.07852564102,     -30768.98076923076,    -58652.95032051280,
+  -0.0009100000000000000, -86536.33653846150,    -40384.24038461538,
+  -53846.02884615383,     -0.001637999999999999, -16345.25801282050,
+  -9615.259615384608,      4806.671474358979,    -0.0007279999999999999,
+  -9935.480769230770,      14742.83974358974
   };
 
   for(int iVal=0; iVal<int(residual_gold.size()); iVal++){
@@ -172,22 +165,23 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   Kokkos::deep_copy(jac_entriesHost, jac_entries);
 
   std::vector<Plato::Scalar> jacobian_gold = { 
-   3.52564102564102478e10, 0.00000000000000000,    0.00000000000000000,    52083.3333333333285, 
-   0.00000000000000000,    3.52564102564102478e10, 0.00000000000000000,    52083.3333333333285,
-   0.00000000000000000,    0.00000000000000000,    3.52564102564102478e10, 52083.3333333333285,
-   0.00000000000000000,    0.00000000000000000,    0.00000000000000000,    454.999999999999943,
-  -6.41025641025640965e9,  3.20512820512820482e9,  0.00000000000000000,    0.00000000000000000,
-   4.80769230769230652e9, -2.24358974358974304e10, 4.80769230769230652e9,  52083.3333333333285, 
-   0.00000000000000000,    3.20512820512820482e9, -6.41025641025640965e9,  0.00000000000000000, 
-   0.00000000000000000,    0.00000000000000000,    0.00000000000000000,   -151.666666666666657,
-  -6.41025641025640965e9,  0.00000000000000000,    3.20512820512820482e9,  0.00000000000000000,
-   0.00000000000000000,   -6.41025641025640965e9,  3.20512820512820482e9,  0.00000000000000000,
-   4.80769230769230652e9,  4.80769230769230652e9, -2.24358974358974304e10, 52083.3333333333285,
-   0.00000000000000000,    0.00000000000000000,    0.00000000000000000,   -151.666666666666657,
-   0.00000000000000000,    3.20512820512820482e9,  3.20512820512820482e9,  0.00000000000000000,
-   4.80769230769230652e9,  0.00000000000000000,   -8.01282051282051086e9,  26041.6666666666642,
-   4.80769230769230652e9, -8.01282051282051086e9,  0.00000000000000000,    26041.6666666666642,
-   0.00000000000000000,    0.00000000000000000,   0.00000000000000000,     0.00000000000000000
+3.52564102564102478e10, 0, 0, 52083.3333333333285, 0,
+3.52564102564102478e10, 0, 52083.3333333333285, 0, 0,
+3.52564102564102478e10, 52083.3333333333285, 0, 0, 0,
+454.999999999999943, -6.41025641025640965e9, 0,
+3.20512820512820482e9, 0, 0, -6.41025641025640965e9,
+3.20512820512820482e9, 0, 4.80769230769230652e9,
+4.80769230769230652e9, -2.24358974358974304e10,
+52083.3333333333285, 0, 0, 0, -151.666666666666657,
+-6.41025641025640965e9, 3.20512820512820482e9, 0, 0,
+4.80769230769230652e9, -2.24358974358974304e10,
+4.80769230769230652e9, 52083.3333333333285, 0,
+3.20512820512820482e9, -6.41025641025640965e9, 0, 0, 0, 0,
+-151.666666666666657, 0, 3.20512820512820482e9,
+3.20512820512820482e9, 0, 4.80769230769230652e9, 0,
+-8.01282051282051086e9, 26041.6666666666642,
+4.80769230769230652e9, -8.01282051282051086e9, 0,
+26041.6666666666642, 0, 0, 0, 0
   };
 
   for(int iVal=0; iVal<int(jacobian_gold.size()); iVal++){
@@ -207,10 +201,12 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   Kokkos::deep_copy(gradz_entriesHost, gradz_entries);
 
   std::vector<Plato::Scalar> gradient_z_gold = { 
-   -18669.5957532051252, -14903.7055288461488, -19551.1466346153829, -0.000515666666666666552,
-   -2604.08854166666652,  8012.67988782051179,  4206.79326923076951,  0.000151666666666666649,
-    1562.59114583333439, -6370.14803685897277, -1682.82772435897550, -0.000151666666666666649,
-   -2804.38040865384437, -200.364783653846530, -4927.94711538461343, -0.000174416666666666633
+  -15063.9306891025626,     -11378.0801282051252,      -11538.3521634615354,
+  -0.000197166666666666671, -801.219551282049906,      -3044.82491987179446,
+   2163.35216346153675,     -0.0000758333333333333244, -2483.90144230769147,
+   3685.77243589743557,     -3124.94791666666515,      -0.0000303333333333333298,
+  -3285.15745192307486,      640.978766025640425,      -961.590544871795146,
+  -0.000106166666666666627
   };
 
   for(int iVal=0; iVal<int(gradient_z_gold.size()); iVal++){
@@ -230,22 +226,22 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   Kokkos::deep_copy(gradx_entriesHost, gradx_entries);
 
   std::vector<Plato::Scalar> gradient_x_gold = { 
-   -138461.538461538410,    -151923.076923076878,     -319230.769230769132,
-   -0.00552066666666666504,  47435.8974358974156,     -33333.3333333333358,
-    55769.2307692307368,     0.000849333333333333342, -641.025641025629739,
-    1923.07692307693378,     -11538.4615384615317,    -0.0000606666666666664969,
-   -1282.05128205127858,    -18909.6314102564065,     -18589.7435897435789,
-    0.000181999999999999979, 40063.4775641025481,      66666.6666666666570,
-    11217.4487179487187,     0.000727999999999999915, -26282.0512820512740,
-   -28525.1410256410236,    -1282.05128205128494,     -0.000545999999999999936,
-   -77564.1025641025335,     23717.9487179487187,      165705.857371794817,
-    0.00175933333333333280, -641.025641025644290,     -18589.7435897435826,
-   -58012.4663461538148,    -0.000424666666666666617,  44871.0657051281887,
-    41666.3124999999854,     55769.2307692307659,      0.00145599999999999983,
-   -85897.4358974358765,     5449.21794871795646,     -3525.28685897435935,
-   -0.000545999999999999827, 6089.24358974358620,      30128.2051282051179,
-    61538.6073717948602,     0.000970666666666666444,  39743.2355769230635,
-    20192.1618589743448,     14743.5897435897496,      0.000970666666666666336
+  -63461.5384615384464,    -126923.076923076878,     -190384.615384615347,
+  -0.00327599999999999940, -21153.8461538461415,     -42307.6923076922903,
+  -63461.5384615384537,    -0.00109199999999999965,  -7051.28205128204081,
+  -14102.5641025640871,    -21153.8461538461452,     -0.000363999999999999740,
+  -32371.7948717948639,    -9935.89743589742466,      82692.8076923076878,
+   0.00103133333333333310, -22756.4102564102504,     -8012.82051282051179,
+   13461.9134615384592,     0.000303333333333333189,  40704.6282051281887,
+   38140.6506410256334,     36538.4615384615317,      0.000849333333333333234,
+  -19230.7692307692232,     32692.8910256410163,      10256.4102564102541,
+   0.000909999999999999785, 44871.2115384615172,      39743.5897435897423,
+   44871.3782051282033,     0.000970666666666666553, -14102.5641025640944,
+  -18589.3269230769292,    -5128.20512820512522,     -0.0000606666666666667951,
+  -74679.4871794871433,     5449.13461538461343,     -5127.83012820512522,
+  -0.000242666666666666638, 14422.6602564102468,      25961.5384615384537,
+   25641.0673076923085,     0.000545999999999999827,  24038.0865384615281,
+   17628.1634615384646,     20512.8205128205082,      0.000545999999999999827
   };
 
   for(int iVal=0; iVal<int(gradient_x_gold.size()); iVal++){
@@ -268,7 +264,7 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   tSolution.set("State", states);
   auto value = scalarFunction.value(tSolution, z);
 
-  Plato::Scalar value_gold = 3.99325969691123239;
+  Plato::Scalar value_gold = 3.20610709915224668;
   TEST_FLOATING_EQUALITY(value, value_gold, 1e-13);
 
   // compute and test objective gradient wrt state, u
@@ -280,18 +276,18 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   Kokkos::deep_copy( grad_u_Host, grad_u );
 
   std::vector<Plato::Scalar> grad_u_gold = { 
-   -149357.8701923077,   -119230.2067307692,   -156409.7147435897,
-   -0.1760003333333333,  -139421.5977564102,   -125960.8092948718,
-   -132692.2243589743,   -0.2540039999999999,   12500.40624999999,
-   -50961.31971153845,   -13462.16346153846,   -0.06371333333333332,
-   -161536.3365384615,   -77563.76923076922,   -205128.3301282051,
-   -0.3903306666666666,  -25319.68990384614,   -25640.96314102563,
-   -962.4238782051143,   -0.1682440000000000,  -20512.23717948717,
-   -6731.050480769230,   -26602.86618589742,   -0.07413000000000002,
-   -12498.85416666665,   -321.5753205128094,   -52564.18589743588,
-   -0.08460733333333334, -21473.91105769230,    11537.62820512823,
-   -13140.64022435896,   -0.05244733333333334, -109934.6370192308,
-    44872.06570512819,    61218.95913461538,   -0.2585966666666666
+  -120512.1330128205,   -91025.14102564099,  -92307.25480769228,
+  -0.2828273333333333,  -126922.0560897435,  -115383.8445512820,
+  -74999.91666666667,   -0.3771839999999999, -6409.964743589742,
+  -24358.74519230768,    17307.17147435897,  -0.09435666666666664,
+  -140383.3862179487,   -61538.21153846152,  -117306.7964743589,
+  -0.3768200000000000,  -173074.7980769229,  -80768.85576923074,
+  -107692.1826923077,   -0.5657759999999997, -32691.41185897436,
+  -19230.64423076922,    9614.363782051296,  -0.1889560000000000,
+  -19871.37820512821,    29486.42948717947,  -24999.66666666668,
+  -0.09399266666666665, -46152.74198717946,   34614.23878205129,
+  -32692.26602564101,   -0.1885920000000000, -26281.32211538461,
+  5127.850961538466,    -7692.682692307675,  -0.09459933333333331
   };
 
   for(int iNode=0; iNode<int(grad_u_gold.size()); iNode++){
@@ -311,15 +307,15 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   Kokkos::deep_copy( grad_z_Host, grad_z );
 
   std::vector<Plato::Scalar> grad_z_gold = {
-    0.3006646220307975,  0.2828518382060641,  0.07071297869214102,
-    0.2014571253646834,  0.06703482120772307, 0.03167447648441282,
-    0.05844522383912947, 0.02116164326532563, 0.1211208163690948,
-    0.3125138830947090,  0.1180923674785154,  0.02885361640063332,
-    0.04527148502001922, 0.5649346204235975,  0.2730600666633808,
-    0.1003915937669949,  0.1293972579725719,  0.09587150695223083,
-    0.02509555855275397, 0.05871878443368219, 0.2281261532124168,
-    0.3215640965314669,  0.1200080860211962,  0.006538731463594921,
-    0.02452832023762705, 0.3393603844997411,  0.04580963872672825
+   0.1001915780985077,  0.1335887051730102,  0.03339720207450256,
+   0.1335884520480103,  0.2003826874470154,  0.06679431039900512,
+   0.03339709894950257, 0.06679420727400512, 0.03339710832450257,
+   0.1335876926730104,  0.2003816186970155,  0.06679400102400512,
+   0.2003812624470156,  0.4007633873940310,  0.2003821249470154,
+   0.06679379477400521, 0.2003817686970156,  0.1335878989230103,
+   0.03339678957450264, 0.06679358852400522, 0.03339679894950260,
+   0.06679348539900523, 0.2003806999470156,  0.1335871395480103,
+   0.03339669582450261, 0.1335868864230105,  0.1001901155985078
   };
 
   for(int iNode=0; iNode<int(grad_z_gold.size()); iNode++){
@@ -335,15 +331,24 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   Kokkos::deep_copy(grad_x_Host, grad_x);
 
   std::vector<Plato::Scalar> grad_x_gold = {
-    1.415436782967118,     -1.088392815648369,   -0.5040375881616612,
-    1.447588668646153,     -1.250091771703753,    0.1578841810878153,
-    0.1306132382529746,    -0.3847761196036412,   0.5916655752193332,
-    1.020192508092308,      0.5763455956072205,  -0.2397432740062565,
-   -0.2497054688307384,     0.04301339975588712,  0.4116322178948820,
-   -0.02582992877120004,    0.1731726564366770,   0.1257363320594461,
-   -9.21562170871081942e-5, 0.4083635774612511,  -0.1133975593030360,
-   -0.02791564539653321,    0.1617290307673025,  -0.07330046252834882,
-   -0.6810599201684920,    -0.1161559894293126,  -0.2451581005350564,
+0.77589451783770246873, 0.080512819881887298656,
+-0.15128107943671786906, 0.64807554467692296551,
+-0.051152760037046107744, 0.11653820078566161367,
+-0.12781799816077951681, -0.13166535491893330279,
+0.26781880522237938580, 0.70691955840227715946,
+0.36922902359876919043, -0.27768997119444094324,
+0.38230950264529250937, 0.39461479247778480373,
+0.13153826415926148097, -0.32460870575698447249,
+0.025386218879015307048, 0.40922748535370234713,
+-0.068972709435425549884, 0.28871530371688197691,
+-0.12640904175772310625, -0.26576334203163054504,
+0.44576575251483052664, 0.015000363373600084094,
+-0.19679025759620494274, 0.15705067379794873661,
+0.14140913013132294651, 0.97267967543390765339,
+-0.076537803916060881404, -0.29268854290137402696,
+0.91383716170855255889, -0.49691708755187680158,
+0.10153746241206208778, -0.058841163725353924641,
+-0.42037883363581496354, 0.39422525531343605154,
   };
 
 
@@ -360,10 +365,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormAxial_3D)
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
     const Plato::Scalar tBoxWidth = 5.0;
-    auto tMesh = PlatoUtestHelpers::build_3d_box_mesh(tBoxWidth,tBoxWidth,tBoxWidth,tNumElemX,tNumElemY,tNumElemZ);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -432,22 +434,22 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormAxial_3D)
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Z Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='2'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Z0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='z-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied Disp Boundary Condition'>                             \n"
       "       <Parameter  name='Type'     type='string' value='Fixed Value'/>                   \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Value'    type='double' value='0.1'/>                           \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -458,16 +460,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormAxial_3D)
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
 
-    // 1. Construct plasticity problem
-    PlatoUtestHelpers::set_mesh_sets_3D(*tMesh, tMeshSets);
-
+    // 1. Add sidesets
     using PhysicsT = Plato::Mechanics<tSpaceDim>;
 
-    Plato::Elliptic::Problem<PhysicsT> tEllipticProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::Elliptic::Problem<PhysicsT> tEllipticProblem(tMesh, *tParamList, tMachine);
     tEllipticProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
-    auto tNumVertices = tMesh->nverts();
+    auto tNumVertices = tMesh->NumNodes();
     Plato::ScalarVector tControls("Controls", tNumVertices);
     Plato::blas1::fill(1.0, tControls);
     auto tSolution = tEllipticProblem.solution(tControls);
@@ -526,10 +526,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormShear_3D)
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
     const Plato::Scalar tBoxWidth = 5.0;
-    auto tMesh = PlatoUtestHelpers::build_3d_box_mesh(tBoxWidth,tBoxWidth,tBoxWidth,tNumElemX,tNumElemY,tNumElemZ);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -598,29 +595,29 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormShear_3D)
       "     <ParameterList  name='X Fixed Displacement Boundary Condition1'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition1'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Fixed Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Value'    type='double' value='0.1'/>                           \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Fixed Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y+'/>                         \n"
       "       <Parameter  name='Value'    type='double' value='0.1'/>                           \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Z Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='2'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Z0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='z-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
       "</ParameterList>                                                                         \n"
@@ -631,15 +628,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormShear_3D)
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    PlatoUtestHelpers::set_mesh_sets_3D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::Mechanics<tSpaceDim>;
 
-    Plato::Elliptic::Problem<PhysicsT> tEllipticProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::Elliptic::Problem<PhysicsT> tEllipticProblem(tMesh, *tParamList, tMachine);
     tEllipticProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
-    auto tNumVertices = tMesh->nverts();
+    auto tNumVertices = tMesh->NumNodes();
     Plato::ScalarVector tControls("Controls", tNumVertices);
     Plato::blas1::fill(1.0, tControls);
     auto tSolution = tEllipticProblem.solution(tControls);
@@ -793,4 +788,3 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ExpressionTMKinetics)
     eval_some_value();
 }
 #endif
-

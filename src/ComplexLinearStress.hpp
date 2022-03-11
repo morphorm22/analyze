@@ -9,7 +9,7 @@
 
 #include <cassert>
 
-#include <Omega_h_matrix.hpp>
+#include "PlatoMathTypes.hpp"
 
 #include "PlatoStaticsTypes.hpp"
 
@@ -26,11 +26,11 @@ template<Plato::OrdinalType SpaceDim, Plato::OrdinalType NumVoigtTerms>
 class ComplexLinearStress
 {
 private:
-    const Omega_h::Matrix<NumVoigtTerms,NumVoigtTerms> mCellStiffness;
+    const Plato::Matrix<NumVoigtTerms,NumVoigtTerms> mCellStiffness;
 
 public:
     /******************************************************************************/
-    ComplexLinearStress(const Omega_h::Matrix<NumVoigtTerms,NumVoigtTerms> & aCellStiffness) :
+    ComplexLinearStress(const Plato::Matrix<NumVoigtTerms,NumVoigtTerms> & aCellStiffness) :
         mCellStiffness(aCellStiffness)
     /******************************************************************************/
     {

@@ -24,32 +24,32 @@ void Plato::OrthotropicLinearElasticMaterial<3>::checkOrthoMaterialStability
     // Stability Check 1: Positive material properties
     auto tYoungsModulusX = aParamList.get<Plato::Scalar>("Youngs Modulus X");
     if(tYoungsModulusX < static_cast<Plato::Scalar>(0)) {
-        THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Youngs Modulus X' must be positive.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Youngs Modulus X' must be positive.")
     }
 
     auto tYoungsModulusY = aParamList.get<Plato::Scalar>("Youngs Modulus Y");
     if(tYoungsModulusY < static_cast<Plato::Scalar>(0)) {
-        THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Youngs Modulus Y' must be positive.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Youngs Modulus Y' must be positive.")
     }
 
     auto tYoungsModulusZ = aParamList.get<Plato::Scalar>("Youngs Modulus Z");
     if(tYoungsModulusZ < static_cast<Plato::Scalar>(0)) {
-        THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Youngs Modulus Z' must be positive.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Youngs Modulus Z' must be positive.")
     }
 
     auto tShearModulusXY = aParamList.get<Plato::Scalar>("Shear Modulus XY");
     if(tShearModulusXY < static_cast<Plato::Scalar>(0)) {
-        THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Shear Modulus XY' must be positive.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Shear Modulus XY' must be positive.")
     }
 
     auto tShearModulusXZ = aParamList.get<Plato::Scalar>("Shear Modulus XZ");
     if(tShearModulusXZ < static_cast<Plato::Scalar>(0)) {
-        THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Shear Modulus XZ' must be positive.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Shear Modulus XZ' must be positive.")
     }
 
     auto tShearModulusYZ = aParamList.get<Plato::Scalar>("Shear Modulus YZ");
     if(tShearModulusYZ < static_cast<Plato::Scalar>(0)) {
-        THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Shear Modulus YZ' must be positive.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Shear Modulus YZ' must be positive.")
     }
 
     // Stability Check 2: Symmetry relationships
@@ -61,7 +61,7 @@ void Plato::OrthotropicLinearElasticMaterial<3>::checkOrthoMaterialStability
         tMsg << "OrthotropicLinearElasticMaterial 3D: Condition abs(Poisson's Ratio XY) < sqrt(Young's Modulus X / Young's Modulus Y) "
                 << "was not met.  The value of abs(Poisson's Ratio XY) = " << fabs(tPoissonRatioXY) << " and the value of "
                 << "sqrt(Young's Modulus X / Young's Modulus Y) = " << tSqrtYoungsModulusXOverYoungsModulusY << ".";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     auto tPoissonRatioYZ = aParamList.get<Plato::Scalar>("Poissons Ratio YZ");
@@ -72,7 +72,7 @@ void Plato::OrthotropicLinearElasticMaterial<3>::checkOrthoMaterialStability
         tMsg << "OrthotropicLinearElasticMaterial 3D: Condition abs(Poisson's Ratio YZ) < sqrt(Young's Modulus Y / Young's Modulus Z) "
                 << "was not met.  The value of abs(Poisson's Ratio YZ) = " << fabs(tPoissonRatioYZ) << " and the value of "
                 << "sqrt(Young's Modulus Y / Young's Modulus Z) = " << tSqrtYoungsModulusYOverYoungsModulusZ << ".";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     auto tPoissonRatioXZ = aParamList.get<Plato::Scalar>("Poissons Ratio XZ");
@@ -83,7 +83,7 @@ void Plato::OrthotropicLinearElasticMaterial<3>::checkOrthoMaterialStability
         tMsg << "OrthotropicLinearElasticMaterial 3D: Condition abs(Poisson's Ratio XZ) < sqrt(Young's Modulus X / Young's Modulus Z) "
                 << "was not met.  The value of abs(Poisson's Ratio XZ) = " << fabs(tPoissonRatioXZ) << " and the value of "
                 << "sqrt(Young's Modulus X / Young's Modulus Z) = " << tSqrtYoungsModulusXOverYoungsModulusZ << ".";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     auto tPoissonRatioYX = tPoissonRatioXY * (tYoungsModulusY / tYoungsModulusX);
@@ -94,7 +94,7 @@ void Plato::OrthotropicLinearElasticMaterial<3>::checkOrthoMaterialStability
         tMsg << "OrthotropicLinearElasticMaterial 3D: Condition abs(Poisson's Ratio YX) < sqrt(Young's Modulus Y / Young's Modulus X) "
                 << "was not met.  The value of abs(Poisson's Ratio YX) = " << fabs(tPoissonRatioYX) << " and the value of "
                 << "sqrt(Young's Modulus Y / Young's Modulus X) = " << tSqrtYoungsModulusYOverYoungsModulusX << ".";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     auto tPoissonRatioZY = tPoissonRatioYZ * (tYoungsModulusZ / tYoungsModulusY);
@@ -105,7 +105,7 @@ void Plato::OrthotropicLinearElasticMaterial<3>::checkOrthoMaterialStability
         tMsg << "OrthotropicLinearElasticMaterial 3D: Condition abs(Poisson's Ratio ZY) < sqrt(Young's Modulus Z / Young's Modulus Y) "
                 << "was not met.  The value of abs(Poisson's Ratio ZY) = " << fabs(tPoissonRatioZY) << " and the value of "
                 << "sqrt(Young's Modulus Z / Young's Modulus Y) = " << tSqrtYoungsModulusZOverYoungsModulusY << ".";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     auto tPoissonRatioZX = tPoissonRatioXZ * (tYoungsModulusZ / tYoungsModulusX);
@@ -116,7 +116,7 @@ void Plato::OrthotropicLinearElasticMaterial<3>::checkOrthoMaterialStability
         tMsg << "OrthotropicLinearElasticMaterial 3D: Condition abs(Poisson's Ratio ZX) < sqrt(Young's Modulus Z / Young's Modulus X) "
                 << "was not met.  The value of abs(Poisson's Ratio ZX) = " << fabs(tPoissonRatioZX) << " and the value of "
                 << "sqrt(Young's Modulus Z / Young's Modulus X) = " << tSqrtYoungsModulusZOverYoungsModulusX << ".";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     auto tDetComplianceMat = static_cast<Plato::Scalar>(1.0) - (tPoissonRatioXY * tPoissonRatioYX)
@@ -124,7 +124,7 @@ void Plato::OrthotropicLinearElasticMaterial<3>::checkOrthoMaterialStability
             - static_cast<Plato::Scalar>(2.0) * (tPoissonRatioYX * tPoissonRatioZY * tPoissonRatioXZ);
     if(tDetComplianceMat < static_cast<Plato::Scalar>(0.0))
     {
-        THROWERR("OrthotropicLinearElasticMaterial 3D: Determinant of the compliance matrix is negative.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 3D: Determinant of the compliance matrix is negative.")
     }
 }
 
@@ -136,39 +136,39 @@ void Plato::OrthotropicLinearElasticMaterial<3>::checkOrthoMaterialInputs
 (const Teuchos::ParameterList& aParamList)
 {
     if(aParamList.isParameter("Youngs Modulus X") == false) {
-        THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Youngs Modulus X' is not defined.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Youngs Modulus X' is not defined.")
     }
 
     if(aParamList.isParameter("Youngs Modulus Y") == false) {
-        THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Youngs Modulus Y' is not defined.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Youngs Modulus Y' is not defined.")
     }
 
     if(aParamList.isParameter("Youngs Modulus Z") == false) {
-        THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Youngs Modulus Z' is not defined.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Youngs Modulus Z' is not defined.")
     }
 
     if(aParamList.isParameter("Shear Modulus XY") == false) {
-        THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Shear Modulus XY' is not defined.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Shear Modulus XY' is not defined.")
     }
 
     if(aParamList.isParameter("Shear Modulus XZ") == false) {
-        THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Shear Modulus XZ' is not defined.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Shear Modulus XZ' is not defined.")
     }
 
     if(aParamList.isParameter("Shear Modulus YZ") == false) {
-        THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Shear Modulus YZ' is not defined.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Shear Modulus YZ' is not defined.")
     }
 
     if(aParamList.isParameter("Poissons Ratio XY") == false) {
-        THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Poissons Ratio XY' is not defined.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Poissons Ratio XY' is not defined.")
     }
 
     if(aParamList.isParameter("Poissons Ratio XZ") == false) {
-        THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Poissons Ratio XZ' is not defined.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Poissons Ratio XZ' is not defined.")
     }
 
     if(aParamList.isParameter("Poissons Ratio YZ") == false) {
-        THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Poissons Ratio YZ' is not defined.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 3D: Parameter Keyword 'Poissons Ratio YZ' is not defined.")
     }
 }
 
@@ -262,17 +262,17 @@ void Plato::OrthotropicLinearElasticMaterial<2>::checkOrthoMaterialStability
     // Stability Check 1: Positive material properties
     auto tYoungsModulusX = aParamList.get<Plato::Scalar>("Youngs Modulus X");
     if(tYoungsModulusX < static_cast<Plato::Scalar>(0)) {
-        THROWERR("OrthotropicLinearElasticMaterial 2D: Parameter Keyword 'Youngs Modulus X' must be positive.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 2D: Parameter Keyword 'Youngs Modulus X' must be positive.")
     }
 
     auto tYoungsModulusY = aParamList.get<Plato::Scalar>("Youngs Modulus Y");
     if(tYoungsModulusY < static_cast<Plato::Scalar>(0)) {
-        THROWERR("OrthotropicLinearElasticMaterial 2D: Parameter Keyword 'Youngs Modulus Y' must be positive.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 2D: Parameter Keyword 'Youngs Modulus Y' must be positive.")
     }
 
     auto tShearModulusXY = aParamList.get<Plato::Scalar>("Shear Modulus XY");
     if(tShearModulusXY < static_cast<Plato::Scalar>(0)) {
-        THROWERR("OrthotropicLinearElasticMaterial 2D: Parameter Keyword 'Shear Modulus XY' must be positive.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 2D: Parameter Keyword 'Shear Modulus XY' must be positive.")
     }
 
     // Stability Check 2: Symmetry relationships
@@ -284,7 +284,7 @@ void Plato::OrthotropicLinearElasticMaterial<2>::checkOrthoMaterialStability
         tMsg << "OrthotropicLinearElasticMaterial 2D: Condition abs(Poisson's Ratio XY) < sqrt(Young's Modulus X / Young's Modulus Y) "
                 << "was not met.  The value of abs(Poisson's Ratio XY) = " << fabs(tPoissonRatioXY) << " and the value of "
                 << "sqrt(Young's Modulus X / Young's Modulus Y) = " << tSqrtYoungsModulusXOverYoungsModulusY << ".";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     auto tPoissonRatioYX = tPoissonRatioXY * (tYoungsModulusY / tYoungsModulusX);
@@ -295,7 +295,7 @@ void Plato::OrthotropicLinearElasticMaterial<2>::checkOrthoMaterialStability
         tMsg << "OrthotropicLinearElasticMaterial 2D: Condition abs(Poisson's Ratio YX) < sqrt(Young's Modulus Y / Young's Modulus X) "
                 << "was not met.  The value of abs(Poisson's Ratio YX) = " << fabs(tPoissonRatioYX) << " and the value of "
                 << "sqrt(Young's Modulus Y / Young's Modulus X) = " << tSqrtYoungsModulusYOverYoungsModulusX << ".";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 }
 
@@ -307,19 +307,19 @@ void Plato::OrthotropicLinearElasticMaterial<2>::checkOrthoMaterialInputs
 (const Teuchos::ParameterList& aParamList)
 {
     if(aParamList.isParameter("Youngs Modulus X") == false) {
-        THROWERR("OrthotropicLinearElasticMaterial 2D: Parameter Keyword 'Youngs Modulus X' is not defined.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 2D: Parameter Keyword 'Youngs Modulus X' is not defined.")
     }
 
     if(aParamList.isParameter("Youngs Modulus Y") == false) {
-        THROWERR("OrthotropicLinearElasticMaterial 2D: Parameter Keyword 'Youngs Modulus Y' is not defined.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 2D: Parameter Keyword 'Youngs Modulus Y' is not defined.")
     }
 
     if(aParamList.isParameter("Shear Modulus XY") == false) {
-        THROWERR("OrthotropicLinearElasticMaterial 2D: Parameter Keyword 'Shear Modulus XY' is not defined.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 2D: Parameter Keyword 'Shear Modulus XY' is not defined.")
     }
 
     if(aParamList.isParameter("Poissons Ratio XY") == false) {
-        THROWERR("OrthotropicLinearElasticMaterial 2D: Parameter Keyword 'Poissons Ratio XY' is not defined.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 2D: Parameter Keyword 'Poissons Ratio XY' is not defined.")
     }
 }
 
@@ -390,11 +390,11 @@ void Plato::OrthotropicLinearElasticMaterial<1>::checkOrthoMaterialInputs
 (const Teuchos::ParameterList& aParamList)
 {
     if(aParamList.isParameter("Poissons Ratio") == false){
-        THROWERR("OrthotropicLinearElasticMaterial 1D: Parameter Keyword 'Poissons Ratio' is not defined.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 1D: Parameter Keyword 'Poissons Ratio' is not defined.")
     }
 
     if(aParamList.isParameter("Youngs Modulus") == false){
-        THROWERR("OrthotropicLinearElasticMaterial 1D: Parameter Keyword 'Youngs Modulus' is not defined.")
+        ANALYZE_THROWERR("OrthotropicLinearElasticMaterial 1D: Parameter Keyword 'Youngs Modulus' is not defined.")
     }
 }
 

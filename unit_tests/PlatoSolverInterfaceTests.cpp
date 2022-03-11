@@ -15,8 +15,6 @@
 #include <alg/AmgXSparseLinearProblem.hpp>
 #endif
 
-
-#include <fenv.h>
 #include <memory>
 
 namespace Plato {
@@ -69,19 +67,16 @@ toFull(rcp<Epetra_VbrMatrix> aInMatrix)
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionEpetra )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // create test mesh
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   // create mesh based density
@@ -127,10 +122,8 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionEpetra )
   );
 
   Plato::DataMap tDataMap;
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
 
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
   Plato::Elliptic::VectorFunction<SimplexPhysics>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
@@ -143,7 +136,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionEpetra )
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  Plato::EpetraSystem tSystem(tMesh->nverts(), tMachine, tNumDofsPerNode);
+  Plato::EpetraSystem tSystem(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
   auto tEpetra_VbrMatrix = tSystem.fromMatrix(*jacobian);
 
@@ -169,25 +162,22 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionEpetra )
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToEpetraVector )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // create test mesh
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
-  auto mesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = mesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  Plato::EpetraSystem tSystem(mesh->nverts(), tMachine, tNumDofsPerNode);
+  Plato::EpetraSystem tSystem(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
   Plato::ScalarVector tTestVector("test vector", tNumDofs);
 
@@ -217,25 +207,22 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToEpetraVector )
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToEpetraVector_invalidInput )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // create test mesh
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
-  auto mesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = mesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  Plato::EpetraSystem tSystem(mesh->nverts(), tMachine, tNumDofsPerNode);
+  Plato::EpetraSystem tSystem(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
   Plato::ScalarVector tTestVector("test vector", tNumDofs+1);
 
@@ -257,25 +244,22 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToEpetraVector_invalidI
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // create test mesh
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
-  auto mesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = mesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  Plato::EpetraSystem tSystem(mesh->nverts(), tMachine, tNumDofsPerNode);
+  Plato::EpetraSystem tSystem(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
   
   auto tTestVector = std::make_shared<Epetra_Vector>(*(tSystem.getMap()));
 
@@ -304,25 +288,22 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector )
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector_invalidInput )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // create test mesh
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
-  auto mesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = mesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  Plato::EpetraSystem tSystem(mesh->nverts(), tMachine, tNumDofsPerNode);
+  Plato::EpetraSystem tSystem(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
   auto tBogusMap = std::make_shared<Epetra_BlockMap>(tNumNodes+1, tNumDofsPerNode, 0, *(tMachine.epetraComm));
   auto tTestVector = std::make_shared<Epetra_Vector>(*tBogusMap);
@@ -341,25 +322,22 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector_invali
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector_invalidOutputContainerProvided )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // create test mesh
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
-  auto mesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = mesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  Plato::EpetraSystem tSystem(mesh->nverts(), tMachine, tNumDofsPerNode);
+  Plato::EpetraSystem tSystem(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
   auto tTestVector = std::make_shared<Epetra_Vector>(*(tSystem.getMap()));
 
@@ -382,19 +360,16 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector_invali
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // create test mesh
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   // create mesh based density
@@ -440,10 +415,8 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra )
   );
 
   Plato::DataMap tDataMap;
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
 
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
   Plato::Elliptic::VectorFunction<SimplexPhysics>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
@@ -456,7 +429,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra )
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  Plato::TpetraSystem tSystem(tMesh->nverts(), tMachine, tNumDofsPerNode);
+  Plato::TpetraSystem tSystem(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
   auto tTpetra_Matrix = tSystem.fromMatrix(*jacobian);
 
@@ -494,19 +467,16 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra )
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // create test mesh
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   // create mesh based density
@@ -552,10 +522,8 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
   );
 
   Plato::DataMap tDataMap;
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
 
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
   Plato::Elliptic::VectorFunction<SimplexPhysics>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
@@ -570,9 +538,9 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
 
 
   constexpr int tBogusMeshWidth=3;
-  auto tBogusMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, tBogusMeshWidth);
+  auto tBogusMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tBogusMeshWidth);
 
-  Plato::TpetraSystem tSystem(*tBogusMesh, tMachine, tNumDofsPerNode);
+  Plato::TpetraSystem tSystem(tBogusMesh->nverts(), tMachine, tNumDofsPerNode);
 
   TEST_THROW(tSystem.fromMatrix(*jacobian),std::domain_error);
 }
@@ -587,25 +555,22 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToTpetraVector )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // create test mesh
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  Plato::TpetraSystem tSystem(tMesh->nverts(), tMachine, tNumDofsPerNode);
+  Plato::TpetraSystem tSystem(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
   Plato::ScalarVector tTestVector("test vector", tNumDofs);
 
@@ -639,25 +604,22 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToTpetraVector )
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToTpetraVector_invalidInput )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // create test mesh
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  Plato::TpetraSystem tSystem(tMesh->nverts(), tMachine, tNumDofsPerNode);
+  Plato::TpetraSystem tSystem(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
   Plato::ScalarVector tTestVector("test vector", tNumDofs+1);
 
@@ -679,25 +641,22 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToTpetraVector_invalidI
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // create test mesh
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  Plato::TpetraSystem tSystem(tMesh->nverts(), tMachine, tNumDofsPerNode);
+  Plato::TpetraSystem tSystem(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
   auto tTestVector = Teuchos::rcp(new Plato::Tpetra_MultiVector(tSystem.getMap(),1));
 
@@ -730,25 +689,22 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector )
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector_invalidInput )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // create test mesh
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  Plato::TpetraSystem tSystem(tMesh->nverts(), tMachine, tNumDofsPerNode);
+  Plato::TpetraSystem tSystem(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
   auto tBogusMap = Teuchos::rcp(new Plato::Tpetra_Map(tNumDofs+1, 0, tMachine.teuchosComm));
 
@@ -770,25 +726,22 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector_invali
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector_invalidOutputContainerProvided )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // create test mesh
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  Plato::TpetraSystem tSystem(tMesh->nverts(), tMachine, tNumDofsPerNode);
+  Plato::TpetraSystem tSystem(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
   auto tTestVector = Teuchos::rcp(new Plato::Tpetra_MultiVector(tSystem.getMap(),1));
 
@@ -813,19 +766,16 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector_invali
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // create test mesh
   //
   constexpr int meshWidth=8;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   // create mesh based density
@@ -871,7 +821,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
     "    <ParameterList  name='Traction Vector Boundary Condition'>          \n"
     "      <Parameter name='Type'   type='string'        value='Uniform'/>   \n"
     "      <Parameter name='Values' type='Array(double)' value='{1e3, 0}'/>  \n"
-    "      <Parameter name='Sides'  type='string'        value='Load'/>      \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>        \n"
     "    </ParameterList>                                                    \n"
     "  </ParameterList>                                                      \n"
     "  <ParameterList  name='Essential Boundary Conditions'>                 \n"
@@ -882,7 +832,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
 #else
     "      <Parameter  name='Index'    type='int'    value='0'/>             \n"
 #endif
-    "      <Parameter  name='Sides'    type='string' value='Fix'/>           \n"
+    "      <Parameter  name='Sides'    type='string' value='x-'/>            \n"
     "    </ParameterList>                                                    \n"
     "    <ParameterList  name='Y Fixed Displacement Boundary Condition'>     \n"
     "      <Parameter  name='Type'     type='string' value='Zero Value'/>    \n"
@@ -891,23 +841,15 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
 #else
     "      <Parameter  name='Index'    type='int'    value='1'/>             \n"
 #endif
-    "      <Parameter  name='Sides'    type='string' value='Fix'/>           \n"
+    "      <Parameter  name='Sides'    type='string' value='x-'/>            \n"
     "    </ParameterList>                                                    \n"
     "  </ParameterList>                                                      \n"
     "</ParameterList>                                                        \n"
   );
 
   Plato::DataMap tDataMap;
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
 
-  Omega_h::Read<Omega_h::I8> tMarksLoad = Omega_h::mark_class_closure(tMesh.get(), Omega_h::EDGE, Omega_h::EDGE, 5 /* class id */);
-  tMeshSets[Omega_h::SIDE_SET]["Load"] = Omega_h::collect_marked(tMarksLoad);
-
-  Omega_h::Read<Omega_h::I8> tMarksFix = Omega_h::mark_class_closure(tMesh.get(), Omega_h::EDGE, Omega_h::EDGE, 3 /* class id */);
-  tMeshSets[Omega_h::NODE_SET]["Fix"] = Omega_h::collect_marked(tMarksFix);
-
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
   Plato::Elliptic::VectorFunction<SimplexPhysics>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
@@ -922,10 +864,10 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
 
   // parse constraints
   //
-  Plato::LocalOrdinalVector mBcDofs;
+  Plato::OrdinalVector mBcDofs;
   Plato::ScalarVector mBcValues;
   Plato::EssentialBCs<SimplexPhysics>
-      tEssentialBoundaryConditions(tParamList->sublist("Essential Boundary Conditions",false), tMeshSets);
+      tEssentialBoundaryConditions(tParamList->sublist("Essential Boundary Conditions",false), tMesh);
   tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
   Plato::applyBlockConstraints<SimplexPhysics::mNumDofsPerNode>(jacobian, residual, mBcDofs, mBcValues);
 
@@ -949,7 +891,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
 
    Plato::SolverFactory tSolverFactory(*tSolverParams);
 
-   auto tSolver = tSolverFactory.create(tMesh->nverts(), tMachine, tNumDofsPerNode);
+   auto tSolver = tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
    tSolver->solve(*jacobian, state, residual);
   }
@@ -974,7 +916,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
 
     Plato::SolverFactory tSolverFactory(*tSolverParams);
 
-    auto tSolver = tSolverFactory.create(tMesh->nverts(), tMachine, tNumDofsPerNode);
+    auto tSolver = tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
     tSolver->solve(*jacobian, state, residual);
   }
@@ -1002,7 +944,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
 
     Plato::SolverFactory tSolverFactory(*tSolverParams);
 
-    auto tSolver = tSolverFactory.create(tMesh->nverts(), tMachine, tNumDofsPerNode);
+    auto tSolver = tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
     tSolver->solve(*jacobian, state, residual);
   }
@@ -1037,7 +979,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
 
     Plato::SolverFactory tSolverFactory(*tSolverParams);
 
-    auto tSolver = tSolverFactory.create(tMesh->nverts(), tMachine, tNumDofsPerNode);
+    auto tSolver = tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
     tSolver->solve(*jacobian, state, residual);
   }
@@ -1062,7 +1004,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
 
     Plato::SolverFactory tSolverFactory(*tSolverParams);
 
-    auto tSolver = tSolverFactory.create(tMesh->nverts(), tMachine, tNumDofsPerNode);
+    auto tSolver = tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
     tSolver->solve(*jacobian, state, residual);
   }
@@ -1119,19 +1061,16 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input )
 {
-  feclearexcept(FE_ALL_EXCEPT);
-  feenableexcept(FE_INVALID | FE_OVERFLOW);
-
   // create test mesh
   //
   constexpr int meshWidth=8;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   // create mesh based density
@@ -1177,7 +1116,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
     "    <ParameterList  name='Traction Vector Boundary Condition'>          \n"
     "      <Parameter name='Type'   type='string'        value='Uniform'/>   \n"
     "      <Parameter name='Values' type='Array(double)' value='{1e3, 0}'/>  \n"
-    "      <Parameter name='Sides'  type='string'        value='Load'/>      \n"
+    "      <Parameter name='Sides'  type='string'        value='x+'/>      \n"
     "    </ParameterList>                                                    \n"
     "  </ParameterList>                                                      \n"
     "  <ParameterList  name='Essential Boundary Conditions'>                 \n"
@@ -1188,7 +1127,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
 #else
     "      <Parameter  name='Index'    type='int'    value='0'/>             \n"
 #endif
-    "      <Parameter  name='Sides'    type='string' value='Fix'/>           \n"
+    "      <Parameter  name='Sides'    type='string' value='x-'/>           \n"
     "    </ParameterList>                                                    \n"
     "    <ParameterList  name='Y Fixed Displacement Boundary Condition'>     \n"
     "      <Parameter  name='Type'     type='string' value='Zero Value'/>    \n"
@@ -1197,23 +1136,15 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
 #else
     "      <Parameter  name='Index'    type='int'    value='1'/>             \n"
 #endif
-    "      <Parameter  name='Sides'    type='string' value='Fix'/>           \n"
+    "      <Parameter  name='Sides'    type='string' value='x-'/>           \n"
     "    </ParameterList>                                                    \n"
     "  </ParameterList>                                                      \n"
     "</ParameterList>                                                        \n"
   );
 
   Plato::DataMap tDataMap;
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
 
-  Omega_h::Read<Omega_h::I8> tMarksLoad = Omega_h::mark_class_closure(tMesh.get(), Omega_h::EDGE, Omega_h::EDGE, 5 /* class id */);
-  tMeshSets[Omega_h::SIDE_SET]["Load"] = Omega_h::collect_marked(tMarksLoad);
-
-  Omega_h::Read<Omega_h::I8> tMarksFix = Omega_h::mark_class_closure(tMesh.get(), Omega_h::EDGE, Omega_h::EDGE, 3 /* class id */);
-  tMeshSets[Omega_h::NODE_SET]["Fix"] = Omega_h::collect_marked(tMarksFix);
-
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
   Plato::Elliptic::VectorFunction<SimplexPhysics>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
@@ -1228,10 +1159,10 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
 
   // parse constraints
   //
-  Plato::LocalOrdinalVector mBcDofs;
+  Plato::OrdinalVector mBcDofs;
   Plato::ScalarVector mBcValues;
   Plato::EssentialBCs<SimplexPhysics>
-      tEssentialBoundaryConditions(tParamList->sublist("Essential Boundary Conditions",false),tMeshSets);
+      tEssentialBoundaryConditions(tParamList->sublist("Essential Boundary Conditions",false), tMesh);
   tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
   Plato::applyBlockConstraints<SimplexPhysics::mNumDofsPerNode>(jacobian, residual, mBcDofs, mBcValues);
 
@@ -1267,7 +1198,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
 
     Plato::SolverFactory tSolverFactory(*tSolverParams);
 
-    auto tSolver = tSolverFactory.create(tMesh->nverts(), tMachine, tNumDofsPerNode);
+    auto tSolver = tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
     tSolver->solve(*jacobian, state, residual);
   }
@@ -1296,7 +1227,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
 
     Plato::SolverFactory tSolverFactory(*tSolverParams);
 
-    auto tSolver = tSolverFactory.create(tMesh->nverts(), tMachine, tNumDofsPerNode);
+    auto tSolver = tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
     tSolver->solve(*jacobian, state, residual);
   }
@@ -1330,7 +1261,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_valid_input )
 {
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
 
@@ -1372,7 +1303,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_invalid_solver_package )
 {
   constexpr int meshWidth=2;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
@@ -1394,6 +1325,6 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_invalid_solver_package )
   );
 
   Plato::SolverFactory tSolverFactory(*tSolverParams);
-  TEST_THROW(tSolverFactory.create(tMesh->nverts(), tMachine, tNumDofsPerNode),std::invalid_argument);
+  TEST_THROW(tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode),std::invalid_argument);
 }
 #endif

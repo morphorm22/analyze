@@ -66,7 +66,7 @@ private:
     using ConfigT          = typename EvaluationType::ConfigScalarType;          /*!< config variables automatic differentiation type */
     using ResultT          = typename EvaluationType::ResultScalarType;          /*!< result variables automatic differentiation type */
 
-    using CubatureType = Plato::LinearTetCubRuleDegreeOne<mSpaceDim>;
+    using CubatureType = Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>;
 
     Plato::Scalar mElasticShearModulus;            /*!< elastic shear modulus */
 
@@ -134,7 +134,7 @@ private:
       }
       else
       {
-        THROWERR("J2 Plasticity Local Residual not implemented for space dim other than 2 or 3.")
+        ANALYZE_THROWERR("J2 Plasticity Local Residual not implemented for space dim other than 2 or 3.")
       }
     }
 
@@ -187,7 +187,7 @@ private:
           auto tMaterialName = mSpatialDomain.getMaterialName();
           std::stringstream ss;
           ss << "'Isotropic Linear Elastic' or 'Isotropic Linear Thermoelastic' sublist of '" << tMaterialName << "' does not exist.";
-          THROWERR(ss.str());
+          ANALYZE_THROWERR(ss.str());
         }
     }
 
@@ -219,7 +219,7 @@ private:
         }
         else
         {
-            THROWERR("'J2 Plasticity' sublist of 'Material Model' does not exist. Needed for J2Plasticity Implementation.")
+            ANALYZE_THROWERR("'J2 Plasticity' sublist of 'Material Model' does not exist. Needed for J2Plasticity Implementation.")
         }
     }
 
@@ -235,7 +235,7 @@ private:
         {
             std::string tError = std::string("Required input parameters, 'Hardening Modulus Isotropic', 'Hardening Modulus Kinematic', ") +
                     "and 'Initial Yield Stress', for J2 Plasticity model are not defined.";
-            THROWERR(tError)
+            ANALYZE_THROWERR(tError)
         }
     }
 

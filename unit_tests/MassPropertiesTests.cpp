@@ -9,8 +9,7 @@
 #include "PlatoTestHelpers.hpp"
 
 #include "BLAS1.hpp"
-#include "Plato_Diagnostics.hpp"
-//#include "elliptic/ScalarFunctionBase.hpp"
+#include "Analyze_Diagnostics.hpp"
 #include "geometric/WeightedSumFunction.hpp"
 #include "geometric/GeometryScalarFunction.hpp"
 #include "geometric/MassPropertiesFunction.hpp"
@@ -23,7 +22,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassInsteadOfVolume2D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> params =
       Teuchos::getParametersFromXmlString(
@@ -57,19 +56,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassInsteadOfVolume2D)
     using ResultT  = typename Residual::ResultScalarType;
     using ControlT = typename Residual::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
 
     // Create control workset
     const Plato::Scalar tPseudoDensity = 0.8;
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarVector tControl("Controls", tNumVerts);
     Plato::blas1::fill(tPseudoDensity, tControl);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *params);
+    Plato::SpatialModel tSpatialModel(tMesh, *params);
     Plato::Geometric::WeightedSumFunction<Plato::Geometrical<tSpaceDim>> tWeightedSum(tSpatialModel, tDataMap);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
@@ -103,7 +100,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassInsteadOfVolume3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> params =
       Teuchos::getParametersFromXmlString(
@@ -137,19 +134,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassInsteadOfVolume3D)
     using ResultT  = typename Residual::ResultScalarType;
     using ControlT = typename Residual::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
 
     // Create control workset
     const Plato::Scalar tPseudoDensity = 0.8;
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarVector tControl("Controls", tNumVerts);
     Plato::blas1::fill(tPseudoDensity, tControl);
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *params);
+    Plato::SpatialModel tSpatialModel(tMesh, *params);
     Plato::Geometric::WeightedSumFunction<Plato::Geometrical<tSpaceDim>> tWeightedSum(tSpatialModel, tDataMap);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
@@ -184,13 +179,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 15; // Need high mesh density in order to get correct inertias
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
-    //const Plato::OrdinalType tNumCells = tMesh->nelems();
+    //const Plato::OrdinalType tNumCells = tMesh->NumElements();
 
     // Create control workset
     const Plato::Scalar tPseudoDensity = 0.8;
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarVector tControl("Controls", tNumVerts);
     Plato::blas1::fill(tPseudoDensity, tControl);
 
@@ -224,9 +219,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3D)
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParams);
+    Plato::SpatialModel tSpatialModel(tMesh, *tParams);
     std::string tFuncName = "Mass Properties";
     Plato::Geometric::MassPropertiesFunction<Plato::Geometrical<tSpaceDim>>
           tMassProperties(tSpatialModel, tDataMap, *tParams, tFuncName);
@@ -251,13 +244,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3DNormalized)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 15; // Need high mesh density in order to get correct inertias
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
-    //const Plato::OrdinalType tNumCells = tMesh->nelems();
+    //const Plato::OrdinalType tNumCells = tMesh->NumElements();
 
     // Create control workset
     const Plato::Scalar tPseudoDensity = 0.8;
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarVector tControl("Controls", tNumVerts);
     Plato::blas1::fill(tPseudoDensity, tControl);
 
@@ -291,9 +284,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3DNormalized)
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParams);
+    Plato::SpatialModel tSpatialModel(tMesh, *tParams);
     std::string tFuncName = "Mass Properties";
     Plato::Geometric::MassPropertiesFunction<Plato::Geometrical<tSpaceDim>>
           tMassProperties(tSpatialModel, tDataMap, *tParams, tFuncName);
@@ -319,9 +310,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesGradZ_3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
-    //const Plato::OrdinalType tNumCells = tMesh->nelems();
+    //const Plato::OrdinalType tNumCells = tMesh->NumElements();
 
     using GradientZ = typename Plato::Geometric::Evaluation<Plato::Simplex<tSpaceDim>>::GradientZ;
 
@@ -354,14 +345,12 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesGradZ_3D)
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParams);
+    Plato::SpatialModel tSpatialModel(tMesh, *tParams);
     std::string tFuncName = "Mass Properties";
     Plato::Geometric::MassPropertiesFunction<Plato::Geometrical<tSpaceDim>>
           tMassProperties(tSpatialModel, tDataMap, *tParams, tFuncName);
 
-    Plato::test_partial_control<GradientZ, Plato::Geometrical<tSpaceDim>>(*tMesh, tMassProperties);
+    Plato::test_partial_control<GradientZ, Plato::Geometrical<tSpaceDim>>(tMesh, tMassProperties);
 }
 
 } // namespace MassPropertiesTest

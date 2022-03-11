@@ -37,7 +37,7 @@ namespace Parabolic
         {
             const std::string tErrorString = std::string("Unknown function Type '") + tFunctionType +
                             "' specified in function name " + aFunctionName + " ParameterList";
-            THROWERR(tErrorString)
+            ANALYZE_THROWERR(tErrorString)
         }
     }
 } // namespace Parabolic

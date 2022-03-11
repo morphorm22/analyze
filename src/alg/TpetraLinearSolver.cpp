@@ -267,15 +267,20 @@ TpetraLinearSolver::TpetraLinearSolver(
     int                     aDofsPerNode
 ) :
     mSolverParams(aSolverParams),
-    mSystem(Teuchos::rcp( new TpetraSystem(aNumNodes, aMachine, aDofsPerNode)))
+    mSystem(Teuchos::rcp( new TpetraSystem(aNumNodes, aMachine, aDofsPerNode))),
+    mPreLinearSolveTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Pre Linear Solve Setup")),
+    mPreconditionerSetupTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Preconditioner Setup")),
+    mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Tpetra Linear Solve")),
+    mSolverEndTime(mPreLinearSolveTimer->wallTime())
 {
+    // mPreLinearSolveTimer->start();
     if(mSolverParams.isType<int>("Iterations"))
     {
-        mIterations = mSolverParams.get<int>("Iterations");
+        mNumIterations = mSolverParams.get<int>("Iterations");
     }
     else
     {
-        mIterations = 100;
+        mNumIterations = 100;
     }
 
     if(mSolverParams.isType<double>("Tolerance"))
@@ -285,6 +290,68 @@ TpetraLinearSolver::TpetraLinearSolver(
     else
     {
         mTolerance = 1e-6;
+    }
+
+    mPreLinearSolveTimer->start();
+
+    std::string tSolverPackage = "belos";
+    if (aSolverParams.isType<std::string>("Solver Package"))
+      tSolverPackage = aSolverParams.get<std::string>("Solver Package");
+    mSolverPackage = Plato::tolower(tSolverPackage);
+
+    std::string tSolver = "";
+    if (aSolverParams.isType<std::string>("Solver"))
+      tSolver = aSolverParams.get<std::string>("Solver");
+    else if (mSolverPackage == "belos")
+      tSolver = "pseudoblock gmres";
+    else if (mSolverPackage == "amesos2")
+      tSolver = "superlu";
+    else
+      throw std::invalid_argument("Solver not specified in input parameter list.\n");
+    mSolver = Plato::tolower(tSolver);
+
+    if (mSolver == "gmres")
+    {
+      mSolver = "pseudoblock gmres";
+      REPORT("Tpetra using 'Pseudoblock GMRES' solver instead of user-specified 'GMRES' since matrix has block structure.")
+    }
+    else if (mSolver == "cg")
+    {
+      mSolver = "pseudoblock cg";
+      REPORT("Tpetra using 'Pseudoblock CG' solver instead of user-specified 'CG' since matrix has block structure.")
+    }
+
+    mDisplayIterations = 0;
+    if (aSolverParams.isType<int>("Display Iterations"))
+      mDisplayIterations = aSolverParams.get<int>("Display Iterations");
+
+    setupSolverOptions(aSolverParams);
+
+    std::string tPreconditionerPackage = "muelu";
+    if (aSolverParams.isType<std::string>("Preconditioner Package"))
+      tPreconditionerPackage = aSolverParams.get<std::string>("Preconditioner Package");
+    mPreconditionerPackage = Plato::tolower(tPreconditionerPackage);
+
+    mPreconditionerType = "Not Set";
+    if (aSolverParams.isType<std::string>("Preconditioner Type"))
+      mPreconditionerType = aSolverParams.get<std::string>("Preconditioner Type");
+    else if (mPreconditionerPackage == "ifpack2")
+      mPreconditionerType = "ILUT";
+
+    setupPreconditionerOptions(aSolverParams);
+
+    bool tPrintSolverParameterLists = false;
+    if (aSolverParams.isType<bool>("Print Solver Parameters"))
+      tPrintSolverParameterLists = aSolverParams.get<bool>("Print Solver Parameters");
+
+    if (tPrintSolverParameterLists)
+    {
+      printf("\n'Linear Solver' Parameter List: \n");
+      aSolverParams.print(std::cout, 2, true);
+      printf("\n'Solver Options' sublist of 'Linear Solver' Parameter List: \n");
+      mSolverOptions.print(std::cout, 2, true);
+      printf("\n'Preconditioner Options' sublist of 'Linear Solver' Parameter List: \n");
+      mPreconditionerOptions.print(std::cout, 2, true);
     }
 }
 
@@ -302,15 +369,20 @@ TpetraLinearSolver::TpetraLinearSolver(
 ) :
     AbstractSolver(aMPCs),
     mSolverParams(aSolverParams),
-    mSystem(Teuchos::rcp( new TpetraSystem(aNumNodes, aMachine, aDofsPerNode)))
+    mSystem(Teuchos::rcp( new TpetraSystem(aNumNodes, aMachine, aDofsPerNode))),
+    mPreLinearSolveTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Pre Linear Solve Setup")),
+    mPreconditionerSetupTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Preconditioner Setup")),
+    mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Tpetra Linear Solve")),
+    mSolverEndTime(mPreLinearSolveTimer->wallTime())
 {
+    // mPreLinearSolveTimer->start();
     if(mSolverParams.isType<int>("Iterations"))
     {
-        mIterations = mSolverParams.get<int>("Iterations");
+        mNumIterations = mSolverParams.get<int>("Iterations");
     }
     else
     {
-        mIterations = 100;
+        mNumIterations = 100;
     }
 
     if(mSolverParams.isType<double>("Tolerance"))
@@ -320,6 +392,68 @@ TpetraLinearSolver::TpetraLinearSolver(
     else
     {
         mTolerance = 1e-6;
+    }
+
+    mPreLinearSolveTimer->start();
+
+    std::string tSolverPackage = "belos";
+    if (aSolverParams.isType<std::string>("Solver Package"))
+      tSolverPackage = aSolverParams.get<std::string>("Solver Package");
+    mSolverPackage = Plato::tolower(tSolverPackage);
+
+    std::string tSolver = "";
+    if (aSolverParams.isType<std::string>("Solver"))
+      tSolver = aSolverParams.get<std::string>("Solver");
+    else if (mSolverPackage == "belos")
+      tSolver = "pseudoblock gmres";
+    else if (mSolverPackage == "amesos2")
+      tSolver = "superlu";
+    else
+      throw std::invalid_argument("Solver not specified in input parameter list.\n");
+    mSolver = Plato::tolower(tSolver);
+
+    if (mSolver == "gmres")
+    {
+      mSolver = "pseudoblock gmres";
+      REPORT("Tpetra using 'Pseudoblock GMRES' solver instead of user-specified 'GMRES' since matrix has block structure.")
+    }
+    else if (mSolver == "cg")
+    {
+      mSolver = "pseudoblock cg";
+      REPORT("Tpetra using 'Pseudoblock CG' solver instead of user-specified 'CG' since matrix has block structure.")
+    }
+
+    mDisplayIterations = 0;
+    if (aSolverParams.isType<int>("Display Iterations"))
+      mDisplayIterations = aSolverParams.get<int>("Display Iterations");
+
+    setupSolverOptions(aSolverParams);
+
+    std::string tPreconditionerPackage = "muelu";
+    if (aSolverParams.isType<std::string>("Preconditioner Package"))
+      tPreconditionerPackage = aSolverParams.get<std::string>("Preconditioner Package");
+    mPreconditionerPackage = Plato::tolower(tPreconditionerPackage);
+
+    mPreconditionerType = "Not Set";
+    if (aSolverParams.isType<std::string>("Preconditioner Type"))
+      mPreconditionerType = aSolverParams.get<std::string>("Preconditioner Type");
+    else if (mPreconditionerPackage == "ifpack2")
+      mPreconditionerType = "ILUT";
+
+    setupPreconditionerOptions(aSolverParams);
+
+    bool tPrintSolverParameterLists = false;
+    if (aSolverParams.isType<bool>("Print Solver Parameters"))
+      tPrintSolverParameterLists = aSolverParams.get<bool>("Print Solver Parameters");
+
+    if (tPrintSolverParameterLists)
+    {
+      printf("\n'Linear Solver' Parameter List: \n");
+      aSolverParams.print(std::cout, 2, true);
+      printf("\n'Solver Options' sublist of 'Linear Solver' Parameter List: \n");
+      mSolverOptions.print(std::cout, 2, true);
+      printf("\n'Preconditioner Options' sublist of 'Linear Solver' Parameter List: \n");
+      mPreconditionerOptions.print(std::cout, 2, true);
     }
 }
 
@@ -368,83 +502,83 @@ createIFpack2Preconditioner (const Teuchos::RCP<const TpetraMatrixType>& A,
 /******************************************************************************//**
  * \brief TpetraLinearSolver constructor
 
- This constructor takes an Omega_h::Mesh and creates a new TpetraSystem.
+ This constructor creates a new TpetraSystem.
 **********************************************************************************/
-TpetraLinearSolver::TpetraLinearSolver(
-    const Teuchos::ParameterList& aSolverParams,
-    Omega_h::Mesh&          aMesh,
-    Comm::Machine           aMachine,
-    int                     aDofsPerNode
-) : mSystem(Teuchos::rcp( new TpetraSystem(aMesh, aMachine, aDofsPerNode))),
-    mPreLinearSolveTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Pre Linear Solve Setup")),
-    mPreconditionerSetupTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Preconditioner Setup")),
-    mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Tpetra Linear Solve")),
-    mSolverEndTime(mPreLinearSolveTimer->wallTime()),
-    mDisplayIterations(0),
-    mDofsPerNode(aDofsPerNode)
-{
-  mPreLinearSolveTimer->start();
+// TpetraLinearSolver::TpetraLinearSolver(
+//     const Teuchos::ParameterList& aSolverParams,
+//     int                     aNumNodes,
+//     Comm::Machine           aMachine,
+//     int                     aDofsPerNode
+// ) : mSystem(Teuchos::rcp( new TpetraSystem(aNumNodes, aMachine, aDofsPerNode))),
+//     mPreLinearSolveTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Pre Linear Solve Setup")),
+//     mPreconditionerSetupTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Preconditioner Setup")),
+//     mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Tpetra Linear Solve")),
+//     mSolverEndTime(mPreLinearSolveTimer->wallTime()),
+//     mDisplayIterations(0),
+//     mDofsPerNode(aDofsPerNode)
+// {
+//   mPreLinearSolveTimer->start();
 
-  std::string tSolverPackage = "belos";
-  if(aSolverParams.isType<std::string>("Solver Package"))
-    tSolverPackage = aSolverParams.get<std::string>("Solver Package");
-  mSolverPackage = Plato::tolower(tSolverPackage);
+//   std::string tSolverPackage = "belos";
+//   if(aSolverParams.isType<std::string>("Solver Package"))
+//     tSolverPackage = aSolverParams.get<std::string>("Solver Package");
+//   mSolverPackage = Plato::tolower(tSolverPackage);
 
-  std::string tSolver = "";
-  if(aSolverParams.isType<std::string>("Solver"))
-    tSolver = aSolverParams.get<std::string>("Solver");
-  else if (mSolverPackage == "belos")
-    tSolver = "pseudoblock gmres";
-  else if (mSolverPackage == "amesos2")
-    tSolver = "superlu";
-  else
-    throw std::invalid_argument("Solver not specified in input parameter list.\n");
-  mSolver = Plato::tolower(tSolver);
+//   std::string tSolver = "";
+//   if(aSolverParams.isType<std::string>("Solver"))
+//     tSolver = aSolverParams.get<std::string>("Solver");
+//   else if (mSolverPackage == "belos")
+//     tSolver = "pseudoblock gmres";
+//   else if (mSolverPackage == "amesos2")
+//     tSolver = "superlu";
+//   else
+//     throw std::invalid_argument("Solver not specified in input parameter list.\n");
+//   mSolver = Plato::tolower(tSolver);
 
-  if (mSolver == "gmres")
-  {
-    mSolver = "pseudoblock gmres";
-    REPORT("Tpetra using 'Pseudoblock GMRES' solver instead of user-specified 'GMRES' since matrix has block structure.")
-  }
-  else if (mSolver == "cg")
-  {
-    mSolver = "pseudoblock cg";
-    REPORT("Tpetra using 'Pseudoblock CG' solver instead of user-specified 'CG' since matrix has block structure.")
-  }
+//   if (mSolver == "gmres")
+//   {
+//     mSolver = "pseudoblock gmres";
+//     REPORT("Tpetra using 'Pseudoblock GMRES' solver instead of user-specified 'GMRES' since matrix has block structure.")
+//   }
+//   else if (mSolver == "cg")
+//   {
+//     mSolver = "pseudoblock cg";
+//     REPORT("Tpetra using 'Pseudoblock CG' solver instead of user-specified 'CG' since matrix has block structure.")
+//   }
   
-  mDisplayIterations = 0;
-  if(aSolverParams.isType<int>("Display Iterations"))
-    mDisplayIterations = aSolverParams.get<int>("Display Iterations");
+//   mDisplayIterations = 0;
+//   if(aSolverParams.isType<int>("Display Iterations"))
+//     mDisplayIterations = aSolverParams.get<int>("Display Iterations");
 
-  setupSolverOptions(aSolverParams);
+//   setupSolverOptions(aSolverParams);
 
-  std::string tPreconditionerPackage = "muelu";
-  if(aSolverParams.isType<std::string>("Preconditioner Package"))
-    tPreconditionerPackage = aSolverParams.get<std::string>("Preconditioner Package");
-  mPreconditionerPackage = Plato::tolower(tPreconditionerPackage);
+//   std::string tPreconditionerPackage = "muelu";
+//   if(aSolverParams.isType<std::string>("Preconditioner Package"))
+//     tPreconditionerPackage = aSolverParams.get<std::string>("Preconditioner Package");
+//   mPreconditionerPackage = Plato::tolower(tPreconditionerPackage);
 
-  mPreconditionerType = "Not Set";
-  if(aSolverParams.isType<std::string>("Preconditioner Type"))
-    mPreconditionerType = aSolverParams.get<std::string>("Preconditioner Type");
-  else if(mPreconditionerPackage == "ifpack2")
-    mPreconditionerType = "ILUT";
+//   mPreconditionerType = "Not Set";
+//   if(aSolverParams.isType<std::string>("Preconditioner Type"))
+//     mPreconditionerType = aSolverParams.get<std::string>("Preconditioner Type");
+//   else if(mPreconditionerPackage == "ifpack2")
+//     mPreconditionerType = "ILUT";
 
-  setupPreconditionerOptions(aSolverParams);
+//   setupPreconditionerOptions(aSolverParams);
 
-  bool tPrintSolverParameterLists = false;
-  if(aSolverParams.isType<bool>("Print Solver Parameters"))
-    tPrintSolverParameterLists = aSolverParams.get<bool>("Print Solver Parameters");
+//   bool tPrintSolverParameterLists = false;
+//   if(aSolverParams.isType<bool>("Print Solver Parameters"))
+//     tPrintSolverParameterLists = aSolverParams.get<bool>("Print Solver Parameters");
   
-  if (tPrintSolverParameterLists)
-  {
-    printf("\n'Linear Solver' Parameter List: \n");
-    aSolverParams.print(std::cout, 2, true);
-    printf("\n'Solver Options' sublist of 'Linear Solver' Parameter List: \n");
-    mSolverOptions.print(std::cout, 2, true);
-    printf("\n'Preconditioner Options' sublist of 'Linear Solver' Parameter List: \n");
-    mPreconditionerOptions.print(std::cout, 2, true);
-  }
-}
+//   if (tPrintSolverParameterLists)
+//   {
+//     printf("\n'Linear Solver' Parameter List: \n");
+//     aSolverParams.print(std::cout, 2, true);
+//     printf("\n'Solver Options' sublist of 'Linear Solver' Parameter List: \n");
+//     mSolverOptions.print(std::cout, 2, true);
+//     printf("\n'Preconditioner Options' sublist of 'Linear Solver' Parameter List: \n");
+//     mPreconditionerOptions.print(std::cout, 2, true);
+//   }
+// }
 
 template<typename T>
 inline void
@@ -601,7 +735,7 @@ TpetraLinearSolver::amesos2Solve (Teuchos::RCP<Tpetra_Matrix> A, Teuchos::RCP<Tp
     const std::string tErrorMessage = std::string("The specified Amesos2 solver '") + mSolver 
                                     + "' is not currently enabled. Typical options (if compiled with): "
                                     + "{'superlu','superlu_dist','klu2','mumps','umfpack'}";
-    THROWERR(tErrorMessage)
+    ANALYZE_THROWERR(tErrorMessage)
   }
 }
 
@@ -615,7 +749,8 @@ TpetraLinearSolver::innerSolve(
     Plato::ScalarVector   aB
 )
 {
-  mPreLinearSolveTimer->stop(); mPreLinearSolveTimer->incrementNumCalls();
+  mPreLinearSolveTimer->stop(); 
+  mPreLinearSolveTimer->incrementNumCalls();
   mSolverStartTime = mPreLinearSolveTimer->wallTime();
   const double tAnalyzeElapsedTime = mSolverStartTime - mSolverEndTime;
 

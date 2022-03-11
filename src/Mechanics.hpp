@@ -11,7 +11,6 @@
 #include "elliptic/EffectiveEnergy.hpp"
 #include "elliptic/StressPNorm.hpp"
 #include "elliptic/VolAvgStressPNormDenominator.hpp"
-#include "elliptic/SurfaceArea.hpp"
 #include "elliptic/Volume.hpp"
 #include "elliptic/VolumeIntegralCriterion.hpp"
 #include "elliptic/VolumeAverageCriterionDenominator.hpp"
@@ -66,7 +65,7 @@ namespace MechanicsFactory
       }
       else
       {
-          THROWERR("Unknown 'Local Measure' specified in 'Plato Problem' ParameterList")
+          ANALYZE_THROWERR("Unknown 'Local Measure' specified in 'Plato Problem' ParameterList")
       }
   }
 
@@ -476,27 +475,6 @@ effective_energy(
 
 /******************************************************************************//**
  * \brief Factory for linear mechanics problem
- * \brief Create surface area scalar function
- * \param [in] aSpatialDomain Plato Analyze spatial domain
- * \param [in] aDataMap Plato Analyze physics-based database
- * \param [in] aProblemParams input parameters
- * \param [in] aFuncName vector function name
-**********************************************************************************/
-template<typename EvaluationType>
-inline std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<EvaluationType>>
-surface_area(
-    const Plato::SpatialDomain   & aSpatialDomain,
-          Plato::DataMap         & aDataMap,
-          Teuchos::ParameterList & aProblemParams,
-    const std::string            & aFuncName
-)
-{
-    return std::make_shared<Plato::Elliptic::SurfaceArea<EvaluationType>>(aSpatialDomain, aDataMap, aProblemParams, aFuncName);
-}
-// function surface area
-
-/******************************************************************************//**
- * \brief Factory for linear mechanics problem
 **********************************************************************************/
 struct FunctionFactory
 {
@@ -522,7 +500,7 @@ struct FunctionFactory
         }
         else
         {
-            THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList")
+            ANALYZE_THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList")
         }
     }
 
@@ -538,7 +516,7 @@ struct FunctionFactory
               std::string              aStrScalarFunctionName )
     /******************************************************************************/
     {
-        THROWERR("Not yet implemented")
+        ANALYZE_THROWERR("Not yet implemented")
     }
 
     /******************************************************************************//**
@@ -618,7 +596,7 @@ struct FunctionFactory
         else
         {
             const std::string tErrorString = std::string("Function '") + tLowerFuncType + "' not implemented yet in steady state mechanics.";
-            THROWERR(tErrorString)
+            ANALYZE_THROWERR(tErrorString)
         }
     }
 
@@ -646,7 +624,7 @@ struct FunctionFactory
         }
         else
         {
-            THROWERR("Unknown 'Local Measure' specified in 'Plato Problem' ParameterList")
+            ANALYZE_THROWERR("Unknown 'Local Measure' specified in 'Plato Problem' ParameterList")
         }
     }
 #endif

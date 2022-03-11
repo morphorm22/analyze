@@ -9,8 +9,10 @@ set(ANALYZE_SOURCES
     CustomMaterial.cpp
     AbstractLinearStress.cpp
     LinearStress.cpp
+    LinearStressFactory.cpp
     AbstractYieldStress.cpp
     YieldStress.cpp
+    YieldStressFactory.cpp
 ##    ElasticModelFactory.cpp
     LinearElasticMaterial.cpp
     CubicLinearElasticMaterial.cpp
@@ -29,10 +31,9 @@ set(ANALYZE_SOURCES
 
 if(EXPRESSION)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+      ExpressionEvaluator.cpp
       LinearStressExpression.cpp
-      LinearStressFactory.cpp
       YieldStressExpression.cpp
-      YieldStressFactory.cpp
       ExpressionTMKinetics.cpp
   )
 endif()
@@ -63,8 +64,11 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     Variables.cpp
     Solutions.cpp
     AnalyzeAppUtils.cpp
-    ExpressionEvaluator.cpp
     PlatoMask.cpp
+    OmegaHMesh.cpp
+    OmegaHMeshIO.cpp
+    EngineMesh.cpp
+    EngineMeshIO.cpp
     alg/ParseInput.cpp
     alg/Basis.cpp
     alg/Cubature.cpp
@@ -150,12 +154,12 @@ if(ELLIPTIC)
     elliptic/updated_lagrangian/InternalElasticEnergy.cpp
     elliptic/updated_lagrangian/AbstractEllipticUpLagLinearStress.cpp
     elliptic/updated_lagrangian/EllipticUpLagLinearStress.cpp
+    elliptic/updated_lagrangian/EllipticUpLagLinearStressFactory.cpp
   )
 
   if(EXPRESSION)
     set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
       elliptic/updated_lagrangian/EllipticUpLagLinearStressExpression.cpp
-      elliptic/updated_lagrangian/EllipticUpLagLinearStressFactory.cpp
     )
   endif()
 endif()
@@ -179,6 +183,7 @@ if(HYPERBOLIC)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     AbstractVolumetricSource.cpp
     hyperbolic/BrinkmanForces.cpp
+    hyperbolic/CriterionVolume.cpp
     hyperbolic/ThermalBuoyancy.cpp
     hyperbolic/PressureResidual.cpp
     hyperbolic/CriterionFlowRate.cpp
@@ -194,24 +199,29 @@ if(HYPERBOLIC)
     hyperbolic/AbstractHyperbolicLinearStress.cpp
     hyperbolic/AbstractScalarFunction.cpp
     hyperbolic/AbstractVectorFunction.cpp
-    hyperbolic/AverageSurfacePressure.cpp
-    hyperbolic/AverageSurfaceTemperature.cpp
     hyperbolic/VelocityCorrectorResidual.cpp
     hyperbolic/VelocityPredictorResidual.cpp
     hyperbolic/CriterionThermalCompliance.cpp
     hyperbolic/FluidsUniformThermalSource.cpp
+    hyperbolic/CriterionSurfaceThermalFlux.cpp
     hyperbolic/FluidsWeightedScalarFunction.cpp
     hyperbolic/HyperbolicLinearStress.cpp
+    hyperbolic/HyperbolicLinearStressFactory.cpp
     hyperbolic/HyperbolicScalarFunctionFactory.cpp
     hyperbolic/HyperbolicPhysicsScalarFunction.cpp
+    hyperbolic/CriterionMeanSurfacePressure.cpp
     hyperbolic/FluidsLeastSquaresScalarFunction.cpp
+    hyperbolic/CriterionMeanSurfaceTemperature.cpp
     hyperbolic/FluidsStabilizedUniformThermalSource.cpp
+    hyperbolic/MicromorphicLinearElasticMaterial.cpp
+    hyperbolic/CubicMicromorphicLinearElasticMaterial.cpp
+    hyperbolic/MicromorphicInertiaMaterial.cpp
+    hyperbolic/CubicMicromorphicInertiaMaterial.cpp
   )
 
   if(EXPRESSION)
     set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
       hyperbolic/HyperbolicLinearStressExpression.cpp
-      hyperbolic/HyperbolicLinearStressFactory.cpp
     )
   endif()
 endif()
@@ -238,8 +248,10 @@ if( CMAKE_INSTALL_PREFIX )
 endif()
 # for AnalyzeConfig.hpp
 target_include_directories(analyzelib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(analyzelib PRIVATE "${PLATOENGINE_PREFIX}/include")
 
 set(LINK_LIBS
+    ${PLATO_LIBS}
     ${Trilinos_LIBRARIES}
     Omega_h::omega_h
     ${Trilinos_TPL_LIBRARIES}

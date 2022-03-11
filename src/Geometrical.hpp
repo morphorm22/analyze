@@ -52,8 +52,14 @@ struct FunctionFactory{
                    (aSpatialDomain, aDataMap, aParamList, penaltyParams, aStrScalarFunctionName);
             }
             else
+            if( tLowerPenaltyType == "nopenalty" )
             {
-                THROWERR(std::string("Unknown 'Penalty Function' of type '") + tLowerPenaltyType + "' specified in ParameterList");
+                return std::make_shared<Plato::Geometric::Volume<EvaluationType, Plato::NoPenalty>>
+                   (aSpatialDomain, aDataMap, aParamList, penaltyParams, aStrScalarFunctionName);
+            }
+            else
+            {
+                ANALYZE_THROWERR(std::string("Unknown 'Penalty Function' of type '") + tLowerPenaltyType + "' specified in ParameterList");
             }
         } else
         if( tLowerScalarFunc == "geometry misfit" )
@@ -63,7 +69,7 @@ struct FunctionFactory{
         }
         else
         {
-            THROWERR(std::string("Unknown 'Objective' of type '") + tLowerScalarFunc + "' specified in 'Plato Problem' ParameterList");
+            ANALYZE_THROWERR(std::string("Unknown 'Objective' of type '") + tLowerScalarFunc + "' specified in 'Plato Problem' ParameterList");
         }
     }
 };

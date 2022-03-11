@@ -16,13 +16,13 @@ void
 applyBlockConstraints(
     Teuchos::RCP<Plato::CrsMatrixType>  aMatrix,
     Plato::ScalarVector                 aRhs,
-    Plato::LocalOrdinalVector           aNodes
+    Plato::OrdinalVector                aNodes
 )
 /******************************************************************************/
 {
     Plato::OrdinalType tNumNodes = aNodes.size();
 
-    Plato::LocalOrdinalVector tDofs("dof ids", tNumNodes * NumDofPerNode);
+    Plato::OrdinalVector tDofs("dof ids", tNumNodes * NumDofPerNode);
 
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumNodes), LAMBDA_EXPRESSION(const Plato::OrdinalType & aNodeOrdinal)
     {
@@ -42,7 +42,7 @@ void
 applyBlockConstraints(
     Teuchos::RCP<Plato::CrsMatrixType> aMatrix,
     Plato::ScalarVector                aRhs,
-    Plato::LocalOrdinalVector          aDirichletDofs,
+    Plato::OrdinalVector               aDirichletDofs,
     Plato::ScalarVector                aDirichletValues,
     Plato::Scalar                      aScale=1.0
   )
@@ -116,13 +116,13 @@ template<int NumDofPerNode> void
 applyConstraints(
     Teuchos::RCP<Plato::CrsMatrixType> aMatrix,
     Plato::ScalarVector                aRhs,
-    Plato::LocalOrdinalVector          aNodes
+    Plato::OrdinalVector               aNodes
 )
 /******************************************************************************/
 {
     Plato::OrdinalType tNumNodes = aNodes.size();
 
-    Plato::LocalOrdinalVector tDofs("dof ids", tNumNodes * NumDofPerNode);
+    Plato::OrdinalVector tDofs("dof ids", tNumNodes * NumDofPerNode);
 
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumNodes), LAMBDA_EXPRESSION(const Plato::OrdinalType & aNodeOrdinal)
     {
@@ -141,7 +141,7 @@ template<int NumDofPerNode> void
 applyConstraints(
     Teuchos::RCP<Plato::CrsMatrixType> matrix,
     Plato::ScalarVector                rhs,
-    Plato::LocalOrdinalVector          bcDofs,
+    Plato::OrdinalVector               bcDofs,
     Plato::ScalarVector                bcValues,
     Plato::Scalar                      aScale=1.0
 )
@@ -215,7 +215,7 @@ applyConstraints(
  **********************************************************************************/
 template<Plato::OrdinalType DofsPerNode>
 inline void apply_constraints
-(const Plato::LocalOrdinalVector          & aBcDofs,
+(const Plato::OrdinalVector               & aBcDofs,
  const Plato::ScalarVector                & aBcValues,
  const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
        Plato::ScalarVector                & aRhs,
@@ -244,9 +244,9 @@ inline void apply_constraints
  **********************************************************************************/
 inline void
 enforce_boundary_condition
-(const Plato::LocalOrdinalVector & aBcDofs,
- const Plato::ScalarVector       & aBcValues,
- const Plato::ScalarVector       & aState)
+(const Plato::OrdinalVector & aBcDofs,
+ const Plato::ScalarVector  & aBcValues,
+ const Plato::ScalarVector  & aState)
 {
     auto tLength = aBcValues.size();
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
@@ -268,9 +268,9 @@ enforce_boundary_condition
  *
  **********************************************************************************/
 inline void set_dofs_values
-(const Plato::LocalOrdinalVector & aBcDofs,
-       Plato::ScalarVector & aOutput,
-       Plato::Scalar aValue = 0.0)
+(const Plato::OrdinalVector & aBcDofs,
+       Plato::ScalarVector  & aOutput,
+       Plato::Scalar          aValue = 0.0)
 {
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aBcDofs.size()), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
     {

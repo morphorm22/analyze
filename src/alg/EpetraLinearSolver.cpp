@@ -130,7 +130,7 @@ EpetraSystem::toVector(Plato::ScalarVector tOutVector, rcp<Epetra_Vector> tInVec
 /******************************************************************************//**
  * \brief EpetraLinearSolver constructor
 
- This constructor takes an Omega_h::Mesh and creates a new System.
+ This constructor creates a new System.
 **********************************************************************************/
 EpetraLinearSolver::EpetraLinearSolver(
     const Teuchos::ParameterList& aSolverParams,
@@ -158,7 +158,7 @@ EpetraLinearSolver::EpetraLinearSolver(
 /******************************************************************************//**
  * @brief EpetraLinearSolver constructor with MPCs
 
- This constructor takes an Omega_h::Mesh and MultipointConstraints and creates a new System.
+ This constructor takes MultipointConstraints and creates a new System.
 **********************************************************************************/
 EpetraLinearSolver::EpetraLinearSolver(
     const Teuchos::ParameterList&                   aSolverParams,
@@ -233,11 +233,11 @@ EpetraLinearSolver::innerSolve(
     }
     else if (tSolverStatus[AZ_why] == AZ_param)
     {
-        THROWERR("Epetra Error: User requested option not available.")
+        ANALYZE_THROWERR("Epetra Error: User requested option not available.")
     }
     else if (tSolverStatus[AZ_why] == AZ_breakdown)
     {
-        THROWERR("Epetra Error: Numerical breakdown occured during linear solve.")
+        ANALYZE_THROWERR("Epetra Error: Numerical breakdown occured during linear solve.")
     }
 
     if (mDisplayIterations > 0)
@@ -281,7 +281,7 @@ EpetraLinearSolver::setupSolver(AztecOO& aSolver)
     {
         const std::string tErrorMessage = std::string("Epetra Error: Specified solver '")
               + tSolverType + "' not implemented. Current options are 'gmres', 'cg', and 'bicgstab'";
-        THROWERR(tErrorMessage)
+        ANALYZE_THROWERR(tErrorMessage)
     }
 }
 

@@ -116,7 +116,7 @@ public:
         mAugLagPenaltyUpperBound(100),
         mInitialLagrangeMultipliersValue(0.01),
         mAugLagPenaltyExpansionMultiplier(1.05),
-        mLagrangeMultipliers("Lagrange Multipliers", aSpatialDomain.Mesh.nelems())
+        mLagrangeMultipliers("Lagrange Multipliers", aSpatialDomain.Mesh->NumElements())
     {
         this->initialize(aInputParams);
     }
@@ -138,7 +138,7 @@ public:
         mAugLagPenaltyUpperBound(100),
         mInitialLagrangeMultipliersValue(0.01),
         mAugLagPenaltyExpansionMultiplier(1.05),
-        mLagrangeMultipliers("Lagrange Multipliers", aSpatialDomain.Mesh.nelems()),
+        mLagrangeMultipliers("Lagrange Multipliers", aSpatialDomain.Mesh->NumElements()),
         mLocalMeasureEvaluationType(nullptr),
         mLocalMeasurePODType(nullptr)
     {

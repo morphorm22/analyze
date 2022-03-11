@@ -1,8 +1,8 @@
 #ifndef SCALAR_GRAD_HPP
 #define SCALAR_GRAD_HPP
 
+#include "PlatoMathTypes.hpp"
 #include "PlatoStaticsTypes.hpp"
-#include <Omega_h_vector.hpp>
 
 namespace Plato
 {
@@ -34,7 +34,7 @@ public:
     operator()(Plato::OrdinalType aCellOrdinal,
                Kokkos::View<ScalarType**, Plato::Layout, Plato::MemSpace> aOutput,
                Kokkos::View<ScalarType**, Plato::Layout, Plato::MemSpace> aScalarField,
-               Omega_h::Vector<SpaceDim>* aConfigGrad) const
+               Plato::Array<SpaceDim>* aConfigGrad) const
     {
         // compute scalar gradient
         //

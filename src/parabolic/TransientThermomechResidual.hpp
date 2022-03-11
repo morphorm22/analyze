@@ -63,6 +63,7 @@ class TransientThermomechResidual :
     using FunctionBaseType::mSpatialDomain;
     using FunctionBaseType::mDataMap;
     using FunctionBaseType::mDofNames;
+    using FunctionBaseType::mDofDotNames;
 
     using StateScalarType    = typename EvaluationType::StateScalarType;
     using StateDotScalarType = typename EvaluationType::StateDotScalarType;
@@ -70,7 +71,7 @@ class TransientThermomechResidual :
     using ConfigScalarType   = typename EvaluationType::ConfigScalarType;
     using ResultScalarType   = typename EvaluationType::ResultScalarType;
 
-    using CubatureType = Plato::LinearTetCubRuleDegreeOne<SpaceDim>;
+    using CubatureType = Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>;
 
     IndicatorFunctionType mIndicatorFunction;
     Plato::ApplyWeighting<SpaceDim, mNumVoigtTerms, IndicatorFunctionType> mApplyStressWeighting;
@@ -106,10 +107,20 @@ class TransientThermomechResidual :
     /**************************************************************************/
     {
         // obligatory: define dof names in order
-        mDofNames.push_back("Displacement X");
-        if(SpaceDim > 1) mDofNames.push_back("Displacement Y");
-        if(SpaceDim > 2) mDofNames.push_back("Displacement Z");
-        mDofNames.push_back("Temperature");
+        mDofNames.push_back("displacement X");
+        mDofDotNames.push_back("velocity X");
+        if(SpaceDim > 1)
+        {
+            mDofNames.push_back("displacement Y");
+            mDofDotNames.push_back("velocity Y");
+        }
+        if(SpaceDim > 2)
+        {
+            mDofNames.push_back("displacement Z");
+            mDofDotNames.push_back("velocity Z");
+        }
+        mDofNames.push_back("temperature");
+        mDofDotNames.push_back("temperature rate");
 
         {
             Plato::ThermoelasticModelFactory<SpaceDim> mmfactory(aProblemParams);
@@ -146,47 +157,7 @@ class TransientThermomechResidual :
 
     Plato::Solutions getSolutionStateOutputData(const Plato::Solutions &aSolutions) const override
     {
-      constexpr auto tNMechDims = SpaceDim;
-      constexpr auto tNThrmDims = 1;
-
-      Plato::ScalarMultiVector tSolutionFromSolutions    = aSolutions.get("State");
-      Plato::ScalarMultiVector tSolutionDotFromSolutions = aSolutions.get("StateDot");
-
-      auto tNumTimeSteps = tSolutionFromSolutions.extent(0);
-      auto tNumVertices  = mSpatialDomain.Mesh.nverts();
-
-      Plato::ScalarMultiVector tDisplacements("displacements for all time steps", tNumTimeSteps, tNumVertices*tNMechDims);
-      Plato::ScalarMultiVector tVelocities("velocities for all time steps", tNumTimeSteps, tNumVertices*tNMechDims);
-
-      Plato::ScalarMultiVector tTemperatures("temperatures for all time steps", tNumTimeSteps, tNumVertices*tNThrmDims);
-      Plato::ScalarMultiVector tTemperatureDots("temperatureDots for all time steps", tNumTimeSteps, tNumVertices*tNThrmDims);
-
-      if (tSolutionFromSolutions.extent(0) != tSolutionDotFromSolutions.extent(0))
-          THROWERR("Number of steps provided for State and StateDot differ.")
-
-      Plato::blas2::extract<mNumDofsPerNode, tNMechDims, MDofOffset>
-                          (tNumVertices, tSolutionFromSolutions, tDisplacements);
-      Plato::blas2::extract<mNumDofsPerNode, tNMechDims, MDofOffset>
-                          (tNumVertices, tSolutionDotFromSolutions, tVelocities);
-
-      Plato::blas2::extract<mNumDofsPerNode, tNThrmDims, TDofOffset>
-                          (tNumVertices, tSolutionFromSolutions, tTemperatures);
-      Plato::blas2::extract<mNumDofsPerNode, tNThrmDims, TDofOffset>
-                          (tNumVertices, tSolutionDotFromSolutions, tTemperatureDots);
-      // If you want to scale something now is the time cowboy!
-
-      Plato::Solutions tSolutionsOutput(aSolutions.physics(), aSolutions.pde());
-      tSolutionsOutput.set("Displacement",    tDisplacements);
-      tSolutionsOutput.set("Velocity",        tVelocities);
-      tSolutionsOutput.set("Temperature",     tTemperatures);
-      tSolutionsOutput.set("Temperature_Dot", tTemperatureDots);
-
-      tSolutionsOutput.setNumDofs("Displacement",    tNMechDims);
-      tSolutionsOutput.setNumDofs("Velocity",        tNMechDims);
-      tSolutionsOutput.setNumDofs("Temperature",     tNThrmDims);
-      tSolutionsOutput.setNumDofs("Temperature_Dot", tNThrmDims);
-
-      return tSolutionsOutput;
+      return aSolutions;
     }
 
 

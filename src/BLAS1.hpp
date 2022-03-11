@@ -70,7 +70,7 @@ inline Plato::Scalar dot(const VecOneT & aVec1, const VecTwoT & aVec2)
         tMsg << "BLAS1 DOT: DIMENSION MISMATCH. VECTOR ONE HAS SIZE = " << aVec1.size() << " AND VECTOR TWO HAS SIZE = "
             << aVec2.size() << ".VECTOR ONE HAS LABEL '" << aVec1.label() << "' AND VECTOR TWO HAS LABEL '"
             << aVec2.label() << "'.\n";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     Plato::Scalar tOutput = 0.;
@@ -96,7 +96,7 @@ inline Plato::Scalar norm(const VecOneT & aVector)
     {
         std::stringstream tMsg;
         tMsg << "BLAS 1 NORM: INPUT VECTOR WITH LABEL '" << aVector.label() << "' IS EMPTY.\n";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
     const auto tDot = Plato::blas1::dot(aVector, aVector);
     const auto tOutput = std::sqrt(tDot);
@@ -119,7 +119,7 @@ inline void fill(const Plato::Scalar & aInput, const VectorT & aVector)
 
     if(std::isfinite(aInput) == false)
     {
-        THROWERR("BLAS 1 FILL: INPUT SCALAR IS NOT A FINITE NUMBER.\n")
+        ANALYZE_THROWERR("BLAS 1 FILL: INPUT SCALAR IS NOT A FINITE NUMBER.\n")
     }
 
     Plato::OrdinalType tNumLocalVals = aVector.size();
@@ -139,7 +139,7 @@ inline void fill(const Plato::Scalar & aInput, const VectorT & aVector)
 **********************************************************************************/
 template<typename VectorT>
 inline void fill(const Plato::Scalar & aMultiplier,
-                 const Plato::LocalOrdinalVector & aOrdinals,
+                 const Plato::OrdinalVector & aOrdinals,
                  const Plato::ScalarVector & aValues,
                  const VectorT & aOutput)
 {
@@ -147,19 +147,19 @@ inline void fill(const Plato::Scalar & aMultiplier,
     {
         std::stringstream tMsg;
         tMsg << "BLAS 1 FILL: OUTPUT VECTOR WITH LABEL '" << aOutput.label() << "' IS EMPTY.\n";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     if(aValues.size() <= static_cast<Plato::OrdinalType>(0))
     {
         std::stringstream tMsg;
         tMsg << "BLAS 1 FILL: INPUT VECTOR WITH LABEL '" << aValues.label() << "' IS EMPTY.\n";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     if(std::isfinite(aMultiplier) == false)
     {
-        THROWERR("BLAS 1 FILL: SCALAR MULTIPLIER IS NOT A FINITE NUMBER.")
+        ANALYZE_THROWERR("BLAS 1 FILL: SCALAR MULTIPLIER IS NOT A FINITE NUMBER.")
     }
 
     if(aOrdinals.size() != aValues.size())
@@ -168,7 +168,7 @@ inline void fill(const Plato::Scalar & aMultiplier,
         tMsg << "BLAS 1 FILL: DIMENSION MISMATCH. INPUT LIST OF ORDINALS AND VALUES HAVE DIFFERENT LENGTH. "
                 << "LIST OF ORDINALS WITH LABEL '" << aOrdinals.label() << "' HAS LENGTH '"<< aOrdinals.size()
                 << "' AND LIST OF VALUES WITH LABEL '" << aValues.label() << "' HAS LENGTH '" << aValues.size() << "'\n.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     const Plato::OrdinalType tNumLocalVals = aOutput.size();
@@ -192,7 +192,7 @@ inline void copy(const VecOneT & aInput, const VecTwoT & aOutput)
         std::stringstream tMsg;
         tMsg << "BLAS 1 COPY: DIMENSION MISMATCH. INPUT VECTOR WITH LABEL '" << aInput.label() << "' HAS LENGTH '"
         << aInput.size() << "' AND OUTPUT VECTOR WITH LABEL '" << aOutput.label() << "' HAS LENGTH '" << aOutput.size() << "'.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     Plato::OrdinalType tNumLocalVals = aInput.size();
@@ -213,14 +213,14 @@ inline void scale(const Plato::Scalar & aInput, const VecT & aVector)
 {
     if(std::isfinite(aInput) == false)
     {
-        THROWERR("BLAS 1 SCALE: SCALAR MULTIPLIER IS NOT A FINITE NUMBER.")
+        ANALYZE_THROWERR("BLAS 1 SCALE: SCALAR MULTIPLIER IS NOT A FINITE NUMBER.")
     }
 
     if(aVector.size() <= static_cast<Plato::OrdinalType>(0))
     {
         std::stringstream tMsg;
         tMsg << "BLAS 1 SCALE: INPUT VECTOR WITH LABEL '" << aVector.label() << "' IS EMPTY.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     Plato::OrdinalType tNumLocalVals = aVector.size();
@@ -245,7 +245,7 @@ inline void axpy(const Plato::Scalar & aAlpha, const VecT & aInput, const VecT &
         std::stringstream tMsg;
         tMsg << "DIMENSION MISMATCH. INPUT VECTOR HAS SIZE = " << aInput.size()
                 << " AND OUTPUT VECTOR HAS SIZE = " << aOutput.size() << ".\n";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     Plato::OrdinalType tNumLocalVals = aInput.size();
@@ -268,12 +268,12 @@ void update(const Plato::Scalar & aAlpha, const VecT & aInput, const Plato::Scal
 {
     if(std::isfinite(aAlpha) == false)
     {
-        THROWERR("BLAS 1 UPDATE: SCALAR MULTIPLIER 'ALPHA' IS NOT A FINITE NUMBER.")
+        ANALYZE_THROWERR("BLAS 1 UPDATE: SCALAR MULTIPLIER 'ALPHA' IS NOT A FINITE NUMBER.")
     }
 
     if(std::isfinite(aBeta) == false)
     {
-        THROWERR("BLAS 1 UPDATE: SCALAR MULTIPLIER 'BETA' IS NOT A FINITE NUMBER.")
+        ANALYZE_THROWERR("BLAS 1 UPDATE: SCALAR MULTIPLIER 'BETA' IS NOT A FINITE NUMBER.")
     }
 
     if(aInput.size() != aOutput.size())
@@ -282,7 +282,7 @@ void update(const Plato::Scalar & aAlpha, const VecT & aInput, const Plato::Scal
         tMsg << "BLAS 1 UPDATE: DIMENSION MISMATCH. INPUT VECTOR WITH LABEL '" << aInput.label() << "' HAS LENGTH '"
                 << aInput.size() << "' AND OUTPUT VECTOR WITH LABEL '" << aOutput.label() << "' HAS LENGTH '"
                 << aOutput.size() << "'.\n";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     Plato::OrdinalType tNumLocalVals = aInput.size();
@@ -305,7 +305,7 @@ void local_sum(const VecT & aInput, ScalarT & aOutput)
     {
         std::stringstream tMsg;
         tMsg << "BLAS 1 LOCAL_SUM: INPUT VECTOR WITH LABEL '" << aInput.label() << "' IS EMPTY.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     ScalarT tOutput = 0.0;
@@ -330,7 +330,7 @@ void max(const VecT & aInput, ScalarT & aOutput)
     {
         std::ostringstream tMsg;
         tMsg << "BLAS 1 MAX: INPUT VECTOR WITH LABEL '" << aInput.label() << "' IS EMPTY.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     const Plato::OrdinalType tSize = aInput.size();
@@ -358,7 +358,7 @@ void min(const VecT & aInput, ScalarT & aOutput)
     {
         std::ostringstream tMsg;
         tMsg << "BLAS 1 MIN: INPUT VECTOR WITH LABEL '" << aInput.label() << "' IS EMPTY.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     const Plato::OrdinalType tSize = aInput.size();
@@ -393,14 +393,14 @@ inline void extract(const Plato::ScalarVector& aFromVector, Plato::ScalarVector&
     {
         std::ostringstream tMsg;
         tMsg << "BLAS 1 EXTRACT: FROM VECTOR WITH LABEL '" << aFromVector.label() << "' IS EMPTY.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     if(aToVector.size() <= static_cast<Plato::OrdinalType>(0))
     {
         std::ostringstream tMsg;
         tMsg << "BLAS 1 EXTRACT: TO VECTOR WITH LABEL '" << aToVector.label() << "' IS EMPTY.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     auto tNumRows = aToVector.extent(0);

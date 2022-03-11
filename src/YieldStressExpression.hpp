@@ -125,7 +125,7 @@ public:
       // without the XML block.
       else
       {
-        THROWERR("Warning: Failed to find a 'Custom Plasticity Model' block.");
+        ANALYZE_THROWERR("Warning: Failed to find a 'Custom Plasticity Model' block.");
       }
 
       // The LocalState is a two-dimensional array with the first

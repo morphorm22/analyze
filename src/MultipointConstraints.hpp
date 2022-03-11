@@ -3,7 +3,6 @@
 
 #include <sstream>
 
-#include <Omega_h_assoc.hpp>
 #include <Teuchos_ParameterList.hpp>
 
 #include "AnalyzeMacros.hpp"
@@ -28,8 +27,8 @@ private:
     std::vector<std::shared_ptr<MultipointConstraint>> MPCs;
     const OrdinalType mNumDofsPerNode;
     const OrdinalType mNumNodes;
-    LocalOrdinalVector mChildNodes;
-    LocalOrdinalVector mParentNodes;
+    OrdinalVector mChildNodes;
+    OrdinalVector mParentNodes;
     Teuchos::RCP<Plato::CrsMatrixType> mTransformMatrix;
     Teuchos::RCP<Plato::CrsMatrixType> mTransformMatrixTranspose;
     ScalarVector mRhs;
@@ -52,13 +51,13 @@ public :
              ScalarVector & mpcValues);
 
     // brief get mappings from DOF to DOF type and constraint number
-    void getMaps(LocalOrdinalVector & nodeTypes,
-                 LocalOrdinalVector & nodeConNum);
+    void getMaps(OrdinalVector & nodeTypes,
+                 OrdinalVector & nodeConNum);
 
     // brief assemble transform matrix for constraint enforcement
     void assembleTransformMatrix(const Teuchos::RCP<Plato::CrsMatrixType> & aMpcMatrix,
-                                 const LocalOrdinalVector & aNodeTypes,
-                                 const LocalOrdinalVector & aNodeConNum);
+                                 const OrdinalVector & aNodeTypes,
+                                 const OrdinalVector & aNodeConNum);
 
     // brief assemble RHS vector for transformation
     void assembleRhs(const ScalarVector & aMpcValues);
@@ -67,7 +66,7 @@ public :
     void setupTransform();
     
     // brief check for MPC and Essential BC conflicts
-    void checkEssentialBcsConflicts(const LocalOrdinalVector & aBcDofs);
+    void checkEssentialBcsConflicts(const OrdinalVector & aBcDofs);
 
     // brief getters
     decltype(mTransformMatrix)          getTransformMatrix()           { return mTransformMatrix; }

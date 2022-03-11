@@ -5,9 +5,6 @@
 #include <memory>
 #include <sstream>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include "BLAS1.hpp"
 #include "Solutions.hpp"
 #include "NaturalBCs.hpp"
@@ -91,7 +88,7 @@ private:
     Teuchos::RCP<Plato::CrsMatrixType> mGlobalJacobian; /*!< Global jacobian matrix */
     Teuchos::RCP<Plato::CrsMatrixType> mLocalJacobian; /*!< Global jacobian matrix */
 
-    Plato::LocalOrdinalVector mBcDofs; /*!< list of degrees of freedom associated with the Dirichlet boundary conditions */
+    Plato::OrdinalVector mBcDofs; /*!< list of degrees of freedom associated with the Dirichlet boundary conditions */
     Plato::ScalarVector mBcValues; /*!< values associated with the Dirichlet boundary conditions */
 
     rcp<Plato::AbstractSolver> mSolver;
@@ -105,16 +102,14 @@ public:
     /******************************************************************************//**
      * \brief PLATO problem constructor
      * \param [in] aMesh mesh database
-     * \param [in] aMeshSets side sets database
      * \param [in] aProblemParams input parameters database
     **********************************************************************************/
     Problem(
-      Omega_h::Mesh& aMesh,
-      Omega_h::MeshSets& aMeshSets,
-      Teuchos::ParameterList& aProblemParams,
-      Comm::Machine aMachine
+      Plato::Mesh              aMesh,
+      Teuchos::ParameterList & aProblemParams,
+      Comm::Machine            aMachine
     ) :
-      mSpatialModel  (aMesh, aMeshSets, aProblemParams),
+      mSpatialModel  (aMesh, aProblemParams),
       mSequence      (mSpatialModel, aProblemParams),
       mPDE(std::make_shared<VectorFunctionType>(mSpatialModel, mDataMap, aProblemParams, aProblemParams.get<std::string>("PDE Constraint"))),
       mNumNewtonSteps(Plato::ParseTools::getSubParam<int>   (aProblemParams, "Newton Iteration", "Maximum Iterations",  1  )),
@@ -134,7 +129,7 @@ public:
         this->initialize(aProblemParams);
 
         Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
-        mSolver = tSolverFactory.create(aMesh.nverts(), aMachine, PhysicsT::mNumDofsPerNode);
+        mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, PhysicsT::mNumDofsPerNode);
     }
 
     ~Problem(){}
@@ -205,7 +200,7 @@ public:
         auto tDataMap = this->getDataMap();
         auto tSolution = this->getSolution();
         auto tSolutionOutput = mPDE->getSolutionStateOutputData(tSolution);
-        Plato::universal_solution_output<SpatialDim>(aFilepath, tSolutionOutput, tDataMap, mSpatialModel.Mesh);
+        Plato::universal_solution_output(aFilepath, tSolutionOutput, tDataMap, mSpatialModel.Mesh);
     }
 
     /******************************************************************************//**
@@ -352,7 +347,7 @@ public:
         }
         else
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
     }
 
@@ -389,7 +384,7 @@ public:
         }
         else
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
     }
 
@@ -420,7 +415,7 @@ public:
         }
         else
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
     }
 
@@ -448,7 +443,7 @@ public:
 
         if(aCriterion == nullptr)
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
 
         // F_{,z}
@@ -563,7 +558,7 @@ public:
         }
         else
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
     }
 
@@ -583,7 +578,7 @@ public:
     {
         if(aCriterion == nullptr)
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
 
         // F_{,z}
@@ -705,7 +700,7 @@ public:
         }
         else
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
     }
 
@@ -736,7 +731,7 @@ public:
         }
         else
         {
-            THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+            ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
         }
     }
 
@@ -748,10 +743,10 @@ public:
     {
         if(aProblemParams.isSublist("Essential Boundary Conditions") == false)
         {
-            THROWERR("ESSENTIAL BOUNDARY CONDITIONS SUBLIST IS NOT DEFINED IN THE INPUT FILE.")
+            ANALYZE_THROWERR("ESSENTIAL BOUNDARY CONDITIONS SUBLIST IS NOT DEFINED IN THE INPUT FILE.")
         }
         Plato::EssentialBCs<PhysicsT>
-        tEssentialBoundaryConditions(aProblemParams.sublist("Essential Boundary Conditions", false), mSpatialModel.MeshSets);
+        tEssentialBoundaryConditions(aProblemParams.sublist("Essential Boundary Conditions", false), mSpatialModel.Mesh);
         tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
     }
 
@@ -760,14 +755,14 @@ public:
      * \param [in] aDofs   degrees of freedom associated with Dirichlet boundary conditions
      * \param [in] aValues values associated with Dirichlet degrees of freedom
     *******************************************************************************/
-    void setEssentialBoundaryConditions(const Plato::LocalOrdinalVector & aDofs, const Plato::ScalarVector & aValues)
+    void setEssentialBoundaryConditions(const Plato::OrdinalVector & aDofs, const Plato::ScalarVector & aValues)
     {
         if(aDofs.size() != aValues.size())
         {
             std::ostringstream tError;
             tError << "DIMENSION MISMATCH: THE NUMBER OF ELEMENTS IN INPUT DOFS AND VALUES ARRAY DO NOT MATCH."
                 << "DOFS SIZE = " << aDofs.size() << " AND VALUES SIZE = " << aValues.size();
-            THROWERR(tError.str())
+            ANALYZE_THROWERR(tError.str())
         }
         mBcDofs = aDofs;
         mBcValues = aValues;

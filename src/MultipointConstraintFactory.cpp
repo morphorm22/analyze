@@ -19,7 +19,7 @@ create(const Plato::SpatialModel & aSpatialModel,
 
     if("Tie" == tType)
     {
-        return std::make_shared<Plato::TieMultipointConstraint>(aSpatialModel.MeshSets, aName, mParamList);
+        return std::make_shared<Plato::TieMultipointConstraint>(aSpatialModel.Mesh, aName, mParamList);
     }
     else if("PBC" == tType)
     {

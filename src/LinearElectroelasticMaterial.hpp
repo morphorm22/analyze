@@ -1,7 +1,7 @@
 #ifndef LINEARELECTROELASTICMATERIAL_HPP
 #define LINEARELECTROELASTICMATERIAL_HPP
 
-#include <Omega_h_matrix.hpp>
+#include "PlatoMathTypes.hpp"
 #include <Teuchos_ParameterList.hpp>
 
 #include "PlatoStaticsTypes.hpp"
@@ -22,9 +22,9 @@ namespace Plato {
                                           (((SpatialDim == 1) ? 1 : 0)));
     static_assert(mNumVoigtTerms, "SpatialDim must be 1, 2, or 3.");
 
-    Omega_h::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffness;
-    Omega_h::Matrix<SpatialDim, mNumVoigtTerms> mCellPiezoelectricCoupling;
-    Omega_h::Matrix<SpatialDim, SpatialDim> mCellPermittivity;
+    Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffness;
+    Plato::Matrix<SpatialDim, mNumVoigtTerms> mCellPiezoelectricCoupling;
+    Plato::Matrix<SpatialDim, SpatialDim> mCellPermittivity;
 
     Plato::Scalar mAlpha;
   
@@ -104,7 +104,7 @@ ElectroelasticModelFactory<SpatialDim>::create(std::string aModelName)
         {
             std::stringstream ss;
             ss << "Requested a material model ('" << aModelName << "') that isn't defined";
-            THROWERR(ss.str());
+            ANALYZE_THROWERR(ss.str());
         }
 
         auto tModelParamList = tModelsParamList.sublist(aModelName);

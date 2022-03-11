@@ -11,9 +11,6 @@
 #include <vector>
 #include <sstream>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include <Teuchos_Array.hpp>
 #include <Teuchos_ParameterList.hpp>
 
@@ -49,7 +46,7 @@ private:
     Plato::OrdinalType mNumControls;
     Plato::OrdinalType mNumIterationsAmgX;
 
-    Plato::LocalOrdinalVector mBcDofs;
+    Plato::OrdinalVector mBcDofs;
 
     Plato::ScalarVector mBcValues;
     Plato::ScalarVector mResidual;
@@ -79,14 +76,13 @@ public:
      *
      * \brief Constructor
      * \param aMesh mesh data base
-     * \param aMeshSets mesh sets data base
      * \param aParamList parameter list with input data
      *
     **********************************************************************************/
-    StructuralDynamicsProblem(Omega_h::Mesh& aMesh, Omega_h::MeshSets& aMeshSets, Teuchos::ParameterList & aParamList) :
-            mNumStates(aMesh.nverts() * mNumDofsPerNode),
-            mNumConfig(aMesh.nverts() * mSpatialDim),
-            mNumControls(aMesh.nverts()),
+    StructuralDynamicsProblem(Plato::Mesh aMesh, Teuchos::ParameterList & aParamList) :
+            mNumStates(aMesh->NumNodes() * mNumDofsPerNode),
+            mNumConfig(aMesh->NumNodes() * mSpatialDim),
+            mNumControls(aMesh->NumNodes()),
             mNumIterationsAmgX(1000),
             mResidual("Residual", mNumStates),
             mGradState("GradState", mNumStates),
@@ -101,7 +97,7 @@ public:
             mAdjointProb(nullptr),
             mPhysics(aParamList.get<std::string>("Physics"))
     {
-        this->initialize(aMesh, aMeshSets, aParamList);
+        this->initialize(aMesh, aParamList);
         this->readFrequencyArray(aParamList);
     }
 
@@ -112,10 +108,10 @@ public:
      * \param aEquality equality constraint vector function
      *
     **********************************************************************************/
-    StructuralDynamicsProblem(Omega_h::Mesh& aMesh, std::shared_ptr<Plato::Elliptic::VectorFunction<SimplexPhysics>> & aEquality) :
-            mNumStates(aMesh.nverts() * mNumDofsPerNode),
-            mNumConfig(aMesh.nverts() * mSpatialDim),
-            mNumControls(aMesh.nverts()),
+    StructuralDynamicsProblem(Plato::Mesh aMesh, std::shared_ptr<Plato::Elliptic::VectorFunction<SimplexPhysics>> & aEquality) :
+            mNumStates(aMesh->NumNodes() * mNumDofsPerNode),
+            mNumConfig(aMesh->NumNodes() * mSpatialDim),
+            mNumControls(aMesh->NumNodes()),
             mNumIterationsAmgX(1000),
             mResidual("Residual", mNumStates),
             mGradState("GradState", mNumStates),
@@ -162,7 +158,7 @@ public:
      * \param[in] aBcValues values associated with essential boundary conditions
      *
     **********************************************************************************/
-    void setEssentialBoundaryConditions(const Plato::LocalOrdinalVector & aBcDofs,
+    void setEssentialBoundaryConditions(const Plato::OrdinalVector & aBcDofs,
                                         const Plato::ScalarVector & aBcValues)
     {
         assert(aBcDofs.size() > 0);
@@ -296,7 +292,7 @@ public:
     {
         if(aSolution.empty())
         {
-            THROWERR("SOLUTION DATABASE IS EMPTY.")
+            ANALYZE_THROWERR("SOLUTION DATABASE IS EMPTY.")
         }
 
         if(mObjective == nullptr)
@@ -363,7 +359,7 @@ public:
         assert(aControl.size() == mNumControls);
         if(aSolution.empty())
         {
-            THROWERR("SOLUTION DATABASE IS EMPTY")
+            ANALYZE_THROWERR("SOLUTION DATABASE IS EMPTY")
         }
 
         if(mObjective == nullptr)
@@ -429,7 +425,7 @@ public:
         assert(aControl.size() == mNumControls);
         if(aSolution.empty())
         {
-            THROWERR("SOLUTION DATABASE IS EMPTY")
+            ANALYZE_THROWERR("SOLUTION DATABASE IS EMPTY")
         }
 
         if(mObjective == nullptr)
@@ -507,34 +503,34 @@ public:
 
 private:
     /******************************************************************************/
-    void initialize(Omega_h::Mesh& aMesh, Omega_h::MeshSets& aMeshSets, Teuchos::ParameterList& aParamList)
+    void initialize(Plato::Mesh aMesh, Teuchos::ParameterList& aParamList)
     /******************************************************************************/
     {
         auto tEqualityName = aParamList.get<std::string>("PDE Constraint");
-        mEquality = std::make_shared<Plato::Elliptic::VectorFunction<SimplexPhysics>>(aMesh, aMeshSets, mDataMap, aParamList, tEqualityName);
+        mEquality = std::make_shared<Plato::Elliptic::VectorFunction<SimplexPhysics>>(aMesh, mDataMap, aParamList, tEqualityName);
 
         if(aParamList.isType<std::string>("Constraint"))
         {
             std::string tConstraintName = aParamList.get<std::string>("Constraint");
-            mConstraint = std::make_shared<Plato::Geometric::GeometryScalarFunction<SimplexPhysics>>(aMesh, aMeshSets, mDataMap, aParamList, tConstraintName);
+            mConstraint = std::make_shared<Plato::Geometric::GeometryScalarFunction<SimplexPhysics>>(aMesh, mDataMap, aParamList, tConstraintName);
         }
 
         if(aParamList.isType<std::string>("Objective"))
         {
             std::string tObjectiveName = aParamList.get<std::string>("Objective");
-            mObjective = std::make_shared<Plato::Elliptic::PhysicsScalarFunction<SimplexPhysics>>(aMesh, aMeshSets, mDataMap, aParamList, tObjectiveName);
+            mObjective = std::make_shared<Plato::Elliptic::PhysicsScalarFunction<SimplexPhysics>>(aMesh, mDataMap, aParamList, tObjectiveName);
 
             auto tLength = mEquality->size();
             mMyAdjoint = Plato::ScalarMultiVector("MyAdjoint", 1, tLength);
 
             std::string tAdjointName = "StructuralDynamics Adjoint";
-            mAdjointProb = std::make_shared<Plato::Elliptic::VectorFunction<SimplexPhysics>>(aMesh, aMeshSets, mDataMap, aParamList, tAdjointName);
+            mAdjointProb = std::make_shared<Plato::Elliptic::VectorFunction<SimplexPhysics>>(aMeshs, mDataMap, aParamList, tAdjointName);
         }
 
         // Parse essential boundary conditions (i.e. Dirichlet)
         //
         Plato::EssentialBCs<SimplexPhysics>
-            tEssentialBoundaryConditions(aParamList.sublist("Essential Boundary Conditions",false), aMeshSets);
+            tEssentialBoundaryConditions(aParamList.sublist("Essential Boundary Conditions",false), aMesh);
         tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
     }
 

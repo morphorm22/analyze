@@ -1,7 +1,7 @@
 #ifndef PLATO_CELL_FORCING_HPP
 #define PLATO_CELL_FORCING_HPP
 
-#include <Omega_h_matrix.hpp>
+#include "PlatoMathTypes.hpp"
 
 #include "PlatoStaticsTypes.hpp"
 
@@ -19,12 +19,12 @@ class CellForcing
 {
 private:
 
-    const Omega_h::Matrix<NumTerms, NumTerms> mCellStiffness;
+    const Plato::Matrix<NumTerms, NumTerms> mCellStiffness;
     const Plato::OrdinalType mColumnIndex;
 
 public:
 
-    CellForcing(const Omega_h::Matrix<NumTerms, NumTerms> aCellStiffness, Plato::OrdinalType aColumnIndex) :
+    CellForcing(const Plato::Matrix<NumTerms, NumTerms> aCellStiffness, Plato::OrdinalType aColumnIndex) :
             mCellStiffness(aCellStiffness),
             mColumnIndex(aColumnIndex)
     {

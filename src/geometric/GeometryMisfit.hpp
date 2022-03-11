@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Simplex.hpp"
-#include "OmegaHUtilities.hpp"
+#include "UtilsOmegaH.hpp"
 #include "geometric/WorksetBase.hpp"
 #include "SurfaceIntegralUtilities.hpp"
 
@@ -115,7 +115,7 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
 
         parsePointCloud(aCriterionParams);
 
-        createPointGraph(aSpatialDomain.Mesh, aSpatialDomain.MeshSets);
+        createPointGraph(aSpatialDomain.Mesh);
     }
 
     /**************************************************************************/
@@ -140,13 +140,8 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
     {
 
         // load the sideset specified in the input
-        auto tFaceLids = Plato::get_face_ordinals(aModel.MeshSets, mSideSetName);
-        auto tFace2Verts = aModel.Mesh.ask_verts_of(SpaceDim-1);
-        auto tCell2Verts = aModel.Mesh.ask_elem_verts();
-
-        auto tFace2eElems = aModel.Mesh.ask_up(SpaceDim - 1, SpaceDim);
-        auto tFace2Elems_map   = tFace2eElems.a2ab;
-        auto tFace2Elems_elems = tFace2eElems.ab2b;
+        auto tElementOrds = aModel.Mesh->GetSideSetElements(mSideSetName);
+        auto tNodeOrds    = aModel.Mesh->GetSideSetLocalNodes(mSideSetName);
 
         auto tOffsets = mDataMap.ordinalVectors[mPointCloudRowMapName];
         auto tIndices = mDataMap.ordinalVectors[mPointCloudColMapName];
@@ -156,9 +151,8 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
         // create functors
         Plato::CalculateSurfaceArea<SpaceDim> tCalculateSurfaceArea;
         Plato::CalculateSurfaceJacobians<SpaceDim> tCalculateSurfaceJacobians;
-        Plato::CreateFaceLocalNode2ElemLocalNodeIndexMap<SpaceDim> tCreateFaceLocalNode2ElemLocalNodeIndexMap;
 
-        auto tNumFaces = tFaceLids.size();
+        auto tNumFaces = tElementOrds.size();
         Plato::ScalarVector tResultDenominator("denominator", tNumFaces);
 
         // for each point in the cloud, compute the square of the average normal distance to the nearest face
@@ -167,25 +161,24 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
         {
             // get face index
             auto tLocalFaceOrdinal = tIndices(tOffsets(aPointOrdinal));
-            auto tFaceOrdinal = tFaceLids[tLocalFaceOrdinal];
-
-            // get elem index
-            auto tCellOffset  = tFace2Elems_map[tFaceOrdinal];
-            auto tCellOrdinal = tFace2Elems_elems[tCellOffset];
+            auto tElementOrdinal = tElementOrds(tLocalFaceOrdinal);
 
             // compute the map from local node id to global
-            Plato::OrdinalType tLocalNodeOrd[SpaceDim];
-            tCreateFaceLocalNode2ElemLocalNodeIndexMap(tCellOrdinal, tFaceOrdinal, tCell2Verts, tFace2Verts, tLocalNodeOrd);
+            Plato::OrdinalType tLocalNodeOrds[SpaceDim];
+            for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<SpaceDim; tNodeOrd++)
+            {
+                tLocalNodeOrds[tNodeOrd] = tNodeOrds(tLocalFaceOrdinal*SpaceDim+tNodeOrd);
+            }
 
-            // get face centroid TODO
-            ConfigScalarType C_x = aConfig(tCellOrdinal, tLocalNodeOrd[0], Dim::X);
-            ConfigScalarType C_y = aConfig(tCellOrdinal, tLocalNodeOrd[0], Dim::Y);
-            ConfigScalarType C_z = aConfig(tCellOrdinal, tLocalNodeOrd[0], Dim::Z);
+            // get face centroid
+            ConfigScalarType C_x = aConfig(tElementOrdinal, tLocalNodeOrds[0], Dim::X);
+            ConfigScalarType C_y = aConfig(tElementOrdinal, tLocalNodeOrds[0], Dim::Y);
+            ConfigScalarType C_z = aConfig(tElementOrdinal, tLocalNodeOrds[0], Dim::Z);
             for (Plato::OrdinalType tFaceVertI=1; tFaceVertI<SpaceDim; tFaceVertI++)
             {
-                C_x += aConfig(tCellOrdinal, tLocalNodeOrd[tFaceVertI], Dim::X);
-                C_y += aConfig(tCellOrdinal, tLocalNodeOrd[tFaceVertI], Dim::Y);
-                C_z += aConfig(tCellOrdinal, tLocalNodeOrd[tFaceVertI], Dim::Z);
+                C_x += aConfig(tElementOrdinal, tLocalNodeOrds[tFaceVertI], Dim::X);
+                C_y += aConfig(tElementOrdinal, tLocalNodeOrds[tFaceVertI], Dim::Y);
+                C_z += aConfig(tElementOrdinal, tLocalNodeOrds[tFaceVertI], Dim::Z);
             }
             constexpr Plato::OrdinalType cNumVertsPerFace = SpaceDim;
             C_x /= cNumVertsPerFace;
@@ -193,14 +186,14 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
             C_z /= cNumVertsPerFace;
 
             // get vertex 0 coordinates
-            ConfigScalarType a_x = aConfig(tCellOrdinal, tLocalNodeOrd[0], Dim::X);
-            ConfigScalarType a_y = aConfig(tCellOrdinal, tLocalNodeOrd[0], Dim::Y);
-            ConfigScalarType a_z = aConfig(tCellOrdinal, tLocalNodeOrd[0], Dim::Z);
+            ConfigScalarType a_x = aConfig(tElementOrdinal, tLocalNodeOrds[0], Dim::X);
+            ConfigScalarType a_y = aConfig(tElementOrdinal, tLocalNodeOrds[0], Dim::Y);
+            ConfigScalarType a_z = aConfig(tElementOrdinal, tLocalNodeOrds[0], Dim::Z);
 
             // get vertex 1 coordinates
-            ConfigScalarType b_x = aConfig(tCellOrdinal, tLocalNodeOrd[1], Dim::X);
-            ConfigScalarType b_y = aConfig(tCellOrdinal, tLocalNodeOrd[1], Dim::Y);
-            ConfigScalarType b_z = aConfig(tCellOrdinal, tLocalNodeOrd[1], Dim::Z);
+            ConfigScalarType b_x = aConfig(tElementOrdinal, tLocalNodeOrds[1], Dim::X);
+            ConfigScalarType b_y = aConfig(tElementOrdinal, tLocalNodeOrds[1], Dim::Y);
+            ConfigScalarType b_z = aConfig(tElementOrdinal, tLocalNodeOrds[1], Dim::Z);
 
             // vector, A, from centroid to vertex 0
             ConfigScalarType A_x = a_x - C_x;
@@ -231,7 +224,7 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
             ResultScalarType tDistance = P_x*n_x + P_y*n_y + P_z*n_z;
 
             // add to result
-            Kokkos::atomic_add(&aResult(tCellOrdinal), tDistance);
+            Kokkos::atomic_add(&aResult(tElementOrdinal), tDistance);
             Kokkos::atomic_add(&tResultDenominator(tLocalFaceOrdinal), 1.0);
 
         }, "compute misfit");
@@ -242,27 +235,25 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
         Plato::ScalarArray3DT<ConfigScalarType> tJacobian("jacobian", tNumFaces, SpaceDim-1, SpaceDim);
         Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aFaceOrdinal)
         {
-            // get global face index from local index
-            auto tFaceOrdinal = tFaceLids[aFaceOrdinal];
-
-            // get elem index
-            auto tCellOffset  = tFace2Elems_map[tFaceOrdinal];
-            auto tCellOrdinal = tFace2Elems_elems[tCellOffset];
+            auto tElementOrdinal = tElementOrds(aFaceOrdinal);
 
             // compute the map from local node id to global
-            Plato::OrdinalType tLocalNodeOrd[SpaceDim];
-            tCreateFaceLocalNode2ElemLocalNodeIndexMap(tCellOrdinal, tFaceOrdinal, tCell2Verts, tFace2Verts, tLocalNodeOrd);
+            Plato::OrdinalType tLocalNodeOrds[SpaceDim];
+            for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<SpaceDim; tNodeOrd++)
+            {
+                tLocalNodeOrds[tNodeOrd] = tNodeOrds(aFaceOrdinal*SpaceDim+tNodeOrd);
+            }
 
             // compute integration weights
             ConfigScalarType tWeight(0.0);
-            tCalculateSurfaceJacobians(tCellOrdinal, aFaceOrdinal, tLocalNodeOrd, aConfig, tJacobian);
+            tCalculateSurfaceJacobians(tElementOrdinal, aFaceOrdinal, tLocalNodeOrds, aConfig, tJacobian);
             tCalculateSurfaceArea(aFaceOrdinal, tMultiplier, tJacobian, tWeight);
 
             if (tResultDenominator(aFaceOrdinal) != 0)
             {
-                aResult(tCellOrdinal) /= tResultDenominator(aFaceOrdinal);
+                aResult(tElementOrdinal) /= tResultDenominator(aFaceOrdinal);
             }
-            aResult(tCellOrdinal) = tWeight * aResult(tCellOrdinal) * aResult(tCellOrdinal);
+            aResult(tElementOrdinal) = tWeight * aResult(tElementOrdinal) * aResult(tElementOrdinal);
 
         }, "divide and apply weight");
     }
@@ -271,28 +262,28 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
 
     void
     faceCentroids(
-              Omega_h::Mesh            & aMesh,
-        const Omega_h::LOs             & aFaceLids,
-              Plato::ScalarMultiVector   aCentroids
+        Plato::Mesh              aMesh,
+        Plato::ScalarMultiVector aCentroids
     )
     {
-        auto tCoords = aMesh.coords();
-        auto tFace2Verts = aMesh.ask_verts_of(SpaceDim-1);
+        auto tCoords       = aMesh->Coordinates();
+        auto tConnectivity = aMesh->Connectivity();
+        auto tElementOrds  = aMesh->GetSideSetElements(mSideSetName);
+        auto tNodeOrds     = aMesh->GetSideSetLocalNodes(mSideSetName);
 
         constexpr auto cNodesPerFace = SpaceDim;
+        const auto cNodesPerElement = aMesh->NumNodesPerElement();
 
-        auto tNumFaces = aFaceLids.size();
+        auto tNumFaces = tElementOrds.size();
         Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aFaceOrdinal)
         {
-
-            auto tFaceLid = aFaceLids[aFaceOrdinal];
-
             for (Plato::OrdinalType tNodeI=0; tNodeI<cNodesPerFace; tNodeI++)
             {
-                auto tVertexOrdinal = tFace2Verts[tFaceLid*cNodesPerFace+tNodeI];
+                auto tElemLocalVertexOrdinal = tNodeOrds(aFaceOrdinal*cNodesPerFace+tNodeI);
+                auto tMeshLocalVertexOrdinal = tConnectivity(tElementOrds(aFaceOrdinal)*cNodesPerElement + tElemLocalVertexOrdinal);
                 for (Plato::OrdinalType tDimI=0; tDimI<SpaceDim; tDimI++)
                 {
-                    aCentroids(tDimI, aFaceOrdinal) += tCoords[tVertexOrdinal * SpaceDim + tDimI] / cNodesPerFace;
+                    aCentroids(tDimI, aFaceOrdinal) += tCoords(tMeshLocalVertexOrdinal * SpaceDim + tDimI) / cNodesPerFace;
                 }
             }
 
@@ -301,8 +292,7 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
 
     void
     createPointGraph(
-              Omega_h::Mesh     & aMesh,
-        const Omega_h::MeshSets & aMeshSets
+        Plato::Mesh aMesh
     )
     {
         std::stringstream tRowMapName;
@@ -316,11 +306,11 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
         // only create the point cloud to face graph once
         if (mDataMap.ordinalVectors.count(mPointCloudRowMapName) == 0)
         {
-            auto tFaceLids = Plato::get_face_ordinals(aMeshSets, mSideSetName);
+            auto tElementOrds = aMesh->GetSideSetElements(mSideSetName);
 
             // create centroids
-            Plato::ScalarMultiVector tCentroids("face centroids", SpaceDim, tFaceLids.size());
-            faceCentroids(aMesh, tFaceLids, tCentroids);
+            Plato::ScalarMultiVector tCentroids("face centroids", SpaceDim, tElementOrds.size());
+            faceCentroids(aMesh, tCentroids);
 
             // construct search tree (this needs to be done in the constructor since the search result doesn't change)
             Plato::ScalarVector prim_x = Kokkos::subview(tCentroids, 0, Kokkos::ALL());
@@ -483,7 +473,7 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
         }
         if (tParsedValues.size() != SpaceDim)
         {
-            THROWERR("Error reading point cloud: line encountered with other than three values");
+            ANALYZE_THROWERR("Error reading point cloud: line encountered with other than three values");
         }
         return tParsedValues;
     }
@@ -508,7 +498,7 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
         }
         else
         {
-            THROWERR("Failed to open point cloud file.");
+            ANALYZE_THROWERR("Failed to open point cloud file.");
         }
         return tPoints;
     }

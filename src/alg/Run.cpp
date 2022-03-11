@@ -68,7 +68,7 @@ void error_check(Teuchos::ParameterList& aProblem)
     {
         std::stringstream tMsg;
         tMsg << "Input Mesh Error: 'Input Mesh' Parameter Keyword is NOT defined.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
     auto tInputMesh = aProblem.get<std::string>("Input Mesh");
 
@@ -79,7 +79,7 @@ void error_check(Teuchos::ParameterList& aProblem)
         tMsg << "Input Mesh Error: 'Input Mesh' file extension was not provided. "  <<
                 "'Input Mesh' argument is set to '" << tInputMesh << "'. File extension .exo is missing. " <<
                 "'Input Mesh' argument should be defined as follows: 'filename.exo'.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
     auto tPhysicsString = aProblem.get<std::string>("Physics", "Plato Driver");
@@ -89,19 +89,17 @@ void error_check(Teuchos::ParameterList& aProblem)
         tMsg << "Input File Error: 'Physics' Parameter Keyword is NOT defined. "
             << "The 'Physics' Parameter Keyword is set to " << tPhysicsString.c_str()
             << ". The 'Physics' Parameter Keyword should be set to 'Plato Driver'.";
-        THROWERR(tMsg.str().c_str())
+        ANALYZE_THROWERR(tMsg.str().c_str())
     }
 }
 // function error_check
 
 /******************************************************************************//**
  * \brief Run a Plato Analyze problem
- * \param [in] aOmegaHLib pointer to Omega_h library
  * \param [in] aProblem   input file parameter list
  * \param [in] aMachine   MPI wrapper
  **********************************************************************************/
 void run(
-    Omega_h::Library*       aOmegaHLib,
     Teuchos::ParameterList& aProblem,
     Comm::Machine           aMachine)
 {
@@ -129,7 +127,7 @@ void run(
     else
     {
         Plato::error_check(aProblem);
-        ::Plato::driver(aOmegaHLib, aProblem, aMachine);
+        ::Plato::driver(aProblem, aMachine);
     }
 }
 // function run

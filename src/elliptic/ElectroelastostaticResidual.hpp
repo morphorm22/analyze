@@ -93,10 +93,10 @@ public:
     /**************************************************************************/
     {
         // obligatory: define dof names in order
-        mDofNames.push_back("Displacement X");
-        if(SpaceDim > 1) mDofNames.push_back("Displacement Y");
-        if(SpaceDim > 2) mDofNames.push_back("Displacement Z");
-        mDofNames.push_back("Electric Potential");
+        mDofNames.push_back("displacement X");
+        if(SpaceDim > 1) mDofNames.push_back("displacement Y");
+        if(SpaceDim > 2) mDofNames.push_back("displacement Z");
+        mDofNames.push_back("electric potential");
 
         // create material model and get stiffness
         //
@@ -140,26 +140,7 @@ public:
     ********************************************************************************/
     Plato::Solutions getSolutionStateOutputData(const Plato::Solutions &aSolutions) const override
     {
-      Plato::ScalarMultiVector tSolutionFromSolutions = aSolutions.get("State");
-
-      auto tNumTimeSteps = tSolutionFromSolutions.extent(0);
-      auto tNumVertices  = mSpatialDomain.Mesh.nverts();
-
-      Plato::ScalarMultiVector tDisplacements("displacements for all time steps", tNumTimeSteps, tNumVertices*NMechDims);
-      Plato::ScalarMultiVector tPotentials("potentials for all time steps", tNumTimeSteps, tNumVertices);
-      Plato::blas2::extract<mNumDofsPerNode/*stride*/, NMechDims/*dofs per node*/, MDofOffset/*offset*/>
-                    (tNumVertices, tSolutionFromSolutions, tDisplacements);
-      Plato::blas2::extract<mNumDofsPerNode/*stride*/, NElecDims/*dofs per node*/, EDofOffset/*offset*/>
-                    (tNumVertices, tSolutionFromSolutions, tPotentials);
-Plato::OrdinalType tNMechDims = static_cast<Plato::OrdinalType>(NMechDims);
-Plato::OrdinalType tNElecDims = static_cast<Plato::OrdinalType>(NElecDims);
-      Plato::Solutions tSolutionsOutput(aSolutions.physics(), aSolutions.pde());
-      tSolutionsOutput.set("Displacement", tDisplacements);
-      tSolutionsOutput.setNumDofs("Displacement", tNMechDims);
-      tSolutionsOutput.set("Potential", tPotentials);
-      tSolutionsOutput.setNumDofs("Potential", tNElecDims);
-
-      return tSolutionsOutput;
+      return aSolutions;
     }
 
     /**************************************************************************/

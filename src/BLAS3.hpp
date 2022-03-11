@@ -117,11 +117,11 @@ inline void identity(const Plato::OrdinalType& aNumCells, Plato::ScalarArray3D& 
 {
     if(aIdentity.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nInput 3-D view is empty, i.e. size <= 0.\n")
+        ANALYZE_THROWERR("\nInput 3-D view is empty, i.e. size <= 0.\n")
     }
     if(aIdentity.extent(0) != aNumCells)
     {
-        THROWERR("\nNumber of cell mismatch. Input array has different number of cells than input number of cell argument.\n")
+        ANALYZE_THROWERR("\nNumber of cell mismatch. Input array has different number of cells than input number of cell argument.\n")
     }
 
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
@@ -156,15 +156,15 @@ inline void inverse(const Plato::OrdinalType& aNumCells, AViewType& aA, BViewTyp
 {
     if(aA.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nInput 3D array, i.e. matrix workset, size is zero.\n")
+        ANALYZE_THROWERR("\nInput 3D array, i.e. matrix workset, size is zero.\n")
     }
     if(aInverse.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nOutput 3D array, i.e. matrix workset, size is zero.\n")
+        ANALYZE_THROWERR("\nOutput 3D array, i.e. matrix workset, size is zero.\n")
     }
     if(aA.size() != aInverse.size())
     {
-        THROWERR("\nInput and output views dimensions are different, i.e. Input.size != Output.size.\n")
+        ANALYZE_THROWERR("\nInput and output views dimensions are different, i.e. Input.size != Output.size.\n")
     }
 
     Plato::blas3::identity<NumRowsPerCell, NumColumnsPerCell>(aNumCells, aInverse);
@@ -201,11 +201,11 @@ inline void fill(const Plato::OrdinalType& aNumCells,
 {
     if(aOutput.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nInput 3D array is empty, i.e. size <= 0.\n")
+        ANALYZE_THROWERR("\nInput 3D array is empty, i.e. size <= 0.\n")
     }
     if(aNumCells <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nInvalid number of input cells, i.e. elements. Value is <= 0.\n")
+        ANALYZE_THROWERR("\nInvalid number of input cells, i.e. elements. Value is <= 0.\n")
     }
 
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
@@ -242,23 +242,23 @@ inline void update(const Plato::OrdinalType& aNumCells,
 {
     if(aA.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nInput 3D array is empty, i.e. size <= 0\n")
+        ANALYZE_THROWERR("\nInput 3D array is empty, i.e. size <= 0\n")
     }
     if(aB.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nOutput 3D array is empty, i.e. size <= 0\n")
+        ANALYZE_THROWERR("\nOutput 3D array is empty, i.e. size <= 0\n")
     }
     if(aA.extent(1) != aB.extent(1))
     {
-        THROWERR("\nDimension mismatch, number of rows do not match.\n")
+        ANALYZE_THROWERR("\nDimension mismatch, number of rows do not match.\n")
     }
     if(aA.extent(2) != aB.extent(2))
     {
-        THROWERR("\nDimension mismatch, number of columns do not match.\n")
+        ANALYZE_THROWERR("\nDimension mismatch, number of columns do not match.\n")
     }
     if(aNumCells <= static_cast<Plato::OrdinalType>(0))
     {
-        THROWERR("\nNumber of input cells, i.e. elements, is less or equal to zero.\n");
+        ANALYZE_THROWERR("\nNumber of input cells, i.e. elements, is less or equal to zero.\n");
     }
 
     const auto tNumRows = aA.extent(1);
@@ -307,54 +307,54 @@ inline void multiply(const Plato::OrdinalType& aNumCells,
     if(aA.size() <= static_cast<Plato::OrdinalType>(0))
     {
         tError << "\nInput 3D array A is empty, i.e. size <= 0.\n";
-        THROWERR(tError.str())
+        ANALYZE_THROWERR(tError.str())
     }
     if(aB.size() <= static_cast<Plato::OrdinalType>(0))
     {
         tError << "\nInput 3D array B is empty, i.e. size <= 0.\n";
-        THROWERR(tError.str())
+        ANALYZE_THROWERR(tError.str())
     }
     if(aC.size() <= static_cast<Plato::OrdinalType>(0))
     {
         tError << "\nOutput 3D array C is empty, i.e. size <= 0.\n";
-        THROWERR(tError.str())
+        ANALYZE_THROWERR(tError.str())
     }
     if(aA.extent(2) != aB.extent(1))
     {
         tError << "\nDimension mismatch: The number of columns in A matrix workset does not match "
             << "the number of rows in B matrix workset. " << "A has " << aA.extent(2) << " columns and B has "
             << aB.extent(1) << " rows.\n";
-        THROWERR(tError.str())
+        ANALYZE_THROWERR(tError.str())
     }
     if(aA.extent(1) != aC.extent(1))
     {
         tError << "\nDimension mismatch. Mismatch in input (A) and output (C) matrices row count. "
             << "A has " << aA.extent(1) << " rows and C has " << aC.extent(1) << " rows.\n";
-        THROWERR(tError.str())
+        ANALYZE_THROWERR(tError.str())
     }
     if(aB.extent(2) != aC.extent(2))
     {
         tError << "\nDimension mismatch. Mismatch in input (B) and output (C) matrices column count. "
             << "B has " << aB.extent(2) << " columns and C has " << aC.extent(2) << " columns.\n";
-        THROWERR(tError.str())
+        ANALYZE_THROWERR(tError.str())
     }
     if(aA.extent(0) != aNumCells)
     {
         tError << "\nDimension mismatch, number of cells of matrix A does not match input number of cells. "
             << "A has " << aA.extent(0) << " and the input number of cells is set to " << aNumCells << "\n.";
-        THROWERR(tError.str())
+        ANALYZE_THROWERR(tError.str())
     }
     if(aB.extent(0) != aNumCells)
     {
         tError << "\nDimension mismatch, number of cells of matrix B does not match input number of cells. "
             << "B has " << aB.extent(0) << " and the input number of cells is set to " << aNumCells << "\n.";
-        THROWERR(tError.str())
+        ANALYZE_THROWERR(tError.str())
     }
     if(aC.extent(0) != aNumCells)
     {
         tError << "\nDimension mismatch, number of cells of matrix C does not match input number of cells. "
             << "C has " << aC.extent(0) << " and the input number of cells is set to " << aNumCells << "\n.";
-        THROWERR(tError.str())
+        ANALYZE_THROWERR(tError.str())
     }
 
     const auto tNumOutRows = aC.extent(1);

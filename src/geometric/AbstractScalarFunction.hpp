@@ -29,8 +29,7 @@ public:
     /******************************************************************************//**
      * \brief Abstract scalar function constructor
      * \param [in] aMesh mesh database
-     * \param [in] aMeshSets mesh side sets database
-     * \param [in] aDataMap PLATO Engine and PLATO Analyze data map
+     * \param [in] aDataMap Plato Engine and Plato Analyze data map
      * \param [in] aName my abstract scalar function name
     **********************************************************************************/
     AbstractScalarFunction(

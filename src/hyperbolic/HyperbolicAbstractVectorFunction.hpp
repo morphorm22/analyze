@@ -1,9 +1,6 @@
 #ifndef ABSTRACT_VECTOR_FUNCTION_HYPERBOLIC_HPP
 #define ABSTRACT_VECTOR_FUNCTION_HYPERBOLIC_HPP
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include "Solutions.hpp"
 
 namespace Plato
@@ -23,6 +20,7 @@ protected:
     Plato::DataMap& mDataMap;
     std::vector<std::string> mDofNames;
     std::vector<std::string> mDofDotNames;
+    std::vector<std::string> mDofDotDotNames;
 
 public:
     /******************************************************************************/
@@ -31,13 +29,15 @@ public:
         const Plato::SpatialDomain     & aSpatialDomain,
               Plato::DataMap           & aDataMap,
               std::vector<std::string>   aStateNames,
-              std::vector<std::string>   aStateDotNames
+              std::vector<std::string>   aStateDotNames,
+              std::vector<std::string>   aStateDotDotNames
     ) :
     /******************************************************************************/
-        mSpatialDomain (aSpatialDomain),
-        mDataMap       (aDataMap),
-        mDofNames      (aStateNames),
-        mDofDotNames   (aStateDotNames)
+        mSpatialDomain  (aSpatialDomain),
+        mDataMap        (aDataMap),
+        mDofNames       (aStateNames),
+        mDofDotNames    (aStateDotNames),
+        mDofDotDotNames (aStateDotDotNames)
     {
     }
     /******************************************************************************/
@@ -47,7 +47,7 @@ public:
     }
 
     /****************************************************************************//**
-    * \brief Return reference to Omega_h mesh data base 
+    * \brief Return reference to mesh data base 
     ********************************************************************************/
     decltype(mSpatialDomain.Mesh) getMesh() const
     {
@@ -55,17 +55,9 @@ public:
     }
 
     /****************************************************************************//**
-    * \brief Return reference to Omega_h mesh sets 
-    ********************************************************************************/
-    decltype(mSpatialDomain.MeshSets) getMeshSets() const
-    {
-        return (mSpatialDomain.MeshSets);
-    }
-
-    /****************************************************************************//**
     * \brief Return reference to state index map
     ********************************************************************************/
-    decltype(mDofNames) getDofNames() const
+    const decltype(mDofNames)& getDofNames() const
     {
         return (mDofNames);
     }
@@ -73,9 +65,17 @@ public:
     /****************************************************************************//**
     * \brief Return reference to state dot index map
     ********************************************************************************/
-    decltype(mDofDotNames) getDofDotNames() const
+    const decltype(mDofDotNames)& getDofDotNames() const
     {
         return (mDofDotNames);
+    }
+
+    /****************************************************************************//**
+    * \brief Return reference to state dot dot index map
+    ********************************************************************************/
+    const decltype(mDofDotDotNames)& getDofDotDotNames() const
+    {
+        return (mDofDotDotNames);
     }
 
     /**************************************************************************//**

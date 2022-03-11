@@ -3,11 +3,9 @@
 
 #include <memory>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include "AnalyzeMacros.hpp"
 #include "SimplexThermoPlasticity.hpp"
+#include "J2PlasticityLocalResidual.hpp"
 
 #ifdef PLATO_EXPRESSION
   #include "J2PlasticityLocalResidualExpFAD.hpp"
@@ -40,14 +38,14 @@ struct FunctionFactory
     {
         if(aInputParams.isSublist("Material Models") == false)
         {
-            THROWERR("'Material Models' Sublist is not defined.")
+            ANALYZE_THROWERR("'Material Models' Sublist is not defined.")
         }
         Teuchos::ParameterList tMaterialModelsList = aInputParams.sublist("Material Models");
         Teuchos::ParameterList tMaterialModelList  = tMaterialModelsList.sublist(aSpatialDomain.getMaterialName());
 
         if(tMaterialModelList.isSublist("Plasticity Model") == false)
         {
-            THROWERR("Plasticity Model Sublist is not defined.")
+            ANALYZE_THROWERR("Plasticity Model Sublist is not defined.")
         }
 
         auto tPlasticityParamList = tMaterialModelList.get<Teuchos::ParameterList>("Plasticity Model");
@@ -63,7 +61,7 @@ struct FunctionFactory
         {
           const std::string tError = std::string("Unknown Plasticity Model.  Options are: J2 Plasticity.")
               + "User is advised to select one of the available options.";
-          THROWERR(tError)
+          ANALYZE_THROWERR(tError)
         }
     }
 }; // struct FunctionFactory

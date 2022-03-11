@@ -5,14 +5,12 @@
 #include <memory>
 #include <sstream>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include "BLAS1.hpp"
 #include "Solutions.hpp"
 #include "AnalyzeOutput.hpp"
 #include "ImplicitFunctors.hpp"
 #include "MultipointConstraints.hpp"
+#include "ApplyConstraints.hpp"
 #include "SpatialModel.hpp"
 
 #include "ParseTools.hpp"
@@ -20,9 +18,9 @@
 #include "PlatoStaticsTypes.hpp"
 #include "PlatoAbstractProblem.hpp"
 #include "PlatoUtilities.hpp"
+#include "AnalyzeMacros.hpp"
 
 #include "helmholtz/VectorFunction.hpp"
-#include "AnalyzeMacros.hpp"
 
 #include "alg/ParallelComm.hpp"
 #include "alg/PlatoSolverFactory.hpp"
@@ -56,9 +54,6 @@ private:
 
     Teuchos::RCP<Plato::CrsMatrixType> mJacobian; /*!< Jacobian matrix */
 
-    Plato::LocalOrdinalVector mBcDofs; /*!< list of degrees of freedom associated with the Dirichlet boundary conditions */
-    Plato::ScalarVector mBcValues; /*!< values associated with the Dirichlet boundary conditions */
-
     std::shared_ptr<Plato::MultipointConstraints> mMPCs; /*!< multipoint constraint interface */
 
     rcp<Plato::AbstractSolver> mSolver;
@@ -70,16 +65,14 @@ public:
     /******************************************************************************//**
      * \brief PLATO problem constructor
      * \param [in] aMesh mesh database
-     * \param [in] aMeshSets side sets database
      * \param [in] aProblemParams input parameters database
     **********************************************************************************/
     Problem(
-      Omega_h::Mesh& aMesh,
-      Omega_h::MeshSets& aMeshSets,
-      Teuchos::ParameterList& aProblemParams,
-      Comm::Machine aMachine
+      Plato::Mesh              aMesh,
+      Teuchos::ParameterList & aProblemParams,
+      Comm::Machine            aMachine
     ) :
-      mSpatialModel  (aMesh, aMeshSets, aProblemParams),
+      mSpatialModel  (aMesh, aProblemParams),
       mPDE(std::make_shared<VectorFunctionType>(mSpatialModel, mDataMap, aProblemParams, aProblemParams.get<std::string>("PDE Constraint"))),
       mResidual      ("MyResidual", mPDE->size()),
       mStates        ("States", static_cast<Plato::OrdinalType>(1), mPDE->size()),
@@ -88,13 +81,13 @@ public:
       mPhysics       (aProblemParams.get<std::string>("Physics")),
       mMPCs          (nullptr)
     {
-        this->initialize(aProblemParams);
+        this->initialize(aMesh,aProblemParams);
 
         Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
         if(mMPCs)
-            mSolver = tSolverFactory.create(aMesh.nverts(), aMachine, PhysicsT::mNumDofsPerNode, mMPCs);
+            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, PhysicsT::mNumDofsPerNode, mMPCs);
         else
-            mSolver = tSolverFactory.create(aMesh.nverts(), aMachine, PhysicsT::mNumDofsPerNode);
+            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, PhysicsT::mNumDofsPerNode);
     }
 
     ~Problem(){}
@@ -144,7 +137,7 @@ public:
         auto tDataMap = this->getDataMap();
         auto tSolution = this->getSolution();
         auto tSolutionOutput = mPDE->getSolutionStateOutputData(tSolution);
-        Plato::universal_solution_output<mSpatialDim>(aFilepath, tSolutionOutput, tDataMap, mSpatialModel.Mesh);
+        Plato::universal_solution_output(aFilepath, tSolutionOutput, tDataMap, mSpatialModel.Mesh);
     }
 
     /******************************************************************************//**
@@ -154,7 +147,7 @@ public:
     **********************************************************************************/
     void updateProblem(const Plato::ScalarVector & aControl, const Plato::Solutions & aSolution)
     {
-        THROWERR("UPDATE PROBLEM: NO CRITERION ASSOCIATED WITH HELMHOLTZ FILTER PROBLEM.")
+        ANALYZE_THROWERR("UPDATE PROBLEM: NO CRITERION ASSOCIATED WITH HELMHOLTZ FILTER PROBLEM.")
     }
 
     /******************************************************************************//**
@@ -227,7 +220,7 @@ public:
         const std::string         & aName
     ) override
     {
-        THROWERR("CRITERION VALUE: NO CRITERION ASSOCIATED WITH HELMHOLTZ FILTER PROBLEM.")
+        ANALYZE_THROWERR("CRITERION VALUE: NO CRITERION ASSOCIATED WITH HELMHOLTZ FILTER PROBLEM.")
     }
 
     /******************************************************************************//**
@@ -244,7 +237,7 @@ public:
         const std::string         & aName
     ) override
     {
-        THROWERR("CRITERION VALUE: NO CRITERION ASSOCIATED WITH HELMHOLTZ FILTER PROBLEM.")
+        ANALYZE_THROWERR("CRITERION VALUE: NO CRITERION ASSOCIATED WITH HELMHOLTZ FILTER PROBLEM.")
     }
 
     /******************************************************************************//**
@@ -261,7 +254,7 @@ public:
         const std::string         & aName
     ) override
     {
-        THROWERR("CRITERION GRADIENT: NO INSTANCE OF THIS FUNCTION WITH SOLUTION INPUT IMPLEMENTED FOR HELMHOLTZ FILTER PROBLEM.")
+        ANALYZE_THROWERR("CRITERION GRADIENT: NO INSTANCE OF THIS FUNCTION WITH SOLUTION INPUT IMPLEMENTED FOR HELMHOLTZ FILTER PROBLEM.")
     }
 
     /******************************************************************************//**
@@ -278,7 +271,7 @@ public:
         const std::string         & aName
     ) override
     {
-        THROWERR("CRITERION GRADIENT X: NO CRITERION ASSOCIATED WITH HELMHOLTZ FILTER PROBLEM.")
+        ANALYZE_THROWERR("CRITERION GRADIENT X: NO CRITERION ASSOCIATED WITH HELMHOLTZ FILTER PROBLEM.")
     }
 
     /******************************************************************************//**
@@ -293,7 +286,7 @@ public:
         const std::string         & aName
     ) override
     {
-        THROWERR("CRITERION GRADIENT X: NO CRITERION ASSOCIATED WITH HELMHOLTZ FILTER PROBLEM.")
+        ANALYZE_THROWERR("CRITERION GRADIENT X: NO CRITERION ASSOCIATED WITH HELMHOLTZ FILTER PROBLEM.")
     }
 
 private:
@@ -301,7 +294,8 @@ private:
      * \brief Initialize member data
      * \param [in] aProblemParams input parameters database
     **********************************************************************************/
-    void initialize(Teuchos::ParameterList& aProblemParams)
+    void initialize(Plato::Mesh& aMesh,
+                    Teuchos::ParameterList& aProblemParams)
     {
         auto tName = aProblemParams.get<std::string>("PDE Constraint");
         mPDE = std::make_shared<Plato::Helmholtz::VectorFunction<PhysicsT>>(mSpatialModel, mDataMap, aProblemParams, tName);

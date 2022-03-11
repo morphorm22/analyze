@@ -49,8 +49,10 @@ private:
     using PhysicsType::mNumDofsPerNode; /*!< number of nodes per node */
     using PhysicsType::mNumDofsPerCell; /*!< number of nodes per cell */
 
-    using Plato::AbstractVectorFunctionVMS<EvaluationType>::mSpatialDomain; /*!< mesh metadata */
-    using Plato::AbstractVectorFunctionVMS<EvaluationType>::mDataMap; /*!< output data map */
+    using FunctionBaseType = Plato::AbstractVectorFunctionVMS<EvaluationType>;
+    using FunctionBaseType::mSpatialDomain;
+    using FunctionBaseType::mDataMap;
+    using FunctionBaseType::mDofNames;
 
     using StateScalarType     = typename EvaluationType::StateScalarType; /*!< State Automatic Differentiation (AD) type */
     using NodeStateScalarType = typename EvaluationType::NodeStateScalarType; /*!< Node State AD type */
@@ -58,7 +60,6 @@ private:
     using ConfigScalarType    = typename EvaluationType::ConfigScalarType; /*!< Configuration AD type */
     using ResultScalarType    = typename EvaluationType::ResultScalarType; /*!< Result AD type */
 
-    using FunctionBaseType = Plato::AbstractVectorFunctionVMS<EvaluationType>;
     using CubatureType = Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>;
 
     IndicatorFunctionType mIndicatorFunction; /*!< material penalty function */
@@ -81,6 +82,12 @@ private:
     **********************************************************************************/
     void initialize(Teuchos::ParameterList& aProblemParams)
     {
+        // obligatory: define dof names in order
+        mDofNames.push_back("displacement X");
+        if(mSpaceDim > 1) mDofNames.push_back("displacement Y");
+        if(mSpaceDim > 2) mDofNames.push_back("displacement Z");
+        mDofNames.push_back("pressure");
+
         // create material model and get stiffness
         //
         Plato::ElasticModelFactory<mSpaceDim> tMaterialFactory(aProblemParams);
@@ -113,7 +120,6 @@ public:
     /******************************************************************************//**
      * \brief Constructor
      * \param [in] aMesh mesh metadata
-     * \param [in] aMeshSets side-sets metadata
      * \param [in] aDataMap output data map
      * \param [in] aProblemParams input XML data
      * \param [in] aPenaltyParams penalty function input XML data
@@ -134,6 +140,16 @@ public:
         mCubatureRule         (std::make_shared<CubatureType>())
     {
         this->initialize(aProblemParams);
+    }
+
+    /****************************************************************************//**
+    * \brief Pure virtual function to get output solution data
+    * \param [in] state solution database
+    * \return output state solution database
+    ********************************************************************************/
+    Plato::Solutions getSolutionStateOutputData(const Plato::Solutions &aSolutions) const override
+    {
+      return aSolutions;
     }
 
     /******************************************************************************//**

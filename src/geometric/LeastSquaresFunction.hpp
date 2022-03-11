@@ -4,8 +4,6 @@
 #include <cassert>
 #include <vector>
 
-#include <Omega_h_mesh.hpp>
-
 #include "BLAS1.hpp"
 #include "PlatoStaticsTypes.hpp"
 #include "geometric/WorksetBase.hpp"
@@ -75,14 +73,14 @@ private:
         {
             const std::string tErrorString = std::string("Number of 'Functions' in '") + mFunctionName + 
                                                          "' parameter list does not equal the number of 'Weights'";
-            THROWERR(tErrorString)
+            ANALYZE_THROWERR(tErrorString)
         }
 
         if (tFunctionNames.size() != tFunctionGoldValues.size())
         {
             const std::string tErrorString = std::string("Number of 'Gold Values' in '") + mFunctionName + 
                                                          "' parameter list does not equal the number of 'Functions'";
-            THROWERR(tErrorString)
+            ANALYZE_THROWERR(tErrorString)
         }
 
         for (Plato::OrdinalType tFunctionIndex = 0; tFunctionIndex < tFunctionNames.size(); ++tFunctionIndex)

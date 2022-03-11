@@ -83,15 +83,15 @@ toMap(
 {
     if( aDataMap.scalarVectors.count(aEntryName) == 0 )
     {
-        Plato::ScalarVector tNewEntry(aEntryName, aSpatialDomain.Mesh.nelems());
+        Plato::ScalarVector tNewEntry(aEntryName, aSpatialDomain.Mesh->NumElements());
         aDataMap.scalarVectors[aEntryName] = tNewEntry;
     }
 
     auto tData = aDataMap.scalarVectors.at(aEntryName);
 
-    if( tData.extent(0) != aSpatialDomain.Mesh.nelems() )
+    if( tData.extent(0) != aSpatialDomain.Mesh->NumElements() )
     {
-        THROWERR( "DataMap error: attempted to insert domain data into an incompatible view");
+        ANALYZE_THROWERR( "DataMap error: attempted to insert domain data into an incompatible view");
     }
 
     auto tNumCells = aSpatialDomain.numCells();
@@ -114,7 +114,7 @@ toMap(
 inline void
 toMap(
           std::map<std::string, Plato::ScalarVector> & aTo,
-    const Plato::LocalOrdinalVector                  & aFrom,
+    const Plato::OrdinalVector                       & aFrom,
           std::string                                  aName
 )
 {
@@ -165,20 +165,20 @@ toMap(
     auto tDim = aInput.extent(1);
     if( aDataMap.scalarMultiVectors.count(aEntryName) == 0 )
     {
-        Plato::ScalarMultiVector tNewEntry(aEntryName, aSpatialDomain.Mesh.nelems(), tDim);
+        Plato::ScalarMultiVector tNewEntry(aEntryName, aSpatialDomain.Mesh->NumElements(), tDim);
         aDataMap.scalarMultiVectors[aEntryName] = tNewEntry;
     }
 
     auto tData = aDataMap.scalarMultiVectors.at(aEntryName);
 
-    if( tData.extent(0) != aSpatialDomain.Mesh.nelems() )
+    if( tData.extent(0) != aSpatialDomain.Mesh->NumElements() )
     {
-        THROWERR( "DataMap error: attempted to insert domain data into an incompatible view");
+        ANALYZE_THROWERR( "DataMap error: attempted to insert domain data into an incompatible view");
     }
 
     if( tData.extent(1) != tDim )
     {
-        THROWERR( "DataMap error: attempted to insert domain data into an incompatible view");
+        ANALYZE_THROWERR( "DataMap error: attempted to insert domain data into an incompatible view");
     }
 
     auto tNumCells = aSpatialDomain.numCells();
@@ -231,25 +231,25 @@ toMap(
     auto tDim2 = aInput.extent(2);
     if( aDataMap.scalarArray3Ds.count(aEntryName) == 0 )
     {
-        Plato::ScalarArray3D tNewEntry(aEntryName, aSpatialDomain.Mesh.nelems(), tDim1, tDim2);
+        Plato::ScalarArray3D tNewEntry(aEntryName, aSpatialDomain.Mesh->NumElements(), tDim1, tDim2);
         aDataMap.scalarArray3Ds[aEntryName] = tNewEntry;
     }
 
     auto tData = aDataMap.scalarArray3Ds.at(aEntryName);
 
-    if( tData.extent(0) != aSpatialDomain.Mesh.nelems() )
+    if( tData.extent(0) != aSpatialDomain.Mesh->NumElements() )
     {
-        THROWERR( "DataMap error: attempted to insert domain data into an incompatible view");
+        ANALYZE_THROWERR( "DataMap error: attempted to insert domain data into an incompatible view");
     }
 
     if( tData.extent(1) != tDim1 )
     {
-        THROWERR( "DataMap error: attempted to insert domain data into an incompatible view");
+        ANALYZE_THROWERR( "DataMap error: attempted to insert domain data into an incompatible view");
     }
 
     if( tData.extent(2) != tDim2 )
     {
-        THROWERR( "DataMap error: attempted to insert domain data into an incompatible view");
+        ANALYZE_THROWERR( "DataMap error: attempted to insert domain data into an incompatible view");
     }
 
     auto tNumCells = aSpatialDomain.numCells();

@@ -1,7 +1,8 @@
-#ifndef PLATO_HYPERBOLIC_PROBLEM_HPP
-#define PLATO_HYPERBOLIC_PROBLEM_HPP
+#pragma once
 
+#include "ApplyConstraints.hpp"
 #include "BLAS1.hpp"
+#include "PlatoStaticsTypes.hpp"
 #include "Solutions.hpp"
 #include "EssentialBCs.hpp"
 #include "SpatialModel.hpp"
@@ -15,6 +16,7 @@
 
 #include "hyperbolic/Newmark.hpp"
 #include "hyperbolic/HyperbolicMechanics.hpp"
+#include "hyperbolic/MicromorphicMechanics.hpp"
 #include "hyperbolic/HyperbolicVectorFunction.hpp"
 #include "hyperbolic/HyperbolicScalarFunctionBase.hpp"
 #include "hyperbolic/HyperbolicScalarFunctionFactory.hpp"
@@ -33,7 +35,7 @@ namespace Plato
         static constexpr Plato::OrdinalType SpatialDim = SimplexPhysics::mNumSpatialDims;
         static constexpr Plato::OrdinalType mNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
 
-        Plato::SpatialModel mSpatialModel; /*!< SpatialModel instance contains the mesh, meshsets, domains, etc. */
+        Plato::SpatialModel mSpatialModel; /*!< SpatialModel instance contains the mesh, domains, etc. */
 
         using VectorFunctionType = Plato::Hyperbolic::VectorFunction<SimplexPhysics>;
 
@@ -69,8 +71,17 @@ namespace Plato
 
         Plato::EssentialBCs<SimplexPhysics> mStateBoundaryConditions;
 
-        Plato::LocalOrdinalVector mStateBcDofs;
+        Plato::OrdinalVector mStateBcDofs;
+
         Plato::ScalarVector mStateBcValues;
+
+        Plato::EssentialBCs<SimplexPhysics> mStateDotBoundaryConditions;
+        Plato::OrdinalVector mStateDotBcDofs;
+        Plato::ScalarVector mStateDotBcValues;
+
+        Plato::EssentialBCs<SimplexPhysics> mStateDotDotBoundaryConditions;
+        Plato::OrdinalVector mStateDotDotBcDofs;
+        Plato::ScalarVector mStateDotDotBcValues;
 
         rcp<Plato::AbstractSolver> mSolver;
         std::string mPDE; /*!< partial differential equation type */
@@ -80,12 +91,11 @@ namespace Plato
       public:
         /******************************************************************************/
         HyperbolicProblem(
-          Omega_h::Mesh& aMesh,
-          Omega_h::MeshSets& aMeshSets,
-          Teuchos::ParameterList& aProblemParams,
-          Comm::Machine aMachine
+          Plato::Mesh              aMesh,
+          Teuchos::ParameterList & aProblemParams,
+          Comm::Machine            aMachine
         ) :
-            mSpatialModel    (aMesh, aMeshSets, aProblemParams),
+            mSpatialModel    (aMesh, aProblemParams),
             mPDEConstraint   (mSpatialModel, mDataMap, aProblemParams, aProblemParams.get<std::string>("PDE Constraint")),
             mSaveState       (aProblemParams.sublist("Hyperbolic").isType<Teuchos::Array<std::string>>("Plottable")),
             mInitDisplacement ("Init Displacement", mPDEConstraint.size()),
@@ -94,7 +104,9 @@ namespace Plato
             mJacobianU     (Teuchos::null),
             mJacobianV     (Teuchos::null),
             mJacobianA     (Teuchos::null),
-            mStateBoundaryConditions(aProblemParams.sublist("Displacement Boundary Conditions",false), aMeshSets),
+            mStateBoundaryConditions      (aProblemParams.sublist("State Essential Boundary Conditions",false), aMesh),
+            mStateDotBoundaryConditions   (aProblemParams.sublist("State Dot Essential Boundary Conditions",false), aMesh),
+            mStateDotDotBoundaryConditions(aProblemParams.sublist("State Dot Dot Essential Boundary Conditions",false), aMesh),
             mPDE           (aProblemParams.get<std::string>("PDE Constraint")),
             mPhysics       (aProblemParams.get<std::string>("Physics"))
         /******************************************************************************/
@@ -203,7 +215,7 @@ namespace Plato
         /******************************************************************************/
         void parseComputedFields(
           Teuchos::ParameterList & aProblemParams,
-          Omega_h::Mesh          & aMesh
+          Plato::Mesh              aMesh
         )
         /******************************************************************************/
         {
@@ -224,7 +236,7 @@ namespace Plato
             if(aProblemParams.isSublist("Initial State"))
             {
                 if(mComputedFields == Teuchos::null) {
-                  THROWERR("No 'Computed Fields' have been defined");
+                  ANALYZE_THROWERR("No 'Computed Fields' have been defined");
                 }
 
                 auto tDofNames = mPDEConstraint.getDofNames();
@@ -266,7 +278,7 @@ namespace Plato
                             }
                             else
                             {
-                                THROWERR("Attempted to initialize state variable that doesn't exist.");
+                                ANALYZE_THROWERR("Attempted to initialize state variable that doesn't exist.");
                             }
                         }
                     }
@@ -277,15 +289,14 @@ namespace Plato
         /******************************************************************************/
         void parseLinearSolver(
           Teuchos::ParameterList & aProblemParams,
-          Omega_h::Mesh          & aMesh,
+          Plato::Mesh              aMesh,
           Comm::Machine            aMachine
         )
         /******************************************************************************/
         {
             Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
-            mSolver = tSolverFactory.create(aMesh.nverts(), aMachine, SimplexPhysics::mNumDofsPerNode);
+            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, SimplexPhysics::mNumDofsPerNode);
         }
-
 
         /******************************************************************************/
         void output(const std::string& aFilepath)
@@ -294,7 +305,7 @@ namespace Plato
             auto tDataMap = getDataMap();
             auto tSolution = getSolution();
             auto tSolutionOutput = mPDEConstraint.getSolutionStateOutputData(tSolution);
-            Plato::universal_solution_output<SpatialDim>(aFilepath, tSolutionOutput, tDataMap, mSpatialModel.Mesh);
+            Plato::universal_solution_output(aFilepath, tSolutionOutput, tDataMap, mSpatialModel.Mesh);
         }
 
         /******************************************************************************/
@@ -304,13 +315,32 @@ namespace Plato
         )
         /******************************************************************************/
         {
-            if(mJacobianU->isBlockMatrix())
+            if (mUForm)
             {
-                Plato::applyBlockConstraints<mNumDofsPerNode>(aMatrix, aVector, mStateBcDofs, mStateBcValues);
+                this->applyConstraintType(aMatrix, aVector, mStateBcDofs, mStateBcValues);
             }
             else
             {
-                Plato::applyConstraints<mNumDofsPerNode>(aMatrix, aVector, mStateBcDofs, mStateBcValues);
+                this->applyConstraintType(aMatrix, aVector, mStateDotDotBcDofs, mStateDotDotBcValues);
+            }
+        }
+
+        /******************************************************************************/
+        void applyConstraintType(
+          const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
+          const Plato::ScalarVector                & aVector,
+          const Plato::OrdinalVector               & aBcDofs,
+          const Plato::ScalarVector                & aBcValues
+        )
+        /******************************************************************************/
+        {
+            if(mJacobianU->isBlockMatrix())
+            {
+                Plato::applyBlockConstraints<mNumDofsPerNode>(aMatrix, aVector, aBcDofs, aBcValues);
+            }
+            else
+            {
+                Plato::applyConstraints<mNumDofsPerNode>(aMatrix, aVector, aBcDofs, aBcValues);
             }
         }
 
@@ -327,18 +357,18 @@ namespace Plato
         solution(const Plato::ScalarVector & aControl)
         /******************************************************************************/
         {
-            auto tResidual = computeInitialState(aControl);
+            this->computeInitialState(aControl);
 
             Plato::Scalar tCurrentTime(0.0);
             for(Plato::OrdinalType tStepIndex = 1; tStepIndex < mNumSteps; tStepIndex++) {
 
                 if (mUForm)
                 {
-                    forwardStepUForm( tResidual, aControl, tCurrentTime, tStepIndex );
+                    this->forwardStepUForm(aControl, tCurrentTime, tStepIndex );
                 }
                 else
                 {
-                    forwardStepAForm( tResidual, aControl, tCurrentTime, tStepIndex );
+                    this->forwardStepAForm(aControl, tCurrentTime, tStepIndex );
                 }
             }
 
@@ -354,7 +384,6 @@ namespace Plato
         **********************************************************************************/
         void
         forwardStepUForm(
-                  Plato::ScalarVector   aResidual,
             const Plato::ScalarVector & aControl,
                   Plato::Scalar       & aCurrentTime,
                   Plato::OrdinalType    aStepIndex
@@ -372,8 +401,8 @@ namespace Plato
             Plato::ScalarVector tAcceleration = Kokkos::subview(mAcceleration, aStepIndex, Kokkos::ALL());
 
             // -R
-            aResidual = mPDEConstraint.value(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, aCurrentTime);
-            Plato::blas1::scale(-1.0, aResidual);
+            auto tResidual = mPDEConstraint.value(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, aCurrentTime);
+            Plato::blas1::scale(-1.0, tResidual);
 
             // R_{v}
             auto tResidualV = mIntegrator->v_value(tDisplacement, tDisplacementPrev,
@@ -384,7 +413,7 @@ namespace Plato
             mJacobianV = mPDEConstraint.gradient_v(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, aCurrentTime);
 
             // -R += R_{,v^N} R_{v}
-            Plato::MatrixTimesVectorPlusVector(mJacobianV, tResidualV, aResidual);
+            Plato::MatrixTimesVectorPlusVector(mJacobianV, tResidualV, tResidual);
 
             // R_{a}
             auto tResidualA = mIntegrator->a_value(tDisplacement, tDisplacementPrev,
@@ -395,7 +424,7 @@ namespace Plato
             mJacobianA = mPDEConstraint.gradient_a(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, aCurrentTime);
 
             // -R += R_{,a^N} R_{a}
-            Plato::MatrixTimesVectorPlusVector(mJacobianA, tResidualA, aResidual);
+            Plato::MatrixTimesVectorPlusVector(mJacobianA, tResidualA, tResidual);
 
             // R_{,u^N}
             mJacobianU = mPDEConstraint.gradient_u(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, aCurrentTime);
@@ -413,13 +442,13 @@ namespace Plato
             Plato::blas1::axpy(-tR_au, mJacobianA->entries(), mJacobianU->entries());
 
             mStateBoundaryConditions.get(mStateBcDofs, mStateBcValues, aCurrentTime);
-            this->applyConstraints(mJacobianU, aResidual);
+            this->applyConstraints(mJacobianU, tResidual);
 
             Plato::ScalarVector tDeltaD("increment", tDisplacement.extent(0));
             Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tDeltaD);
 
             // compute displacement increment:
-            mSolver->solve(*mJacobianU, tDeltaD, aResidual);
+            mSolver->solve(*mJacobianU, tDeltaD, tResidual);
 
             // compute and add velocity increment: \Delta v = - ( R_{v} + R_{v,u} \Delta u )
             Plato::blas1::axpy(tR_vu, tDeltaD, tResidualV);
@@ -434,10 +463,13 @@ namespace Plato
             // add displacement increment
             Plato::blas1::axpy(1.0, tDeltaD, tDisplacement);
 
+            // fill in essential boundary fields
+            this->constrainFieldsAtBoundary(tDisplacement,tVelocity,tAcceleration,aCurrentTime);
+
             if ( mSaveState )
             {
                 // evaluate at new state
-                aResidual  = mPDEConstraint.value(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, aCurrentTime);
+                tResidual  = mPDEConstraint.value(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, aCurrentTime);
                 mDataMap.saveState();
             }
         }
@@ -450,14 +482,12 @@ namespace Plato
         **********************************************************************************/
         void
         forwardStepAForm(
-                  Plato::ScalarVector   aResidual,
             const Plato::ScalarVector & aControl,
-                  Plato::Scalar         aCurrentTime,
+                  Plato::Scalar       & aCurrentTime,
                   Plato::OrdinalType    aStepIndex
         )
         /******************************************************************************/
         {
-
             aCurrentTime += mTimeStep;
 
             Plato::ScalarVector tDisplacementPrev = Kokkos::subview(mDisplacement, aStepIndex-1, Kokkos::ALL());
@@ -469,8 +499,8 @@ namespace Plato
             Plato::ScalarVector tAcceleration = Kokkos::subview(mAcceleration, aStepIndex, Kokkos::ALL());
 
             // -R
-            aResidual  = mPDEConstraint.value(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, aCurrentTime);
-            Plato::blas1::scale(-1.0, aResidual);
+            auto tResidual  = mPDEConstraint.value(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, aCurrentTime);
+            Plato::blas1::scale(-1.0, tResidual);
 
             // R_{v}
             auto tResidualV = mIntegrator->v_value(tDisplacement, tDisplacementPrev,
@@ -481,7 +511,7 @@ namespace Plato
             mJacobianV = mPDEConstraint.gradient_v(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, aCurrentTime);
 
             // -R += R_{,v^N} R_{v}
-            Plato::MatrixTimesVectorPlusVector(mJacobianV, tResidualV, aResidual);
+            Plato::MatrixTimesVectorPlusVector(mJacobianV, tResidualV, tResidual);
 
             // R_{u}
             auto tResidualU = mIntegrator->u_value(tDisplacement, tDisplacementPrev,
@@ -492,7 +522,7 @@ namespace Plato
             mJacobianU = mPDEConstraint.gradient_u(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, aCurrentTime);
 
             // -R += R_{,u^N} R_{u}
-            Plato::MatrixTimesVectorPlusVector(mJacobianU, tResidualU, aResidual);
+            Plato::MatrixTimesVectorPlusVector(mJacobianU, tResidualU, tResidual);
 
             // R_{,a^N}
             mJacobianA = mPDEConstraint.gradient_a(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, aCurrentTime);
@@ -509,18 +539,18 @@ namespace Plato
             // R_{,a^N} -= R_{,u^N} R_{u,a^N}
             Plato::blas1::axpy(-tR_ua, mJacobianU->entries(), mJacobianA->entries());
 
-            mStateBoundaryConditions.get(mStateBcDofs, mStateBcValues, aCurrentTime);
-            this->applyConstraints(mJacobianA, aResidual);
+            mStateDotDotBoundaryConditions.get(mStateDotDotBcDofs, mStateDotDotBcValues, aCurrentTime);
+            this->applyConstraints(mJacobianA, tResidual);
 
             Plato::ScalarVector tDeltaA("increment", tAcceleration.extent(0));
             Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tDeltaA);
 
-            // compute displacement increment:
+            // compute acceleration increment:
             if(tR_ua == 0.0)
             {
-              Plato::Solve::RowSummed<SimplexPhysics::mNumDofsPerNode>(mJacobianA, tDeltaA, aResidual);
+              Plato::Solve::RowSummed<SimplexPhysics::mNumDofsPerNode>(mJacobianA, tDeltaA, tResidual);
             } else {
-              mSolver->solve(*mJacobianA, tDeltaA, aResidual);
+              mSolver->solve(*mJacobianA, tDeltaA, tResidual);
             }
 
             // compute and add velocity increment: \Delta v = - ( R_{v} + R_{v,a} \Delta a )
@@ -536,10 +566,13 @@ namespace Plato
             // add acceleration increment
             Plato::blas1::axpy(1.0, tDeltaA, tAcceleration);
 
+            // fill in essential boundary fields
+            this->constrainFieldsAtBoundary(tDisplacement,tVelocity,tAcceleration,aCurrentTime);
+
             if ( mSaveState )
             {
                 // evaluate at new state
-                aResidual  = mPDEConstraint.value(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, aCurrentTime);
+                tResidual  = mPDEConstraint.value(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, aCurrentTime);
                 mDataMap.saveState();
             }
         }
@@ -548,7 +581,7 @@ namespace Plato
          * \brief compute the initial state
          * \param [in] aControl 1D container of control variables
         **********************************************************************************/
-        Plato::ScalarVector
+        void
         computeInitialState(
             const Plato::ScalarVector & aControl
         )
@@ -566,12 +599,75 @@ namespace Plato
             Kokkos::deep_copy(tDisplacementInit, mInitDisplacement);
             Kokkos::deep_copy(tVelocityInit,     mInitVelocity);
             Kokkos::deep_copy(tAccelerationInit, mInitAcceleration);
+
+            this->constrainFieldsAtBoundary(tDisplacementInit,tVelocityInit,tAccelerationInit,0.0);
+
             auto tResidual = mPDEConstraint.value(tDisplacementInit, tVelocityInit, tAccelerationInit, aControl, mTimeStep, 0.0);
             mDataMap.saveState();
-
-            return tResidual;
         }
 
+        /******************************************************************************//**
+         * \brief constrain fields at Essential BC DOFs
+        **********************************************************************************/
+        void
+        constrainFieldsAtBoundary(
+                  Plato::ScalarVector & aDisplacement,
+                  Plato::ScalarVector & aVelocity,
+                  Plato::ScalarVector & aAcceleration,
+            const Plato::Scalar         aTime)
+        {
+            if (mUForm)
+            {
+                this->constrainUFormFieldsAtBoundary(aVelocity, aAcceleration, aTime);
+            }
+            else
+            {
+                this->constrainAFormFieldsAtBoundary(aDisplacement, aVelocity, aTime);
+            }
+        }
+
+        /******************************************************************************//**
+         * \brief constrain u-form fields at Essential BC DOFs
+        **********************************************************************************/
+        void
+        constrainUFormFieldsAtBoundary(
+                  Plato::ScalarVector & aVelocity,
+                  Plato::ScalarVector & aAcceleration,
+            const Plato::Scalar         aTime)
+        {
+            mStateDotBoundaryConditions.get(mStateDotBcDofs, mStateDotBcValues, aTime);
+            mStateDotDotBoundaryConditions.get(mStateDotDotBcDofs, mStateDotDotBcValues, aTime);
+            if (mStateDotBcDofs.size() > 0)
+            {
+                Plato::enforce_boundary_condition(mStateDotBcDofs, mStateDotBcValues, aVelocity);
+            }
+            if (mStateDotDotBcDofs.size() > 0)
+            {
+                Plato::enforce_boundary_condition(mStateDotDotBcDofs, mStateDotDotBcValues, aAcceleration);
+            }
+        }
+
+        /******************************************************************************//**
+         * \brief constrain a-form fields at Essential BC DOFs
+        **********************************************************************************/
+        void
+        constrainAFormFieldsAtBoundary(
+                  Plato::ScalarVector & aDisplacement,
+                  Plato::ScalarVector & aVelocity,
+            const Plato::Scalar         aTime)
+        {
+            mStateBoundaryConditions.get(mStateBcDofs, mStateBcValues, aTime);
+            mStateDotBoundaryConditions.get(mStateDotBcDofs, mStateDotBcValues, aTime);
+            if (mStateBcDofs.size() > 0)
+            {
+                Plato::enforce_boundary_condition(mStateBcDofs, mStateBcValues, aDisplacement);
+            }
+            if (mStateDotBcDofs.size() > 0)
+            {
+                Plato::enforce_boundary_condition(mStateDotBcDofs, mStateDotBcValues, aVelocity);
+            }
+        }
+        
         /******************************************************************************//**
          * \brief Evaluate criterion function
          * \param [in] aControl 1D view of control variables
@@ -593,7 +689,7 @@ namespace Plato
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -618,7 +714,7 @@ namespace Plato
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -643,7 +739,7 @@ namespace Plato
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -668,7 +764,7 @@ namespace Plato
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -688,7 +784,7 @@ namespace Plato
         {
             if(aCriterion == nullptr)
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
 
             Plato::Solutions tSolution(mPhysics);
@@ -842,7 +938,7 @@ namespace Plato
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -867,7 +963,7 @@ namespace Plato
             }
             else
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
         }
 
@@ -887,7 +983,7 @@ namespace Plato
         {
             if(aCriterion == nullptr)
             {
-                THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
+                ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");
             }
 
             Plato::Solutions tSolution(mPhysics);
@@ -1029,12 +1125,10 @@ namespace Plato
         Plato::Solutions getSolution() const override
         {
             Plato::Solutions tSolution(mPhysics, mPDE);
-            tSolution.set("State", mDisplacement);
-            tSolution.set("StateDot", mVelocity);
-            tSolution.set("StateDotDot", mAcceleration);
+            tSolution.set("State",       mDisplacement, mPDEConstraint.getDofNames());
+            tSolution.set("StateDot",    mVelocity,     mPDEConstraint.getDofDotNames());
+            tSolution.set("StateDotDot", mAcceleration, mPDEConstraint.getDofDotDotNames());
             return tSolution;
         }
     };
 }
-
-#endif

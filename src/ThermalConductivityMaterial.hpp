@@ -66,7 +66,7 @@ ThermalConductionModelFactory<SpatialDim>::create(std::string aModelName)
         {
             std::stringstream ss;
             ss << "Requested a material model ('" << aModelName << "') that isn't defined";
-            THROWERR(ss.str());
+            ANALYZE_THROWERR(ss.str());
         }
 
         auto tModelParamList = tModelsParamList.sublist(aModelName);
@@ -75,7 +75,7 @@ ThermalConductionModelFactory<SpatialDim>::create(std::string aModelName)
             return Teuchos::rcp(new ThermalConductionModel<SpatialDim>(tModelParamList.sublist("Thermal Conduction")));
         }
         else
-        THROWERR("Expected 'Thermal Conduction' ParameterList");
+        ANALYZE_THROWERR("Expected 'Thermal Conduction' ParameterList");
     }
 }
 

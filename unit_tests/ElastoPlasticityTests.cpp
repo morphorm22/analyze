@@ -8,7 +8,7 @@
 
 #include "PlatoUtilities.hpp"
 #include "PlatoTestHelpers.hpp"
-#include "Plato_Diagnostics.hpp"
+#include "Analyze_Diagnostics.hpp"
 
 #include "PlasticityProblem.hpp"
 #include "SimplexStabilizedMechanics.hpp"
@@ -39,18 +39,18 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputePrincipalStress
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     // Set configuration workset
-    auto tNumCells = tMesh->nelems();
+    auto tNumCells = tMesh->NumElements();
     using PhysicsT = Plato::SimplexPlasticity<tSpaceDim>;
     using EvalType = typename Plato::Evaluation<PhysicsT>::Residual;
-    Plato::WorksetBase<PhysicsT> tWorksetBase(*tMesh);
+    Plato::WorksetBase<PhysicsT> tWorksetBase(tMesh);
     Plato::ScalarArray3DT<EvalType::ConfigScalarType> tConfigWS("configuration", tNumCells, PhysicsT::mNumNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfigWS);
 
     // Set global, local state, and control worksets
-    auto tNumNodes = tMesh->nverts();
+    auto tNumNodes = tMesh->NumNodes();
     decltype(tNumNodes) tNumState = 3;
     auto tNumDofsPerNode = PhysicsT::mNumDofsPerNode;
     Plato::ScalarVectorT<EvalType::StateScalarType> tGlobalState("state", tNumState * tNumNodes);
@@ -76,7 +76,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputePrincipalStress
 
     // Test results
     constexpr Plato::Scalar tTolerance = 1e-4;
-    std::vector<std::vector<Plato::Scalar>> tGold = {{1.140440e-06, -2.737734e-07}, {9.837722e-07, 1.616228e-06}};
+    std::vector<std::vector<Plato::Scalar>> tGold = {{1.23333e-06, 2.23333e-06}, {1.23333e-06, 2.23333e-06}};
     auto tHostPrincipalStressWS = Kokkos::create_mirror(tPrincipalStressWS);
     Kokkos::deep_copy(tHostPrincipalStressWS, tPrincipalStressWS);
     for (size_t tCell = 0; tCell < tNumCells; tCell++)
@@ -94,18 +94,18 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputePrincipalStress
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // Set configuration workset
-    auto tNumCells = tMesh->nelems();
+    auto tNumCells = tMesh->NumElements();
     using PhysicsT = Plato::SimplexPlasticity<tSpaceDim>;
     using EvalType = typename Plato::Evaluation<PhysicsT>::Residual;
-    Plato::WorksetBase<PhysicsT> tWorksetBase(*tMesh);
+    Plato::WorksetBase<PhysicsT> tWorksetBase(tMesh);
     Plato::ScalarArray3DT<EvalType::ConfigScalarType> tConfigWS("configuration", tNumCells, PhysicsT::mNumNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfigWS);
 
     // Set global, local state, and control worksets
-    auto tNumNodes = tMesh->nverts();
+    auto tNumNodes = tMesh->NumNodes();
     decltype(tNumNodes) tNumState = 4;
     auto tNumDofsPerNode = PhysicsT::mNumDofsPerNode;
     Plato::ScalarVectorT<EvalType::StateScalarType> tGlobalState("state", tNumState * tNumNodes);
@@ -134,12 +134,12 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputePrincipalStress
     constexpr Plato::Scalar tTolerance = 1e-4;
     std::vector<std::vector<Plato::Scalar>> tGold =
         {
-         {6.000000e-06,8.240967e-06,5.759033e-06},
-         {5.333333e-06,7.564284e-06,4.302383e-06},
-         {2.892366e-06,3.333333e-06,5.374301e-06},
-         {3.210889e-06,6.666667e-07,-6.775555e-07},
-         {2.872078e-06,-3.705232e-19,-2.472078e-06},
-         {1.274022e-06,-2.000000e-06,-4.474022e-06}
+          {8.147976e-06, 5.333333e-06, 4.718691e-06},
+          {8.147976e-06, 5.333333e-06, 4.718691e-06},
+          {8.147976e-06, 5.333333e-06, 4.718691e-06},
+          {8.147976e-06, 5.333333e-06, 4.718691e-06},
+          {8.147976e-06, 5.333333e-06, 4.718691e-06},
+          {8.147976e-06, 5.333333e-06, 4.718691e-06}
         };
     auto tHostPrincipalStressWS = Kokkos::create_mirror(tPrincipalStressWS);
     Kokkos::deep_copy(tHostPrincipalStressWS, tPrincipalStressWS);
@@ -1781,17 +1781,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputeElasticStrain3D
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
     constexpr Plato::OrdinalType tNumVoigtTerms = 6;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     // Set configuration workset
-    auto tNumCells = tMesh->nelems();
+    auto tNumCells = tMesh->NumElements();
     using PhysicsT = Plato::SimplexPlasticity<tSpaceDim>;
-    Plato::WorksetBase<PhysicsT> tWorksetBase(*tMesh);
+    Plato::WorksetBase<PhysicsT> tWorksetBase(tMesh);
     Plato::ScalarArray3D tConfig("configuration", tNumCells, PhysicsT::mNumNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfig);
 
     // Set state workset
-    auto tNumNodes = tMesh->nverts();
+    auto tNumNodes = tMesh->NumNodes();
     decltype(tNumNodes) tNumState = 4;
     auto tNumDofsPerNode = PhysicsT::mNumDofsPerNode;
     Plato::ScalarVectorT<Plato::Scalar> tState("state", tNumState * tNumNodes);
@@ -1827,12 +1827,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputeElasticStrain3D
     }, "compute elastic strain test");
 
     std::vector<std::vector<Plato::Scalar>> tGold =
-        { {1e-7,  6e-7,  3e-7, 1.1e-6,   4e-7,   5e-7},
-          {3e-7,  6e-7, -3e-7,   7e-7,   8e-7,   9e-7},
-          {3e-7,  2e-7,  3e-7,   5e-7,   1e-6,   7e-7},
-          {5e-7, -2e-7,  3e-7,  -1e-7, 1.6e-6,   9e-7},
-          {7e-7, -2e-7, -3e-7,  -5e-7,   2e-6, 1.3e-6},
-          {7e-7, -6e-7,  3e-7,  -7e-7, 2.2e-6, 1.1e-6} };
+        {
+          {4e-7,  4e-7,  3e-7,  8e-7,  1.3e-6,  1e-6},
+          {4e-7,  4e-7,  3e-7,  8e-7,  1.3e-6,  1e-6},
+          {4e-7,  4e-7,  3e-7,  8e-7,  1.3e-6,  1e-6},
+          {4e-7,  4e-7,  3e-7,  8e-7,  1.3e-6,  1e-6},
+          {4e-7,  4e-7,  3e-7,  8e-7,  1.3e-6,  1e-6},
+          {4e-7,  4e-7,  3e-7,  8e-7,  1.3e-6,  1e-6}
+        };
     auto tHostStrains = Kokkos::create_mirror(tElasticStrains);
     Kokkos::deep_copy(tHostStrains, tElasticStrains);
 
@@ -1843,7 +1845,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputeElasticStrain3D
     {
         for (Plato::OrdinalType tIndexJ = 0; tIndexJ < tDim1; tIndexJ++)
         {
-            //printf("X(%d,%d) = %f\n", tIndexI, tIndexJ, tHostInput(tIndexI, tIndexJ));
+            //printf("X(%d,%d) = %e\n", tIndexI, tIndexJ, tHostStrains(tIndexI, tIndexJ));
             TEST_FLOATING_EQUALITY(tHostStrains(tIndexI, tIndexJ), tGold[tIndexI][tIndexJ], tTolerance);
         }
     }
@@ -1884,22 +1886,18 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_Residual2D_Elastic)
 
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
-    Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tElastoPlasticityInputs);
+    Plato::SpatialModel tSpatialModel(tMesh, *tElastoPlasticityInputs);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
     // 2. PREPARE FUNCTION INPUTS FOR TEST
-    const Plato::OrdinalType tNumNodes = tMesh->nverts();
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumNodes = tMesh->NumNodes();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
     using PhysicsT = Plato::SimplexPlasticity<tSpaceDim>;
     using EvalType = typename Plato::Evaluation<PhysicsT>::Residual;
-    Plato::WorksetBase<PhysicsT> tWorksetBase(*tMesh);
+    Plato::WorksetBase<PhysicsT> tWorksetBase(tMesh);
 
     // 2.1 SET CONFIGURATION
     Plato::ScalarArray3DT<EvalType::ConfigScalarType> tConfiguration("configuration", tNumCells, PhysicsT::mNumNodesPerCell, tSpaceDim);
@@ -1941,6 +1939,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_Residual2D_Elastic)
     Plato::ScalarMultiVectorT<EvalType::PrevLocalStateScalarType> tPrevLocalState("previous local state", tNumCells, PhysicsT::mNumLocalDofsPerCell);
 
     // 3. CALL FUNCTION
+    Plato::DataMap tDataMap;
     Plato::InfinitesimalStrainPlasticityResidual<EvalType, PhysicsT> tComputeResidual(tOnlyDomain, tDataMap, *tElastoPlasticityInputs);
     Plato::ScalarMultiVectorT<EvalType::ResultScalarType> tResidualWS("residual", tNumCells, PhysicsT::mNumDofsPerCell);
     Plato::TimeData tTimeData(*tElastoPlasticityInputs);
@@ -1953,14 +1952,18 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_Residual2D_Elastic)
     Kokkos::deep_copy(tHostResidualWS, tResidualWS);
     std::vector<std::vector<Plato::Scalar>> tGold =
         {
-          { -0.102564, -0.0961538, 1.66666e-08, 0.00641051, 0.185897, 1.66666e-08, 9.615385e-02, -0.0897433, 1.66673e-08},
-          { 1.5e-07, 5.769231e-02, 5.00005e-08, 0.0576922, -0.0192306, 5.00005e-08, -0.0576923, -0.0384617, 5.00006e-08}
+          {-2.5641275641e-02, -9.6153846154e-02, 6.6666484772e-08,
+           -7.0512570513e-02,  7.0512570513e-02, 6.6666116245e-08,
+            9.6153846154e-02,  2.5641275641e-02, 6.6667098983e-08 },
+          {-9.6153846154e-02, -2.5641225641e-02, 6.6665399191e-08,
+            2.5641225641e-02,  9.6153846154e-02, 6.6666996141e-08,
+            7.0512620513e-02, -7.0512620513e-02, 6.6667364668e-08 }
         };
     for(Plato::OrdinalType tCellIndex=0; tCellIndex < tNumCells; tCellIndex++)
     {
         for(Plato::OrdinalType tDofIndex=0; tDofIndex< PhysicsT::mNumDofsPerCell; tDofIndex++)
         {
-            //printf("residual(%d,%d) = %.10f\n", tCellIndex, tDofIndex, tHostResidualWS(tCellIndex, tDofIndex));
+            //printf("residual(%d,%d) = %.10e\n", tCellIndex, tDofIndex, tHostResidualWS(tCellIndex, tDofIndex));
             TEST_FLOATING_EQUALITY(tHostResidualWS(tCellIndex, tDofIndex), tGold[tCellIndex][tDofIndex], tTolerance);
         }
     }
@@ -2000,22 +2003,18 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_Residual3D_Elastic)
 
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
-    Plato::DataMap tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
-    Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tInputs);
+    Plato::SpatialModel tSpatialModel(tMesh, *tInputs);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
     // 2. PREPARE FUNCTION INPUTS FOR TEST
-    const Plato::OrdinalType tNumNodes = tMesh->nverts();
-    const Plato::OrdinalType tNumCells = tMesh->nelems();
+    const Plato::OrdinalType tNumNodes = tMesh->NumNodes();
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
     using PhysicsT = Plato::SimplexPlasticity<tSpaceDim>;
     using EvalType = typename Plato::Evaluation<PhysicsT>::Residual;
-    Plato::WorksetBase<PhysicsT> tWorksetBase(*tMesh);
+    Plato::WorksetBase<PhysicsT> tWorksetBase(tMesh);
 
     // 2.1 SET CONFIGURATION
     Plato::ScalarArray3DT<EvalType::ConfigScalarType> tConfiguration("configuration", tNumCells, PhysicsT::mNumNodesPerCell, tSpaceDim);
@@ -2059,6 +2058,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_Residual3D_Elastic)
     Plato::ScalarMultiVectorT<EvalType::PrevLocalStateScalarType> tPrevLocalState("previous local state", tNumCells, PhysicsT::mNumLocalDofsPerCell);
 
     // 3. CALL FUNCTION
+    Plato::DataMap tDataMap;
     Plato::InfinitesimalStrainPlasticityResidual<EvalType, PhysicsT> tComputeResidual(tOnlyDomain, tDataMap, *tInputs);
     Plato::ScalarMultiVectorT<EvalType::ResultScalarType> tResidual("residual", tNumCells, PhysicsT::mNumDofsPerCell);
     Plato::TimeData tTimeData(*tInputs);
@@ -2068,23 +2068,23 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_Residual3D_Elastic)
     // 5. TEST RESULTS
     std::vector<std::vector<Plato::Scalar>> tGold =
     {
-      {-3.086420e+03, -3.292181e+03, -6.790123e+03,  4.166667e-08,  -5.349794e+03, -3.703704e+03, 2.880658e+03, 4.166667e-08,
-       5.967078e+03,  2.057613e+02,  4.320988e+03, 4.166667e-08,  2.469136e+03,  6.790123e+03,  -4.115226e+02, 4.166667e-08},
+      {-6.1728395e+03, -4.1152263e+02, -4.9382716e+03, 4.5833333e-08, -7.6131687e+03, 1.2345679e+03, 8.8477366e+03, 4.5833333e-08,
+       5.7613169e+03, -5.7613169e+03, -3.0864198e+03, 4.5833333e-08, 8.0246914e+03, 4.9382716e+03, -8.2304527e+02, 4.5833333e-08},
 
-      {-5.555556e+03, -4.938272e+03, -4.320988e+03,  2.500000e-08,  6.172840e+02,  6.172840e+02, 1.049383e+04, 2.500000e-08,
-       3.703704e+03, -1.234568e+03,  -1.111111e+04,  2.500000e-08,  1.234568e+03,  5.555556e+03,  4.938272e+03, 2.500000e-08},
+      {-6.1728395e+03, -4.1152263e+02, -4.9382716e+03, 4.5833333e-08, -1.8518519e+03, -4.5267490e+03, 5.7613169e+03, 4.5833333e-08,
+       7.6131687e+03, -1.2345679e+03, -8.8477366e+03, 4.5833333e-08, 4.1152263e+02, 6.1728395e+03, 8.0246914e+03, 4.5833333e-08},
 
-      {-6.172840e+03, -3.086420e+03, -4.115226e+02,  3.333333e-08, 3.909465e+03,  -5.144033e+03, -3.086420e+03,  3.333333e-08,
-        1.851852e+03, 3.909465e+03,  -2.674897e+03,  3.333333e-08,  4.115226e+02,  4.320988e+03,  6.172840e+03, 3.333333e-08},
+      {-8.0246914e+03, -4.9382716e+03, 8.2304527e+02, 4.5833333e-08, 5.7613169e+03, -5.7613169e+03, -3.0864198e+03, 4.5833333e-08,
+       1.8518519e+03, 4.5267490e+03, -5.7613169e+03, 4.5833333e-08, 4.1152263e+02, 6.1728395e+03, 8.0246914e+03, 4.5833333e-08},
 
-      {-9.876543e+03,  6.172840e+02, -1.234568e+03,  2.500000e-08,  -1.851852e+03, 1.049383e+04,  1.049383e+04, 2.500000e-08,
-        5.555556e+03,  -4.938272e+03, -6.172840e+02, 2.500000e-08, 6.172840e+03, -6.172840e+03,  -8.641975e+03, 2.500000e-08},
+      {-8.0246914e+03, -4.9382716e+03, 8.2304527e+02, 4.5833333e-08, 7.6131687e+03, -1.2345679e+03, -8.8477366e+03, 4.5833333e-08,
+       -5.7613169e+03, 5.7613169e+03, 3.0864198e+03, 4.5833333e-08, 6.1728395e+03, 4.1152263e+02, 4.9382716e+03, 4.5833333e-08},
 
-      { -4.526749e+03,  1.111111e+04, 1.687243e+04, 8.333333e-09,  4.320988e+03, 2.057613e+02,  -1.440329e+03, 8.333333e-09,
-        8.024691e+03, -3.292181e+03, -3.086420e+03, 8.333333e-09, -7.818930e+03, -8.024691e+03, -1.234568e+04, 8.333333e-09},
+      {-4.1152263e+02, -6.1728395e+03, -8.0246914e+03, 4.5833333e-08, 1.8518519e+03, 4.5267490e+03, -5.7613169e+03, 4.5833333e-08,
+       -7.6131687e+03, 1.2345679e+03, 8.8477366e+03, 4.5833333e-08, 6.1728395e+03, 4.1152263e+02, 4.9382716e+03, 4.5833333e-08},
 
-      { 2.057613e+02, 1.584362e+04,  1.790123e+04, 1.666667e-08,  1.358025e+04, -4.320988e+03, 2.057613e+03, 1.666667e-08,
-       -6.790123e+03, -4.732510e+03, -6.378601e+03, 1.666667e-08, -6.995885e+03, -6.790123e+03, -1.358025e+04, 1.666667e-08}
+      {-4.1152263e+02, -6.1728395e+03, -8.0246914e+03, 4.5833333e-08, -5.7613169e+03, 5.7613169e+03, 3.0864198e+03, 4.5833333e-08,
+       -1.8518519e+03, -4.5267490e+03, 5.7613169e+03, 4.5833333e-08, 8.0246914e+03, 4.9382716e+03, -8.2304527e+02, 4.5833333e-08},
     };
 
     auto tHostResidual = Kokkos::create_mirror(tResidual);
@@ -2094,7 +2094,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_Residual3D_Elastic)
     {
         for(Plato::OrdinalType tDofIndex=0; tDofIndex< PhysicsT::mNumDofsPerCell; tDofIndex++)
         {
-            //printf("residual(%d,%d) = %.10f\n", tCellIndex, tDofIndex, tHostElastoPlasticityResidual(tCellIndex, tDofIndex));
+            //printf("residual(%d,%d) = %.7e\n", tCellIndex, tDofIndex, tHostResidual(tCellIndex, tDofIndex));
             TEST_FLOATING_EQUALITY(tHostResidual(tCellIndex, tDofIndex), tGold[tCellIndex][tDofIndex], tTolerance);
         }
     }
@@ -2156,22 +2156,22 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ElasticSolution3D)
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Z Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='2'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Time Dependent'/>                \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Function'    type='string' value='-0.001*t'/>                   \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -2181,34 +2181,27 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ElasticSolution3D)
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
-    PlatoUtestHelpers::set_mesh_sets_3D(*tMesh, tMeshSets);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     MPI_Comm myComm;
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
 
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solve problem
-    const Plato::OrdinalType tNumVerts = tMesh->nverts();
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
     Plato::ScalarVector tControls = Plato::ScalarVector("Controls", tNumVerts);
     Plato::blas1::fill(1.0, tControls);
     auto tSolution = tPlasticityProblem.solution(tControls);
 
     std::vector<std::vector<Plato::Scalar>> tGold =
-        {
-          {0, 0, 0, -418444.0, 0, 0, 0, -3.06295e+06, 0, 0, 0,  7.8685e+06, 0, 0, 0, 9.58504e+06,
-           3.118233e-4, -1.0e-3, 4.815153e-5, 1.97175e+06, 2.340348e-4, -1.0e-3, 4.357691e-5, -418444.0,
-           -3.927496e-4, -1.0e-3, 5.100447e-5, -1.10956e+07, -1.803906e-4, -1.0e-3, 9.081316e-5, -7.77742e+06}
-        };
+    {{  0.000000e+00,  0.000000e+00, 0.000000e+00, -4.184439e+05,  0.000000e+00,  0.000000e+00, 0.000000e+00, -3.062953e+06,
+        0.000000e+00,  0.000000e+00, 0.000000e+00,  9.585038e+06,  0.000000e+00,  0.000000e+00, 0.000000e+00,  7.868504e+06,
+       -1.803906e-04, -1.000000e-03, 9.081316e-05, -7.777417e+06, -3.927496e-04, -1.000000e-03, 5.100447e-05, -1.109559e+07,
+        3.118233e-04, -1.000000e-03, 4.815153e-05,  1.971753e+06,  2.340348e-04, -1.000000e-03, 4.357691e-05, -4.184439e+05 }};
     auto tState = tSolution.get("State");
     auto tHostState = Kokkos::create_mirror(tState);
     Kokkos::deep_copy(tHostState, tState);
@@ -2220,7 +2213,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ElasticSolution3D)
     {
         for (Plato::OrdinalType tIndexJ = 0; tIndexJ < tDim1; tIndexJ++)
         {
-            //printf("X(%d,%d) = %f\n", tIndexI, tIndexJ, tHostInput(tIndexI, tIndexJ));
+            //printf("X(%d,%d) = %e\n", tIndexI, tIndexJ, tHostState(tIndexI, tIndexJ));
             TEST_FLOATING_EQUALITY(tHostState(tIndexI, tIndexJ), tGold[tIndexI][tIndexJ], tTolerance);
         }
     }
@@ -2240,10 +2233,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamTra
 {
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 2;
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(10.0,1.0,10,2);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10.0, 10, 1.0, 2);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -2310,7 +2300,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamTra
       "   <ParameterList  name='Traction Vector Boundary Condition'>                            \n"
       "     <Parameter  name='Type'     type='string'        value='Uniform'/>                  \n"
       "     <Parameter  name='Values'   type='Array(string)' value='{0.0, -100*t, 0.0}'/>         \n"
-      "     <Parameter  name='Sides'    type='string'        value='Load'/>                     \n"
+      "     <Parameter  name='Sides'    type='string'        value='y+'/>                     \n"
       "   </ParameterList>                                                                      \n"
       "  </ParameterList>                                                                       \n"
       "  </ParameterList>                                                                       \n"
@@ -2318,7 +2308,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamTra
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='XFixed'/>                        \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                        \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='X Fixed Displacement Boundary Condition 2'>                   \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
@@ -2340,21 +2330,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamTra
 
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
 
+    tMesh->CreateNodeSet("Pinned", {32});
+
     // 1. Construct plasticity problem
-    auto tFaceIDs1 = PlatoUtestHelpers::get_edge_ids_on_y1(*tMesh);
-    tMeshSets[Omega_h::SIDE_SET]["Load"] = tFaceIDs1;
-
-    auto tDirichletBoundaryNodesX0 = PlatoUtestHelpers::get_2D_boundary_nodes_x0(*tMesh);
-    tMeshSets[Omega_h::NODE_SET]["XFixed"] = tDirichletBoundaryNodesX0;
-
-    Omega_h::LOs tPinnedNodeLOs({32});
-    tMeshSets[Omega_h::NODE_SET]["Pinned"] = tPinnedNodeLOs;
-
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
-    auto tNumVertices = tMesh->nverts();
+    auto tNumVertices = tMesh->NumNodes();
     Plato::ScalarVector tControls("Controls", tNumVertices);
     Plato::blas1::fill(1.0, tControls);
     auto tSolution = tPlasticityProblem.solution(tControls);
@@ -2371,13 +2354,19 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamTra
     auto tHostPressure = Kokkos::create_mirror(tPressure);
     Kokkos::deep_copy(tHostPressure, tPressure);
     std::vector<std::vector<Plato::Scalar>> tGoldPress =
-        {
-         {-2.115362e+02, -1.874504e+03, -2.294189e+02, -1.516672e+03, -2.785281e+03, -2.925495e+03, -2.970340e+03, -4.293099e+02,
-          -1.685521e+03, -5.322904e+02, -1.665030e+03, -2.835582e+03, -6.988780e+02, -1.668066e+03, -2.687101e+03, -2.258380e+03,
-          -2.495897e+03, -1.672543e+03, -9.116663e+02, -1.675849e+03, -1.168386e+03, -1.974995e+03, -1.677669e+03, -1.470044e+03,
-          -1.702233e+03, -1.860586e+03, -1.668134e+03, -1.143118e+03, -1.319865e+03, -1.653114e+03, -2.204908e+03, -1.995014e+03,
-          -2.705687e+03}
-        };
+    {{
+       3.052423e+03, 1.385351e+03, 3.317594e+02,
+       3.034566e+03, 1.744061e+03, 4.722767e+02,
+       2.834373e+03, 1.574805e+03, 2.866206e+02,
+       2.731443e+03, 1.595358e+03, 4.214598e+02,
+       2.564833e+03, 1.592306e+03, 5.699304e+02,
+       2.352112e+03, 1.587864e+03, 7.611664e+02,
+       2.096406e+03, 1.585060e+03, 9.990742e+02,
+       1.792042e+03, 1.578607e+03, 1.279003e+03,
+       1.423813e+03, 1.557144e+03, 1.596294e+03,
+       1.264307e+03, 1.776336e+03, 2.194522e+03,
+       1.127440e+03, 1.624595e+03, 2.544026e+03
+    }};
     for(Plato::OrdinalType tTimeStep=0; tTimeStep < tPressure.extent(0); tTimeStep++)
     {
         for(Plato::OrdinalType tOrdinal=0; tOrdinal< tPressure.extent(1); tOrdinal++)
@@ -2391,16 +2380,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamTra
     auto tHostDisplacements = Kokkos::create_mirror(tDisplacements);
     Kokkos::deep_copy(tHostDisplacements, tDisplacements);
     std::vector<std::vector<Plato::Scalar>> tGoldDisp =
-        {
-         {0.0, -6.267770e-02, 0.0, -6.250715e-02, 5.054901e-04, -6.174772e-02, -3.494325e-04, -6.164854e-02, -1.189951e-03,
-          -6.163677e-02, 0.0, -6.243005e-02, -2.395852e-03, -5.908745e-02, 9.381758e-04, -5.919208e-02, -7.291411e-04, -5.909716e-02,
-          1.326328e-03, -5.503616e-02, -1.099687e-03, -5.494402e-02, -3.525908e-03, -5.492911e-02, 1.629318e-03, -4.941788e-02,  -1.472318e-03,
-          -4.933201e-02, -4.573797e-03, -4.931350e-02, -6.306177e-03, -3.454268e-02, -5.510012e-03, -4.243363e-02, -1.845476e-03, -4.245746e-02,
-          1.819180e-03, -4.253584e-02, -2.219095e-03, -3.457328e-02, 1.868041e-03, -3.464274e-02, -6.934208e-03, -2.594957e-02, -2.593272e-03,
-          -2.598862e-02, 1.747752e-03, -2.604802e-02, -2.966076e-03, -1.706881e-02, 1.432299e-03, -1.711426e-02, -7.365046e-03, -1.702033e-02,
-          -7.602023e-03, 1.234104e-04,  -7.582309e-03, -8.182097e-03, -3.335936e-03, -8.239034e-03, 8.764536e-04, -8.256626e-03, -3.587180e-03,
-          1.188541e-05, 0.0, 0.0}
-        };
+    {{ 0.000000e+00, -6.283526e-02, 0.000000e+00, -6.278181e-02,  0.000000e+00, -6.282203e-02,
+       1.251030e-03, -6.190301e-02, 3.939884e-04, -6.192110e-02, -4.486143e-04, -6.202681e-02,
+       2.429147e-03, -5.934106e-02, 7.576278e-04, -5.936341e-02, -9.132838e-04, -5.947119e-02,
+       3.562760e-03, -5.517466e-02, 1.130453e-03, -5.519978e-02, -1.302060e-03, -5.530236e-02,
+       4.611213e-03, -4.954170e-02, 1.501192e-03, -4.957310e-02, -1.608671e-03, -4.967207e-02,
+       5.546530e-03, -4.264079e-02, 1.871399e-03, -4.267969e-02, -1.803615e-03, -4.277334e-02,
+       6.340813e-03, -3.472473e-02, 2.241101e-03, -3.477247e-02, -1.858504e-03, -3.485932e-02,
+       6.966398e-03, -2.610271e-02, 2.610446e-03, -2.616051e-02, -1.744972e-03, -2.623908e-02,
+       7.395616e-03, -1.713672e-02, 2.980310e-03, -1.720833e-02, -1.435730e-03, -1.727999e-02,
+       7.583805e-03, -8.268113e-03, 3.331567e-03, -8.339508e-03, -9.105287e-04, -8.391692e-03,
+       7.620451e-03, -8.424856e-06, 3.609423e-03, -7.921392e-05,  0.000000e+00,  0.000000e+00}};
     for(Plato::OrdinalType tTimeStep=0; tTimeStep < tDisplacements.extent(0); tTimeStep++)
     {
         for(Plato::OrdinalType tOrdinal=0; tOrdinal< tDisplacements.extent(1); tOrdinal++)
@@ -2487,7 +2477,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
       "   <ParameterList  name='Traction Vector Boundary Condition'>                            \n"
       "     <Parameter  name='Type'     type='string'        value='Uniform Pressure'/>         \n"
       "     <Parameter  name='Value'    type='string'        value='100*t'/>                    \n"
-      "     <Parameter  name='Sides'    type='string'        value='Load'/>                     \n"
+      "     <Parameter  name='Sides'    type='string'        value='y+'/>                     \n"
       "   </ParameterList>                                                                      \n"
       "  </ParameterList>                                                                       \n"
       "  </ParameterList>                                                                       \n"
@@ -2495,7 +2485,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='XFixed'/>                        \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                        \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='X Fixed Displacement Boundary Condition 2'>                   \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
@@ -2512,10 +2502,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
     );
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 2;
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(10.0,1.0,10,2);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10.0, 10, 1.0, 2);
 
     MPI_Comm myComm;
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -2523,21 +2510,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
 
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
 
+    tMesh->CreateNodeSet("Pinned", {32});
+
     // 1. Construct plasticity problem
-    auto tFaceIDs1 = PlatoUtestHelpers::get_edge_ids_on_y1(*tMesh);
-    tMeshSets[Omega_h::SIDE_SET]["Load"] = tFaceIDs1;
-
-    auto tDirichletBoundaryNodesX0 = PlatoUtestHelpers::get_2D_boundary_nodes_x0(*tMesh);
-    tMeshSets[Omega_h::NODE_SET]["XFixed"] = tDirichletBoundaryNodesX0;
-
-    Omega_h::LOs tPinnedNodeLOs({32});
-    tMeshSets[Omega_h::NODE_SET]["Pinned"] = tPinnedNodeLOs;
-
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
-    auto tNumVertices = tMesh->nverts();
+    auto tNumVertices = tMesh->NumNodes();
     Plato::ScalarVector tControls("Controls", tNumVertices);
     Plato::blas1::fill(1.0, tControls);
     auto tSolution = tPlasticityProblem.solution(tControls);
@@ -2554,13 +2534,19 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
     auto tHostPressure = Kokkos::create_mirror(tPressure);
     Kokkos::deep_copy(tHostPressure, tPressure);
     std::vector<std::vector<Plato::Scalar>> tGoldPress =
-        {
-         {-2.115362e+02, -1.874504e+03, -2.294189e+02, -1.516672e+03, -2.785281e+03, -2.925495e+03, -2.970340e+03, -4.293099e+02,
-          -1.685521e+03, -5.322904e+02, -1.665030e+03, -2.835582e+03, -6.988780e+02, -1.668066e+03, -2.687101e+03, -2.258380e+03,
-          -2.495897e+03, -1.672543e+03, -9.116663e+02, -1.675849e+03, -1.168386e+03, -1.974995e+03, -1.677669e+03, -1.470044e+03,
-          -1.702233e+03, -1.860586e+03, -1.668134e+03, -1.143118e+03, -1.319865e+03, -1.653114e+03, -2.204908e+03, -1.995014e+03,
-          -2.705687e+03}
-        };
+    {{
+      3.052423e+03, 1.385351e+03, 3.317594e+02,
+      3.034566e+03, 1.744061e+03, 4.722767e+02,
+      2.834373e+03, 1.574805e+03, 2.866206e+02,
+      2.731443e+03, 1.595358e+03, 4.214598e+02,
+      2.564833e+03, 1.592306e+03, 5.699304e+02,
+      2.352112e+03, 1.587864e+03, 7.611664e+02,
+      2.096406e+03, 1.585060e+03, 9.990742e+02,
+      1.792042e+03, 1.578607e+03, 1.279003e+03,
+      1.423813e+03, 1.557144e+03, 1.596294e+03,
+      1.264307e+03, 1.776336e+03, 2.194522e+03,
+      1.127440e+03, 1.624595e+03, 2.544026e+03
+    }};
     for(Plato::OrdinalType tTimeStep=0; tTimeStep < tPressure.extent(0); tTimeStep++)
     {
         for(Plato::OrdinalType tOrdinal=0; tOrdinal< tPressure.extent(1); tOrdinal++)
@@ -2574,16 +2560,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
     auto tHostDisplacements = Kokkos::create_mirror(tDisplacements);
     Kokkos::deep_copy(tHostDisplacements, tDisplacements);
     std::vector<std::vector<Plato::Scalar>> tGoldDisp =
-        {
-         {0.0, -6.267770e-02, 0.0, -6.250715e-02, 5.054901e-04, -6.174772e-02, -3.494325e-04, -6.164854e-02, -1.189951e-03,
-          -6.163677e-02, 0.0, -6.243005e-02, -2.395852e-03, -5.908745e-02, 9.381758e-04, -5.919208e-02, -7.291411e-04, -5.909716e-02,
-          1.326328e-03, -5.503616e-02, -1.099687e-03, -5.494402e-02, -3.525908e-03, -5.492911e-02, 1.629318e-03, -4.941788e-02,  -1.472318e-03,
-          -4.933201e-02, -4.573797e-03, -4.931350e-02, -6.306177e-03, -3.454268e-02, -5.510012e-03, -4.243363e-02, -1.845476e-03, -4.245746e-02,
-          1.819180e-03, -4.253584e-02, -2.219095e-03, -3.457328e-02, 1.868041e-03, -3.464274e-02, -6.934208e-03, -2.594957e-02, -2.593272e-03,
-          -2.598862e-02, 1.747752e-03, -2.604802e-02, -2.966076e-03, -1.706881e-02, 1.432299e-03, -1.711426e-02, -7.365046e-03, -1.702033e-02,
-          -7.602023e-03, 1.234104e-04,  -7.582309e-03, -8.182097e-03, -3.335936e-03, -8.239034e-03, 8.764536e-04, -8.256626e-03, -3.587180e-03,
-          1.188541e-05, 0.0, 0.0}
-        };
+    {{ 0.000000e+00, -6.283526e-02, 0.000000e+00, -6.278181e-02,  0.000000e+00, -6.282203e-02,
+       1.251030e-03, -6.190301e-02, 3.939884e-04, -6.192110e-02, -4.486143e-04, -6.202681e-02,
+       2.429147e-03, -5.934106e-02, 7.576278e-04, -5.936341e-02, -9.132838e-04, -5.947119e-02,
+       3.562760e-03, -5.517466e-02, 1.130453e-03, -5.519978e-02, -1.302060e-03, -5.530236e-02,
+       4.611213e-03, -4.954170e-02, 1.501192e-03, -4.957310e-02, -1.608671e-03, -4.967207e-02,
+       5.546530e-03, -4.264079e-02, 1.871399e-03, -4.267969e-02, -1.803615e-03, -4.277334e-02,
+       6.340813e-03, -3.472473e-02, 2.241101e-03, -3.477247e-02, -1.858504e-03, -3.485932e-02,
+       6.966398e-03, -2.610271e-02, 2.610446e-03, -2.616051e-02, -1.744972e-03, -2.623908e-02,
+       7.395616e-03, -1.713672e-02, 2.980310e-03, -1.720833e-02, -1.435730e-03, -1.727999e-02,
+       7.583805e-03, -8.268113e-03, 3.331567e-03, -8.339508e-03, -9.105287e-04, -8.391692e-03,
+       7.620451e-03, -8.424856e-06, 3.609423e-03, -7.921392e-05,  0.000000e+00,  0.000000e+00 }};
     for(Plato::OrdinalType tTimeStep=0; tTimeStep < tDisplacements.extent(0); tTimeStep++)
     {
         for(Plato::OrdinalType tOrdinal=0; tOrdinal< tDisplacements.extent(1); tOrdinal++)
@@ -2670,7 +2657,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
       "   <ParameterList  name='Traction Vector Boundary Condition'>                            \n"
       "     <Parameter  name='Type'     type='string'        value='Uniform Pressure'/>         \n"
       "     <Parameter  name='Value'    type='string'        value='100*t'/>                     \n"
-      "     <Parameter  name='Sides'    type='string'        value='Load'/>                     \n"
+      "     <Parameter  name='Sides'    type='string'        value='y+'/>                     \n"
       "   </ParameterList>                                                                      \n"
       "   </ParameterList>                                                                      \n"
       "  </ParameterList>                                                                       \n"
@@ -2678,7 +2665,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='XFixed'/>                        \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                        \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='X Fixed Displacement Boundary Condition 2'>                   \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
@@ -2696,10 +2683,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
 
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 2;
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(10.0,1.0,10,2);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10.0, 10, 1.0, 2);
 
     MPI_Comm myComm;
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -2707,21 +2691,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
 
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
 
+    tMesh->CreateNodeSet("Pinned", {32});
+
     // 1. Construct plasticity problem
-    auto tFaceIDs1 = PlatoUtestHelpers::get_edge_ids_on_y1(*tMesh);
-    tMeshSets[Omega_h::SIDE_SET]["Load"] = tFaceIDs1;
-
-    auto tDirichletBoundaryNodesX0 = PlatoUtestHelpers::get_2D_boundary_nodes_x0(*tMesh);
-    tMeshSets[Omega_h::NODE_SET]["XFixed"] = tDirichletBoundaryNodesX0;
-
-    Omega_h::LOs tPinnedNodeLOs({32});
-    tMeshSets[Omega_h::NODE_SET]["Pinned"] = tPinnedNodeLOs;
-
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
-    auto tNumVertices = tMesh->nverts();
+    auto tNumVertices = tMesh->NumNodes();
     Plato::ScalarVector tControls("Controls", tNumVertices);
     Plato::blas1::fill(1.0, tControls);
     auto tSolution = tPlasticityProblem.solution(tControls);
@@ -2738,14 +2715,19 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
     auto tHostPressure = Kokkos::create_mirror(tPressure);
     Kokkos::deep_copy(tHostPressure, tPressure);
     std::vector<Plato::Scalar> tGoldPress =
-        {
-         {2.311752e+02,-1.827696e+03,2.247582e+02,-1.485268e+03,-3.159835e+03,-3.310358e+03,
-         -3.355509e+03,-1.893416e+01,-1.667250e+03,-1.538996e+02,-1.643017e+03,-3.189432e+03,
-         -3.715330e+02,-1.644462e+03,-2.992111e+03,-2.432445e+03,-2.743322e+03,-1.650144e+03,
-         -6.506333e+02,-1.652914e+03,-9.859537e+02,-2.062321e+03,-1.655154e+03,-1.383581e+03,
-         -1.678354e+03,-1.883450e+03,-1.657927e+03,-9.691324e+02,-1.185495e+03,-1.607423e+03,
-         -2.312137e+03,-1.975908e+03,-2.933662e+03}
-        };
+    {{
+      3.449790e+03, 1.385737e+03, -1.006522e+02,
+      3.443449e+03, 1.729021e+03, 5.018731e+01,
+      3.199399e+03, 1.546592e+03, -1.461648e+02,
+      3.064507e+03, 1.570904e+03, 2.000116e+01,
+      2.846809e+03, 1.569416e+03, 2.172993e+02,
+      2.567786e+03, 1.563742e+03, 4.660776e+02,
+      2.234586e+03, 1.562162e+03, 7.778879e+02,
+      1.832332e+03, 1.552825e+03, 1.143293e+03,
+      1.352768e+03, 1.528197e+03, 1.558856e+03,
+      1.104638e+03, 1.755555e+03, 2.282178e+03,
+      9.265621e+02, 1.617178e+03, 2.700731e+03
+    }};
     for(Plato::OrdinalType tTimeStep=1; tTimeStep < tPressure.extent(0); tTimeStep++)
     {
         for(Plato::OrdinalType tOrdinal=0; tOrdinal< tPressure.extent(1); tOrdinal++)
@@ -2759,17 +2741,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
     auto tHostDisplacements = Kokkos::create_mirror(tDisplacements);
     Kokkos::deep_copy(tHostDisplacements, tDisplacements);
     std::vector<Plato::Scalar> tGoldDisp =
-         {0.000000e+00,-6.134811e-02,0.000000e+00,-6.119720e-02,4.890601e-04,-6.043469e-02,
-         -3.458934e-04,-6.035885e-02,-1.165818e-03,-6.032728e-02,0.000000e+00,-6.109650e-02,
-         -2.347652e-03,-5.783824e-02,9.053655e-04,-5.794102e-02,-7.213166e-04,-5.786790e-02,
-         1.280989e-03,-5.388596e-02,-1.085814e-03,-5.381352e-02,-3.452896e-03,-5.378025e-02,
-         1.573984e-03,-4.840284e-02,-1.452818e-03,-4.833418e-02,-4.479451e-03,-4.830023e-02,
-         -6.182190e-03,-3.387425e-02,-5.398447e-03,-4.158341e-02,-1.820375e-03,-4.161922e-02,
-         1.757783e-03,-4.168384e-02,-2.188273e-03,-3.391259e-02,1.805654e-03,-3.397251e-02,
-         -6.803693e-03,-2.547071e-02,-2.556661e-03,-2.551252e-02,1.690486e-03,-2.556736e-02,
-         -2.923613e-03,-1.677144e-02,1.387154e-03,-1.681750e-02,-7.234932e-03,-1.672620e-02,
-         -7.493506e-03,1.246463e-04,-7.461686e-03,-8.052684e-03,-3.289559e-03,-8.100860e-03,
-         8.484803e-04,-8.124464e-03,-3.535933e-03,2.311506e-05,0.000000e+00,0.000000e+00};
+    {{ 0.000000e+00, -6.150963e-02, 0.000000e+00, -6.147419e-02,  0.000000e+00, -6.148906e-02,
+       1.223999e-03, -6.059392e-02, 3.869286e-04, -6.063374e-02, -4.350743e-04, -6.071792e-02,
+       2.375129e-03, -5.809397e-02, 7.442551e-04, -5.813650e-02, -8.862722e-04, -5.822259e-02,
+       3.485612e-03, -5.402844e-02, 1.112535e-03, -5.407166e-02, -1.260822e-03, -5.415414e-02,
+       4.513471e-03, -4.853068e-02, 1.478306e-03, -4.857768e-02, -1.556685e-03, -4.865947e-02,
+       5.432122e-03, -4.179286e-02, 1.843522e-03, -4.184391e-02, -1.745000e-03, -4.192387e-02,
+       6.214722e-03, -3.405868e-02, 2.208307e-03, -3.411434e-02, -1.798108e-03, -3.419170e-02,
+       6.835021e-03, -2.562663e-02, 2.573048e-03, -2.568704e-02, -1.688461e-03, -2.576091e-02,
+       7.266828e-03, -1.684494e-02, 2.939008e-03, -1.691352e-02, -1.389363e-03, -1.698630e-02,
+       7.463434e-03, -8.139346e-03, 3.285217e-03, -8.203496e-03, -8.832482e-04, -8.263002e-03,
+       7.510934e-03, -1.085849e-05, 3.557779e-03, -7.042469e-05,  0.000000e+00,  0.000000e+00 }};
     for(Plato::OrdinalType tTimeStep=1; tTimeStep < tDisplacements.extent(0); tTimeStep++)
     {
         for(Plato::OrdinalType tOrdinal=0; tOrdinal< tDisplacements.extent(1); tOrdinal++)
@@ -2857,7 +2839,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
       "   <ParameterList  name='Traction Vector Boundary Condition'>                            \n"
       "     <Parameter  name='Type'     type='string'        value='Uniform Pressure'/>         \n"
       "     <Parameter  name='Value'    type='string'        value='100*t'/>                     \n"
-      "     <Parameter  name='Sides'    type='string'        value='Load'/>                     \n"
+      "     <Parameter  name='Sides'    type='string'        value='y+'/>                     \n"
       "   </ParameterList>                                                                      \n"
       "  </ParameterList>                                                                       \n"
       "  </ParameterList>                                                                       \n"
@@ -2865,7 +2847,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='XFixed'/>                        \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                        \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='X Fixed Displacement Boundary Condition 2'>                   \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
@@ -2883,10 +2865,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
 
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 2;
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(10.0,1.0,10,2);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10.0, 10, 1.0, 2);
 
     MPI_Comm myComm;
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -2894,21 +2873,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
 
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
 
+    tMesh->CreateNodeSet("Pinned", {32});
+
     // 1. Construct plasticity problem
-    auto tFaceIDs1 = PlatoUtestHelpers::get_edge_ids_on_y1(*tMesh);
-    tMeshSets[Omega_h::SIDE_SET]["Load"] = tFaceIDs1;
-
-    auto tDirichletBoundaryNodesX0 = PlatoUtestHelpers::get_2D_boundary_nodes_x0(*tMesh);
-    tMeshSets[Omega_h::NODE_SET]["XFixed"] = tDirichletBoundaryNodesX0;
-
-    Omega_h::LOs tPinnedNodeLOs({32});
-    tMeshSets[Omega_h::NODE_SET]["Pinned"] = tPinnedNodeLOs;
-
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
-    auto tNumVertices = tMesh->nverts();
+    auto tNumVertices = tMesh->NumNodes();
     Plato::ScalarVector tControls("Controls", tNumVertices);
     Plato::blas1::fill(1.0, tControls);
     auto tSolution = tPlasticityProblem.solution(tControls);
@@ -2925,14 +2897,19 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
     auto tHostPressure = Kokkos::create_mirror(tPressure);
     Kokkos::deep_copy(tHostPressure, tPressure);
     std::vector<Plato::Scalar> tGoldPress =
-        {
-         {2.311752e+02,-1.827696e+03,2.247582e+02,-1.485268e+03,-3.159835e+03,-3.310358e+03,
-         -3.355509e+03,-1.893416e+01,-1.667250e+03,-1.538996e+02,-1.643017e+03,-3.189432e+03,
-         -3.715330e+02,-1.644462e+03,-2.992111e+03,-2.432445e+03,-2.743322e+03,-1.650144e+03,
-         -6.506333e+02,-1.652914e+03,-9.859537e+02,-2.062321e+03,-1.655154e+03,-1.383581e+03,
-         -1.678354e+03,-1.883450e+03,-1.657927e+03,-9.691324e+02,-1.185495e+03,-1.607423e+03,
-         -2.312137e+03,-1.975908e+03,-2.933662e+03}
-        };
+    {{
+      3.449790e+03, 1.385737e+03, -1.006522e+02,
+      3.443449e+03, 1.729021e+03, 5.018731e+01,
+      3.199399e+03, 1.546592e+03, -1.461648e+02,
+      3.064507e+03, 1.570904e+03, 2.000116e+01,
+      2.846809e+03, 1.569416e+03, 2.172993e+02,
+      2.567786e+03, 1.563742e+03, 4.660776e+02,
+      2.234586e+03, 1.562162e+03, 7.778879e+02,
+      1.832332e+03, 1.552825e+03, 1.143293e+03,
+      1.352768e+03, 1.528197e+03, 1.558856e+03,
+      1.104638e+03, 1.755555e+03, 2.282178e+03,
+      9.265621e+02, 1.617178e+03, 2.700731e+03
+    }};
     for(Plato::OrdinalType tTimeStep=1; tTimeStep < tPressure.extent(0); tTimeStep++)
     {
         for(Plato::OrdinalType tOrdinal=0; tOrdinal< tPressure.extent(1); tOrdinal++)
@@ -2946,17 +2923,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
     auto tHostDisplacements = Kokkos::create_mirror(tDisplacements);
     Kokkos::deep_copy(tHostDisplacements, tDisplacements);
     std::vector<Plato::Scalar> tGoldDisp =
-         {0.000000e+00,-6.134811e-02,0.000000e+00,-6.119720e-02,4.890601e-04,-6.043469e-02,
-         -3.458934e-04,-6.035885e-02,-1.165818e-03,-6.032728e-02,0.000000e+00,-6.109650e-02,
-         -2.347652e-03,-5.783824e-02,9.053655e-04,-5.794102e-02,-7.213166e-04,-5.786790e-02,
-         1.280989e-03,-5.388596e-02,-1.085814e-03,-5.381352e-02,-3.452896e-03,-5.378025e-02,
-         1.573984e-03,-4.840284e-02,-1.452818e-03,-4.833418e-02,-4.479451e-03,-4.830023e-02,
-         -6.182190e-03,-3.387425e-02,-5.398447e-03,-4.158341e-02,-1.820375e-03,-4.161922e-02,
-         1.757783e-03,-4.168384e-02,-2.188273e-03,-3.391259e-02,1.805654e-03,-3.397251e-02,
-         -6.803693e-03,-2.547071e-02,-2.556661e-03,-2.551252e-02,1.690486e-03,-2.556736e-02,
-         -2.923613e-03,-1.677144e-02,1.387154e-03,-1.681750e-02,-7.234932e-03,-1.672620e-02,
-         -7.493506e-03,1.246463e-04,-7.461686e-03,-8.052684e-03,-3.289559e-03,-8.100860e-03,
-         8.484803e-04,-8.124464e-03,-3.535933e-03,2.311506e-05,0.000000e+00,0.000000e+00};
+    {{ 0.000000e+00, -6.150963e-02, 0.000000e+00, -6.147419e-02,  0.000000e+00, -6.148906e-02,
+       1.223999e-03, -6.059392e-02, 3.869286e-04, -6.063374e-02, -4.350743e-04, -6.071792e-02,
+       2.375129e-03, -5.809397e-02, 7.442551e-04, -5.813650e-02, -8.862722e-04, -5.822259e-02,
+       3.485612e-03, -5.402844e-02, 1.112535e-03, -5.407166e-02, -1.260822e-03, -5.415414e-02,
+       4.513471e-03, -4.853068e-02, 1.478306e-03, -4.857768e-02, -1.556685e-03, -4.865947e-02,
+       5.432122e-03, -4.179286e-02, 1.843522e-03, -4.184391e-02, -1.745000e-03, -4.192387e-02,
+       6.214722e-03, -3.405868e-02, 2.208307e-03, -3.411434e-02, -1.798108e-03, -3.419170e-02,
+       6.835021e-03, -2.562663e-02, 2.573048e-03, -2.568704e-02, -1.688461e-03, -2.576091e-02,
+       7.266828e-03, -1.684494e-02, 2.939008e-03, -1.691352e-02, -1.389363e-03, -1.698630e-02,
+       7.463434e-03, -8.139346e-03, 3.285217e-03, -8.203496e-03, -8.832482e-04, -8.263002e-03,
+       7.510934e-03, -1.085849e-05, 3.557779e-03, -7.042469e-05,  0.000000e+00,  0.000000e+00 }};
     for(Plato::OrdinalType tTimeStep=1; tTimeStep < tDisplacements.extent(0); tTimeStep++)
     {
         for(Plato::OrdinalType tOrdinal=0; tOrdinal< tDisplacements.extent(1); tOrdinal++)
@@ -3045,7 +3022,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
       "   <ParameterList  name='Traction Vector Boundary Condition'>                            \n"
       "     <Parameter  name='Type'     type='string'        value='Uniform Pressure'/>         \n"
       "     <Parameter  name='Value'    type='string'        value='100*t'/>                    \n"
-      "     <Parameter  name='Sides'    type='string'        value='Load'/>                     \n"
+      "     <Parameter  name='Sides'    type='string'        value='y+'/>                     \n"
       "   </ParameterList>                                                                      \n"
       "  </ParameterList>                                                                       \n"
       "  </ParameterList>                                                                       \n"
@@ -3053,7 +3030,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='XFixed'/>                        \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                        \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='X Fixed Displacement Boundary Condition 2'>                   \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
@@ -3071,35 +3048,23 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
 
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 2;
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(10.0,1.0,10,2);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10.0, 10, 1.0, 2);
 
     MPI_Comm myComm;
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    auto tFaceIDs = PlatoUtestHelpers::get_edge_ids_on_y1(*tMesh);
-    tMeshSets[Omega_h::SIDE_SET]["Load"] = tFaceIDs;
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
 
+    tMesh->CreateNodeSet("Pinned", {32});
+
     // 1. Construct plasticity problem
-    auto tFaceIDs1 = PlatoUtestHelpers::get_edge_ids_on_y1(*tMesh);
-    tMeshSets[Omega_h::SIDE_SET]["Load"] = tFaceIDs1;
-
-    auto tDirichletBoundaryNodesX0 = PlatoUtestHelpers::get_2D_boundary_nodes_x0(*tMesh);
-    tMeshSets[Omega_h::NODE_SET]["XFixed"] = tDirichletBoundaryNodesX0;
-
-    Omega_h::LOs tPinnedNodeLOs({32});
-    tMeshSets[Omega_h::NODE_SET]["Pinned"] = tPinnedNodeLOs;
-
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
-    auto tNumVertices = tMesh->nverts();
+    auto tNumVertices = tMesh->NumNodes();
     Plato::ScalarVector tControls("Controls", tNumVertices);
     Plato::blas1::fill(1.0, tControls);
     auto tSolution = tPlasticityProblem.solution(tControls);
@@ -3116,14 +3081,19 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
     auto tHostPressure = Kokkos::create_mirror(tPressure);
     Kokkos::deep_copy(tHostPressure, tPressure);
     std::vector<Plato::Scalar> tGoldPress =
-        {
-         {2.311752e+02,-1.827696e+03,2.247582e+02,-1.485268e+03,-3.159835e+03,-3.310358e+03,
-         -3.355509e+03,-1.893416e+01,-1.667250e+03,-1.538996e+02,-1.643017e+03,-3.189432e+03,
-         -3.715330e+02,-1.644462e+03,-2.992111e+03,-2.432445e+03,-2.743322e+03,-1.650144e+03,
-         -6.506333e+02,-1.652914e+03,-9.859537e+02,-2.062321e+03,-1.655154e+03,-1.383581e+03,
-         -1.678354e+03,-1.883450e+03,-1.657927e+03,-9.691324e+02,-1.185495e+03,-1.607423e+03,
-         -2.312137e+03,-1.975908e+03,-2.933662e+03}
-        };
+    {{
+      3.449790e+03, 1.385737e+03, -1.006522e+02,
+      3.443449e+03, 1.729021e+03, 5.018731e+01,
+      3.199399e+03, 1.546592e+03, -1.461648e+02,
+      3.064507e+03, 1.570904e+03, 2.000116e+01,
+      2.846809e+03, 1.569416e+03, 2.172993e+02,
+      2.567786e+03, 1.563742e+03, 4.660776e+02,
+      2.234586e+03, 1.562162e+03, 7.778879e+02,
+      1.832332e+03, 1.552825e+03, 1.143293e+03,
+      1.352768e+03, 1.528197e+03, 1.558856e+03,
+      1.104638e+03, 1.755555e+03, 2.282178e+03,
+      9.265621e+02, 1.617178e+03, 2.700731e+03
+    }};
     for(Plato::OrdinalType tTimeStep=1; tTimeStep < tPressure.extent(0); tTimeStep++)
     {
         for(Plato::OrdinalType tOrdinal=0; tOrdinal< tPressure.extent(1); tOrdinal++)
@@ -3137,17 +3107,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
     auto tHostDisplacements = Kokkos::create_mirror(tDisplacements);
     Kokkos::deep_copy(tHostDisplacements, tDisplacements);
     std::vector<Plato::Scalar> tGoldDisp =
-         {0.000000e+00,-6.134811e-02,0.000000e+00,-6.119720e-02,4.890601e-04,-6.043469e-02,
-         -3.458934e-04,-6.035885e-02,-1.165818e-03,-6.032728e-02,0.000000e+00,-6.109650e-02,
-         -2.347652e-03,-5.783824e-02,9.053655e-04,-5.794102e-02,-7.213166e-04,-5.786790e-02,
-         1.280989e-03,-5.388596e-02,-1.085814e-03,-5.381352e-02,-3.452896e-03,-5.378025e-02,
-         1.573984e-03,-4.840284e-02,-1.452818e-03,-4.833418e-02,-4.479451e-03,-4.830023e-02,
-         -6.182190e-03,-3.387425e-02,-5.398447e-03,-4.158341e-02,-1.820375e-03,-4.161922e-02,
-         1.757783e-03,-4.168384e-02,-2.188273e-03,-3.391259e-02,1.805654e-03,-3.397251e-02,
-         -6.803693e-03,-2.547071e-02,-2.556661e-03,-2.551252e-02,1.690486e-03,-2.556736e-02,
-         -2.923613e-03,-1.677144e-02,1.387154e-03,-1.681750e-02,-7.234932e-03,-1.672620e-02,
-         -7.493506e-03,1.246463e-04,-7.461686e-03,-8.052684e-03,-3.289559e-03,-8.100860e-03,
-         8.484803e-04,-8.124464e-03,-3.535933e-03,2.311506e-05,0.000000e+00,0.000000e+00};
+    {{ 0.000000e+00, -6.150963e-02, 0.000000e+00, -6.147419e-02,  0.000000e+00, -6.148906e-02,
+       1.223999e-03, -6.059392e-02, 3.869286e-04, -6.063374e-02, -4.350743e-04, -6.071792e-02,
+       2.375129e-03, -5.809397e-02, 7.442551e-04, -5.813650e-02, -8.862722e-04, -5.822259e-02,
+       3.485612e-03, -5.402844e-02, 1.112535e-03, -5.407166e-02, -1.260822e-03, -5.415414e-02,
+       4.513471e-03, -4.853068e-02, 1.478306e-03, -4.857768e-02, -1.556685e-03, -4.865947e-02,
+       5.432122e-03, -4.179286e-02, 1.843522e-03, -4.184391e-02, -1.745000e-03, -4.192387e-02,
+       6.214722e-03, -3.405868e-02, 2.208307e-03, -3.411434e-02, -1.798108e-03, -3.419170e-02,
+       6.835021e-03, -2.562663e-02, 2.573048e-03, -2.568704e-02, -1.688461e-03, -2.576091e-02,
+       7.266828e-03, -1.684494e-02, 2.939008e-03, -1.691352e-02, -1.389363e-03, -1.698630e-02,
+       7.463434e-03, -8.139346e-03, 3.285217e-03, -8.203496e-03, -8.832482e-04, -8.263002e-03,
+       7.510934e-03, -1.085849e-05, 3.557779e-03, -7.042469e-05,  0.000000e+00,  0.000000e+00 }};
     for(Plato::OrdinalType tTimeStep=1; tTimeStep < tDisplacements.extent(0); tTimeStep++)
     {
         for(Plato::OrdinalType tOrdinal=0; tOrdinal< tDisplacements.extent(1); tOrdinal++)
@@ -3172,10 +3142,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     const bool tDeleteSolverStats = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 2;
-    auto tMesh = PlatoUtestHelpers::build_2d_box_mesh(10.0,1.0,10,2);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10.0, 10, 1.0, 2);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -3243,7 +3210,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
       "   <ParameterList  name='Traction Vector Boundary Condition'>                            \n"
       "     <Parameter  name='Type'     type='string'        value='Uniform Pressure'/>         \n"
       "     <Parameter  name='Value'    type='string'        value='150*t'/>                    \n"
-      "     <Parameter  name='Sides'    type='string'        value='Load'/>                     \n"
+      "     <Parameter  name='Sides'    type='string'        value='y+'/>                     \n"
       "   </ParameterList>                                                                      \n"
       "  </ParameterList>                                                                       \n"
       "  </ParameterList>                                                                       \n"
@@ -3251,7 +3218,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='XFixed'/>                        \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                        \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='X Fixed Displacement Boundary Condition 2'>                   \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
@@ -3273,21 +3240,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
 
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
 
+    tMesh->CreateNodeSet("Pinned", {32});
+
     // 1. Construct plasticity problem
-    auto tFaceIDs1 = PlatoUtestHelpers::get_edge_ids_on_y1(*tMesh);
-    tMeshSets[Omega_h::SIDE_SET]["Load"] = tFaceIDs1;
-
-    auto tDirichletBoundaryNodesX0 = PlatoUtestHelpers::get_2D_boundary_nodes_x0(*tMesh);
-    tMeshSets[Omega_h::NODE_SET]["XFixed"] = tDirichletBoundaryNodesX0;
-
-    Omega_h::LOs tPinnedNodeLOs({32});
-    tMeshSets[Omega_h::NODE_SET]["Pinned"] = tPinnedNodeLOs;
-
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
-    auto tNumVertices = tMesh->nverts();
+    auto tNumVertices = tMesh->NumNodes();
     Plato::ScalarVector tControls("Controls", tNumVertices);
     Plato::blas1::fill(1.0, tControls);
     auto tSolution = tPlasticityProblem.solution(tControls);
@@ -3298,46 +3258,46 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
 
     std::vector<Plato::Scalar> tGold =
         {
-           0.00000e+00, -9.24987e-02,  1.20097e+03,
-           0.00000e+00, -9.23105e-02, -2.62729e+03,
-           7.51325e-04, -9.09949e-02,  1.15762e+03,
-          -5.84138e-04, -9.09250e-02, -2.29655e+03,
-          -1.84799e-03, -9.08052e-02, -5.65113e+03,
-           0.00000e+00, -9.20274e-02, -5.76246e+03,
-          -3.73117e-03, -8.68735e-02, -5.90141e+03,
-           1.35680e-03, -8.70326e-02,  7.69127e+02,
-          -1.17885e-03, -8.69632e-02, -2.51624e+03,
-           1.89395e-03, -8.07844e-02,  5.18011e+02,
-          -1.71680e-03, -8.07148e-02, -2.41709e+03,
-          -5.32817e-03, -8.06262e-02, -5.47771e+03,
-           2.30488e-03, -7.24758e-02,  7.65981e+01,
-          -2.26024e-03, -7.24074e-02, -2.43157e+03,
-          -6.82502e-03, -7.23248e-02, -5.11104e+03,
-          -9.31590e-03, -5.06970e-02, -4.01498e+03,
-          -8.16719e-03, -6.22313e-02, -4.62453e+03,
-          -2.80340e-03, -6.23101e-02, -2.44061e+03,
-           2.56041e-03, -6.23794e-02, -4.71812e+02,
-          -3.34687e-03, -5.07713e-02, -2.44270e+03,
-           2.62205e-03, -5.08418e-02, -1.12974e+03,
-          -1.02327e-02, -3.81471e-02, -3.29142e+03,
-          -3.89088e-03, -3.82169e-02, -2.44644e+03,
-           2.45115e-03, -3.82896e-02, -1.91496e+03,
-          -4.43252e-03, -2.51506e-02, -2.47836e+03,
-           2.01166e-03, -2.52203e-02, -2.87279e+03,
-          -1.08775e-02, -2.50869e-02, -2.49433e+03,
-          -1.13011e-02,  1.88454e-04, -1.14844e+03,
-          -1.12318e-02, -1.21057e-02, -1.56731e+03,
-          -4.97535e-03, -1.21635e-02, -2.33822e+03,
-           1.22980e-03, -1.22093e-02, -3.68515e+03,
-          -5.33903e-03,  5.43424e-05, -2.89933e+03,
-           0.00000e+00,  0.00000e+00, -4.82496e+03
+          0.000000e+00, -9.137881e-02,  6.210042e+03,
+          0.000000e+00, -9.137020e-02,  2.278900e+03,
+          0.000000e+00, -9.134743e-02, -9.695342e+02,
+          1.949925e-03, -8.998083e-02,  6.045645e+03,
+          6.055206e-04, -9.011673e-02,  2.629993e+03,
+         -6.464602e-04, -9.019913e-02, -7.618223e+02,
+          3.633202e-03, -8.618017e-02,  5.500145e+03,
+          1.150398e-03, -8.629333e-02,  2.233802e+03,
+         -1.315687e-03, -8.638106e-02, -1.110494e+03,
+          5.247142e-03, -8.007559e-02,  5.257548e+03,
+          1.700678e-03, -8.017714e-02,  2.309823e+03,
+         -1.846543e-03, -8.026087e-02, -7.662494e+02,
+          6.747242e-03, -7.189130e-02,  4.839276e+03,
+          2.241462e-03, -7.199346e-02,  2.319326e+03,
+         -2.264097e-03, -7.208167e-02, -3.726273e+02,
+          8.090712e-03, -6.190775e-02,  4.289656e+03,
+          2.780835e-03, -6.200938e-02,  2.308018e+03,
+         -2.528996e-03, -6.210169e-02,  1.114145e+02,
+          9.239982e-03, -5.047302e-02,  3.635517e+03,
+          3.319838e-03, -5.057326e-02,  2.307775e+03,
+         -2.600461e-03, -5.066996e-02,  7.225481e+02,
+          1.015799e-02, -3.801353e-02,  2.842651e+03,
+          3.859107e-03, -3.811078e-02,  2.291770e+03,
+         -2.439213e-03, -3.821191e-02,  1.440081e+03,
+          1.080781e-02, -2.502536e-02,  1.912423e+03,
+          4.400920e-03, -2.512397e-02,  2.251762e+03,
+         -2.006628e-03, -2.523441e-02,  2.259236e+03,
+          1.111740e-02, -1.211733e-02,  1.364075e+03,
+          4.912368e-03, -1.220102e-02,  2.598670e+03,
+         -1.278805e-03, -1.230223e-02,  3.554990e+03,
+          1.120770e-02, -2.031435e-05,  1.017074e+03,
+          5.312221e-03, -8.993776e-05,  2.444089e+03,
+          0.000000e+00,  0.000000e+00,  4.315204e+03
         };
 
     const Plato::Scalar tTolerance = 1e-4;
     const Plato::OrdinalType tDim1 = tState.extent(1);
     for (Plato::OrdinalType tIndexJ = 0; tIndexJ < tDim1; tIndexJ++)
     {
-        //printf("X(%d,%d) = %f\n", 3, tIndexJ, tHostInput(3, tIndexJ));
+        //printf("X(%d,%d) = %e\n", 3, tIndexJ, tHostSolution(3, tIndexJ));
         TEST_FLOATING_EQUALITY(tHostSolution(3, tIndexJ), tGold[tIndexJ], tTolerance);
     }
 
@@ -3363,17 +3323,12 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
     }
 }
 
-//#ifdef NOPE
-
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_CriterionTest_2D)
 {
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -3436,17 +3391,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_CriterionTest_2D)
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Time Dependent'/>                \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Function'    type='string' value='0.002*t'/>                    \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -3457,14 +3412,12 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_CriterionTest_2D)
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
 
-    PlatoUtestHelpers::set_mesh_sets_2D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Evaluate criterion
-    auto tNumVertices = tMesh->nverts();
+    auto tNumVertices = tMesh->NumNodes();
     Plato::ScalarVector tControls("Controls", tNumVertices);
     Plato::blas1::fill(1.0, tControls);
 
@@ -3475,7 +3428,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_CriterionTest_2D)
     TEST_FLOATING_EQUALITY(tCriterionValue, -1.07121, tTolerance);
 
     auto tCriterionGrad = tPlasticityProblem.criterionGradient(tControls, tCriterionName);
-    std::vector<Plato::Scalar> tGold = {-1.128948e+00, -5.644739e-01, -1.128948e+00, -5.644739e-01};
+    std::vector<Plato::Scalar> tGold = {-1.128948e+00, -5.644739e-01, -5.644739e-01, -1.128948e+00};
     auto tHostGrad = Kokkos::create_mirror(tCriterionGrad);
     Kokkos::deep_copy(tHostGrad, tCriterionGrad);
     TEST_ASSERT( tHostGrad.size() == static_cast<Plato::OrdinalType>(tGold.size() ));
@@ -3491,10 +3444,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestCriterionGradientZ
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -3560,17 +3510,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestCriterionGradientZ
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Time Dependent'/>                \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Function' type='string' value='0.005*t'/>                       \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -3581,15 +3531,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestCriterionGradientZ
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
 
-    PlatoUtestHelpers::set_mesh_sets_2D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. TEST PARTIAL DERIVATIVE
     std::string tCriterionName("Plastic Work");
-    auto tApproxError = Plato::test_criterion_grad_wrt_control(tPlasticityProblem, *tMesh, tCriterionName);
+    auto tApproxError = Plato::test_criterion_grad_wrt_control(tPlasticityProblem, tMesh, tCriterionName);
     const Plato::Scalar tUpperBound = 1e-6;
     TEST_ASSERT(tApproxError < tUpperBound);
     auto tSysMsg = std::system("rm -f plato_analyze_newton_raphson_diagnostics.txt");
@@ -3601,10 +3549,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_CriterionTest_3D)
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -3667,27 +3612,27 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_CriterionTest_3D)
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition 2'>                   \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y+'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Z Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='2'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Z0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='z-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Time Dependent'/>                \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Function'    type='string' value='0.002*t'/>                    \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -3698,16 +3643,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_CriterionTest_3D)
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
 
-    PlatoUtestHelpers::set_mesh_sets_3D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Evaluate criterion
     std::string tCriterionName("My Plastic Work");
 
-    auto tNumVertices = tMesh->nverts();
+    auto tNumVertices = tMesh->NumNodes();
     Plato::ScalarVector tControls("Controls", tNumVertices);
     Plato::blas1::fill(1.0, tControls);
 
@@ -3718,13 +3661,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_CriterionTest_3D)
 
     auto tObjGrad = tPlasticityProblem.criterionGradient(tControls, tCriterionName);
     std::vector<Plato::Scalar> tGold =
-        {
-         -1.058389e-01,-1.411185e-01,-3.527962e-02,-2.116777e-01,-7.055924e-02,-3.527962e-02,
-         -7.055924e-02,-3.527962e-02,-1.411185e-01,-2.116777e-01,-7.055924e-02,-3.527962e-02,
-         -7.055924e-02,-4.233554e-01,-2.116777e-01,-1.411185e-01,-2.116777e-01,-1.411185e-01,
-         -1.058389e-01,-1.411185e-01,-2.116777e-01,-2.116777e-01,-7.055924e-02,-3.527962e-02,
-         -7.055924e-02,-1.411185e-01,-3.527962e-02
-        };
+    {
+     -1.058389e-01, -1.411185e-01, -3.527962e-02, -1.411185e-01, -2.116777e-01, -7.055924e-02, -3.527962e-02, -7.055924e-02, -3.527962e-02,
+     -1.411185e-01, -2.116777e-01, -7.055924e-02, -2.116777e-01, -4.233554e-01, -2.116777e-01, -7.055924e-02, -2.116777e-01, -1.411185e-01,
+     -3.527962e-02, -7.055924e-02, -3.527962e-02, -7.055924e-02, -2.116777e-01, -1.411185e-01, -3.527962e-02, -1.411185e-01, -1.058389e-01
+    };
     auto tHostGrad = Kokkos::create_mirror(tObjGrad);
     Kokkos::deep_copy(tHostGrad, tObjGrad);
     TEST_ASSERT( tHostGrad.size() == static_cast<Plato::OrdinalType>(tGold.size() ));
@@ -3743,10 +3684,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestCriterionGradientZ
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -3816,22 +3754,22 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestCriterionGradientZ
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Z Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='2'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Time Dependent'/>                \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Function'    type='string' value='0.035*t'/>                    \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -3842,15 +3780,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestCriterionGradientZ
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
 
-    PlatoUtestHelpers::set_mesh_sets_3D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. TEST PARTIAL DERIVATIVE
     std::string tCriterionName("Plastic Work");
-    auto tApproxError = Plato::test_criterion_grad_wrt_control(tPlasticityProblem, *tMesh, tCriterionName);
+    auto tApproxError = Plato::test_criterion_grad_wrt_control(tPlasticityProblem, tMesh, tCriterionName);
     constexpr Plato::Scalar tUpperBound = 1e-6;
     TEST_ASSERT(tApproxError < tUpperBound);
     auto tSysMsg = std::system("rm -f plato_analyze_newton_raphson_diagnostics.txt");
@@ -3863,10 +3799,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ObjectiveTest_2D)
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -3931,17 +3864,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ObjectiveTest_2D)
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Time Dependent'/>                \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Function'    type='string' value='0.002*t'/>                    \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -3952,16 +3885,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ObjectiveTest_2D)
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
 
-    PlatoUtestHelpers::set_mesh_sets_2D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Evaluate criterion
     std::string tCriterionName("Plastic Work");
 
-    auto tNumVertices = tMesh->nverts();
+    auto tNumVertices = tMesh->NumNodes();
     Plato::ScalarVector tControls("Controls", tNumVertices);
     Plato::blas1::fill(1.0, tControls);
 
@@ -3971,7 +3902,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ObjectiveTest_2D)
     TEST_FLOATING_EQUALITY(tObjValue, -1.07121, tTolerance);
 
     auto tObjGrad = tPlasticityProblem.criterionGradient(tControls, tSolution, tCriterionName);
-    std::vector<Plato::Scalar> tGold = {-1.128948e+00,-5.644739e-01,-1.128948e+00,-5.644739e-01};
+    std::vector<Plato::Scalar> tGold = { -1.128948e+00, -5.644739e-01, -5.644739e-01, -1.128948e+00};
     auto tHostGrad = Kokkos::create_mirror(tObjGrad);
     Kokkos::deep_copy(tHostGrad, tObjGrad);
     TEST_ASSERT( tHostGrad.size() == static_cast<Plato::OrdinalType>(tGold.size() ));
@@ -3990,10 +3921,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestObjectiveGradientZ
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -4059,17 +3987,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestObjectiveGradientZ
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Time Dependent'/>                \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Function'    type='string' value='0.002*t'/>                    \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -4080,15 +4008,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestObjectiveGradientZ
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
 
-    PlatoUtestHelpers::set_mesh_sets_2D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. TEST PARTIAL DERIVATIVE
     std::string tCriterionName("My Plastic Work");
-    auto tApproxError = Plato::test_criterion_grad_wrt_control(tPlasticityProblem, *tMesh, tCriterionName);
+    auto tApproxError = Plato::test_criterion_grad_wrt_control(tPlasticityProblem, tMesh, tCriterionName);
     const Plato::Scalar tUpperBound = 1e-6;
     TEST_ASSERT(tApproxError < tUpperBound);
     auto tSysMsg = std::system("rm -f plato_analyze_newton_raphson_diagnostics.txt");
@@ -4101,10 +4027,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ObjectiveTest_3D)
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -4167,27 +4090,27 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ObjectiveTest_3D)
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition 2'>                   \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y+'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Z Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='2'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Z0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='z-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Time Dependent'/>                \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Function'    type='string' value='0.002*t'/>                    \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -4198,14 +4121,12 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ObjectiveTest_3D)
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
 
-    PlatoUtestHelpers::set_mesh_sets_3D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Evaluate criterion
-    auto tNumVertices = tMesh->nverts();
+    auto tNumVertices = tMesh->NumNodes();
     Plato::ScalarVector tControls("Controls", tNumVertices);
     Plato::blas1::fill(1.0, tControls);
 
@@ -4217,13 +4138,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ObjectiveTest_3D)
 
     auto tObjGrad = tPlasticityProblem.criterionGradient(tControls, tSolution, tCriterionName);
     std::vector<Plato::Scalar> tGold =
-        {
-         -1.058389e-01,-1.411185e-01,-3.527962e-02,-2.116777e-01,-7.055924e-02,-3.527962e-02,
-         -7.055924e-02,-3.527962e-02,-1.411185e-01,-2.116777e-01,-7.055924e-02,-3.527962e-02,
-         -7.055924e-02,-4.233554e-01,-2.116777e-01,-1.411185e-01,-2.116777e-01,-1.411185e-01,
-         -1.058389e-01,-1.411185e-01,-2.116777e-01,-2.116777e-01,-7.055924e-02,-3.527962e-02,
-         -7.055924e-02,-1.411185e-01,-3.527962e-02
-        };
+    {
+     -1.058389e-01, -1.411185e-01, -3.527962e-02, -1.411185e-01, -2.116777e-01, -7.055924e-02, -3.527962e-02, -7.055924e-02, -3.527962e-02,
+     -1.411185e-01, -2.116777e-01, -7.055924e-02, -2.116777e-01, -4.233554e-01, -2.116777e-01, -7.055924e-02, -2.116777e-01, -1.411185e-01,
+     -3.527962e-02, -7.055924e-02, -3.527962e-02, -7.055924e-02, -2.116777e-01, -1.411185e-01, -3.527962e-02, -1.411185e-01, -1.058389e-01
+    };
     auto tHostGrad = Kokkos::create_mirror(tObjGrad);
     Kokkos::deep_copy(tHostGrad, tObjGrad);
     TEST_ASSERT( tHostGrad.size() == static_cast<Plato::OrdinalType>(tGold.size() ));
@@ -4242,10 +4161,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestObjectiveGradientZ
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -4309,27 +4225,27 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestObjectiveGradientZ
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition 2'>                   \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y+'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Z Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='2'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Z0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='z-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Time Dependent'/>                \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Function'    type='string' value='0.002*t'/>                    \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -4340,15 +4256,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestObjectiveGradientZ
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
 
-    PlatoUtestHelpers::set_mesh_sets_3D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. TEST PARTIAL DERIVATIVE
     std::string tCriterionName("Plastic Work");
-    auto tApproxError = Plato::test_criterion_grad_wrt_control(tPlasticityProblem, *tMesh, tCriterionName);
+    auto tApproxError = Plato::test_criterion_grad_wrt_control(tPlasticityProblem, tMesh, tCriterionName);
     constexpr Plato::Scalar tUpperBound = 1e-6;
     TEST_ASSERT(tApproxError < tUpperBound);
     auto tSysMsg = std::system("rm -f plato_analyze_newton_raphson_diagnostics.txt");
@@ -4361,10 +4275,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestElasticWorkCriteri
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -4430,17 +4341,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestElasticWorkCriteri
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Time Dependent'/>                \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Function'    type='string' value='0.002*t'/>                    \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -4451,15 +4362,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestElasticWorkCriteri
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
 
-    PlatoUtestHelpers::set_mesh_sets_2D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. TEST PARTIAL DERIVATIVE
     std::string tCriterionName("Elastic Work");
-    auto tApproxError = Plato::test_criterion_grad_wrt_control(tPlasticityProblem, *tMesh, tCriterionName);
+    auto tApproxError = Plato::test_criterion_grad_wrt_control(tPlasticityProblem, tMesh, tCriterionName);
     const Plato::Scalar tUpperBound = 1e-6;
     TEST_ASSERT(tApproxError < tUpperBound);
     auto tSysMsg = std::system("rm -f plato_analyze_newton_raphson_diagnostics.txt");
@@ -4472,10 +4381,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestElasticWorkCriteri
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -4539,27 +4445,27 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestElasticWorkCriteri
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition 2'>                   \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y+'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Z Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='2'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Z0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='z-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Time Dependent'/>                \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Function'    type='string' value='0.002*t'/>                    \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -4570,15 +4476,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestElasticWorkCriteri
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
 
-    PlatoUtestHelpers::set_mesh_sets_3D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. TEST PARTIAL DERIVATIVE
     std::string tCriterionName("Elastic Work");
-    auto tApproxError = Plato::test_criterion_grad_wrt_control(tPlasticityProblem, *tMesh, tCriterionName);
+    auto tApproxError = Plato::test_criterion_grad_wrt_control(tPlasticityProblem, tMesh, tCriterionName);
     constexpr Plato::Scalar tUpperBound = 1e-6;
     TEST_ASSERT(tApproxError < tUpperBound);
     auto tSysMsg = std::system("rm -f plato_analyze_newton_raphson_diagnostics.txt");
@@ -4591,10 +4495,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestWeightedSumCriteri
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -4670,17 +4571,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestWeightedSumCriteri
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Time Dependent'/>                \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Function'    type='string' value='0.005*t'/>                    \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -4691,15 +4592,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestWeightedSumCriteri
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
 
-    PlatoUtestHelpers::set_mesh_sets_2D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. TEST PARTIAL DERIVATIVE
     std::string tCriterionName("Objective");
-    auto tApproxError = Plato::test_criterion_grad_wrt_control(tPlasticityProblem, *tMesh, tCriterionName);
+    auto tApproxError = Plato::test_criterion_grad_wrt_control(tPlasticityProblem, tMesh, tCriterionName);
     const Plato::Scalar tUpperBound = 1e-6;
     TEST_ASSERT(tApproxError < tUpperBound);
     auto tSysMsg = std::system("rm -f plato_analyze_newton_raphson_diagnostics.txt");
@@ -4712,10 +4611,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestWeightedSumCriteri
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh(tSpaceDim, tMeshWidth);
-    Plato::DataMap    tDataMap;
-    Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(tSpaceDim);
-    Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -4789,27 +4685,27 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestWeightedSumCriteri
       "     <ParameterList  name='X Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Y Fixed Displacement Boundary Condition 2'>                   \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='1'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Y1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='y+'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Z Fixed Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Zero Value'/>                    \n"
       "       <Parameter  name='Index'    type='int'    value='2'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_Z0'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='z-'/>                         \n"
       "     </ParameterList>                                                                    \n"
       "     <ParameterList  name='Applied Displacement Boundary Condition'>                     \n"
       "       <Parameter  name='Type'     type='string' value='Time Dependent'/>                \n"
       "       <Parameter  name='Index'    type='int'    value='0'/>                             \n"
-      "       <Parameter  name='Sides'    type='string' value='ns_X1'/>                         \n"
+      "       <Parameter  name='Sides'    type='string' value='x+'/>                         \n"
       "       <Parameter  name='Function'    type='string' value='0.002*t'/>                    \n"
       "     </ParameterList>                                                                    \n"
       "   </ParameterList>                                                                      \n"
@@ -4820,20 +4716,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestWeightedSumCriteri
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
 
-    PlatoUtestHelpers::set_mesh_sets_3D(*tMesh, tMeshSets);
-
     using PhysicsT = Plato::InfinitesimalStrainPlasticity<tSpaceDim>;
-    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(*tMesh, tMeshSets, *tParamList, tMachine);
+    Plato::PlasticityProblem<PhysicsT> tPlasticityProblem(tMesh, *tParamList, tMachine);
     tPlasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. TEST PARTIAL DERIVATIVE
     std::string tCriterionName("Objective");
-    auto tApproxError = Plato::test_criterion_grad_wrt_control(tPlasticityProblem, *tMesh, tCriterionName);
+    auto tApproxError = Plato::test_criterion_grad_wrt_control(tPlasticityProblem, tMesh, tCriterionName);
     constexpr Plato::Scalar tUpperBound = 1e-6;
     TEST_ASSERT(tApproxError < tUpperBound);
     auto tSysMsg = std::system("rm -f plato_analyze_newton_raphson_diagnostics.txt");
     if(false){ std::cout << std::to_string(tSysMsg) << "\n"; }
 }
 
-//#endif
 }

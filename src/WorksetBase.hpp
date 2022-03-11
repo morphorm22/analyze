@@ -3,11 +3,10 @@
 
 #include <cassert>
 
-#include <Omega_h_mesh.hpp>
-
 #include "ImplicitFunctors.hpp"
 #include "SimplexFadTypes.hpp"
 #include "AnalyzeMacros.hpp"
+#include "BLAS1.hpp"
 
 #include "Assembly.hpp"
 
@@ -73,15 +72,15 @@ public:
      * \brief Constructor
      * \param [in] aMesh mesh metadata
     **********************************************************************************/
-    WorksetBase(Omega_h::Mesh& aMesh) :
-            mNumCells(aMesh.nelems()),
-            mNumNodes(aMesh.nverts()),
-            mGlobalStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumDofsPerNode>(&aMesh)),
-            mLocalStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumLocalDofsPerCell>(&aMesh)),
-            mNodeStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumNodeStatePerNode>(&aMesh)),
-            mControlEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumControl>(&aMesh)),
-            mConfigEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mSpaceDim>(&aMesh)),
-            mNodeCoordinate(Plato::NodeCoordinate<mSpaceDim>(&aMesh))
+    WorksetBase(Plato::Mesh aMesh) :
+            mNumCells(aMesh->NumElements()),
+            mNumNodes(aMesh->NumNodes()),
+            mGlobalStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumDofsPerNode>(aMesh)),
+            mLocalStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumLocalDofsPerCell>(aMesh)),
+            mNodeStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumNodeStatePerNode>(aMesh)),
+            mControlEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumControl>(aMesh)),
+            mConfigEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mSpaceDim>(aMesh)),
+            mNodeCoordinate(Plato::NodeCoordinate<mSpaceDim>(aMesh))
     {
     }
 
@@ -98,8 +97,18 @@ public:
         const Plato::SpatialDomain                      & aDomain
     ) const
     {
-        Plato::workset_control_scalar_scalar<mNumNodesPerCell>(
-            aDomain, mControlEntryOrdinal, aControl, aControlWS);
+        if(aDomain.isFixedBlock())
+        {
+            Plato::ScalarVector tFixedControl("fixed control", aControl.size());
+            Plato::blas1::fill(1.0, tFixedControl);
+            Plato::workset_control_scalar_scalar<mNumNodesPerCell>(
+                aDomain, mControlEntryOrdinal, tFixedControl, aControlWS);
+        }
+        else
+        {
+            Plato::workset_control_scalar_scalar<mNumNodesPerCell>(
+                aDomain, mControlEntryOrdinal, aControl, aControlWS);
+        }
     }
 
     /******************************************************************************//**
@@ -131,8 +140,18 @@ public:
         const Plato::SpatialDomain                      & aDomain
     ) const
     {
-        Plato::workset_control_scalar_fad<mNumNodesPerCell, ControlFad>(
-            aDomain, mControlEntryOrdinal, aControl, aFadControlWS);
+        if(aDomain.isFixedBlock())
+        {
+            Plato::ScalarVector tFixedControl("fixed control", aControl.size());
+            Plato::blas1::fill(1.0, tFixedControl);
+            Plato::workset_control_scalar_fad<mNumNodesPerCell, ControlFad>(
+                aDomain, mControlEntryOrdinal, tFixedControl, aFadControlWS);
+        }
+        else
+        {
+            Plato::workset_control_scalar_fad<mNumNodesPerCell, ControlFad>(
+                aDomain, mControlEntryOrdinal, aControl, aFadControlWS);
+        }
     }
 
     /******************************************************************************//**
@@ -470,7 +489,7 @@ public:
     {
         if(mNumLocalDofsPerCell <= static_cast<Plato::OrdinalType>(0))
         {
-            THROWERR("Number of local degrees of freedom is set to zero. Local state variables are not defined for this application.");
+            ANALYZE_THROWERR("Number of local degrees of freedom is set to zero. Local state variables are not defined for this application.");
         }
         Plato::flatten_vector_workset<mNumLocalDofsPerCell>(mNumCells, aWorkset, aOutput);
     }

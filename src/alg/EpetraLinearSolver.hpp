@@ -4,8 +4,6 @@
 #include "PlatoAbstractSolver.hpp"
 #include "alg/ParallelComm.hpp"
 
-#include <Omega_h_mesh.hpp>
-
 #include <AztecOO.h>
 #include <Epetra_Map.h>
 #include <Epetra_Vector.h>
@@ -85,7 +83,7 @@ class EpetraLinearSolver : public AbstractSolver
     /******************************************************************************//**
      * \brief EpetraLinearSolver constructor
 
-     This constructor takes an Omega_h::Mesh and creates a new System.
+     This constructor creates a new System.
     **********************************************************************************/
     EpetraLinearSolver(
         const Teuchos::ParameterList&                   aSolverParams,
@@ -97,7 +95,7 @@ class EpetraLinearSolver : public AbstractSolver
     /******************************************************************************//**
      * @brief EpetraLinearSolver constructor with MPCs
 
-     This constructor takes an Omega_h::Mesh and MultipointConstraints and creates a new System.
+     This constructor takes a MultipointConstraints and creates a new System.
     **********************************************************************************/
     EpetraLinearSolver(
         const Teuchos::ParameterList&                   aSolverParams,

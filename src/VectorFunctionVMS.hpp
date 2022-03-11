@@ -3,9 +3,6 @@
 
 #include <memory>
 
-#include <Omega_h_mesh.hpp>
-#include <Omega_h_assoc.hpp>
-
 #include "WorksetBase.hpp"
 #include "AbstractVectorFunctionVMS.hpp"
 #include "SimplexFadTypes.hpp"
@@ -83,7 +80,6 @@ public:
     *
     * \brief Constructor
     * \param [in] aMesh mesh data base
-    * \param [in] aMeshSets mesh sets data base
     * \param [in] aDataMap problem-specific data map
     * \param [in] aParamList Teuchos parameter list with input data
     * \param [in] aProblemType problem type
@@ -95,8 +91,8 @@ public:
               Teuchos::ParameterList & aParamList,
         const std::string            & aProblemType
     ) :
-        mNumNodes     (aSpatialModel.Mesh.nverts()),
-        mNumCells     (aSpatialModel.Mesh.nelems()),
+        mNumNodes     (aSpatialModel.Mesh->NumNodes()),
+        mNumCells     (aSpatialModel.Mesh->NumElements()),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
         mWorksetBase  (aSpatialModel.Mesh)
@@ -132,19 +128,10 @@ public:
     * \param [in] aDataMap problem-specific data map
     *
     ******************************************************************************/
-    VectorFunctionVMS(Omega_h::Mesh& aMesh, Plato::DataMap& aDataMap) :
+    VectorFunctionVMS(Plato::Mesh aMesh, Plato::DataMap& aDataMap) :
             mDataMap(aDataMap),
             mWorksetBase(aMesh)
     {
-    }
-
-    /***************************************************************************//**
-     * \brief Return reference to Omega_h mesh database
-     * \return Omega_h mesh database
-    *******************************************************************************/
-    Omega_h::Mesh& getMesh() const
-    {
-        return (mSpatialModel.Mesh);
     }
 
     /**************************************************************************//**
@@ -252,6 +239,20 @@ public:
         return mNumConfigDofsPerCell;
     }
 
+    /****************************************************************************//**
+    * \brief Function to get output solution data
+    * \param [in] state solution database
+    * \return output state solution database
+    ********************************************************************************/
+    Plato::Solutions getSolutionStateOutputData(const Plato::Solutions &aSolutions) const
+    {
+        auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
+        auto tItr = mResidualFunctions.find(tFirstBlockName);
+        if(tItr == mResidualFunctions.end())
+            { ANALYZE_THROWERR(std::string("Element block with name '") + tFirstBlockName + "is not defined in residual function to element block map.") }
+        return tItr->second->getSolutionStateOutputData(aSolutions);
+    }
+
     /***************************************************************************//**
      * \brief Evaluate and assemble residual
      * \param [in] aState     projected pressure gradient
@@ -315,7 +316,7 @@ public:
         }
 
         {
-            auto tNumCells = mSpatialModel.Mesh.nelems();
+            auto tNumCells = mSpatialModel.Mesh->NumElements();
 
             // Workset state
             //
@@ -379,9 +380,9 @@ public:
         //
         auto tMesh = mSpatialModel.Mesh;
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
-                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumSpatialDims, mNumStateDofsPerNode>(&tMesh);
+                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumSpatialDims, mNumStateDofsPerNode>(tMesh);
 
-        Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumSpatialDims, mNumStateDofsPerNode> tMatEntryOrdinal(tJacobianMat, &tMesh);
+        Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumSpatialDims, mNumStateDofsPerNode> tMatEntryOrdinal(tJacobianMat, tMesh);
 
         auto tMatEntries = tJacobianMat->entries();
 
@@ -585,9 +586,9 @@ public:
         //
         auto tMesh = mSpatialModel.Mesh;
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
-            Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumStateDofsPerNode, mNumStateDofsPerNode>( &tMesh );
+            Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumStateDofsPerNode, mNumStateDofsPerNode>( tMesh );
 
-        Plato::BlockMatrixTransposeEntryOrdinal<mNumSpatialDims, mNumStateDofsPerNode> tJacobianMatEntryOrdinal( tJacobianMat, &tMesh );
+        Plato::BlockMatrixTransposeEntryOrdinal<mNumSpatialDims, mNumStateDofsPerNode> tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
         auto tJacobianMatEntries = tJacobianMat->entries();
 
@@ -690,9 +691,9 @@ public:
         //
         auto tMesh = mSpatialModel.Mesh;
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
-                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumStateDofsPerNode, mNumStateDofsPerNode>( &tMesh );
+                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumStateDofsPerNode, mNumStateDofsPerNode>( tMesh );
 
-        Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumStateDofsPerNode> tJacobianMatEntryOrdinal( tJacobianMat, &tMesh );
+        Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumStateDofsPerNode> tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
         auto tJacobianMatEntries = tJacobianMat->entries();
 
@@ -903,7 +904,7 @@ public:
         //
         auto tMesh = mSpatialModel.Mesh;
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
-                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumSpatialDims, mNumNodeStateDofsPerNode>( &tMesh );
+                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumSpatialDims, mNumNodeStateDofsPerNode>( tMesh );
 
         // create entry ordinal functor:
         // tJacobianMatEntryOrdinal(e, k, l) => G
@@ -920,7 +921,7 @@ public:
         // Note that the second two template parameters must match the block shape of the destination matrix, tJacobianMat
         //
         Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumSpatialDims, mNumNodeStateDofsPerNode>
-            tJacobianMatEntryOrdinal( tJacobianMat, &tMesh );
+            tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
         // Assemble from the AD-typed result, tJacobian, into the POD-typed global matrix, tJacobianMat.
         //
@@ -1052,7 +1053,7 @@ public:
         //
         auto tMesh = mSpatialModel.Mesh;
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
-                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumNodeStateDofsPerNode, mNumStateDofsPerNode>( &tMesh );
+                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumNodeStateDofsPerNode, mNumStateDofsPerNode>( tMesh );
 
         // create entry ordinal functor:
         // tJacobianMatEntryOrdinal(e, k, l) => G
@@ -1069,7 +1070,7 @@ public:
         // Note that the second two template parameters must match the block shape of the destination matrix, tJacobianMat
         //
         Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumNodeStateDofsPerNode, mNumStateDofsPerNode>
-            tJacobianMatEntryOrdinal( tJacobianMat, &tMesh );
+            tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
         // Assemble from the AD-typed result, tJacobian, into the POD-typed global matrix, tJacobianMat.
         //
@@ -1188,9 +1189,9 @@ public:
         //
         auto tMesh = mSpatialModel.Mesh;
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
-                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumControl, mNumStateDofsPerNode>( &tMesh );
+                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumControl, mNumStateDofsPerNode>( tMesh );
 
-        Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumControl, mNumStateDofsPerNode> tJacobianMatEntryOrdinal( tJacobianMat, &tMesh );
+        Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumControl, mNumStateDofsPerNode> tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
         auto tJacobianMatEntries = tJacobianMat->entries();
 

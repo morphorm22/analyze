@@ -49,9 +49,9 @@ class EMKinetics : public Plato::SimplexElectromechanics<SpaceDim>
     using Plato::SimplexElectromechanics<SpaceDim>::mNumDofsPerNode;
     using Plato::SimplexElectromechanics<SpaceDim>::mNumDofsPerCell;
 
-    const Omega_h::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffness;
-    const Omega_h::Matrix<SpaceDim, mNumVoigtTerms> mCellPiezoelectricCoupling;
-    const Omega_h::Matrix<SpaceDim, SpaceDim> mCellPermittivity;
+    const Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffness;
+    const Plato::Matrix<SpaceDim, mNumVoigtTerms> mCellPiezoelectricCoupling;
+    const Plato::Matrix<SpaceDim, SpaceDim> mCellPermittivity;
  
     const Plato::Scalar mAlpha;
     const Plato::Scalar mAlpha2;

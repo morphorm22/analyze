@@ -20,13 +20,13 @@ namespace Plato
         + std::string("\nLINE:") + std::to_string(__LINE__) \
         + std::string("\nMESSAGE: ") + msg + "\n\n";
 
-#define PRINTERR(msg) \
+#define ANALYZE_PRINTERR(msg) \
         std::cout << std::string("\n\nFILE: ") + __FILE__ \
         + std::string("\nFUNCTION: ") + __PRETTY_FUNCTION__ \
         + std::string("\nLINE:") + std::to_string(__LINE__) \
         + std::string("\nMESSAGE: ") + msg + "\n\n";
 
-#define THROWERR(msg) \
+#define ANALYZE_THROWERR(msg) \
         throw std::runtime_error(std::string("\n\nFILE: ") + __FILE__ \
         + std::string("\nFUNCTION: ") + __PRETTY_FUNCTION__ \
         + std::string("\nLINE:") + std::to_string(__LINE__) \

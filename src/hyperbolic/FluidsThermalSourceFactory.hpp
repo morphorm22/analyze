@@ -44,7 +44,7 @@ public:
         }
         else
         {
-            THROWERR(std::string("Volumetric source of type '") + tLowerFuncType + "' is not supported. Supported options are: 'uniform', 'stabilized uniform'.")
+            ANALYZE_THROWERR(std::string("Volumetric source of type '") + tLowerFuncType + "' is not supported. Supported options are: 'uniform', 'stabilized uniform'.")
         }
     }
 
@@ -72,7 +72,7 @@ public:
         }
         else
         {
-            THROWERR(std::string("Volumetric source of type '") + tLowerFuncType + "' is not supported. Supported options are: 'uniform', 'stabilized uniform'.")
+            ANALYZE_THROWERR(std::string("Volumetric source of type '") + tLowerFuncType + "' is not supported. Supported options are: 'uniform', 'stabilized uniform'.")
         }
     }
 };

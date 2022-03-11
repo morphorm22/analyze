@@ -7,15 +7,15 @@
 #include "helmholtz/VectorFunction.hpp"
 #include "helmholtz/SimplexHelmholtz.hpp"
 #include "helmholtz/Problem.hpp"
-#include "alg/PlatoSolverFactory.hpp"
+
 #include "BLAS1.hpp"
 #include "PlatoMathHelpers.hpp"
+#include "alg/PlatoSolverFactory.hpp"
 
 #ifdef HAVE_AMGX
 #include <alg/AmgXSparseLinearProblem.hpp>
 #endif
 
-#include <fenv.h>
 #include <memory>
 
 template <typename DataType>
@@ -61,8 +61,8 @@ TEUCHOS_UNIT_TEST(HelmholtzFilterTests, LengthScaleKeywordError)
   // create test mesh
   //
   constexpr int meshWidth=20;
-  constexpr int spaceDim=1;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  constexpr int spaceDim=2;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("tri3", meshWidth);
 
   using SimplexPhysics = ::Plato::HelmholtzFilter<spaceDim>;
 
@@ -80,19 +80,15 @@ TEUCHOS_UNIT_TEST(HelmholtzFilterTests, LengthScaleKeywordError)
     "    </ParameterList>                                                      \n"
     "  </ParameterList>                                                        \n"
     "  <Parameter name='PDE Constraint' type='string' value='Helmholtz Filter'/> \n"
-    "  <ParameterList name='Length Scale'>                                    \n"
+    "  <ParameterList name='FakeParameters'>                                    \n"
     "    <Parameter name='LengthScale' type='double' value='0.10'/>              \n"
     "  </ParameterList>                                                        \n"
     "</ParameterList>                                                        \n"
   );
 
-  // get mesh sets
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
   // create PDE
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
   TEST_THROW(Plato::Helmholtz::VectorFunction<SimplexPhysics> vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint")), std::runtime_error);
 }
@@ -109,13 +105,13 @@ TEUCHOS_UNIT_TEST(HelmholtzFilterTests, HelmholtzProblemError)
   //
   constexpr int meshWidth=4;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
   
   // create mesh based density
   //
   using SimplexPhysics = ::Plato::HelmholtzFilter<spaceDim>;
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   Plato::ScalarVector control("density", tNumDofs);
@@ -138,15 +134,11 @@ TEUCHOS_UNIT_TEST(HelmholtzFilterTests, HelmholtzProblemError)
     "  </ParameterList>                                                        \n"
     "  <Parameter name='PDE Constraint' type='string' value='Helmholtz Filter'/> \n"
     "  <Parameter name='Physics' type='string' value='Helmholtz Filter'/> \n"
-    "  <ParameterList name='Length Scale'>                                    \n"
+    "  <ParameterList name='Parameters'>                                    \n"
     "    <Parameter name='Length Scale' type='double' value='0.10'/>              \n"
     "  </ParameterList>                                                        \n"
     "</ParameterList>                                                        \n"
   );
-
-  // get mesh sets
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
 
   // get machine
   MPI_Comm myComm;
@@ -154,7 +146,7 @@ TEUCHOS_UNIT_TEST(HelmholtzFilterTests, HelmholtzProblemError)
   Plato::Comm::Machine tMachine(myComm);
 
   // construct problem
-  auto tProblem = Plato::Helmholtz::Problem<::Plato::HelmholtzFilter<spaceDim>>(*tMesh, tMeshSets, *tParamList, tMachine);
+  auto tProblem = Plato::Helmholtz::Problem<::Plato::HelmholtzFilter<spaceDim>>(tMesh, *tParamList, tMachine);
 
   // perform necessary operations
   auto tSolution = tProblem.solution(control);
@@ -180,12 +172,12 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, Helmholtz2DUniformFieldTest )
   //
   constexpr int meshWidth=8;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh(spaceDim, meshWidth);
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using SimplexPhysics = ::Plato::HelmholtzFilter<spaceDim>;
 
   int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-  int tNumNodes = tMesh->nverts();
+  int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
   // create mesh based density
@@ -212,7 +204,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, Helmholtz2DUniformFieldTest )
     "    </ParameterList>                                                      \n"
     "  </ParameterList>                                                        \n"
     "  <Parameter name='PDE Constraint' type='string' value='Helmholtz Filter'/> \n"
-    "  <ParameterList name='Length Scale'>                                    \n"
+    "  <ParameterList name='Parameters'>                                    \n"
     "    <Parameter name='Length Scale' type='double' value='0.10'/>              \n"
     "  </ParameterList>                                                        \n"
     "  <ParameterList name='Linear Solver'>                              \n"
@@ -224,13 +216,9 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, Helmholtz2DUniformFieldTest )
     "</ParameterList>                                                        \n"
   );
 
-  // get mesh sets
-  Omega_h::Assoc tAssoc = Omega_h::get_box_assoc(spaceDim);
-  Omega_h::MeshSets tMeshSets = Omega_h::invert(&(*tMesh), tAssoc);
-
   // create PDE
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(*tMesh, tMeshSets, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
   Plato::Helmholtz::VectorFunction<SimplexPhysics>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
@@ -260,7 +248,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, Helmholtz2DUniformFieldTest )
   );
   Plato::SolverFactory tSolverFactory(*tSolverParams);
 
-  auto tSolver = tSolverFactory.create(tMesh->nverts(), tMachine, tNumDofsPerNode);
+  auto tSolver = tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
   
   // solve linear system
   //
@@ -279,6 +267,4 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, Helmholtz2DUniformFieldTest )
   for(int iDof=0; iDof<tNumDofs; iDof++){
     TEST_FLOATING_EQUALITY(stateView_host(iDof), 1.0, 1.0e-14);
   }
-
 }
-

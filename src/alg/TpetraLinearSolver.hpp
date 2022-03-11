@@ -4,8 +4,6 @@
 #include "PlatoAbstractSolver.hpp"
 #include "alg/ParallelComm.hpp"
 
-#include <Omega_h_mesh.hpp>
-
 #include <Teuchos_ParameterList.hpp>
 #include <Teuchos_Comm.hpp>
 #include <Teuchos_TimeMonitor.hpp>
@@ -92,16 +90,20 @@ class TpetraLinearSolver : public AbstractSolver
     double mSolverStartTime, mSolverEndTime;
 
     int    mDisplayIterations;
-    int    mNumIterations;
     int    mDofsPerNode;
     bool   mDisplayDiagnostics = true; /*!< display solver warnings/diagnostics to console */
     double mAchievedTolerance;
+
+    Teuchos::ParameterList mSolverParams;
+
+    int mNumIterations = 1000; /*!< maximum linear solver iterations */
+    Plato::Scalar mTolerance = 1e-14; /*!< linear solver tolerance */
     
   public:
     /******************************************************************************//**
      * \brief TpetraLinearSolver constructor
 
-     This constructor takes an Omega_h::Mesh and creates a new System.
+     This constructor creates a new System.
     **********************************************************************************/
     TpetraLinearSolver(
         const Teuchos::ParameterList& aSolverParams,
@@ -113,7 +115,7 @@ class TpetraLinearSolver : public AbstractSolver
     /******************************************************************************//**
      * @brief TpetraLinearSolver constructor with MPCs
 
-     This constructor takes an Omega_h::Mesh and MultipointConstraints and creates a new System.
+     This constructor takes a MultipointConstraints and creates a new System.
     **********************************************************************************/
     TpetraLinearSolver(
         const Teuchos::ParameterList&                   aSolverParams,
