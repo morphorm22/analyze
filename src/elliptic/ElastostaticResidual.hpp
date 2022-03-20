@@ -12,7 +12,6 @@
 #include "elliptic/AbstractVectorFunction.hpp"
 #include "ApplyWeighting.hpp"
 #include "CellForcing.hpp"
-#include "LinearTetCubRuleDegreeOne.hpp"
 #include "Simp.hpp"
 #include "Ramp.hpp"
 #include "Heaviside.hpp"
@@ -47,6 +46,7 @@ private:
     static constexpr Plato::OrdinalType mSpaceDim = EvaluationType::SpatialDim;
 
     using PhysicsType = typename Plato::SimplexMechanics<mSpaceDim>;
+    using CubatureType = typename Plato::SimplexMechanics<mSpaceDim>::CubatureType;
 
     using Plato::SimplexMechanics<mSpaceDim>::mNumVoigtTerms;
     using Plato::Simplex<mSpaceDim>::mNumNodesPerCell;
@@ -63,8 +63,6 @@ private:
     using ControlScalarType = typename EvaluationType::ControlScalarType;
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
-
-    using CubatureType  = Plato::LinearTetCubRuleDegreeOne<mSpaceDim>;
 
     IndicatorFunctionType mIndicatorFunction;
     Plato::ApplyWeighting<mSpaceDim, mNumVoigtTerms, IndicatorFunctionType> mApplyWeighting;

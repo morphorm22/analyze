@@ -5,7 +5,6 @@
 #include "PlatoStaticsTypes.hpp"
 #include "geometric/AbstractScalarFunction.hpp"
 #include "Plato_TopOptFunctors.hpp"
-#include "LinearTetCubRuleDegreeOne.hpp"
 #include "ImplicitFunctors.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "AnalyzeMacros.hpp"
@@ -42,6 +41,8 @@ class MassMoment : public Plato::Simplex<EvaluationType::SpatialDim>,
     Plato::Scalar mCellMaterialDensity; /*!< material density */
 
     std::string mCalculationType; /*!< calculation type = Mass, CGx, CGy, CGz, Ixx, Iyy, Izz, Ixy, Ixz, Iyz */
+
+    using CubatureType = typename Plato::Simplex<mSpaceDim>::CubatureType;
 
   public:
     /******************************************************************************//**
@@ -157,7 +158,7 @@ class MassMoment : public Plato::Simplex<EvaluationType::SpatialDim>,
 
       auto tCellMaterialDensity = mCellMaterialDensity;
 
-      Plato::LinearTetCubRuleDegreeOne<mSpaceDim> tCubatureRule;
+      CubatureType tCubatureRule;
       auto tCubWeight = tCubatureRule.getCubWeight();
       auto tBasisFunc = tCubatureRule.getBasisFunctions();
 
@@ -198,7 +199,7 @@ class MassMoment : public Plato::Simplex<EvaluationType::SpatialDim>,
 
       auto tCellMaterialDensity = mCellMaterialDensity;
 
-      Plato::LinearTetCubRuleDegreeOne<mSpaceDim> tCubatureRule;
+      CubatureType tCubatureRule;
       auto tCubPoint  = tCubatureRule.getCubPointsCoords();
       auto tCubWeight = tCubatureRule.getCubWeight();
       auto tBasisFunc = tCubatureRule.getBasisFunctions();
@@ -250,7 +251,7 @@ class MassMoment : public Plato::Simplex<EvaluationType::SpatialDim>,
 
       auto tCellMaterialDensity = mCellMaterialDensity;
 
-      Plato::LinearTetCubRuleDegreeOne<mSpaceDim> tCubatureRule;
+      CubatureType tCubatureRule;
       auto tCubPoint  = tCubatureRule.getCubPointsCoords();
       auto tCubWeight = tCubatureRule.getCubWeight();
       auto tBasisFunc = tCubatureRule.getBasisFunctions();

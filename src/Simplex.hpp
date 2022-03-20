@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PlatoStaticsTypes.hpp"
+#include "LinearTetCubRuleDegreeOne.hpp"
 
 namespace Plato
 {
@@ -17,6 +18,9 @@ class Simplex
     static constexpr Plato::OrdinalType mNumNodesPerFace      = SpaceDim;
     static constexpr Plato::OrdinalType mNumNodesPerCell      = SpaceDim+1;
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = SpaceDim-1;
+
+    using CubatureType = Plato::LinearTetCubRuleDegreeOne<SpaceDim>;
+    using BoundaryCubatureType = Plato::LinearTetCubRuleDegreeOne<SpaceDim-1>;
 };
 // class Simplex
 

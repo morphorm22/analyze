@@ -9,7 +9,6 @@
 #include "TMKinematics.hpp"
 #include "TMKinetics.hpp"
 #include "InterpolateFromNodal.hpp"
-#include "LinearTetCubRuleDegreeOne.hpp"
 #include "ThermoelasticMaterial.hpp"
 
 namespace Plato
@@ -36,7 +35,9 @@ private:
 
     Teuchos::RCP<Plato::MaterialModel<mSpaceDim>> mMaterialModel;
 
-    std::shared_ptr<Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>> mCubatureRule;
+    using CubatureType = typename SimplexPhysics::CubatureType;
+
+    std::shared_ptr<CubatureType> mCubatureRule;
 
     static constexpr Plato::OrdinalType TDofOffset = mSpaceDim;
 
@@ -54,7 +55,7 @@ public:
         const std::string            & aName
     ) : 
         AbstractLocalMeasure<EvaluationType,SimplexPhysics>(aSpatialDomain, aInputParams, aName),
-        mCubatureRule(std::make_shared<Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>>())
+        mCubatureRule(std::make_shared<CubatureType>())
     {
         Plato::ThermoelasticModelFactory<mSpaceDim> tFactory(aInputParams);
         mMaterialModel = tFactory.create(mSpatialDomain.getMaterialName());

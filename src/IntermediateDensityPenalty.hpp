@@ -7,7 +7,6 @@
 #include "SimplexMechanics.hpp"
 #include "WorksetBase.hpp"
 #include "Plato_TopOptFunctors.hpp"
-#include "LinearTetCubRuleDegreeOne.hpp"
 #include <Teuchos_ParameterList.hpp>
 
 #include <math.h> // need PI
@@ -25,6 +24,8 @@ class IntermediateDensityPenalty : public Plato::SimplexMechanics<EvaluationType
     static constexpr int mSpaceDim = EvaluationType::SpatialDim;
     static constexpr Plato::OrdinalType mNumVoigtTerms = Plato::SimplexMechanics<mSpaceDim>::mNumVoigtTerms; /*!< number of Voigt terms */
     static constexpr Plato::OrdinalType mNumNodesPerCell = Plato::SimplexMechanics<mSpaceDim>::mNumNodesPerCell; /*!< number of nodes per cell/element */
+
+    using CubatureType = typename Plato::SimplexMechanics<mSpaceDim>::CubatureType;
     
     using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mSpatialDomain;
     using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mDataMap;
@@ -84,7 +85,7 @@ class IntermediateDensityPenalty : public Plato::SimplexMechanics<EvaluationType
       Plato::Scalar tTwo = 2.0;
       Plato::Scalar tPi  = M_PI;
 
-      Plato::LinearTetCubRuleDegreeOne<mSpaceDim> tCubatureRule;
+      CubatureType tCubatureRule;
       auto tBasisFunc = tCubatureRule.getBasisFunctions();
 
       Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)

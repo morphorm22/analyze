@@ -22,7 +22,6 @@
 #include "Plato_TopOptFunctors.hpp"
 #include "VonMisesYieldFunction.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
-#include "LinearTetCubRuleDegreeOne.hpp"
 
 namespace Plato
 {
@@ -55,7 +54,7 @@ private:
     using ControlT = typename EvaluationType::ControlScalarType; /*!< control variables automatic differentiation type */
 
     using FunctionBaseType = Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
-    using CubatureType = Plato::LinearTetCubRuleDegreeOne<mSpaceDim>;
+    using CubatureType = typename Plato::SimplexMechanics<mSpaceDim>::CubatureType;
 
     Plato::Scalar mPenalty; /*!< penalty parameter in SIMP model */
     Plato::Scalar mStressLimit; /*!< stress limit/upper bound */

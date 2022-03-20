@@ -11,7 +11,6 @@
 #include "ImplicitFunctors.hpp"
 #include "InterpolateFromNodal.hpp"
 #include "SurfaceIntegralUtilities.hpp"
-#include "LinearTetCubRuleDegreeOne.hpp"
 
 #include "helmholtz/AddMassTerm.hpp"
 #include "helmholtz/HelmholtzFlux.hpp"
@@ -51,8 +50,11 @@ class HelmholtzResidual :
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
-    Plato::LinearTetCubRuleDegreeOne<mSpaceDim> mCubatureRule; /*!< volume cubature rule */
-    Plato::LinearTetCubRuleDegreeOne<mNumSpatialDimsOnFace> mSurfaceCubatureRule; /*!< surface cubature rule */
+    using CubatureType = typename Plato::SimplexHelmholtz<mSpaceDim>::CubatureType;
+    CubatureType mCubatureRule; /*!< volume cubature rule */
+
+    using BoundaryCubatureType = typename Plato::SimplexHelmholtz<mSpaceDim>::BoundaryCubatureType;
+    BoundaryCubatureType mSurfaceCubatureRule; /*!< surface cubature rule */
 
     Plato::Scalar mLengthScale = 0.5; /*!< volume length scale */
     Plato::Scalar mSurfaceLengthScale = 0.0; /*!< surface length scale multiplier, 0 \leq \alpha \leq 1 */
@@ -66,8 +68,8 @@ class HelmholtzResidual :
               Teuchos::ParameterList & aProblemParams
     ) :
         Plato::Helmholtz::AbstractVectorFunction<EvaluationType>(aSpatialDomain, aDataMap),
-        mCubatureRule(Plato::LinearTetCubRuleDegreeOne<mSpaceDim>()),
-        mSurfaceCubatureRule(Plato::LinearTetCubRuleDegreeOne<mNumSpatialDimsOnFace>())
+        mCubatureRule(CubatureType()),
+        mSurfaceCubatureRule(BoundaryCubatureType())
     /**************************************************************************/
     {
         // parse length scale parameter
