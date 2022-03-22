@@ -41,7 +41,7 @@ private:
     using Plato::WorksetBase<PhysicsT>::mNumCells;
 
     using Plato::WorksetBase<PhysicsT>::mGlobalStateEntryOrdinal;
-    using Plato::WorksetBase<PhysicsT>::mLocalStateEntryOrdinal;
+//    using Plato::WorksetBase<PhysicsT>::mLocalStateEntryOrdinal;
     using Plato::WorksetBase<PhysicsT>::mControlEntryOrdinal;
     using Plato::WorksetBase<PhysicsT>::mConfigEntryOrdinal;
 

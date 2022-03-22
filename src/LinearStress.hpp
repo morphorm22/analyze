@@ -15,9 +15,9 @@ namespace Plato
  stress tensor in Voigt notation = {s_xx, s_yy, s_zz, s_yz, s_xz, s_xy}
  */
 /******************************************************************************/
-template< typename EvaluationType, typename SimplexPhysics >
+template< typename EvaluationType, typename ElementType >
 class LinearStress :
-    public Plato::AbstractLinearStress<EvaluationType, SimplexPhysics>
+    public Plato::AbstractLinearStress<EvaluationType, ElementType>
 {
 protected:
     static constexpr auto mSpaceDim = EvaluationType::SpatialDim; /*!< spatial dimensions */
@@ -26,7 +26,7 @@ protected:
     using ConfigT = typename EvaluationType::ConfigScalarType; /*!< configuration variables automatic differentiation type */
     using ResultT = typename EvaluationType::ResultScalarType; /*!< result variables automatic differentiation type */
 
-    using StrainT = typename Plato::fad_type_t<SimplexPhysics, StateT, ConfigT>; /*!< strain variables automatic differentiation type */
+    using StrainT = typename Plato::fad_type_t<ElementType, StateT, ConfigT>; /*!< strain variables automatic differentiation type */
 
     using Plato::SimplexMechanics<mSpaceDim>::mNumVoigtTerms; /*!< number of stress/strain terms */
 
@@ -36,7 +36,7 @@ public:
      * \param [in] aCellStiffness material element stiffness matrix
     **********************************************************************************/
     LinearStress(const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> aCellStiffness) :
-        AbstractLinearStress< EvaluationType, SimplexPhysics >(aCellStiffness)
+        AbstractLinearStress< EvaluationType, ElementType >(aCellStiffness)
     {
     }
 
@@ -45,7 +45,7 @@ public:
      * \param [in] aMaterialModel material model interface
     **********************************************************************************/
     LinearStress(const Teuchos::RCP<Plato::LinearElasticMaterial<mSpaceDim>> aMaterialModel) :
-        AbstractLinearStress< EvaluationType, SimplexPhysics >(aMaterialModel)
+        AbstractLinearStress< EvaluationType, ElementType >(aMaterialModel)
     {
     }
 
@@ -113,6 +113,32 @@ public:
             {
                 aCauchyStress(aCellOrdinal, tVoigtIndex_I) +=
                   (aSmallStrain(aCellOrdinal, tVoigtIndex_J) -
+                   this->mReferenceStrain(tVoigtIndex_J)) *
+                  this->mCellStiffness(tVoigtIndex_I, tVoigtIndex_J);
+            }
+        }
+    }
+
+    /******************************************************************************//**
+     * \brief Compute the Cauchy stress tensor
+     * \param [out] aCauchyStress Cauchy stress tensor
+     * \param [in]  aSmallStrain Infinitesimal strain tensor
+    **********************************************************************************/
+    DEVICE_TYPE inline void operator()(
+              Plato::Array<mNumVoigtTerms, ResultT> & aCauchyStress,
+        const Plato::Array<mNumVoigtTerms, StrainT> & aSmallStrain
+    ) const
+    {
+        // Method used to compute the stress and called from within a
+        // Kokkos parallel_for.
+        for(Plato::OrdinalType tVoigtIndex_I = 0; tVoigtIndex_I < mNumVoigtTerms; tVoigtIndex_I++)
+        {
+            aCauchyStress(tVoigtIndex_I) = 0.0;
+
+            for(Plato::OrdinalType tVoigtIndex_J = 0; tVoigtIndex_J < mNumVoigtTerms; tVoigtIndex_J++)
+            {
+                aCauchyStress(tVoigtIndex_I) +=
+                  (aSmallStrain(tVoigtIndex_J) -
                    this->mReferenceStrain(tVoigtIndex_J)) *
                   this->mCellStiffness(tVoigtIndex_I, tVoigtIndex_J);
             }

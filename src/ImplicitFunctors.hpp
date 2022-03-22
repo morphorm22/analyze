@@ -14,7 +14,7 @@ namespace Plato
 * \brief functor that provides mesh-local node ordinal
 * \param [in] aMesh Plato abstract mesh
 **********************************************************************************/
-template<Plato::OrdinalType SpaceDim>
+template<Plato::OrdinalType SpaceDim, Plato::OrdinalType NodesPerCell=SpaceDim+1>
 class NodeOrdinal
 {
   public:
@@ -37,14 +37,14 @@ class NodeOrdinal
         Plato::OrdinalType aNodeOrdinal
     ) const
     {
-        return mCells2nodes(aCellOrdinal*(SpaceDim+1) + aNodeOrdinal);
+        return mCells2nodes(aCellOrdinal*NodesPerCell + aNodeOrdinal);
     }
 };
 /******************************************************************************/
 
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode=1>
+template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode, Plato::OrdinalType NodesPerCell=SpaceDim+1>
 class VectorEntryOrdinal
 {
   public:
@@ -58,14 +58,14 @@ class VectorEntryOrdinal
     DEVICE_TYPE inline Plato::OrdinalType
     operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType nodeOrdinal, Plato::OrdinalType dofOrdinal=0) const
     {
-        Plato::OrdinalType vertexNumber = mCells2nodes(cellOrdinal*(SpaceDim+1) + nodeOrdinal);
+        Plato::OrdinalType vertexNumber = mCells2nodes(cellOrdinal*NodesPerCell + nodeOrdinal);
         return vertexNumber * DofsPerNode + dofOrdinal;
     }
 };
 /******************************************************************************/
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
+template<Plato::OrdinalType SpaceDim, Plato::OrdinalType NodesPerCell=SpaceDim+1>
 class NodeCoordinate
 {
   private:
@@ -75,14 +75,20 @@ class NodeCoordinate
   public:
     NodeCoordinate(Plato::Mesh aMesh) :
       mCells2nodes(aMesh->Connectivity()),
-      mCoords(aMesh->Coordinates()) { }
+      mCoords(aMesh->Coordinates())
+      {
+        if (aMesh->NumDimensions() != SpaceDim || aMesh->NumNodesPerElement() != NodesPerCell)
+        {
+            throw std::runtime_error("Input mesh doesn't match physics spatial dimension and/or nodes per cell.");
+        }
+      }
 
     DEVICE_TYPE
     inline
     Plato::Scalar
     operator()(Plato::OrdinalType aCellOrdinal, Plato::OrdinalType aNodeOrdinal, Plato::OrdinalType aDimOrdinal) const
     {
-        const Plato::OrdinalType tVertexNumber = mCells2nodes(aCellOrdinal*(SpaceDim+1) + aNodeOrdinal);
+        const Plato::OrdinalType tVertexNumber = mCells2nodes(aCellOrdinal*NodesPerCell + aNodeOrdinal);
         const Plato::Scalar tCoord = mCoords(tVertexNumber * SpaceDim + aDimOrdinal);
         return tCoord;
     }

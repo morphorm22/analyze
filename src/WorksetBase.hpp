@@ -41,13 +41,13 @@ protected:
     static constexpr Plato::OrdinalType mSpaceDim = SimplexPhysics::mNumSpatialDims;          /*!< number of spatial dimensions */
     static constexpr Plato::OrdinalType mNumConfigDofsPerCell = mSpaceDim * mNumNodesPerCell; /*!< number of configuration degrees of freedom per element  */
 
-    Plato::VectorEntryOrdinal<mSpaceDim,mNumDofsPerNode>      mGlobalStateEntryOrdinal; /*!< local-to-global ID map for global state */
-    Plato::VectorEntryOrdinal<mSpaceDim,mNumLocalDofsPerCell> mLocalStateEntryOrdinal;  /*!< local-to-global ID map for local state */
+    Plato::VectorEntryOrdinal<mSpaceDim, mNumDofsPerNode, mNumNodesPerCell> mGlobalStateEntryOrdinal; /*!< local-to-global ID map for global state */
+
     Plato::VectorEntryOrdinal<mSpaceDim,mNumNodeStatePerNode> mNodeStateEntryOrdinal;   /*!< local-to-global ID map for node state */
     Plato::VectorEntryOrdinal<mSpaceDim,mNumControl>          mControlEntryOrdinal;     /*!< local-to-global ID map for control */
     Plato::VectorEntryOrdinal<mSpaceDim,mSpaceDim>            mConfigEntryOrdinal;      /*!< local-to-global ID map for configuration */
 
-    Plato::NodeCoordinate<mSpaceDim> mNodeCoordinate; /*!< node coordinates database */
+    Plato::NodeCoordinate<mSpaceDim, mNumNodesPerCell> mNodeCoordinate; /*!< node coordinates database */
 
 public:
     /******************************************************************************//**
@@ -75,12 +75,11 @@ public:
     WorksetBase(Plato::Mesh aMesh) :
             mNumCells(aMesh->NumElements()),
             mNumNodes(aMesh->NumNodes()),
-            mGlobalStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumDofsPerNode>(aMesh)),
-            mLocalStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumLocalDofsPerCell>(aMesh)),
+            mGlobalStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumDofsPerNode, mNumNodesPerCell>(aMesh)),
             mNodeStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumNodeStatePerNode>(aMesh)),
             mControlEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumControl>(aMesh)),
             mConfigEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mSpaceDim>(aMesh)),
-            mNodeCoordinate(Plato::NodeCoordinate<mSpaceDim>(aMesh))
+            mNodeCoordinate(Plato::NodeCoordinate<mSpaceDim, mNumNodesPerCell>(aMesh))
     {
     }
 
