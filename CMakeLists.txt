@@ -51,7 +51,7 @@ MESSAGE("-- BUILD_SHARED_LIBS: ${BUILD_SHARED_LIBS}")
 
 SET(CMAKE_C_FLAGS ${Trilinos_C_COMPILER_FLAGS} )
 
-FIND_PACKAGE(MPI REQUIRED)
+#FIND_PACKAGE(MPI REQUIRED)
 
 ## this has to be conditional, or building without cuda fails
 IF (DEFINED AMGX_PREFIX)
@@ -202,7 +202,7 @@ IF( AMGX_FOUND )
 ENDIF()
 
 option(PLATOANALYZE_1D "Compile with 1D physics" OFF)
-option(PLATOANALYZE_2D "Compile with 2D physics" ON )
+option(PLATOANALYZE_2D "Compile with 2D physics" OFF ) # TODO
 option(PLATOANALYZE_3D "Compile with 3D physics" ON )
 if (PLATOANALYZE_1D)
   add_definitions(-DPLATOANALYZE_1D)
@@ -218,11 +218,11 @@ if (PLATOANALYZE_3D)
 endif()
 
 option(ELLIPTIC "Compile with Elliptic physics" ON)
-option(PARABOLIC "Compile with Parabolic physics" ON)
-option(HYPERBOLIC "Compile with Hyperbolic physics" ON)
-option(STABILIZED "Compile with Stabilized VMS physics" ON)
-option(PLASTICITY "Compile with Plasticity physics" ON)
-option(HELMHOLTZ "Compile with Helmholtz filter" ON)
+option(PARABOLIC "Compile with Parabolic physics" OFF) # TODO
+option(HYPERBOLIC "Compile with Hyperbolic physics" OFF) # TODO
+option(STABILIZED "Compile with Stabilized VMS physics" OFF) # TODO
+option(PLASTICITY "Compile with Plasticity physics" OFF) # TODO
+option(HELMHOLTZ "Compile with Helmholtz filter" OFF) # TODO
 if(ELLIPTIC)
   message("-- Plato: Elliptic physics added")
   ADD_DEFINITIONS(-DPLATO_ELLIPTIC)

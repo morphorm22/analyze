@@ -10,6 +10,7 @@
 #include "Solutions.hpp"
 #include "WorksetBase.hpp"
 #include "PlatoStaticsTypes.hpp"
+#include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/ScalarFunctionBase.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
 #include <Teuchos_ParameterList.hpp>
@@ -23,25 +24,25 @@ namespace Elliptic
 /******************************************************************************//**
  * \brief Physics scalar function class
  **********************************************************************************/
-template<typename PhysicsT>
-class PhysicsScalarFunction : public ScalarFunctionBase, public Plato::WorksetBase<PhysicsT>
+template<typename ElementType>
+class PhysicsScalarFunction : public ScalarFunctionBase, public Plato::WorksetBase<ElementType>
 {
 private:
-    using Plato::WorksetBase<PhysicsT>::mNumDofsPerCell; /*!< number of degree of freedom per cell/element */
-    using Plato::WorksetBase<PhysicsT>::mNumNodesPerCell; /*!< number of nodes per cell/element */
-    using Plato::WorksetBase<PhysicsT>::mNumDofsPerNode; /*!< number of degree of freedom per node */
-    using Plato::WorksetBase<PhysicsT>::mNumSpatialDims; /*!< number of spatial dimensions */
-    using Plato::WorksetBase<PhysicsT>::mNumNodes; /*!< total number of nodes in the mesh */
-    using Plato::WorksetBase<PhysicsT>::mNumCells; /*!< total number of cells/elements in the mesh */
+    using Plato::WorksetBase<ElementType>::mNumDofsPerCell; /*!< number of degree of freedom per cell/element */
+    using Plato::WorksetBase<ElementType>::mNumNodesPerCell; /*!< number of nodes per cell/element */
+    using Plato::WorksetBase<ElementType>::mNumDofsPerNode; /*!< number of degree of freedom per node */
+    using Plato::WorksetBase<ElementType>::mNumSpatialDims; /*!< number of spatial dimensions */
+    using Plato::WorksetBase<ElementType>::mNumNodes; /*!< total number of nodes in the mesh */
+    using Plato::WorksetBase<ElementType>::mNumCells; /*!< total number of cells/elements in the mesh */
 
-    using Plato::WorksetBase<PhysicsT>::mGlobalStateEntryOrdinal;
-    using Plato::WorksetBase<PhysicsT>::mControlEntryOrdinal;
-    using Plato::WorksetBase<PhysicsT>::mConfigEntryOrdinal;
+    using Plato::WorksetBase<ElementType>::mGlobalStateEntryOrdinal;
+    using Plato::WorksetBase<ElementType>::mControlEntryOrdinal;
+    using Plato::WorksetBase<ElementType>::mConfigEntryOrdinal;
 
-    using Residual = typename Plato::Evaluation<typename PhysicsT::SimplexT>::Residual; /*!< result variables automatic differentiation type */
-    using Jacobian = typename Plato::Evaluation<typename PhysicsT::SimplexT>::Jacobian; /*!< state variables automatic differentiation type */
-    using GradientX = typename Plato::Evaluation<typename PhysicsT::SimplexT>::GradientX; /*!< configuration variables automatic differentiation type */
-    using GradientZ = typename Plato::Evaluation<typename PhysicsT::SimplexT>::GradientZ; /*!< control variables automatic differentiation type */
+    using Residual  = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+    using Jacobian  = typename Plato::Elliptic::Evaluation<ElementType>::Jacobian;
+    using GradientX = typename Plato::Elliptic::Evaluation<ElementType>::GradientX;
+    using GradientZ = typename Plato::Elliptic::Evaluation<ElementType>::GradientZ;
 
     using ValueFunction     = std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<Residual>>;
     using GradientUFunction = std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<Jacobian>>;
@@ -68,7 +69,7 @@ private:
         Teuchos::ParameterList & aProblemParams
     )
     {
-        typename PhysicsT::FunctionFactory tFactory;
+        typename ElementType::FunctionFactory tFactory;
 
         auto tProblemDefault = aProblemParams.sublist("Criteria").sublist(mFunctionName);
         auto tFunctionType = tProblemDefault.get<std::string>("Scalar Function Type", "");
@@ -103,7 +104,7 @@ public:
               Teuchos::ParameterList & aProblemParams,
               std::string            & aName
     ) :
-        Plato::WorksetBase<PhysicsT>(aSpatialModel.Mesh),
+        Plato::WorksetBase<ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
         mFunctionName (aName)
@@ -120,7 +121,7 @@ public:
         const Plato::SpatialModel & aSpatialModel,
               Plato::DataMap      & aDataMap
     ) :
-        Plato::WorksetBase<PhysicsT>(aSpatialModel.Mesh),
+        Plato::WorksetBase<ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
         mFunctionName ("Undefined Name")
@@ -200,13 +201,13 @@ public:
             auto tName     = tDomain.getDomainName();
 
             Plato::ScalarMultiVector tStateWS("state workset", tNumCells, mNumDofsPerCell);
-            Plato::WorksetBase<PhysicsT>::worksetState(aState, tStateWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetState(aState, tStateWS, tDomain);
 
             Plato::ScalarMultiVector tControlWS("control workset", tNumCells, mNumNodesPerCell);
-            Plato::WorksetBase<PhysicsT>::worksetControl(aControl, tControlWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetControl(aControl, tControlWS, tDomain);
 
             Plato::ScalarArray3D tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-            Plato::WorksetBase<PhysicsT>::worksetConfig(tConfigWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetConfig(tConfigWS, tDomain);
 
             mValueFunctions.at(tName)->updateProblem(tStateWS, tControlWS, tConfigWS);
             mGradientUFunctions.at(tName)->updateProblem(tStateWS, tControlWS, tConfigWS);
@@ -243,12 +244,12 @@ public:
             // workset control
             //
             Plato::ScalarMultiVectorT<ControlScalar> tControlWS("control workset", tNumCells, mNumNodesPerCell);
-            Plato::WorksetBase<PhysicsT>::worksetControl(aControl, tControlWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetControl(aControl, tControlWS, tDomain);
 
             // workset config
             //
             Plato::ScalarArray3DT<ConfigScalar> tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-            Plato::WorksetBase<PhysicsT>::worksetConfig(tConfigWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetConfig(tConfigWS, tDomain);
 
             // create result view
             //
@@ -265,7 +266,7 @@ public:
                 // workset state
                 //
                 auto tState = Kokkos::subview(tStates, tStepIndex, Kokkos::ALL());
-                Plato::WorksetBase<PhysicsT>::worksetState(tState, tStateWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetState(tState, tStateWS, tDomain);
 
                 // evaluate function
                 //
@@ -317,12 +318,12 @@ public:
             // workset control
             //
             Plato::ScalarMultiVectorT<ControlScalar> tControlWS("control workset", tNumCells, mNumNodesPerCell);
-            Plato::WorksetBase<PhysicsT>::worksetControl(aControl, tControlWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetControl(aControl, tControlWS, tDomain);
 
             // workset config
             //
             Plato::ScalarArray3DT<ConfigScalar> tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-            Plato::WorksetBase<PhysicsT>::worksetConfig(tConfigWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetConfig(tConfigWS, tDomain);
 
             Plato::ScalarVectorT<ResultScalar> tResult("result workset", tNumCells);
 
@@ -333,7 +334,7 @@ public:
                 // workset state
                 //
                 auto tState = Kokkos::subview(tStates, tStepIndex, Kokkos::ALL());
-                Plato::WorksetBase<PhysicsT>::worksetState(tState, tStateWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetState(tState, tStateWS, tDomain);
 
                 // evaluate function
                 //
@@ -390,17 +391,17 @@ public:
             // workset state
             //
             Plato::ScalarMultiVectorT<StateScalar> tStateWS("sacado-ized state", tNumCells, mNumDofsPerCell);
-            Plato::WorksetBase<PhysicsT>::worksetState(tState, tStateWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetState(tState, tStateWS, tDomain);
 
             // workset control
             //
             Plato::ScalarMultiVectorT<ControlScalar> tControlWS("control workset", tNumCells, mNumNodesPerCell);
-            Plato::WorksetBase<PhysicsT>::worksetControl(aControl, tControlWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetControl(aControl, tControlWS, tDomain);
 
             // workset config
             //
             Plato::ScalarArray3DT<ConfigScalar> tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-            Plato::WorksetBase<PhysicsT>::worksetConfig(tConfigWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetConfig(tConfigWS, tDomain);
 
             // create return view
             //
@@ -455,12 +456,12 @@ public:
             // workset control
             //
             Plato::ScalarMultiVectorT<ControlScalar> tControlWS("control workset", tNumCells, mNumNodesPerCell);
-            Plato::WorksetBase<PhysicsT>::worksetControl(aControl, tControlWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetControl(aControl, tControlWS, tDomain);
 
             // workset config
             //
             Plato::ScalarArray3DT<ConfigScalar> tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-            Plato::WorksetBase<PhysicsT>::worksetConfig(tConfigWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetConfig(tConfigWS, tDomain);
 
             // create result
             //
@@ -474,7 +475,7 @@ public:
                 // workset state
                 //
                 auto tState = Kokkos::subview(tStates, tStepIndex, Kokkos::ALL());
-                Plato::WorksetBase<PhysicsT>::worksetState(tState, tStateWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetState(tState, tStateWS, tDomain);
 
                 // evaluate function
                 //
@@ -517,28 +518,28 @@ public:
 
 } // namespace Plato
 
-#include "Thermal.hpp"
-#include "Mechanics.hpp"
-#include "Electromechanics.hpp"
-#include "Thermomechanics.hpp"
+//TODO #include "Thermal.hpp"
+//TODO #include "Mechanics.hpp"
+//TODO #include "Electromechanics.hpp"
+//TODO #include "Thermomechanics.hpp"
 
 #ifdef PLATOANALYZE_1D
-extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermal<1>>;
-extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<1>>;
-extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Electromechanics<1>>;
-extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermomechanics<1>>;
+//TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermal<1>>;
+//TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<1>>;
+//TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Electromechanics<1>>;
+//TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermomechanics<1>>;
 #endif
 
 #ifdef PLATOANALYZE_2D
-extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermal<2>>;
-extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<2>>;
-extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Electromechanics<2>>;
-extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermomechanics<2>>;
+//TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermal<2>>;
+//TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<2>>;
+//TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Electromechanics<2>>;
+//TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermomechanics<2>>;
 #endif
 
 #ifdef PLATOANALYZE_3D
-extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermal<3>>;
-extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<3>>;
-extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Electromechanics<3>>;
-extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermomechanics<3>>;
+//TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermal<3>>;
+//TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<3>>;
+//TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Electromechanics<3>>;
+//TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermomechanics<3>>;
 #endif

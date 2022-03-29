@@ -4,8 +4,8 @@
 #include <cassert>
 
 #include "ImplicitFunctors.hpp"
-#include "SimplexFadTypes.hpp"
 #include "AnalyzeMacros.hpp"
+#include "FadTypes.hpp"
 #include "BLAS1.hpp"
 
 #include "Assembly.hpp"
@@ -18,27 +18,27 @@ namespace Plato
 /*! Base class for workset functionality.
 */
 /******************************************************************************/
-template<typename SimplexPhysics>
-class WorksetBase : public SimplexPhysics
+template<typename ElementType>
+class WorksetBase : public ElementType
 {
 protected:
     Plato::OrdinalType mNumCells; /*!< local number of elements */
     Plato::OrdinalType mNumNodes; /*!< local number of nodes */
 
-    using SimplexPhysics::mNumDofsPerNode;      /*!< number of degrees of freedom per node */
-    using SimplexPhysics::mNumControl;          /*!< number of control vectors, i.e. materials */
-    using SimplexPhysics::mNumNodesPerCell;     /*!< number of nodes per element */
-    using SimplexPhysics::mNumDofsPerCell;      /*!< number of global degrees of freedom, e.g. displacements, per element  */
-    using SimplexPhysics::mNumLocalDofsPerCell; /*!< number of local degrees of freedom, e.g. plasticity variables, per element  */
-    using SimplexPhysics::mNumNodeStatePerNode; /*!< number of pressure states per node  */
+    using ElementType::mNumDofsPerNode;      /*!< number of degrees of freedom per node */
+    using ElementType::mNumControl;          /*!< number of control vectors, i.e. materials */
+    using ElementType::mNumNodesPerCell;     /*!< number of nodes per element */
+    using ElementType::mNumDofsPerCell;      /*!< number of global degrees of freedom, e.g. displacements, per element  */
+    using ElementType::mNumLocalDofsPerCell; /*!< number of local degrees of freedom, e.g. plasticity variables, per element  */
+    using ElementType::mNumNodeStatePerNode; /*!< number of pressure states per node  */
 
-    using StateFad      = typename Plato::SimplexFadTypes<SimplexPhysics>::StateFad;          /*!< global state AD type */
-    using LocalStateFad = typename Plato::SimplexFadTypes<SimplexPhysics>::LocalStateFad;     /*!< local state AD type */
-    using NodeStateFad  = typename Plato::SimplexFadTypes<SimplexPhysics>::NodeStateFad;      /*!< node state AD type */
-    using ControlFad    = typename Plato::SimplexFadTypes<SimplexPhysics>::ControlFad;        /*!< control AD type */
-    using ConfigFad     = typename Plato::SimplexFadTypes<SimplexPhysics>::ConfigFad;         /*!< configuration AD type */
+    using StateFad      = typename Plato::FadTypes<ElementType>::StateFad;          /*!< global state AD type */
+    using LocalStateFad = typename Plato::FadTypes<ElementType>::LocalStateFad;     /*!< local state AD type */
+    using NodeStateFad  = typename Plato::FadTypes<ElementType>::NodeStateFad;      /*!< node state AD type */
+    using ControlFad    = typename Plato::FadTypes<ElementType>::ControlFad;        /*!< control AD type */
+    using ConfigFad     = typename Plato::FadTypes<ElementType>::ConfigFad;         /*!< configuration AD type */
 
-    static constexpr Plato::OrdinalType mSpaceDim = SimplexPhysics::mNumSpatialDims;          /*!< number of spatial dimensions */
+    static constexpr Plato::OrdinalType mSpaceDim = ElementType::mNumSpatialDims;          /*!< number of spatial dimensions */
     static constexpr Plato::OrdinalType mNumConfigDofsPerCell = mSpaceDim * mNumNodesPerCell; /*!< number of configuration degrees of freedom per element  */
 
     Plato::VectorEntryOrdinal<mSpaceDim, mNumDofsPerNode, mNumNodesPerCell> mGlobalStateEntryOrdinal; /*!< local-to-global ID map for global state */
@@ -421,7 +421,7 @@ public:
     ) const
     {
         Plato::assemble_residual<mNumNodesPerCell, mNumDofsPerNode>
-            (aDomain, WorksetBase<SimplexPhysics>::mGlobalStateEntryOrdinal, aResidualWorkset, aReturnValue);
+            (aDomain, WorksetBase<ElementType>::mGlobalStateEntryOrdinal, aResidualWorkset, aReturnValue);
     }
 
     /******************************************************************************//**
@@ -440,7 +440,7 @@ public:
     ) const
     {
         Plato::assemble_residual<mNumNodesPerCell, mNumDofsPerNode>
-            (mNumCells, WorksetBase<SimplexPhysics>::mGlobalStateEntryOrdinal, aResidualWorkset, aReturnValue);
+            (mNumCells, WorksetBase<ElementType>::mGlobalStateEntryOrdinal, aResidualWorkset, aReturnValue);
     }
 
     /******************************************************************************//**

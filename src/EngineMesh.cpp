@@ -82,6 +82,7 @@ namespace Plato
                 throw std::runtime_error("Fatal Error: Encountered a mesh with multiple element types.");
             }
         }
+        mElementType = mMesh->getElemTypeInBlk(/*blockIndex=*/0);
         mNumNodes = mMesh->getNumNodes();
         mNumElements = mMesh->getNumElems();
         mNumDimensions = mMesh->getDimensions();
@@ -500,6 +501,9 @@ namespace Plato
 
     std::string
     EngineMesh::FileName() const { return mFileName; }
+
+    std::string
+    EngineMesh::ElementType() const { return mElementType; }
 
     Plato::OrdinalType
     EngineMesh::NumNodes() const { return mNumNodes; }

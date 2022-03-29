@@ -1,7 +1,5 @@
-#ifndef PLATO_LINEAR_STRESS_HPP
-#define PLATO_LINEAR_STRESS_HPP
+#pragma once
 
-#include "SimplexMechanics.hpp"
 #include "LinearElasticMaterial.hpp"
 #include "PlatoMathTypes.hpp"
 #include "AbstractLinearStress.hpp"
@@ -28,7 +26,7 @@ protected:
 
     using StrainT = typename Plato::fad_type_t<ElementType, StateT, ConfigT>; /*!< strain variables automatic differentiation type */
 
-    using Plato::SimplexMechanics<mSpaceDim>::mNumVoigtTerms; /*!< number of stress/strain terms */
+    using ElementType::mNumVoigtTerms; /*!< number of stress/strain terms */
 
 public:
     /******************************************************************************//**
@@ -148,17 +146,16 @@ public:
 // class LinearStress
 
 }// namespace Plato
-#endif
 
 
 #ifdef PLATOANALYZE_1D
-PLATO_EXPL_DEC2(Plato::LinearStress, Plato::SimplexMechanics, 1)
+//TODO PLATO_EXPL_DEC2(Plato::LinearStress, Plato::SimplexMechanics, 1)
 #endif
 
 #ifdef PLATOANALYZE_2D
-PLATO_EXPL_DEC2(Plato::LinearStress, Plato::SimplexMechanics, 2)
+//TODO PLATO_EXPL_DEC2(Plato::LinearStress, Plato::SimplexMechanics, 2)
 #endif
 
 #ifdef PLATOANALYZE_3D
-PLATO_EXPL_DEC2(Plato::LinearStress, Plato::SimplexMechanics, 3)
+//TODO PLATO_EXPL_DEC2(Plato::LinearStress, Plato::SimplexMechanics, 3)
 #endif

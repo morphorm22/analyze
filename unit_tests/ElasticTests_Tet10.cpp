@@ -8,6 +8,7 @@
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
 #include "PlatoStaticsTypes.hpp"
+
 #include "ImplicitFunctors.hpp"
 
 #ifdef HAVE_AMGX
@@ -26,17 +27,19 @@
 #include "Simp.hpp"
 #include "Solutions.hpp"
 #include "ScalarProduct.hpp"
-#include "SimplexFadTypes.hpp"
-#include "P2SimplexMechanics.hpp"
 #include "WorksetBase.hpp"
 #include "elliptic/VectorFunction.hpp"
+#include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/PhysicsScalarFunction.hpp"
-#include "elliptic/SolutionFunction.hpp"
-#include "geometric/GeometryScalarFunction.hpp"
+//#include "elliptic/SolutionFunction.hpp"
+//#include "geometric/GeometryScalarFunction.hpp"
 #include "ApplyConstraints.hpp"
 #include "elliptic/Problem.hpp"
+
+#include "Tet10.hpp"
+#include "MechanicsElement.hpp"
 #include "Mechanics.hpp"
-#include "Thermal.hpp"
+//#include "Thermal.hpp"
 
 #include "SmallStrain.hpp"
 #include "GeneralStressDivergence.hpp"
@@ -44,453 +47,6 @@
 #include <fenv.h>
 
 using ordType = typename Plato::ScalarMultiVector::size_type;
-
-namespace Develop {
-
-/******************************************************************************/
-/*! Tet10 Element
-
-    See Klaus-Jurgen Bathe, "Finite Element Proceedures", 2006, pg 375.
-*/
-/******************************************************************************/
-class Tet10
-{
-  public:
-    static constexpr Plato::OrdinalType mNumSpatialDims  = 3;
-    static constexpr Plato::OrdinalType mNumNodesPerCell = 10;
-    static constexpr Plato::OrdinalType mNumNodesPerFace = 6;
-
-    static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
-
-    static inline Plato::Array<4>
-    getCubWeights() { return Plato::Array<4>({1.0/24.0, 1.0/24.0, 1.0/24.0, 1.0/24.0}); }
-
-    static inline Plato::Matrix<4,mNumSpatialDims>
-    getCubPoints()
-    {
-        return Plato::Matrix<4,mNumSpatialDims>({
-            0.585410196624969, 0.138196601125011, 0.138196601125011,
-            0.138196601125011, 0.585410196624969, 0.138196601125011,
-            0.138196601125011, 0.138196601125011, 0.585410196624969,
-            0.138196601125011, 0.138196601125011, 0.138196601125011
-        });
-    }
-
-    DEVICE_TYPE static inline Plato::Array<mNumNodesPerCell>
-    basisValues( const Plato::Array<mNumSpatialDims>& aCubPoint )
-    {
-        auto x=aCubPoint(0);
-        auto y=aCubPoint(1);
-        auto z=aCubPoint(2);
-        auto x2=x*x;
-        auto y2=y*y;
-        auto z2=z*z;
-        auto xy=x*y;
-        auto yz=y*z;
-        auto zx=z*x;
-
-        Plato::Array<mNumNodesPerCell> tN;
-
-        tN(0) = (x2+y2+z2)*2.0 - (x+y+z)*3.0 + (xy+yz+zx)*4.0 + 1.0;
-        tN(1) = x2*2.0-x;
-        tN(2) = y2*2.0-y;
-        tN(3) = z2*2.0-z;
-        tN(4) = (x-x2-xy-zx)*4.0;
-        tN(5) = xy*4.0;
-        tN(6) = (y-y2-xy-yz)*4.0;
-        tN(7) = zx*4.0;
-        tN(8) = yz*4.0;
-        tN(9) = (z-z2-zx-yz)*4.0;
-
-        return tN;
-    }
-
-    DEVICE_TYPE static inline Plato::Matrix<mNumNodesPerCell, mNumSpatialDims>
-    basisGrads( const Plato::Array<mNumSpatialDims>& aCubPoint )
-    {
-        auto x=aCubPoint(0);
-        auto y=aCubPoint(1);
-        auto z=aCubPoint(2);
-
-        Plato::Matrix<mNumNodesPerCell, mNumSpatialDims> tG;
-
-        tG(0,0) = (x+y+z)*4.0-3.0    ; tG(0,1) = (x+y+z)*4.0-3.0    ; tG(0,2) = (x+y+z)*4.0-3.0;
-        tG(1,0) = x*4.0-1.0          ; tG(1,1) = 0.0                ; tG(1,2) = 0.0;
-        tG(2,0) = 0.0                ; tG(2,1) = y*4.0-1.0          ; tG(2,2) = 0.0;
-        tG(3,0) = 0.0                ; tG(3,1) = 0.0                ; tG(3,2) = z*4.0-1.0;
-        tG(4,0) = -(x*2.0+y+z-1)*4.0 ; tG(4,1) = -x*4.0             ; tG(4,2) = -x*4.0;
-        tG(5,0) = y*4.0              ; tG(5,1) = x*4.0              ; tG(5,2) = 0.0;
-        tG(6,0) = -y*4.0             ; tG(6,1) = -(x+2.0*y+z-1)*4.0 ; tG(6,2) = -y*4.0;
-        tG(7,0) = z*4.0              ; tG(7,1) = 0.0                ; tG(7,2) = x*4.;
-        tG(8,0) = 0.0                ; tG(8,1) = z*4.0              ; tG(8,2) = y*4.;
-        tG(9,0) = -z*4.0             ; tG(9,1) = -z*4.0             ; tG(9,2) = -(x+y+z*2.0-1)*4.;
-
-        return tG;
-    }
-
-    template<typename ScalarType>
-    DEVICE_TYPE static inline Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ScalarType>
-    jacobian(
-        const Plato::Array<mNumSpatialDims>&    aCubPoint,
-              Plato::ScalarArray3DT<ScalarType> aConfig,
-              Plato::OrdinalType                aCellOrdinal
-    )
-    {
-        Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ScalarType> tJacobian;
-        auto tBasisGrads = basisGrads(aCubPoint);
-        for (int i=0; i<mNumSpatialDims; i++)
-        {
-            for (int j=0; j<mNumSpatialDims; j++)
-            {
-                tJacobian(i,j) = ScalarType(0.0);
-                for (int I=0; I<mNumNodesPerCell; I++)
-                {
-                    tJacobian(i,j) += tBasisGrads(I,j)*aConfig(aCellOrdinal,I,i);
-                }
-            }
-        }
-        return tJacobian;
-    }
-    template<typename ScalarType>
-    DEVICE_TYPE static inline Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ScalarType>
-    jacobian(
-        const Plato::Array<mNumSpatialDims>         & aCubPoint,
-              Plato::ScalarMultiVectorT<ScalarType>   aConfig
-    )
-    {
-        Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ScalarType> tJacobian;
-        auto tBasisGrads = basisGrads(aCubPoint);
-        for (int i=0; i<mNumSpatialDims; i++)
-        {
-            for (int j=0; j<mNumSpatialDims; j++)
-            {
-                tJacobian(i,j) = ScalarType(0.0);
-                for (int I=0; I<mNumNodesPerCell; I++)
-                {
-                    tJacobian(i,j) += tBasisGrads(I,j)*aConfig(I,i);
-                }
-            }
-        }
-        return tJacobian;
-    }
-
-    template<typename ScalarType>
-    DEVICE_TYPE static inline void
-    computeGradientMatrix(
-        const Plato::Array<mNumSpatialDims>&                     aCubPoint,
-        const Plato::Matrix<mNumSpatialDims, mNumSpatialDims>&   aJacInv,
-              Plato::ScalarArray3DT<ScalarType>                  aGradients,
-              Plato::OrdinalType                                 aCellOrdinal
-    )
-    {
-        auto tBasisGrads = basisGrads(aCubPoint);
-        for (int I=0; I<mNumNodesPerCell; I++)
-        {
-            for (int k=0; k<mNumSpatialDims; k++)
-            {
-                aGradients(aCellOrdinal, I, k) = ScalarType(0.0);
-                for (int j=0; j<mNumSpatialDims; j++)
-                {
-                    aGradients(aCellOrdinal, I, k) += tBasisGrads(I,j)*aJacInv(j,k);
-                }
-            }
-        }
-    }
-
-    template<typename ScalarType>
-    DEVICE_TYPE static inline void
-    computeGradientMatrix(
-        const Plato::Array<mNumSpatialDims>&                     aCubPoint,
-        const Plato::Matrix<mNumSpatialDims, mNumSpatialDims>&   aJacInv,
-              Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, ScalarType>&  aGradient
-    )
-    {
-        auto tBasisGrads = basisGrads(aCubPoint);
-        for (int I=0; I<mNumNodesPerCell; I++)
-        {
-            for (int k=0; k<mNumSpatialDims; k++)
-            {
-                aGradient(I, k) = ScalarType(0.0);
-                for (int j=0; j<mNumSpatialDims; j++)
-                {
-                    aGradient(I, k) += tBasisGrads(I,j)*aJacInv(j,k);
-                }
-            }
-        }
-    }
-};
-
-template<typename ElementType>
-class ComputeGradientMatrix : public ElementType
-{
-  public:
-/*
-    template<typename ScalarType>
-    DEVICE_TYPE inline void
-    operator()(
-              Plato::OrdinalType                   aCellOrdinal,
-              Plato::ScalarArray3DT<ScalarType>    aGradients,
-              Plato::ScalarArray3DT<ScalarType>    aConfig,
-              Plato::ScalarVectorT<ScalarType>     aCellVolume,
-        const Plato::Array<ElementType::mNumSpatialDims>& aCubPoint
-    ) const
-    {
-        auto tJacobian = ElementType::jacobian(aCubPoint, aConfig, aCellOrdinal);
-        aCellVolume(aCellOrdinal) = Plato::determinant(tJacobian);
-        auto tJacInv = Plato::invert(tJacobian);
-        ElementType::computeGradientMatrix(aCubPoint, tJacInv, aGradients, aCellOrdinal);
-    }
-*/
-
-    template<typename ScalarType>
-    DEVICE_TYPE inline void
-    operator()(
-        const Plato::Array<ElementType::mNumSpatialDims> & aCubPoint,
-              Plato::ScalarMultiVectorT<ScalarType>    aConfig,
-              Plato::Matrix<ElementType::mNumNodesPerCell,ElementType::mNumSpatialDims,ScalarType> & aGradient,
-              ScalarType&     aVolume
-    ) const
-    {
-        auto tJacobian = ElementType::jacobian(aCubPoint, aConfig);
-        aVolume = Plato::determinant(tJacobian);
-        auto tJacInv = Plato::invert(tJacobian);
-        ElementType::template computeGradientMatrix<ScalarType>(aCubPoint, tJacInv, aGradient);
-    }
-
-};
-
-/******************************************************************************/
-/*! Base class for quadratic simplex-based mechanics
-*/
-/******************************************************************************/
-template<typename ElementType, Plato::OrdinalType NumControls = 1>
-class MechanicsElement : public ElementType
-{
-  public:
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumSpatialDims;
-
-    static constexpr Plato::OrdinalType mNumVoigtTerms   = (mNumSpatialDims == 3) ? 6 :
-                                                          ((mNumSpatialDims == 2) ? 3 :
-                                                         (((mNumSpatialDims == 1) ? 1 : 0)));
-    static constexpr Plato::OrdinalType mNumDofsPerNode  = mNumSpatialDims;
-    static constexpr Plato::OrdinalType mNumDofsPerCell  = mNumDofsPerNode*mNumNodesPerCell;
-
-
-    static constexpr Plato::OrdinalType mNumControl = NumControls;
-
-    static constexpr Plato::OrdinalType mNumNodeStatePerNode = 0;
-    static constexpr Plato::OrdinalType mNumLocalDofsPerCell = 0;
-};
-
-
-}
-
-/******************************************************************************/
-/*! 
-  \brief Evaluate the Tet10 basis functions at (0.25, 0.25, 0.25)
-*/
-/******************************************************************************/
-TEUCHOS_UNIT_TEST( Tet10, MechanicsTet10_Constants )
-{ 
-    using ElementType = typename Develop::MechanicsElement<Develop::Tet10>;
-
-    constexpr auto tNodesPerCell  = ElementType::mNumNodesPerCell;
-    constexpr auto tDofsPerCell   = ElementType::mNumDofsPerCell;
-    constexpr auto tDofsPerNode   = ElementType::mNumDofsPerNode;
-    constexpr auto tSpaceDims     = ElementType::mNumSpatialDims;
-    constexpr auto tNumVoigtTerms = ElementType::mNumVoigtTerms;
-
-    TEST_ASSERT(tNodesPerCell  == 10);
-    TEST_ASSERT(tDofsPerCell   == 30);
-    TEST_ASSERT(tDofsPerNode   == 3 );
-    TEST_ASSERT(tSpaceDims     == 3 );
-    TEST_ASSERT(tNumVoigtTerms == 6 );
-}
-
-/******************************************************************************/
-/*! 
-  \brief Evaluate the Tet10 basis functions at (0.25, 0.25, 0.25)
-*/
-/******************************************************************************/
-TEUCHOS_UNIT_TEST( Tet10, BasisFunctions )
-{ 
-    Plato::ScalarMultiVector tValuesView("basis values", 11, Develop::Tet10::mNumNodesPerCell);
-
-    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), LAMBDA_EXPRESSION(int ordinal)
-    {
-        Plato::Array<Develop::Tet10::mNumSpatialDims> tPoint;
-
-        tPoint(0) = 0.25; tPoint(1) = 0.25; tPoint(2) = 0.25;
-        auto tValues = Develop::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Develop::Tet10::mNumNodesPerCell; i++) { tValuesView(0,i) = tValues(i); }
-
-        tPoint(0) = 0.0; tPoint(1) = 0.0; tPoint(2) = 0.0;
-        tValues = Develop::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Develop::Tet10::mNumNodesPerCell; i++) { tValuesView(1,i) = tValues(i); }
-
-        tPoint(0) = 1.0; tPoint(1) = 0.0; tPoint(2) = 0.0;
-        tValues = Develop::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Develop::Tet10::mNumNodesPerCell; i++) { tValuesView(2,i) = tValues(i); }
-
-        tPoint(0) = 0.0; tPoint(1) = 1.0; tPoint(2) = 0.0;
-        tValues = Develop::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Develop::Tet10::mNumNodesPerCell; i++) { tValuesView(3,i) = tValues(i); }
-
-        tPoint(0) = 0.0; tPoint(1) = 0.0; tPoint(2) = 1.0;
-        tValues = Develop::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Develop::Tet10::mNumNodesPerCell; i++) { tValuesView(4,i) = tValues(i); }
-
-        tPoint(0) = 0.5; tPoint(1) = 0.0; tPoint(2) = 0.0;
-        tValues = Develop::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Develop::Tet10::mNumNodesPerCell; i++) { tValuesView(5,i) = tValues(i); }
-
-        tPoint(0) = 0.5; tPoint(1) = 0.5; tPoint(2) = 0.0;
-        tValues = Develop::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Develop::Tet10::mNumNodesPerCell; i++) { tValuesView(6,i) = tValues(i); }
-
-        tPoint(0) = 0.0; tPoint(1) = 0.5; tPoint(2) = 0.0;
-        tValues = Develop::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Develop::Tet10::mNumNodesPerCell; i++) { tValuesView(7,i) = tValues(i); }
-
-        tPoint(0) = 0.5; tPoint(1) = 0.0; tPoint(2) = 0.5;
-        tValues = Develop::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Develop::Tet10::mNumNodesPerCell; i++) { tValuesView(8,i) = tValues(i); }
-
-        tPoint(0) = 0.0; tPoint(1) = 0.5; tPoint(2) = 0.5;
-        tValues = Develop::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Develop::Tet10::mNumNodesPerCell; i++) { tValuesView(9,i) = tValues(i); }
-
-        tPoint(0) = 0.0; tPoint(1) = 0.0; tPoint(2) = 0.5;
-        tValues = Develop::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Develop::Tet10::mNumNodesPerCell; i++) { tValuesView(10,i) = tValues(i); }
-
-
-    }, "basis functions");
-
-    auto tValuesHost = Kokkos::create_mirror_view( tValuesView );
-    Kokkos::deep_copy( tValuesHost, tValuesView );
-
-    std::vector<std::vector<Plato::Scalar>> tValuesGold = {
-      {-1.0/8.0, -1.0/8.0, -1.0/8.0, -1.0/8.0, 1.0/4.0, 1.0/4.0, 1.0/4.0, 1.0/4.0, 1.0/4.0, 1.0/4.0},
-      {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-      {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-      {0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-      {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-      {0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-      {0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0},
-      {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0},
-      {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0},
-      {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0},
-      {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0}
-    };
-
-    int tNumGold_I=tValuesGold.size();
-    for(int i=0; i<tNumGold_I; i++)
-    {
-        int tNumGold_J=tValuesGold[0].size();
-        for(int j=0; j<tNumGold_J; j++)
-        {
-            TEST_FLOATING_EQUALITY(tValuesHost(i,j), tValuesGold[i][j], 1e-13);
-        }
-    }
-}
-
-/******************************************************************************/
-/*! 
-  \brief Evaluate the Tet10 basis function gradients at (0.25, 0.25, 0.25)
-*/
-/******************************************************************************/
-TEUCHOS_UNIT_TEST( Tet10, BasisFunctionGradients )
-{ 
-    Plato::ScalarMultiVector tGradsView("basis grads", Develop::Tet10::mNumNodesPerCell, Develop::Tet10::mNumSpatialDims);
-
-    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), LAMBDA_EXPRESSION(int ordinal)
-    {
-        Plato::Array<Develop::Tet10::mNumSpatialDims> tPoint;
-
-        tPoint(0) = 0.25; tPoint(1) = 0.25; tPoint(2) = 0.25;
-        auto tGrads = Develop::Tet10::basisGrads(tPoint);
-        for(ordType i=0; i<Develop::Tet10::mNumNodesPerCell; i++)
-        {
-            for(ordType j=0; j<Develop::Tet10::mNumSpatialDims; j++)
-            {
-                tGradsView(i,j) = tGrads(i,j);
-            }
-        }
-    }, "basis function derivatives");
-
-    auto tGradsHost = Kokkos::create_mirror_view( tGradsView );
-    Kokkos::deep_copy( tGradsHost, tGradsView );
-
-    std::vector<std::vector<Plato::Scalar>> tGradsGold = {
-      {0, 0, 0}, { 0, 0, 0 }, {0, 0, 0}, {0, 0, 0}, { 0, -1, -1},
-      {1, 1, 0}, {-1, 0, -1}, {1, 0, 1}, {0, 1, 1}, {-1, -1,  0}
-    };
-
-    int tNumGold_I=tGradsGold.size();
-    for(int i=0; i<tNumGold_I; i++)
-    {
-        int tNumGold_J=tGradsGold[0].size();
-        for(int j=0; j<tNumGold_J; j++)
-        {
-            TEST_FLOATING_EQUALITY(tGradsHost(i,j), tGradsGold[i][j], 1e-13);
-        }
-    }
-}
-
-/******************************************************************************/
-/*! 
-  \brief Evaluate the Tet10 jacobian at (0.25, 0.25, 0.25) for a cell that's
-  in the reference configuration.  Jacobian should be identity.
-*/
-/******************************************************************************/
-TEUCHOS_UNIT_TEST( Tet10, JacobianParentCoords )
-{ 
-    Plato::ScalarMultiVector tJacobianView("jacobian", Develop::Tet10::mNumSpatialDims, Develop::Tet10::mNumSpatialDims);
-    Plato::ScalarArray3D tConfig("node locations", 1, Develop::Tet10::mNumNodesPerCell, Develop::Tet10::mNumSpatialDims);
-
-    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), LAMBDA_EXPRESSION(int ordinal)
-    {
-        tConfig(0,0,0) = 0.0; tConfig(0,0,1) = 0.0; tConfig(0,0,2) = 0.0;
-        tConfig(0,1,0) = 1.0; tConfig(0,1,1) = 0.0; tConfig(0,1,2) = 0.0;
-        tConfig(0,2,0) = 0.0; tConfig(0,2,1) = 1.0; tConfig(0,2,2) = 0.0;
-        tConfig(0,3,0) = 0.0; tConfig(0,3,1) = 0.0; tConfig(0,3,2) = 1.0;
-        tConfig(0,4,0) = 0.5; tConfig(0,4,1) = 0.0; tConfig(0,4,2) = 0.0;
-        tConfig(0,5,0) = 0.5; tConfig(0,5,1) = 0.5; tConfig(0,5,2) = 0.0;
-        tConfig(0,6,0) = 0.0; tConfig(0,6,1) = 0.5; tConfig(0,6,2) = 0.0;
-        tConfig(0,7,0) = 0.5; tConfig(0,7,1) = 0.0; tConfig(0,7,2) = 0.5;
-        tConfig(0,8,0) = 0.0; tConfig(0,8,1) = 0.5; tConfig(0,8,2) = 0.5;
-        tConfig(0,9,0) = 0.0; tConfig(0,9,1) = 0.0; tConfig(0,9,2) = 0.5;
-
-        Plato::Array<Develop::Tet10::mNumSpatialDims> tPoint;
-
-        tPoint(0) = 0.25; tPoint(1) = 0.25; tPoint(2) = 0.25;
-        auto tJacobian = Develop::Tet10::jacobian(tPoint, tConfig, ordinal);
-        for(ordType i=0; i<Develop::Tet10::mNumSpatialDims; i++)
-        {
-            for(ordType j=0; j<Develop::Tet10::mNumSpatialDims; j++)
-            {
-                tJacobianView(i,j) = tJacobian(i,j);
-            }
-        }
-    }, "cell jacobian");
-
-    auto tJacobianHost = Kokkos::create_mirror_view( tJacobianView );
-    Kokkos::deep_copy( tJacobianHost, tJacobianView );
-
-    std::vector<std::vector<Plato::Scalar>> tJacobianGold = { {1, 0, 0}, { 0, 1, 0 }, {0, 0, 1} };
-
-    int tNumGold_I=tJacobianGold.size();
-    for(int i=0; i<tNumGold_I; i++)
-    {
-        int tNumGold_J=tJacobianGold[0].size();
-        for(int j=0; j<tNumGold_J; j++)
-        {
-            TEST_FLOATING_EQUALITY(tJacobianHost(i,j), tJacobianGold[i][j], 1e-13);
-        }
-    }
-}
 
 /******************************************************************************/
 /*! 
@@ -502,7 +58,7 @@ TEUCHOS_UNIT_TEST( Tet10, ConfigWorkset )
     constexpr int meshWidth=1;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET10", meshWidth);
 
-    using ElementType = typename Develop::MechanicsElement<Develop::Tet10>;
+    using ElementType = typename Plato::MechanicsElement<Plato::Tet10>;
 
     Plato::WorksetBase<ElementType> worksetBase(tMesh);
 
@@ -558,7 +114,7 @@ TEUCHOS_UNIT_TEST( Tet10, StateWorkset )
     constexpr int meshWidth=1;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET10", meshWidth);
 
-    using ElementType = typename Develop::MechanicsElement<Develop::Tet10>;
+    using ElementType = typename Plato::MechanicsElement<Plato::Tet10>;
 
     Plato::WorksetBase<ElementType> worksetBase(tMesh);
 
@@ -626,7 +182,7 @@ TEUCHOS_UNIT_TEST( Tet10, ComputeGradientMatrix )
   constexpr int meshWidth=1;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET10", meshWidth);
 
-  using ElementType = typename Develop::MechanicsElement<Develop::Tet10>;
+  using ElementType = typename Plato::MechanicsElement<Plato::Tet10>;
 
   Plato::WorksetBase<ElementType> worksetBase(tMesh);
 
@@ -638,7 +194,7 @@ TEUCHOS_UNIT_TEST( Tet10, ComputeGradientMatrix )
 
   worksetBase.worksetConfig(tConfigWS);
 
-  Develop::ComputeGradientMatrix<Develop::Tet10> computeGradientMatrix;
+  Plato::ComputeGradientMatrix<ElementType> computeGradientMatrix;
 
   auto tCubPoints = ElementType::getCubPoints();
   auto tCubWeights = ElementType::getCubWeights();
@@ -650,12 +206,11 @@ TEUCHOS_UNIT_TEST( Tet10, ComputeGradientMatrix )
   Kokkos::parallel_for("gradients", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
   LAMBDA_EXPRESSION(const int cellOrdinal, const int gpOrdinal)
   {
-      Plato::ScalarMultiVectorT<Plato::Scalar> tConfig = Kokkos::subview(tConfigWS, cellOrdinal, Kokkos::ALL, Kokkos::ALL);
       Plato::Scalar tVolume(0.0);
 
       Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, Plato::Scalar> tGradient;
       auto tCubPoint = tCubPoints(gpOrdinal);
-      computeGradientMatrix(tCubPoint, tConfig, tGradient, tVolume);
+      computeGradientMatrix(cellOrdinal, tCubPoint, tConfigWS, tGradient, tVolume);
       tVolume *= tCubWeights(gpOrdinal);
 
       for(int I=0; I<ElementType::mNumNodesPerCell; I++)
@@ -826,7 +381,7 @@ TEUCHOS_UNIT_TEST( Tet10, ComputeStresses )
 
   auto tOnlyDomain = tSpatialModel.Domains.front();
 
-  using ElementType = typename Develop::MechanicsElement<Develop::Tet10>;
+  using ElementType = typename Plato::MechanicsElement<Plato::Tet10>;
 
   Plato::WorksetBase<ElementType> worksetBase(tMesh);
 
@@ -853,14 +408,14 @@ TEUCHOS_UNIT_TEST( Tet10, ComputeStresses )
   Plato::ScalarMultiVectorT<Plato::Scalar> tStateWS("state workset", tNumCells, tDofsPerCell);
   worksetBase.worksetState(tDisp, tStateWS);
 
-  Develop::ComputeGradientMatrix<Develop::Tet10> computeGradient;
+  Plato::ComputeGradientMatrix<ElementType> computeGradient;
   Plato::SmallStrain<ElementType> voigtStrain;
 
   Plato::ElasticModelFactory<tSpaceDims> mmfactory(*tParamList);
   auto materialModel = mmfactory.create(tOnlyDomain.getMaterialName());
   auto tCellStiffness = materialModel->getStiffnessMatrix();
 
-  Plato::LinearStress<Plato::ResidualTypes<ElementType>, ElementType> voigtStress(tCellStiffness);
+  Plato::LinearStress<Plato::Elliptic::ResidualTypes<ElementType>, ElementType> voigtStress(tCellStiffness);
 
   Plato::GeneralStressDivergence<ElementType>  stressDivergence;
 
@@ -870,15 +425,13 @@ TEUCHOS_UNIT_TEST( Tet10, ComputeStresses )
 
   Plato::ScalarMultiVectorT<Plato::Scalar> tCellStress("stress", tNumCells, tNumVoigtTerms);
   Plato::ScalarMultiVectorT<Plato::Scalar> tCellStrain("strain", tNumCells, tNumVoigtTerms);
-  Plato::ScalarVectorT<Plato::Scalar> tCellVolume("strain", tNumCells);
+  Plato::ScalarVectorT<Plato::Scalar> tCellVolume("cell volume", tNumCells);
 
   Plato::ScalarMultiVectorT<Plato::Scalar> tResult("result", tNumCells, tDofsPerCell);
 
   Kokkos::parallel_for("gradients", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
   LAMBDA_EXPRESSION(const int cellOrdinal, const int gpOrdinal)
   {
-      Plato::ScalarMultiVectorT<Plato::Scalar> tConfig = Kokkos::subview(tConfigWS, cellOrdinal, Kokkos::ALL, Kokkos::ALL);
-      Plato::ScalarVectorT<Plato::Scalar> tState  = Kokkos::subview(tStateWS,  cellOrdinal, Kokkos::ALL);
       Plato::Scalar tVolume(0.0);
 
       Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, Plato::Scalar> tGradient;
@@ -888,9 +441,9 @@ TEUCHOS_UNIT_TEST( Tet10, ComputeStresses )
 
       auto tCubPoint = tCubPoints(gpOrdinal);
 
-      computeGradient(tCubPoint, tConfig, tGradient, tVolume);
+      computeGradient(cellOrdinal, tCubPoint, tConfigWS, tGradient, tVolume);
 
-      voigtStrain(tStrain, tState, tGradient);
+      voigtStrain(cellOrdinal, tStrain, tStateWS, tGradient);
 
       voigtStress(tStress, tStrain);
 
@@ -1033,7 +586,6 @@ TEUCHOS_UNIT_TEST( Tet10, ComputeStresses )
   }
 }
 
-#ifdef NOPE
 /******************************************************************************/
 /*! 
   \brief Compute value and both gradients (wrt state and control) of 
@@ -1044,7 +596,7 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D )
 {
   // create test mesh
   //
-  constexpr int meshWidth=2;
+  constexpr int meshWidth=1;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET10", meshWidth);
 
   // create mesh based density
@@ -1054,17 +606,17 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D )
   Kokkos::deep_copy(z, 1.0);
 
 
-  // create mesh based displacement
+  // create displacement field, u(x) = 0.001*x;
   //
-  auto tNumDimensions = tMesh->NumDimensions();
-  Plato::ScalarVector u("displacement", tNumDimensions*tNumNodes );
-
-  Plato::Scalar disp = 0.0, dval = 0.0001;
+  auto tCoords = tMesh->Coordinates();
+  auto tSpaceDims = tMesh->NumDimensions();
+  Plato::ScalarVector u("displacement", tCoords.size());
   Kokkos::parallel_for("set displacement", Kokkos::RangePolicy<int>(0, tNumNodes),
   LAMBDA_EXPRESSION(int nodeOrdinal)
   {
-    u(tNumDimensions*nodeOrdinal) = disp += dval;
+    u(tSpaceDims*nodeOrdinal) = 0.001*tCoords(tSpaceDims*nodeOrdinal);
   });
+
 
   // create input
   //
@@ -1109,7 +661,7 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D )
   //
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
-  using ElementType = typename Develop::MechanicsElement<Develop::Tet10>;
+  using ElementType = typename Plato::Mechanics<Plato::Tet10>;
 
   Plato::DataMap tDataMap;
   Plato::Elliptic::VectorFunction<ElementType>
@@ -1123,33 +675,23 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D )
   Kokkos::deep_copy( residual_Host, residual );
 
   std::vector<Plato::Scalar> residual_gold = { 
--1144.230769230769, -798.0769230769229, -682.6923076923076,
--1427.884615384615, -1081.730769230769, -403.8461538461537,
--283.6538461538461, -283.6538461538461,  278.8461538461538,
--1370.192307692307, -461.5384615384612, -908.6538461538460,
--2163.461538461538, -692.3076923076923, -576.9230769230769,
--793.2692307692304, -230.7692307692308,  331.7307692307693,
--225.9615384615384,  336.5384615384614, -225.9615384615383,
--735.5769230769222,  389.4230769230768, -173.0769230769231,
--509.6153846153846,  52.88461538461540,  52.88461538461543,
--634.6153846153844, -850.9615384615381, -735.5769230769229,
--692.3076923076919, -1471.153846153846, -230.7692307692306,
--57.69230769230739, -620.1923076923076,  504.8076923076926,
--576.9230769230766, -230.7692307692309, -1240.384615384615,
- 0.000000000000000,  0.000000000000000,  0.000000000000000,
- 576.9230769230768,  230.7692307692313,  1240.384615384615,
- 57.69230769230771,  620.1923076923080, -504.8076923076922,
- 692.3076923076926,  1471.153846153846,  230.7692307692315,
- 634.6153846153854,  850.9615384615385,  735.5769230769231,
- 509.6153846153848, -52.88461538461544, -52.88461538461522,
- 735.5769230769231, -389.4230769230764,  173.0769230769229,
- 225.9615384615386, -336.5384615384613,  225.9615384615385,
- 793.2692307692309,  230.7692307692311, -331.7307692307688,
- 2163.461538461538,  692.3076923076935,  576.9230769230777,
- 1370.192307692308,  461.5384615384621,  908.6538461538464,
- 283.6538461538462,  283.6538461538464, -278.8461538461535,
- 1427.884615384615,  1081.730769230769,  403.8461538461543,
- 1144.230769230769,  798.0769230769230,  682.6923076923077
+ 55.4645887339653996,  23.7705380288423100,  23.7705380288423029, -109.810866464739348, -85.5233383749995255,
+ 0.00000000000000000,  50.1681918028794414,  2.26988439903643524,  28.8461538461539639, -199.554456208332198,
+ 0.00000000000000000, -47.0617999134597511, -309.365322673071603,  0.00000000000000000,  0.00000000000000000,
+-199.554456208331374,  38.4615384615386517,  19.2307692307690310,  5.29639693108502740,  28.8461538461539497,
+ 21.5006536298054733, -109.810866464741139,  57.6923076923076792, -38.4615384615386304,  55.4645887339644617,
+ 0.00000000000000000,  28.8461538461537508,  0.00000000000000000, -47.0617999134596943, -85.5233383749995255,
+ 0.00000000000000000, -132.585138288459234,  0.00000000000000000, -89.7435897435901495, -47.0617999134604901,
+ 57.6923076923076934,  0.00000000000000000,  0.00000000000000000, -132.585138288459234, -120.403660326913922,
+-51.6015687115345258, -51.6015687115344974, -15.3300352916621705, -45.0315535865361340,  134.615384615385011,
+ 89.7435897435901495,  19.2307692307690417, -85.5233383749991134, -105.073625035250942,  134.615384615384983,
+-6.57001512499805074, -120.403660326912956,  38.4615384615386446,  96.1538461538463451,  67.3076923076926050,
+ 21.5006536298054591,  2.26988439903642814,  44.8717948717944282, -85.5233383749991560,  38.4615384615386660,
+ 67.3076923076921219,  23.7705380288419157,  0.00000000000000000,  134.615384615384528, -38.4615384615386233,
+-47.0617999134604474,  314.102564102564997, -6.57001512499804363, -45.0315535865361198,  224.358974358974791,
+-51.6015687115341422,  38.4615384615386446,  0.00000000000000000,  28.8461538461537543,  23.7705380288418979,
+ 89.7435897435902064,  96.1538461538463594, -51.6015687115341919,  180.605490490369050,  77.4023530673010498,
+ 77.4023530673010498
   };
 
   for(int iNode=0; iNode<int(residual_gold.size()); iNode++){
@@ -1170,21 +712,26 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D )
   Kokkos::deep_copy(jac_entriesHost, jac_entries);
 
   std::vector<Plato::Scalar> gold_jac_entries = {
-352564.102564102504, 0, 0, 0, 352564.102564102563, 0, 0, 0,
-352564.102564102504, -64102.5641025640944, 0, 32051.2820512820472, 0,
--64102.5641025640944, 32051.2820512820472, 48076.9230769230635,
-48076.9230769230635, -224358.974358974287, -64102.5641025640944,
-32051.2820512820472, 0, 48076.9230769230635, -224358.974358974287,
-48076.9230769230635, 0, 32051.2820512820472, -64102.5641025640944, 0,
-32051.2820512820472, 32051.2820512820472, 48076.9230769230635, 0,
--80128.2051282051107, 48076.9230769230635, -80128.2051282051107, 0
+    722672.504457739997, -132494.267401092191, -132494.267401092162,
+   -132494.267401092191,  722672.504457739880, -132494.267401092220,
+   -132494.267401092220, -132494.267401092191,  722672.504457739997,
+   -366349.067406447721, -3863.02002242947492,  217867.806893917208,
+   -319.517429480503779, -133154.907763027761, -96117.0325768158218,
+    233555.073531737318, -104717.294028738019, -380080.008596341766,
+    77386.8667729836452, -2379.61224474191113, -72774.4549925839092,
+   -8451.49426717760434,  36106.0357020234733,  41848.0239504697747,
+   -73112.8293804046407,  41509.6495626489341,  101645.724934288271,
+   -133154.907763027761, -96117.0325768158218, -319.517429480503779,
+   -104717.294028738019, -380080.008596341766,  233555.073531737318,
+   -3863.02002242947492,  217867.806893917208, -366349.067406447721
   };
 
   int jac_entriesSize = gold_jac_entries.size();
   for(int i=0; i<jac_entriesSize; i++){
-    TEST_FLOATING_EQUALITY(jac_entriesHost(i), gold_jac_entries[i], 1.0e-15);
+    TEST_FLOATING_EQUALITY(jac_entriesHost(i), gold_jac_entries[i], 1.0e-12);
   }
 
+#ifdef NOPE
 
   // compute and test gradient wrt control, z
   //
@@ -1235,9 +782,12 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D )
     TEST_FLOATING_EQUALITY(grad_x_entriesHost(i), gold_grad_x_entries[i], 1.0e-13);
   }
 
+#endif
+
 }
 
 
+#ifdef NOPE
 
 /******************************************************************************/
 /*! 

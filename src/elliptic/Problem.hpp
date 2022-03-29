@@ -43,7 +43,7 @@ namespace Elliptic
 /******************************************************************************//**
  * \brief Manage scalar and vector function evaluations
 **********************************************************************************/
-template<typename PhysicsT>
+template<typename PhysicsType>
 class Problem: public Plato::AbstractProblem
 {
 private:
@@ -54,9 +54,11 @@ private:
     using LinearCriterion = std::shared_ptr<Plato::Geometric::ScalarFunctionBase>;
     using LinearCriteria  = std::map<std::string, LinearCriterion>;
 
-    static constexpr Plato::OrdinalType mSpatialDim = PhysicsT::mNumSpatialDims; /*!< spatial dimensions */
+    using ElementType = typename PhysicsType::ElementType;
 
-    using VectorFunctionType = Plato::Elliptic::VectorFunction<PhysicsT>;
+    static constexpr Plato::OrdinalType mSpatialDim = ElementType::mNumSpatialDims; /*!< spatial dimensions */
+
+    using VectorFunctionType = Plato::Elliptic::VectorFunction<PhysicsType>;
 
     Plato::SpatialModel mSpatialModel; /*!< SpatialModel instance contains the mesh, meshsets, domains, etc. */
 
@@ -119,9 +121,9 @@ public:
 
         Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
         if(mMPCs)
-            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, PhysicsT::mNumDofsPerNode, mMPCs);
+            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode, mMPCs);
         else
-            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, PhysicsT::mNumDofsPerNode);
+            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode);
     }
 
     ~Problem(){}
@@ -200,11 +202,11 @@ public:
     {
         if(mJacobian->isBlockMatrix())
         {
-            Plato::applyBlockConstraints<PhysicsT::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, mBcValues, aScale);
+            Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, mBcValues, aScale);
         }
         else
         {
-            Plato::applyConstraints<PhysicsT::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, mBcValues, aScale);
+            Plato::applyConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, mBcValues, aScale);
         }
     }
 
@@ -613,7 +615,7 @@ public:
         {
             ANALYZE_THROWERR("ESSENTIAL BOUNDARY CONDITIONS SUBLIST IS NOT DEFINED IN THE INPUT FILE.")
         }
-        Plato::EssentialBCs<PhysicsT>
+        Plato::EssentialBCs<ElementType>
         tEssentialBoundaryConditions(aProblemParams.sublist("Essential Boundary Conditions", false), mSpatialModel.Mesh);
         tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
 
@@ -649,12 +651,12 @@ private:
     void initialize(Teuchos::ParameterList& aProblemParams)
     {
         auto tName = aProblemParams.get<std::string>("PDE Constraint");
-        mPDE = std::make_shared<Plato::Elliptic::VectorFunction<PhysicsT>>(mSpatialModel, mDataMap, aProblemParams, tName);
+        mPDE = std::make_shared<Plato::Elliptic::VectorFunction<PhysicsType>>(mSpatialModel, mDataMap, aProblemParams, tName);
 
         if(aProblemParams.isSublist("Criteria"))
         {
             Plato::Geometric::ScalarFunctionBaseFactory<Plato::Geometrical<mSpatialDim>> tLinearFunctionBaseFactory;
-            Plato::Elliptic::ScalarFunctionBaseFactory<PhysicsT> tNonlinearFunctionBaseFactory;
+            Plato::Elliptic::ScalarFunctionBaseFactory<PhysicsType> tNonlinearFunctionBaseFactory;
 
             auto tCriteriaParams = aProblemParams.sublist("Criteria");
             for(Teuchos::ParameterList::ConstIterator tIndex = tCriteriaParams.begin(); tIndex != tCriteriaParams.end(); ++tIndex)
@@ -667,19 +669,19 @@ private:
 
                 if( tCriteriaParams.sublist(tName).get<bool>("Linear", false) == true )
                 {
-                    auto tCriterion = tLinearFunctionBaseFactory.create(mSpatialModel, mDataMap, aProblemParams, tName);
-                    if( tCriterion != nullptr )
-                    {
-                        mLinearCriteria[tName] = tCriterion;
-                    }
+// TODO                    auto tCriterion = tLinearFunctionBaseFactory.create(mSpatialModel, mDataMap, aProblemParams, tName);
+// TODO                    if( tCriterion != nullptr )
+// TODO                    {
+// TODO                        mLinearCriteria[tName] = tCriterion;
+// TODO                    }
                 }
                 else
                 {
-                    auto tCriterion = tNonlinearFunctionBaseFactory.create(mSpatialModel, mDataMap, aProblemParams, tName);
-                    if( tCriterion != nullptr )
-                    {
-                        mCriteria[tName] = tCriterion;
-                    }
+// TODO                    auto tCriterion = tNonlinearFunctionBaseFactory.create(mSpatialModel, mDataMap, aProblemParams, tName);
+// TODO                    if( tCriterion != nullptr )
+// TODO                    {
+// TODO                        mCriteria[tName] = tCriterion;
+// TODO                    }
                 }
             }
             if( mCriteria.size() )
@@ -704,11 +706,11 @@ private:
         Plato::blas1::scale(static_cast<Plato::Scalar>(0.0), tDirichletValues);
         if(mJacobian->isBlockMatrix())
         {
-            Plato::applyBlockConstraints<PhysicsT::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tDirichletValues);
+            Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tDirichletValues);
         }
         else
         {
-            Plato::applyConstraints<PhysicsT::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tDirichletValues);
+            Plato::applyConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tDirichletValues);
         }
     }
 
@@ -729,28 +731,28 @@ private:
 
 } // namespace Plato
 
-#include "Thermal.hpp"
-#include "Mechanics.hpp"
-#include "Electromechanics.hpp"
-#include "Thermomechanics.hpp"
+//TODO #include "Thermal.hpp"
+//TODO #include "Mechanics.hpp"
+//TODO #include "Electromechanics.hpp"
+//TODO #include "Thermomechanics.hpp"
 
 #ifdef PLATOANALYZE_1D
-extern template class Plato::Elliptic::Problem<::Plato::Thermal<1>>;
-extern template class Plato::Elliptic::Problem<::Plato::Mechanics<1>>;
-extern template class Plato::Elliptic::Problem<::Plato::Electromechanics<1>>;
-extern template class Plato::Elliptic::Problem<::Plato::Thermomechanics<1>>;
+//TODO extern template class Plato::Elliptic::Problem<::Plato::Thermal<1>>;
+//TODO extern template class Plato::Elliptic::Problem<::Plato::Mechanics<1>>;
+//TODO extern template class Plato::Elliptic::Problem<::Plato::Electromechanics<1>>;
+//TODO extern template class Plato::Elliptic::Problem<::Plato::Thermomechanics<1>>;
 #endif
 #ifdef PLATOANALYZE_2D
-extern template class Plato::Elliptic::Problem<::Plato::Thermal<2>>;
-extern template class Plato::Elliptic::Problem<::Plato::Mechanics<2>>;
-extern template class Plato::Elliptic::Problem<::Plato::Electromechanics<2>>;
-extern template class Plato::Elliptic::Problem<::Plato::Thermomechanics<2>>;
+//TODO extern template class Plato::Elliptic::Problem<::Plato::Thermal<2>>;
+//TODO extern template class Plato::Elliptic::Problem<::Plato::Mechanics<2>>;
+//TODO extern template class Plato::Elliptic::Problem<::Plato::Electromechanics<2>>;
+//TODO extern template class Plato::Elliptic::Problem<::Plato::Thermomechanics<2>>;
 #endif
 #ifdef PLATOANALYZE_3D
-extern template class Plato::Elliptic::Problem<::Plato::Thermal<3>>;
-extern template class Plato::Elliptic::Problem<::Plato::Mechanics<3>>;
-extern template class Plato::Elliptic::Problem<::Plato::Electromechanics<3>>;
-extern template class Plato::Elliptic::Problem<::Plato::Thermomechanics<3>>;
+//TODO extern template class Plato::Elliptic::Problem<::Plato::Thermal<3>>;
+//TODO extern template class Plato::Elliptic::Problem<::Plato::Mechanics<3>>;
+//TODO extern template class Plato::Elliptic::Problem<::Plato::Electromechanics<3>>;
+//TODO extern template class Plato::Elliptic::Problem<::Plato::Thermomechanics<3>>;
 #endif
 
 #endif // PLATO_PROBLEM_HPP

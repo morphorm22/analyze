@@ -3,8 +3,7 @@
 
 #include "ExpInstMacros.hpp"
 #include "LinearElasticMaterial.hpp"
-#include "SimplexFadTypes.hpp"
-#include "SimplexMechanics.hpp"
+#include "FadTypes.hpp"
 
 #include "PlatoMathTypes.hpp"
 
@@ -18,9 +17,8 @@ namespace Plato
  stress tensor in Voigt notation = {s_xx, s_yy, s_zz, s_yz, s_xz, s_xy}
  */
 /******************************************************************************/
-template< typename EvaluationType, typename SimplexPhysics >
-class AbstractLinearStress :
-    public Plato::SimplexMechanics<EvaluationType::SpatialDim>
+template< typename EvaluationType, typename ElementType >
+class AbstractLinearStress : public ElementType
 {
 protected:
     static constexpr auto mSpaceDim = EvaluationType::SpatialDim; /*!< spatial dimensions */
@@ -29,9 +27,9 @@ protected:
     using ConfigT = typename EvaluationType::ConfigScalarType; /*!< configuration variables automatic differentiation type */
     using ResultT = typename EvaluationType::ResultScalarType; /*!< result variables automatic differentiation type */
 
-    using StrainT = typename Plato::fad_type_t<SimplexPhysics, StateT, ConfigT>; /*!< strain variables automatic differentiation type */
+    using StrainT = typename Plato::fad_type_t<ElementType, StateT, ConfigT>; /*!< strain variables automatic differentiation type */
 
-    using Plato::SimplexMechanics<mSpaceDim>::mNumVoigtTerms; /*!< number of stress/strain terms */
+    using ElementType::mNumVoigtTerms; /*!< number of stress/strain terms */
 
     const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness; /*!< material stiffness matrix */
 
@@ -78,14 +76,14 @@ public:
 #endif
 
 #ifdef PLATOANALYZE_1D
-PLATO_EXPL_DEC2(Plato::AbstractLinearStress  , Plato::SimplexMechanics, 1)
+//TODO PLATO_EXPL_DEC2(Plato::AbstractLinearStress  , Plato::SimplexMechanics, 1)
 #endif
 
 #ifdef PLATOANALYZE_2D
-PLATO_EXPL_DEC2(Plato::AbstractLinearStress  , Plato::SimplexMechanics, 2)
+//TODO PLATO_EXPL_DEC2(Plato::AbstractLinearStress  , Plato::SimplexMechanics, 2)
 #endif
 
 #ifdef PLATOANALYZE_3D
-PLATO_EXPL_DEC2(Plato::AbstractLinearStress  , Plato::SimplexMechanics, 3)
+//TODO PLATO_EXPL_DEC2(Plato::AbstractLinearStress  , Plato::SimplexMechanics, 3)
 #endif
 

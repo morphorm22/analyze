@@ -6,25 +6,27 @@
 #include "parabolic/AbstractScalarFunction.hpp"
 
 #include "elliptic/AbstractScalarFunction.hpp"
-#include "elliptic/InternalElasticEnergy.hpp"
 #include "elliptic/ElastostaticResidual.hpp"
-#include "elliptic/EffectiveEnergy.hpp"
-#include "elliptic/StressPNorm.hpp"
-#include "elliptic/VolAvgStressPNormDenominator.hpp"
+#ifdef NOPE
 #include "elliptic/Volume.hpp"
+#include "elliptic/StressPNorm.hpp"
+#include "elliptic/EffectiveEnergy.hpp"
+#include "elliptic/InternalElasticEnergy.hpp"
 #include "elliptic/VolumeIntegralCriterion.hpp"
+#include "elliptic/VolAvgStressPNormDenominator.hpp"
 #include "elliptic/VolumeAverageCriterionDenominator.hpp"
-
 #include "Plato_AugLagStressCriterionQuadratic.hpp"
 #include "Plato_AugLagStressCriterionGeneral.hpp"
 #include "Plato_AugLagStressCriterion.hpp"
-#include "SimplexMechanics.hpp"
-#include "IntermediateDensityPenalty.hpp"
-#include "AnalyzeMacros.hpp"
-
 #include "AbstractLocalMeasure.hpp"
 #include "VonMisesLocalMeasure.hpp"
 #include "TensileEnergyDensityLocalMeasure.hpp"
+#include "IntermediateDensityPenalty.hpp"
+#endif
+
+#include "SimplexMechanics.hpp"
+#include "AnalyzeMacros.hpp"
+
 
 #include "Simp.hpp"
 #include "Ramp.hpp"
@@ -37,6 +39,7 @@ namespace Plato
 namespace MechanicsFactory
 {
 
+#ifdef NOPE
   /******************************************************************************//**
    * \brief Create a local measure for use in augmented lagrangian quadratic
    * \param [in] aProblemParams input parameters
@@ -68,6 +71,7 @@ namespace MechanicsFactory
           ANALYZE_THROWERR("Unknown 'Local Measure' specified in 'Plato Problem' ParameterList")
       }
   }
+#endif // NOPE
 
 /******************************************************************************//**
  * \brief Create elastostatics residual equation
@@ -115,6 +119,7 @@ elastostatics_residual(
 }
 // function elastostatics_residual
 
+#ifdef NOPE
 /******************************************************************************//**
  * \brief Create augmented Lagrangian stress constraint criterion tailored for linear problems
  * \param [in] aSpatialDomain Plato Analyze spatial domain
@@ -473,6 +478,8 @@ effective_energy(
 }
 // function effective_energy
 
+#endif // NOPE
+
 /******************************************************************************//**
  * \brief Factory for linear mechanics problem
 **********************************************************************************/
@@ -505,6 +512,7 @@ struct FunctionFactory
     }
 
 
+#ifdef NOPE
     /******************************************************************************/
     template <typename EvaluationType>
     std::shared_ptr<Plato::Parabolic::AbstractScalarFunction<EvaluationType>>
@@ -599,6 +607,7 @@ struct FunctionFactory
             ANALYZE_THROWERR(tErrorString)
         }
     }
+#endif // NOPE
 
 #ifdef COMPILE_DEAD_CODE
     /******************************************************************************//**
@@ -637,13 +646,15 @@ struct FunctionFactory
  * \brief Concrete class for use as the SimplexPhysics template argument in
  *        Plato::Elliptic::Problem
 **********************************************************************************/
-template<Plato::OrdinalType SpaceDimParam>
-class Mechanics: public Plato::SimplexMechanics<SpaceDimParam>
+#include "MechanicsElement.hpp"
+template<typename TopoElementType>
+//class Mechanics: public MechanicsElement<TopoElementType>
+class Mechanics
 {
 public:
     typedef Plato::MechanicsFactory::FunctionFactory FunctionFactory;
-    using SimplexT = SimplexMechanics<SpaceDimParam>;
-    static constexpr Plato::OrdinalType SpaceDim = SpaceDimParam;
+    using ElementType = MechanicsElement<TopoElementType>;
+//    using ElementType::mNumSpatialDims;
 };
 } // namespace Plato
 

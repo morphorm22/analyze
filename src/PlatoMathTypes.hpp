@@ -54,6 +54,12 @@ namespace Plato
 
         public:
             KOKKOS_INLINE_FUNCTION Matrix() {}
+
+            explicit
+            KOKKOS_INLINE_FUNCTION Matrix(ScalarType aInit)
+            {
+                for (ScalarType& v : mData) { v = aInit; }
+            }
             KOKKOS_INLINE_FUNCTION Matrix(Matrix<M,N> const & aMatrix)
             { 
                 int k = 0;

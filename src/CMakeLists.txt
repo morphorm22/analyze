@@ -10,9 +10,6 @@ set(ANALYZE_SOURCES
     AbstractLinearStress.cpp
     LinearStress.cpp
     LinearStressFactory.cpp
-    AbstractYieldStress.cpp
-    YieldStress.cpp
-    YieldStressFactory.cpp
 ##    ElasticModelFactory.cpp
     LinearElasticMaterial.cpp
     CubicLinearElasticMaterial.cpp
@@ -35,16 +32,17 @@ if(EXPRESSION)
 endif()
 
 ## Augmented Lagrangian sources
-set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    TensileEnergyDensityLocalMeasure.cpp
-    TensileEnergyDensity.cpp
-    Plato_AugLagStressCriterionQuadratic.cpp
-    Plato_AugLagStressCriterionGeneral.cpp
-    Plato_AugLagStressCriterion.cpp
-    Plato_StructuralMass.cpp
-    VonMisesLocalMeasure.cpp
-    ThermalVonMisesLocalMeasure.cpp
-)
+# TODO
+#set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+#    TensileEnergyDensityLocalMeasure.cpp
+#    TensileEnergyDensity.cpp
+#    Plato_AugLagStressCriterionQuadratic.cpp
+#    Plato_AugLagStressCriterionGeneral.cpp
+#    Plato_AugLagStressCriterion.cpp
+#    Plato_StructuralMass.cpp
+#    VonMisesLocalMeasure.cpp
+#    ThermalVonMisesLocalMeasure.cpp
+#)
 
 ## Mesh constraint sources
 set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
@@ -86,6 +84,9 @@ endif()
 ## plasticity sources
 if(PLASTICITY)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+    AbstractYieldStress.cpp
+    YieldStress.cpp
+    YieldStressFactory.cpp
     J2PlasticityLocalResidual.cpp
     NewtonRaphsonSolver.cpp
     PathDependentAdjointSolver.cpp
@@ -121,36 +122,36 @@ endif()
 if(ELLIPTIC)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     elliptic/Problem.cpp
-    elliptic/SolutionFunction.cpp
-    elliptic/DivisionFunction.cpp
-    elliptic/LeastSquaresFunction.cpp
-    elliptic/WeightedSumFunction.cpp
+#TODO    elliptic/SolutionFunction.cpp
+#TODO    elliptic/DivisionFunction.cpp
+#TODO    elliptic/LeastSquaresFunction.cpp
+#TODO    elliptic/WeightedSumFunction.cpp
     elliptic/ScalarFunctionBaseFactory.cpp
     elliptic/PhysicsScalarFunction.cpp
-    elliptic/MassMoment.cpp
-    elliptic/MassPropertiesFunction.cpp
-    elliptic/FluxPNorm.cpp
-    elliptic/StressPNorm.cpp
-    elliptic/TMStressPNorm.cpp
-    elliptic/VolAvgStressPNormDenominator.cpp
-    elliptic/EMStressPNorm.cpp
-    elliptic/EffectiveEnergy.cpp
-    elliptic/InternalThermalEnergy.cpp
-    elliptic/InternalThermoelasticEnergy.cpp
-    elliptic/InternalElectroelasticEnergy.cpp
-    elliptic/InternalElasticEnergy.cpp
+#TODO    elliptic/MassMoment.cpp
+#TODO    elliptic/MassPropertiesFunction.cpp
+#TODO    elliptic/FluxPNorm.cpp
+#TODO    elliptic/StressPNorm.cpp
+#TODO    elliptic/TMStressPNorm.cpp
+#TODO    elliptic/VolAvgStressPNormDenominator.cpp
+#TODO    elliptic/EMStressPNorm.cpp
+#TODO    elliptic/EffectiveEnergy.cpp
+#TODO    elliptic/InternalThermalEnergy.cpp
+#TODO    elliptic/InternalThermoelasticEnergy.cpp
+#TODO    elliptic/InternalElectroelasticEnergy.cpp
+#TODO    elliptic/InternalElasticEnergy.cpp
     elliptic/ElastostaticResidual.cpp
-    elliptic/ThermostaticResidual.cpp
-    elliptic/VolumeAverageCriterion.cpp
-    IntermediateDensityPenalty.cpp
-    elliptic/updated_lagrangian/Problem.cpp
-    elliptic/updated_lagrangian/ElastostaticResidual.cpp
-    elliptic/updated_lagrangian/ScalarFunctionBaseFactory.cpp
-    elliptic/updated_lagrangian/PhysicsScalarFunction.cpp
-    elliptic/updated_lagrangian/InternalElasticEnergy.cpp
-    elliptic/updated_lagrangian/AbstractEllipticUpLagLinearStress.cpp
-    elliptic/updated_lagrangian/EllipticUpLagLinearStress.cpp
-    elliptic/updated_lagrangian/EllipticUpLagLinearStressFactory.cpp
+#TODO    elliptic/ThermostaticResidual.cpp
+#TODO    elliptic/VolumeAverageCriterion.cpp
+#TODO    IntermediateDensityPenalty.cpp
+#TODO    elliptic/updated_lagrangian/Problem.cpp
+#TODO    elliptic/updated_lagrangian/ElastostaticResidual.cpp
+#TODO    elliptic/updated_lagrangian/ScalarFunctionBaseFactory.cpp
+#TODO    elliptic/updated_lagrangian/PhysicsScalarFunction.cpp
+#TODO    elliptic/updated_lagrangian/InternalElasticEnergy.cpp
+#TODO    elliptic/updated_lagrangian/AbstractEllipticUpLagLinearStress.cpp
+#TODO    elliptic/updated_lagrangian/EllipticUpLagLinearStress.cpp
+#TODO    elliptic/updated_lagrangian/EllipticUpLagLinearStressFactory.cpp
   )
 
   if(EXPRESSION)

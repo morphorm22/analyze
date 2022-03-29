@@ -516,7 +516,7 @@ class ComputeVolume
 };
 /******************************************************************************/
 
-
+#ifdef NOPE
 /******************************************************************************/
 template<Plato::OrdinalType SpaceDim>
 class ComputeGradientMatrix : public Plato::SimplexMechanics<SpaceDim>
@@ -560,6 +560,7 @@ class ComputeGradientMatrix : public Plato::SimplexMechanics<SpaceDim>
     }
 };
 /******************************************************************************/
+#endif
 
 
 /******************************************************************************/
@@ -733,7 +734,10 @@ class GlobalByLocalEntryFunctor
 /******************************************************************************/
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode_I, Plato::OrdinalType DofsPerNode_J=DofsPerNode_I>
+template<Plato::OrdinalType SpaceDim,
+         Plato::OrdinalType DofsPerNode_I,
+         Plato::OrdinalType DofsPerNode_J=DofsPerNode_I,
+         Plato::OrdinalType NodesPerCell=SpaceDim+1>
 class BlockMatrixEntryOrdinal
 {
   private:
@@ -756,8 +760,8 @@ class BlockMatrixEntryOrdinal
         auto iDof  = icellDof % DofsPerNode_I;
         auto jNode = jcellDof / DofsPerNode_J;
         auto jDof  = jcellDof % DofsPerNode_J;
-        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * (SpaceDim+1) + iNode);
-        Plato::OrdinalType jLocalOrdinal = mCells2nodes(cellOrdinal * (SpaceDim+1) + jNode);
+        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * NodesPerCell + iNode);
+        Plato::OrdinalType jLocalOrdinal = mCells2nodes(cellOrdinal * NodesPerCell + jNode);
         Plato::OrdinalType rowStart = mRowMap(iLocalOrdinal);
         Plato::OrdinalType rowEnd   = mRowMap(iLocalOrdinal+1);
         for (Plato::OrdinalType entryOrdinal=rowStart; entryOrdinal<rowEnd; entryOrdinal++)

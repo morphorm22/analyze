@@ -1,7 +1,9 @@
 #pragma once
 
-#include "elliptic/ScalarFunctionBase.hpp"
 #include "elliptic/PhysicsScalarFunction.hpp"
+
+#ifdef NOPE
+#include "elliptic/ScalarFunctionBase.hpp"
 #include "elliptic/WeightedSumFunction.hpp"
 #include "elliptic/DivisionFunction.hpp"
 #include "elliptic/SolutionFunction.hpp"
@@ -9,6 +11,7 @@
 #include "elliptic/MassPropertiesFunction.hpp"
 #include "elliptic/VolumeAverageCriterion.hpp"
 #include "AnalyzeMacros.hpp"
+#endif
 
 namespace Plato
 {
@@ -35,6 +38,7 @@ namespace Elliptic
         auto tFunctionParams = aProblemParams.sublist("Criteria").sublist(aFunctionName);
         auto tFunctionType = tFunctionParams.get<std::string>("Type", "Not Defined");
 
+#ifdef NOPE
         if(tFunctionType == "Weighted Sum")
         {
             return std::make_shared<WeightedSumFunction<PhysicsT>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
@@ -73,6 +77,8 @@ namespace Elliptic
         {
             return nullptr;
         }
+#endif
+        return nullptr;
     }
 
 } // namespace Elliptic

@@ -30,14 +30,15 @@ public:
 
     template<typename StrainScalarType, typename DispScalarType, typename GradientScalarType>
     DEVICE_TYPE inline void operator()(
-              Plato::Array<mNumVoigtTerms, StrainScalarType>                & aStrain,
-        const Plato::ScalarVectorT<DispScalarType>                          & aState,
+              Plato::OrdinalType                                                     aCellOrdinal,
+              Plato::Array<mNumVoigtTerms, StrainScalarType>                       & aStrain,
+        const Plato::ScalarMultiVectorT<DispScalarType>                            & aState,
         const Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, GradientScalarType> & aGradient) const
     {
         /***************************************************************************//**
          * \brief Compute Cauchy strain tensor - Voigt notation used herein.
          * \param [in/out] aStrain      Cauchy strain tensor
-         * \param [in]     aState       cell state
+         * \param [in]     aState       state workset
          * \param [in]     aGradient    spatial gradient matrix
         *******************************************************************************/
         Plato::OrdinalType tVoigtTerm = 0;
@@ -48,7 +49,7 @@ public:
             {
                 auto tLocalOrdinal = tNodeIndex * mNumDofsPerNode + tDimIndex;
                 aStrain(tVoigtTerm) +=
-                        aState(tLocalOrdinal) * aGradient(tNodeIndex, tDimIndex);
+                        aState(aCellOrdinal, tLocalOrdinal) * aGradient(tNodeIndex, tDimIndex);
             }
             tVoigtTerm++;
         }
@@ -61,8 +62,8 @@ public:
                 {
                     auto tLocalOrdinalI = tNodeIndex * mNumDofsPerNode + tDofIndexI;
                     auto tLocalOrdinalJ = tNodeIndex * mNumDofsPerNode + tDofIndexJ;
-                    aStrain(tVoigtTerm) += (aState(tLocalOrdinalJ) * aGradient(tNodeIndex, tDofIndexI)
-                            + aState(tLocalOrdinalI) * aGradient(tNodeIndex, tDofIndexJ));
+                    aStrain(tVoigtTerm) += (aState(aCellOrdinal, tLocalOrdinalJ) * aGradient(tNodeIndex, tDofIndexI)
+                            + aState(aCellOrdinal, tLocalOrdinalI) * aGradient(tNodeIndex, tDofIndexJ));
                 }
                 tVoigtTerm++;
             }

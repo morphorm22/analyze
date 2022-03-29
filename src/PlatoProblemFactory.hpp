@@ -14,8 +14,9 @@
 #include "PlatoMesh.hpp"
 #include "AnalyzeMacros.hpp"
 #include "Mechanics.hpp"
-#include "Electromechanics.hpp"
-#include "Thermomechanics.hpp"
+#include "Tet10.hpp"
+//TODO #include "Electromechanics.hpp"
+//TODO #include "Thermomechanics.hpp"
 #include "alg/ParallelComm.hpp"
 
 #ifdef PLATO_PLASTICITY
@@ -24,7 +25,7 @@
 
 #ifdef PLATO_ELLIPTIC
 #include "elliptic/Problem.hpp"
-#include "elliptic/updated_lagrangian/Problem.hpp"
+//TODO #include "elliptic/updated_lagrangian/Problem.hpp"
 #endif
 
 #ifdef PLATO_PARABOLIC
@@ -71,6 +72,41 @@ is_pde_constraint_supported
 }
 // function is_pde_constraint_supported
 
+template<template <typename> typename ProblemT, template <typename> typename PhysicsT>
+inline
+std::shared_ptr<Plato::AbstractProblem>
+makeProblem(
+    Plato::Mesh              aMesh,
+    Teuchos::ParameterList & aPlatoProb,
+    Comm::Machine            aMachine
+)
+{
+    auto tElementType = aMesh->ElementType();
+    if( Plato::tolower(tElementType) == "tet10" ||
+        Plato::tolower(tElementType) == "tetra10" )
+    {
+        auto tOutput = std::make_shared<ProblemT<PhysicsT<Plato::Tet10>>>(aMesh, aPlatoProb, aMachine);
+        tOutput->readEssentialBoundaryConditions(aPlatoProb);
+        return tOutput;
+    }
+    else
+    if( Plato::tolower(tElementType) == "tet4" )
+    {
+        ANALYZE_THROWERR("Tet4 element not implemented yet.");
+// TODO, etc
+//        auto tOutput = std::make_shared<ProblemT<PhysicsT<Plato::Tet4>>>(aMesh, aPlatoProb, aMachine);
+//        tOutput->readEssentialBoundaryConditions(aPlatoProb);
+//        return tOutput;
+    }
+    else
+    {
+        std::stringstream ss;
+        ss << "Unknown mesh type: " << tElementType;
+        ANALYZE_THROWERR(ss.str());
+    }
+}
+
+
 /******************************************************************************//**
 * \brief Create mechanical problem.
 * \param [in] aMesh        plato abstract mesh
@@ -78,7 +114,6 @@ is_pde_constraint_supported
 * \param [in] aMachine     mpi communicator interface
 * \returns shared pointer to abstract problem of type mechanical
 **********************************************************************************/
-template<Plato::OrdinalType SpatialDim>
 inline
 std::shared_ptr<Plato::AbstractProblem>
 create_mechanical_problem
@@ -91,16 +126,14 @@ create_mechanical_problem
 #ifdef PLATO_ELLIPTIC
     if (tLowerPDE == "elliptic")
     {
-        auto tOutput = std::make_shared<Plato::Elliptic::Problem<::Plato::Mechanics<SpatialDim>>>(aMesh, aPlatoProb, aMachine);
-        tOutput->readEssentialBoundaryConditions(aPlatoProb);
-        return tOutput;
+        return makeProblem<Plato::Elliptic::Problem, Plato::Mechanics>(aMesh, aPlatoProb, aMachine);
     }
     else
     if(tLowerPDE == "updated lagrangian elliptic")
     {
-        using PhysicsType = Plato::Elliptic::UpdatedLagrangian::Mechanics<SpatialDim>;
-        auto tOutput = std::make_shared<Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType>> (aMesh, aPlatoProb, aMachine);
-        return tOutput;
+// TODO        using PhysicsType = Plato::Elliptic::UpdatedLagrangian::Mechanics<SpatialDim>;
+// TODO        auto tOutput = std::make_shared<Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType>> (aMesh, aPlatoProb, aMachine);
+// TODO        return tOutput;
     }
 #endif
 #ifdef PLATO_HYPERBOLIC
@@ -137,9 +170,9 @@ create_plasticity_problem
 #ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
     {
-        auto tOutput = std::make_shared < PlasticityProblem<::Plato::InfinitesimalStrainPlasticity<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
-        tOutput->readEssentialBoundaryConditions(aPlatoProb);
-        return tOutput;
+// TODO        auto tOutput = std::make_shared < PlasticityProblem<::Plato::InfinitesimalStrainPlasticity<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
+// TODO        tOutput->readEssentialBoundaryConditions(aPlatoProb);
+// TODO        return tOutput;
     }
     else
 #endif
@@ -169,9 +202,9 @@ create_thermoplasticity_problem
 #ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
     {
-        auto tOutput = std::make_shared < PlasticityProblem<::Plato::InfinitesimalStrainThermoPlasticity<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
-        tOutput->readEssentialBoundaryConditions(aPlatoProb);
-        return tOutput;
+// TODO        auto tOutput = std::make_shared < PlasticityProblem<::Plato::InfinitesimalStrainThermoPlasticity<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
+// TODO        tOutput->readEssentialBoundaryConditions(aPlatoProb);
+// TODO        return tOutput;
     }
     else
 #endif
@@ -200,9 +233,9 @@ create_stabilized_mechanical_problem
   #ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
     {
-        auto tOutput = std::make_shared < EllipticVMSProblem<::Plato::StabilizedMechanics<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
-        tOutput->readEssentialBoundaryConditions(aPlatoProb);
-        return tOutput;
+// TODO        auto tOutput = std::make_shared < EllipticVMSProblem<::Plato::StabilizedMechanics<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
+// TODO        tOutput->readEssentialBoundaryConditions(aPlatoProb);
+// TODO        return tOutput;
     }
     else
   #endif
@@ -239,9 +272,9 @@ create_thermal_problem
 #ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
     {
-        auto tOutput = std::make_shared < Plato::Elliptic::Problem<::Plato::Thermal<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
-        tOutput->readEssentialBoundaryConditions(aPlatoProb);
-        return tOutput;
+// TODO        auto tOutput = std::make_shared < Plato::Elliptic::Problem<::Plato::Thermal<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
+// TODO        tOutput->readEssentialBoundaryConditions(aPlatoProb);
+// TODO        return tOutput;
     }
     else
 #endif
@@ -271,9 +304,9 @@ create_electromechanical_problem
 #ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
     {
-        auto tOutput = std::make_shared < Plato::Elliptic::Problem<::Plato::Electromechanics<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
-        tOutput->readEssentialBoundaryConditions(aPlatoProb);
-        return tOutput;
+// TODO        auto tOutput = std::make_shared < Plato::Elliptic::Problem<::Plato::Electromechanics<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
+// TODO        tOutput->readEssentialBoundaryConditions(aPlatoProb);
+// TODO        return tOutput;
     }
     else
 #endif
@@ -303,9 +336,9 @@ create_stabilized_thermomechanical_problem
 #ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
     {
-        auto tOutput = std::make_shared < EllipticVMSProblem<::Plato::StabilizedThermomechanics<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
-        tOutput->readEssentialBoundaryConditions(aPlatoProb);
-        return tOutput;
+// TODO        auto tOutput = std::make_shared < EllipticVMSProblem<::Plato::StabilizedThermomechanics<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
+// TODO        tOutput->readEssentialBoundaryConditions(aPlatoProb);
+// TODO        return tOutput;
     }
     else
 #endif
@@ -342,9 +375,9 @@ create_thermomechanical_problem
 #ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
     {
-        auto tOutput = std::make_shared < Plato::Elliptic::Problem<::Plato::Thermomechanics<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
-        tOutput->readEssentialBoundaryConditions(aPlatoProb);
-        return tOutput;
+// TODO        auto tOutput = std::make_shared < Plato::Elliptic::Problem<::Plato::Thermomechanics<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
+// TODO        tOutput->readEssentialBoundaryConditions(aPlatoProb);
+// TODO        return tOutput;
     }
     else
 #endif
@@ -418,7 +451,6 @@ create_micromorphic_mechanics_problem
  * \brief This class is responsible for the creation of a Plato problem, which enables
  * finite element simulations of multiphysics problem.
  **********************************************************************************/
-template<Plato::OrdinalType SpatialDim>
 class ProblemFactory
 {
 public:
@@ -442,7 +474,7 @@ public:
 
         if(tLowerPhysics == "mechanical")
         {
-            return ( Plato::create_mechanical_problem<SpatialDim>(aMesh, tInputData, aMachine) );
+            return ( Plato::create_mechanical_problem(aMesh, tInputData, aMachine) );
         }
 #ifdef PLATO_PLASTICITY
         else
@@ -465,12 +497,12 @@ public:
 #endif
         else if(tLowerPhysics == "thermal")
         {
-            return ( Plato::create_thermal_problem<SpatialDim>(aMesh, tInputData, aMachine) );
+// TODO            return ( Plato::create_thermal_problem<SpatialDim>(aMesh, tInputData, aMachine) );
         }
         else
         if(tLowerPhysics == "electromechanical")
         {
-            return ( Plato::create_electromechanical_problem<SpatialDim>(aMesh, tInputData, aMachine) );
+// TODO            return ( Plato::create_electromechanical_problem<SpatialDim>(aMesh, tInputData, aMachine) );
         }
 #ifdef PLATO_STABILIZED
         else
@@ -482,16 +514,16 @@ public:
         else
         if(tLowerPhysics == "thermomechanical")
         {
-            return ( Plato::create_thermomechanical_problem<SpatialDim>(aMesh, tInputData, aMachine) );
+// TODO            return ( Plato::create_thermomechanical_problem<SpatialDim>(aMesh, tInputData, aMachine) );
         }
         else
         if(tLowerPhysics == "incompressible fluids")
         {
-            return ( Plato::create_incompressible_fluid_problem<SpatialDim>(aMesh, tInputData, aMachine) );
+// TODO            return ( Plato::create_incompressible_fluid_problem<SpatialDim>(aMesh, tInputData, aMachine) );
         }
         if(tLowerPhysics == "micromorphic mechanical")
         {
-            return ( Plato::create_micromorphic_mechanics_problem<SpatialDim>(aMesh, tInputData, aMachine) );
+// TODO            return ( Plato::create_micromorphic_mechanics_problem<SpatialDim>(aMesh, tInputData, aMachine) );
         }
 #ifdef PLATO_HELMHOLTZ
         else

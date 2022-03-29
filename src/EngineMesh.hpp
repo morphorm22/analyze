@@ -15,6 +15,7 @@ namespace Plato
         friend EngineMeshIO;
 
         std::string mFileName;
+        std::string mElementType;
         std::shared_ptr<DataMesh> mMesh;
         std::shared_ptr<DataContainer> mDataContainer;
 
@@ -64,6 +65,7 @@ namespace Plato
             ~EngineMesh();
 
             std::string FileName() const override;
+            std::string ElementType() const override;
             Plato::OrdinalType NumNodes() const override;
             Plato::OrdinalType NumElements() const override;
             Plato::OrdinalType NumNodesPerElement() const override;

@@ -1,5 +1,4 @@
-#ifndef SIMPLEX_FAD_TYPES
-#define SIMPLEX_FAD_TYPES
+#pragma once
 
 #include <Sacado.hpp>
 
@@ -7,22 +6,22 @@
 
 namespace Plato {
 
-  template<typename SimplexPhysics>
-  struct SimplexFadTypes {
+  template<typename ElementType>
+  struct FadTypes {
 
     using StateFad     = Sacado::Fad::SFad<Plato::Scalar,
-                                           SimplexPhysics::mNumDofsPerNode*
-                                           SimplexPhysics::mNumNodesPerCell>;
+                                           ElementType::mNumDofsPerNode*
+                                           ElementType::mNumNodesPerCell>;
     using LocalStateFad = Sacado::Fad::SFad<Plato::Scalar,
-                                           SimplexPhysics::mNumLocalDofsPerCell>;
+                                           ElementType::mNumLocalDofsPerCell>;
     using ControlFad   = Sacado::Fad::SFad<Plato::Scalar,
-                                           SimplexPhysics::mNumNodesPerCell>;
+                                           ElementType::mNumNodesPerCell>;
     using ConfigFad    = Sacado::Fad::SFad<Plato::Scalar,
-                                           SimplexPhysics::mNumSpatialDims*
-                                           SimplexPhysics::mNumNodesPerCell>;
+                                           ElementType::mNumSpatialDims*
+                                           ElementType::mNumNodesPerCell>;
     using NodeStateFad = Sacado::Fad::SFad<Plato::Scalar,
-                                           SimplexPhysics::mNumNodeStatePerNode*
-                                           SimplexPhysics::mNumNodesPerCell>;
+                                           ElementType::mNumNodeStatePerNode*
+                                           ElementType::mNumNodesPerCell>;
   };
 
 
@@ -61,59 +60,11 @@ namespace Plato {
   template <typename TypesT, typename T, typename ...P> struct fad_type<TypesT, T, P ...> { 
     using type = typename which_fad<TypesT, T, typename fad_type<TypesT, P...>::type>::type;
   };
-  template <typename PhysicsT, typename ...P> using fad_type_t = typename fad_type<SimplexFadTypes<PhysicsT>,P...>::type;
+  template <typename PhysicsT, typename ...P> using fad_type_t = typename fad_type<FadTypes<PhysicsT>,P...>::type;
 
 
 
-#ifdef NOPE
-  // Create a template struct that determines the appropriate FadType:
-  //
-  // default: No type. Compiler error is generated for any parameter combination
-  // other than the specializations below.)
-  template<typename SimplexPhysics,
-           typename StateScalarType, 
-           typename ControlScalarType,
-           typename ConfigScalarType> 
-  struct WhichFad {};
-
-  // StateFad, Scalar, Scalar:  use StateFad
-  template<typename SimplexPhysics>
-  struct WhichFad<
-    SimplexPhysics, 
-    typename SimplexFadTypes<SimplexPhysics>::StateFad, 
-    Plato::Scalar,
-    Plato::Scalar>
-    { using scalar_type = typename SimplexFadTypes<SimplexPhysics>::StateFad; };
-
-  // Scalar, ControlFad, Scalar: use ControlFad
-  template<typename SimplexPhysics> 
-  struct WhichFad<
-    SimplexPhysics, 
-    Plato::Scalar,
-    typename SimplexFadTypes<SimplexPhysics>::ControlFad,
-    Plato::Scalar>
-    { using scalar_type = typename SimplexFadTypes<SimplexPhysics>::ControlFad; };
-
-  // Scalar, Scalar, ConfigFad: use ConfigFad
-  template<typename SimplexPhysics> 
-  struct WhichFad<
-    SimplexPhysics, 
-    Plato::Scalar,
-    Plato::Scalar,
-    typename SimplexFadTypes<SimplexPhysics>::ConfigFad> 
-    { using scalar_type = typename SimplexFadTypes<SimplexPhysics>::ConfigFad; };
-
-  // Scalar, Scalar, Scalar: use Scalar
-  template<typename SimplexPhysics> 
-  struct WhichFad<
-    SimplexPhysics, 
-    Plato::Scalar,
-    Plato::Scalar,
-    Plato::Scalar>
-    { using scalar_type = Plato::Scalar; };
-
-#endif
-
+#ifdef WHAT_USES_THIS
 
 template <typename SimplexPhysicsT>
 struct EvaluationTypes
@@ -253,7 +204,7 @@ struct Evaluation {
    using GradientZ      = GradientZTypes<SimplexPhysicsT>;
    using GradientX      = GradientXTypes<SimplexPhysicsT>;
 };
-  
-} // namespace Plato
 
 #endif
+  
+} // namespace Plato
