@@ -137,7 +137,7 @@ void SurfaceLoadIntegral<ElementType, NumDofs, DofsPerNode, DofOffset>::operator
       auto tBasisGrads  = ElementType::Face::basisGrads(tCubaturePoint);
 
       ResultScalarType tSurfaceArea(0.0);
-      surfaceArea(aSideOrdinal, tLocalNodeOrds, tBasisGrads, aConfig, tSurfaceArea);
+      surfaceArea(tElementOrdinal, tLocalNodeOrds, tBasisGrads, aConfig, tSurfaceArea);
       tSurfaceArea *= aScale;
       tSurfaceArea *= tCubatureWeight;
 
@@ -147,8 +147,7 @@ void SurfaceLoadIntegral<ElementType, NumDofs, DofsPerNode, DofOffset>::operator
           for( Plato::OrdinalType tDof=0; tDof<mNumSpatialDims; tDof++)
           {
               auto tElementDofOrdinal = tLocalNodeOrds[tNode] * DofsPerNode + tDof + DofOffset;
-              aResult(tElementOrdinal,tElementDofOrdinal) +=
-                  tBasisValues(tNode) * tFlux[tDof] * tSurfaceArea;
+              Kokkos::atomic_add(&aResult(tElementOrdinal,tElementDofOrdinal), tBasisValues(tNode)*tFlux[tDof]*tSurfaceArea);
           }
       }
     }, "surface load integral");

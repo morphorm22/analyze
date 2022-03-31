@@ -1,0 +1,103 @@
+#pragma once
+
+#include "PlatoMathTypes.hpp"
+
+namespace Plato {
+
+/******************************************************************************/
+/*! Quad9 Element
+*/
+/******************************************************************************/
+class Quad9
+{
+  public:
+
+    static constexpr Plato::OrdinalType mNumSpatialDims  = 2;
+    static constexpr Plato::OrdinalType mNumNodesPerCell = 9;
+    static constexpr Plato::OrdinalType mNumNodesPerFace = 3;
+
+    static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
+
+    static inline Plato::Array<9>
+    getCubWeights()
+    {
+        constexpr Plato::Scalar wc = 0.30864197530864195817557060763647; // 25/81
+        constexpr Plato::Scalar we = 0.49382716049382713308091297221836; // 40/81
+        constexpr Plato::Scalar wf = 0.79012345679012341292946075554937; // 64/81
+
+        return Plato::Array<9>({
+            wc, we, wc, we, wf, we, wc, we, wc
+        });
+    }
+
+    static inline Plato::Matrix<9,mNumSpatialDims>
+    getCubPoints()
+    {
+        constexpr Plato::Scalar p = 0.77459666924148340427791481488384; // sqrt(3.0/5.0)
+        return Plato::Matrix<9,mNumSpatialDims>({
+            -p, -p,   0, -p,   p, -p,
+            -p,  0,   0,  0,   p,  0,
+            -p,  p,   0,  p,   p,  p
+        });
+    }
+
+    DEVICE_TYPE static inline Plato::Array<mNumNodesPerCell>
+    basisValues( const Plato::Array<mNumSpatialDims>& aCubPoint )
+    {
+        auto x=aCubPoint(0);
+        auto y=aCubPoint(1);
+        auto xy = x*y;
+
+        Plato::Array<mNumNodesPerCell> tN;
+
+        tN(0) = (1-x)*(1-y)*xy/4.0;
+        tN(1) =-(1+x)*(1-y)*xy/4.0;
+        tN(2) = (1+x)*(1+y)*xy/4.0;
+        tN(3) =-(1-x)*(1+y)*xy/4.0;
+        tN(4) =-(1-x)*(1+x)*(1-y)*y/2.0;
+        tN(5) = (1+x)*(1-y)*(1+y)*x/2.0;
+        tN(6) = (1-x)*(1+x)*(1+y)*y/2.0;
+        tN(7) =-(1-x)*(1-y)*(1+y)*x/2.0;
+        tN(8) = (1-x)*(1+x)*(1-y)*(1+y);
+
+        return tN;
+    }
+
+    DEVICE_TYPE static inline Plato::Matrix<mNumNodesPerCell, mNumSpatialDims>
+    basisGrads( const Plato::Array<mNumSpatialDims>& aCubPoint )
+    {
+        auto x=aCubPoint(0);
+        auto y=aCubPoint(1);
+        auto xy = x*y;
+
+        Plato::Matrix<mNumNodesPerCell, mNumSpatialDims> tG;
+
+        tG(0,0) = (1-2*x)*(1-y)*y/4.0; tG(0,1) = (1-x)*(1-2*y)*x/4.0;
+        tG(1,0) =-(1+2*x)*(1-y)*y/4.0; tG(1,1) =-(1+x)*(1-2*y)*x/4.0;
+        tG(2,0) = (1+2*x)*(1+y)*y/4.0; tG(2,1) = (1+x)*(1+2*y)*x/4.0;
+        tG(3,0) =-(1-2*x)*(1+y)*y/4.0; tG(3,1) =-(1-x)*(1+2*y)*x/4.0;
+
+        tG(4,0) = (1-y)*xy;                tG(4,1) =-(1-x)*(1+x)*(1-2*y)/2.0;
+        tG(5,0) = (1+2*x)*(1-y)*(1+y)/2.0; tG(5,1) =-(1+x)*xy;
+        tG(6,0) =-(1+y)*xy;                tG(6,1) = (1-x)*(1+x)*(1+2*y)/2.0;
+        tG(7,0) =-(1-2*x)*(1-y)*(1+y)/2.0; tG(7,1) = (1-x)*xy;
+        tG(8,0) =-2*(1-y)*(1+y)*x;         tG(8,1) =-2*(1-x)*(1+x)*y;
+
+        return tG;
+    }
+
+    template<typename ScalarType>
+    DEVICE_TYPE static inline
+    ScalarType differentialMeasure(
+        const Plato::Matrix<mNumSpatialDims, mNumSpatialDims+1, ScalarType> & aJacobian
+    )
+    {
+        auto ax = aJacobian(0,1)*aJacobian(1,2)-aJacobian(0,2)*aJacobian(1,1);
+        auto ay = aJacobian(0,2)*aJacobian(1,0)-aJacobian(0,0)*aJacobian(1,2);
+        auto az = aJacobian(0,0)*aJacobian(1,1)-aJacobian(0,1)*aJacobian(1,0);
+
+        return sqrt(ax*ax+ay*ay+az*az);
+    }
+};
+
+} // end namespace Plato

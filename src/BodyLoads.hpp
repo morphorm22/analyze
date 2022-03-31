@@ -103,8 +103,8 @@ public:
             auto tWeight = aScale * tCubWeights(iGpOrdinal) * tDetJ;
             for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < ElementType::mNumNodesPerCell; tFieldOrdinal++)
             {
-                aResult(iCellOrdinal,tFieldOrdinal*mNumDofsPerNode+tDof) +=
-                        tWeight * tFxnValue * tBasisValues(tFieldOrdinal) * tDensity;
+                Kokkos::atomic_add(&aResult(iCellOrdinal,tFieldOrdinal*mNumDofsPerNode+tDof),
+                        tWeight * tFxnValue * tBasisValues(tFieldOrdinal) * tDensity);
             }
         });
     }

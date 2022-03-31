@@ -14,7 +14,10 @@
 #include "PlatoMesh.hpp"
 #include "AnalyzeMacros.hpp"
 #include "Mechanics.hpp"
+#include "Hex8.hpp"
+#include "Hex27.hpp"
 #include "Tet10.hpp"
+#include "Tet4.hpp"
 //TODO #include "Electromechanics.hpp"
 //TODO #include "Thermomechanics.hpp"
 #include "alg/ParallelComm.hpp"
@@ -90,13 +93,26 @@ makeProblem(
         return tOutput;
     }
     else
-    if( Plato::tolower(tElementType) == "tet4" )
+    if( Plato::tolower(tElementType) == "tet4" ||
+        Plato::tolower(tElementType) == "tetra4" )
     {
-        ANALYZE_THROWERR("Tet4 element not implemented yet.");
-// TODO, etc
-//        auto tOutput = std::make_shared<ProblemT<PhysicsT<Plato::Tet4>>>(aMesh, aPlatoProb, aMachine);
-//        tOutput->readEssentialBoundaryConditions(aPlatoProb);
-//        return tOutput;
+        auto tOutput = std::make_shared<ProblemT<PhysicsT<Plato::Tet4>>>(aMesh, aPlatoProb, aMachine);
+        tOutput->readEssentialBoundaryConditions(aPlatoProb);
+        return tOutput;
+    }
+    if( Plato::tolower(tElementType) == "hex8" ||
+        Plato::tolower(tElementType) == "hexa8" )
+    {
+        auto tOutput = std::make_shared<ProblemT<PhysicsT<Plato::Hex8>>>(aMesh, aPlatoProb, aMachine);
+        tOutput->readEssentialBoundaryConditions(aPlatoProb);
+        return tOutput;
+    }
+    if( Plato::tolower(tElementType) == "hex27" ||
+        Plato::tolower(tElementType) == "hexa27" )
+    {
+        auto tOutput = std::make_shared<ProblemT<PhysicsT<Plato::Hex27>>>(aMesh, aPlatoProb, aMachine);
+        tOutput->readEssentialBoundaryConditions(aPlatoProb);
+        return tOutput;
     }
     else
     {
