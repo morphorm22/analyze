@@ -4,7 +4,6 @@
 #include <Teuchos_ParameterList.hpp>
 
 #include "PlatoStaticsTypes.hpp"
-#include "SimplexFadTypes.hpp"
 
 namespace Plato
 {
@@ -340,14 +339,13 @@ public:
         Plato::OrdinalType numCells = result.extent(0);
         auto exponent = TensorNormBase<VoigtLength, EvalT>::mExponent;
         Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, numCells),
-                             LAMBDA_EXPRESSION(Plato::OrdinalType cellOrdinal)
-                             {
-                                 // compute tensor p-norm of tensor
-                                 //
-                                 mTensorPNorm(cellOrdinal, result, tensor, exponent, cellVolume);
+        LAMBDA_EXPRESSION(Plato::OrdinalType cellOrdinal)
+        {
+            // compute tensor p-norm of tensor
+            //
+            mTensorPNorm(cellOrdinal, result, tensor, exponent, cellVolume);
 
-                             },
-                             "Compute PNorm");
+        }, "Compute PNorm");
     }
 };
 // class TensorPNorm

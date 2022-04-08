@@ -53,13 +53,13 @@ public:
 #include "Geometrical.hpp"
 
 #ifdef PLATOANALYZE_1D
-extern template class Plato::Geometric::ScalarFunctionBaseFactory<::Plato::Geometrical<1>>;
+//TODO extern template class Plato::Geometric::ScalarFunctionBaseFactory<::Plato::Geometrical<1>>;
 #endif
 
 #ifdef PLATOANALYZE_2D
-extern template class Plato::Geometric::ScalarFunctionBaseFactory<::Plato::Geometrical<2>>;
+//TODO extern template class Plato::Geometric::ScalarFunctionBaseFactory<::Plato::Geometrical<2>>;
 #endif
 
 #ifdef PLATOANALYZE_3D
-extern template class Plato::Geometric::ScalarFunctionBaseFactory<::Plato::Geometrical<3>>;
+//TODO extern template class Plato::Geometric::ScalarFunctionBaseFactory<::Plato::Geometrical<3>>;
 #endif

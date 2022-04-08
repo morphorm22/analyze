@@ -10,6 +10,7 @@
 #include "PlatoStaticsTypes.hpp"
 #include "Assembly.hpp"
 #include "geometric/WorksetBase.hpp"
+#include "geometric/EvaluationTypes.hpp"
 #include "geometric/ScalarFunctionBase.hpp"
 #include "geometric/AbstractScalarFunction.hpp"
 
@@ -25,21 +26,25 @@ namespace Geometric
  * \brief Geometry scalar function class
  **********************************************************************************/
 template<typename GeometryT>
-class GeometryScalarFunction : public Plato::Geometric::ScalarFunctionBase, public Plato::Geometric::WorksetBase<GeometryT>
+class GeometryScalarFunction :
+    public Plato::Geometric::ScalarFunctionBase,
+    public Plato::Geometric::WorksetBase<typename GeometryT::ElementType>
 {
 private:
-    using Plato::Geometric::WorksetBase<GeometryT>::mNumNodesPerCell; /*!< number of nodes per cell/element */
-    using Plato::Geometric::WorksetBase<GeometryT>::mNumSpatialDims; /*!< number of spatial dimensions */
-    using Plato::Geometric::WorksetBase<GeometryT>::mNumControl; /*!< number of control variables */
-    using Plato::Geometric::WorksetBase<GeometryT>::mNumNodes; /*!< total number of nodes in the mesh */
-    using Plato::Geometric::WorksetBase<GeometryT>::mNumCells; /*!< total number of cells/elements in the mesh */
+    using ElementType = typename GeometryT::ElementType;
 
-    using Plato::Geometric::WorksetBase<GeometryT>::mControlEntryOrdinal; /*!< number of degree of freedom per cell/element */
-    using Plato::Geometric::WorksetBase<GeometryT>::mConfigEntryOrdinal; /*!< number of degree of freedom per cell/element */
+    using Plato::Geometric::WorksetBase<ElementType>::mNumNodesPerCell; /*!< number of nodes per cell/element */
+    using Plato::Geometric::WorksetBase<ElementType>::mNumSpatialDims; /*!< number of spatial dimensions */
+    using Plato::Geometric::WorksetBase<ElementType>::mNumControl; /*!< number of control variables */
+    using Plato::Geometric::WorksetBase<ElementType>::mNumNodes; /*!< total number of nodes in the mesh */
+    using Plato::Geometric::WorksetBase<ElementType>::mNumCells; /*!< total number of cells/elements in the mesh */
 
-    using Residual  = typename Plato::Geometric::Evaluation<typename GeometryT::SimplexT>::Residual;
-    using GradientX = typename Plato::Geometric::Evaluation<typename GeometryT::SimplexT>::GradientX;
-    using GradientZ = typename Plato::Geometric::Evaluation<typename GeometryT::SimplexT>::GradientZ;
+    using Plato::Geometric::WorksetBase<ElementType>::mControlEntryOrdinal; /*!< number of degree of freedom per cell/element */
+    using Plato::Geometric::WorksetBase<ElementType>::mConfigEntryOrdinal; /*!< number of degree of freedom per cell/element */
+
+    using Residual  = typename Plato::Geometric::Evaluation<ElementType>::Residual;
+    using GradientX = typename Plato::Geometric::Evaluation<ElementType>::GradientX;
+    using GradientZ = typename Plato::Geometric::Evaluation<ElementType>::GradientZ;
 
     using ValueFunction     = std::shared_ptr<Plato::Geometric::AbstractScalarFunction<Residual>>;
     using GradientXFunction = std::shared_ptr<Plato::Geometric::AbstractScalarFunction<GradientX>>;
@@ -97,7 +102,7 @@ public:
               Teuchos::ParameterList & aProblemParams,
               std::string            & aName
     ) :
-        Plato::Geometric::WorksetBase<GeometryT>(aSpatialModel.Mesh),
+        Plato::Geometric::WorksetBase<ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
         mFunctionName (aName)
@@ -113,7 +118,7 @@ public:
         const Plato::SpatialModel & aSpatialModel,
               Plato::DataMap      & aDataMap
     ) :
-        Plato::Geometric::WorksetBase<GeometryT>(aSpatialModel.Mesh),
+        Plato::Geometric::WorksetBase<ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
         mFunctionName ("Undefined Name")
@@ -177,10 +182,10 @@ public:
             auto tName     = tDomain.getDomainName();
 
             Plato::ScalarMultiVector tControlWS("control workset", tNumCells, mNumNodesPerCell);
-            Plato::Geometric::WorksetBase<GeometryT>::worksetControl(aControl, tControlWS, tDomain);
+            Plato::Geometric::WorksetBase<ElementType>::worksetControl(aControl, tControlWS, tDomain);
 
             Plato::ScalarArray3D tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-            Plato::Geometric::WorksetBase<GeometryT>::worksetConfig(tConfigWS, tDomain);
+            Plato::Geometric::WorksetBase<ElementType>::worksetConfig(tConfigWS, tDomain);
 
             mValueFunctions.at(tName)->updateProblem(tControlWS, tConfigWS);
             mGradientZFunctions.at(tName)->updateProblem(tControlWS, tConfigWS);
@@ -211,12 +216,12 @@ public:
             // workset control
             //
             Plato::ScalarMultiVectorT<ControlScalar> tControlWS("control workset", tNumCells, mNumNodesPerCell);
-            Plato::Geometric::WorksetBase<GeometryT>::worksetControl(aControl, tControlWS, tDomain);
+            Plato::Geometric::WorksetBase<ElementType>::worksetControl(aControl, tControlWS, tDomain);
 
             // workset config
             //
             Plato::ScalarArray3DT<ConfigScalar> tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-            Plato::Geometric::WorksetBase<GeometryT>::worksetConfig(tConfigWS, tDomain);
+            Plato::Geometric::WorksetBase<ElementType>::worksetConfig(tConfigWS, tDomain);
 
             // create result view
             //
@@ -241,12 +246,12 @@ public:
             // workset control
             //
             Plato::ScalarMultiVectorT<ControlScalar> tControlWS("control workset", tNumCells, mNumNodesPerCell);
-            Plato::Geometric::WorksetBase<GeometryT>::worksetControl(aControl, tControlWS);
+            Plato::Geometric::WorksetBase<ElementType>::worksetControl(aControl, tControlWS);
 
             // workset config
             //
             Plato::ScalarArray3DT<ConfigScalar> tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-            Plato::Geometric::WorksetBase<GeometryT>::worksetConfig(tConfigWS);
+            Plato::Geometric::WorksetBase<ElementType>::worksetConfig(tConfigWS);
 
             // create result view
             //
@@ -292,12 +297,12 @@ public:
             // workset control
             //
             Plato::ScalarMultiVectorT<ControlScalar> tControlWS("control workset", tNumCells, mNumNodesPerCell);
-            Plato::Geometric::WorksetBase<GeometryT>::worksetControl(aControl, tControlWS, tDomain);
+            Plato::Geometric::WorksetBase<ElementType>::worksetControl(aControl, tControlWS, tDomain);
 
             // workset config
             //
             Plato::ScalarArray3DT<ConfigScalar> tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-            Plato::Geometric::WorksetBase<GeometryT>::worksetConfig(tConfigWS, tDomain);
+            Plato::Geometric::WorksetBase<ElementType>::worksetConfig(tConfigWS, tDomain);
 
             // create return view
             //
@@ -324,12 +329,12 @@ public:
             // workset control
             //
             Plato::ScalarMultiVectorT<ControlScalar> tControlWS("control workset", tNumCells, mNumNodesPerCell);
-            Plato::Geometric::WorksetBase<GeometryT>::worksetControl(aControl, tControlWS);
+            Plato::Geometric::WorksetBase<ElementType>::worksetControl(aControl, tControlWS);
 
             // workset config
             //
             Plato::ScalarArray3DT<ConfigScalar> tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-            Plato::Geometric::WorksetBase<GeometryT>::worksetConfig(tConfigWS);
+            Plato::Geometric::WorksetBase<ElementType>::worksetConfig(tConfigWS);
 
             // create return view
             //
@@ -379,12 +384,12 @@ public:
             // workset control
             //
             Plato::ScalarMultiVectorT<ControlScalar> tControlWS("control workset", tNumCells, mNumNodesPerCell);
-            Plato::Geometric::WorksetBase<GeometryT>::worksetControl(aControl, tControlWS, tDomain);
+            Plato::Geometric::WorksetBase<ElementType>::worksetControl(aControl, tControlWS, tDomain);
 
             // workset config
             //
             Plato::ScalarArray3DT<ConfigScalar> tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-            Plato::Geometric::WorksetBase<GeometryT>::worksetConfig(tConfigWS, tDomain);
+            Plato::Geometric::WorksetBase<ElementType>::worksetConfig(tConfigWS, tDomain);
 
             // create result
             //
@@ -411,12 +416,12 @@ public:
             // workset control
             //
             Plato::ScalarMultiVectorT<ControlScalar> tControlWS("control workset", tNumCells, mNumNodesPerCell);
-            Plato::Geometric::WorksetBase<GeometryT>::worksetControl(aControl, tControlWS);
+            Plato::Geometric::WorksetBase<ElementType>::worksetControl(aControl, tControlWS);
 
             // workset config
             //
             Plato::ScalarArray3DT<ConfigScalar> tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-            Plato::Geometric::WorksetBase<GeometryT>::worksetConfig(tConfigWS);
+            Plato::Geometric::WorksetBase<ElementType>::worksetConfig(tConfigWS);
 
             // create result
             //
@@ -466,13 +471,13 @@ public:
 #include "Geometrical.hpp"
 
 #ifdef PLATOANALYZE_1D
-extern template class Plato::Geometric::GeometryScalarFunction<::Plato::Geometrical<1>>;
+//TODO extern template class Plato::Geometric::GeometryScalarFunction<::Plato::Geometrical<1>>;
 #endif
 
 #ifdef PLATOANALYZE_2D
-extern template class Plato::Geometric::GeometryScalarFunction<::Plato::Geometrical<2>>;
+//TODO extern template class Plato::Geometric::GeometryScalarFunction<::Plato::Geometrical<2>>;
 #endif
 
 #ifdef PLATOANALYZE_3D
-extern template class Plato::Geometric::GeometryScalarFunction<::Plato::Geometrical<3>>;
+//TODO extern template class Plato::Geometric::GeometryScalarFunction<::Plato::Geometrical<3>>;
 #endif

@@ -1,13 +1,11 @@
 #pragma once
 
-#include "Simplex.hpp"
-#include "UtilsOmegaH.hpp"
 #include "geometric/WorksetBase.hpp"
 #include "SurfaceIntegralUtilities.hpp"
 
 #include "PlatoStaticsTypes.hpp"
 #include "ImplicitFunctors.hpp"
-#include "geometric/GeometricSimplexFadTypes.hpp"
+#include "geometric/EvaluationTypes.hpp"
 #include "geometric/AbstractScalarFunction.hpp"
 
 #include "ExpInstMacros.hpp"

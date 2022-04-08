@@ -1,7 +1,6 @@
 #ifndef PLATO_TMKINETICS_HPP
 #define PLATO_TMKINETICS_HPP
 
-#include "SimplexThermomechanics.hpp"
 #include "LinearThermoelasticMaterial.hpp"
 #include "VoigtMap.hpp"
 #include "MaterialModel.hpp"
@@ -15,36 +14,37 @@ namespace Plato
     given a strain, temperature gradient, and temperature, compute the stress and flux
 */
 /******************************************************************************/
-template<int SpaceDim>
-class TMKinetics : public Plato::SimplexThermomechanics<SpaceDim>
+template<typename ElementType>
+class TMKinetics : public ElementType
 {
   private:
     Plato::MaterialModelType mModelType;
 
-    using Plato::SimplexThermomechanics<SpaceDim>::mNumVoigtTerms;
-    using Plato::SimplexThermomechanics<SpaceDim>::mNumNodesPerCell;
-    using Plato::SimplexThermomechanics<SpaceDim>::mNumDofsPerNode;
-    using Plato::SimplexThermomechanics<SpaceDim>::mNumDofsPerCell;
+    using ElementType::mNumSpatialDims;
+    using ElementType::mNumVoigtTerms;
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumDofsPerNode;
+    using ElementType::mNumDofsPerCell;
 
-    Plato::Rank4VoigtConstant<SpaceDim> mElasticStiffnessConstant;
-    Plato::Rank4VoigtFunctor<SpaceDim>  mElasticStiffnessFunctor;
+    Plato::Rank4VoigtConstant<mNumSpatialDims> mElasticStiffnessConstant;
+    Plato::Rank4VoigtFunctor<mNumSpatialDims>  mElasticStiffnessFunctor;
 
-    Plato::TensorConstant<SpaceDim> mThermalExpansivityConstant;
-    Plato::TensorFunctor<SpaceDim>  mThermalExpansivityFunctor;
+    Plato::TensorConstant<mNumSpatialDims> mThermalExpansivityConstant;
+    Plato::TensorFunctor<mNumSpatialDims>  mThermalExpansivityFunctor;
 
-    Plato::TensorConstant<SpaceDim> mThermalConductivityConstant;
-    Plato::TensorFunctor<SpaceDim>  mThermalConductivityFunctor;
+    Plato::TensorConstant<mNumSpatialDims> mThermalConductivityConstant;
+    Plato::TensorFunctor<mNumSpatialDims>  mThermalConductivityFunctor;
 
     Plato::Scalar mRefTemperature;
 
     const Plato::Scalar mScaling;
     const Plato::Scalar mScaling2;
 
-    Plato::VoigtMap<SpaceDim> cVoigtMap;
+    Plato::VoigtMap<mNumSpatialDims> cVoigtMap;
 
   public:
 
-    TMKinetics(const Teuchos::RCP<Plato::MaterialModel<SpaceDim>> aMaterialModel) :
+    TMKinetics(const Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> aMaterialModel) :
       mRefTemperature(aMaterialModel->getScalarConstant("Reference Temperature")),
       mScaling(aMaterialModel->getScalarConstant("Temperature Scaling")),
       mScaling2(mScaling*mScaling)
@@ -75,38 +75,38 @@ class TMKinetics : public Plato::SimplexThermomechanics<SpaceDim>
     template<typename KineticsScalarType, typename KinematicsScalarType, typename StateScalarType>
     DEVICE_TYPE inline void
     operator()( int cellOrdinal,
-                Kokkos::View<KineticsScalarType**,   Plato::Layout, Plato::MemSpace> const& aStress,
-                Kokkos::View<KineticsScalarType**,   Plato::Layout, Plato::MemSpace> const& aFlux,
-                Kokkos::View<KinematicsScalarType**, Plato::Layout, Plato::MemSpace> const& aStrain,
-                Kokkos::View<KinematicsScalarType**, Plato::Layout, Plato::MemSpace> const& aTGrad,
-                Kokkos::View<StateScalarType*,       Plato::MemSpace> const& aTemperature) const
+                Plato::Array<mNumVoigtTerms,  KineticsScalarType>         & aStress,
+                Plato::Array<mNumSpatialDims, KineticsScalarType>         & aFlux,
+                Plato::Array<mNumVoigtTerms,  KinematicsScalarType> const & aStrain,
+                Plato::Array<mNumSpatialDims, KinematicsScalarType> const & aTGrad,
+                StateScalarType                                     const & aTemperature
+    ) const
     {
-        StateScalarType tTemperature = aTemperature(cellOrdinal);
         if (mModelType == Plato::MaterialModelType::Linear)
         {
             // compute thermal strain
             //
             StateScalarType tstrain[mNumVoigtTerms] = {0};
-            for( int iDim=0; iDim<SpaceDim; iDim++ ){
+            for( int iDim=0; iDim<mNumSpatialDims; iDim++ ){
                 tstrain[iDim] = mScaling * mThermalExpansivityConstant(cVoigtMap.I[iDim], cVoigtMap.J[iDim])
-                              * (tTemperature - mRefTemperature);
+                              * (aTemperature - mRefTemperature);
             }
 
             // compute stress
             //
             for( int iVoigt=0; iVoigt<mNumVoigtTerms; iVoigt++){
-                aStress(cellOrdinal,iVoigt) = 0.0;
+                aStress(iVoigt) = 0.0;
                 for( int jVoigt=0; jVoigt<mNumVoigtTerms; jVoigt++){
-                    aStress(cellOrdinal,iVoigt) += (aStrain(cellOrdinal,jVoigt)-tstrain[jVoigt])*mElasticStiffnessConstant(iVoigt, jVoigt);
+                    aStress(iVoigt) += (aStrain(jVoigt)-tstrain[jVoigt])*mElasticStiffnessConstant(iVoigt, jVoigt);
                 }
             }
 
             // compute flux
             //
-            for( int iDim=0; iDim<SpaceDim; iDim++){
-                aFlux(cellOrdinal,iDim) = 0.0;
-                for( int jDim=0; jDim<SpaceDim; jDim++){
-                    aFlux(cellOrdinal,iDim) += mScaling2 * aTGrad(cellOrdinal,jDim)*mThermalConductivityConstant(iDim, jDim);
+            for( int iDim=0; iDim<mNumSpatialDims; iDim++){
+                aFlux(iDim) = 0.0;
+                for( int jDim=0; jDim<mNumSpatialDims; jDim++){
+                    aFlux(iDim) += mScaling2 * aTGrad(jDim)*mThermalConductivityConstant(iDim, jDim);
                 }
             }
         }
@@ -115,27 +115,27 @@ class TMKinetics : public Plato::SimplexThermomechanics<SpaceDim>
             // compute thermal strain
             //
             StateScalarType tstrain[mNumVoigtTerms] = {0};
-            for( int iDim=0; iDim<SpaceDim; iDim++ ){
-                tstrain[iDim] = mScaling * mThermalExpansivityFunctor(tTemperature, cVoigtMap.I[iDim], cVoigtMap.J[iDim])
-                              * (tTemperature - mRefTemperature);
+            for( int iDim=0; iDim<mNumSpatialDims; iDim++ ){
+                tstrain[iDim] = mScaling * mThermalExpansivityFunctor(aTemperature, cVoigtMap.I[iDim], cVoigtMap.J[iDim])
+                              * (aTemperature - mRefTemperature);
             }
 
             // compute stress
             //
             for( int iVoigt=0; iVoigt<mNumVoigtTerms; iVoigt++){
-                aStress(cellOrdinal,iVoigt) = 0.0;
+                aStress(iVoigt) = 0.0;
                 for( int jVoigt=0; jVoigt<mNumVoigtTerms; jVoigt++){
-                    aStress(cellOrdinal,iVoigt) += (aStrain(cellOrdinal,jVoigt)-tstrain[jVoigt])
-                                                  *mElasticStiffnessFunctor(tTemperature, iVoigt, jVoigt);
+                    aStress(iVoigt) += (aStrain(jVoigt)-tstrain[jVoigt])
+                                                  *mElasticStiffnessFunctor(aTemperature, iVoigt, jVoigt);
                 }
             }
 
             // compute flux
             //
-            for( int iDim=0; iDim<SpaceDim; iDim++){
-                aFlux(cellOrdinal,iDim) = 0.0;
-                for( int jDim=0; jDim<SpaceDim; jDim++){
-                    aFlux(cellOrdinal,iDim) += mScaling2 * aTGrad(cellOrdinal,jDim)*mThermalConductivityFunctor(tTemperature, iDim, jDim);
+            for( int iDim=0; iDim<mNumSpatialDims; iDim++){
+                aFlux(iDim) = 0.0;
+                for( int jDim=0; jDim<mNumSpatialDims; jDim++){
+                    aFlux(iDim) += mScaling2 * aTGrad(jDim)*mThermalConductivityFunctor(aTemperature, iDim, jDim);
                 }
             }
         }
@@ -145,6 +145,7 @@ class TMKinetics : public Plato::SimplexThermomechanics<SpaceDim>
 // class TMKinetics
 
 
+#ifdef NOPE
 /******************************************************************************/
 /*! Two-field thermoelastics functor.
 
@@ -283,6 +284,7 @@ class StabilizedTMKinetics : public Plato::SimplexStabilizedThermomechanics<Spac
       }
     }
 };
+#endif
 
 } // namespace Plato
 

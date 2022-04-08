@@ -4,15 +4,39 @@
 
 #include "PlatoStaticsTypes.hpp"
 #include "MechanicsElement.hpp"
+#include "PlatoMeshExpr.hpp"
+#include "WorksetBase.hpp"
 #include "Hex8.hpp"
 #include "Hex27.hpp"
 #include "Tet10.hpp"
+#include "Tet4.hpp"
 #include "Tri6.hpp"
 #include "Tri3.hpp"
 
 #include "SurfaceArea.hpp"
 
 using ordType = typename Plato::ScalarMultiVector::size_type;
+
+
+/******************************************************************************/
+/*! 
+  \brief Check the MechanicsElement<Tet4> cubature weights
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Tet4, MechanicsTet4_CubWeightsSum )
+{ 
+    using ElementType = typename Plato::MechanicsElement<Plato::Tet4>;
+
+    auto tCubWeights = ElementType::getCubWeights();
+
+    Plato::Scalar tTotalWeight(0.0);
+    for(int iWeight=0; iWeight<tCubWeights.size(); iWeight++)
+    {
+        tTotalWeight += tCubWeights(iWeight);
+    }
+
+    TEST_FLOATING_EQUALITY(tTotalWeight, Plato::Scalar(1)/6, 1e-13);
+}
 
 
 /******************************************************************************/
@@ -53,6 +77,26 @@ TEUCHOS_UNIT_TEST( Hex27, MechanicsHex27_Constants )
     TEST_ASSERT(tDofsPerNode   == 3 );
     TEST_ASSERT(tSpaceDims     == 3 );
     TEST_ASSERT(tNumVoigtTerms == 6 );
+}
+
+/******************************************************************************/
+/*! 
+  \brief Check the MechanicsElement<Hex27> constants
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Hex27, MechanicsHex27_CubWeightsSum )
+{ 
+    using ElementType = typename Plato::MechanicsElement<Plato::Hex27>;
+
+    auto tCubWeights = ElementType::getCubWeights();
+
+    Plato::Scalar tTotalWeight(0.0);
+    for(int iWeight=0; iWeight<tCubWeights.size(); iWeight++)
+    {
+        tTotalWeight += tCubWeights(iWeight);
+    }
+
+    TEST_FLOATING_EQUALITY(tTotalWeight, 8.0, 1e-13);
 }
 
 /******************************************************************************/
@@ -229,6 +273,26 @@ TEUCHOS_UNIT_TEST( Hex8, MechanicsHex8_Constants )
     TEST_ASSERT(tDofsPerNode   == 3 );
     TEST_ASSERT(tSpaceDims     == 3 );
     TEST_ASSERT(tNumVoigtTerms == 6 );
+}
+
+/******************************************************************************/
+/*! 
+  \brief Check the MechanicsElement<Hex8> cubature weights
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Hex8, MechanicsHex8_CubWeightsSum )
+{ 
+    using ElementType = typename Plato::MechanicsElement<Plato::Hex8>;
+
+    auto tCubWeights = ElementType::getCubWeights();
+
+    Plato::Scalar tTotalWeight(0.0);
+    for(int iWeight=0; iWeight<tCubWeights.size(); iWeight++)
+    {
+        tTotalWeight += tCubWeights(iWeight);
+    }
+
+    TEST_FLOATING_EQUALITY(tTotalWeight, 8.0, 1e-13);
 }
 
 /******************************************************************************/
@@ -717,6 +781,26 @@ TEUCHOS_UNIT_TEST( Tet10, MechanicsTet10_Constants )
 
 /******************************************************************************/
 /*! 
+  \brief Check the MechanicsElement<Tet10> cubature weights
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Tet10, MechanicsTet10_CubWeightsSum )
+{ 
+    using ElementType = typename Plato::MechanicsElement<Plato::Tet10>;
+
+    auto tCubWeights = ElementType::getCubWeights();
+
+    Plato::Scalar tTotalWeight(0.0);
+    for(int iWeight=0; iWeight<tCubWeights.size(); iWeight++)
+    {
+        tTotalWeight += tCubWeights(iWeight);
+    }
+
+    TEST_FLOATING_EQUALITY(tTotalWeight, Plato::Scalar(1)/6, 1e-13);
+}
+
+/******************************************************************************/
+/*! 
   \brief Check the Tri3 constants
 */
 /******************************************************************************/
@@ -881,89 +965,52 @@ TEUCHOS_UNIT_TEST( Tri6, MechanicsTri6_Constants )
 
 /******************************************************************************/
 /*! 
-  \brief Evaluate the Tet10 basis functions at (0.25, 0.25, 0.25) and at
-         each node location.
+  \brief Evaluate the Tet10 basis functions at each node location.
 */
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( Tet10, BasisFunctions )
 { 
-    Plato::ScalarMultiVector tValuesView("basis values", 11, Plato::Tet10::mNumNodesPerCell);
+    Plato::ScalarMultiVector tValuesView("basis values", Plato::Tet10::mNumNodesPerCell, Plato::Tet10::mNumNodesPerCell);
+
+    Plato::Matrix<Plato::Tet10::mNumNodesPerCell, Plato::Tet10::mNumSpatialDims> tPoints = {
+         0.0,  0.0,  0.0,
+         1.0,  0.0,  0.0,
+         0.0,  1.0,  0.0,
+         0.0,  0.0,  1.0,
+         0.5,  0.0,  0.0,
+         0.5,  0.5,  0.0,
+         0.0,  0.5,  0.0,
+         0.0,  0.0,  0.5,
+         0.5,  0.0,  0.5,
+         0.0,  0.5,  0.5,
+    };
+
 
     Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), LAMBDA_EXPRESSION(int ordinal)
     {
-        Plato::Array<Plato::Tet10::mNumSpatialDims> tPoint;
-
-        tPoint(0) = 0.25; tPoint(1) = 0.25; tPoint(2) = 0.25;
-        auto tValues = Plato::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Plato::Tet10::mNumNodesPerCell; i++) { tValuesView(0,i) = tValues(i); }
-
-        tPoint(0) = 0.0; tPoint(1) = 0.0; tPoint(2) = 0.0;
-        tValues = Plato::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Plato::Tet10::mNumNodesPerCell; i++) { tValuesView(1,i) = tValues(i); }
-
-        tPoint(0) = 1.0; tPoint(1) = 0.0; tPoint(2) = 0.0;
-        tValues = Plato::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Plato::Tet10::mNumNodesPerCell; i++) { tValuesView(2,i) = tValues(i); }
-
-        tPoint(0) = 0.0; tPoint(1) = 1.0; tPoint(2) = 0.0;
-        tValues = Plato::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Plato::Tet10::mNumNodesPerCell; i++) { tValuesView(3,i) = tValues(i); }
-
-        tPoint(0) = 0.0; tPoint(1) = 0.0; tPoint(2) = 1.0;
-        tValues = Plato::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Plato::Tet10::mNumNodesPerCell; i++) { tValuesView(4,i) = tValues(i); }
-
-        tPoint(0) = 0.5; tPoint(1) = 0.0; tPoint(2) = 0.0;
-        tValues = Plato::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Plato::Tet10::mNumNodesPerCell; i++) { tValuesView(5,i) = tValues(i); }
-
-        tPoint(0) = 0.5; tPoint(1) = 0.5; tPoint(2) = 0.0;
-        tValues = Plato::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Plato::Tet10::mNumNodesPerCell; i++) { tValuesView(6,i) = tValues(i); }
-
-        tPoint(0) = 0.0; tPoint(1) = 0.5; tPoint(2) = 0.0;
-        tValues = Plato::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Plato::Tet10::mNumNodesPerCell; i++) { tValuesView(7,i) = tValues(i); }
-
-        tPoint(0) = 0.5; tPoint(1) = 0.0; tPoint(2) = 0.5;
-        tValues = Plato::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Plato::Tet10::mNumNodesPerCell; i++) { tValuesView(8,i) = tValues(i); }
-
-        tPoint(0) = 0.0; tPoint(1) = 0.5; tPoint(2) = 0.5;
-        tValues = Plato::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Plato::Tet10::mNumNodesPerCell; i++) { tValuesView(9,i) = tValues(i); }
-
-        tPoint(0) = 0.0; tPoint(1) = 0.0; tPoint(2) = 0.5;
-        tValues = Plato::Tet10::basisValues(tPoint);
-        for(ordType i=0; i<Plato::Tet10::mNumNodesPerCell; i++) { tValuesView(10,i) = tValues(i); }
-
-
+        for(ordType I=0; I<Plato::Tet10::mNumNodesPerCell; I++)
+        {
+            auto tValues = Plato::Tet10::basisValues(tPoints(I));
+            for(ordType i=0; i<Plato::Tet10::mNumNodesPerCell; i++)
+            {
+                tValuesView(I,i) = tValues(i);
+            }
+        }
     }, "basis functions");
 
     auto tValuesHost = Kokkos::create_mirror_view( tValuesView );
     Kokkos::deep_copy( tValuesHost, tValuesView );
 
-    std::vector<std::vector<Plato::Scalar>> tValuesGold = {
-      {-1.0/8.0, -1.0/8.0, -1.0/8.0, -1.0/8.0, 1.0/4.0, 1.0/4.0, 1.0/4.0, 1.0/4.0, 1.0/4.0, 1.0/4.0},
-      {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-      {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-      {0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-      {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-      {0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-      {0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0},
-      {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0},
-      {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0},
-      {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0},
-      {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0}
-    };
-
-    int tNumGold_I=tValuesGold.size();
-    for(int i=0; i<tNumGold_I; i++)
+    for(int i=0; i<Plato::Tet10::mNumNodesPerCell; i++)
     {
-        int tNumGold_J=tValuesGold[0].size();
-        for(int j=0; j<tNumGold_J; j++)
+        for(int j=0; j<Plato::Tet10::mNumNodesPerCell; j++)
         {
-            TEST_FLOATING_EQUALITY(tValuesHost(i,j), tValuesGold[i][j], 1e-13);
+            if ( i==j )
+            {
+                TEST_ASSERT(tValuesHost(i,j) == 1);
+            } else {
+                TEST_ASSERT(tValuesHost(i,j) == 0);
+            }
         }
     }
 }
@@ -1064,8 +1111,8 @@ TEUCHOS_UNIT_TEST( Tet10, BasisFunctionGradients )
     Kokkos::deep_copy( tGradsHost, tGradsView );
 
     std::vector<std::vector<Plato::Scalar>> tGradsGold = {
-      {0, 0, 0}, { 0, 0, 0 }, {0, 0, 0}, {0, 0, 0}, { 0, -1, -1},
-      {1, 1, 0}, {-1, 0, -1}, {1, 0, 1}, {0, 1, 1}, {-1, -1,  0}
+      { 0,  0,  0}, { 0,  0,  0}, { 0,  0,  0}, { 0,  0,  0}, { 0, -1, -1},
+      { 1,  1,  0}, {-1,  0, -1}, {-1, -1,  0}, { 1,  0,  1}, { 0,  1,  1}
     };
 
     int tNumGold_I=tGradsGold.size();
@@ -1077,6 +1124,64 @@ TEUCHOS_UNIT_TEST( Tet10, BasisFunctionGradients )
             TEST_FLOATING_EQUALITY(tGradsHost(i,j), tGradsGold[i][j], 1e-13);
         }
     }
+}
+
+/******************************************************************************/
+/*! 
+  \brief Integrate an expression over the mesh domain
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Tet10, IntegrateExpression )
+{ 
+  constexpr int meshWidth=1;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET10", meshWidth);
+
+  using ElementType = typename Plato::MechanicsElement<Plato::Tet10>;
+
+  Plato::WorksetBase<ElementType> worksetBase(tMesh);
+
+  auto tNumCells     = tMesh->NumElements();
+  auto tNodesPerCell = ElementType::mNumNodesPerCell;
+  auto tSpaceDims    = ElementType::mNumSpatialDims;
+
+  auto tCubPoints = ElementType::getCubPoints();
+  auto tCubWeights = ElementType::getCubWeights();
+  auto tNumPoints = tCubWeights.size();
+
+  Plato::ScalarArray3DT<Plato::Scalar> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDims);
+
+  worksetBase.worksetConfig(tConfigWS);
+
+  // map points to physical space
+  //
+  Plato::ScalarArray3DT<Plato::Scalar> tPhysicalPoints("cub points physical space", tNumCells, tNumPoints, tSpaceDims);
+
+  Plato::mapPoints<ElementType>(tConfigWS, tPhysicalPoints);
+
+  // get integrand values at quadrature points
+  //
+  std::string tFuncString = "1.0";
+  auto tTotalNumPoints = tNumCells*tNumPoints;
+  Plato::ScalarMultiVectorT<Plato::Scalar> tFxnValues("function values", tTotalNumPoints, 1);
+  Plato:: getFunctionValues<ElementType::mNumSpatialDims>(tPhysicalPoints, tFuncString, tFxnValues);
+
+  Plato::Scalar tSum(0.0);
+  Kokkos::parallel_reduce(Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumCells, tNumPoints}),
+  LAMBDA_EXPRESSION(const int & cellOrdinal, const int & ptOrdinal, Plato::Scalar & aUpdate)
+  {
+      auto tCubPoint  = tCubPoints(ptOrdinal);
+      auto tCubWeight = tCubWeights(ptOrdinal);
+
+      auto tJacobian = ElementType::jacobian(tCubPoint, tConfigWS, cellOrdinal);
+
+      auto tCellVolume = Plato::determinant(tJacobian);
+
+      auto tPointValue = tFxnValues(cellOrdinal*tNumPoints+ptOrdinal, 0);
+      aUpdate += tCellVolume*tPointValue*tCubWeight;
+  }, tSum);
+
+  TEST_FLOATING_EQUALITY(tSum, 1.0, 1e-13);
+
 }
 
 /******************************************************************************/
@@ -1148,9 +1253,9 @@ TEUCHOS_UNIT_TEST( Tet10, JacobianParentCoords )
         tConfig(0,4,0) = 0.5; tConfig(0,4,1) = 0.0; tConfig(0,4,2) = 0.0;
         tConfig(0,5,0) = 0.5; tConfig(0,5,1) = 0.5; tConfig(0,5,2) = 0.0;
         tConfig(0,6,0) = 0.0; tConfig(0,6,1) = 0.5; tConfig(0,6,2) = 0.0;
-        tConfig(0,7,0) = 0.5; tConfig(0,7,1) = 0.0; tConfig(0,7,2) = 0.5;
-        tConfig(0,8,0) = 0.0; tConfig(0,8,1) = 0.5; tConfig(0,8,2) = 0.5;
-        tConfig(0,9,0) = 0.0; tConfig(0,9,1) = 0.0; tConfig(0,9,2) = 0.5;
+        tConfig(0,7,0) = 0.0; tConfig(0,7,1) = 0.0; tConfig(0,7,2) = 0.5;
+        tConfig(0,8,0) = 0.5; tConfig(0,8,1) = 0.0; tConfig(0,8,2) = 0.5;
+        tConfig(0,9,0) = 0.0; tConfig(0,9,1) = 0.5; tConfig(0,9,2) = 0.5;
 
         Plato::Array<ElementType::mNumSpatialDims> tPoint;
 

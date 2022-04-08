@@ -26,9 +26,11 @@
 #include "Geometrical.hpp"
 #include "geometric/ScalarFunctionBase.hpp"
 #include "geometric/ScalarFunctionBaseFactory.hpp"
+#include "geometric/ScalarFunctionBaseFactory_def.hpp"
 
 #include "elliptic/VectorFunction.hpp"
 #include "elliptic/ScalarFunctionBaseFactory.hpp"
+#include "elliptic/ScalarFunctionBaseFactory_def.hpp"
 #include "AnalyzeMacros.hpp"
 
 #include "alg/ParallelComm.hpp"
@@ -55,6 +57,7 @@ private:
     using LinearCriteria  = std::map<std::string, LinearCriterion>;
 
     using ElementType = typename PhysicsType::ElementType;
+    using TopoElementType = typename ElementType::TopoElementType;
 
     static constexpr Plato::OrdinalType mSpatialDim = ElementType::mNumSpatialDims; /*!< spatial dimensions */
 
@@ -655,7 +658,7 @@ private:
 
         if(aProblemParams.isSublist("Criteria"))
         {
-            Plato::Geometric::ScalarFunctionBaseFactory<Plato::Geometrical<mSpatialDim>> tLinearFunctionBaseFactory;
+            Plato::Geometric::ScalarFunctionBaseFactory<Plato::Geometrical<TopoElementType>> tLinearFunctionBaseFactory;
             Plato::Elliptic::ScalarFunctionBaseFactory<PhysicsType> tNonlinearFunctionBaseFactory;
 
             auto tCriteriaParams = aProblemParams.sublist("Criteria");
@@ -669,19 +672,19 @@ private:
 
                 if( tCriteriaParams.sublist(tName).get<bool>("Linear", false) == true )
                 {
-// TODO                    auto tCriterion = tLinearFunctionBaseFactory.create(mSpatialModel, mDataMap, aProblemParams, tName);
-// TODO                    if( tCriterion != nullptr )
-// TODO                    {
-// TODO                        mLinearCriteria[tName] = tCriterion;
-// TODO                    }
+                    auto tCriterion = tLinearFunctionBaseFactory.create(mSpatialModel, mDataMap, aProblemParams, tName);
+                    if( tCriterion != nullptr )
+                    {
+                        mLinearCriteria[tName] = tCriterion;
+                    }
                 }
                 else
                 {
-// TODO                    auto tCriterion = tNonlinearFunctionBaseFactory.create(mSpatialModel, mDataMap, aProblemParams, tName);
-// TODO                    if( tCriterion != nullptr )
-// TODO                    {
-// TODO                        mCriteria[tName] = tCriterion;
-// TODO                    }
+                    auto tCriterion = tNonlinearFunctionBaseFactory.create(mSpatialModel, mDataMap, aProblemParams, tName);
+                    if( tCriterion != nullptr )
+                    {
+                        mCriteria[tName] = tCriterion;
+                    }
                 }
             }
             if( mCriteria.size() )

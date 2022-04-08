@@ -111,8 +111,8 @@ if(PLATOANALYZE_ENABLE_MESHMAP)
     geometric/DivisionFunction.cpp
     geometric/GeometryScalarFunction.cpp
     geometric/LeastSquaresFunction.cpp
-    geometric/MassMoment.cpp
-    geometric/MassPropertiesFunction.cpp
+#TODO    geometric/MassMoment.cpp
+#TODO    geometric/MassPropertiesFunction.cpp
     geometric/ScalarFunctionBaseFactory.cpp
     geometric/WeightedSumFunction.cpp
   )
@@ -126,7 +126,7 @@ if(ELLIPTIC)
 #TODO    elliptic/DivisionFunction.cpp
 #TODO    elliptic/LeastSquaresFunction.cpp
 #TODO    elliptic/WeightedSumFunction.cpp
-    elliptic/ScalarFunctionBaseFactory.cpp
+#TODO    elliptic/ScalarFunctionBaseFactory.cpp
     elliptic/PhysicsScalarFunction.cpp
 #TODO    elliptic/MassMoment.cpp
 #TODO    elliptic/MassPropertiesFunction.cpp

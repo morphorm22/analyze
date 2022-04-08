@@ -1,11 +1,10 @@
 #pragma once
 
-#include "Simplex.hpp"
-
 #include "Simp.hpp"
 #include "Ramp.hpp"
 #include "Heaviside.hpp"
 #include "NoPenalty.hpp"
+#include "PlatoUtilities.hpp"
 
 #include "geometric/Volume.hpp"
 #include "geometric/GeometryMisfit.hpp"
@@ -15,7 +14,6 @@ namespace Plato {
 
 namespace GeometryFactory {
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
 struct FunctionFactory{
 /******************************************************************************/
     template <typename EvaluationType>
@@ -61,11 +59,11 @@ struct FunctionFactory{
             {
                 ANALYZE_THROWERR(std::string("Unknown 'Penalty Function' of type '") + tLowerPenaltyType + "' specified in ParameterList");
             }
-        } else
-        if( tLowerScalarFunc == "geometry misfit" )
-        {
-            return std::make_shared<Plato::Geometric::GeometryMisfit<EvaluationType>>
-               (aSpatialDomain, aDataMap, aParamList, aStrScalarFunctionName);
+// TODO        } else
+// TODO        if( tLowerScalarFunc == "geometry misfit" )
+// TODO        {
+// TODO            return std::make_shared<Plato::Geometric::GeometryMisfit<EvaluationType>>
+// TODO               (aSpatialDomain, aDataMap, aParamList, aStrScalarFunctionName);
         }
         else
         {
@@ -76,13 +74,18 @@ struct FunctionFactory{
 
 } // namespace GeometryFactory
 
-template <Plato::OrdinalType SpaceDimParam>
-class Geometrical : public Plato::Simplex<SpaceDimParam> {
+} // namespace Plato
+
+#include "geometric/GeometricalElement.hpp"
+
+namespace Plato
+{
+template <typename TopoElementType>
+class Geometrical
+{
   public:
-    typedef Plato::GeometryFactory::FunctionFactory<SpaceDimParam> FunctionFactory;
-    using SimplexT = Simplex<SpaceDimParam>;
-    static constexpr Plato::OrdinalType SpaceDim = SpaceDimParam;
-    static constexpr Plato::OrdinalType mNumControl = 1;
+    typedef Plato::GeometryFactory::FunctionFactory FunctionFactory;
+    using ElementType = GeometricalElement<TopoElementType>;
 };
 // class Geometrical
 

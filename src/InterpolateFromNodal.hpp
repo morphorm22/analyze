@@ -8,7 +8,6 @@
 #define INTERPOLATE_FROM_NODAL_HPP_
 
 #include "PlatoStaticsTypes.hpp"
-#include "Simplex.hpp"
 
 namespace Plato
 {
@@ -20,10 +19,13 @@ namespace Plato
 * Evaluate cell's nodal states at cubature points.
 *
 ***********************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType NumDofsPerNode=SpaceDim, Plato::OrdinalType DofOffset=0, Plato::OrdinalType NumDofs=1>
-class InterpolateFromNodal : public Plato::Simplex<SpaceDim>
+template<typename ElementType,
+         Plato::OrdinalType NumDofsPerNode=ElementType::mNumSpatialDims,
+         Plato::OrdinalType DofOffset=0,
+         Plato::OrdinalType NumDofs=1>
+class InterpolateFromNodal : public ElementType
 {
-    using Plato::Simplex<SpaceDim>::mNumNodesPerCell;
+    using ElementType::mNumNodesPerCell;
 
 public:
     /*******************************************************************************
@@ -52,10 +54,12 @@ public:
     *
     *******************************************************************************/
     template<typename InStateType, typename OutStateType>
-    DEVICE_TYPE inline void operator()(const Plato::OrdinalType & aCellOrdinal,
-                                       const Plato::ScalarVector & aBasisFunctions,
-                                       const Plato::ScalarMultiVectorT<InStateType> & aNodalCellStates,
-                                       const Plato::ScalarVectorT<OutStateType> & aStateValues) const
+    DEVICE_TYPE inline void
+    operator()(
+        const Plato::OrdinalType                     & aCellOrdinal,
+        const Plato::ScalarVector                    & aBasisFunctions,
+        const Plato::ScalarMultiVectorT<InStateType> & aNodalCellStates,
+        const Plato::ScalarVectorT<OutStateType>     & aStateValues) const
     {
 
         aStateValues(aCellOrdinal) = 0.0;
@@ -64,6 +68,23 @@ public:
         {
             Plato::OrdinalType tCellDofIndex = (NumDofsPerNode * tNodeIndex) + DofOffset;
             aStateValues(aCellOrdinal) += aBasisFunctions(tNodeIndex) * aNodalCellStates(aCellOrdinal, tCellDofIndex);
+        }
+    }
+    template<typename InStateType, typename OutStateType>
+    DEVICE_TYPE inline void
+    operator()(
+        const Plato::OrdinalType                     & aCellOrdinal,
+        const Plato::Array<mNumNodesPerCell>         & aBasisFunctions,
+        const Plato::ScalarMultiVectorT<InStateType> & aNodalCellStates,
+              OutStateType                           & aStateValue ) const
+    {
+
+        aStateValue = 0.0;
+
+        for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
+        {
+            Plato::OrdinalType tCellDofIndex = (NumDofsPerNode * tNodeIndex) + DofOffset;
+            aStateValue += aBasisFunctions(tNodeIndex) * aNodalCellStates(aCellOrdinal, tCellDofIndex);
         }
     }
 

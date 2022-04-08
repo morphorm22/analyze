@@ -11,10 +11,10 @@
 #include "elliptic/AbstractVectorFunction.hpp"
 #include "ApplyWeighting.hpp"
 #include "CellForcing.hpp"
-#include "Simp.hpp"
-#include "Ramp.hpp"
-#include "Heaviside.hpp"
-#include "NoPenalty.hpp"
+// shouldn't need this? #include "Simp.hpp"
+// shouldn't need this? #include "Ramp.hpp"
+// shouldn't need this? #include "Heaviside.hpp"
+// shouldn't need this? #include "NoPenalty.hpp"
 #include "ToMap.hpp"
 #include "VonMisesYieldFunction.hpp"
 
@@ -24,8 +24,8 @@
 
 #include "ExpInstMacros.hpp"
 
+// shouldn't need this? #include "Tet10.hpp"
 // includes below here are verified to be necessary
-#include "Tet10.hpp"
 #include "MechanicsElement.hpp"
 #include "GradientMatrix.hpp"
 
@@ -47,14 +47,13 @@ class ElastostaticResidual :
     public Plato::Elliptic::AbstractVectorFunction<EvaluationType>
 {
 private:
-    static constexpr Plato::OrdinalType mSpaceDim = EvaluationType::SpatialDim;
-
     using ElementType = typename EvaluationType::ElementType;
 
     using ElementType::mNumVoigtTerms;
     using ElementType::mNumNodesPerCell;
     using ElementType::mNumDofsPerNode;
     using ElementType::mNumDofsPerCell;
+    using ElementType::mNumSpatialDims;
 
     using FunctionBaseType = Plato::Elliptic::AbstractVectorFunction<EvaluationType>;
 
@@ -74,7 +73,7 @@ private:
     std::shared_ptr<Plato::NaturalBCs<ElementType>> mBoundaryLoads;
     std::shared_ptr<Plato::CellForcing<mNumVoigtTerms>> mCellForcing;
 
-    Teuchos::RCP<Plato::LinearElasticMaterial<mSpaceDim>> mMaterialModel;
+    Teuchos::RCP<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterialModel;
 
     std::vector<std::string> mPlotTable;
 
@@ -101,12 +100,12 @@ public:
     {
         // obligatory: define dof names in order
         mDofNames.push_back("displacement X");
-        if(mSpaceDim > 1) mDofNames.push_back("displacement Y");
-        if(mSpaceDim > 2) mDofNames.push_back("displacement Z");
+        if(mNumSpatialDims > 1) mDofNames.push_back("displacement Y");
+        if(mNumSpatialDims > 2) mDofNames.push_back("displacement Z");
 
         // create material model and get stiffness
         //
-        Plato::ElasticModelFactory<mSpaceDim> tMaterialModelFactory(aProblemParams);
+        Plato::ElasticModelFactory<mNumSpatialDims> tMaterialModelFactory(aProblemParams);
         mMaterialModel = tMaterialModelFactory.create(aSpatialDomain.getMaterialName());
 
         // parse body loads
@@ -182,7 +181,6 @@ public:
 
       Plato::ScalarMultiVectorT<StrainScalarType> tCellStrain("strain", tNumCells, mNumVoigtTerms);
       Plato::ScalarMultiVectorT<ResultScalarType> tCellStress("stress", tNumCells, mNumVoigtTerms);
-      Plato::ScalarVectorT<ConfigScalarType> tCellVolume("cell volume", tNumCells);
 
       auto tCubPoints = ElementType::getCubPoints();
       auto tCubWeights = ElementType::getCubWeights();
@@ -209,16 +207,16 @@ public:
           computeVoigtStress(tStress, tStrain);
 
           tVolume *= tCubWeights(iGpOrdinal);
-          tCellVolume(iCellOrdinal) += tVolume;
 
-          applyWeighting(iCellOrdinal, tStress, aControl);
+          auto tBasisValues = ElementType::basisValues(tCubPoint);
+          applyWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
 
           computeStressDivergence(iCellOrdinal, aResult, tStress, tGradient, tVolume);
 
           for(int i=0; i<ElementType::mNumVoigtTerms; i++)
           {
-              tCellStrain(iCellOrdinal,i) += tVolume*tStrain(i);
-              tCellStress(iCellOrdinal,i) += tVolume*tStress(i);
+              Kokkos::atomic_add(&tCellStrain(iCellOrdinal,i), tVolume*tStrain(i));
+              Kokkos::atomic_add(&tCellStress(iCellOrdinal,i), tVolume*tStress(i));
           }
       });
 
@@ -307,7 +305,7 @@ public:
     ) const
     {
             auto tNumCells = aSpatialDomain.numCells();
-            Plato::VonMisesYieldFunction<mSpaceDim> tComputeVonMises;
+            Plato::VonMisesYieldFunction<mNumSpatialDims> tComputeVonMises;
             Plato::ScalarVectorT<ResultScalarType> tVonMises("Von Mises", tNumCells);
             Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
             {

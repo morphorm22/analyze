@@ -6,7 +6,7 @@
 #include "AnalyzeMacros.hpp"
 #include "Assembly.hpp"
 
-#include "geometric/GeometricSimplexFadTypes.hpp"
+#include "geometric/EvaluationTypes.hpp"
 
 
 namespace Plato
@@ -19,26 +19,26 @@ namespace Geometric
 /*! Base class for workset functionality.
 */
 /******************************************************************************/
-template<typename SimplexGeometry>
-class WorksetBase : public SimplexGeometry
+template<typename ElementType>
+class WorksetBase : public ElementType
 {
 protected:
     Plato::OrdinalType mNumCells; /*!< local number of elements */
     Plato::OrdinalType mNumNodes; /*!< local number of nodes */
 
-    using SimplexGeometry::mNumControl;          /*!< number of control vectors, i.e. materials */
-    using SimplexGeometry::mNumNodesPerCell;     /*!< number of nodes per element */
+    using ElementType::mNumControl;          /*!< number of control vectors, i.e. materials */
+    using ElementType::mNumNodesPerCell;     /*!< number of nodes per element */
+    using ElementType::mNumSpatialDims;
 
-    using ControlFad    = typename Plato::Geometric::SimplexFadTypes<SimplexGeometry>::ControlFad;
-    using ConfigFad     = typename Plato::Geometric::SimplexFadTypes<SimplexGeometry>::ConfigFad;
+    using ControlFad = typename Plato::Geometry::FadTypes<ElementType>::ControlFad;
+    using ConfigFad  = typename Plato::Geometry::FadTypes<ElementType>::ConfigFad;
 
-    static constexpr Plato::OrdinalType mSpaceDim = SimplexGeometry::mNumSpatialDims;
-    static constexpr Plato::OrdinalType mNumConfigDofsPerCell = mSpaceDim * mNumNodesPerCell; 
+    static constexpr Plato::OrdinalType mNumConfigDofsPerCell = mNumSpatialDims * mNumNodesPerCell; 
 
-    Plato::VectorEntryOrdinal<mSpaceDim,mNumControl> mControlEntryOrdinal;
-    Plato::VectorEntryOrdinal<mSpaceDim,mSpaceDim>   mConfigEntryOrdinal;
+    Plato::VectorEntryOrdinal<mNumSpatialDims, mNumControl,     mNumNodesPerCell> mControlEntryOrdinal;
+    Plato::VectorEntryOrdinal<mNumSpatialDims, mNumSpatialDims, mNumNodesPerCell> mConfigEntryOrdinal;
 
-    Plato::NodeCoordinate<mSpaceDim> mNodeCoordinate;
+    Plato::NodeCoordinate<mNumSpatialDims, mNumNodesPerCell> mNodeCoordinate;
 
 public:
     /******************************************************************************//**
@@ -66,9 +66,9 @@ public:
     WorksetBase(Plato::Mesh aMesh) :
             mNumCells(aMesh->NumElements()),
             mNumNodes(aMesh->NumNodes()),
-            mControlEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumControl>(aMesh)),
-            mConfigEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mSpaceDim>(aMesh)),
-            mNodeCoordinate(Plato::NodeCoordinate<mSpaceDim>(aMesh))
+            mControlEntryOrdinal(Plato::VectorEntryOrdinal<mNumSpatialDims, mNumControl, mNumNodesPerCell>(aMesh)),
+            mConfigEntryOrdinal(Plato::VectorEntryOrdinal<mNumSpatialDims, mNumSpatialDims, mNumNodesPerCell>(aMesh)),
+            mNodeCoordinate(Plato::NodeCoordinate<mNumSpatialDims, mNumNodesPerCell>(aMesh))
     {
     }
 
@@ -145,7 +145,7 @@ public:
         const Plato::SpatialDomain                  & aDomain
     ) const
     {
-      Plato::workset_config_scalar<mSpaceDim, mNumNodesPerCell>(
+      Plato::workset_config_scalar<mNumSpatialDims, mNumNodesPerCell>(
               aDomain, mNodeCoordinate, aConfigWS);
     }
 
@@ -158,7 +158,7 @@ public:
         Plato::ScalarArray3DT <Plato::Scalar> & aConfigWS
     ) const
     {
-      Plato::workset_config_scalar<mSpaceDim, mNumNodesPerCell>(
+      Plato::workset_config_scalar<mNumSpatialDims, mNumNodesPerCell>(
           mNumCells, mNodeCoordinate, aConfigWS);
     }
 
@@ -172,7 +172,7 @@ public:
         const Plato::SpatialDomain              & aDomain
     ) const
     {
-      Plato::workset_config_fad<mSpaceDim, mNumNodesPerCell, mNumConfigDofsPerCell, ConfigFad>(
+      Plato::workset_config_fad<mNumSpatialDims, mNumNodesPerCell, mNumConfigDofsPerCell, ConfigFad>(
               aDomain, mNodeCoordinate, aFadConfigWS);
     }
 
@@ -185,7 +185,7 @@ public:
         Plato::ScalarArray3DT <ConfigFad> & aFadConfigWS
     ) const
     {
-      Plato::workset_config_fad<mSpaceDim, mNumNodesPerCell, mNumConfigDofsPerCell, ConfigFad>(
+      Plato::workset_config_fad<mNumSpatialDims, mNumNodesPerCell, mNumConfigDofsPerCell, ConfigFad>(
           mNumCells, mNodeCoordinate, aFadConfigWS);
     }
 }; // class WorksetBase

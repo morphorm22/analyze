@@ -24,10 +24,12 @@ namespace Elliptic
 /******************************************************************************//**
  * \brief Physics scalar function class
  **********************************************************************************/
-template<typename ElementType>
-class PhysicsScalarFunction : public ScalarFunctionBase, public Plato::WorksetBase<ElementType>
+template<typename PhysicsType>
+class PhysicsScalarFunction : public ScalarFunctionBase, public Plato::WorksetBase<typename PhysicsType::ElementType>
 {
 private:
+    using ElementType = typename PhysicsType::ElementType;
+
     using Plato::WorksetBase<ElementType>::mNumDofsPerCell; /*!< number of degree of freedom per cell/element */
     using Plato::WorksetBase<ElementType>::mNumNodesPerCell; /*!< number of nodes per cell/element */
     using Plato::WorksetBase<ElementType>::mNumDofsPerNode; /*!< number of degree of freedom per node */
@@ -69,7 +71,7 @@ private:
         Teuchos::ParameterList & aProblemParams
     )
     {
-        typename ElementType::FunctionFactory tFactory;
+        typename PhysicsType::FunctionFactory tFactory;
 
         auto tProblemDefault = aProblemParams.sublist("Criteria").sublist(mFunctionName);
         auto tFunctionType = tProblemDefault.get<std::string>("Scalar Function Type", "");

@@ -10,7 +10,7 @@
 #include "Solutions.hpp"
 #include "PlatoMesh.hpp"
 #include "WorksetBase.hpp"
-#include "SimplexFadTypes.hpp"
+#include "FadTypes.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "geometric/ScalarFunctionBase.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
@@ -108,7 +108,7 @@ test_criterion_grad_wrt_control(
  * \param [in] aCriterion scalar function (i.e. scalar criterion) interface
  * \param [in] aSuperscriptLowerBound lower bound on the superscript used to compute the step (e.g. \f$10^{lb}/$f
 **********************************************************************************/
-template<typename EvaluationType, typename SimplexPhysics>
+template<typename EvaluationType, typename ElementType>
 inline void test_partial_control(Plato::Mesh aMesh,
                                  Plato::Elliptic::AbstractScalarFunction<EvaluationType> & aCriterion,
                                  Plato::OrdinalType aSuperscriptLowerBound = 1,
@@ -121,12 +121,12 @@ inline void test_partial_control(Plato::Mesh aMesh,
 
     const Plato::OrdinalType tNumCells = aMesh->NumElements();
     constexpr Plato::OrdinalType tSpaceDim = EvaluationType::SpatialDim;
-    constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-    constexpr Plato::OrdinalType tDofsPerCell = SimplexPhysics::mNumDofsPerCell;
-    constexpr Plato::OrdinalType tNodesPerCell = SimplexPhysics::mNumNodesPerCell;
+    constexpr Plato::OrdinalType tDofsPerNode = ElementType::mNumDofsPerNode;
+    constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
+    constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
 
     // Create configuration workset
-    Plato::WorksetBase<SimplexPhysics> tWorksetBase(aMesh);
+    Plato::WorksetBase<ElementType> tWorksetBase(aMesh);
     Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfigWS);
 
@@ -218,7 +218,7 @@ inline void test_partial_control(Plato::Mesh aMesh,
  * \param [in] aMesh mesh database
  * \param [in] aCriterion scalar function (i.e. scalar criterion) interface
 **********************************************************************************/
-template<typename EvaluationType, typename SimplexPhysics>
+template<typename EvaluationType, typename ElementType>
 inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::AbstractScalarFunction<EvaluationType> & aCriterion)
 {
     using StateT = typename EvaluationType::StateScalarType;
@@ -228,12 +228,12 @@ inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::AbstractScala
 
     const Plato::OrdinalType tNumCells = aMesh->NumElements();
     constexpr Plato::OrdinalType tSpaceDim = EvaluationType::SpatialDim;
-    constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-    constexpr Plato::OrdinalType tDofsPerCell = SimplexPhysics::mNumDofsPerCell;
-    constexpr Plato::OrdinalType tNodesPerCell = SimplexPhysics::mNumNodesPerCell;
+    constexpr Plato::OrdinalType tDofsPerNode = ElementType::mNumDofsPerNode;
+    constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
+    constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
 
     // Create configuration workset
-    Plato::WorksetBase<Plato::SimplexMechanics<tSpaceDim>> tWorksetBase(aMesh);
+    Plato::WorksetBase<Plato::ElementTypecs<tSpaceDim>> tWorksetBase(aMesh);
     Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfigWS);
 
@@ -322,7 +322,7 @@ inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::AbstractScala
 // function test_partial_state
 
 
-template<typename EvaluationType, typename Simplex>
+template<typename EvaluationType, typename ElementType>
 inline void test_partial_control(Plato::Mesh aMesh,
                                  Plato::Geometric::ScalarFunctionBase & aScalarFuncBase,
                                  Plato::OrdinalType aSuperscriptLowerBound = 1,
@@ -387,7 +387,7 @@ inline void test_partial_control(Plato::Mesh aMesh,
 }
 
 // function test_partial_control
-template<typename EvaluationType, typename SimplexPhysics>
+template<typename EvaluationType, typename ElementType>
 inline void test_partial_control(Plato::Mesh aMesh,
                                  Plato::Elliptic::ScalarFunctionBase & aScalarFuncBase,
                                  Plato::OrdinalType aSuperscriptLowerBound = 1,
@@ -399,7 +399,7 @@ inline void test_partial_control(Plato::Mesh aMesh,
     using ControlT = typename EvaluationType::ControlScalarType;
 
     const Plato::OrdinalType tNumCells = aMesh->NumElements();
-    constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+    constexpr Plato::OrdinalType tDofsPerNode = ElementType::mNumDofsPerNode;
 
     // Create control workset
     const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
@@ -470,7 +470,7 @@ inline void test_partial_control(Plato::Mesh aMesh,
  * \param [in] aMesh mesh database
  * \param [in] aCriterion scalar function (i.e. scalar criterion) interface
 **********************************************************************************/
-template<typename EvaluationType, typename SimplexPhysics>
+template<typename EvaluationType, typename ElementType>
 inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::ScalarFunctionBase & aScalarFuncBase)
 {
     using StateT = typename EvaluationType::StateScalarType;
@@ -479,7 +479,7 @@ inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::ScalarFunctio
     using ControlT = typename EvaluationType::ControlScalarType;
 
     const Plato::OrdinalType tNumCells = aMesh->NumElements();
-    constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+    constexpr Plato::OrdinalType tDofsPerNode = ElementType::mNumDofsPerNode;
 
     // Create control workset
     const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
@@ -653,9 +653,9 @@ control_workset_matrix_vector_multiply(const Plato::ScalarArray3D & aWorkset,
  * \param [in] aMesh mesh database
  * \param [in] aLocalVectorFuncInc local vector function inc to evaluate derivative of
 **********************************************************************************/
-template<typename EvaluationType, typename SimplexPhysics>
+template<typename EvaluationType, typename ElementType>
 inline void
-test_partial_global_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<SimplexPhysics> & aLocalVectorFuncInc)
+test_partial_global_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<ElementType> & aLocalVectorFuncInc)
 {
     using StateT   = typename EvaluationType::StateScalarType;
     using LocalStateT   = typename EvaluationType::LocalStateScalarType;
@@ -664,9 +664,9 @@ test_partial_global_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<Simpl
     using ControlT = typename EvaluationType::ControlScalarType;
 
     const Plato::OrdinalType tNumCells = aMesh->NumElements();
-    constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-    constexpr Plato::OrdinalType tLocalDofsPerCell = SimplexPhysics::mNumLocalDofsPerCell;
-    constexpr Plato::OrdinalType tNumNodesPerCell = SimplexPhysics::mNumNodesPerCell;
+    constexpr Plato::OrdinalType tDofsPerNode = ElementType::mNumDofsPerNode;
+    constexpr Plato::OrdinalType tLocalDofsPerCell = ElementType::mNumLocalDofsPerCell;
+    constexpr Plato::OrdinalType tNumNodesPerCell = ElementType::mNumNodesPerCell;
 
     // Create control workset
     const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
@@ -791,9 +791,9 @@ test_partial_global_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<Simpl
  * \param [in] aMesh mesh database
  * \param [in] aLocalVectorFuncInc local vector function inc to evaluate derivative of
 **********************************************************************************/
-template<typename EvaluationType, typename SimplexPhysics>
+template<typename EvaluationType, typename ElementType>
 inline void
-test_partial_prev_global_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<SimplexPhysics> & aLocalVectorFuncInc)
+test_partial_prev_global_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<ElementType> & aLocalVectorFuncInc)
 {
     using StateT   = typename EvaluationType::StateScalarType;
     using LocalStateT = typename EvaluationType::LocalStateScalarType;
@@ -802,9 +802,9 @@ test_partial_prev_global_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<
     using ControlT = typename EvaluationType::ControlScalarType;
 
     const Plato::OrdinalType tNumCells = aMesh->NumElements();
-    constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-    constexpr Plato::OrdinalType tLocalDofsPerCell = SimplexPhysics::mNumLocalDofsPerCell;
-    constexpr Plato::OrdinalType tNumNodesPerCell = SimplexPhysics::mNumNodesPerCell;
+    constexpr Plato::OrdinalType tDofsPerNode = ElementType::mNumDofsPerNode;
+    constexpr Plato::OrdinalType tLocalDofsPerCell = ElementType::mNumLocalDofsPerCell;
+    constexpr Plato::OrdinalType tNumNodesPerCell = ElementType::mNumNodesPerCell;
 
     // Create control workset
     const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
@@ -930,9 +930,9 @@ test_partial_prev_global_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<
  * \param [in] aMesh mesh database
  * \param [in] aLocalVectorFuncInc local vector function inc to evaluate derivative of
 **********************************************************************************/
-template<typename EvaluationType, typename SimplexPhysics>
+template<typename EvaluationType, typename ElementType>
 inline void
-test_partial_local_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<SimplexPhysics> & aLocalVectorFuncInc)
+test_partial_local_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<ElementType> & aLocalVectorFuncInc)
 {
     using StateT   = typename EvaluationType::StateScalarType;
     using LocalStateT   = typename EvaluationType::LocalStateScalarType;
@@ -941,8 +941,8 @@ test_partial_local_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<Simple
     using ControlT = typename EvaluationType::ControlScalarType;
 
     const Plato::OrdinalType tNumCells = aMesh->NumElements();
-    constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-    constexpr Plato::OrdinalType tLocalDofsPerCell = SimplexPhysics::mNumLocalDofsPerCell;
+    constexpr Plato::OrdinalType tDofsPerNode = ElementType::mNumDofsPerNode;
+    constexpr Plato::OrdinalType tLocalDofsPerCell = ElementType::mNumLocalDofsPerCell;
 
     // Create control workset
     const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
@@ -1064,9 +1064,9 @@ test_partial_local_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<Simple
  * \param [in] aMesh mesh database
  * \param [in] aLocalVectorFuncInc local vector function inc to evaluate derivative of
 **********************************************************************************/
-template<typename EvaluationType, typename SimplexPhysics>
+template<typename EvaluationType, typename ElementType>
 inline void
-test_partial_prev_local_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<SimplexPhysics> & aLocalVectorFuncInc)
+test_partial_prev_local_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<ElementType> & aLocalVectorFuncInc)
 {
     using StateT   = typename EvaluationType::StateScalarType;
     using LocalStateT   = typename EvaluationType::LocalStateScalarType;
@@ -1075,8 +1075,8 @@ test_partial_prev_local_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<S
     using ControlT = typename EvaluationType::ControlScalarType;
 
     const Plato::OrdinalType tNumCells = aMesh->NumElements();
-    constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-    constexpr Plato::OrdinalType tLocalDofsPerCell = SimplexPhysics::mNumLocalDofsPerCell;
+    constexpr Plato::OrdinalType tDofsPerNode = ElementType::mNumDofsPerNode;
+    constexpr Plato::OrdinalType tLocalDofsPerCell = ElementType::mNumLocalDofsPerCell;
 
     // Create control workset
     const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
@@ -1198,9 +1198,9 @@ test_partial_prev_local_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<S
  * \param [in] aMesh mesh database
  * \param [in] aLocalVectorFuncInc local vector function inc to evaluate derivative of
 **********************************************************************************/
-template<typename EvaluationType, typename SimplexPhysics>
+template<typename EvaluationType, typename ElementType>
 inline void
-test_partial_local_vect_func_inc_wrt_control(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<SimplexPhysics> & aLocalVectorFuncInc)
+test_partial_local_vect_func_inc_wrt_control(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<ElementType> & aLocalVectorFuncInc)
 {
     using StateT   = typename EvaluationType::StateScalarType;
     using LocalStateT   = typename EvaluationType::LocalStateScalarType;
@@ -1209,8 +1209,8 @@ test_partial_local_vect_func_inc_wrt_control(Plato::Mesh aMesh, Plato::LocalVect
     using ControlT = typename EvaluationType::ControlScalarType;
 
     const Plato::OrdinalType tNumCells = aMesh->NumElements();
-    constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysics::mNumDofsPerNode;
-    constexpr Plato::OrdinalType tLocalDofsPerCell = SimplexPhysics::mNumLocalDofsPerCell;
+    constexpr Plato::OrdinalType tDofsPerNode = ElementType::mNumDofsPerNode;
+    constexpr Plato::OrdinalType tLocalDofsPerCell = ElementType::mNumLocalDofsPerCell;
 
     // Create control workset
     const Plato::OrdinalType tNumVerts = aMesh->NumNodes();

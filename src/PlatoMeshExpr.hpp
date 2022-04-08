@@ -1,10 +1,7 @@
 #pragma once
 
-#include <Omega_h_expr.hpp>
-
 #include "ExpressionEvaluator.hpp"
 #include "SpatialModel.hpp"
-#include "UtilsOmegaH.hpp"
 #include "ImplicitFunctors.hpp"
 #include "Plato_TopOptFunctors.hpp"
 
@@ -15,9 +12,9 @@ namespace Plato
 template<Plato::OrdinalType SpaceDim, typename ScalarType>
 void
 getFunctionValues(
-          Plato::ScalarArray3DT<ScalarType>        aPoints,
+    const Plato::ScalarArray3DT<ScalarType>      & aPoints,
     const std::string                            & aFuncString,
-          Plato::ScalarMultiVectorT<ScalarType>  & aFxnValues
+    const Plato::ScalarMultiVectorT<ScalarType>  & aFxnValues
 )
 /******************************************************************************/
 {
@@ -59,57 +56,15 @@ getFunctionValues(
 }
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-void
-getFunctionValues(
-          Plato::ScalarArray3D   aPoints,
-    const std::string          & aFuncString,
-          Omega_h::Reals       & aFxnValues
-)
-/******************************************************************************/
-{
-    Plato::OrdinalType numCells = aPoints.extent(0);
-    Plato::OrdinalType numPoints = aPoints.extent(1);
-
-    auto x_coords = Plato::omega_h::create_omega_h_write_array<Plato::Scalar>("forcing function x coords", numCells * numPoints);
-    auto y_coords = Plato::omega_h::create_omega_h_write_array<Plato::Scalar>("forcing function y coords", numCells * numPoints);
-    auto z_coords = Plato::omega_h::create_omega_h_write_array<Plato::Scalar>("forcing function z coords", numCells * numPoints);
-
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, numCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
-    {
-        Plato::OrdinalType entryOffset = aCellOrdinal * numPoints;
-        for (Plato::OrdinalType ptOrdinal=0; ptOrdinal<numPoints; ptOrdinal++)
-        {
-            if (SpaceDim > 0) x_coords[entryOffset+ptOrdinal] = aPoints(aCellOrdinal,ptOrdinal,0);
-            if (SpaceDim > 1) y_coords[entryOffset+ptOrdinal] = aPoints(aCellOrdinal,ptOrdinal,1);
-            if (SpaceDim > 2) z_coords[entryOffset+ptOrdinal] = aPoints(aCellOrdinal,ptOrdinal,2);
-        }
-    }, "fill coords");
-
-    Omega_h::ExprReader reader(numCells * numPoints, SpaceDim);
-    if(SpaceDim > 0)
-        reader.register_variable("x", Omega_h::any(Omega_h::Reals(x_coords)));
-    if(SpaceDim > 1)
-        reader.register_variable("y", Omega_h::any(Omega_h::Reals(y_coords)));
-    if(SpaceDim > 2)
-        reader.register_variable("z", Omega_h::any(Omega_h::Reals(z_coords)));
-
-    auto result = reader.read_string(aFuncString, "Integrand");
-    reader.repeat(result);
-    aFxnValues = Omega_h::any_cast<Omega_h::Reals>(result);
-}
-
-/******************************************************************************/
 template<typename ElementType, typename ConfigScalarType>
 void
 mapPoints(
-    const Plato::OrdinalVector                    & aCellOrdinals,
     const Plato::ScalarArray3DT<ConfigScalarType> & aConfig,
           Plato::ScalarArray3DT<ConfigScalarType>   aMappedPoints
 )
 /******************************************************************************/
 {
-    Plato::OrdinalType tNumCells = aCellOrdinals.size();
+    Plato::OrdinalType tNumCells = aConfig.extent(0);
 
     auto tCubPoints  = ElementType::getCubPoints();
     auto tCubWeights = ElementType::getCubWeights();
@@ -120,8 +75,6 @@ mapPoints(
     Kokkos::parallel_for("map points", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
     LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
     {
-        auto aCellGlobalOrdinal = aCellOrdinals[iCellOrdinal];
-
         auto tCubPoint = tCubPoints(iGpOrdinal);
         auto tBasisValues = ElementType::basisValues(tCubPoint);
 
@@ -129,7 +82,7 @@ mapPoints(
         {
             for (Plato::OrdinalType iDim=0; iDim<ElementType::mNumSpatialDims; iDim++)
             {
-                aMappedPoints(aCellGlobalOrdinal, iGpOrdinal, iDim) += tBasisValues(iNode)*aConfig(aCellGlobalOrdinal, iNode, iDim);
+                aMappedPoints(iCellOrdinal, iGpOrdinal, iDim) += tBasisValues(iNode)*aConfig(iCellOrdinal, iNode, iDim);
             }
         }
     });

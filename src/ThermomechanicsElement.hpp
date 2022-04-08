@@ -1,40 +1,39 @@
-#ifndef SIMPLEX_TWOFIELD_THERMOMECHANICS_HPP
-#define SIMPLEX_TWOFIELD_THERMOMECHANICS_HPP
+#pragma once
 
-#include "Simplex.hpp"
-#include "PlatoStaticsTypes.hpp"
+#include "ElementBase.hpp"
 
 namespace Plato
 {
 
 /******************************************************************************/
-/*! Base class for simplex-based thermomechanics
+/*! Base class for thermomechanics element
 */
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType NumControls = 1>
-class SimplexThermomechanics : public Plato::Simplex<SpaceDim>
+template<typename TopoElementTypeT, Plato::OrdinalType NumControls = 1>
+class ThermomechanicsElement : public TopoElementTypeT, public ElementBase<TopoElementTypeT>
 {
   public:
-    using Plato::Simplex<SpaceDim>::mNumNodesPerCell;
-    using Plato::Simplex<SpaceDim>::mNumSpatialDims;
+    using TopoElementTypeT::mNumNodesPerCell;
+    using TopoElementTypeT::mNumSpatialDims;
 
-    static constexpr Plato::OrdinalType mNumVoigtTerms   = (SpaceDim == 3) ? 6 :
-                                             ((SpaceDim == 2) ? 3 :
-                                            (((SpaceDim == 1) ? 1 : 0)));
+    using TopoElementType = TopoElementTypeT;
 
-    static constexpr Plato::OrdinalType mTDofOffset      = SpaceDim;
-    static constexpr Plato::OrdinalType mNumDofsPerNode  = SpaceDim + 1;
+    static constexpr Plato::OrdinalType mNumVoigtTerms   = (mNumSpatialDims == 3) ? 6 :
+                                                          ((mNumSpatialDims == 2) ? 3 :
+                                                         (((mNumSpatialDims == 1) ? 1 : 0)));
+
+    static constexpr Plato::OrdinalType mTDofOffset      = mNumSpatialDims;
+    static constexpr Plato::OrdinalType mNumDofsPerNode  = mNumSpatialDims + 1;
     static constexpr Plato::OrdinalType mNumDofsPerCell  = mNumDofsPerNode*mNumNodesPerCell;
 
     static constexpr Plato::OrdinalType mNumControl = NumControls;
 
     static constexpr Plato::OrdinalType mNumNodeStatePerNode = 0;
-
     static constexpr Plato::OrdinalType mNumLocalDofsPerCell = 0;
 
 };
 
-
+#ifdef NOPE
 /******************************************************************************/
 /*! Base class for simplex-based two-field thermomechanics
 */
@@ -64,8 +63,7 @@ class SimplexStabilizedThermomechanics : public Plato::Simplex<SpaceDim>
     static constexpr Plato::OrdinalType mNumNodeStatePerCell = mNumNodeStatePerNode * mNumNodesPerCell;
     static constexpr Plato::OrdinalType mNumLocalDofsPerCell = 0;
 };
+#endif
 
 
 } // namespace Plato
-
-#endif

@@ -1,10 +1,8 @@
 #pragma once
 
-#include "Simplex.hpp"
 #include "ApplyWeighting.hpp"
 #include "PlatoStaticsTypes.hpp"
-#include "ImplicitFunctors.hpp"
-#include "geometric/GeometricSimplexFadTypes.hpp"
+#include "geometric/EvaluationTypes.hpp"
 #include "geometric/AbstractScalarFunction.hpp"
 #include "UtilsTeuchos.hpp"
 #include "Simp.hpp"
@@ -21,12 +19,16 @@ namespace Geometric
 
 /******************************************************************************/
 template<typename EvaluationType, typename PenaltyFunctionType>
-class Volume : public Plato::Geometric::AbstractScalarFunction<EvaluationType>
+class Volume :
+    public EvaluationType::ElementType,
+    public Plato::Geometric::AbstractScalarFunction<EvaluationType>
 /******************************************************************************/
 {
   private:
-    static constexpr int SpaceDim = EvaluationType::SpatialDim;
-    
+    using ElementType = typename EvaluationType::ElementType;
+
+    using ElementType::mNumNodesPerCell;
+
     using Plato::Geometric::AbstractScalarFunction<EvaluationType>::mSpatialDomain;
     using Plato::Geometric::AbstractScalarFunction<EvaluationType>::mDataMap;
 
@@ -34,10 +36,8 @@ class Volume : public Plato::Geometric::AbstractScalarFunction<EvaluationType>
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
-    Plato::Scalar mQuadratureWeight;
-
     PenaltyFunctionType mPenaltyFunction;
-    Plato::ApplyWeighting<SpaceDim,1,PenaltyFunctionType> mApplyWeighting;
+    Plato::ApplyWeighting<mNumNodesPerCell,1,PenaltyFunctionType> mApplyWeighting;
 
     bool mCompute;
 
@@ -86,11 +86,6 @@ class Volume : public Plato::Geometric::AbstractScalarFunction<EvaluationType>
           mCompute = true;
       }
 
-      mQuadratureWeight = 1.0; // for a 1-point quadrature rule for simplices
-      for (Plato::OrdinalType tDimIndex=2; tDimIndex<=SpaceDim; tDimIndex++)
-      { 
-        mQuadratureWeight /= Plato::Scalar(tDimIndex);
-      }
     }
 
     /**************************************************************************/
@@ -102,31 +97,34 @@ class Volume : public Plato::Geometric::AbstractScalarFunction<EvaluationType>
     ) const override
     /**************************************************************************/
     {
+        if (mCompute)
+        {
+            auto tNumCells   = mSpatialDomain.numCells();
+            auto tCubPoints  = ElementType::getCubPoints();
+            auto tCubWeights = ElementType::getCubWeights();
+            auto tNumPoints  = tCubWeights.size();
 
-      if (mCompute)
-      {
+            auto& tApplyWeighting = mApplyWeighting;
 
-        auto tNumCells = mSpatialDomain.numCells();
-
-        Plato::ComputeCellVolume<SpaceDim> tComputeCellVolume;
-
-        auto tQuadratureWeight = mQuadratureWeight;
-        auto tApplyWeighting = mApplyWeighting;
-        Kokkos::parallel_for(
-            Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType &aCellOrdinal)
+            Kokkos::parallel_for("compute stress", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+            LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
             {
-              ConfigScalarType tCellVolume;
-              tComputeCellVolume(aCellOrdinal, aConfig, tCellVolume);
-              tCellVolume *= tQuadratureWeight;
+                auto tCubPoint  = tCubPoints(iGpOrdinal);
+                auto tCubWeight = tCubWeights(iGpOrdinal);
 
-              aResult(aCellOrdinal) = tCellVolume;
+                auto tJacobian = ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal);
 
-              // apply weighting
-              //
-              tApplyWeighting(aCellOrdinal, aResult, aControl);
-            },
-            "volume");
-      }
+                ResultScalarType tCellVolume = Plato::determinant(tJacobian);
+
+                tCellVolume *= tCubWeight;
+
+                auto tBasisValues = ElementType::basisValues(tCubPoint);
+                tApplyWeighting(iCellOrdinal, aControl, tBasisValues, tCellVolume);
+
+                Kokkos::atomic_add(&aResult(iCellOrdinal), tCellVolume);
+
+            });
+        }
     }
 };
 // class Volume

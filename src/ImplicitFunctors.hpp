@@ -614,7 +614,9 @@ class Assemble
 
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode>
+template<Plato::OrdinalType SpaceDim,
+         Plato::OrdinalType DofsPerNode,
+         Plato::OrdinalType NodesPerCell=SpaceDim+1>
 class BlockMatrixTransposeEntryOrdinal
 {
   private:
@@ -637,8 +639,8 @@ class BlockMatrixTransposeEntryOrdinal
         auto iDof  = icellDof % DofsPerNode;
         auto jNode = jcellDof / DofsPerNode;
         auto jDof  = jcellDof % DofsPerNode;
-        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * (SpaceDim+1) + iNode);
-        Plato::OrdinalType jLocalOrdinal = mCells2nodes(cellOrdinal * (SpaceDim+1) + jNode);
+        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * NodesPerCell + iNode);
+        Plato::OrdinalType jLocalOrdinal = mCells2nodes(cellOrdinal * NodesPerCell + jNode);
         Plato::OrdinalType rowStart = mRowMap(jLocalOrdinal);
         Plato::OrdinalType rowEnd   = mRowMap(jLocalOrdinal+1);
         for (Plato::OrdinalType entryOrdinal=rowStart; entryOrdinal<rowEnd; entryOrdinal++)

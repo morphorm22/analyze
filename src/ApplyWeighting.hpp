@@ -47,8 +47,9 @@ public:
     DEVICE_TYPE inline void
     operator()(
               Plato::OrdinalType                            aCellOrdinal,
-              Plato::Array<NumTerms, InputScalarType>     & aInputOutput,
-        const Plato::ScalarMultiVectorT<WeightScalarType> & aControl
+        const Plato::ScalarMultiVectorT<WeightScalarType> & aControl,
+        const Plato::Array<NumNodes>                      & aBasisValues,
+              Plato::Array<NumTerms, InputScalarType>     & aInputOutput
     ) const
     {
         // apply weighting
@@ -56,13 +57,37 @@ public:
         WeightScalarType tCellDensity = 0.0;
         for (Plato::OrdinalType tNode = 0; tNode < NumNodes; tNode++)
         {
-            tCellDensity += aControl(aCellOrdinal, tNode);
+            tCellDensity += aControl(aCellOrdinal, tNode)*aBasisValues(tNode);
         }
-        tCellDensity = (tCellDensity / NumNodes);
         for (Plato::OrdinalType tTerm = 0; tTerm < NumTerms; tTerm++)
         {
             aInputOutput(tTerm) *= mPenaltyFunction(tCellDensity);
         }
+    }
+
+    /******************************************************************************//**
+     * \brief Evaluate penalty model
+     * \param [in] aCellOrdinal cell/element ordinal
+     * \param [in] aInputOutput penalized 2D view
+     * \param [in] aControl     control, i.e. design, variables
+    **********************************************************************************/
+    template<typename InputScalarType, typename WeightScalarType>
+    DEVICE_TYPE inline void
+    operator()(
+              Plato::OrdinalType                            aCellOrdinal,
+        const Plato::ScalarMultiVectorT<WeightScalarType> & aControl,
+        const Plato::Array<NumNodes>                      & aBasisValues,
+              InputScalarType                             & aInputOutput
+    ) const
+    {
+        // apply weighting
+        //
+        WeightScalarType tCellDensity = 0.0;
+        for (Plato::OrdinalType tNode = 0; tNode < NumNodes; tNode++)
+        {
+            tCellDensity += aControl(aCellOrdinal, tNode)*aBasisValues(tNode);
+        }
+        aInputOutput *= mPenaltyFunction(tCellDensity);
     }
 
     /******************************************************************************//**

@@ -9,12 +9,14 @@ namespace Plato
 /*! Base class for mechanics element
 */
 /******************************************************************************/
-template<typename ElementType, Plato::OrdinalType NumControls = 1>
-class MechanicsElement : public ElementType, public ElementBase<ElementType>
+template<typename TopoElementTypeT, Plato::OrdinalType NumControls = 1>
+class MechanicsElement : public TopoElementTypeT, public ElementBase<TopoElementTypeT>
 {
   public:
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumSpatialDims;
+    using TopoElementTypeT::mNumNodesPerCell;
+    using TopoElementTypeT::mNumSpatialDims;
+
+    using TopoElementType = TopoElementTypeT;
 
     static constexpr Plato::OrdinalType mNumVoigtTerms   = (mNumSpatialDims == 3) ? 6 :
                                                           ((mNumSpatialDims == 2) ? 3 :

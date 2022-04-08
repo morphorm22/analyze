@@ -5,7 +5,7 @@
 #include "geometric/WeightedSumFunction.hpp"
 #include "geometric/DivisionFunction.hpp"
 #include "geometric/LeastSquaresFunction.hpp"
-#include "geometric/MassPropertiesFunction.hpp"
+//TODO #include "geometric/MassPropertiesFunction.hpp"
 #include "AnalyzeMacros.hpp"
 
 namespace Plato
@@ -33,6 +33,8 @@ namespace Geometric
         auto tFunctionParams = aProblemParams.sublist("Criteria").sublist(aFunctionName);
         auto tFunctionType = tFunctionParams.get<std::string>("Type", "Not Defined");
 
+// TODO
+#ifdef NOPE
         if(tFunctionType == "Weighted Sum")
         {
             return std::make_shared<WeightedSumFunction<PhysicsT>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
@@ -53,6 +55,7 @@ namespace Geometric
             return std::make_shared<MassPropertiesFunction<PhysicsT>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
         }
         else
+#endif
         if(tFunctionType == "Scalar Function")
         {
             return std::make_shared<GeometryScalarFunction<PhysicsT>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);

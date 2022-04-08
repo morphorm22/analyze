@@ -69,6 +69,7 @@ namespace Elliptic
             return std::make_shared<VolumeAverageCriterion<PhysicsT>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
         }
         else
+#endif
         if(tFunctionType == "Scalar Function")
         {
             return std::make_shared<PhysicsScalarFunction<PhysicsT>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
@@ -77,7 +78,6 @@ namespace Elliptic
         {
             return nullptr;
         }
-#endif
         return nullptr;
     }
 

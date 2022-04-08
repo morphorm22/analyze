@@ -1,24 +1,16 @@
 #ifndef INTERNAL_THERMOELASTIC_ENERGY_HPP
 #define INTERNAL_THERMOELASTIC_ENERGY_HPP
 
-#include "elliptic/AbstractScalarFunction.hpp"
-#include "elliptic/EllipticSimplexFadTypes.hpp"
-
-#include "SimplexThermomechanics.hpp"
+#include "FadTypes.hpp"
 #include "ScalarProduct.hpp"
 #include "ApplyWeighting.hpp"
 #include "TMKinematics.hpp"
 #include "TMKinetics.hpp"
 #include "ImplicitFunctors.hpp"
 #include "InterpolateFromNodal.hpp"
-#include "LinearTetCubRuleDegreeOne.hpp"
 #include "ThermoelasticMaterial.hpp"
 #include "ToMap.hpp"
 #include "ExpInstMacros.hpp"
-#include "Simp.hpp"
-#include "Ramp.hpp"
-#include "Heaviside.hpp"
-#include "NoPenalty.hpp"
 
 namespace Plato
 {
@@ -35,17 +27,19 @@ namespace Elliptic
 **********************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
 class InternalThermoelasticEnergy : 
-  public Plato::SimplexThermomechanics<EvaluationType::SpatialDim>,
+  public EvaluationType::ElementType,
   public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
 {
   private:
-    static constexpr Plato::OrdinalType mSpaceDim = EvaluationType::SpatialDim;
-    static constexpr Plato::OrdinalType TDofOffset = mSpaceDim;
-    
-    using Plato::SimplexThermomechanics<mSpaceDim>::mNumVoigtTerms;
-    using Plato::Simplex<mSpaceDim>::mNumNodesPerCell;
-    using Plato::SimplexThermomechanics<mSpaceDim>::mNumDofsPerCell;
-    using Plato::SimplexThermomechanics<mSpaceDim>::mNumDofsPerNode;
+    using ElementType = typename EvaluationType::ElementType;
+
+    using ElementType::mNumVoigtTerms;
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumDofsPerNode;
+    using ElementType::mNumDofsPerCell;
+    using ElementType::mNumSpatialDims;
+
+    static constexpr int TDofOffset = mNumSpatialDims;
 
     using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mSpatialDomain;
     using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mDataMap;
@@ -55,15 +49,13 @@ class InternalThermoelasticEnergy :
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
-    Teuchos::RCP<Plato::MaterialModel<mSpaceDim>> mMaterialModel;
-    
     IndicatorFunctionType mIndicatorFunction;
-    Plato::ApplyWeighting<mSpaceDim, mNumVoigtTerms, IndicatorFunctionType> mApplyStressWeighting;
-    Plato::ApplyWeighting<mSpaceDim, mSpaceDim,      IndicatorFunctionType> mApplyFluxWeighting;
-
-    std::shared_ptr<Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>> mCubatureRule;
+    Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms,  IndicatorFunctionType> mApplyStressWeighting;
+    Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyFluxWeighting;
 
     std::vector<std::string> mPlottable;
+
+    Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mMaterialModel;
 
   public:
     /**************************************************************************/
@@ -77,8 +69,7 @@ class InternalThermoelasticEnergy :
         Plato::Elliptic::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aFunctionName),
         mIndicatorFunction    (aPenaltyParams),
         mApplyStressWeighting (mIndicatorFunction),
-        mApplyFluxWeighting   (mIndicatorFunction),
-        mCubatureRule(std::make_shared<Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>>())
+        mApplyFluxWeighting   (mIndicatorFunction)
     /**************************************************************************/
     {
         Teuchos::ParameterList tProblemParams(aProblemParams);
@@ -106,7 +97,7 @@ class InternalThermoelasticEnergy :
            tMaterialParams.sublist("Cubic Linear Thermoelastic").set("a33",0.0);
         }
 
-        Plato::ThermoelasticModelFactory<mSpaceDim> mmfactory(tProblemParams);
+        Plato::ThermoelasticModelFactory<mNumSpatialDims> mmfactory(tProblemParams);
         mMaterialModel = mmfactory.create(tMaterialName);
 
         if( tProblemParams.isType<Teuchos::Array<std::string>>("Plottable") )
@@ -128,60 +119,63 @@ class InternalThermoelasticEnergy :
     {
       auto tNumCells = mSpatialDomain.numCells();
 
-      using GradScalarType =
-        typename Plato::fad_type_t<Plato::SimplexThermomechanics<EvaluationType::SpatialDim>, StateScalarType, ConfigScalarType>;
+      using GradScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
-      Plato::ComputeGradientWorkset<mSpaceDim> computeGradient;
-      Plato::TMKinematics<mSpaceDim>                  kinematics;
-      Plato::TMKinetics<mSpaceDim>                    kinetics(mMaterialModel);
+      Plato::ComputeGradientMatrix<ElementType> computeGradient;
+      Plato::TMKinematics<ElementType>          kinematics;
+      Plato::TMKinetics<ElementType>            kinetics(mMaterialModel);
 
-      Plato::ScalarProduct<mNumVoigtTerms>          mechanicalScalarProduct;
-      Plato::ScalarProduct<mSpaceDim>                 thermalScalarProduct;
+      Plato::ScalarProduct<mNumVoigtTerms>      mechanicalScalarProduct;
+      Plato::ScalarProduct<mNumSpatialDims>     thermalScalarProduct;
 
-      Plato::InterpolateFromNodal<mSpaceDim, mNumDofsPerNode, TDofOffset> interpolateFromNodal;
+      Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode, TDofOffset> interpolateFromNodal;
 
-      Plato::ScalarVectorT<ConfigScalarType> cellVolume("cell weight",tNumCells);
-
-      Plato::ScalarMultiVectorT<GradScalarType>   strain("strain", tNumCells, mNumVoigtTerms);
-      Plato::ScalarMultiVectorT<GradScalarType>   tgrad ("tgrad",  tNumCells, mSpaceDim);
-
-      Plato::ScalarMultiVectorT<ResultScalarType> stress("stress", tNumCells, mNumVoigtTerms);
-      Plato::ScalarMultiVectorT<ResultScalarType> flux  ("flux",   tNumCells, mSpaceDim);
-
-      Plato::ScalarArray3DT<ConfigScalarType>   gradient("gradient",tNumCells,mNumNodesPerCell,mSpaceDim);
-
-      Plato::ScalarVectorT<StateScalarType> temperature("Gauss point temperature", tNumCells);
-
-      auto quadratureWeight = mCubatureRule->getCubWeight();
-      auto basisFunctions   = mCubatureRule->getBasisFunctions();
+      auto tCubPoints = ElementType::getCubPoints();
+      auto tCubWeights = ElementType::getCubWeights();
+      auto tNumPoints = tCubWeights.size();
 
       auto& applyStressWeighting = mApplyStressWeighting;
       auto& applyFluxWeighting   = mApplyFluxWeighting;
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+      Kokkos::parallel_for("compute internal energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-        computeGradient(aCellOrdinal, gradient, aConfig, cellVolume);
-        cellVolume(aCellOrdinal) *= quadratureWeight;
+          ConfigScalarType tVolume(0.0);
 
-        // compute strain and temperature gradient
-        //
-        kinematics(aCellOrdinal, strain, tgrad, aState, gradient);
+          Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, ConfigScalarType> tGradient;
 
-        // compute stress and thermal flux
-        //
-        interpolateFromNodal(aCellOrdinal, basisFunctions, aState, temperature);
-        kinetics(aCellOrdinal, stress, flux, strain, tgrad, temperature);
+          Plato::Array<mNumVoigtTerms,  GradScalarType>   tStrain(0.0);
+          Plato::Array<mNumSpatialDims, GradScalarType>   tTGrad (0.0);
+          Plato::Array<mNumVoigtTerms,  ResultScalarType> tStress(0.0);
+          Plato::Array<mNumSpatialDims, ResultScalarType> tFlux  (0.0);
 
-        // apply weighting
-        //
-        applyStressWeighting(aCellOrdinal, stress, aControl);
-        applyFluxWeighting  (aCellOrdinal, flux,   aControl);
+          auto tCubPoint = tCubPoints(iGpOrdinal);
 
-        // compute element internal energy (inner product of strain and weighted stress)
-        //
-        mechanicalScalarProduct(aCellOrdinal, aResult, stress, strain, cellVolume);
-        thermalScalarProduct   (aCellOrdinal, aResult, flux,   tgrad,  cellVolume);
+          computeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
 
-      },"energy gradient");
+          tVolume *= tCubWeights(iGpOrdinal);
+
+          // compute strain and electric field
+          //
+          kinematics(iCellOrdinal, tStrain, tTGrad, aState, tGradient);
+
+          // compute stress and electric displacement
+          //
+          StateScalarType tTemperature(0.0);
+          auto tBasisValues = ElementType::basisValues(tCubPoint);
+          interpolateFromNodal(iCellOrdinal, tBasisValues, aState, tTemperature);
+          kinetics(iCellOrdinal, tStress, tFlux, tStrain, tTGrad, tTemperature);
+
+          // apply weighting
+          //
+          applyStressWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
+          applyFluxWeighting  (iCellOrdinal, aControl, tBasisValues, tFlux);
+
+          // compute element internal energy (inner product of strain and weighted stress)
+          //
+          mechanicalScalarProduct(iCellOrdinal, aResult, tStress, tStrain, tVolume);
+          thermalScalarProduct   (iCellOrdinal, aResult, tFlux,   tTGrad,  tVolume);
+
+        });
     }
 };
 
@@ -190,15 +184,15 @@ class InternalThermoelasticEnergy :
 } // namespace Plato
 
 #ifdef PLATOANALYZE_1D
-PLATO_EXPL_DEC(Plato::Elliptic::InternalThermoelasticEnergy, Plato::SimplexThermomechanics, 1)
+//TODO PLATO_EXPL_DEC(Plato::Elliptic::InternalThermoelasticEnergy, Plato::SimplexThermomechanics, 1)
 #endif
 
 #ifdef PLATOANALYZE_2D
-PLATO_EXPL_DEC(Plato::Elliptic::InternalThermoelasticEnergy, Plato::SimplexThermomechanics, 2)
+//TODO PLATO_EXPL_DEC(Plato::Elliptic::InternalThermoelasticEnergy, Plato::SimplexThermomechanics, 2)
 #endif
 
 #ifdef PLATOANALYZE_3D
-PLATO_EXPL_DEC(Plato::Elliptic::InternalThermoelasticEnergy, Plato::SimplexThermomechanics, 3)
+//TODO PLATO_EXPL_DEC(Plato::Elliptic::InternalThermoelasticEnergy, Plato::SimplexThermomechanics, 3)
 #endif
 
 #endif

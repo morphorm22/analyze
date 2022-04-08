@@ -68,11 +68,10 @@ public:
 
         // map points to physical space
         //
-        auto tCellOrdinals = aSpatialDomain.cellOrdinals();
         Plato::OrdinalType tNumCells = aSpatialDomain.numCells();
         Plato::ScalarArray3DT<ConfigScalarType> tPhysicalPoints("cub points physical space", tNumCells, tNumPoints, mSpaceDim);
 
-        Plato::mapPoints<ElementType>(tCellOrdinals, aConfig, tPhysicalPoints);
+        Plato::mapPoints<ElementType>(aConfig, tPhysicalPoints);
 
         // get integrand values at quadrature points
         //
@@ -86,7 +85,6 @@ public:
         Kokkos::parallel_for("compute body load", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
         LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
-            auto tCellOrdinal = tCellOrdinals[iCellOrdinal];
             auto tCubPoint = tCubPoints(iGpOrdinal);
             auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal));
 
