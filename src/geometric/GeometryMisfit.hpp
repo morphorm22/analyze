@@ -103,7 +103,7 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
               Teuchos::ParameterList & aFunctionParams, 
               std::string            & aFunctionName
     ) :
-        Plato::Geometric::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aFunctionName),
+        Plato::Geometric::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aFunctionParams, aFunctionName),
         mPointCloudName("")
     /**************************************************************************/
     {

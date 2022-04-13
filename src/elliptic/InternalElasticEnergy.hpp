@@ -77,39 +77,10 @@ class InternalElasticEnergy :
               Teuchos::ParameterList & aPenaltyParams,
               std::string            & aFunctionName
     ) :
-        Plato::Elliptic::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aFunctionName),
+        Plato::Elliptic::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aProblemParams, aFunctionName),
         mIndicatorFunction (aPenaltyParams),
         mApplyWeighting    (mIndicatorFunction)
     {
-
-        // decide whether we should compute the internal elastic energy contribution for the current domain
-        mCompute = false;
-        std::string tCurrentDomainName = aSpatialDomain.getDomainName();
-
-        auto tMyCriteria= aProblemParams.sublist("Criteria").sublist(aFunctionName);
-        std::vector<std::string> tDomains = Plato::teuchos::parse_array<std::string>("Domains", tMyCriteria);
-
-        // see if this matches any of the domains we want to compute volumes of
-        for(int i = 0; i < tDomains.size(); i++)
-        {
-            if(tCurrentDomainName == tDomains[i])
-            {
-                mCompute = true;
-            }
-        }
-
-        // check for a case we don't handle
-        if(tMyCriteria.isParameter("Domains") && tDomains.size() == 0)
-        {
-          ANALYZE_THROWERR(std::string("Empty Domains in Volume criteria, either have at least one domain specified or remove from input. No specification indicates we include all domains in volume computation"));
-        }
-
-        // if not specified compute all
-        if(!tMyCriteria.isParameter("Domains"))
-        {
-            mCompute = true;
-        }
-
         Plato::ElasticModelFactory<mNumSpatialDims> tMaterialModelFactory(aProblemParams);
         mMaterialModel = tMaterialModelFactory.create(aSpatialDomain.getMaterialName());
 
@@ -128,7 +99,7 @@ class InternalElasticEnergy :
      * \param [in] aTimeStep time step (default = 0)
     **********************************************************************************/
     void
-    evaluate(
+    evaluate_conditional(
         const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,

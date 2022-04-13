@@ -159,6 +159,8 @@ public:
 
       Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode, TDofOffset> interpolateFromNodal;
 
+      Plato::ScalarVectorT<ConfigScalarType> tCellVolume("volume", tNumCells);
+
       Plato::ScalarMultiVectorT<GradScalarType> tCellStrain("strain", tNumCells, mNumVoigtTerms);
       Plato::ScalarMultiVectorT<GradScalarType> tCellTgrad("tgrad", tNumCells, mNumSpatialDims);
     
@@ -219,6 +221,22 @@ public:
           {
               Kokkos::atomic_add(&tCellTgrad(iCellOrdinal,i), tVolume*tTGrad(i));
               Kokkos::atomic_add(&tCellFlux(iCellOrdinal,i), tVolume*tFlux(i));
+          }
+          Kokkos::atomic_add(&tCellVolume(iCellOrdinal), tVolume);
+      });
+
+      Kokkos::parallel_for("compute cell quantities", Kokkos::RangePolicy<>(0, tNumCells),
+      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal)
+      {
+          for(int i=0; i<ElementType::mNumVoigtTerms; i++)
+          {
+              tCellStrain(iCellOrdinal,i) /= tCellVolume(iCellOrdinal);
+              tCellStress(iCellOrdinal,i) /= tCellVolume(iCellOrdinal);
+          }
+          for(int i=0; i<ElementType::mNumSpatialDims; i++)
+          {
+              tCellTgrad(iCellOrdinal,i) /= tCellVolume(iCellOrdinal);
+              tCellFlux(iCellOrdinal,i) /= tCellVolume(iCellOrdinal);
           }
       });
 

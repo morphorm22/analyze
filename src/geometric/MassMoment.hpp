@@ -56,7 +56,7 @@ class MassMoment :
               Plato::DataMap         & aDataMap, 
               Teuchos::ParameterList & aInputParams
     ) :
-       Plato::Geometric::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, "MassMoment"),
+       Plato::Geometric::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aInputParams, "MassMoment"),
        mCellMaterialDensity(1.0),
        mCalculationType("")
     /**************************************************************************/
