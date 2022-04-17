@@ -6,38 +6,26 @@
 
 #include "PbcMultipointConstraint.hpp"
 
-namespace Plato
-{
-
 /****************************************************************************/
-Plato::PbcMultipointConstraint::
+template<typename ElementT>
+Plato::PbcMultipointConstraint<ElementT>::
 PbcMultipointConstraint(const Plato::SpatialModel & aSpatialModel,
                         const std::string & aName, 
                         Teuchos::ParameterList & aParam) :
                         Plato::MultipointConstraint(aName)
 /****************************************************************************/
 {
-    // Ensure mesh is 3D
-    auto tSpaceDim = aSpatialModel.Mesh->NumDimensions();
-    if ( tSpaceDim != Plato::Geometry::cSpaceDim )
-    {
-        std::ostringstream tMsg;
-        tMsg << "INVALID MESH DIMENSION: PBC MULTIPOINT CONSTRAINTS ONLY IMPLEMENTED FOR 3D MESHES.";
-        ANALYZE_THROWERR(tMsg.str())
-    }
-    //
     // parse translation vector
     bool tIsVector = aParam.isType<Teuchos::Array<Plato::Scalar>>("Vector");
 
-    Plato::Scalar tTranslationX;
-    Plato::Scalar tTranslationY;
-    Plato::Scalar tTranslationZ;
+    Plato::Array<ElementT::mNumSpatialDims> tTranslation;
     if ( tIsVector )
     {
         auto tVector = aParam.get<Teuchos::Array<Plato::Scalar>>("Vector");
-        tTranslationX = tVector[0];
-        tTranslationY = tVector[1];
-        tTranslationZ = tVector[2];
+        for(Plato::OrdinalType iDim=0; iDim<ElementT::mNumSpatialDims; iDim++)
+        {
+            tTranslation(iDim) = tVector[iDim];
+        }
     }
     else
     {
@@ -60,10 +48,10 @@ PbcMultipointConstraint(const Plato::SpatialModel & aSpatialModel,
     this->updateNodesets(tNumberChildNodes, tChildNodeLids);
     
     // map child nodes
-    Plato::ScalarMultiVector tChildNodeLocations       ("child node locations",        Plato::Geometry::cSpaceDim, tNumberChildNodes);
-    Plato::ScalarMultiVector tMappedChildNodeLocations ("mapped child node locations", Plato::Geometry::cSpaceDim, tNumberChildNodes);
+    Plato::ScalarMultiVector tChildNodeLocations       ("child node locations",        ElementT::mNumSpatialDims, tNumberChildNodes);
+    Plato::ScalarMultiVector tMappedChildNodeLocations ("mapped child node locations", ElementT::mNumSpatialDims, tNumberChildNodes);
 
-    this->mapChildVertexLocations(aSpatialModel.Mesh, tTranslationX, tTranslationY, tTranslationZ, tChildNodeLocations, tMappedChildNodeLocations);
+    this->mapChildVertexLocations(aSpatialModel.Mesh, tTranslation, tChildNodeLocations, tMappedChildNodeLocations);
 
     // get parent domain element data
     std::string tParentDomainName = aParam.get<std::string>("Parent");
@@ -85,7 +73,8 @@ PbcMultipointConstraint(const Plato::SpatialModel & aSpatialModel,
     
     // find elements that contain mapped child node locations (in specified domain)
     Plato::OrdinalVector tParentElements("mapped elements", tNumberChildNodes);
-    Plato::Geometry::findParentElements<Plato::Scalar>(aSpatialModel.Mesh, tDomainCellMap, tChildNodeLocations, tMappedChildNodeLocations, tParentElements);
+    Plato::Geometry::findParentElements<ElementT, Plato::Scalar>
+      (aSpatialModel.Mesh, tDomainCellMap, tChildNodeLocations, tMappedChildNodeLocations, tParentElements);
 
     // get global IDs of unique parent nodes
     Plato::OrdinalVector tParentGlobalLocalMap;
@@ -96,7 +85,8 @@ PbcMultipointConstraint(const Plato::SpatialModel & aSpatialModel,
 }
 
 /****************************************************************************/
-void Plato::PbcMultipointConstraint::
+template<typename ElementT>
+void Plato::PbcMultipointConstraint<ElementT>::
 get(OrdinalVector & aMpcChildNodes,
     OrdinalVector & aMpcParentNodes,
     Plato::CrsMatrixType::RowMapVectorT & aMpcRowMap,
@@ -154,7 +144,8 @@ get(OrdinalVector & aMpcChildNodes,
 }
 
 /****************************************************************************/
-void Plato::PbcMultipointConstraint::
+template<typename ElementT>
+void Plato::PbcMultipointConstraint<ElementT>::
 updateLengths(OrdinalType& lengthChild,
               OrdinalType& lengthParent,
               OrdinalType& lengthNnz)
@@ -172,7 +163,8 @@ updateLengths(OrdinalType& lengthChild,
 }
 
 /****************************************************************************/
-void Plato::PbcMultipointConstraint::
+template<typename ElementT>
+void Plato::PbcMultipointConstraint<ElementT>::
 updateNodesets(const OrdinalType& tNumberChildNodes,
                const Plato::OrdinalVectorT<const Plato::OrdinalType>& tChildNodeLids)
 /****************************************************************************/
@@ -185,13 +177,14 @@ updateNodesets(const OrdinalType& tNumberChildNodes,
 }
 
 /****************************************************************************/
-void Plato::PbcMultipointConstraint::
-mapChildVertexLocations(Plato::Mesh           aMesh,
-                        const Plato::Scalar aTranslationX,
-                        const Plato::Scalar aTranslationY,
-                        const Plato::Scalar aTranslationZ,
-                        Plato::ScalarMultiVector & aLocations,
-                        Plato::ScalarMultiVector & aMappedLocations)
+template<typename ElementT>
+void Plato::PbcMultipointConstraint<ElementT>::
+mapChildVertexLocations(
+        Plato::Mesh                               aMesh,
+  const Plato::Array<ElementT::mNumSpatialDims>   aTranslation,
+        Plato::ScalarMultiVector                & aLocations,
+        Plato::ScalarMultiVector                & aMappedLocations
+)
 /****************************************************************************/
 {
     auto tCoords = aMesh->Coordinates();
@@ -201,19 +194,16 @@ mapChildVertexLocations(Plato::Mesh           aMesh,
     Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberChildNodes), LAMBDA_EXPRESSION(Plato::OrdinalType nodeOrdinal)
     {
         Plato::OrdinalType childNode = tChildNodes(nodeOrdinal);
-        for(size_t iDim=0; iDim < Plato::Geometry::cSpaceDim; ++iDim)
+        for(size_t iDim=0; iDim < ElementT::mNumSpatialDims; ++iDim)
         {
-            aLocations(iDim, nodeOrdinal) = tCoords[childNode*Plato::Geometry::cSpaceDim+iDim];
+            aMappedLocations(iDim, nodeOrdinal) = tCoords[childNode*ElementT::mNumSpatialDims+iDim] + aTranslation(iDim);
         }
-        // perform translation mapping
-        aMappedLocations(0, nodeOrdinal) = aLocations(0, nodeOrdinal) + aTranslationX;
-        aMappedLocations(1, nodeOrdinal) = aLocations(1, nodeOrdinal) + aTranslationY;
-        aMappedLocations(2, nodeOrdinal) = aLocations(2, nodeOrdinal) + aTranslationZ;
     }, "get verts and apply map");
 }
 
 /****************************************************************************/
-void Plato::PbcMultipointConstraint::
+template<typename ElementT>
+void Plato::PbcMultipointConstraint<ElementT>::
 getUniqueParentNodes(Plato::Mesh           aMesh,
                      OrdinalVector & aParentElements,
                      OrdinalVector & aParentGlobalLocalMap)
@@ -221,7 +211,7 @@ getUniqueParentNodes(Plato::Mesh           aMesh,
 {
     auto tNVerts = aMesh->NumNodes();
     auto tNumberParentElements = aParentElements.size();
-    auto tNVertsPerElem = Plato::Geometry::cNVertsPerElem;
+    auto tNVertsPerElem = ElementT::mNumNodesPerCell;
     auto tCells2Nodes = aMesh->Connectivity();
 
     // initialize array for storing parent element vertex ordinals
@@ -292,7 +282,8 @@ getUniqueParentNodes(Plato::Mesh           aMesh,
 }
 
 /****************************************************************************/
-void Plato::PbcMultipointConstraint::
+template<typename ElementT>
+void Plato::PbcMultipointConstraint<ElementT>::
 setMatrixValues(
     Plato::Mesh                aMesh,
     OrdinalVector            & aParentElements,
@@ -311,7 +302,7 @@ setMatrixValues(
 
     Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumChildNodes), LAMBDA_EXPRESSION(Plato::OrdinalType iRowOrdinal)
     {
-        tRowMap(iRowOrdinal) = Plato::Geometry::cNVertsPerElem;
+        tRowMap(iRowOrdinal) = ElementT::mNumNodesPerCell;
     }, "nonzeros");
 
     Plato::OrdinalType tNumEntries(0);
@@ -330,41 +321,31 @@ setMatrixValues(
     Plato::CrsMatrixType::OrdinalVectorT tColMap("column indices", tNumEntries);
     Plato::CrsMatrixType::ScalarVectorT tEntries("matrix entries", tNumEntries);
 
-    Plato::Geometry::GetBasis<Plato::Scalar> tGetBasis(aMesh);
+    Plato::Geometry::GetBasis<ElementT, Plato::Scalar> tGetBasis(aMesh);
 
     Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumChildNodes), LAMBDA_EXPRESSION(Plato::OrdinalType iRowOrdinal)
     {
 
+        Plato::Array<ElementT::mNumNodesPerCell, Plato::Scalar> tBasis(0.0);
+        Plato::Array<ElementT::mNumSpatialDims, Plato::Scalar> tInPoint(0.0);
+
         auto iElemOrdinal = aParentElements(iRowOrdinal);
-
-        // global element node IDs
-        Plato::OrdinalType i0 = tCells2Nodes[iElemOrdinal*Plato::Geometry::cNVertsPerElem  ];
-        Plato::OrdinalType i1 = tCells2Nodes[iElemOrdinal*Plato::Geometry::cNVertsPerElem+1];
-        Plato::OrdinalType i2 = tCells2Nodes[iElemOrdinal*Plato::Geometry::cNVertsPerElem+2];
-        Plato::OrdinalType i3 = tCells2Nodes[iElemOrdinal*Plato::Geometry::cNVertsPerElem+3];
-
-        // local parent node IDs
-        Plato::OrdinalType iP0 = aParentGlobalLocalMap(i0);
-        Plato::OrdinalType iP1 = aParentGlobalLocalMap(i1);
-        Plato::OrdinalType iP2 = aParentGlobalLocalMap(i2);
-        Plato::OrdinalType iP3 = aParentGlobalLocalMap(i3);
+        for(Plato::OrdinalType iDim=0; iDim<ElementT::mNumSpatialDims; iDim++)
+        {
+            tInPoint(iDim) = aMappedLocations(iDim, iRowOrdinal);
+        }
 
         // basis function values
-        Plato::Scalar tBasisValues[Plato::Geometry::cNVertsPerElem];
-        tGetBasis(aMappedLocations, iRowOrdinal, iElemOrdinal, tBasisValues);
+        tGetBasis(iElemOrdinal, tInPoint, tBasis);
 
         // fill in colmap and entries
         auto iEntryOrdinal = tRowMap(iRowOrdinal);
 
-        tColMap(iEntryOrdinal  ) = iP0;
-        tColMap(iEntryOrdinal+1) = iP1;
-        tColMap(iEntryOrdinal+2) = iP2;
-        tColMap(iEntryOrdinal+3) = iP3;
-
-        tEntries(iEntryOrdinal  ) = tBasisValues[0];
-        tEntries(iEntryOrdinal+1) = tBasisValues[1];
-        tEntries(iEntryOrdinal+2) = tBasisValues[2];
-        tEntries(iEntryOrdinal+3) = tBasisValues[3];
+        for(Plato::OrdinalType iNode=0; iNode<ElementT::mNumNodesPerCell; iNode++)
+        {
+            tColMap(iEntryOrdinal+iNode) = aParentGlobalLocalMap(tCells2Nodes[iElemOrdinal*ElementT::mNumNodesPerCell+iNode]);
+            tEntries(iEntryOrdinal+iNode) = tBasis[iNode];
+        }
 
     }, "colmap and entries");
 
@@ -372,5 +353,3 @@ setMatrixValues(
     mMpcMatrix = Teuchos::rcp( new Plato::CrsMatrixType(tRowMap, tColMap, tEntries, tNumChildNodes, tNumParentNodes, 1, 1) );
 }
 
-}
-// namespace Plato

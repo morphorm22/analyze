@@ -1,7 +1,6 @@
-#ifndef SIMPLEX_HELMHOLTZ_HPP
-#define SIMPLEX_HELMHOLTZ_HPP
+#pragma once
 
-#include "../Simplex.hpp"
+#include "ElementBase.hpp"
 
 namespace Plato
 {
@@ -10,12 +9,16 @@ namespace Plato
 /*! Base class for simplex-based helmholtz
 */
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-class SimplexHelmholtz : public Plato::Simplex<SpaceDim>
+template<typename TopoElementTypeT>
+class HelmholtzElement : public TopoElementTypeT, public ElementBase<TopoElementTypeT>
 { 
   public:
-    using Plato::Simplex<SpaceDim>::mNumNodesPerCell;
-    using Plato::Simplex<SpaceDim>::mNumSpatialDims;
+    using TopoElementTypeT::mNumNodesPerCell;
+    using TopoElementTypeT::mNumNodesPerFace;
+    using TopoElementTypeT::mNumSpatialDims;
+    using TopoElementTypeT::mNumSpatialDimsOnFace;
+
+    using TopoElementType = TopoElementTypeT;
 
     static constexpr Plato::OrdinalType mNumDofsPerNode  = 1;
     static constexpr Plato::OrdinalType mNumDofsPerCell  = mNumDofsPerNode*mNumNodesPerCell;
@@ -23,12 +26,8 @@ class SimplexHelmholtz : public Plato::Simplex<SpaceDim>
     static constexpr Plato::OrdinalType mNumControl = 1;
 
     static constexpr Plato::OrdinalType mNumNodeStatePerNode = 0;
-
     static constexpr Plato::OrdinalType mNumLocalDofsPerCell = 0;
 
 };
-// class SimplexHelmholtz
 
-} // namespace Plato
-
-#endif
+}

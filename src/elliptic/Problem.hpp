@@ -59,8 +59,6 @@ private:
     using ElementType = typename PhysicsType::ElementType;
     using TopoElementType = typename ElementType::TopoElementType;
 
-    static constexpr Plato::OrdinalType mSpatialDim = ElementType::mNumSpatialDims; /*!< spatial dimensions */
-
     using VectorFunctionType = Plato::Elliptic::VectorFunction<PhysicsType>;
 
     Plato::SpatialModel mSpatialModel; /*!< SpatialModel instance contains the mesh, meshsets, domains, etc. */
@@ -701,6 +699,8 @@ private:
             mMPCs = std::make_shared<Plato::MultipointConstraints>(mSpatialModel, tNumDofsPerNode, tMyParams);
             mMPCs->setupTransform();
         }
+
+        this->readEssentialBoundaryConditions(aProblemParams);
     }
 
     void applyAdjointConstraints(const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix, const Plato::ScalarVector & aVector)

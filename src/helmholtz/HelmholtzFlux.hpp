@@ -15,7 +15,7 @@ namespace Helmholtz
     given a filtered density gradient, scale by length scale squared
 */
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
+template<typename ElementType>
 class HelmholtzFlux
 {
   private:
@@ -29,16 +29,18 @@ class HelmholtzFlux
 
     template<typename HGradScalarType, typename HFluxScalarType>
     DEVICE_TYPE inline void
-    operator()( Plato::OrdinalType cellOrdinal,
-                Plato::ScalarMultiVectorT<HFluxScalarType> tflux,
-                Plato::ScalarMultiVectorT<HGradScalarType> tgrad) const {
-
+    operator()(
+            Plato::OrdinalType                                            aCellOrdinal,
+            Plato::Array<ElementType::mNumSpatialDims, HFluxScalarType> & aFlux,
+      const Plato::Array<ElementType::mNumSpatialDims, HGradScalarType> & aGrad
+    ) const
+    {
       // scale filtered density gradient
       //
       Plato::Scalar tLengthScaleSquared = mLengthScale*mLengthScale;
 
-      for( Plato::OrdinalType iDim=0; iDim<SpaceDim; iDim++){
-        tflux(cellOrdinal,iDim) = tLengthScaleSquared*tgrad(cellOrdinal,iDim);
+      for( Plato::OrdinalType iDim=0; iDim<ElementType::mNumSpatialDims; iDim++){
+        aFlux(iDim) = tLengthScaleSquared*aGrad(iDim);
       }
     }
 };

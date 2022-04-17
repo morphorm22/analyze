@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PlatoMathTypes.hpp"
+#include "PlatoStaticsTypes.hpp"
 
 namespace Plato {
 
@@ -12,9 +13,9 @@ template <typename ElementType>
 class ElementBase
 {
 
+  public:
     static constexpr Plato::OrdinalType mNumSpatialDims  = ElementType::mNumSpatialDims;
     static constexpr Plato::OrdinalType mNumNodesPerCell = ElementType::mNumNodesPerCell;
-  public:
 
     template<typename ScalarType>
     DEVICE_TYPE static inline Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ScalarType>
@@ -42,8 +43,10 @@ class ElementBase
     template<typename ScalarType>
     DEVICE_TYPE static inline Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ScalarType>
     jacobian(
-        const Plato::Array<mNumSpatialDims>         & aCubPoint,
-              Plato::ScalarMultiVectorT<ScalarType>   aConfig
+      const Plato::Array<mNumSpatialDims>   & aCubPoint,
+            Plato::Matrix<mNumNodesPerCell,
+                          mNumSpatialDims,
+                          ScalarType>       & aNodeLocations
     )
     {
         Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ScalarType> tJacobian;
@@ -55,7 +58,7 @@ class ElementBase
                 tJacobian(i,j) = ScalarType(0.0);
                 for (int I=0; I<mNumNodesPerCell; I++)
                 {
-                    tJacobian(i,j) += tBasisGrads(I,j)*aConfig(I,i);
+                    tJacobian(i,j) += tBasisGrads(I,j)*aNodeLocations(I,i);
                 }
             }
         }

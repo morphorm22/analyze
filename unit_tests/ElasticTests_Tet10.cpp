@@ -566,10 +566,10 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D )
   //
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
-  using ElementType = typename Plato::Mechanics<Plato::Tet10>;
+  using PhysicsType = typename Plato::Mechanics<Plato::Tet10>;
 
   Plato::DataMap tDataMap;
-  Plato::Elliptic::VectorFunction<ElementType>
+  Plato::Elliptic::VectorFunction<PhysicsType>
     tVectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
   // compute and test constraint value
@@ -757,10 +757,10 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D_NaturalBC )
   //
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
-  using ElementType = typename Plato::Mechanics<Plato::Tet10>;
+  using PhysicsType = typename Plato::Mechanics<Plato::Tet10>;
 
   Plato::DataMap tDataMap;
-  Plato::Elliptic::VectorFunction<ElementType>
+  Plato::Elliptic::VectorFunction<PhysicsType>
     tVectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
   // compute and test constraint value
@@ -882,7 +882,6 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D_Solution )
 
     Plato::Elliptic::Problem<Plato::Mechanics<Plato::Tet10>>
         tElasticityProblem(tMesh, *tParamList, tMachine);
-    tElasticityProblem.readEssentialBoundaryConditions(*tParamList);
 
 
     // SOLVE ELASTOSTATICS EQUATIONS
@@ -968,8 +967,6 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
   //
   constexpr int meshWidth=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET10", meshWidth);
-
-  using ElementType = typename Plato::Mechanics<Plato::Tet10>;
 
   // create mesh based density from host data
   //

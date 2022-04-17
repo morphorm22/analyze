@@ -11,10 +11,6 @@
 #include "elliptic/AbstractVectorFunction.hpp"
 #include "ApplyWeighting.hpp"
 #include "CellForcing.hpp"
-// shouldn't need this? #include "Simp.hpp"
-// shouldn't need this? #include "Ramp.hpp"
-// shouldn't need this? #include "Heaviside.hpp"
-// shouldn't need this? #include "NoPenalty.hpp"
 #include "ToMap.hpp"
 #include "VonMisesYieldFunction.hpp"
 
@@ -24,7 +20,6 @@
 
 #include "ExpInstMacros.hpp"
 
-// shouldn't need this? #include "Tet10.hpp"
 // includes below here are verified to be necessary
 #include "MechanicsElement.hpp"
 #include "GradientMatrix.hpp"

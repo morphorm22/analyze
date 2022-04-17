@@ -34,14 +34,14 @@ namespace Helmholtz
 /******************************************************************************//**
  * \brief Manage scalar and vector function evaluations
 **********************************************************************************/
-template<typename PhysicsT>
+template<typename PhysicsType>
 class Problem: public Plato::AbstractProblem
 {
 private:
 
-    static constexpr Plato::OrdinalType mSpatialDim = PhysicsT::mNumSpatialDims; /*!< spatial dimensions */
+    using ElementType = typename PhysicsType::ElementType;
 
-    using VectorFunctionType = Plato::Helmholtz::VectorFunction<PhysicsT>;
+    using VectorFunctionType = Plato::Helmholtz::VectorFunction<PhysicsType>;
 
     Plato::SpatialModel mSpatialModel; /*!< SpatialModel instance contains the mesh, meshsets, domains, etc. */
 
@@ -85,9 +85,9 @@ public:
 
         Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
         if(mMPCs)
-            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, PhysicsT::mNumDofsPerNode, mMPCs);
+            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode, mMPCs);
         else
-            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, PhysicsT::mNumDofsPerNode);
+            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode);
     }
 
     ~Problem(){}
@@ -298,7 +298,7 @@ private:
                     Teuchos::ParameterList& aProblemParams)
     {
         auto tName = aProblemParams.get<std::string>("PDE Constraint");
-        mPDE = std::make_shared<Plato::Helmholtz::VectorFunction<PhysicsT>>(mSpatialModel, mDataMap, aProblemParams, tName);
+        mPDE = std::make_shared<Plato::Helmholtz::VectorFunction<PhysicsType>>(mSpatialModel, mDataMap, aProblemParams, tName);
 
         if(aProblemParams.isSublist("Multipoint Constraints") == true)
         {
@@ -329,12 +329,12 @@ private:
 #include "Helmholtz.hpp"
 
 #ifdef PLATOANALYZE_1D
-extern template class Plato::Helmholtz::Problem<::Plato::HelmholtzFilter<1>>;
+//TODO extern template class Plato::Helmholtz::Problem<::Plato::HelmholtzFilter<1>>;
 #endif
 #ifdef PLATOANALYZE_2D
-extern template class Plato::Helmholtz::Problem<::Plato::HelmholtzFilter<2>>;
+//TODO extern template class Plato::Helmholtz::Problem<::Plato::HelmholtzFilter<2>>;
 #endif
 #ifdef PLATOANALYZE_3D
-extern template class Plato::Helmholtz::Problem<::Plato::HelmholtzFilter<3>>;
+//TODO extern template class Plato::Helmholtz::Problem<::Plato::HelmholtzFilter<3>>;
 #endif
 

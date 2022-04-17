@@ -47,9 +47,6 @@ endif()
 ## Mesh constraint sources
 set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     MultipointConstraints.cpp
-    MultipointConstraintFactory.cpp
-    TieMultipointConstraint.cpp
-    PbcMultipointConstraint.cpp
 )
 
 ## core sources

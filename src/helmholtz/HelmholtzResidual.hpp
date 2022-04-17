@@ -1,20 +1,20 @@
 #pragma once
 
 #include "ToMap.hpp"
+#include "FadTypes.hpp"
 #include "ScalarGrad.hpp"
-#include "UtilsOmegaH.hpp"
+#include "SurfaceArea.hpp"
 #include "UtilsTeuchos.hpp"
-#include "FluxDivergence.hpp"
-#include "SimplexFadTypes.hpp"
+#include "GradientMatrix.hpp"
 #include "PlatoMathHelpers.hpp"
-#include "SimplexFadTypes.hpp"
 #include "ImplicitFunctors.hpp"
 #include "InterpolateFromNodal.hpp"
+#include "GeneralFluxDivergence.hpp"
 #include "SurfaceIntegralUtilities.hpp"
 
 #include "helmholtz/AddMassTerm.hpp"
 #include "helmholtz/HelmholtzFlux.hpp"
-#include "helmholtz/SimplexHelmholtz.hpp"
+#include "helmholtz/HelmholtzElement.hpp"
 #include "helmholtz/AbstractVectorFunction.hpp"
 
 namespace Plato
@@ -26,35 +26,28 @@ namespace Helmholtz
 /******************************************************************************/
 template<typename EvaluationType>
 class HelmholtzResidual : 
-  public Plato::SimplexHelmholtz<EvaluationType::SpatialDim>,
+  public EvaluationType::ElementType,
   public Plato::Helmholtz::AbstractVectorFunction<EvaluationType>
 /******************************************************************************/
 {
   private:
-    static constexpr Plato::OrdinalType mSpaceDim = EvaluationType::SpatialDim;
+    using ElementType = typename EvaluationType::ElementType;
 
-    using PhysicsType = typename Plato::SimplexHelmholtz<mSpaceDim>;
-    using PhysicsType::mNumDofsPerCell;
-    using PhysicsType::mNumDofsPerNode;
-    using PhysicsType::mNumNodesPerFace;
-    using PhysicsType::mNumSpatialDimsOnFace;
+    using ElementType::mNumDofsPerCell;
+    using ElementType::mNumDofsPerNode;
+    using ElementType::mNumNodesPerFace;
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumSpatialDimsOnFace;
 
-    using Plato::Simplex<mSpaceDim>::mNumNodesPerCell;
+    using FunctionBaseType = Plato::Helmholtz::AbstractVectorFunction<EvaluationType>;
 
-    using Plato::Helmholtz::AbstractVectorFunction<EvaluationType>::mSpatialDomain;
-    using Plato::Helmholtz::AbstractVectorFunction<EvaluationType>::mDataMap;
+    using FunctionBaseType::mSpatialDomain;
+    using FunctionBaseType::mDataMap;
     
-    /*!< local automatic differentiaton parameters */
     using StateScalarType   = typename EvaluationType::StateScalarType;
     using ControlScalarType = typename EvaluationType::ControlScalarType;
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
-
-    using CubatureType = typename Plato::SimplexHelmholtz<mSpaceDim>::CubatureType;
-    CubatureType mCubatureRule; /*!< volume cubature rule */
-
-    using BoundaryCubatureType = typename Plato::SimplexHelmholtz<mSpaceDim>::BoundaryCubatureType;
-    BoundaryCubatureType mSurfaceCubatureRule; /*!< surface cubature rule */
 
     Plato::Scalar mLengthScale = 0.5; /*!< volume length scale */
     Plato::Scalar mSurfaceLengthScale = 0.0; /*!< surface length scale multiplier, 0 \leq \alpha \leq 1 */
@@ -67,9 +60,7 @@ class HelmholtzResidual :
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams
     ) :
-        Plato::Helmholtz::AbstractVectorFunction<EvaluationType>(aSpatialDomain, aDataMap),
-        mCubatureRule(CubatureType()),
-        mSurfaceCubatureRule(BoundaryCubatureType())
+        FunctionBaseType(aSpatialDomain, aDataMap)
     /**************************************************************************/
     {
         // parse length scale parameter
@@ -111,68 +102,63 @@ class HelmholtzResidual :
     ) const
     /**************************************************************************/
     {
+      using GradScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
+
       auto tNumCells = mSpatialDomain.numCells();
 
-      using GradScalarType =
-        typename Plato::fad_type_t<Plato::SimplexHelmholtz<EvaluationType::SpatialDim>, StateScalarType, ConfigScalarType>;
-
-      Plato::ScalarVectorT<ConfigScalarType>
-        tCellVolume("cell weight",tNumCells);
-
-      Kokkos::View<GradScalarType**, Plato::Layout, Plato::MemSpace>
-        tGrad("filtered density gradient",tNumCells,mSpaceDim);
-
-      Plato::ScalarArray3DT<ConfigScalarType>
-        tGradient("basis function gradient",tNumCells,mNumNodesPerCell,mSpaceDim);
-
-      Kokkos::View<ResultScalarType**, Plato::Layout, Plato::MemSpace>
-        tFlux("filtered density flux",tNumCells,mSpaceDim);
-
-      Plato::ScalarVectorT<StateScalarType> 
-        tFilteredDensity("Gauss point filtered density", tNumCells);
-
-      Plato::ScalarVectorT<ControlScalarType> 
-        tUnfilteredDensity("Gauss point unfiltered density", tNumCells);
-
       // create a bunch of functors:
-      Plato::ComputeGradientWorkset<mSpaceDim>    tComputeGradient;
-      Plato::ScalarGrad<mSpaceDim>                tScalarGrad;
-      Plato::Helmholtz::HelmholtzFlux<mSpaceDim>  tHelmholtzFlux(mLengthScale);
-      Plato::FluxDivergence<mSpaceDim>            tFluxDivergence;
-      Plato::Helmholtz::AddMassTerm<mSpaceDim>    tAddMassTerm;
+      Plato::ComputeGradientMatrix<ElementType>    computeGradient;
+      Plato::ScalarGrad<ElementType>               scalarGrad;
+      Plato::Helmholtz::HelmholtzFlux<ElementType> helmholtzFlux(mLengthScale);
+      Plato::GeneralFluxDivergence<ElementType>    fluxDivergence;
+      Plato::Helmholtz::AddMassTerm<ElementType>   addMassTerm;
 
-      Plato::InterpolateFromNodal<mSpaceDim, mNumDofsPerNode> tInterpolateFromNodal;
+      Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode> tInterpolateFromNodal;
 
-      auto tQuadratureWeight = mCubatureRule.getCubWeight();
-      auto tBasisFunctions   = mCubatureRule.getBasisFunctions();
+      auto tCubPoints = ElementType::getCubPoints();
+      auto tCubWeights = ElementType::getCubWeights();
+      auto tNumPoints = tCubWeights.size();
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+      Kokkos::parallel_for("helmholtz residual", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-        tComputeGradient(aCellOrdinal, tGradient, aConfig, tCellVolume);
-        tCellVolume(aCellOrdinal) *= tQuadratureWeight;
+        ConfigScalarType tVolume(0.0);
+        StateScalarType tFilteredDensity;
+        ControlScalarType tUnfilteredDensity;
+        Plato::Array<ElementType::mNumSpatialDims, GradScalarType> tGrad;
+        Plato::Array<ElementType::mNumSpatialDims, ResultScalarType> tFlux;
+
+        Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, ConfigScalarType> tGradient;
+
+        auto tCubPoint = tCubPoints(iGpOrdinal);
+
+        computeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
+
+        tVolume *= tCubWeights(iGpOrdinal);
         
         // compute filtered and unfiltered densities
         //
-        tInterpolateFromNodal(aCellOrdinal, tBasisFunctions, aState, tFilteredDensity);
-        tInterpolateFromNodal(aCellOrdinal, tBasisFunctions, aControl, tUnfilteredDensity);
+        auto tBasisValues = ElementType::basisValues(tCubPoint);
+        tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState, tFilteredDensity);
+        tInterpolateFromNodal(iCellOrdinal, tBasisValues, aControl, tUnfilteredDensity);
 
         // compute filtered density gradient
         //
-        tScalarGrad(aCellOrdinal, tGrad, aState, tGradient);
+        scalarGrad(iCellOrdinal, tGrad, aState, tGradient);
     
         // compute flux (scale by length scale squared)
         //
-        tHelmholtzFlux(aCellOrdinal, tFlux, tGrad);
+        helmholtzFlux(iCellOrdinal, tFlux, tGrad);
     
         // compute flux divergence
         //
-        tFluxDivergence(aCellOrdinal, aResult, tFlux, tGradient, tCellVolume);
+        fluxDivergence(iCellOrdinal, aResult, tFlux, tGradient, tVolume);
         
         // add mass term
         //
-        tAddMassTerm(aCellOrdinal, aResult, tFilteredDensity, tUnfilteredDensity, tBasisFunctions, tCellVolume);
+        addMassTerm(iCellOrdinal, aResult, tFilteredDensity, tUnfilteredDensity, tBasisValues, tVolume);
 
-      },"helmholtz residual");
+      });
     }
 
     /**************************************************************************/
@@ -191,53 +177,55 @@ class HelmholtzResidual :
         { return; }
 
       // set local functors
-      Plato::CalculateSurfaceArea<mSpaceDim> tCalculateSurfaceArea;
-      Plato::NodeCoordinate<mSpaceDim> tCoords(aSpatialModel.Mesh);
-      Plato::CalculateSurfaceJacobians<mSpaceDim> tCalculateSurfaceJacobians;
+      Plato::SurfaceArea<ElementType> surfaceArea;
 
       // get sideset faces
       auto tElementOrds = aSpatialModel.Mesh->GetSideSetElementsComplement(mSymmetryPlaneSides);
       auto tNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodesComplement(mSymmetryPlaneSides);
-      auto tNumFaces = tElementOrds.size();
-
-      Plato::ScalarArray3DT<ConfigScalarType> tJacobians("jacobian", tNumFaces, mNumSpatialDimsOnFace, mSpaceDim);
-      auto tNumCells = aSpatialModel.Mesh->NumElements();
-      Plato::ScalarVectorT<StateScalarType> tFilteredDensity("filtered density", tNumCells);
+      Plato::OrdinalType tNumFaces = tElementOrds.size();
 
       // evaluate integral
       auto tLengthScale = mLengthScale;
       const auto tNodesPerFace = mNumNodesPerFace;
       auto tSurfaceLengthScale = mSurfaceLengthScale;
-      auto tSurfaceCubatureWeight = mSurfaceCubatureRule.getCubWeight();
-      auto tSurfaceBasisFunctions = mSurfaceCubatureRule.getBasisFunctions();
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aSideOrdinal)
+      auto tCubatureWeights = ElementType::Face::getCubWeights();
+      auto tCubaturePoints  = ElementType::Face::getCubPoints();
+      auto tNumPoints = tCubatureWeights.size();
+
+      Kokkos::parallel_for(Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumFaces, tNumPoints}),
+      LAMBDA_EXPRESSION(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
       {
           auto tElementOrdinal = tElementOrds(aSideOrdinal);
 
-          Plato::OrdinalType tLocalNodeOrds[tNodesPerFace];
+          Plato::Array<mNumNodesPerFace, Plato::OrdinalType> tLocalNodeOrds;
           for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<tNodesPerFace; tNodeOrd++)
           {
-              tLocalNodeOrds[tNodeOrd] = tNodeOrds(aSideOrdinal*tNodesPerFace+tNodeOrd);
+              tLocalNodeOrds(tNodeOrd) = tNodeOrds(aSideOrdinal*tNodesPerFace+tNodeOrd);
           }
 
+          auto tCubatureWeight = tCubatureWeights(aPointOrdinal);
+          auto tCubaturePoint = tCubaturePoints(aPointOrdinal);
+          auto tBasisValues = ElementType::Face::basisValues(tCubaturePoint);
+          auto tBasisGrads  = ElementType::Face::basisGrads(tCubaturePoint);
+
           // calculate surface jacobians
-          ConfigScalarType tSurfaceAreaTimesCubWeight(0.0);
-          tCalculateSurfaceJacobians(tElementOrdinal, aSideOrdinal, tLocalNodeOrds, aConfig, tJacobians);
-          tCalculateSurfaceArea(aSideOrdinal, tSurfaceCubatureWeight, tJacobians, tSurfaceAreaTimesCubWeight);
+          ResultScalarType tSurfaceArea(0.0);
+          surfaceArea(tElementOrdinal, tLocalNodeOrds, tBasisGrads, aConfig, tSurfaceArea);
+          tSurfaceArea *= tCubatureWeight;
 
           // project filtered density field onto surface
-          tFilteredDensity(tElementOrdinal) = 0.0;
+          StateScalarType tFilteredDensity(0.0);
           for(Plato::OrdinalType tNode = 0; tNode < mNumNodesPerFace; tNode++)
           {
-            auto tLocalCellNode = tLocalNodeOrds[tNode];
-            tFilteredDensity(tElementOrdinal) += tSurfaceBasisFunctions(tNode) * aState(tElementOrdinal, tLocalCellNode);
+            auto tLocalCellNode = tLocalNodeOrds(tNode);
+            tFilteredDensity += tBasisValues(tNode) * aState(tElementOrdinal, tLocalCellNode);
           }
 
           for( Plato::OrdinalType tNode = 0; tNode < mNumNodesPerFace; tNode++ )
           {
-            auto tLocalCellNode = tLocalNodeOrds[tNode];
-            aResult(tElementOrdinal, tLocalCellNode) += tSurfaceLengthScale * tLengthScale * tFilteredDensity(tElementOrdinal) *
-              tSurfaceBasisFunctions(tNode) * tSurfaceAreaTimesCubWeight;
+            auto tLocalCellNode = tLocalNodeOrds(tNode);
+            aResult(tElementOrdinal, tLocalCellNode) += tSurfaceLengthScale * tLengthScale * tFilteredDensity *
+              tBasisValues(tNode) * tSurfaceArea;
           }
       }, "add surface mass to left-hand-side");
     }
@@ -249,14 +237,14 @@ class HelmholtzResidual :
 } // namespace Plato
 
 #ifdef PLATOANALYZE_1D
-extern template class Plato::Helmholtz::HelmholtzResidual<Plato::ResidualTypes<Plato::SimplexHelmholtz<1>>>;
-extern template class Plato::Helmholtz::HelmholtzResidual<Plato::JacobianTypes<Plato::SimplexHelmholtz<1>>>;
+//TODO extern template class Plato::Helmholtz::HelmholtzResidual<Plato::ResidualTypes<Plato::SimplexHelmholtz<1>>>;
+//TODO extern template class Plato::Helmholtz::HelmholtzResidual<Plato::JacobianTypes<Plato::SimplexHelmholtz<1>>>;
 #endif
 #ifdef PLATOANALYZE_2D
-extern template class Plato::Helmholtz::HelmholtzResidual<Plato::ResidualTypes<Plato::SimplexHelmholtz<2>>>;
-extern template class Plato::Helmholtz::HelmholtzResidual<Plato::JacobianTypes<Plato::SimplexHelmholtz<2>>>;
+//TODO extern template class Plato::Helmholtz::HelmholtzResidual<Plato::ResidualTypes<Plato::SimplexHelmholtz<2>>>;
+//TODO extern template class Plato::Helmholtz::HelmholtzResidual<Plato::JacobianTypes<Plato::SimplexHelmholtz<2>>>;
 #endif
 #ifdef PLATOANALYZE_3D
-extern template class Plato::Helmholtz::HelmholtzResidual<Plato::ResidualTypes<Plato::SimplexHelmholtz<3>>>;
-extern template class Plato::Helmholtz::HelmholtzResidual<Plato::JacobianTypes<Plato::SimplexHelmholtz<3>>>;
+//TODO extern template class Plato::Helmholtz::HelmholtzResidual<Plato::ResidualTypes<Plato::SimplexHelmholtz<3>>>;
+//TODO extern template class Plato::Helmholtz::HelmholtzResidual<Plato::JacobianTypes<Plato::SimplexHelmholtz<3>>>;
 #endif

@@ -741,6 +741,126 @@ TEUCHOS_UNIT_TEST( Quad4, BasisFunctionGradients )
 
 /******************************************************************************/
 /*! 
+  \brief Check the Bar2 constants
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Bar2, Bar2_Constants )
+{ 
+    constexpr auto tNodesPerCell  = Plato::Bar2::mNumNodesPerCell;
+    constexpr auto tNodesPerFace  = Plato::Bar2::mNumNodesPerFace;
+    constexpr auto tSpaceDims     = Plato::Bar2::mNumSpatialDims;
+
+    TEST_ASSERT(tNodesPerCell  == 2 );
+    TEST_ASSERT(tNodesPerFace  == 1 );
+    TEST_ASSERT(tSpaceDims     == 1 );
+}
+
+/******************************************************************************/
+/*! 
+  \brief Check the MechanicsElement<Bar2> constants
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Bar2, MechanicsBar2_Constants )
+{ 
+    using ElementType = typename Plato::MechanicsElement<Plato::Bar2>;
+
+    constexpr auto tNodesPerCell  = ElementType::mNumNodesPerCell;
+    constexpr auto tNodesPerFace  = ElementType::mNumNodesPerFace;
+    constexpr auto tDofsPerCell   = ElementType::mNumDofsPerCell;
+    constexpr auto tDofsPerNode   = ElementType::mNumDofsPerNode;
+    constexpr auto tSpaceDims     = ElementType::mNumSpatialDims;
+    constexpr auto tNumVoigtTerms = ElementType::mNumVoigtTerms;
+
+    TEST_ASSERT(tNodesPerCell  == 2 );
+    TEST_ASSERT(tNodesPerFace  == 1 );
+    TEST_ASSERT(tDofsPerCell   == 2 );
+    TEST_ASSERT(tDofsPerNode   == 1 );
+    TEST_ASSERT(tSpaceDims     == 1 );
+    TEST_ASSERT(tNumVoigtTerms == 1 );
+}
+
+/******************************************************************************/
+/*! 
+  \brief Evaluate the Bar2 basis functions at each node location.
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Bar2, BasisFunctions )
+{ 
+    Plato::ScalarMultiVector tValuesView("basis values", Plato::Bar2::mNumNodesPerCell, Plato::Bar2::mNumNodesPerCell);
+
+    Plato::Matrix<Plato::Bar2::mNumNodesPerCell, Plato::Bar2::mNumSpatialDims> tPoints = { -1.0, 1.0 };
+
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), LAMBDA_EXPRESSION(int ordinal)
+    {
+        for(ordType I=0; I<Plato::Bar2::mNumNodesPerCell; I++)
+        {
+            auto tValues = Plato::Bar2::basisValues(tPoints(I));
+            for(ordType i=0; i<Plato::Bar2::mNumNodesPerCell; i++)
+            {
+                tValuesView(I,i) = tValues(i);
+            }
+        }
+    }, "basis functions");
+
+    auto tValuesHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesHost, tValuesView );
+
+    for(int i=0; i<Plato::Bar2::mNumNodesPerCell; i++)
+    {
+        for(int j=0; j<Plato::Bar2::mNumNodesPerCell; j++)
+        {
+            if ( i==j )
+            {
+                TEST_ASSERT(tValuesHost(i,j) == 1);
+            } else {
+                TEST_ASSERT(tValuesHost(i,j) == 0);
+            }
+        }
+    }
+}
+/******************************************************************************/
+/*! 
+  \brief Evaluate the Bar2 basis function gradients at (0.25, 0.25)
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Bar2, BasisFunctionGradients )
+{ 
+    Plato::ScalarMultiVector tGradsView("basis grads", Plato::Bar2::mNumNodesPerCell, Plato::Bar2::mNumSpatialDims);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), LAMBDA_EXPRESSION(int ordinal)
+    {
+        Plato::Array<Plato::Bar2::mNumSpatialDims> tPoint;
+
+        tPoint(0) = 0.25;
+        auto tGrads = Plato::Bar2::basisGrads(tPoint);
+        for(ordType i=0; i<Plato::Bar2::mNumNodesPerCell; i++)
+        {
+            for(ordType j=0; j<Plato::Bar2::mNumSpatialDims; j++)
+            {
+                tGradsView(i,j) = tGrads(i,j);
+            }
+        }
+    }, "basis function derivatives");
+
+    auto tGradsHost = Kokkos::create_mirror_view( tGradsView );
+    Kokkos::deep_copy( tGradsHost, tGradsView );
+
+    std::vector<std::vector<Plato::Scalar>> tGradsGold = { {Plato::Scalar(-1)/2}, { Plato::Scalar(1)/2} };
+
+    int tNumGold_I=tGradsGold.size();
+    for(int i=0; i<tNumGold_I; i++)
+    {
+        int tNumGold_J=tGradsGold[0].size();
+        for(int j=0; j<tNumGold_J; j++)
+        {
+            TEST_FLOATING_EQUALITY(tGradsHost(i,j), tGradsGold[i][j], 1e-13);
+        }
+    }
+}
+
+/******************************************************************************/
+/*! 
   \brief Check the Tet10 constants
 */
 /******************************************************************************/

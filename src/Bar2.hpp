@@ -1,34 +1,36 @@
 #pragma once
 
-#include "Bar2.hpp"
 #include "PlatoMathTypes.hpp"
 
 namespace Plato {
 
 /******************************************************************************/
-/*! Tri3 Element
+/*! Bar2 Element
 */
 /******************************************************************************/
-class Tri3
+class Bar2
 {
   public:
-    using Face = Plato::Bar2;
 
-    static constexpr Plato::OrdinalType mNumSpatialDims  = 2;
-    static constexpr Plato::OrdinalType mNumNodesPerCell = 3;
-    static constexpr Plato::OrdinalType mNumNodesPerFace = 2;
+    static constexpr Plato::OrdinalType mNumSpatialDims  = 1;
+    static constexpr Plato::OrdinalType mNumNodesPerCell = 2;
+    static constexpr Plato::OrdinalType mNumNodesPerFace = 1;
 
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
 
-    static inline Plato::Array<1>
-    getCubWeights() { return Plato::Array<1>({Plato::Scalar(1)/2}); }
+    static inline Plato::Array<2>
+    getCubWeights()
+    {
+        return Plato::Array<2>({
+            Plato::Scalar(1.0), Plato::Scalar(1.0)
+        });
+    }
 
-    static inline Plato::Matrix<1,mNumSpatialDims>
+    static inline Plato::Matrix<2,mNumSpatialDims>
     getCubPoints()
     {
-        return Plato::Matrix<1,mNumSpatialDims>({
-            Plato::Scalar(1)/3, Plato::Scalar(1)/3
-        });
+        const Plato::Scalar sqt = 0.57735026918962584208117050366127; // sqrt(1.0/3.0)
+        return Plato::Matrix<2,mNumSpatialDims>({ -sqt,  sqt });
     }
 
     DEVICE_TYPE static inline Plato::Array<mNumNodesPerCell>
@@ -39,9 +41,8 @@ class Tri3
 
         Plato::Array<mNumNodesPerCell> tN;
 
-        tN(0) = 1-x-y;
-        tN(1) = x;
-        tN(2) = y;
+        tN(0) = (1-x)/2.0;
+        tN(1) = (1+x)/2.0;
 
         return tN;
     }
@@ -49,11 +50,12 @@ class Tri3
     DEVICE_TYPE static inline Plato::Matrix<mNumNodesPerCell, mNumSpatialDims>
     basisGrads( const Plato::Array<mNumSpatialDims>& aCubPoint )
     {
+        auto x=aCubPoint(0);
+
         Plato::Matrix<mNumNodesPerCell, mNumSpatialDims> tG;
 
-        tG(0,0) =-1; tG(0,1) =-1;
-        tG(1,0) = 1; tG(1,1) = 0;
-        tG(2,0) = 0; tG(2,1) = 1;
+        tG(0,0) = Plato::Scalar(-1)/2.0;
+        tG(1,0) = Plato::Scalar(1)/2.0;
 
         return tG;
     }
@@ -64,11 +66,10 @@ class Tri3
         const Plato::Matrix<mNumSpatialDims, mNumSpatialDims+1, ScalarType> & aJacobian
     )
     {
-        auto ax = aJacobian(0,1)*aJacobian(1,2)-aJacobian(0,2)*aJacobian(1,1);
-        auto ay = aJacobian(0,2)*aJacobian(1,0)-aJacobian(0,0)*aJacobian(1,2);
-        auto az = aJacobian(0,0)*aJacobian(1,1)-aJacobian(0,1)*aJacobian(1,0);
+        auto ax = aJacobian(0,0)*aJacobian(0,0);
+        auto ay = aJacobian(0,1)*aJacobian(0,1);
 
-        return sqrt(ax*ax+ay*ay+az*az);
+        return sqrt(ax*ax+ay*ay);
     }
 };
 

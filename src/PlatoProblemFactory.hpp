@@ -88,31 +88,23 @@ makeProblem(
     if( Plato::tolower(tElementType) == "tet10" ||
         Plato::tolower(tElementType) == "tetra10" )
     {
-        auto tOutput = std::make_shared<ProblemT<PhysicsT<Plato::Tet10>>>(aMesh, aPlatoProb, aMachine);
-        tOutput->readEssentialBoundaryConditions(aPlatoProb);
-        return tOutput;
+        return std::make_shared<ProblemT<PhysicsT<Plato::Tet10>>>(aMesh, aPlatoProb, aMachine);
     }
     else
     if( Plato::tolower(tElementType) == "tet4" ||
         Plato::tolower(tElementType) == "tetra4" )
     {
-        auto tOutput = std::make_shared<ProblemT<PhysicsT<Plato::Tet4>>>(aMesh, aPlatoProb, aMachine);
-        tOutput->readEssentialBoundaryConditions(aPlatoProb);
-        return tOutput;
+        return std::make_shared<ProblemT<PhysicsT<Plato::Tet4>>>(aMesh, aPlatoProb, aMachine);
     }
     if( Plato::tolower(tElementType) == "hex8" ||
         Plato::tolower(tElementType) == "hexa8" )
     {
-        auto tOutput = std::make_shared<ProblemT<PhysicsT<Plato::Hex8>>>(aMesh, aPlatoProb, aMachine);
-        tOutput->readEssentialBoundaryConditions(aPlatoProb);
-        return tOutput;
+        return std::make_shared<ProblemT<PhysicsT<Plato::Hex8>>>(aMesh, aPlatoProb, aMachine);
     }
     if( Plato::tolower(tElementType) == "hex27" ||
         Plato::tolower(tElementType) == "hexa27" )
     {
-        auto tOutput = std::make_shared<ProblemT<PhysicsT<Plato::Hex27>>>(aMesh, aPlatoProb, aMachine);
-        tOutput->readEssentialBoundaryConditions(aPlatoProb);
-        return tOutput;
+        return std::make_shared<ProblemT<PhysicsT<Plato::Hex27>>>(aMesh, aPlatoProb, aMachine);
     }
     else
     {
@@ -542,8 +534,7 @@ public:
         else
         if(tLowerPhysics == "helmholtz filter")
         {
-            auto tOutput = std::make_shared < Plato::Helmholtz::Problem<::Plato::HelmholtzFilter<SpatialDim>> > (aMesh, tInputData, aMachine);
-            return tOutput;
+            return makeProblem<Plato::Helmholtz::Problem, Plato::HelmholtzFilter>(aMesh, tInputData, aMachine);
         }
 #endif
         else
