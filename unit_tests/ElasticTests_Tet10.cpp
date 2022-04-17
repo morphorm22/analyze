@@ -939,7 +939,6 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
     "    </ParameterList>                                                          \n"
     "  </ParameterList>                                                            \n"
     "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>           \n"
-    "  <Parameter name='Objective' type='string' value='My Internal Elastic Energy'/> \n"
     "  <Parameter name='Self-Adjoint' type='bool' value='true'/>                   \n"
     "  <ParameterList name='Material Models'>                                      \n"
     "    <ParameterList name='Unobtainium'>                                        \n"
