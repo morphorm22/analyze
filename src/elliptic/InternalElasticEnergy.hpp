@@ -60,9 +60,6 @@ class InternalElasticEnergy :
 
     Teuchos::RCP<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterialModel;
 
-    bool mCompute;
-
-
   public:
     /******************************************************************************//**
      * \brief Constructor
@@ -108,48 +105,45 @@ class InternalElasticEnergy :
     {
         using StrainScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
-        if (mCompute)
+        auto tNumCells = mSpatialDomain.numCells();
+
+        Plato::ComputeGradientMatrix<ElementType>   computeGradient;
+        Plato::SmallStrain<ElementType>             computeVoigtStrain;
+        Plato::ScalarProduct<mNumVoigtTerms>        computeScalarProduct;
+        Plato::GeneralStressDivergence<ElementType> computeStressDivergence;
+
+        Plato::LinearStress<EvaluationType, ElementType> computeVoigtStress(mMaterialModel);
+
+        auto tCubPoints = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints = tCubWeights.size();
+
+        auto applyWeighting = mApplyWeighting;
+        Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
-            auto tNumCells = mSpatialDomain.numCells();
+            ConfigScalarType tVolume(0.0);
 
-            Plato::ComputeGradientMatrix<ElementType>   computeGradient;
-            Plato::SmallStrain<ElementType>             computeVoigtStrain;
-            Plato::ScalarProduct<mNumVoigtTerms>        computeScalarProduct;
-            Plato::GeneralStressDivergence<ElementType> computeStressDivergence;
+            Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, ConfigScalarType> tGradient;
 
-            Plato::LinearStress<EvaluationType, ElementType> computeVoigtStress(mMaterialModel);
+            Plato::Array<ElementType::mNumVoigtTerms, StrainScalarType> tStrain(0.0);
+            Plato::Array<ElementType::mNumVoigtTerms, ResultScalarType> tStress(0.0);
 
-            auto tCubPoints = ElementType::getCubPoints();
-            auto tCubWeights = ElementType::getCubWeights();
-            auto tNumPoints = tCubWeights.size();
+            auto tCubPoint = tCubPoints(iGpOrdinal);
 
-            auto applyWeighting = mApplyWeighting;
-            Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-            LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
-            {
-                ConfigScalarType tVolume(0.0);
+            computeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
 
-                Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, ConfigScalarType> tGradient;
+            computeVoigtStrain(iCellOrdinal, tStrain, aState, tGradient);
 
-                Plato::Array<ElementType::mNumVoigtTerms, StrainScalarType> tStrain(0.0);
-                Plato::Array<ElementType::mNumVoigtTerms, ResultScalarType> tStress(0.0);
+            computeVoigtStress(tStress, tStrain);
 
-                auto tCubPoint = tCubPoints(iGpOrdinal);
+            tVolume *= tCubWeights(iGpOrdinal);
 
-                computeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
+            auto tBasisValues = ElementType::basisValues(tCubPoint);
+            applyWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
 
-                computeVoigtStrain(iCellOrdinal, tStrain, aState, tGradient);
-
-                computeVoigtStress(tStress, tStrain);
-
-                tVolume *= tCubWeights(iGpOrdinal);
-
-                auto tBasisValues = ElementType::basisValues(tCubPoint);
-                applyWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
-
-                computeScalarProduct(iCellOrdinal, aResult, tStress, tStrain, tVolume, 0.5);
-            });
-        }
+            computeScalarProduct(iCellOrdinal, aResult, tStress, tStrain, tVolume, 0.5);
+        });
     }
 };
 // class InternalElasticEnergy
