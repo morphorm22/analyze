@@ -10,14 +10,14 @@
 int main( int argc, char* argv[] )
 {
 
+  MPI_Init(&argc, &argv);
+  Kokkos::initialize(argc, argv);
+  Plato::MeshFactory::initialize(argc, argv);
+
 #ifdef WATCH_ARITHMETIC
   feclearexcept(FE_ALL_EXCEPT);
   feenableexcept(FE_ALL_EXCEPT - FE_INEXACT - FE_UNDERFLOW);
 #endif
-
-  MPI_Init(&argc, &argv);
-  Kokkos::initialize(argc, argv);
-  Plato::MeshFactory::initialize(argc, argv);
 
   auto result = Teuchos::UnitTestRepository::runUnitTestsFromMain(argc, argv);
 

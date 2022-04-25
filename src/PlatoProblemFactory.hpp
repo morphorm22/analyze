@@ -16,6 +16,7 @@
 #include "Mechanics.hpp"
 #include "Hex8.hpp"
 #include "Hex27.hpp"
+#include "Quad4.hpp"
 #include "Tet10.hpp"
 #include "Tet4.hpp"
 //TODO #include "Electromechanics.hpp"
@@ -105,6 +106,10 @@ makeProblem(
         Plato::tolower(tElementType) == "hexa27" )
     {
         return std::make_shared<ProblemT<PhysicsT<Plato::Hex27>>>(aMesh, aPlatoProb, aMachine);
+    }
+    if( Plato::tolower(tElementType) == "quad4" )
+    {
+        return std::make_shared<ProblemT<PhysicsT<Plato::Quad4>>>(aMesh, aPlatoProb, aMachine);
     }
     else
     {

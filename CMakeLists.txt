@@ -88,8 +88,8 @@ FIND_PACKAGE(Teuchos REQUIRED)
 SET(OMEGA_H_PREFIX "" CACHE PATH "Omega_h install location")
 IF(OMEGA_H_PREFIX)
   SET(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${OMEGA_H_PREFIX})
+  FIND_PACKAGE(Omega_h 9.17.0 REQUIRED)
 ENDIF()
-FIND_PACKAGE(Omega_h 9.17.0 REQUIRED)
 
 option(PLATOANALYZE_ENABLE_ENGINEMESH "Enable EngineMesh" OFF)
 if (PLATOANALYZE_ENABLE_ENGINEMESH)
@@ -402,8 +402,10 @@ list(REMOVE_DUPLICATES Trilinos_TPL_LIBRARIES)
 list(REVERSE Trilinos_TPL_LIBRARIES)
 message(STATUS "Trilinos_EXTRA_LD_FLAGS: ${Trilinos_EXTRA_LD_FLAGS}")
 
-# omega-h adds -Werror which currently breaks build
-set_target_properties(Omega_h::omega_h PROPERTIES INTERFACE_COMPILE_OPTIONS "")
+IF(OMEGA_H_PREFIX)
+ # omega-h adds -Werror which currently breaks build
+ set_target_properties(Omega_h::omega_h PROPERTIES INTERFACE_COMPILE_OPTIONS "")
+ENDIF()
 
 ENABLE_TESTING()
 INCLUDE(CTest)

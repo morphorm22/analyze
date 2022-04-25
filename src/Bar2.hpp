@@ -62,7 +62,8 @@ class Bar2
 
     template<typename ScalarType>
     DEVICE_TYPE static inline
-    ScalarType differentialMeasure(
+    ScalarType
+    differentialMeasure(
         const Plato::Matrix<mNumSpatialDims, mNumSpatialDims+1, ScalarType> & aJacobian
     )
     {
@@ -70,6 +71,20 @@ class Bar2
         auto ay = aJacobian(0,1)*aJacobian(0,1);
 
         return sqrt(ax*ax+ay*ay);
+    }
+
+    template<typename ScalarType>
+    DEVICE_TYPE static inline
+    Plato::Array<mNumSpatialDims+1, ScalarType>
+    differentialVector(
+        const Plato::Matrix<mNumSpatialDims, mNumSpatialDims+1, ScalarType> & aJacobian
+    )
+    {
+        Plato::Array<mNumSpatialDims+1, ScalarType> tReturnVec;
+        tReturnVec(0) = aJacobian(0,0)*aJacobian(0,0);
+        tReturnVec(1) = aJacobian(0,1)*aJacobian(0,1);
+
+        return tReturnVec;
     }
 };
 

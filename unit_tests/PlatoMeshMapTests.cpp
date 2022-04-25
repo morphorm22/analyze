@@ -301,6 +301,94 @@ namespace PlatoTestMeshMap
 
 /******************************************************************************/
 /*!
+  \brief Compute basis function values of Quad4
+
+  1. Compute the point halfway between the centroid and node0 of each element
+     in a test mesh in physical coordinates.
+  2. Use GetBases() to determine the basis function values at the equivalent
+     point in element coordinates.
+
+     X_i = N(x)_I v^e_{Ii}
+
+     v^e_{Ii}: vertex coordinates for local node I of element e
+     X_i:      Input point for which basis values are determined. Element
+               centroid in this test.
+     x:        location of X in element coordinates.
+     N(x)_I:   Basis values to be determines.
+
+  test passes if:
+    N(x)_I = {27/64, 9/64, 3/64, 9/64, 9/64, 3/64, 1/64, 3/64};
+*/
+/******************************************************************************/
+  TEUCHOS_UNIT_TEST(PlatoTestMeshMap, GetBasis_Quad4)
+  {
+
+    // create mesh
+    //
+    constexpr int cMeshWidth=3;
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("QUAD4", cMeshWidth);
+
+    // create GetBasis functor
+    //
+    using ElementType = Plato::Quad4;
+    Plato::Geometry::GetBasis<ElementType, Plato::Scalar> tGetBasis(tMesh);
+
+    auto tNElems = tMesh->NumElements();
+    Plato::ScalarMultiVector tBases("basis values", ElementType::mNumNodesPerCell, tNElems);
+
+    auto tCoords = tMesh->Coordinates();
+    auto tCells2Nodes = tMesh->Connectivity();
+
+    // map from input to output
+    //
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNElems), LAMBDA_EXPRESSION(int aOrdinal)
+    {
+        Plato::Array<ElementType::mNumNodesPerCell, Plato::Scalar> tElemBases(0.0);
+        Plato::Array<ElementType::mNumSpatialDims, Plato::Scalar> tInPoint(0.0);
+
+        // compute the point halfway between the element centroid and node 0 of the element
+        for(int iVert=0; iVert<(ElementType::mNumNodesPerCell); iVert++)
+        {
+            auto iVertOrdinal = tCells2Nodes(aOrdinal*ElementType::mNumNodesPerCell+iVert);
+            for(int iDim=0; iDim<ElementType::mNumSpatialDims; iDim++)
+            {
+                tInPoint(iDim) += tCoords(iVertOrdinal*ElementType::mNumSpatialDims+iDim)
+                                / ElementType::mNumNodesPerCell;
+            }
+        }
+        int iVert = 0;
+        auto iVertOrdinal = tCells2Nodes(aOrdinal*ElementType::mNumNodesPerCell+iVert);
+        for(int iDim=0; iDim<ElementType::mNumSpatialDims; iDim++)
+        {
+            tInPoint(iDim) += tCoords(iVertOrdinal*ElementType::mNumSpatialDims+iDim);
+            tInPoint(iDim) /= 2;
+        }
+
+        tGetBasis(aOrdinal, tInPoint, tElemBases);
+
+        for(int iVert=0; iVert<(ElementType::mNumNodesPerCell); iVert++)
+        {
+            tBases(iVert, aOrdinal) = tElemBases(iVert);
+        }
+    }, "compute");
+
+    std::vector<Plato::Scalar> tBases_gold = {
+        Plato::Scalar(9)/16, Plato::Scalar(3)/16, Plato::Scalar(1)/16, Plato::Scalar(3)/16
+    };
+
+    double tol_double = 1e-14;
+    auto tBases_host = get(tBases);
+    for(int iElem=0; iElem<tNElems; iElem++)
+    {
+        for(int iNode=0; iNode<(ElementType::mNumNodesPerCell); iNode++)
+        {
+            TEST_FLOATING_EQUALITY(tBases_host(iNode, iElem), tBases_gold[iNode], tol_double);
+        }
+    }
+  }
+
+/******************************************************************************/
+/*!
   \brief Compute basis function values of Hex27
 
   1. Compute the point halfway between the centroid and node0 of each element
@@ -745,6 +833,203 @@ namespace PlatoTestMeshMap
 
 /******************************************************************************/
 /*!
+  \brief Enforce symmetry on a linear field on an asymmetric tet mesh.
+
+  The linear tet mesh, while asymmetric, can approximate the symmetrized linear
+  field accurately.  The test constructs a MeshMap with a SymmetryPlane:
+
+    f(p(z)) = p(z)   if z >= 0.5
+              p(1-z) if z < 0.5
+
+  then constructs a field p(z) = z in {0.0,1.0} and applies the MeshMap, f(p)
+
+  test passes if:
+    f(p(z)) == z   for z > 0.5
+    f(p(z)) == 1-z for z < 0.5
+*/
+/******************************************************************************/
+
+  TEUCHOS_UNIT_TEST(PlatoTestMeshMap, SymmetryMeshMap_Hex8)
+  {
+
+    // create input for MeshMap
+    //
+    double rx = 0.0, ry = 0.0, rz = 0.5;
+    double nx = 0.0, ny = 0.0, nz = 1.0;
+
+    std::stringstream input;
+    input << "<MeshMap>";
+    input << "  <LinearMap>";
+    input << "    <Type>SymmetryPlane</Type>";
+    input << "    <Origin>";
+    input << "      <X>" << rx << "</X>";
+    input << "      <Y>" << ry << "</Y>";
+    input << "      <Z>" << rz << "</Z>";
+    input << "    </Origin>";
+    input << "    <Normal>";
+    input << "      <X>" << nx << "</X>";
+    input << "      <Y>" << ny << "</Y>";
+    input << "      <Z>" << nz << "</Z>";
+    input << "    </Normal>";
+    input << "  </LinearMap>";
+    input << "</MeshMap>";
+
+    Plato::Parser* parser = new Plato::PugiParser();
+    auto tInputData = parser->parseString(input.str());
+    delete parser;
+
+    // create MeshMap from input
+    //
+    auto tMeshMapParams = tInputData.get<Plato::InputData>("MeshMap");
+
+    constexpr int cMeshWidth=5;
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("HEX8", cMeshWidth);
+
+    Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
+    auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
+
+    auto tCoords = tMesh->Coordinates();
+    auto tNVerts = tMesh->NumNodes();
+
+    auto tDim = tMesh->NumDimensions();
+    Kokkos::View<double*, MemSpace> tInField("not symmetric", tNVerts);
+    using OrdinalType = typename Kokkos::View<double*, MemSpace>::size_type;
+    Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalType>(0, tNVerts), LAMBDA_EXPRESSION(OrdinalType iVertOrdinal)
+    {
+        tInField(iVertOrdinal) = tCoords(iVertOrdinal*tDim+2);
+    }, "compute field");
+
+    Kokkos::View<double*, MemSpace> tOutField("symmetric", tNVerts);
+    tMeshMap->apply(tInField, tOutField);
+
+    auto tOutField_host = Kokkos::create_mirror_view(tOutField);
+    Kokkos::deep_copy(tOutField_host, tOutField);
+
+    auto tInField_host = Kokkos::create_mirror_view(tInField);
+    Kokkos::deep_copy(tInField_host, tInField);
+
+    double tol_double = 1e-12;
+    for(OrdinalType i=0; i<tNVerts; i++)
+    {
+        if(tInField_host(i) > 1e-15)
+        {
+            if(tInField_host(i) < rz )
+            {
+                TEST_FLOATING_EQUALITY(2*rz-tInField_host(i), tOutField_host(i), tol_double);
+            }
+            else
+            if(tInField_host(i) > rz )
+            {
+                TEST_FLOATING_EQUALITY(tInField_host(i), tOutField_host(i), tol_double);
+            }
+            else
+            if(tInField_host(i) == 0.0 )
+            {
+                TEST_ASSERT(tOutField_host(i) == 0.0);
+            }
+        }
+    }
+  }
+
+/******************************************************************************/
+/*!
+  \brief Enforce symmetry on a linear field on an asymmetric tet mesh.
+
+  The linear tet mesh, while asymmetric, can approximate the symmetrized linear
+  field accurately.  The test constructs a MeshMap with a SymmetryPlane:
+
+    f(p(y)) = p(y)   if y >= 0.5
+              p(1-y) if y < 0.5
+
+  then constructs a field p(y) = y in {0.0,1.0} and applies the MeshMap, f(p)
+
+  test passes if:
+    f(p(y)) == y   for y > 0.5
+    f(p(y)) == 1-y for y < 0.5
+*/
+/******************************************************************************/
+
+  TEUCHOS_UNIT_TEST(PlatoTestMeshMap, SymmetryMeshMap_Quad4)
+  {
+
+    // create input for MeshMap
+    //
+    double rx = 0.0, ry = 0.5;
+    double nx = 0.0, ny = 1.0;
+
+    std::stringstream input;
+    input << "<MeshMap>";
+    input << "  <LinearMap>";
+    input << "    <Type>SymmetryPlane</Type>";
+    input << "    <Origin>";
+    input << "      <X>" << rx << "</X>";
+    input << "      <Y>" << ry << "</Y>";
+    input << "    </Origin>";
+    input << "    <Normal>";
+    input << "      <X>" << nx << "</X>";
+    input << "      <Y>" << ny << "</Y>";
+    input << "    </Normal>";
+    input << "  </LinearMap>";
+    input << "</MeshMap>";
+
+    Plato::Parser* parser = new Plato::PugiParser();
+    auto tInputData = parser->parseString(input.str());
+    delete parser;
+
+    // create MeshMap from input
+    //
+    auto tMeshMapParams = tInputData.get<Plato::InputData>("MeshMap");
+
+    constexpr int cMeshWidth=5;
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("QUAD4", cMeshWidth);
+
+    Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
+    auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
+
+    auto tCoords = tMesh->Coordinates();
+    auto tNVerts = tMesh->NumNodes();
+
+    auto tDim = tMesh->NumDimensions();
+    Kokkos::View<double*, MemSpace> tInField("not symmetric", tNVerts);
+    using OrdinalType = typename Kokkos::View<double*, MemSpace>::size_type;
+    Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalType>(0, tNVerts), LAMBDA_EXPRESSION(OrdinalType iVertOrdinal)
+    {
+        tInField(iVertOrdinal) = tCoords(iVertOrdinal*tDim+1);
+    }, "compute field");
+
+    Kokkos::View<double*, MemSpace> tOutField("symmetric", tNVerts);
+    tMeshMap->apply(tInField, tOutField);
+
+    auto tOutField_host = Kokkos::create_mirror_view(tOutField);
+    Kokkos::deep_copy(tOutField_host, tOutField);
+
+    auto tInField_host = Kokkos::create_mirror_view(tInField);
+    Kokkos::deep_copy(tInField_host, tInField);
+
+    double tol_double = 1e-12;
+    for(OrdinalType i=0; i<tNVerts; i++)
+    {
+        if(tInField_host(i) > 1e-15)
+        {
+            if(tInField_host(i) < ry )
+            {
+                TEST_FLOATING_EQUALITY(2*ry-tInField_host(i), tOutField_host(i), tol_double);
+            }
+            else
+            if(tInField_host(i) > ry )
+            {
+                TEST_FLOATING_EQUALITY(tInField_host(i), tOutField_host(i), tol_double);
+            }
+            else
+            if(tInField_host(i) == 0.0 )
+            {
+                TEST_ASSERT(tOutField_host(i) == 0.0);
+            }
+        }
+    }
+  }
+/******************************************************************************/
+/*!
   \brief Enforce symmetry on a uniform field on an asymmetric tet mesh.
 
   The test constructs a MeshMap with a SymmetryPlane:
@@ -829,6 +1114,317 @@ namespace PlatoTestMeshMap
 
 /******************************************************************************/
 /*!
+  \brief Enforce symmetry on a uniform field on a hex8 mesh.
+
+  The test constructs a MeshMap with a SymmetryPlane:
+
+    f(p(x)) = p(x)   if x >= 0.5
+              p(1-x) if x < 0.5
+
+  then constructs a field
+       p(x) = 1      if x >= 0.5
+              0      if x < 0.5
+
+  applies the MeshMap, f(p), as well as a linear filter, F.
+
+  test passes if:
+    F(f(p(x))) == 1 for all x
+*/
+/******************************************************************************/
+
+  TEUCHOS_UNIT_TEST(PlatoTestMeshMap, SymmetryMeshMapWFilter_Hex8)
+  {
+
+    // create input for MeshMap
+    //
+    double rx = 0.5, ry = 0.0, rz = 0.0;
+    double nx = 1.0, ny = 0.0, nz = 0.0;
+
+    std::stringstream input;
+    input << "<MeshMap>";
+    input << "  <Filter>";
+    input << "    <Type>Linear</Type>";
+    input << "    <Radius>0.25</Radius>";
+    input << "  </Filter>";
+    input << "  <LinearMap>";
+    input << "    <Type>SymmetryPlane</Type>";
+    input << "    <Origin>";
+    input << "      <X>" << rx << "</X>";
+    input << "      <Y>" << ry << "</Y>";
+    input << "      <Z>" << rz << "</Z>";
+    input << "    </Origin>";
+    input << "    <Normal>";
+    input << "      <X>" << nx << "</X>";
+    input << "      <Y>" << ny << "</Y>";
+    input << "      <Z>" << nz << "</Z>";
+    input << "    </Normal>";
+    input << "  </LinearMap>";
+    input << "</MeshMap>";
+
+    Plato::Parser* parser = new Plato::PugiParser();
+    auto tInputData = parser->parseString(input.str());
+    delete parser;
+
+    // create MeshMap from input
+    //
+    auto tMeshMapParams = tInputData.get<Plato::InputData>("MeshMap");
+
+    constexpr int cMeshWidth=5;
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("HEX8", cMeshWidth);
+
+    Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
+    auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
+
+    auto tNumDim = tMesh->NumDimensions();
+    auto tCoords = tMesh->Coordinates();
+    auto tConnect = tMesh->Connectivity();
+    auto tNumNPE = tMesh->NumNodesPerElement();
+    auto tNumNodes = tMesh->NumNodes();
+    auto tNumElements = tMesh->NumElements();
+
+    auto tDim = tMesh->NumDimensions();
+    Kokkos::View<double*, MemSpace> tInField("uniform", tNumNodes);
+    Kokkos::parallel_for("set field", Kokkos::RangePolicy<int>(0, tNumElements),
+    LAMBDA_EXPRESSION(int elemOrdinal)
+    {
+      bool tIntersected=false;
+      for(Plato::OrdinalType iNode=0; iNode<tNumNPE; iNode++)
+      {
+        if(tCoords(tNumDim*tConnect(elemOrdinal*tNumNPE+iNode)) >= 0.5) tIntersected = true;
+      }
+      if(tIntersected)
+      for(Plato::OrdinalType iNode=0; iNode<tNumNPE; iNode++)
+      {
+        tInField(tConnect(elemOrdinal*tNumNPE+iNode)) = 1.0;
+      }
+    });
+
+    Kokkos::View<double*, MemSpace> tOutField("also uniform", tNumNodes);
+
+    tMeshMap->apply(tInField, tOutField);
+
+    auto tOutField_host = Kokkos::create_mirror_view(tOutField);
+    Kokkos::deep_copy(tOutField_host, tOutField);
+
+    auto tInField_host = Kokkos::create_mirror_view(tInField);
+    Kokkos::deep_copy(tInField_host, tInField);
+
+    double tol_double = 1e-12;
+    using OrdinalType = typename Kokkos::View<double*, MemSpace>::size_type;
+    for(OrdinalType i=0; i<tNumNodes; i++)
+    {
+        TEST_FLOATING_EQUALITY(1.0, tOutField_host(i), tol_double);
+    }
+  }
+
+/******************************************************************************/
+/*!
+  \brief Enforce symmetry on a uniform field on a quad4 mesh.
+
+  The test constructs a MeshMap with a SymmetryPlane:
+
+    f(p(x)) = p(x)   if x >= 0.5
+              p(1-x) if x < 0.5
+
+  then constructs a field
+       p(x) = 1      if x >= 0.5
+              0      if x < 0.5
+
+  applies the MeshMap, f(p), as well as a linear filter, F.
+
+  test passes if:
+    F(f(p(x))) == 1 for all x
+*/
+/******************************************************************************/
+
+  TEUCHOS_UNIT_TEST(PlatoTestMeshMap, SymmetryMeshMapWFilter_Quad4)
+  {
+
+    // create input for MeshMap
+    //
+    double rx = 0.5, ry = 0.0;
+    double nx = 1.0, ny = 0.0;
+
+    std::stringstream input;
+    input << "<MeshMap>";
+    input << "  <Filter>";
+    input << "    <Type>Linear</Type>";
+    input << "    <Radius>0.25</Radius>";
+    input << "  </Filter>";
+    input << "  <LinearMap>";
+    input << "    <Type>SymmetryPlane</Type>";
+    input << "    <Origin>";
+    input << "      <X>" << rx << "</X>";
+    input << "      <Y>" << ry << "</Y>";
+    input << "    </Origin>";
+    input << "    <Normal>";
+    input << "      <X>" << nx << "</X>";
+    input << "      <Y>" << ny << "</Y>";
+    input << "    </Normal>";
+    input << "  </LinearMap>";
+    input << "</MeshMap>";
+
+    Plato::Parser* parser = new Plato::PugiParser();
+    auto tInputData = parser->parseString(input.str());
+    delete parser;
+
+    // create MeshMap from input
+    //
+    auto tMeshMapParams = tInputData.get<Plato::InputData>("MeshMap");
+
+    constexpr int cMeshWidth=5;
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("QUAD4", cMeshWidth);
+
+    Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
+    auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
+
+    auto tNumDim = tMesh->NumDimensions();
+    auto tCoords = tMesh->Coordinates();
+    auto tConnect = tMesh->Connectivity();
+    auto tNumNPE = tMesh->NumNodesPerElement();
+    auto tNumNodes = tMesh->NumNodes();
+    auto tNumElements = tMesh->NumElements();
+
+    auto tDim = tMesh->NumDimensions();
+    Kokkos::View<double*, MemSpace> tInField("uniform", tNumNodes);
+    Kokkos::parallel_for("set field", Kokkos::RangePolicy<int>(0, tNumElements),
+    LAMBDA_EXPRESSION(int elemOrdinal)
+    {
+      bool tIntersected=false;
+      for(Plato::OrdinalType iNode=0; iNode<tNumNPE; iNode++)
+      {
+        if(tCoords(tNumDim*tConnect(elemOrdinal*tNumNPE+iNode)) >= 0.5) tIntersected = true;
+      }
+      if(tIntersected)
+      for(Plato::OrdinalType iNode=0; iNode<tNumNPE; iNode++)
+      {
+        tInField(tConnect(elemOrdinal*tNumNPE+iNode)) = 1.0;
+      }
+    });
+
+    Kokkos::View<double*, MemSpace> tOutField("also uniform", tNumNodes);
+
+    tMeshMap->apply(tInField, tOutField);
+
+    auto tOutField_host = Kokkos::create_mirror_view(tOutField);
+    Kokkos::deep_copy(tOutField_host, tOutField);
+
+    auto tInField_host = Kokkos::create_mirror_view(tInField);
+    Kokkos::deep_copy(tInField_host, tInField);
+
+    double tol_double = 1e-12;
+    using OrdinalType = typename Kokkos::View<double*, MemSpace>::size_type;
+    for(OrdinalType i=0; i<tNumNodes; i++)
+    {
+        TEST_FLOATING_EQUALITY(1.0, tOutField_host(i), tol_double);
+    }
+  }
+/******************************************************************************/
+/*!
+  \brief Enforce symmetry on a uniform field on an asymmetric tet mesh.
+
+  The test constructs a MeshMap with a SymmetryPlane:
+
+    f(p(x)) = p(x)   if x >= 0.5
+              p(1-x) if x < 0.5
+
+  then constructs a field
+       p(x) = 1      if x >= 0.5
+              0      if x < 0.5
+
+  applies the MeshMap, f(p), as well as a linear filter, F.
+
+  test passes if:
+    F(f(p(x))) == 1 for all x
+*/
+/******************************************************************************/
+
+  TEUCHOS_UNIT_TEST(PlatoTestMeshMap, SymmetryMeshMapWFilter_Tet4)
+  {
+
+    // create input for MeshMap
+    //
+    double rx = 0.5, ry = 0.0, rz = 0.0;
+    double nx = 1.0, ny = 0.0, nz = 0.0;
+
+    std::stringstream input;
+    input << "<MeshMap>";
+    input << "  <Filter>";
+    input << "    <Type>Linear</Type>";
+    input << "    <Radius>0.25</Radius>";
+    input << "  </Filter>";
+    input << "  <LinearMap>";
+    input << "    <Type>SymmetryPlane</Type>";
+    input << "    <Origin>";
+    input << "      <X>" << rx << "</X>";
+    input << "      <Y>" << ry << "</Y>";
+    input << "      <Z>" << rz << "</Z>";
+    input << "    </Origin>";
+    input << "    <Normal>";
+    input << "      <X>" << nx << "</X>";
+    input << "      <Y>" << ny << "</Y>";
+    input << "      <Z>" << nz << "</Z>";
+    input << "    </Normal>";
+    input << "  </LinearMap>";
+    input << "</MeshMap>";
+
+    Plato::Parser* parser = new Plato::PugiParser();
+    auto tInputData = parser->parseString(input.str());
+    delete parser;
+
+    // create MeshMap from input
+    //
+    auto tMeshMapParams = tInputData.get<Plato::InputData>("MeshMap");
+
+    constexpr int cMeshWidth=5;
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
+
+    Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
+    auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
+
+    auto tNumDim = tMesh->NumDimensions();
+    auto tCoords = tMesh->Coordinates();
+    auto tConnect = tMesh->Connectivity();
+    auto tNumNPE = tMesh->NumNodesPerElement();
+    auto tNumNodes = tMesh->NumNodes();
+    auto tNumElements = tMesh->NumElements();
+
+    auto tDim = tMesh->NumDimensions();
+    Kokkos::View<double*, MemSpace> tInField("uniform", tNumNodes);
+    Kokkos::parallel_for("set field", Kokkos::RangePolicy<int>(0, tNumElements),
+    LAMBDA_EXPRESSION(int elemOrdinal)
+    {
+      bool tIntersected=false;
+      for(Plato::OrdinalType iNode=0; iNode<tNumNPE; iNode++)
+      {
+        if(tCoords(tNumDim*tConnect(elemOrdinal*tNumNPE+iNode)) >= 0.5) tIntersected = true;
+      }
+      if(tIntersected)
+      for(Plato::OrdinalType iNode=0; iNode<tNumNPE; iNode++)
+      {
+        tInField(tConnect(elemOrdinal*tNumNPE+iNode)) = 1.0;
+      }
+    });
+
+    Kokkos::View<double*, MemSpace> tOutField("also uniform", tNumNodes);
+
+    tMeshMap->apply(tInField, tOutField);
+
+    auto tOutField_host = Kokkos::create_mirror_view(tOutField);
+    Kokkos::deep_copy(tOutField_host, tOutField);
+
+    auto tInField_host = Kokkos::create_mirror_view(tInField);
+    Kokkos::deep_copy(tInField_host, tInField);
+
+    double tol_double = 1e-12;
+    using OrdinalType = typename Kokkos::View<double*, MemSpace>::size_type;
+    for(OrdinalType i=0; i<tNumNodes; i++)
+    {
+        TEST_FLOATING_EQUALITY(1.0, tOutField_host(i), tol_double);
+    }
+  }
+/******************************************************************************/
+/*!
   \brief Test createTranspose() function in Plato::MeshMap.
 
   The test constructs a MeshMap with a SymmetryPlane:
@@ -885,6 +1481,109 @@ namespace PlatoTestMeshMap
 
     constexpr int cMeshWidth=5;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
+
+    Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
+    auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
+
+    auto tMatrix  = toFull(tMeshMap->mMatrix);
+    auto tMatrixT = toFull(tMeshMap->mMatrixT);
+
+    double tol_double = 1e-12;
+    for(int i=0; i<tMatrix.size(); i++)
+    {
+        for(int j=0; j<tMatrix[i].size(); j++)
+        {
+            TEST_FLOATING_EQUALITY(tMatrix[i][j], tMatrixT[j][i], tol_double);
+        }
+    }
+
+    auto tFilter  = toFull(*(tMeshMap->mFilter));
+    auto tFilterT = toFull(*(tMeshMap->mFilterT));
+
+    std::vector<Plato::Scalar> tRowSum(tFilter.size());
+    for(int i=0; i<tFilter.size(); i++)
+    {
+        tRowSum[i] = 0.0;
+        for(int j=0; j<tFilter[i].size(); j++)
+        {
+            tRowSum[i] += tFilter[i][j];
+            TEST_FLOATING_EQUALITY(tFilter[i][j], tFilterT[j][i], tol_double);
+            if( tFilter[i][j] != 0.0 )
+                TEST_ASSERT(tFilter[j][i] != 0.0);
+        }
+        TEST_FLOATING_EQUALITY(tRowSum[i], 1.0, tol_double);
+    }
+
+    auto tMatrixTT = tMeshMap->createTranspose(tMeshMap->mMatrixT);
+    auto tMatrixTTF = toFull(tMatrixTT);
+
+    for(int i=0; i<tMatrix.size(); i++)
+    {
+        for(int j=0; j<tMatrix[i].size(); j++)
+        {
+            TEST_FLOATING_EQUALITY(tMatrix[i][j], tMatrixTTF[i][j], tol_double);
+        }
+    }
+  }
+
+/******************************************************************************/
+/*!
+  \brief Test createTranspose() function in Plato::MeshMap.
+
+  The test constructs a MeshMap with a SymmetryPlane:
+
+    f(p(z)) = p(z)   if z >= 0.5
+              p(1-z) if z < 0.5
+
+  The map, f, and filter, F, are computed during construction.
+
+  test passes if:
+    (f^T)_{ij} = f_{ji}      : Transpose works
+    (F^T)_{ij} = F_{ji}      : Transpose works
+     F_{ii} = I              : Filter matrix rows sum to one
+     F_{ij}!=0 if F_{ji}!=0  : Filter graph is symmetric
+*/
+/******************************************************************************/
+
+  TEUCHOS_UNIT_TEST(PlatoTestMeshMap, TransposeMatrix_Tet10)
+  {
+
+    // create input for MeshMap
+    //
+    double rx = 0.0, ry = 0.0, rz = 0.5;
+    double nx = 0.0, ny = 0.0, nz = 1.0;
+
+    std::stringstream input;
+    input << "<MeshMap>";
+    input << "  <Filter>";
+    input << "    <Type>Linear</Type>";
+    input << "    <Radius>0.25</Radius>";
+    input << "  </Filter>";
+    input << "  <LinearMap>";
+    input << "    <Type>SymmetryPlane</Type>";
+    input << "    <Origin>";
+    input << "      <X>" << rx << "</X>";
+    input << "      <Y>" << ry << "</Y>";
+    input << "      <Z>" << rz << "</Z>";
+    input << "    </Origin>";
+    input << "    <Normal>";
+    input << "      <X>" << nx << "</X>";
+    input << "      <Y>" << ny << "</Y>";
+    input << "      <Z>" << nz << "</Z>";
+    input << "    </Normal>";
+    input << "  </LinearMap>";
+    input << "</MeshMap>";
+
+    Plato::Parser* parser = new Plato::PugiParser();
+    auto tInputData = parser->parseString(input.str());
+    delete parser;
+
+    // create MeshMap from input
+    //
+    auto tMeshMapParams = tInputData.get<Plato::InputData>("MeshMap");
+
+    constexpr int cMeshWidth=5;
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET10", cMeshWidth);
 
     Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
     auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);

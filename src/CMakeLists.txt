@@ -56,8 +56,6 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     Solutions.cpp
     AnalyzeAppUtils.cpp
     PlatoMask.cpp
-    OmegaHMesh.cpp
-    OmegaHMeshIO.cpp
     EngineMesh.cpp
     EngineMeshIO.cpp
     alg/ParseInput.cpp
@@ -69,6 +67,13 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     alg/AmgXLinearSolver.cpp
     alg/PlatoSolverFactory.cpp
 )
+
+IF(OMEGA_H_PREFIX)
+  set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+    OmegaHMesh.cpp
+    OmegaHMeshIO.cpp
+  )
+ENDIF()
 
 ## Stabilized VMS sources
 if(STABILIZED)
@@ -247,11 +252,14 @@ target_include_directories(analyzelib PRIVATE "${PLATOENGINE_PREFIX}/include")
 set(LINK_LIBS
     ${PLATO_LIBS}
     ${Trilinos_LIBRARIES}
-    Omega_h::omega_h
     ${Trilinos_TPL_LIBRARIES}
     ${Trilinos_EXTRA_LD_FLAGS}
     ${SOLVER_INTERFACE_LIBRARIES}
     )
+
+IF(OMEGA_H_PREFIX)
+  set(LINK_LIBS Omega_h::omega_h ${LINK_LIBS})
+ENDIF()
 
 if (PLATOANALYZE_ENABLE_MESHMAP)
   set(LINK_LIBS ArborX::ArborX ${LINK_LIBS})

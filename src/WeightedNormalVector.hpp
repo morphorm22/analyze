@@ -1,7 +1,7 @@
 /*
- * SurfaceArea.hpp
+ * WeightedNormalVector.hpp
  *
- *  Created on: Mar 15, 2020
+ *  Created on: Apr 19, 2022
  */
 
 #pragma once
@@ -19,7 +19,7 @@ namespace Plato
  *
 *******************************************************************************/
 template<typename ElementType>
-class SurfaceArea
+class WeightedNormalVector
 {
     using Body = ElementType;
     using Face = typename ElementType::Face;
@@ -28,10 +28,10 @@ public:
     /***************************************************************************//**
      * \brief Constructor
     *******************************************************************************/
-    SurfaceArea(){}
+    WeightedNormalVector(){}
 
     /***************************************************************************//**
-     * \brief Calculate surface area.
+     * \brief Calculate surface area weighted normal vector.
      *
      * \tparam ConfigScalarType configuration forward automatically differentiation (FAD) type
      * \tparam ResultScalarType output FAD type
@@ -40,7 +40,7 @@ public:
      * \param [in]  aPointOrdinal cubature point ordinal
      * \param [in]  aBasisValues  basis function values
      * \param [in]  aConfig       cell/element node coordinates
-     * \param [out] aOutput       surface area container
+     * \param [out] aResult       surface area weighted normal
      *
     *******************************************************************************/
     template<typename ConfigScalarType, typename ResultScalarType>
@@ -52,7 +52,8 @@ public:
         const Plato::Matrix<Face::mNumNodesPerCell,
                             Face::mNumSpatialDims>       & aBasisGrads,
         const Plato::ScalarArray3DT<ConfigScalarType>    & aConfig,
-              ResultScalarType                           & aResult
+              Plato::Array<Body::mNumSpatialDims,
+                           ResultScalarType>             & aResult
     ) const
     {
         Plato::Matrix<Face::mNumSpatialDims, Body::mNumSpatialDims, ConfigScalarType> tJacobian(0.0);
@@ -67,10 +68,10 @@ public:
                 }
             }
         }
-        aResult = Face::differentialMeasure(tJacobian);
+        aResult = Face::differentialVector(tJacobian);
     }
 };
-// class SurfaceArea
+// class WeightedNormalVector
 
 }
 // namespace Plato

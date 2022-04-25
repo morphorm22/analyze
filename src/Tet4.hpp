@@ -14,6 +14,7 @@ class Tet4
   public:
 
     using Face = Plato::Tri3;
+    using C1 = Plato::Tet4;
 
     static constexpr Plato::OrdinalType mNumSpatialDims  = 3;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 4;

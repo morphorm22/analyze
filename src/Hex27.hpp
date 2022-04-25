@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Hex8.hpp"
 #include "Quad9.hpp"
 #include "PlatoMathTypes.hpp"
 
@@ -14,6 +15,7 @@ class Hex27
   public:
 
     using Face = Plato::Quad9;
+    using C1 = Plato::Hex8;
 
     static constexpr Plato::OrdinalType mNumSpatialDims  = 3;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 27;

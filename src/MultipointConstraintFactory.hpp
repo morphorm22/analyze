@@ -10,6 +10,7 @@
 #include "Tet10.hpp"
 #include "Hex8.hpp"
 #include "Hex27.hpp"
+#include "Quad4.hpp"
 #include "SpatialModel.hpp"
 #include "PlatoUtilities.hpp"
 #include "MultipointConstraint.hpp"
@@ -87,6 +88,10 @@ private:
             Plato::tolower(tElementType) == "hexa27" )
         {
             return std::make_shared<MPCType<Plato::Hex27>>(aSpatialModel, aName, mParamList);
+        }
+        if( Plato::tolower(tElementType) == "quad4" )
+        {
+            return std::make_shared<MPCType<Plato::Quad4>>(aSpatialModel, aName, mParamList);
         }
         else
         {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Tri6.hpp"
+#include "Tet4.hpp"
 #include "PlatoMathTypes.hpp"
 
 namespace Plato {
@@ -14,6 +15,7 @@ class Tet10
   public:
 
     using Face = Plato::Tri6;
+    using C1 = Plato::Tet4;
 
     static constexpr Plato::OrdinalType mNumSpatialDims  = 3;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 10;

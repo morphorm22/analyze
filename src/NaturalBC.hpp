@@ -12,8 +12,9 @@
 
 #include "AnalyzeMacros.hpp"
 #include "PlatoMathExpr.hpp"
+#include "PlatoUtilities.hpp"
 #include "SurfaceLoadIntegral.hpp"
-// TOOD #include "SurfacePressureIntegral.hpp"
+#include "SurfacePressureIntegral.hpp"
 
 namespace Plato
 {
@@ -216,8 +217,8 @@ void NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>::get(
         }
         case Plato::Neumann::UNIFORM_PRESSURE:
         {
-// TOOD             Plato::SurfacePressureIntegral<ElementType, DofsPerNode, DofOffset> tSurfacePress(mSideSetName, mFlux);
-// TOOD             tSurfacePress(aSpatialModel, aState, aControl, aConfig, aResult, aScale);
+             Plato::SurfacePressureIntegral<ElementType, NumDofs, DofsPerNode, DofOffset> tSurfacePress(mSideSetName, mFlux);
+             tSurfacePress(aSpatialModel, aState, aControl, aConfig, aResult, aScale);
             break;
         }
         default:

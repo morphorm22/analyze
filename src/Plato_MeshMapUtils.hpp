@@ -546,7 +546,7 @@ findParentElements(
 
                 ScalarT tEleMin = tBasis[0];
                 OrdinalT tNegCount = 0;
-                for(OrdinalT iB=0; iB<ElementT::mNumNodesPerCell; iB++)
+                for(OrdinalT iB=0; iB<ElementT::C1::mNumNodesPerCell; iB++)
                 {
                     if( tBasis[iB] < tEleMin ) tEleMin = tBasis[iB];
                     if( tBasis[iB] < cEpsilon ) tNegCount += 1;

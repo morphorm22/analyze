@@ -6,9 +6,7 @@
 
 #pragma once
 
-#include "UtilsOmegaH.hpp"
 #include "SpatialModel.hpp"
-#include "LinearTetCubRuleDegreeOne.hpp"
 #include "SurfaceArea.hpp"
 
 namespace Plato
@@ -31,16 +29,8 @@ template<
 class SurfaceLoadIntegral
 {
 private:
-    /*!< number of spatial dimensions */
-    static constexpr auto mNumSpatialDims = ElementType::mNumSpatialDims;
-    /*!< number of spatial dimensions on face */
-    static constexpr auto mNumSpatialDimsOnFace = mNumSpatialDims - static_cast<Plato::OrdinalType>(1);
-
-    static constexpr auto mNumNodesPerFace = ElementType::mNumNodesPerFace;
-
     const std::string mSideSetName; /*!< side set name */
     const Plato::Array<NumDofs> mFlux; /*!< force vector values */
-//    Plato::LinearTetCubRuleDegreeOne<mNumSpatialDimsOnFace> mCubatureRule; /*!< integration rule */
 
 public:
     /******************************************************************************//**
@@ -113,8 +103,6 @@ void SurfaceLoadIntegral<ElementType, NumDofs, DofsPerNode, DofOffset>::operator
 
     Plato::SurfaceArea<ElementType> surfaceArea;
 
-    const auto tNodesPerFace = mNumNodesPerFace;
-
     auto tFlux = mFlux;
     auto tCubatureWeights = ElementType::Face::getCubWeights();
     auto tCubaturePoints  = ElementType::Face::getCubPoints();
@@ -125,10 +113,10 @@ void SurfaceLoadIntegral<ElementType, NumDofs, DofsPerNode, DofOffset>::operator
     {
       auto tElementOrdinal = tElementOrds(aSideOrdinal);
 
-      Plato::Array<mNumNodesPerFace, Plato::OrdinalType> tLocalNodeOrds;
-      for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<tNodesPerFace; tNodeOrd++)
+      Plato::Array<ElementType::mNumNodesPerFace, Plato::OrdinalType> tLocalNodeOrds;
+      for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<ElementType::mNumNodesPerFace; tNodeOrd++)
       {
-          tLocalNodeOrds(tNodeOrd) = tNodeOrds(aSideOrdinal*tNodesPerFace+tNodeOrd);
+          tLocalNodeOrds(tNodeOrd) = tNodeOrds(aSideOrdinal*ElementType::mNumNodesPerFace+tNodeOrd);
       }
 
       auto tCubatureWeight = tCubatureWeights(aPointOrdinal);
@@ -142,9 +130,9 @@ void SurfaceLoadIntegral<ElementType, NumDofs, DofsPerNode, DofOffset>::operator
       tSurfaceArea *= tCubatureWeight;
 
       // project into aResult workset
-      for( Plato::OrdinalType tNode=0; tNode<tNodesPerFace; tNode++)
+      for( Plato::OrdinalType tNode=0; tNode<ElementType::mNumNodesPerFace; tNode++)
       {
-          for( Plato::OrdinalType tDof=0; tDof<mNumSpatialDims; tDof++)
+          for( Plato::OrdinalType tDof=0; tDof<NumDofs; tDof++)
           {
               auto tElementDofOrdinal = tLocalNodeOrds[tNode] * DofsPerNode + tDof + DofOffset;
               Kokkos::atomic_add(&aResult(tElementOrdinal,tElementDofOrdinal), tBasisValues(tNode)*tFlux[tDof]*tSurfaceArea);

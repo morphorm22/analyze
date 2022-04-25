@@ -57,6 +57,7 @@
 #include "Tet10.hpp"
 #include "Hex8.hpp"
 #include "Hex27.hpp"
+#include "Quad4.hpp"
 #include "PlatoUtilities.hpp"
 #include "PlatoMathTypes.hpp"
 #include "alg/PlatoLambda.hpp"
@@ -710,7 +711,6 @@ makeMeshMap(
     {
         return std::make_shared<Plato::Geometry::MeshMapDerived<Plato::Tet10, MathMapT<Plato::Tet10::mNumSpatialDims, ScalarT>>>(aMesh, aInput);
     }
-    else
     if( Plato::tolower(tElementType) == "tet4" ||
         Plato::tolower(tElementType) == "tetra4" )
     {
@@ -725,6 +725,10 @@ makeMeshMap(
         Plato::tolower(tElementType) == "hexa27" )
     {
         return std::make_shared<Plato::Geometry::MeshMapDerived<Plato::Hex27, MathMapT<Plato::Hex27::mNumSpatialDims, ScalarT>>>(aMesh, aInput);
+    }
+    if( Plato::tolower(tElementType) == "quad4" )
+    {
+        return std::make_shared<Plato::Geometry::MeshMapDerived<Plato::Quad4, MathMapT<Plato::Quad4::mNumSpatialDims, ScalarT>>>(aMesh, aInput);
     }
     else
     {

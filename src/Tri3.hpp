@@ -60,7 +60,8 @@ class Tri3
 
     template<typename ScalarType>
     DEVICE_TYPE static inline
-    ScalarType differentialMeasure(
+    ScalarType
+    differentialMeasure(
         const Plato::Matrix<mNumSpatialDims, mNumSpatialDims+1, ScalarType> & aJacobian
     )
     {
@@ -69,6 +70,21 @@ class Tri3
         auto az = aJacobian(0,0)*aJacobian(1,1)-aJacobian(0,1)*aJacobian(1,0);
 
         return sqrt(ax*ax+ay*ay+az*az);
+    }
+
+    template<typename ScalarType>
+    DEVICE_TYPE static inline
+    Plato::Array<mNumSpatialDims+1, ScalarType>
+    differentialVector(
+        const Plato::Matrix<mNumSpatialDims, mNumSpatialDims+1, ScalarType> & aJacobian
+    )
+    {
+        Plato::Array<mNumSpatialDims+1, ScalarType> tReturnVec;
+        tReturnVec(0) = aJacobian(0,1)*aJacobian(1,2)-aJacobian(0,2)*aJacobian(1,1);
+        tReturnVec(1) = aJacobian(0,2)*aJacobian(1,0)-aJacobian(0,0)*aJacobian(1,2);
+        tReturnVec(2) = aJacobian(0,0)*aJacobian(1,1)-aJacobian(0,1)*aJacobian(1,0);
+
+        return tReturnVec;
     }
 };
 
