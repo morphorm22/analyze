@@ -134,7 +134,7 @@ AmgXLinearSolver::AmgXLinearSolver(
     mDofsPerNode(aDofsPerNode),
     mDisplayIterations(0),
     mSolverTime(0.0),
-    mDivergenceIsFatal(false),
+    mDivergenceIsFatal(true),
     mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: AmgX Linear Solve"))
 {
     AMGX_SAFE_CALL(AMGX_initialize());
@@ -186,7 +186,7 @@ AmgXLinearSolver::AmgXLinearSolver(
     mDofsPerNode(aDofsPerNode),
     mDisplayIterations(0),
     mSolverTime(0.0),
-    mDivergenceIsFatal(false),
+    mDivergenceIsFatal(true),
     mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: AmgX Linear Solve"))
 {
     AMGX_SAFE_CALL(AMGX_initialize());
