@@ -44,11 +44,6 @@ endif()
 #    ThermalVonMisesLocalMeasure.cpp
 #)
 
-## Mesh constraint sources
-set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    MultipointConstraints.cpp
-)
-
 ## core sources
 set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     WorkSets.cpp
@@ -58,15 +53,21 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     PlatoMask.cpp
     EngineMesh.cpp
     EngineMeshIO.cpp
+    mesh/ExodusIO.cpp
     alg/ParseInput.cpp
     alg/Basis.cpp
     alg/Cubature.cpp
     alg/ParallelComm.cpp
     alg/AmgXConfigs.cpp
-    alg/EpetraLinearSolver.cpp
     alg/AmgXLinearSolver.cpp
     alg/PlatoSolverFactory.cpp
 )
+
+if (PLATOANALYZE_ENABLE_EPETRA)
+set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+    alg/EpetraLinearSolver.cpp
+)
+endif()
 
 IF(OMEGA_H_PREFIX)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
@@ -109,6 +110,11 @@ endif()
 
 ## geometric sources
 if(PLATOANALYZE_ENABLE_MESHMAP)
+  ## Mesh constraint sources
+  set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+      MultipointConstraints.cpp
+  )
+
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     geometric/DivisionFunction.cpp
     geometric/GeometryScalarFunction.cpp
@@ -238,6 +244,7 @@ if (PLATOANALYZE_ENABLE_TPETRA)
 endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
+include_directories(${PROJECT_SOURCE_DIR}/src/mesh)
 include_directories(${Trilinos_INCLUDE_DIRS} ${Trilinos_TPL_INCLUDE_DIRS})
 
 add_library( analyzelib ${ANALYZE_SOURCES})

@@ -1,12 +1,9 @@
 #ifndef BODYLOADS_HPP
 #define BODYLOADS_HPP
 
-#include <Omega_h_expr.hpp>
-
 #include <Teuchos_ParameterList.hpp>
 
 #include "alg/Basis.hpp"
-//#include "UtilsOmegaH.hpp"
 #include "alg/Cubature.hpp"
 #include "PlatoTypes.hpp"
 #include "SpatialModel.hpp"

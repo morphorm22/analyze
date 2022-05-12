@@ -74,8 +74,9 @@ private:
             return std::make_shared<MPCType<Plato::Tet10>>(aSpatialModel, aName, mParamList);
         }
         else
-        if( Plato::tolower(tElementType) == "tet4" ||
-            Plato::tolower(tElementType) == "tetra4" )
+        if( Plato::tolower(tElementType) == "tetra"  ||
+            Plato::tolower(tElementType) == "tetra4" ||
+            Plato::tolower(tElementType) == "tet4" )
         {
             return std::make_shared<MPCType<Plato::Tet4>>(aSpatialModel, aName, mParamList);
         }

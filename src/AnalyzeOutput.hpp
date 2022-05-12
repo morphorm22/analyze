@@ -5,10 +5,7 @@
 
 #include <Teuchos_ParameterList.hpp>
 
-#include "OmegaHMeshIO.hpp"
-
 #include "Solutions.hpp"
-#include "UtilsOmegaH.hpp"
 #include "PlatoUtilities.hpp"
 
 namespace Plato

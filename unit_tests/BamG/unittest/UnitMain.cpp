@@ -1,10 +1,10 @@
 /*
 //@HEADER
-// ************************************************************************
+// *************************************************************************
+//   Plato Engine v.1.0: Copyright 2018, National Technology & Engineering
+//                    Solutions of Sandia, LLC (NTESS).
 //
-//              Copyright (2014) Sandia Corporation
-//
-// Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
+// Under the terms of Contract DE-NA0003525 with NTESS,
 // the U.S. Government retains certain rights in this software.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -18,7 +18,7 @@
 // notice, this list of conditions and the following disclaimer in the
 // documentation and/or other materials provided with the distribution.
 //
-// 3. Neither the name of the Corporation nor the names of the
+// 3. Neither the name of the Sandia Corporation nor the names of the
 // contributors may be used to endorse or promote products derived from
 // this software without specific prior written permission.
 //
@@ -34,53 +34,17 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// ************************************************************************
+// Questions? Contact the Plato team (plato3D-help@sandia.gov)
+//
+// *************************************************************************
 //@HEADER
 */
 
-#ifndef ANALYZE_PARALLEL_COMM_HPP
-#define ANALYZE_PARALLEL_COMM_HPP
+#include "Teuchos_UnitTestRepository.hpp"
 
-#include <Teuchos_RCPDecl.hpp>
-#include <Teuchos_GlobalMPISession.hpp>
-#include <Teuchos_Comm.hpp>
-#ifdef PLATO_EPETRA
-#include <Epetra_SerialComm.h>
-#include <Epetra_MpiComm.h>
-#endif
-#include <PlatoTypes.hpp>
-#include <mpi.h>
-#include <memory>
+int main(int argc, char **argv)
+{
+    auto result = Teuchos::UnitTestRepository::runUnitTestsFromMain(argc, argv);
 
-namespace Plato {
-namespace Comm {
-
-struct Machine {
-  Teuchos::RCP<Teuchos::GlobalMPISession> mpiSession;
-  Teuchos::RCP<const Teuchos::Comm<int>>  teuchosComm;
-#ifdef PLATO_EPETRA
-  std::shared_ptr<Epetra_Comm> epetraComm;
-#endif
-
-  Machine(MPI_Comm& localComm);
-
-  Machine(int *argc, char ***argv);
-
-  Machine();
-};
-
-unsigned size(Machine const& machine);
-unsigned rank(Machine const& machine);
-
-Plato::Scalar max(Machine const& machine, Plato::Scalar local);
-
-Plato::Scalar min(Machine const& machine, Plato::Scalar local);
-
-Plato::Scalar sum(Machine const& machine, Plato::Scalar local);
-
-void allReduce(
-    Machine const& machine, int n, const Plato::Scalar *local, Plato::Scalar *global);
-
-}}  //end namespace Plato::comm
-
-#endif
+    return result;
+}

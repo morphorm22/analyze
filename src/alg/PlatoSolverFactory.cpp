@@ -16,8 +16,10 @@ std::string determine_solver_stack(const Teuchos::ParameterList& tSolverParams)
       tSolverStack = "AmgX";
 #elif PLATO_TPETRA
       tSolverStack = "Tpetra";
-#else
+#elif PLATO_EPETRA
       tSolverStack = "Epetra";
+#else
+      ANALYZE_THROWERR("PLato Analyze was compiled without a linear solver!.  Exiting.");
 #endif
   }
 
@@ -39,7 +41,12 @@ SolverFactory::create(
 
   if(tLowerSolverStack == "epetra")
   {
+#ifdef PLATO_EPETRA
       return std::make_shared<Plato::EpetraLinearSolver>(mSolverParams, aNumNodes, aMachine, aDofsPerNode);
+#else
+      ANALYZE_THROWERR("Not compiled with Epetra");
+#endif
+
   }
   else if(tLowerSolverStack == "tpetra")
   {
@@ -76,8 +83,12 @@ SolverFactory::create(
 
   if(tLowerSolverStack == "epetra")
   {
+#ifdef PLATO_EPETRA
       Plato::OrdinalType tNumCondensedNodes = aMPCs->getNumCondensedNodes();
       return std::make_shared<Plato::EpetraLinearSolver>(mSolverParams, tNumCondensedNodes, aMachine, aDofsPerNode, aMPCs);
+#else
+      ANALYZE_THROWERR("Not compiled with Epetra");
+#endif
   }
   else if(tLowerSolverStack == "tpetra")
   {

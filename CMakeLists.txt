@@ -5,15 +5,51 @@ project(PLATOANALYZE VERSION 0.0.0 LANGUAGES CXX)
 # hdf5 dependency (introduced by exodus) needs C
 enable_language(C)
 
+option(PLATOANALYZE_ENABLE_CUDA "Build for Nvidia GPUs using CUDA" OFF)
+
+option(PLATOANALYZE_ENABLE_MPMD "Enable the Plato interface MPMD executable" OFF)
+
+if(PLATOANALYZE_ENABLE_MPMD)
+  option(PLATOANALYZE_ENABLE_GEOMETRY "Enable Plato Geometry" OFF)
+  option(PLATOANALYZE_ENABLE_ESP      "Enable ESP"            OFF)
+endif()
+
+option(PLATOANALYZE_ENABLE_MESHMAP  "Enable Plato MeshMap"  OFF)
+
+option(PLATOANALYZE_ENABLE_ENGINEMESH "Enable EngineMesh"           OFF)
+option(PLATOANALYZE_ENABLE_TPETRA     "Enable Tpetra"               OFF)
+option(PLATOANALYZE_ENABLE_EPETRA     "Enable Tpetra"               OFF)
+option(PLATOANALYZE_ENABLE_PYTHON     "Enable the Python interface" OFF)
+
+option(PLATOANALYZE_1D "Compile with 1D physics"             OFF) # TODO delete
+option(PLATOANALYZE_2D "Compile with 2D physics"             OFF) # TODO delete
+option(PLATOANALYZE_3D "Compile with 3D physics"             ON ) # TODO delete
+
+option(ELLIPTIC        "Compile with Elliptic physics"       ON )
+option(PARABOLIC       "Compile with Parabolic physics"      OFF) # TODO
+option(HYPERBOLIC      "Compile with Hyperbolic physics"     OFF) # TODO
+option(STABILIZED      "Compile with Stabilized VMS physics" OFF) # TODO
+option(PLASTICITY      "Compile with Plasticity physics"     OFF) # TODO
+option(HELMHOLTZ       "Compile with Helmholtz filter"       OFF) # TODO
+option(EXPRESSION      "Compile with Expression evaluator"   OFF)
+
+option(PLATOANALYZE_UNIT_TEST   "Flag to enable unit tests"  ON)
+option(PLATOANALYZE_SMOKE_TESTS "Flag to enable smoke tests" ON)
+
+option(PLATOANALYZE_LONG_LONG_ORDINALTYPE "Flag to change Plato::OrdinalType to 'long long'" OFF)
+
+option( PLATOANALYZE_CHECK_FPE "Flag to enable Plato Analyze checks for floating point exceptions" OFF)
+
+
 MESSAGE("\n\nConfiguring Plato Analyze Version ${PLATOANALYZE_VERSION_MAJOR}.${PLATOANALYZE_VERSION_MINOR}.${PLATOANALYZE_VERSION_PATCH}")
 
 IF (DEFINED Trilinos_PREFIX)
   SET(CMAKE_PREFIX_PATH ${Trilinos_PREFIX} ${CMAKE_PREFIX_PATH})
 ENDIF()
 
-IF (DEFINED SuperLU_PREFIX)
-  SET(CMAKE_PREFIX_PATH ${SuperLU_PREFIX} ${CMAKE_PREFIX_PATH})
-ENDIF()
+#IF (DEFINED SuperLU_PREFIX)
+#  SET(CMAKE_PREFIX_PATH ${SuperLU_PREFIX} ${CMAKE_PREFIX_PATH})
+#ENDIF()
 
 #silences warnings about the system not supporting shared libraries
 #http://stackoverflow.com/questions/12264299/cmake-on-linux-target-platform-does-not-support-dynamic-linking
@@ -50,12 +86,13 @@ endif()
 MESSAGE("-- BUILD_SHARED_LIBS: ${BUILD_SHARED_LIBS}")
 
 SET(CMAKE_C_FLAGS ${Trilinos_C_COMPILER_FLAGS} )
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Trilinos_CXX_COMPILER_FLAGS} ${CUSTOM_CXX_FLAGS}")
 
 #FIND_PACKAGE(MPI REQUIRED)
 
 ## this has to be conditional, or building without cuda fails
-IF (DEFINED AMGX_PREFIX)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CUSTOM_CXX_FLAGS} -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored")
+if (PLATOANALYZE_ENABLE_CUDA)
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored")
 ENDIF ()
 
 MESSAGE("-- CXX Flags being used in this build are : ${CMAKE_CXX_FLAGS}")
@@ -91,23 +128,6 @@ IF(OMEGA_H_PREFIX)
   FIND_PACKAGE(Omega_h 9.17.0 REQUIRED)
 ENDIF()
 
-option(PLATOANALYZE_ENABLE_ENGINEMESH "Enable EngineMesh" OFF)
-if (PLATOANALYZE_ENABLE_ENGINEMESH)
-  FIND_PROGRAM( EXODIFF NAMES exodiff PATHS ${Trilinos_PREFIX}/bin NO_DEFAULT_PATH)
-  IF(EXODIFF)
-    MESSAGE("-- EXODIFF=${EXODIFF}")
-  ELSE()
-    MESSAGE(FATAL_ERROR "Cannot locate the executable for exodiff, exiting")
-  ENDIF()
-ELSE()
-  FIND_PROGRAM( VTKDIFF NAMES vtkdiff PATHS ${OMEGA_H_PREFIX}/bin NO_DEFAULT_PATH)
-  IF(VTKDIFF)
-    MESSAGE("-- VTKDIFF=${VTKDIFF}")
-  ELSE()
-    MESSAGE(FATAL_ERROR "Cannot locate the executable for vtkdiff, exiting")
-  ENDIF()
-ENDIF()
-
 # DAI: omega_h2 has a vtkdiff which by default compares all timesteps.
 # old omega_h's vtkdiff only compared one timestep.
 # at the time of transition, we will keep comparing just one time step
@@ -138,7 +158,6 @@ ELSE()
   ENDIF()
 ENDIF()
 
-option( PLATOANALYZE_CHECK_FPE "Flag to enable Plato Analyze checks for floating point exceptions" OFF)
 if ( PLATOANALYZE_CHECK_FPE)
   add_definitions(-DPLATOANALYZE_CHECK_FPE)
   if (${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
@@ -151,7 +170,6 @@ else()
   message("-- Building without FPE checking.")
 endif()
 
-option(PLATOANALYZE_LONG_LONG_ORDINALTYPE "Flag to change Plato::OrdinalType to 'long long'" OFF)
 if(PLATOANALYZE_LONG_LONG_ORDINALTYPE)
   add_definitions(-DPLATOANALYZE_LONG_LONG_ORDINALTYPE)
   message("-- Building with 'long long' ordinal type.")
@@ -166,7 +184,7 @@ add_executable(
 if( CMAKE_INSTALL_PREFIX )
   install( TARGETS analyze DESTINATION ${CMAKE_INSTALL_PREFIX}/bin )
 endif()
-target_include_directories(analyze PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(analyze PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${Trilinos_INCLUDE_DIRS} ${Trilinos_TPL_INCLUDE_DIRS})
 #target_link_libraries(analyze analyzelib)
 target_link_libraries( analyze analyzelib ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} )
 
@@ -201,9 +219,6 @@ IF( AMGX_FOUND )
      )
 ENDIF()
 
-option(PLATOANALYZE_1D "Compile with 1D physics" OFF)
-option(PLATOANALYZE_2D "Compile with 2D physics" OFF ) # TODO
-option(PLATOANALYZE_3D "Compile with 3D physics" ON )
 if (PLATOANALYZE_1D)
   add_definitions(-DPLATOANALYZE_1D)
   message("-- Plato: 1d physics added")
@@ -217,12 +232,6 @@ if (PLATOANALYZE_3D)
   message("-- Plato: 3d physics added")
 endif()
 
-option(ELLIPTIC "Compile with Elliptic physics" ON)
-option(PARABOLIC "Compile with Parabolic physics" OFF) # TODO
-option(HYPERBOLIC "Compile with Hyperbolic physics" OFF) # TODO
-option(STABILIZED "Compile with Stabilized VMS physics" OFF) # TODO
-option(PLASTICITY "Compile with Plasticity physics" OFF) # TODO
-option(HELMHOLTZ "Compile with Helmholtz filter" OFF) # TODO
 if(ELLIPTIC)
   message("-- Plato: Elliptic physics added")
   ADD_DEFINITIONS(-DPLATO_ELLIPTIC)
@@ -248,25 +257,58 @@ if(HELMHOLTZ)
   ADD_DEFINITIONS(-DPLATO_HELMHOLTZ)
 endif()
 
-option(EXPRESSION "Compile with Expression evaluator" OFF)
 if(EXPRESSION)
   message("-- Plato: Expression evaluator added")
   ADD_DEFINITIONS(-DPLATO_EXPRESSION)
 endif()
 
+if (PLATOANALYZE_ENABLE_MESHMAP)
+  add_definitions(-DPLATO_MESHMAP)
+  find_package(ArborX REQUIRED)
+endif()
+
+
+IF(PLATOANALYZE_ENABLE_ENGINEMESH)
+  FIND_PROGRAM( EXODIFF NAMES exodiff PATHS ${Trilinos_PREFIX}/bin NO_DEFAULT_PATH)
+  IF(EXODIFF)
+    MESSAGE("-- EXODIFF=${EXODIFF}")
+  ELSE()
+    MESSAGE(FATAL_ERROR "Cannot locate the executable for exodiff, exiting")
+  ENDIF()
+ELSE()
+  FIND_PROGRAM( VTKDIFF NAMES vtkdiff PATHS ${OMEGA_H_PREFIX}/bin NO_DEFAULT_PATH)
+  IF(VTKDIFF)
+    MESSAGE("-- VTKDIFF=${VTKDIFF}")
+  ELSE()
+    MESSAGE(FATAL_ERROR "Cannot locate the executable for vtkdiff, exiting")
+  ENDIF()
+ENDIF()
+
+if (PLATOANALYZE_ENABLE_TPETRA)
+  find_package(Tpetra REQUIRED)
+  find_package(Belos REQUIRED)
+  find_package(Ifpack2 REQUIRED)
+  message("adding define: -DPLATO_TPETRA")
+  add_definitions(-DPLATO_TPETRA)
+endif()
+target_link_libraries(analyze ${PLATO_LIBS} ${Trilinos_LIBRARIES})
+
+if (PLATOANALYZE_ENABLE_EPETRA)
+  find_package(Epetra REQUIRED)
+  find_package(AztecOO REQUIRED)
+  message("adding define: -DPLATO_EPETRA")
+  add_definitions(-DPLATO_EPETRA)
+endif()
 
 ###### PLATO ANALYZE APP + PLATO ENGINE EXECUTABLE ######
-option(PLATOANALYZE_ENABLE_MPMD "Enable the Plato interface MPMD executable" OFF)
 if (PLATOANALYZE_ENABLE_MPMD)
   FIND_PACKAGE(Epetra REQUIRED)
   set(PLATOENGINE_PREFIX "" CACHE STRING "Path to Plato install")
   find_library(PLATO_DATA_LAYER_LIB NAMES PlatoDataLayer PATHS ${PLATOENGINE_PREFIX}/lib)
   find_library(PLATO_INTERFACE_LIB NAMES PlatoInterface PATHS ${PLATOENGINE_PREFIX}/lib)
-  find_library(PLATO_ANALYZE_LIB NAMES PlatoAnalyze PATHS ${PLATOENGINE_PREFIX}/lib)
   find_library(PLATO_PARSER_LIB NAMES PlatoParser PATHS ${PLATOENGINE_PREFIX}/lib)
   find_library(PLATO_EXCEPTIONS_LIB NAMES PlatoExceptions PATHS ${PLATOENGINE_PREFIX}/lib)
   find_library(PLATO_CONSOLE_LIB NAMES PlatoConsole PATHS ${PLATOENGINE_PREFIX}/lib)
-  find_library(PLATO_BAMG_LIB NAMES BamGlib PATHS ${PLATOENGINE_PREFIX}/lib)
   find_package(Epetra REQUIRED)
   find_package(AztecOO REQUIRED)
   find_package(SEACASExodus REQUIRED)
@@ -278,11 +320,9 @@ if (PLATOANALYZE_ENABLE_MPMD)
   set(PLATO_LIBS
       ${PLATO_DATA_LAYER_LIB}
       ${PLATO_INTERFACE_LIB}
-      ${PLATO_ANALYZE_LIB}
       ${PLATO_PARSER_LIB}
       ${PLATO_EXCEPTIONS_LIB}
       ${PLATO_CONSOLE_LIB}
-      ${PLATO_BAMG_LIB}
       aztecoo
       epetra
       intrepid
@@ -296,6 +336,7 @@ if (PLATOANALYZE_ENABLE_MPMD)
   add_library( Analyze_App src/Analyze_App.cpp )
   target_include_directories(Analyze_App PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_include_directories(Analyze_App PRIVATE "${PLATOENGINE_PREFIX}/include")
+  target_include_directories(Analyze_App PRIVATE "${Trilinos_INCLUDE_DIRS}")
   if( CMAKE_INSTALL_PREFIX )
     install( TARGETS Analyze_App DESTINATION ${CMAKE_INSTALL_PREFIX}/lib )
   endif()
@@ -309,10 +350,10 @@ if (PLATOANALYZE_ENABLE_MPMD)
   endif()
   target_include_directories(analyze_MPMD PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_include_directories(analyze_MPMD PRIVATE "${PLATOENGINE_PREFIX}/include")
+  target_include_directories(analyze_MPMD PRIVATE "${Trilinos_INCLUDE_DIRS}")
 
   target_include_directories(analyze PRIVATE "${PLATOENGINE_PREFIX}/include")
 
-  option(PLATOANALYZE_ENABLE_GEOMETRY "Enable Plato Geometry" OFF)
   if (PLATOANALYZE_ENABLE_GEOMETRY)
     add_definitions(-DPLATO_GEOMETRY)
     find_library(PLATO_GEOMETRY_MLS_LIB NAMES PlatoGeometryMLS PATHS ${PLATOENGINE_PREFIX}/lib)
@@ -328,16 +369,10 @@ if (PLATOANALYZE_ENABLE_MPMD)
     message("Default mesh is Omega-h mesh")
   endif()
 
-  # string(REPLACE "-std=c++11" "-std=c++14" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-
-  option(PLATOANALYZE_ENABLE_MESHMAP "Enable Plato MeshMap" OFF)
   if (PLATOANALYZE_ENABLE_MESHMAP)
-    add_definitions(-DPLATO_MESHMAP)
-    find_package(ArborX REQUIRED)
     target_link_libraries(Analyze_App ArborX::ArborX)
   endif()
 
-  option(PLATOANALYZE_ENABLE_ESP "Enable ESP" OFF)
   if (PLATOANALYZE_ENABLE_ESP)
     find_library(PLATO_GEOMETRY_ESP_LIB NAMES PlatoGeometryESP PATHS ${PLATOENGINE_PREFIX}/lib)
     find_library(ESP_LIB NAMES egads PATHS ${ESP_LIB_DIR})
@@ -348,39 +383,9 @@ if (PLATOANALYZE_ENABLE_MPMD)
     set(PLATO_LIBS ${PLATO_LIBS} ${PLATO_GEOMETRY_ESP_LIB} ${OCSM_LIB} ${ESP_LIB} ${OCSM_LIB})
   endif()
 
-  IF (DEFINED SuperLU_PREFIX)
-    FIND_PATH(SuperLU_INCLUDE_DIR NAMES supermatrix.h PATHS ${SuperLU_PREFIX}/include)
-    IF (NOT SuperLU_INCLUDE_DIR)
-      MESSAGE(FATAL_ERROR "Couldn't find SuperLU header!")
-    ENDIF()
-    FIND_LIBRARY(SuperLU_LIB NAMES superlu_4.3 PATHS ${SuperLU_PREFIX}/lib)
-    IF (NOT SuperLU_LIB)
-      MESSAGE(FATAL_ERROR "Couldn't find SuperLU library!")
-    ENDIF()
-    SET(SuperLU_INCLUDE_DIRS "${SuperLU_INCLUDE_DIR}")
-    SET(SuperLU_LIBRARIES "${SuperLU_LIB}")
-    SET(SuperLU_FOUND TRUE) # a bit of a hack; would be better to check that it actually exists!
-    MESSAGE("-- Found SuperLU!")
-    MESSAGE("-- SuperLU_INCLUDE_DIRS = ${SuperLU_INCLUDE_DIRS}")
-    MESSAGE("-- SuperLU_LIBRARIES = ${SuperLU_LIBRARIES}")
-  ENDIF()
-
-  option(PLATOANALYZE_ENABLE_TPETRA "Enable Tpetra" OFF)
-  if (PLATOANALYZE_ENABLE_TPETRA)
-    find_package(Tpetra REQUIRED)
-    find_package(Belos REQUIRED)
-    find_package(Amesos2 REQUIRED)
-    include_directories( ${SuperLU_INCLUDE_DIRS} )
-    message("adding define: -DPLATO_TPETRA")
-    add_definitions(-DPLATO_TPETRA)
-    set(PLATO_LIBS ${PLATO_LIBS} ${SuperLU_LIBRARIES} tpetra belos amesos2)
-  endif()
-
-  target_link_libraries(analyze ${PLATO_LIBS} ${Trilinos_LIBRARIES})
   target_link_libraries(Analyze_App ${PLATO_LIBS} ${PLATO_LIBS} analyzelib)
   target_link_libraries(analyze_MPMD Analyze_App ${PLATO_LIBS} ${PLATO_LIBS} analyzelib)
 
-  option(PLATOANALYZE_ENABLE_PYTHON "Enable the Plato Python interface" OFF)
   if (PLATOANALYZE_ENABLE_PYTHON)
       find_package(Python3 COMPONENTS Development)
       include_directories( ${Python3_INCLUDE_DIRS} )
@@ -422,12 +427,10 @@ endfunction(build_mpi_test_string)
 
 ADD_SUBDIRECTORY(src)
 
-option(PLATOANALYZE_UNIT_TEST "Flag to enable unit tests" ON)
 if( PLATOANALYZE_UNIT_TEST)
   ADD_SUBDIRECTORY(unit_tests)
 endif()
 
-option(PLATOANALYZE_SMOKE_TESTS "Flag to enable smoke tests" ON)
 if(PLATOANALYZE_SMOKE_TESTS)
   add_subdirectory(tests)
 endif()

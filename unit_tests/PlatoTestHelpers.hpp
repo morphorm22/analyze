@@ -11,7 +11,7 @@
 #include <Teuchos_RCP.hpp>
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
-#include <BamG.hpp>
+#include "BamG.hpp"
 
 #include "AnalyzeMacros.hpp"
 #include "PlatoMesh.hpp"

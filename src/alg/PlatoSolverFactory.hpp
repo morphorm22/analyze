@@ -2,7 +2,9 @@
 #define PLATO_SOLVER_FACTORY_HPP
 
 #include "alg/AmgXLinearSolver.hpp"
+#ifdef PLATO_EPETRA
 #include "alg/EpetraLinearSolver.hpp"
+#endif
 #ifdef PLATO_TPETRA
 #include "alg/TpetraLinearSolver.hpp"
 #endif

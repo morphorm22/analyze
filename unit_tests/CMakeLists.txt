@@ -3,6 +3,8 @@ configure_file(  ${CMAKE_CURRENT_SOURCE_DIR}/amgx.json
 configure_file(  ${CMAKE_CURRENT_SOURCE_DIR}/points.xyz
                  ${CMAKE_CURRENT_BINARY_DIR}/points.xyz COPYONLY)
 
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/BamG)
+
 include (${CMAKE_CURRENT_SOURCE_DIR}/add_test.cmake)
 
 ## if SKIP_MATH is provided as the optional third argument below, unit tests
@@ -78,6 +80,8 @@ if(PLATOANALYZE_ENABLE_MPMD)
 
   target_include_directories(AnalyzeAppIntxTests PRIVATE "${PLATOENGINE_PREFIX}/include")
   target_include_directories(AnalyzeAppIntxTests PRIVATE "${CMAKE_SOURCE_DIR}/src")
+  target_include_directories(AnalyzeAppIntxTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/BamG")
+  target_include_directories(AnalyzeAppIntxTests PRIVATE ${Trilinos_INCLUDE_DIRS} ${Trilinos_TPL_INCLUDE_DIRS})
 
   if (PLATOANALYZE_ENABLE_ENGINEMESH)
     set(EngineMesh_HEADERS
@@ -92,6 +96,7 @@ if(PLATOANALYZE_ENABLE_MPMD)
     )
     target_link_libraries(EngineMeshIntxTests
       analyzelib
+      BamGlib
       ${PLATO_LIBS}
       ${Trilinos_LIBRARIES}
       ${Trilinos_TPL_LIBRARIES}
@@ -99,6 +104,8 @@ if(PLATOANALYZE_ENABLE_MPMD)
 
     target_include_directories(EngineMeshIntxTests PRIVATE "${PLATOENGINE_PREFIX}/include")
     target_include_directories(EngineMeshIntxTests PRIVATE "${CMAKE_SOURCE_DIR}/src")
+    target_include_directories(EngineMeshIntxTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/BamG")
+    target_include_directories(EngineMeshIntxTests PRIVATE ${Trilinos_INCLUDE_DIRS} ${Trilinos_TPL_INCLUDE_DIRS})
   endif()
 
   if(PLATOANALYZE_ENABLE_MESHMAP)
@@ -123,7 +130,9 @@ if(PLATOANALYZE_ENABLE_MPMD)
       )
     target_include_directories(MeshMapUnitTests PRIVATE "${PLATOENGINE_PREFIX}/include")
     target_include_directories(MeshMapUnitTests PRIVATE ${CMAKE_SOURCE_DIR}/src)
-    target_link_libraries(MeshMapUnitTests ArborX::ArborX)
+    target_include_directories(MeshMapUnitTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/BamG")
+    target_include_directories(MeshMapUnitTests PRIVATE ${Trilinos_INCLUDE_DIRS} ${Trilinos_TPL_INCLUDE_DIRS})
+    target_link_libraries(MeshMapUnitTests ArborX::ArborX BamGlib)
 
     build_mpi_test_string(ES_MPI_TEST 1 ${CMAKE_CURRENT_BINARY_DIR}/MeshMapUnitTests)
     add_test(NAME runMeshMapUnitTests COMMAND ${ES_MPI_TEST})

@@ -9,11 +9,9 @@
 #include <Teuchos_ParameterList.hpp>
 
 #include "PlatoMesh.hpp"
-#include "OmegaHMesh.hpp"
 #include "AnalyzeOutput.hpp"
 #include "PlatoUtilities.hpp"
 #include "PlatoProblemFactory.hpp"
-//#include "StructuralDynamicsOutput.hpp"
 
 namespace Plato
 {

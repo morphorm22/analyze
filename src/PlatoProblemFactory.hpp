@@ -92,8 +92,9 @@ makeProblem(
         return std::make_shared<ProblemT<PhysicsT<Plato::Tet10>>>(aMesh, aPlatoProb, aMachine);
     }
     else
-    if( Plato::tolower(tElementType) == "tet4" ||
-        Plato::tolower(tElementType) == "tetra4" )
+    if( Plato::tolower(tElementType) == "tetra"  ||
+        Plato::tolower(tElementType) == "tetra4" ||
+        Plato::tolower(tElementType) == "tet4" )
     {
         return std::make_shared<ProblemT<PhysicsT<Plato::Tet4>>>(aMesh, aPlatoProb, aMachine);
     }

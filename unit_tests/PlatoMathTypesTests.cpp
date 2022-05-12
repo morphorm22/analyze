@@ -11,19 +11,7 @@
 #include <fstream>
 #include <stdio.h>
 
-#include <Omega_h_matrix.hpp>
 #include "PlatoMathTypes.hpp"
-
-namespace Plato
-{
-  namespace OmegaH {
-    template <int M, int N>
-    using Matrix = typename Omega_h::Matrix<M,N>;
-
-    template <int N>
-    using Vector = typename Omega_h::Vector<N>;
-  }
-}
 
 namespace PlatoTestMathTypes
 {
@@ -35,19 +23,7 @@ namespace PlatoTestMathTypes
 /******************************************************************************/
   TEUCHOS_UNIT_TEST(PlatoMathTypesTests, Matrix)
   {
-    { // Omega Matrix
-      { // 2x2 matrix
-        Plato::OmegaH::Matrix<2,2> tMatrix({1.0, 2.0, 3.0, 4.0});
-        TEST_FLOATING_EQUALITY(tMatrix(0,0), 1.0, 1e-12);
-        tMatrix(0,1) = 5.0;
-        TEST_FLOATING_EQUALITY(tMatrix(0,1), 5.0, 1e-12);
-      }
-      { // 2x3 matrix
-        Plato::OmegaH::Matrix<2,3> tMatrix({1.0, 2.0, 3.0, 4.0, 5.0, 6.0});
-        TEST_FLOATING_EQUALITY(tMatrix(1,0), 4.0, 1e-12);
-      }
-    }
-    { // Native Matrix
+    {
       { // 2x2 matrix
         Plato::Matrix<2,2> tMatrix({1.0, 2.0, 3.0, 4.0});
         TEST_FLOATING_EQUALITY(tMatrix(0,0), 1.0, 1e-12);

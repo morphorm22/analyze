@@ -49,14 +49,17 @@ namespace Comm {
 Machine::Machine(MPI_Comm& localComm) {
   mpiSession = Teuchos::null;
   teuchosComm = Teuchos::rcp(new Teuchos::MpiComm<int>(localComm));
+#ifdef PLATO_EPETRA
   epetraComm = std::make_shared<Epetra_MpiComm>(localComm);
-
+#endif
 }
 
 Machine::Machine(int *argc, char ***argv) {
   mpiSession = Teuchos::rcp(new Teuchos::GlobalMPISession(argc, argv));
   teuchosComm = Teuchos::DefaultComm<int>::getComm();
+#ifdef PLATO_EPETRA
   epetraComm = std::make_shared<Epetra_MpiComm>(MPI_COMM_WORLD);
+#endif
 }
 
 unsigned size(Machine const& machine) {

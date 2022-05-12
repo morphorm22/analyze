@@ -4,10 +4,6 @@
 #include <Ifpack2_Factory.hpp>
 #include <MueLu.hpp>
 #include <MueLu_CreateTpetraPreconditioner.hpp>
-#include <Xpetra_CrsMatrix.hpp>
-#include <Xpetra_CrsMatrixWrap.hpp>
-#include "Amesos2.hpp"
-#include "Amesos2_Version.hpp"
 #include "PlatoUtilities.hpp"
 #include <limits>
 
@@ -49,119 +45,6 @@ TpetraSystem::TpetraSystem(
 
 }
 
-// void copyRowDataToTpetraMatrix(const Plato::OrdinalType aGlobalRowIndex,
-//                                const Kokkos::View<Plato::OrdinalType, Plato::MemSpace>& aGlobalColumnIndicesView,
-//                                const Kokkos::View<Plato::Scalar, Plato::MemSpace>& aGlobalColumnValuesView,
-//                                Teuchos::RCP<Tpetra_Matrix>& aRetVal)
-// {
-//   const Kokkos::View<const Plato::OrdinalType*,
-//         Plato::MemSpace,
-//         Kokkos::MemoryUnmanaged>
-//           tGlobalColumnIndicesViewUnmanaged(aGlobalColumnIndicesView.data(), aGlobalColumnIndicesView.extent(0));
-//   const Kokkos::View<const Plato::Scalar*,
-//         Plato::MemSpace,
-//         Kokkos::MemoryUnmanaged>
-//           tGlobalColumnValuesViewUnmanaged(aGlobalColumnValuesView.data(), aGlobalColumnValuesView.extent(0));
-
-//   Tpetra::project2nd<Plato::Scalar,Plato::Scalar> tProject2nd;
-
-//   aRetVal->transformGlobalValues<Tpetra::project2nd<Plato::Scalar,Plato::Scalar>,Plato::MemSpace>
-//     (aGlobalRowIndex,tGlobalColumnIndicesViewUnmanaged,tGlobalColumnValuesViewUnmanaged,tProject2nd);
-// }
-
-// void copyRow(Plato::OrdinalType iLocalRowIndex,
-//                   Plato::OrdinalType iBlockRowIndex,
-//                   Plato::OrdinalType iColMapEntryIndex,
-//                   const Plato::CrsMatrix<Plato::OrdinalType> aInMatrix,
-//                   Teuchos::RCP<Tpetra_Matrix>& aRetVal)
-// {
-
-//   auto tNumColsPerBlock = aInMatrix.numColsPerBlock();
-//   auto tNumRowsPerBlock = aInMatrix.numRowsPerBlock();
-//   auto tBlockSize = tNumRowsPerBlock*tNumColsPerBlock;
-
-//   auto tColMap = aInMatrix.columnIndices();
-//   auto tValues = aInMatrix.entries();
-
-//   Kokkos::View<Plato::OrdinalType, Plato::MemSpace> tGlobalColumnIndicesView("columnIndices",tNumColsPerBlock);
-//   Kokkos::View<Plato::Scalar, Plato::MemSpace> tGlobalColumnValuesView("values",tNumColsPerBlock);
-
-//   Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumColsPerBlock), LAMBDA_EXPRESSION(int iLocalColIndex)
-//   {
-//     Plato::OrdinalType tBlockColIndex = tColMap(iColMapEntryIndex);
-//     Plato::OrdinalType tGlobalColIndex = tBlockColIndex * tNumColsPerBlock + iLocalColIndex;
-//     Plato::OrdinalType tSparseIndex = iColMapEntryIndex * tBlockSize + iLocalRowIndex * tNumColsPerBlock + iLocalColIndex;
-
-//     tGlobalColumnIndicesView(iLocalColIndex) = (int) tGlobalColIndex;
-//     tGlobalColumnValuesView(iLocalColIndex) = (double) tValues(tSparseIndex);
-//   }, "copy row to Tpetra_Matrix");
-
-//   const Plato::OrdinalType tGlobalRowIndex = iBlockRowIndex * tNumRowsPerBlock + iLocalRowIndex;
-
-//   copyRowDataToTpetraMatrix(tGlobalRowIndex,tGlobalColumnIndicesView,tGlobalColumnValuesView, aRetVal);
-// }
-
-// void copyBlock(Plato::OrdinalType iBlockRowIndex,
-//                   Plato::OrdinalType iColMapEntryIndex,
-//                   const Plato::CrsMatrix<Plato::OrdinalType> aInMatrix,
-//                   Teuchos::RCP<Tpetra_Matrix>& aRetVal)
-// {
-//   auto tNumRowsPerBlock = aInMatrix.numRowsPerBlock();
-
-//   for(Plato::OrdinalType iLocalRowIndex=0; iLocalRowIndex<tNumRowsPerBlock; iLocalRowIndex++)
-//     copyRow(iLocalRowIndex, iBlockRowIndex, iColMapEntryIndex, aInMatrix, aRetVal);
-// }
-
-// void copyBlocksInBlockRow(Plato::OrdinalType iBlockRowIndex,
-//                              Kokkos::View<Plato::OrdinalType*, MemSpace>::HostMirror aRowMap,
-//                              const Plato::CrsMatrix<Plato::OrdinalType> aInMatrix,
-//                              Teuchos::RCP<Tpetra_Matrix>& aRetVal)
-// {
-//   auto tFrom = aRowMap(iBlockRowIndex);
-//   auto tTo   = aRowMap(iBlockRowIndex+1);
-//   for(auto iColMapEntryIndex=tFrom; iColMapEntryIndex<tTo; iColMapEntryIndex++)
-//     copyBlock(iBlockRowIndex, iColMapEntryIndex, aInMatrix, aRetVal);
-// }
-
-// /******************************************************************************//**
-//  * \brief Convert from Plato::CrsMatrix<Plato::OrdinalType> to Tpetra_Matrix
-// **********************************************************************************/
-// Teuchos::RCP<Tpetra_Matrix>
-// TpetraSystem::fromMatrix(const Plato::CrsMatrix<Plato::OrdinalType> aInMatrix) const
-// {
-//   auto tRowMap = get(aInMatrix.rowMap());
-
-//   checkInputMatrixSize(aInMatrix,tRowMap);
-
-//   auto tRetVal = Teuchos::rcp(new Tpetra_Matrix(mMap, 0));
-
-//   auto tNumBlockRows = tRowMap.extent(0)-1;
-
-//   for(Plato::OrdinalType iBlockRowIndex=0; iBlockRowIndex<tNumBlockRows; iBlockRowIndex++)
-//     copyBlocksInBlockRow(iBlockRowIndex,tRowMap,aInMatrix,tRetVal);
-
-//   tRetVal->fillComplete();
-
-//   return tRetVal;
-// }
-
-// /******************************************************************************//**
-//  * \brief Check if intput Plato::CrsMatrix is consistent with TpetraSystem map 
-// **********************************************************************************/
-// void TpetraSystem::checkInputMatrixSize(const Plato::CrsMatrix<Plato::OrdinalType> aInMatrix,
-//       Kokkos::View<Plato::OrdinalType*, MemSpace>::HostMirror aRowMap) const
-// {
-//   auto tTemp = Teuchos::rcp(new Tpetra_Matrix(mMap, 0));
-
-//   auto tNumRowsPerBlock = aInMatrix.numRowsPerBlock();
-//   auto tNumBlockRows = aRowMap.extent(0)-1;
-
-//   size_t tCrsMatrixGlobalNumRows = tNumBlockRows * tNumRowsPerBlock;
-//   size_t tTpetraGlobalNumRows = tTemp->getGlobalNumRows();
-//   if(tCrsMatrixGlobalNumRows != tTpetraGlobalNumRows)
-//     throw std::domain_error("Input Plato::CrsMatrix size does not match TpetraSystem map.\n");
-// }
-
 /******************************************************************************//**
  * \brief Convert from Plato::CrsMatrix<Plato::OrdinalType> to Tpetra_Matrix
 **********************************************************************************/
@@ -169,7 +52,7 @@ Teuchos::RCP<Tpetra_Matrix>
 TpetraSystem::fromMatrix(Plato::CrsMatrix<Plato::OrdinalType> aInMatrix) const
 {
   Teuchos::TimeMonitor LocalTimer(*mMatrixConversionTimer);
-  auto tRetVal = Teuchos::rcp(new Tpetra_Matrix(mMap, 0));
+  auto tRetVal = Teuchos::rcp(new Tpetra_Matrix(mMap, 500));
 
   auto tNumRowsPerBlock = aInMatrix.numRowsPerBlock();
   auto tNumColsPerBlock = aInMatrix.numColsPerBlock();
@@ -271,88 +154,19 @@ TpetraLinearSolver::TpetraLinearSolver(
     mPreLinearSolveTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Pre Linear Solve Setup")),
     mPreconditionerSetupTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Preconditioner Setup")),
     mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Tpetra Linear Solve")),
-    mSolverEndTime(mPreLinearSolveTimer->wallTime())
+    mSolverEndTime(mPreLinearSolveTimer->wallTime()),
+    mDofsPerNode(aDofsPerNode)
 {
-    // mPreLinearSolveTimer->start();
-    if(mSolverParams.isType<int>("Iterations"))
-    {
-        mNumIterations = mSolverParams.get<int>("Iterations");
-    }
-    else
-    {
-        mNumIterations = 100;
-    }
+    this->initialize();
+}
 
-    if(mSolverParams.isType<double>("Tolerance"))
-    {
-        mTolerance = mSolverParams.get<double>("Tolerance");
-    }
-    else
-    {
-        mTolerance = 1e-6;
-    }
+void
+TpetraLinearSolver::initialize()
+{
 
-    mPreLinearSolveTimer->start();
+    setupSolverOptions();
 
-    std::string tSolverPackage = "belos";
-    if (aSolverParams.isType<std::string>("Solver Package"))
-      tSolverPackage = aSolverParams.get<std::string>("Solver Package");
-    mSolverPackage = Plato::tolower(tSolverPackage);
-
-    std::string tSolver = "";
-    if (aSolverParams.isType<std::string>("Solver"))
-      tSolver = aSolverParams.get<std::string>("Solver");
-    else if (mSolverPackage == "belos")
-      tSolver = "pseudoblock gmres";
-    else if (mSolverPackage == "amesos2")
-      tSolver = "superlu";
-    else
-      throw std::invalid_argument("Solver not specified in input parameter list.\n");
-    mSolver = Plato::tolower(tSolver);
-
-    if (mSolver == "gmres")
-    {
-      mSolver = "pseudoblock gmres";
-      REPORT("Tpetra using 'Pseudoblock GMRES' solver instead of user-specified 'GMRES' since matrix has block structure.")
-    }
-    else if (mSolver == "cg")
-    {
-      mSolver = "pseudoblock cg";
-      REPORT("Tpetra using 'Pseudoblock CG' solver instead of user-specified 'CG' since matrix has block structure.")
-    }
-
-    mDisplayIterations = 0;
-    if (aSolverParams.isType<int>("Display Iterations"))
-      mDisplayIterations = aSolverParams.get<int>("Display Iterations");
-
-    setupSolverOptions(aSolverParams);
-
-    std::string tPreconditionerPackage = "muelu";
-    if (aSolverParams.isType<std::string>("Preconditioner Package"))
-      tPreconditionerPackage = aSolverParams.get<std::string>("Preconditioner Package");
-    mPreconditionerPackage = Plato::tolower(tPreconditionerPackage);
-
-    mPreconditionerType = "Not Set";
-    if (aSolverParams.isType<std::string>("Preconditioner Type"))
-      mPreconditionerType = aSolverParams.get<std::string>("Preconditioner Type");
-    else if (mPreconditionerPackage == "ifpack2")
-      mPreconditionerType = "ILUT";
-
-    setupPreconditionerOptions(aSolverParams);
-
-    bool tPrintSolverParameterLists = false;
-    if (aSolverParams.isType<bool>("Print Solver Parameters"))
-      tPrintSolverParameterLists = aSolverParams.get<bool>("Print Solver Parameters");
-
-    if (tPrintSolverParameterLists)
-    {
-      printf("\n'Linear Solver' Parameter List: \n");
-      aSolverParams.print(std::cout, 2, true);
-      printf("\n'Solver Options' sublist of 'Linear Solver' Parameter List: \n");
-      mSolverOptions.print(std::cout, 2, true);
-      printf("\n'Preconditioner Options' sublist of 'Linear Solver' Parameter List: \n");
-      mPreconditionerOptions.print(std::cout, 2, true);
-    }
+    setupPreconditionerOptions();
 }
 
 /******************************************************************************//**
@@ -373,101 +187,10 @@ TpetraLinearSolver::TpetraLinearSolver(
     mPreLinearSolveTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Pre Linear Solve Setup")),
     mPreconditionerSetupTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Preconditioner Setup")),
     mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Tpetra Linear Solve")),
-    mSolverEndTime(mPreLinearSolveTimer->wallTime())
+    mSolverEndTime(mPreLinearSolveTimer->wallTime()),
+    mDofsPerNode(aDofsPerNode)
 {
-    // mPreLinearSolveTimer->start();
-    if(mSolverParams.isType<int>("Iterations"))
-    {
-        mNumIterations = mSolverParams.get<int>("Iterations");
-    }
-    else
-    {
-        mNumIterations = 100;
-    }
-
-    if(mSolverParams.isType<double>("Tolerance"))
-    {
-        mTolerance = mSolverParams.get<double>("Tolerance");
-    }
-    else
-    {
-        mTolerance = 1e-6;
-    }
-
-    mPreLinearSolveTimer->start();
-
-    std::string tSolverPackage = "belos";
-    if (aSolverParams.isType<std::string>("Solver Package"))
-      tSolverPackage = aSolverParams.get<std::string>("Solver Package");
-    mSolverPackage = Plato::tolower(tSolverPackage);
-
-    std::string tSolver = "";
-    if (aSolverParams.isType<std::string>("Solver"))
-      tSolver = aSolverParams.get<std::string>("Solver");
-    else if (mSolverPackage == "belos")
-      tSolver = "pseudoblock gmres";
-    else if (mSolverPackage == "amesos2")
-      tSolver = "superlu";
-    else
-      throw std::invalid_argument("Solver not specified in input parameter list.\n");
-    mSolver = Plato::tolower(tSolver);
-
-    if (mSolver == "gmres")
-    {
-      mSolver = "pseudoblock gmres";
-      REPORT("Tpetra using 'Pseudoblock GMRES' solver instead of user-specified 'GMRES' since matrix has block structure.")
-    }
-    else if (mSolver == "cg")
-    {
-      mSolver = "pseudoblock cg";
-      REPORT("Tpetra using 'Pseudoblock CG' solver instead of user-specified 'CG' since matrix has block structure.")
-    }
-
-    mDisplayIterations = 0;
-    if (aSolverParams.isType<int>("Display Iterations"))
-      mDisplayIterations = aSolverParams.get<int>("Display Iterations");
-
-    setupSolverOptions(aSolverParams);
-
-    std::string tPreconditionerPackage = "muelu";
-    if (aSolverParams.isType<std::string>("Preconditioner Package"))
-      tPreconditionerPackage = aSolverParams.get<std::string>("Preconditioner Package");
-    mPreconditionerPackage = Plato::tolower(tPreconditionerPackage);
-
-    mPreconditionerType = "Not Set";
-    if (aSolverParams.isType<std::string>("Preconditioner Type"))
-      mPreconditionerType = aSolverParams.get<std::string>("Preconditioner Type");
-    else if (mPreconditionerPackage == "ifpack2")
-      mPreconditionerType = "ILUT";
-
-    setupPreconditionerOptions(aSolverParams);
-
-    bool tPrintSolverParameterLists = false;
-    if (aSolverParams.isType<bool>("Print Solver Parameters"))
-      tPrintSolverParameterLists = aSolverParams.get<bool>("Print Solver Parameters");
-
-    if (tPrintSolverParameterLists)
-    {
-      printf("\n'Linear Solver' Parameter List: \n");
-      aSolverParams.print(std::cout, 2, true);
-      printf("\n'Solver Options' sublist of 'Linear Solver' Parameter List: \n");
-      mSolverOptions.print(std::cout, 2, true);
-      printf("\n'Preconditioner Options' sublist of 'Linear Solver' Parameter List: \n");
-      mPreconditionerOptions.print(std::cout, 2, true);
-    }
-}
-
-void getPrecondTypeAndParameters (std::string& precondType, Teuchos::ParameterList& pl)
-{
-  precondType = "ILUT";
-
-  const double fillLevel = 2.0;
-  const double dropTol = 0.0;
-  const double absThreshold = 0.1;
-
-  pl.set ("fact: ilut level-of-fill", fillLevel);
-  pl.set ("fact: drop tolerance", dropTol);
-  pl.set ("fact: absolute threshold", absThreshold);
+    this->initialize();
 }
 
 template<class TpetraMatrixType>
@@ -498,88 +221,6 @@ createIFpack2Preconditioner (const Teuchos::RCP<const TpetraMatrixType>& A,
   return prec;
 }
 
-
-/******************************************************************************//**
- * \brief TpetraLinearSolver constructor
-
- This constructor creates a new TpetraSystem.
-**********************************************************************************/
-// TpetraLinearSolver::TpetraLinearSolver(
-//     const Teuchos::ParameterList& aSolverParams,
-//     int                     aNumNodes,
-//     Comm::Machine           aMachine,
-//     int                     aDofsPerNode
-// ) : mSystem(Teuchos::rcp( new TpetraSystem(aNumNodes, aMachine, aDofsPerNode))),
-//     mPreLinearSolveTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Pre Linear Solve Setup")),
-//     mPreconditionerSetupTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Preconditioner Setup")),
-//     mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Tpetra Linear Solve")),
-//     mSolverEndTime(mPreLinearSolveTimer->wallTime()),
-//     mDisplayIterations(0),
-//     mDofsPerNode(aDofsPerNode)
-// {
-//   mPreLinearSolveTimer->start();
-
-//   std::string tSolverPackage = "belos";
-//   if(aSolverParams.isType<std::string>("Solver Package"))
-//     tSolverPackage = aSolverParams.get<std::string>("Solver Package");
-//   mSolverPackage = Plato::tolower(tSolverPackage);
-
-//   std::string tSolver = "";
-//   if(aSolverParams.isType<std::string>("Solver"))
-//     tSolver = aSolverParams.get<std::string>("Solver");
-//   else if (mSolverPackage == "belos")
-//     tSolver = "pseudoblock gmres";
-//   else if (mSolverPackage == "amesos2")
-//     tSolver = "superlu";
-//   else
-//     throw std::invalid_argument("Solver not specified in input parameter list.\n");
-//   mSolver = Plato::tolower(tSolver);
-
-//   if (mSolver == "gmres")
-//   {
-//     mSolver = "pseudoblock gmres";
-//     REPORT("Tpetra using 'Pseudoblock GMRES' solver instead of user-specified 'GMRES' since matrix has block structure.")
-//   }
-//   else if (mSolver == "cg")
-//   {
-//     mSolver = "pseudoblock cg";
-//     REPORT("Tpetra using 'Pseudoblock CG' solver instead of user-specified 'CG' since matrix has block structure.")
-//   }
-  
-//   mDisplayIterations = 0;
-//   if(aSolverParams.isType<int>("Display Iterations"))
-//     mDisplayIterations = aSolverParams.get<int>("Display Iterations");
-
-//   setupSolverOptions(aSolverParams);
-
-//   std::string tPreconditionerPackage = "muelu";
-//   if(aSolverParams.isType<std::string>("Preconditioner Package"))
-//     tPreconditionerPackage = aSolverParams.get<std::string>("Preconditioner Package");
-//   mPreconditionerPackage = Plato::tolower(tPreconditionerPackage);
-
-//   mPreconditionerType = "Not Set";
-//   if(aSolverParams.isType<std::string>("Preconditioner Type"))
-//     mPreconditionerType = aSolverParams.get<std::string>("Preconditioner Type");
-//   else if(mPreconditionerPackage == "ifpack2")
-//     mPreconditionerType = "ILUT";
-
-//   setupPreconditionerOptions(aSolverParams);
-
-//   bool tPrintSolverParameterLists = false;
-//   if(aSolverParams.isType<bool>("Print Solver Parameters"))
-//     tPrintSolverParameterLists = aSolverParams.get<bool>("Print Solver Parameters");
-  
-//   if (tPrintSolverParameterLists)
-//   {
-//     printf("\n'Linear Solver' Parameter List: \n");
-//     aSolverParams.print(std::cout, 2, true);
-//     printf("\n'Solver Options' sublist of 'Linear Solver' Parameter List: \n");
-//     mSolverOptions.print(std::cout, 2, true);
-//     printf("\n'Preconditioner Options' sublist of 'Linear Solver' Parameter List: \n");
-//     mPreconditionerOptions.print(std::cout, 2, true);
-//   }
-// }
-
 template<typename T>
 inline void
 TpetraLinearSolver::addDefaultToParameterList (Teuchos::ParameterList &aParams, const std::string &aEntryName, const T &aDefaultValue)
@@ -589,21 +230,64 @@ TpetraLinearSolver::addDefaultToParameterList (Teuchos::ParameterList &aParams, 
 }
 
 void
-TpetraLinearSolver::setupSolverOptions (const Teuchos::ParameterList &aSolverParams) 
+TpetraLinearSolver::setupSolverOptions ()
 {
+  // mPreLinearSolveTimer->start();
+  if(mSolverParams.isType<int>("Iterations"))
+  {
+      mNumIterations = mSolverParams.get<int>("Iterations");
+  }
+  else
+  {
+      mNumIterations = 100;
+  }
+
+  if(mSolverParams.isType<double>("Tolerance"))
+  {
+      mTolerance = mSolverParams.get<double>("Tolerance");
+  }
+  else
+  {
+      mTolerance = 1e-6;
+  }
+
+    mPreLinearSolveTimer->start();
+  std::string tSolver = "";
+  if (mSolverParams.isType<std::string>("Solver"))
+    tSolver = mSolverParams.get<std::string>("Solver");
+  else
+    tSolver = "pseudoblock gmres";
+
+  mSolver = Plato::tolower(tSolver);
+
+  if (mSolver == "gmres")
+  {
+    mSolver = "pseudoblock gmres";
+    REPORT("Tpetra using 'Pseudoblock GMRES' solver instead of user-specified 'GMRES' since matrix has block structure.")
+  }
+  else if (mSolver == "cg")
+  {
+    mSolver = "pseudoblock cg";
+    REPORT("Tpetra using 'Pseudoblock CG' solver instead of user-specified 'CG' since matrix has block structure.")
+  }
+
+  mDisplayIterations = 0;
+  if (mSolverParams.isType<int>("Display Iterations"))
+    mDisplayIterations = mSolverParams.get<int>("Display Iterations");
+
   // Set default values here
   int tMaxIterations = 1000;
   double tTolerance  = 1e-8;
-  if(aSolverParams.isType<int>("Iterations"))
-    tMaxIterations = aSolverParams.get<int>("Iterations");
-  if(aSolverParams.isType<double>("Tolerance"))
-      tTolerance = aSolverParams.get<double>("Tolerance");
+  if(mSolverParams.isType<int>("Iterations"))
+    tMaxIterations = mSolverParams.get<int>("Iterations");
+  if(mSolverParams.isType<double>("Tolerance"))
+      tTolerance = mSolverParams.get<double>("Tolerance");
 
-  if(aSolverParams.isType<Teuchos::ParameterList>("Solver Options"))
-    mSolverOptions = aSolverParams.get<Teuchos::ParameterList>("Solver Options");
+  if(mSolverParams.isType<Teuchos::ParameterList>("Solver Options"))
+    mSolverOptions = mSolverParams.get<Teuchos::ParameterList>("Solver Options");
 
-  if(aSolverParams.isParameter("Display Diagnostics"))
-    mDisplayDiagnostics = aSolverParams.get<bool>("Display Diagnostics");
+  if(mSolverParams.isParameter("Display Diagnostics"))
+    mDisplayDiagnostics = mSolverParams.get<bool>("Display Diagnostics");
   
   this->addDefaultToParameterList(mSolverOptions, "Maximum Iterations",    tMaxIterations);
   this->addDefaultToParameterList(mSolverOptions, "Convergence Tolerance", tTolerance);
@@ -611,19 +295,44 @@ TpetraLinearSolver::setupSolverOptions (const Teuchos::ParameterList &aSolverPar
 
   if (mSolver == "pseudoblock gmres")
     this->addDefaultToParameterList(mSolverOptions, "Num Blocks", tMaxIterations); // This is the number of iterations between restarts
+
+  bool tPrintSolverParameterLists = false;
+  if (mSolverParams.isType<bool>("Print Solver Parameters"))
+    tPrintSolverParameterLists = mSolverParams.get<bool>("Print Solver Parameters");
+
+  if (tPrintSolverParameterLists)
+  {
+    printf("\n'Linear Solver' Parameter List: \n");
+    mSolverParams.print(std::cout, 2, true);
+    printf("\n'Solver Options' sublist of 'Linear Solver' Parameter List: \n");
+    mSolverOptions.print(std::cout, 2, true);
+    printf("\n'Preconditioner Options' sublist of 'Linear Solver' Parameter List: \n");
+    mPreconditionerOptions.print(std::cout, 2, true);
+  }
 }
 
 void
-TpetraLinearSolver::setupPreconditionerOptions (const Teuchos::ParameterList &aSolverParams) 
+TpetraLinearSolver::setupPreconditionerOptions ()
 {
-  if(aSolverParams.isType<Teuchos::ParameterList>("Preconditioner Options"))
-    mPreconditionerOptions = aSolverParams.get<Teuchos::ParameterList>("Preconditioner Options");
+  std::string tPreconditionerPackage = "muelu";
+  if (mSolverParams.isType<std::string>("Preconditioner Package"))
+    tPreconditionerPackage = mSolverParams.get<std::string>("Preconditioner Package");
+  mPreconditionerPackage = Plato::tolower(tPreconditionerPackage);
+
+  mPreconditionerType = "Not Set";
+  if (mSolverParams.isType<std::string>("Preconditioner Type"))
+    mPreconditionerType = mSolverParams.get<std::string>("Preconditioner Type");
+  else if (mPreconditionerPackage == "ifpack2")
+    mPreconditionerType = "ILUT";
+
+  if(mSolverParams.isType<Teuchos::ParameterList>("Preconditioner Options"))
+    mPreconditionerOptions = mSolverParams.get<Teuchos::ParameterList>("Preconditioner Options");
   
   if (mPreconditionerPackage != "muelu") return;
 
   bool tUseSmoothedAggregation = true;
-  if(aSolverParams.isType<bool>("Use Smoothed Aggregation"))
-    tUseSmoothedAggregation = aSolverParams.get<bool>("Use Smoothed Aggregation");
+  if(mSolverParams.isType<bool>("Use Smoothed Aggregation"))
+    tUseSmoothedAggregation = mSolverParams.get<bool>("Use Smoothed Aggregation");
 
   this->addDefaultToParameterList(mPreconditionerOptions, "number of equations", mDofsPerNode); // Same as 'Block Size' above in solver options
   this->addDefaultToParameterList(mPreconditionerOptions, "verbosity", std::string("none"));
@@ -641,8 +350,8 @@ TpetraLinearSolver::setupPreconditionerOptions (const Teuchos::ParameterList &aS
 
   // Setup the smoother for the AMG preconditioner
   std::string tPreconditionerSmoother = "symmetric gs";
-  if(aSolverParams.isType<std::string>("Preconditioner Smoother"))
-    tPreconditionerSmoother = Plato::tolower(aSolverParams.get<std::string>("Preconditioner Smoother"));
+  if(mSolverParams.isType<std::string>("Preconditioner Smoother"))
+    tPreconditionerSmoother = Plato::tolower(mSolverParams.get<std::string>("Preconditioner Smoother"));
 
   this->addDefaultToParameterList(mPreconditionerOptions, "smoother: type", std::string("RELAXATION"));
   Teuchos::ParameterList & tSmootherParams = mPreconditionerOptions.sublist("smoother: params");
@@ -655,33 +364,6 @@ TpetraLinearSolver::setupPreconditionerOptions (const Teuchos::ParameterList &aS
   this->addDefaultToParameterList(tSmootherParams, "relaxation: sweeps", static_cast<int>(2));
   this->addDefaultToParameterList(tSmootherParams, "relaxation: damping factor", static_cast<double>(0.9));
 
-  // These parameters were suggested for the plasticity work but take very long with one MPI rank
-  /*
-  this->addDefaultToParameterList(mPreconditionerOptions, "smoother: type", std::string("SCHWARZ"));
-  Teuchos::ParameterList & tSmootherParams = mPreconditionerOptions.sublist("smoother: params");
-  this->addDefaultToParameterList(tSmootherParams, "schwarz: num iterations", static_cast<int>(1));
-  this->addDefaultToParameterList(tSmootherParams, "schwarz: overlap level", static_cast<int>(1));
-  this->addDefaultToParameterList(tSmootherParams, "schwarz: combine mode", std::string("Zero"));
-  this->addDefaultToParameterList(tSmootherParams, "schwarz: use reordering", false);
-  Teuchos::ParameterList & tSchwarzReorderingParams = tSmootherParams.sublist("schwarz: reordering list");
-  this->addDefaultToParameterList(tSchwarzReorderingParams, "order_method", std::string("rcm"));
-  this->addDefaultToParameterList(tSmootherParams, "subdomain solver name", std::string("RILUK"));
-  Teuchos::ParameterList & tSubdomainSolverParams = tSmootherParams.sublist("subdomain solver parameters");
-  this->addDefaultToParameterList(tSubdomainSolverParams, "fact: iluk level-of-fill", static_cast<int>(0));
-  this->addDefaultToParameterList(tSubdomainSolverParams, "fact: ilut level-of-fill", static_cast<double>(1.0));
-  this->addDefaultToParameterList(tSubdomainSolverParams, "fact: absolute threshold", static_cast<double>(0.0));
-  this->addDefaultToParameterList(tSubdomainSolverParams, "fact: relative threshold", static_cast<double>(1.0));
-  this->addDefaultToParameterList(tSubdomainSolverParams, "fact: relax value", static_cast<double>(0.0));
-  this->addDefaultToParameterList(mPreconditionerOptions, "repartition: enable", false);
-  this->addDefaultToParameterList(mPreconditionerOptions, "repartition: partitioner", std::string("zoltan2"));
-  this->addDefaultToParameterList(mPreconditionerOptions, "repartition: start level", static_cast<int>(2));
-  this->addDefaultToParameterList(mPreconditionerOptions, "repartition: min rows per proc", static_cast<int>(800));
-  this->addDefaultToParameterList(mPreconditionerOptions, "repartition: max imbalance", static_cast<double>(1.1));
-  this->addDefaultToParameterList(mPreconditionerOptions, "repartition: remap parts", false);
-  this->addDefaultToParameterList(mPreconditionerOptions, "repartition: rebalance P and R", false);
-  Teuchos::ParameterList & tRepartitionParams = mPreconditionerOptions.sublist("repartition: params");
-  this->addDefaultToParameterList(tRepartitionParams, "algorithm", std::string("multijagged"));
-  */
 }
 
 template<class MV, class OP>
@@ -715,30 +397,6 @@ TpetraLinearSolver::belosSolve (Teuchos::RCP<const OP> A, Teuchos::RCP<MV> X, Te
   }
 }
 
-void
-TpetraLinearSolver::amesos2Solve (Teuchos::RCP<Tpetra_Matrix> A, Teuchos::RCP<Tpetra_MultiVector> X, Teuchos::RCP<Tpetra_MultiVector> B) 
-{
-  Teuchos::TimeMonitor LocalTimer(*mLinearSolverTimer);
-  
-  if( Amesos2::query(mSolver) )
-  {
-    Teuchos::RCP<Amesos2::Solver<Tpetra_Matrix, Tpetra_MultiVector>> tAmesos2Solver =
-                 Amesos2::create<Tpetra_Matrix, Tpetra_MultiVector>(mSolver, A, X, B);
-    tAmesos2Solver->symbolicFactorization();
-    tAmesos2Solver->numericFactorization();
-    tAmesos2Solver->solve();
-    mNumIterations = 1;
-    mAchievedTolerance = 0.0;
-  }
-  else
-  {
-    const std::string tErrorMessage = std::string("The specified Amesos2 solver '") + mSolver 
-                                    + "' is not currently enabled. Typical options (if compiled with): "
-                                    + "{'superlu','superlu_dist','klu2','mumps','umfpack'}";
-    ANALYZE_THROWERR(tErrorMessage)
-  }
-}
-
 /******************************************************************************//**
  * \brief Solve the linear system
 **********************************************************************************/
@@ -760,32 +418,22 @@ TpetraLinearSolver::innerSolve(
 
   Teuchos::RCP<Tpetra_Operator> M;
 
-  if(mSolverPackage == "belos")
-  {
-    mPreconditionerSetupTimer->start();
-    if(mPreconditionerPackage == "ifpack2")
-      M = createIFpack2Preconditioner<Tpetra_Matrix> (A, mPreconditionerType, mPreconditionerOptions);
-    else if(mPreconditionerPackage == "muelu")
-      M = MueLu::CreateTpetraPreconditioner(static_cast<Teuchos::RCP<Tpetra_Operator>>(A), mPreconditionerOptions);
-    else
-    {
-      std::string tInvalid_solver = "Preconditioner Package " + mPreconditionerPackage 
-                                  + " is not currently a valid option. Valid options: ('ifpack2', 'muelu')\n";
-      throw std::invalid_argument(tInvalid_solver);
-    }
-    mPreconditionerSetupTimer->stop(); mPreconditionerSetupTimer->incrementNumCalls(); 
-  }
-
-  if(mSolverPackage == "belos")
-    belosSolve<Tpetra_MultiVector, Tpetra_Operator> (A, X, B, M);
-  else if (mSolverPackage == "amesos2")
-    amesos2Solve(A, X, B);
+  mPreconditionerSetupTimer->start();
+  if(mPreconditionerPackage == "ifpack2")
+    M = createIFpack2Preconditioner<Tpetra_Matrix> (A, mPreconditionerType, mPreconditionerOptions);
+  else if(mPreconditionerPackage == "muelu")
+    M = MueLu::CreateTpetraPreconditioner(static_cast<Teuchos::RCP<Tpetra_Operator>>(A), mPreconditionerOptions);
   else
   {
-    std::string tInvalid_solver = "Solver Package " + mSolverPackage 
-                                + " is not currently a valid option. Valid options: ('belos','amesos2')\n";
+    std::string tInvalid_solver = "Preconditioner Package " + mPreconditionerPackage 
+                                + " is not currently a valid option. Valid options: ('ifpack2', 'muelu')\n";
     throw std::invalid_argument(tInvalid_solver);
   }
+  mPreconditionerSetupTimer->stop();
+  mPreconditionerSetupTimer->incrementNumCalls(); 
+
+  belosSolve<Tpetra_MultiVector, Tpetra_Operator> (A, X, B, M);
+
   mSystem->toVector(aX,X);
 
   mSolverEndTime = mPreLinearSolveTimer->wallTime();
