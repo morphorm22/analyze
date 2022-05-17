@@ -14,6 +14,7 @@
 #include "PlatoMesh.hpp"
 #include "AnalyzeMacros.hpp"
 #include "Mechanics.hpp"
+#include "Thermal.hpp"
 #include "Hex8.hpp"
 #include "Hex27.hpp"
 #include "Quad4.hpp"
@@ -266,7 +267,6 @@ create_stabilized_mechanical_problem
 * \param [in] aMachine   mpi communicator interface
 * \returns shared pointer to abstract problem of type thermal
 **********************************************************************************/
-template<Plato::OrdinalType SpatialDim>
 inline
 std::shared_ptr<Plato::AbstractProblem>
 create_thermal_problem
@@ -286,9 +286,7 @@ create_thermal_problem
 #ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
     {
-// TODO        auto tOutput = std::make_shared < Plato::Elliptic::Problem<::Plato::Thermal<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
-// TODO        tOutput->readEssentialBoundaryConditions(aPlatoProb);
-// TODO        return tOutput;
+        return makeProblem<Plato::Elliptic::Problem, Plato::Thermal>(aMesh, aPlatoProb, aMachine);
     }
     else
 #endif
@@ -508,7 +506,7 @@ public:
 #endif
         else if(tLowerPhysics == "thermal")
         {
-// TODO            return ( Plato::create_thermal_problem<SpatialDim>(aMesh, tInputData, aMachine) );
+            return ( Plato::create_thermal_problem(aMesh, tInputData, aMachine) );
         }
         else
         if(tLowerPhysics == "electromechanical")

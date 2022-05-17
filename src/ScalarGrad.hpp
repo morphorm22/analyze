@@ -23,15 +23,15 @@ public:
      * \param [in] aScalarField scalar field workset
      * \param [in] aGradient configuration gradient workset
      **********************************************************************************/
-    template<typename StateScalarType, typename ConfigScalarType>
+    template<typename OutputScalarType, typename StateScalarType, typename ConfigScalarType>
     DEVICE_TYPE inline void
     operator()(
-      Plato::OrdinalType                                                  aCellOrdinal,
-            Plato::Array<ElementType::mNumSpatialDims, StateScalarType> & aOutput,
-            Plato::ScalarMultiVectorT<StateScalarType>                    aScalarField,
+      Plato::OrdinalType                                                   aCellOrdinal,
+            Plato::Array<ElementType::mNumSpatialDims, OutputScalarType> & aOutput,
+            Plato::ScalarMultiVectorT<StateScalarType>                     aScalarField,
       const Plato::Matrix<ElementType::mNumNodesPerCell,
                           ElementType::mNumSpatialDims,
-                          ConfigScalarType>                             & aGradient
+                          ConfigScalarType>                              & aGradient
     ) const
     {
         // compute scalar gradient

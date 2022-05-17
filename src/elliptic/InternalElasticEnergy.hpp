@@ -12,10 +12,6 @@
 #include "ImplicitFunctors.hpp"
 #include "ExpInstMacros.hpp"
 #include "ToMap.hpp"
-#include "Simp.hpp"
-#include "Ramp.hpp"
-#include "Heaviside.hpp"
-#include "NoPenalty.hpp"
 #include "UtilsTeuchos.hpp"
 
 

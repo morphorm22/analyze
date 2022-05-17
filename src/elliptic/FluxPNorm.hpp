@@ -3,19 +3,13 @@
 
 #include "elliptic/AbstractScalarFunction.hpp"
 
+#include "FadTypes.hpp"
 #include "ScalarGrad.hpp"
 #include "ThermalFlux.hpp"
 #include "VectorPNorm.hpp"
-#include "SimplexThermal.hpp"
 #include "ApplyWeighting.hpp"
-#include "SimplexFadTypes.hpp"
-#include "ThermalConductivityMaterial.hpp"
 #include "ImplicitFunctors.hpp"
-#include "Simp.hpp"
-#include "Ramp.hpp"
-#include "Heaviside.hpp"
-#include "NoPenalty.hpp"
-#include "LinearTetCubRuleDegreeOne.hpp"
+#include "ThermalConductivityMaterial.hpp"
 
 #include "ExpInstMacros.hpp"
 
@@ -28,15 +22,17 @@ namespace Elliptic
 /******************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
 class FluxPNorm : 
-  public Plato::SimplexThermal<EvaluationType::SpatialDim>,
+  public EvaluationType::ElementType,
   public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
 /******************************************************************************/
 {
   private:
-    static constexpr int SpaceDim = EvaluationType::SpatialDim;
-    
-    using Plato::Simplex<SpaceDim>::mNumNodesPerCell;
-    using Plato::SimplexThermal<SpaceDim>::mNumDofsPerCell;
+    using ElementType = typename EvaluationType::ElementType;
+
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumDofsPerNode;
+    using ElementType::mNumDofsPerCell;
+    using ElementType::mNumSpatialDims;
 
     using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mSpatialDomain;
     using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mDataMap;
@@ -47,10 +43,9 @@ class FluxPNorm :
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
     IndicatorFunctionType mIndicatorFunction;
-    Plato::ApplyWeighting<SpaceDim,SpaceDim,IndicatorFunctionType> mApplyWeighting;
+    Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyWeighting;
 
-    std::shared_ptr<Plato::LinearTetCubRuleDegreeOne<SpaceDim>> mCubatureRule;
-    Teuchos::RCP<Plato::MaterialModel<SpaceDim>> mMaterialModel;
+    Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mMaterialModel;
 
     Plato::OrdinalType mExponent;
 
@@ -63,13 +58,12 @@ class FluxPNorm :
               Teuchos::ParameterList & aPenaltyParams,
               std::string              aFunctionName
     ) :
-        Plato::Elliptic::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aFunctionName),
+        Plato::Elliptic::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aProblemParams, aFunctionName),
         mIndicatorFunction(aPenaltyParams),
-        mApplyWeighting(mIndicatorFunction),
-        mCubatureRule(std::make_shared<Plato::LinearTetCubRuleDegreeOne<SpaceDim>>())
+        mApplyWeighting(mIndicatorFunction)
     /**************************************************************************/
     {
-      Plato::ThermalConductionModelFactory<SpaceDim> mmfactory(aProblemParams);
+      Plato::ThermalConductionModelFactory<mNumSpatialDims> mmfactory(aProblemParams);
       mMaterialModel = mmfactory.create(mSpatialDomain.getMaterialName());
 
       auto params = aProblemParams.sublist("Criteria").get<Teuchos::ParameterList>(aFunctionName);
@@ -78,7 +72,7 @@ class FluxPNorm :
     }
 
     /**************************************************************************/
-    void evaluate(
+    void evaluate_conditional(
         const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
@@ -87,53 +81,59 @@ class FluxPNorm :
     ) const
     /**************************************************************************/
     {
-      auto numCells = mSpatialDomain.numCells();
+      using GradScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
-      Plato::ComputeGradientWorkset<SpaceDim> computeGradient;
-      Plato::ScalarGrad<SpaceDim>             scalarGrad;
-      Plato::ThermalFlux<SpaceDim>            thermalFlux(mMaterialModel);
-      Plato::VectorPNorm<SpaceDim>            vectorPNorm;
+      auto tNumCells = mSpatialDomain.numCells();
 
-      using GradScalarType =
-        typename Plato::fad_type_t<Plato::SimplexThermal<EvaluationType::SpatialDim>,StateScalarType, ConfigScalarType>;
+      Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
+      Plato::ScalarGrad<ElementType>            tScalarGrad;
+      Plato::ThermalFlux<ElementType>           thermalFlux(mMaterialModel);
+      Plato::VectorPNorm<mNumSpatialDims>       tVectorPNorm;
 
-      Plato::ScalarVectorT<ConfigScalarType>
-        cellVolume("cell weight",numCells);
+      Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode> tInterpolateFromNodal;
 
-      Kokkos::View<GradScalarType**, Plato::Layout, Plato::MemSpace>
-        tgrad("temperature gradient",numCells,SpaceDim);
+      auto tCubPoints = ElementType::getCubPoints();
+      auto tCubWeights = ElementType::getCubWeights();
+      auto tNumPoints = tCubWeights.size();
 
-      Kokkos::View<ConfigScalarType***, Plato::Layout, Plato::MemSpace>
-        gradient("gradient",numCells,mNumNodesPerCell,SpaceDim);
-
-      Kokkos::View<ResultScalarType**, Plato::Layout, Plato::MemSpace>
-        tflux("thermal flux",numCells,SpaceDim);
-
-      auto tQuadratureWeight = mCubatureRule->getCubWeight();
-      auto& applyWeighting  = mApplyWeighting;
-      auto exponent         = mExponent;
-      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), LAMBDA_EXPRESSION(const int & aCellOrdinal)
+      auto& tApplyWeighting = mApplyWeighting;
+      auto tExponent        = mExponent;
+      Kokkos::parallel_for("thermal energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-        computeGradient(aCellOrdinal, gradient, aConfig, cellVolume);
-        cellVolume(aCellOrdinal) *= tQuadratureWeight;
+          ConfigScalarType tVolume(0.0);
 
-        // compute temperature gradient
-        //
-        scalarGrad(aCellOrdinal, tgrad, aState, gradient);
+          Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, ConfigScalarType> tGradient;
 
-        // compute flux
-        //
-        thermalFlux(aCellOrdinal, tflux, tgrad);
+          Plato::Array<ElementType::mNumSpatialDims, GradScalarType> tGrad(0.0);
+          Plato::Array<ElementType::mNumSpatialDims, ResultScalarType> tFlux(0.0);
 
-        // apply weighting
-        //
-        applyWeighting(aCellOrdinal, tflux, aControl);
+          auto tCubPoint = tCubPoints(iGpOrdinal);
+          auto tBasisValues = ElementType::basisValues(tCubPoint);
+
+          tComputeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
+
+          tVolume *= tCubWeights(iGpOrdinal);
+
+          // compute temperature gradient
+          //
+          tScalarGrad(iCellOrdinal, tGrad, aState, tGradient);
+
+          // compute flux
+          //
+          StateScalarType tTemperature(0.0);
+          tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState, tTemperature);
+          thermalFlux(tFlux, tGrad, tTemperature);
+
+          // apply weighting
+          //
+          tApplyWeighting(iCellOrdinal, aControl, tBasisValues, tFlux);
     
-        // compute vector p-norm of flux
-        //
-        vectorPNorm(aCellOrdinal, aResult, tflux, exponent, cellVolume);
+          // compute vector p-norm of flux
+          //
+          tVectorPNorm(iCellOrdinal, aResult, tFlux, tExponent, tVolume);
 
-      },"Flux P-norm");
+      });
     }
 
     /**************************************************************************/
@@ -166,15 +166,15 @@ class FluxPNorm :
 } // namespace Plato
 
 #ifdef PLATOANALYZE_1D
-PLATO_EXPL_DEC(Plato::Elliptic::FluxPNorm, Plato::SimplexThermal, 1)
+//PLATO_EXPL_DEC(Plato::Elliptic::FluxPNorm, Plato::SimplexThermal, 1)
 #endif
 
 #ifdef PLATOANALYZE_2D
-PLATO_EXPL_DEC(Plato::Elliptic::FluxPNorm, Plato::SimplexThermal, 2)
+//PLATO_EXPL_DEC(Plato::Elliptic::FluxPNorm, Plato::SimplexThermal, 2)
 #endif
 
 #ifdef PLATOANALYZE_3D
-PLATO_EXPL_DEC(Plato::Elliptic::FluxPNorm, Plato::SimplexThermal, 3)
+//PLATO_EXPL_DEC(Plato::Elliptic::FluxPNorm, Plato::SimplexThermal, 3)
 #endif
 
 #endif

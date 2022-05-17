@@ -29,7 +29,7 @@ class Tet4
     getCubPoints()
     {
         return Plato::Matrix<1,mNumSpatialDims>({
-            Plato::Scalar(1.0)/3, Plato::Scalar(1.0)/3, Plato::Scalar(1.0)/3
+            Plato::Scalar(1.0)/4, Plato::Scalar(1.0)/4, Plato::Scalar(1.0)/4
         });
     }
 

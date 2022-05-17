@@ -174,6 +174,8 @@ public:
 
       Plato::LinearStress<EvaluationType, ElementType> computeVoigtStress(mMaterialModel);
 
+      Plato::ScalarVectorT<ConfigScalarType> tCellVolume("volume", tNumCells);
+
       Plato::ScalarMultiVectorT<StrainScalarType> tCellStrain("strain", tNumCells, mNumVoigtTerms);
       Plato::ScalarMultiVectorT<ResultScalarType> tCellStress("stress", tNumCells, mNumVoigtTerms);
 
@@ -213,6 +215,7 @@ public:
               Kokkos::atomic_add(&tCellStrain(iCellOrdinal,i), tVolume*tStrain(i));
               Kokkos::atomic_add(&tCellStress(iCellOrdinal,i), tVolume*tStress(i));
           }
+          Kokkos::atomic_add(&tCellVolume(iCellOrdinal), tVolume);
       });
 
 // TODO
@@ -249,6 +252,16 @@ public:
 //        // compute stress divergence
 //        tComputeStressDivergence(aCellOrdinal, aResult, tStress, tGradient, tCellVolume);
 //      }, "Apply weighting and compute divergence");
+
+      Kokkos::parallel_for("compute cell quantities", Kokkos::RangePolicy<>(0, tNumCells),
+      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal)
+      {
+          for(int i=0; i<ElementType::mNumVoigtTerms; i++)
+          {
+              tCellStrain(iCellOrdinal,i) /= tCellVolume(iCellOrdinal);
+              tCellStress(iCellOrdinal,i) /= tCellVolume(iCellOrdinal);
+          }
+      });
 
       if( mBodyLoads != nullptr )
       {

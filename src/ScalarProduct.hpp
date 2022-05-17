@@ -59,7 +59,8 @@ class ScalarProduct
       for( Plato::OrdinalType iTerm=0; iTerm<NumTerms; iTerm++){
         tInc += aArray1(iTerm)*aArray2(iTerm);
       }
-      Kokkos::atomic_add(&aScalarProduct(aCellOrdinal), aScale*tInc*aCellVolume);
+      ProductScalarType tProduct = aScale*tInc*aCellVolume;
+      Kokkos::atomic_add(&aScalarProduct(aCellOrdinal), tProduct);
     }
 
     template<typename ProductScalarType, 

@@ -16,7 +16,7 @@ namespace Plato {
 **********************************************************************************/
 template <typename ViewType>
 typename ViewType::HostMirror
-get(ViewType aView)
+get(const ViewType & aView)
 {
     using RetType = typename ViewType::HostMirror;
     RetType tView = Kokkos::create_mirror(aView);
@@ -52,7 +52,20 @@ Teuchos::RCP<Tpetra_Matrix>
 TpetraSystem::fromMatrix(Plato::CrsMatrix<Plato::OrdinalType> aInMatrix) const
 {
   Teuchos::TimeMonitor LocalTimer(*mMatrixConversionTimer);
-  auto tRetVal = Teuchos::rcp(new Tpetra_Matrix(mMap, 500));
+
+  Plato::OrdinalType tMaxColSize = 0;
+  {
+    auto tRowMap = aInMatrix.rowMap();
+    const Plato::OrdinalType tSize = tRowMap.size() - 1; // rowmap is num rows + 1
+
+    Kokkos::Max<Plato::OrdinalType> tMaxReducer(tMaxColSize);
+    Kokkos::parallel_reduce("KokkosReductionOperations::max", Kokkos::RangePolicy<>(0, tSize),
+    KOKKOS_LAMBDA(const OrdinalType & aIndex, Plato::OrdinalType & aValue){
+      tMaxReducer.join(aValue, tRowMap[aIndex+1] - tRowMap[aIndex]);
+    }, tMaxReducer);
+  }
+
+  auto tRetVal = Teuchos::rcp(new Tpetra_Matrix(mMap, tMaxColSize*aInMatrix.numColsPerBlock()));
 
   auto tNumRowsPerBlock = aInMatrix.numRowsPerBlock();
   auto tNumColsPerBlock = aInMatrix.numColsPerBlock();

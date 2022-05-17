@@ -1,34 +1,31 @@
-#ifndef SIMPLEX_THERMAL_HPP
-#define SIMPLEX_THERMAL_HPP
+#pragma once
 
-#include "Simplex.hpp"
+#include "ElementBase.hpp"
 
 namespace Plato
 {
 
 /******************************************************************************/
-/*! Base class for simplex-based thermal
+/*! Base class for thermal element
 */
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-class SimplexThermal : public Plato::Simplex<SpaceDim>
+template<typename TopoElementTypeT, Plato::OrdinalType NumControls = 1>
+class ThermalElement : public TopoElementTypeT, public ElementBase<TopoElementTypeT>
 { 
   public:
-    using Plato::Simplex<SpaceDim>::mNumNodesPerCell;
-    using Plato::Simplex<SpaceDim>::mNumSpatialDims;
+    using TopoElementTypeT::mNumNodesPerCell;
+    using TopoElementTypeT::mNumSpatialDims;
+
+    using TopoElementType = TopoElementTypeT;
 
     static constexpr Plato::OrdinalType mNumDofsPerNode  = 1;
     static constexpr Plato::OrdinalType mNumDofsPerCell  = mNumDofsPerNode*mNumNodesPerCell;
 
-    static constexpr Plato::OrdinalType mNumControl = 1;  // for now, only one control field allowed.
+    static constexpr Plato::OrdinalType mNumControl = NumControls;
 
     static constexpr Plato::OrdinalType mNumNodeStatePerNode = 0;
-
     static constexpr Plato::OrdinalType mNumLocalDofsPerCell = 0;
 
 };
-// class SimplexThermal
 
-} // namespace Plato
-
-#endif
+}
