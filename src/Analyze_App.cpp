@@ -921,7 +921,6 @@ void MPMD_App::ComputeCriterionP::operator()()
 #endif
 }
 
-
 /******************************************************************************/
 MPMD_App::ComputeCriterionValue::
 ComputeCriterionValue(MPMD_App* aMyApp, Plato::InputData& aOpNode, Teuchos::RCP<ProblemDefinition> aOpDef) :
@@ -1591,7 +1590,6 @@ void MPMD_App::importData(const std::string& aName, const Plato::SharedData& aSh
     }
     this->importDataT(aName, aSharedField);
 }
-
 
 /******************************************************************************/
 void MPMD_App::exportData(const std::string& aName, Plato::SharedData& aSharedField)
