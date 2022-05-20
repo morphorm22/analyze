@@ -189,7 +189,6 @@ private:
         return true;
     }
 
-
     /******************************************************************************//**
      * \brief Create a least squares function for all mass properties (inertia about gold CG)
      * \param [in] aSpatialModel Plato Analyze spatial model
