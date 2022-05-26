@@ -239,7 +239,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3D)
     TEST_FLOATING_EQUALITY(tGoldValue, tObjFuncVal, tTolerance);
 }
 
-
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3DNormalized)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
@@ -304,7 +303,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3DNormalized)
     constexpr Plato::Scalar tTolerance = 1e-4;
     TEST_FLOATING_EQUALITY(tGoldValue, tObjFuncVal, tTolerance);
 }
-
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesGradZ_3D)
 {
