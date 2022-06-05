@@ -73,7 +73,7 @@ public:
         // get integrand values at quadrature points
         //
         Plato::ScalarMultiVectorT<ConfigScalarType> tFxnValues("function values", tNumCells*tNumPoints, 1);
-        Plato:: getFunctionValues<mSpaceDim>(tPhysicalPoints, mFuncString, tFxnValues);
+        Plato::getFunctionValues<mSpaceDim>(tPhysicalPoints, mFuncString, tFxnValues);
 
         // integrate and assemble
         //

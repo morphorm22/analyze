@@ -7,9 +7,9 @@
 
 #include "elliptic/AbstractScalarFunction.hpp"
 #include "elliptic/ElastostaticResidual.hpp"
+#include "elliptic/StressPNorm.hpp"
 #ifdef NOPE
 #include "elliptic/Volume.hpp"
-#include "elliptic/StressPNorm.hpp"
 #include "elliptic/EffectiveEnergy.hpp"
 #include "elliptic/VolumeIntegralCriterion.hpp"
 #include "elliptic/VolAvgStressPNormDenominator.hpp"
@@ -275,12 +275,12 @@ struct FunctionFactory
             return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::InternalElasticEnergy>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
-#ifdef NOPE
         else if(tLowerFuncType == "stress p-norm")
         {
-            return Plato::MechanicsFactory::makeScalarFunction<EvaluationType, Plato::Elliptic::StressPNorm>
+            return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::StressPNorm>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
+#ifdef NOPE
         else if(tLowerFuncType == "vol avg stress p-norm denominator")
         {
             return Plato::MechanicsFactory::makeScalarFunction<EvaluationType, Plato::Elliptic::VolAvgStressPNormDenominator>
