@@ -6,11 +6,7 @@
 #include "PlatoStaticsTypes.hpp"
 #include "geometric/EvaluationTypes.hpp"
 #include "geometric/AbstractScalarFunction.hpp"
-#include "Simp.hpp"
-#include "Ramp.hpp"
-#include "Heaviside.hpp"
 #include "ExpInstMacros.hpp"
-#include "NoPenalty.hpp"
 
 namespace Plato
 {
@@ -72,7 +68,7 @@ class Volume :
 
         auto& tApplyWeighting = mApplyWeighting;
 
-        Kokkos::parallel_for("compute stress", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        Kokkos::parallel_for("compute volume", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
         LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
             auto tCubPoint  = tCubPoints(iGpOrdinal);

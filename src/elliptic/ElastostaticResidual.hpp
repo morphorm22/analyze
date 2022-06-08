@@ -63,10 +63,10 @@ private:
 
     IndicatorFunctionType mIndicatorFunction;
     Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, IndicatorFunctionType> mApplyWeighting;
+    Plato::CellForcing<ElementType> mCellForcing;
 
     std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
     std::shared_ptr<Plato::NaturalBCs<ElementType>> mBoundaryLoads;
-    std::shared_ptr<Plato::CellForcing<mNumVoigtTerms>> mCellForcing;
 
     Teuchos::RCP<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterialModel;
 
@@ -90,8 +90,7 @@ public:
         mIndicatorFunction (aPenaltyParams),
         mApplyWeighting    (mIndicatorFunction),
         mBodyLoads         (nullptr),
-        mBoundaryLoads     (nullptr),
-        mCellForcing       (nullptr)
+        mBoundaryLoads     (nullptr)
     {
         // obligatory: define dof names in order
         mDofNames.push_back("displacement X");
@@ -121,7 +120,8 @@ public:
         if(aProblemParams.isSublist("Cell Problem Forcing"))
         {
             Plato::OrdinalType tColumnIndex = aProblemParams.sublist("Cell Problem Forcing").get<Plato::OrdinalType>("Column Index");
-            mCellForcing = std::make_shared<Plato::CellForcing<mNumVoigtTerms>>(mMaterialModel->getStiffnessMatrix(), tColumnIndex);
+            mCellForcing.setCellStiffness(mMaterialModel->getStiffnessMatrix());
+            mCellForcing.setColumnIndex(tColumnIndex);
         }
 
         auto tResidualParams = aProblemParams.sublist("Elliptic");
@@ -184,6 +184,7 @@ public:
       auto tNumPoints = tCubWeights.size();
 
       auto& applyWeighting = mApplyWeighting;
+      auto& cellForcing = mCellForcing;
     
       Kokkos::parallel_for("compute stress", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
       LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
@@ -203,6 +204,8 @@ public:
 
           computeVoigtStress(tStress, tStrain);
 
+          cellForcing(tStress);
+
           tVolume *= tCubWeights(iGpOrdinal);
 
           auto tBasisValues = ElementType::basisValues(tCubPoint);
@@ -217,41 +220,6 @@ public:
           }
           Kokkos::atomic_add(&tCellVolume(iCellOrdinal), tVolume);
       });
-
-// TODO
-//      if( mCellForcing != nullptr )
-//      {
-//          mCellForcing->add( tStress );
-//      }
-
-
-//      auto tQuadratureWeight = mCubatureRule->getCubWeight();
-//      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
-//      {
-//        tComputeGradient(aCellOrdinal, tGradient, aConfig, tCellVolume);
-//        tCellVolume(aCellOrdinal) *= tQuadratureWeight;
-//
-//        // compute strain
-//        tComputeVoigtStrain(aCellOrdinal, tStrain, aState, tGradient);
-//    
-//        // compute stress
-//        tComputeVoigtStress(aCellOrdinal, tStress, tStrain);
-//      }, "Cauchy stress");
-//
-//      if( mCellForcing != nullptr )
-//      {
-//          mCellForcing->add( tStress );
-//      }
-//
-//      auto& tApplyWeighting = mApplyWeighting;
-//      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
-//      {
-//        // apply weighting
-//        tApplyWeighting(aCellOrdinal, tStress, aControl);
-//    
-//        // compute stress divergence
-//        tComputeStressDivergence(aCellOrdinal, aResult, tStress, tGradient, tCellVolume);
-//      }, "Apply weighting and compute divergence");
 
       Kokkos::parallel_for("compute cell quantities", Kokkos::RangePolicy<>(0, tNumCells),
       LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal)

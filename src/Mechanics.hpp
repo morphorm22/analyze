@@ -8,9 +8,9 @@
 #include "elliptic/AbstractScalarFunction.hpp"
 #include "elliptic/ElastostaticResidual.hpp"
 #include "elliptic/StressPNorm.hpp"
-#ifdef NOPE
-#include "elliptic/Volume.hpp"
 #include "elliptic/EffectiveEnergy.hpp"
+#include "elliptic/Volume.hpp"
+#ifdef NOPE
 #include "elliptic/VolumeIntegralCriterion.hpp"
 #include "elliptic/VolAvgStressPNormDenominator.hpp"
 #include "elliptic/VolumeAverageCriterionDenominator.hpp"
@@ -280,15 +280,20 @@ struct FunctionFactory
             return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::StressPNorm>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
+        else if(tLowerFuncType == "effective energy")
+        {
+            return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::EffectiveEnergy>
+                (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
+        }
+        else if(tLowerFuncType == "volume")
+        {
+            return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::Volume>
+                (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
+        }
 #ifdef NOPE
         else if(tLowerFuncType == "vol avg stress p-norm denominator")
         {
             return Plato::MechanicsFactory::makeScalarFunction<EvaluationType, Plato::Elliptic::VolAvgStressPNormDenominator>
-                (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
-        }
-        else if(tLowerFuncType == "effective energy")
-        {
-            return Plato::MechanicsFactory::makeScalarFunction<EvaluationType, Plato::Elliptic::EffectiveEnergy>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else if(tLowerFuncType == "stress constraint")
@@ -310,11 +315,6 @@ struct FunctionFactory
         {
             return std::make_shared<Plato::IntermediateDensityPenalty<EvaluationType>>
                        (aSpatialDomain, aDataMap, aProblemParams.sublist("Criteria"), aFuncName);
-        }
-        else if(tLowerFuncType == "volume")
-        {
-            return Plato::MechanicsFactory::makeScalarFunction<EvaluationType, Plato::Elliptic::Volume>
-                       (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else if (tLowerFuncType == "volume average criterion numerator")
         {
