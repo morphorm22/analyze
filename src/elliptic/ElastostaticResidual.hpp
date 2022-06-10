@@ -281,11 +281,13 @@ public:
     ) const
     {
             auto tNumCells = aSpatialDomain.numCells();
-            Plato::VonMisesYieldFunction<mNumSpatialDims> tComputeVonMises;
+            Plato::VonMisesYieldFunction<mNumSpatialDims, mNumVoigtTerms> tComputeVonMises;
             Plato::ScalarVectorT<ResultScalarType> tVonMises("Von Mises", tNumCells);
             Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
             {
-                tComputeVonMises(aCellOrdinal, aCauchyStress, tVonMises);
+                ResultScalarType tCellVonMises(0);
+                tComputeVonMises(aCellOrdinal, aCauchyStress, tCellVonMises);
+                tVonMises(aCellOrdinal) = tCellVonMises;
             }, "Compute VonMises Stress");
 
             Plato::toMap(mDataMap, tVonMises, "Vonmises", aSpatialDomain);

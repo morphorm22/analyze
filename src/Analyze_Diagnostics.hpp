@@ -15,7 +15,7 @@
 #include "geometric/ScalarFunctionBase.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
 #include "elliptic/ScalarFunctionBase.hpp"
-#include "LocalVectorFunctionInc.hpp"
+//TODO #include "LocalVectorFunctionInc.hpp"
 #include "ImplicitFunctors.hpp"
 #include "TimeData.hpp"
 
@@ -233,7 +233,7 @@ inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::AbstractScala
     constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
 
     // Create configuration workset
-    Plato::WorksetBase<Plato::ElementTypecs<tSpaceDim>> tWorksetBase(aMesh);
+    Plato::WorksetBase<ElementType> tWorksetBase(aMesh);
     Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
     tWorksetBase.worksetConfig(tConfigWS);
 
@@ -648,6 +648,7 @@ control_workset_matrix_vector_multiply(const Plato::ScalarArray3D & aWorkset,
     return tResult;
 }
 
+#ifdef NOPE
 /******************************************************************************//**
  * \brief Test partial derivative with respect to the global state variables
  * \param [in] aMesh mesh database
@@ -1330,5 +1331,7 @@ test_partial_local_vect_func_inc_wrt_control(Plato::Mesh aMesh, Plato::LocalVect
     }
 }
 // function test_partial_local_state
+
+#endif
 
 }

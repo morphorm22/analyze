@@ -10,16 +10,16 @@
 #include "elliptic/StressPNorm.hpp"
 #include "elliptic/EffectiveEnergy.hpp"
 #include "elliptic/Volume.hpp"
-#ifdef NOPE
 #include "elliptic/VolumeIntegralCriterion.hpp"
-#include "elliptic/VolAvgStressPNormDenominator.hpp"
 #include "elliptic/VolumeAverageCriterionDenominator.hpp"
+#include "TensileEnergyDensityLocalMeasure.hpp"
+#include "VonMisesLocalMeasure.hpp"
+#ifdef NOPE
+#include "elliptic/VolAvgStressPNormDenominator.hpp"
 #include "Plato_AugLagStressCriterionQuadratic.hpp"
 #include "Plato_AugLagStressCriterionGeneral.hpp"
 #include "Plato_AugLagStressCriterion.hpp"
 #include "AbstractLocalMeasure.hpp"
-#include "VonMisesLocalMeasure.hpp"
-#include "TensileEnergyDensityLocalMeasure.hpp"
 #include "IntermediateDensityPenalty.hpp"
 #endif
 
@@ -35,14 +35,13 @@ namespace Plato
 namespace MechanicsFactory
 {
 
-#ifdef NOPE
   /******************************************************************************//**
    * \brief Create a local measure for use in augmented lagrangian quadratic
    * \param [in] aProblemParams input parameters
    * \param [in] aFuncName scalar function name
   **********************************************************************************/
   template <typename EvaluationType>
-  inline std::shared_ptr<Plato::AbstractLocalMeasure<EvaluationType,Plato::SimplexMechanics<EvaluationType::SpatialDim>>> 
+  inline std::shared_ptr<Plato::AbstractLocalMeasure<EvaluationType>>
   create_local_measure(
       const Plato::SpatialDomain   & aSpatialDomain,
             Teuchos::ParameterList & aProblemParams,
@@ -54,12 +53,12 @@ namespace MechanicsFactory
       auto tLowerLocalMeasT = Plato::tolower(tLocalMeasure);
       if(tLowerLocalMeasT == "vonmises")
       {
-          return std::make_shared<VonMisesLocalMeasure<EvaluationType, Plato::SimplexMechanics<EvaluationType::SpatialDim>>>
+          return std::make_shared<VonMisesLocalMeasure<EvaluationType>>
               (aSpatialDomain, aProblemParams, "VonMises");
       }
       else if(tLowerLocalMeasT == "tensileenergydensity")
       {
-          return std::make_shared<TensileEnergyDensityLocalMeasure<EvaluationType, Plato::SimplexMechanics<EvaluationType::SpatialDim>>>
+          return std::make_shared<TensileEnergyDensityLocalMeasure<EvaluationType>>
               (aSpatialDomain, aProblemParams, "TensileEnergyDensity");
       }
       else
@@ -67,7 +66,6 @@ namespace MechanicsFactory
           ANALYZE_THROWERR("Unknown 'Local Measure' specified in 'Plato Problem' ParameterList")
       }
   }
-#endif // NOPE
 
 
 #ifdef NOPE
@@ -142,6 +140,7 @@ stress_constraint_quadratic(
     return (tOutput);
 }
 
+#endif 
 
 /******************************************************************************//**
  * \brief Create the numerator of the volume average criterion (i.e. a volume integral criterion)
@@ -160,19 +159,16 @@ volume_integral_criterion_for_volume_average(
 {
     auto tLocalMeasure = Plato::MechanicsFactory::create_local_measure<EvaluationType>(aSpatialDomain, aProblemParams, aFuncName);
 
-    using SimplexT = Plato::SimplexMechanics<EvaluationType::SpatialDim>;
-    std::shared_ptr<Plato::Elliptic::VolumeIntegralCriterion<EvaluationType, SimplexT>> tOutput;
-    tOutput = std::make_shared<Plato::Elliptic::VolumeIntegralCriterion<EvaluationType, SimplexT>>
+    std::shared_ptr<Plato::Elliptic::VolumeIntegralCriterion<EvaluationType>> tOutput;
+    tOutput = std::make_shared<Plato::Elliptic::VolumeIntegralCriterion<EvaluationType>>
         (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
 
     tOutput->setVolumeIntegratedQuantity(tLocalMeasure);
     return (tOutput);
 }
 
-#endif 
 
 
-#ifdef NOPE
 
 /******************************************************************************//**
  * \brief Create volume average criterion denominator
@@ -190,17 +186,13 @@ vol_avg_criterion_denominator(
           std::string            & aFuncName
 )
 {
-    using SimplexT = Plato::SimplexMechanics<EvaluationType::SpatialDim>;
-    std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<EvaluationType>> tOutput;
-    tOutput = std::make_shared<Plato::Elliptic::VolumeAverageCriterionDenominator<EvaluationType, SimplexT>>
+    return std::make_shared<Plato::Elliptic::VolumeAverageCriterionDenominator<EvaluationType>>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
-    return (tOutput);
 }
 // function vol_avg_criterion_denominator
 
 
 
-#endif // NOPE
 
 /******************************************************************************//**
  * \brief Factory for linear mechanics problem
@@ -290,6 +282,16 @@ struct FunctionFactory
             return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::Volume>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
+        else if (tLowerFuncType == "volume average criterion numerator")
+        {
+            return Plato::MechanicsFactory::volume_integral_criterion_for_volume_average<EvaluationType>
+                       (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
+        }
+        else if (tLowerFuncType == "volume average criterion denominator")
+        {
+            return Plato::MechanicsFactory::vol_avg_criterion_denominator<EvaluationType>
+                       (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
+        }
 #ifdef NOPE
         else if(tLowerFuncType == "vol avg stress p-norm denominator")
         {
@@ -315,16 +317,6 @@ struct FunctionFactory
         {
             return std::make_shared<Plato::IntermediateDensityPenalty<EvaluationType>>
                        (aSpatialDomain, aDataMap, aProblemParams.sublist("Criteria"), aFuncName);
-        }
-        else if (tLowerFuncType == "volume average criterion numerator")
-        {
-            return Plato::MechanicsFactory::volume_integral_criterion_for_volume_average<EvaluationType>
-                       (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
-        }
-        else if (tLowerFuncType == "volume average criterion denominator")
-        {
-            return Plato::MechanicsFactory::vol_avg_criterion_denominator<EvaluationType>
-                       (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
 #endif
         else

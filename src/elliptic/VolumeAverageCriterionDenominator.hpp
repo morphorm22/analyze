@@ -14,14 +14,17 @@ namespace Elliptic
 {
 
 /******************************************************************************/
-template<typename EvaluationType, typename SimplexPhysicsT>
+template<typename EvaluationType>
 class VolumeAverageCriterionDenominator : 
-  public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+    public EvaluationType::ElementType,
+    public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
 /******************************************************************************/
 {
   private:
-    static constexpr Plato::OrdinalType SpaceDim = EvaluationType::SpatialDim;
-    static constexpr Plato::OrdinalType mNumNodesPerCell = SimplexPhysicsT::mNumNodesPerCell;
+    using ElementType = typename EvaluationType::ElementType;
+
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumSpatialDims;
 
     using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mSpatialDomain;
     using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mDataMap;
@@ -30,10 +33,10 @@ class VolumeAverageCriterionDenominator :
     using ControlScalarType = typename EvaluationType::ControlScalarType;
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
-    
-    Plato::Scalar mQuadratureWeight;
 
-    Plato::ScalarVector mSpatialWeights; /*!< spatially varying weights */
+    using FunctionBaseType = Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
+    
+    std::string mSpatialWeightFunction;
 
   public:
     /**************************************************************************/
@@ -43,63 +46,75 @@ class VolumeAverageCriterionDenominator :
               Teuchos::ParameterList & aProblemParams, 
               std::string            & aFunctionName
     ) :
-        Plato::Elliptic::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aFunctionName)
+        FunctionBaseType(aSpatialDomain, aDataMap, aProblemParams, aFunctionName),
+        mSpatialWeightFunction("1.0")
     /**************************************************************************/
+    {}
+
+    /******************************************************************************//**
+     * \brief Set spatial weight function
+     * \param [in] aInput math expression
+    **********************************************************************************/
+    void setSpatialWeightFunction(std::string aWeightFunctionString) override
     {
-
-//TODO quadrature
-      mQuadratureWeight = 1.0; // for a 1-point quadrature rule for simplices
-      for (Plato::OrdinalType d = 2; d <= SpaceDim; d++)
-      { 
-        mQuadratureWeight /= Plato::Scalar(d);
-      }
-
-      auto tNumCells = mSpatialDomain.numCells();
-      Kokkos::resize(mSpatialWeights, tNumCells);
-      Plato::blas1::fill(static_cast<Plato::Scalar>(1.0), mSpatialWeights);
+        mSpatialWeightFunction = aWeightFunctionString;
     }
 
     /******************************************************************************//**
-     * \brief Set spatial weights
-     * \param [in] aInput scalar vector of spatial weights
+     * \brief compute spatial weights
+     * \param [in] aInput node location data
     **********************************************************************************/
-    void setSpatialWeights(Plato::ScalarVector & aInput) override
+    Plato::ScalarMultiVectorT<ConfigScalarType>
+    computeSpatialWeights(
+        const Plato::ScalarArray3DT<ConfigScalarType> & aConfig
+    ) const
     {
-        Kokkos::resize(mSpatialWeights, aInput.size());
-        Plato::blas1::copy(aInput, mSpatialWeights);
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints  = tCubWeights.size();
+
+        auto tNumCells = mSpatialDomain.numCells();
+
+        Plato::ScalarArray3DT<ConfigScalarType> tPhysicalPoints("physical points", tNumCells, tNumPoints, mNumSpatialDims);
+        Plato::mapPoints<ElementType>(aConfig, tPhysicalPoints);
+
+        Plato::ScalarMultiVectorT<ConfigScalarType> tFxnValues("function values", tNumCells*tNumPoints, 1);
+        Plato::getFunctionValues<mNumSpatialDims>(tPhysicalPoints, mSpatialWeightFunction, tFxnValues);
+
+        return tFxnValues;
     }
 
     /**************************************************************************/
     void
-    evaluate(
+    evaluate_conditional(
         const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
               Plato::ScalarVectorT      <ResultScalarType>  & aResult,
               Plato::Scalar aTimeStep = 0.0
-    ) const
+    ) const override
     /**************************************************************************/
     {
-      auto tNumCells = mSpatialDomain.numCells();
+        auto tSpatialWeights  = computeSpatialWeights(aConfig);
 
-      Plato::ComputeGradientWorkset<SpaceDim> tComputeGradient;
+        auto tNumCells = mSpatialDomain.numCells();
+        auto tCubPoints  = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints  = tCubWeights.size();
 
-      Plato::ScalarVectorT<ConfigScalarType>
-        tCellVolume("cell volume", tNumCells);
+        Kokkos::parallel_for("compute volume", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        {
+            auto tCubPoint  = tCubPoints(iGpOrdinal);
+            auto tCubWeight = tCubWeights(iGpOrdinal);
 
-      Plato::ScalarArray3DT<ConfigScalarType>
-        tGradient("gradient", tNumCells, mNumNodesPerCell, SpaceDim);
+            auto tJacobian = ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal);
 
-      auto quadratureWeight = mQuadratureWeight;
-      auto tSpatialWeights  = mSpatialWeights;
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType cellOrdinal)
-      {
-        tComputeGradient(cellOrdinal, tGradient, aConfig, tCellVolume);
-        tCellVolume(cellOrdinal) *= quadratureWeight;
+            ResultScalarType tCellVolume = Plato::determinant(tJacobian);
 
-        aResult(cellOrdinal) = tCellVolume(cellOrdinal) * tSpatialWeights(cellOrdinal);
-      },"Compute Weighted Volume Average Criterion Demoninator");
+            tCellVolume *= tCubWeight;
 
+            Kokkos::atomic_add(&aResult(iCellOrdinal), tCellVolume*tSpatialWeights(iCellOrdinal * tNumPoints + iGpOrdinal, 0));
+        });
     }
 };
 // class VolumeAverageCriterionDenominator

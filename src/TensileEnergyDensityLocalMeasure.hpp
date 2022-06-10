@@ -7,7 +7,6 @@
 #include "Strain.hpp"
 #include "ImplicitFunctors.hpp"
 #include <Teuchos_ParameterList.hpp>
-#include "SimplexFadTypes.hpp"
 #include "Eigenvalues.hpp"
 #include "ExpInstMacros.hpp"
 
@@ -18,15 +17,17 @@ namespace Plato
  * \tparam EvaluationType evaluation type use to determine automatic differentiation
  *   type for scalar function (e.g. Residual, Jacobian, GradientZ, etc.)
 **********************************************************************************/
-template<typename EvaluationType, typename SimplexPhysics>
+template<typename EvaluationType>
 class TensileEnergyDensityLocalMeasure :
-        public AbstractLocalMeasure<EvaluationType, SimplexPhysics>
+        public AbstractLocalMeasure<EvaluationType>
 {
 private:
-    using AbstractLocalMeasure<EvaluationType,SimplexPhysics>::mSpaceDim; /*!< space dimension */
-    using AbstractLocalMeasure<EvaluationType,SimplexPhysics>::mNumVoigtTerms; /*!< number of voigt tensor terms */
-    using AbstractLocalMeasure<EvaluationType,SimplexPhysics>::mNumNodesPerCell; /*!< number of nodes per cell */
-    using AbstractLocalMeasure<EvaluationType,SimplexPhysics>::mSpatialDomain; 
+    using ElementType = typename EvaluationType::ElementType;
+
+    using AbstractLocalMeasure<EvaluationType>::mNumSpatialDims; /*!< space dimension */
+    using AbstractLocalMeasure<EvaluationType>::mNumVoigtTerms; /*!< number of voigt tensor terms */
+    using AbstractLocalMeasure<EvaluationType>::mNumNodesPerCell; /*!< number of nodes per cell */
+    using AbstractLocalMeasure<EvaluationType>::mSpatialDomain; 
 
     Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffMatrix; /*!< cell/element Lame constants matrix */
 
@@ -81,7 +82,7 @@ public:
               Teuchos::ParameterList & aInputParams,
         const std::string            & aName
     ) : 
-        AbstractLocalMeasure<EvaluationType,SimplexPhysics>(aSpatialModel, aInputParams, aName)
+        AbstractLocalMeasure<EvaluationType>(aSpatialModel, aInputParams, aName)
     {
         getYoungsModulusAndPoissonsRatio(aInputParams);
         computeLameConstants();
@@ -99,7 +100,7 @@ public:
         const Plato::Scalar        & aPoissonsRatio,
         const std::string          & aName
     ) :
-        AbstractLocalMeasure<EvaluationType,SimplexPhysics>(aSpatialModel, aName),
+        AbstractLocalMeasure<EvaluationType>(aSpatialModel, aName),
         mYoungsModulus(aYoungsModulus),
         mPoissonsRatio(aPoissonsRatio)
     {
@@ -129,28 +130,37 @@ public:
     {
         const Plato::OrdinalType tNumCells = aResultWS.size();
 
-        using StrainT = typename Plato::fad_type_t<SimplexPhysics, StateT, ConfigT>;
+        using StrainT = typename Plato::fad_type_t<ElementType, StateT, ConfigT>;
 
-        Plato::Strain<mSpaceDim> tComputeCauchyStrain;
-        Plato::ComputeGradientWorkset<mSpaceDim> tComputeGradient;
-        Plato::Eigenvalues<mSpaceDim> tComputeEigenvalues;
-        Plato::TensileEnergyDensity<mSpaceDim> tComputeTensileEnergyDensity;
+        Plato::SmallStrain<ElementType> tComputeCauchyStrain;
+        Plato::ComputeGradientMatrix<ElementType> tComputeGradientMatrix;
+        Plato::Eigenvalues<mNumSpatialDims, mNumVoigtTerms> tComputeEigenvalues;
+        Plato::TensileEnergyDensity<mNumSpatialDims> tComputeTensileEnergyDensity;
 
-        // ****** ALLOCATE TEMPORARY MULTI-DIM ARRAYS ON DEVICE ******
-        Plato::ScalarVectorT<ConfigT> tVolume("cell volume", tNumCells);
-        Plato::ScalarMultiVectorT<ResultT> tCauchyStrain("strain", tNumCells, mNumVoigtTerms);
-        Plato::ScalarMultiVectorT<ResultT> tPrincipalStrains("principal strains", tNumCells, mSpaceDim);
-        Plato::ScalarArray3DT<ConfigT> tGradient("gradient", tNumCells, mNumNodesPerCell, mSpaceDim);
+        auto tCubPoints = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints = tCubWeights.size();
 
         const Plato::Scalar tLameLambda = mLameConstantLambda;
         const Plato::Scalar tLameMu     = mLameConstantMu;
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & tCellOrdinal)
+
+        Kokkos::parallel_for("compute stress", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
-            tComputeGradient(tCellOrdinal, tGradient, aConfigWS, tVolume);
-            tComputeCauchyStrain(tCellOrdinal, tCauchyStrain, aStateWS, tGradient);
-            tComputeEigenvalues(tCellOrdinal, tCauchyStrain, tPrincipalStrains, true /* is strain type voigt tensor */);
-            tComputeTensileEnergyDensity(tCellOrdinal, tPrincipalStrains, tLameLambda, tLameMu, aResultWS);
-        }, "Compute Tensile Energy Density");
+            ConfigT tVolume(0.0);
+
+            Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, ConfigT> tGradient;
+
+            Plato::Array<ElementType::mNumVoigtTerms, StrainT> tStrain(0.0);
+            Plato::Array<ElementType::mNumSpatialDims, StrainT> tPrincipalStrain(0.0);
+
+            auto tCubPoint = tCubPoints(iGpOrdinal);
+
+            tComputeGradientMatrix(iCellOrdinal, tCubPoint, aConfigWS, tGradient, tVolume);
+            tComputeCauchyStrain(iCellOrdinal, tStrain, aStateWS, tGradient);
+            tComputeEigenvalues(tStrain, tPrincipalStrain, true);
+            tComputeTensileEnergyDensity(iCellOrdinal, tPrincipalStrain, tLameLambda, tLameMu, aResultWS);
+        });
     }
 };
 // class TensileEnergyDensityLocalMeasure
@@ -158,16 +168,14 @@ public:
 }
 //namespace Plato
 
-#include "SimplexMechanics.hpp"
-
 #ifdef PLATOANALYZE_1D
-PLATO_EXPL_DEC2(Plato::TensileEnergyDensityLocalMeasure, Plato::SimplexMechanics, 1)
+// TODO PLATO_EXPL_DEC2(Plato::TensileEnergyDensityLocalMeasure, Plato::SimplexMechanics, 1)
 #endif
 
 #ifdef PLATOANALYZE_2D
-PLATO_EXPL_DEC2(Plato::TensileEnergyDensityLocalMeasure, Plato::SimplexMechanics, 2)
+// TODO PLATO_EXPL_DEC2(Plato::TensileEnergyDensityLocalMeasure, Plato::SimplexMechanics, 2)
 #endif
 
 #ifdef PLATOANALYZE_3D
-PLATO_EXPL_DEC2(Plato::TensileEnergyDensityLocalMeasure, Plato::SimplexMechanics, 3)
+// TODO PLATO_EXPL_DEC2(Plato::TensileEnergyDensityLocalMeasure, Plato::SimplexMechanics, 3)
 #endif

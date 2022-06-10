@@ -3,14 +3,12 @@
 #include <algorithm>
 #include <memory>
 
-#include "PlatoStaticsTypes.hpp"
 #include "Simp.hpp"
+#include "PlatoStaticsTypes.hpp"
 #include "WorksetBase.hpp"
-#include "SimplexFadTypes.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "Plato_TopOptFunctors.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
-#include "LinearTetCubRuleDegreeOne.hpp"
 #include "ImplicitFunctors.hpp"
 #include "AbstractLocalMeasure.hpp"
 #include "BLAS1.hpp"
@@ -27,14 +25,17 @@ namespace Elliptic
  * \tparam EvaluationType evaluation type use to determine automatic differentiation
  *   type for scalar function (e.g. Residual, Jacobian, GradientZ, etc.)
 **********************************************************************************/
-template<typename EvaluationType, typename SimplexPhysicsT>
+template<typename EvaluationType>
 class VolumeIntegralCriterion :
-        public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+    public EvaluationType::ElementType,
+    public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
 {
 private:
-    static constexpr Plato::OrdinalType mSpaceDim = EvaluationType::SpatialDim; /*!< spatial dimensions */
-    static constexpr Plato::OrdinalType mNumVoigtTerms = SimplexPhysicsT::mNumVoigtTerms; /*!< number of Voigt terms */
-    static constexpr Plato::OrdinalType mNumNodesPerCell = SimplexPhysicsT::mNumNodesPerCell; /*!< number of nodes per cell/element */
+    using ElementType = typename EvaluationType::ElementType;
+
+    using ElementType::mNumVoigtTerms;
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumSpatialDims;
 
     using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mSpatialDomain; /*!< mesh database */
     using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mDataMap; /*!< PLATO Engine output database */
@@ -44,16 +45,14 @@ private:
     using ResultT  = typename EvaluationType::ResultScalarType;  /*!< result variables automatic differentiation type */
     using ControlT = typename EvaluationType::ControlScalarType; /*!< control variables automatic differentiation type */
 
-    using Residual = typename Plato::ResidualTypes<SimplexPhysicsT>;
-
     using FunctionBaseType = Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
 
-    Plato::ScalarVector mSpatialWeights; /*!< spatially varying weights */
+    std::string mSpatialWeightFunction;
 
     Plato::Scalar mPenalty;        /*!< penalty parameter in SIMP model */
     Plato::Scalar mMinErsatzValue; /*!< minimum ersatz material value in SIMP model */
 
-    std::shared_ptr<Plato::AbstractLocalMeasure<EvaluationType, SimplexPhysicsT>> mLocalMeasure; /*!< Volume averaged quantity with evaluation type */
+    std::shared_ptr<Plato::AbstractLocalMeasure<EvaluationType>> mLocalMeasure; /*!< Volume averaged quantity with evaluation type */
 
 private:
     /******************************************************************************//**
@@ -96,15 +95,12 @@ public:
               Teuchos::ParameterList & aInputParams,
         const std::string            & aFuncName
     ) :
-        FunctionBaseType(aSpatialDomain, aDataMap, aFuncName),
+        FunctionBaseType(aSpatialDomain, aDataMap, aInputParams, aFuncName),
+        mSpatialWeightFunction("1.0"),
         mPenalty(3),
         mMinErsatzValue(1.0e-9)
     {
         this->initialize(aInputParams);
-
-        auto tNumCells = mSpatialDomain.numCells();
-        Kokkos::resize(mSpatialWeights, tNumCells);
-        Plato::blas1::fill(static_cast<Plato::Scalar>(1.0), mSpatialWeights);
     }
 
     /******************************************************************************//**
@@ -135,20 +131,20 @@ public:
      * \brief Set volume integrated quanitity
      * \param [in] aInputEvaluationType evaluation type volume integrated quanitity
     **********************************************************************************/
-    void setVolumeIntegratedQuantity(const std::shared_ptr<AbstractLocalMeasure<EvaluationType,SimplexPhysicsT>> & aInput)
+    void setVolumeIntegratedQuantity(const std::shared_ptr<AbstractLocalMeasure<EvaluationType>> & aInput)
     {
         mLocalMeasure = aInput;
     }
 
     /******************************************************************************//**
-     * \brief Set spatial weights
-     * \param [in] aInput scalar vector of spatial weights
+     * \brief Set spatial weight function
+     * \param [in] aInput math expression
     **********************************************************************************/
-    void setSpatialWeights(Plato::ScalarVector & aInput) override
+    void setSpatialWeightFunction(std::string aWeightFunctionString) override
     {
-        Kokkos::resize(mSpatialWeights, aInput.size());
-        Plato::blas1::copy(aInput, mSpatialWeights);
+        mSpatialWeightFunction = aWeightFunctionString;
     }
+
 
     /******************************************************************************//**
      * \brief Update physics-based parameters within optimization iterations
@@ -168,6 +164,29 @@ public:
     }
 
     /******************************************************************************//**
+     * \brief compute spatial weights
+     * \param [in] aInput node location data
+    **********************************************************************************/
+    Plato::ScalarMultiVectorT<ConfigT>
+    computeSpatialWeights(
+        const Plato::ScalarArray3DT<ConfigT> & aConfig
+    ) const
+    {
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints  = tCubWeights.size();
+
+        auto tNumCells = mSpatialDomain.numCells();
+
+        Plato::ScalarArray3DT<ConfigT> tPhysicalPoints("physical points", tNumCells, tNumPoints, mNumSpatialDims);
+        Plato::mapPoints<ElementType>(aConfig, tPhysicalPoints);
+
+        Plato::ScalarMultiVectorT<ConfigT> tFxnValues("function values", tNumCells*tNumPoints, 1);
+        Plato::getFunctionValues<mNumSpatialDims>(tPhysicalPoints, mSpatialWeightFunction, tFxnValues);
+
+        return tFxnValues;
+    }
+
+    /******************************************************************************//**
      * \brief Evaluate volume average criterion
      * \param [in] aState 2D container of state variables
      * \param [in] aControl 2D container of control variables
@@ -175,7 +194,7 @@ public:
      * \param [out] aResult 1D container of cell criterion values
      * \param [in] aTimeStep time step (default = 0)
     **********************************************************************************/
-    void evaluate(
+    void evaluate_conditional(
         const Plato::ScalarMultiVectorT <StateT>   & aStateWS,
         const Plato::ScalarMultiVectorT <ControlT> & aControlWS,
         const Plato::ScalarArray3DT     <ConfigT>  & aConfigWS,
@@ -183,37 +202,40 @@ public:
               Plato::Scalar aTimeStep = 0.0
     ) const override
     {
-        const Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
+        auto tSpatialWeights  = computeSpatialWeights(aConfigWS);
 
-        Plato::ComputeGradientWorkset<mSpaceDim> tComputeGradient;
+        auto tNumCells = mSpatialDomain.numCells();
+        auto tCubPoints  = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints  = tCubWeights.size();
 
         Plato::MSIMP tSIMP(mPenalty, mMinErsatzValue);
+        Plato::ApplyWeighting<mNumNodesPerCell, /*num_terms=*/1, Plato::MSIMP> tApplyWeighting(tSIMP);
 
         // ****** COMPUTE VOLUME AVERAGED QUANTITIES AND STORE ON DEVICE ******
         Plato::ScalarVectorT<ResultT> tVolumeIntegratedQuantity("volume integrated quantity", tNumCells);
         (*mLocalMeasure)(aStateWS, aConfigWS, tVolumeIntegratedQuantity);
         
-        // ****** ALLOCATE TEMPORARY ARRAYS ON DEVICE ******
-        Plato::ScalarVectorT<ConfigT> tCellVolume("cell volume", tNumCells);
-        Plato::ScalarArray3DT<ConfigT> tConfigurationGradient("configuration gradient", tNumCells, mNumNodesPerCell, mSpaceDim);
-
-        Plato::LinearTetCubRuleDegreeOne<mSpaceDim> tCubatureRule;
-        auto tQuadratureWeight = tCubatureRule.getCubWeight();
-        auto tSpatialWeights  = mSpatialWeights;
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+        Kokkos::parallel_for("compute volume", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
-            tComputeGradient(aCellOrdinal, tConfigurationGradient, aConfigWS, tCellVolume);
-            tCellVolume(aCellOrdinal) *= tQuadratureWeight;
+            auto tCubPoint  = tCubPoints(iGpOrdinal);
+            auto tCubWeight = tCubWeights(iGpOrdinal);
 
-            ControlT tDensity = Plato::cell_density<mNumNodesPerCell>(aCellOrdinal, aControlWS);
-            ControlT tPenaltyFunctionValue = tSIMP(tDensity);
-            
-            aResultWS(aCellOrdinal) = tPenaltyFunctionValue * tVolumeIntegratedQuantity(aCellOrdinal) * tCellVolume(aCellOrdinal)
-                                    * tSpatialWeights(aCellOrdinal);
-        },"Compute Volume Integral Criterion");
+            auto tJacobian = ElementType::jacobian(tCubPoint, aConfigWS, iCellOrdinal);
 
+            ResultT tCellVolume = Plato::determinant(tJacobian);
+
+            tCellVolume *= tCubWeight;
+
+            ResultT tValue = tVolumeIntegratedQuantity(iCellOrdinal) * tCellVolume * tSpatialWeights(iCellOrdinal*tNumPoints + iGpOrdinal, 0);
+
+            auto tBasisValues = ElementType::basisValues(tCubPoint);
+            tApplyWeighting(iCellOrdinal, aControlWS, tBasisValues, tValue);
+
+            Kokkos::atomic_add(&aResultWS(iCellOrdinal), tValue);
+        });
     }
-
 };
 // class VolumeIntegralCriterion
 

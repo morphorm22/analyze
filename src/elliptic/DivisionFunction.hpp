@@ -19,13 +19,17 @@ namespace Elliptic
 /******************************************************************************//**
  * \brief Division function class \f$ F(x) = numerator(x) / denominator(x) \f$
  **********************************************************************************/
-template<typename PhysicsT>
-class DivisionFunction : public Plato::Elliptic::ScalarFunctionBase, public Plato::WorksetBase<PhysicsT>
+template<typename PhysicsType>
+class DivisionFunction :
+    public Plato::Elliptic::ScalarFunctionBase,
+    public Plato::WorksetBase<typename PhysicsType::ElementType>
 {
 private:
-    using Plato::WorksetBase<PhysicsT>::mNumDofsPerNode; /*!< number of degree of freedom per node */
-    using Plato::WorksetBase<PhysicsT>::mNumSpatialDims; /*!< number of spatial dimensions */
-    using Plato::WorksetBase<PhysicsT>::mNumNodes;       /*!< total number of nodes in the mesh */
+    using ElementType = typename PhysicsType::ElementType;
+
+    using Plato::WorksetBase<ElementType>::mNumDofsPerNode; /*!< number of degree of freedom per node */
+    using Plato::WorksetBase<ElementType>::mNumSpatialDims; /*!< number of spatial dimensions */
+    using Plato::WorksetBase<ElementType>::mNumNodes;       /*!< total number of nodes in the mesh */
 
     std::shared_ptr<Plato::Elliptic::ScalarFunctionBase> mScalarFunctionBaseNumerator; /*!< numerator function */
     std::shared_ptr<Plato::Elliptic::ScalarFunctionBase> mScalarFunctionBaseDenominator; /*!< denominator function */
@@ -44,7 +48,7 @@ private:
         Teuchos::ParameterList & aProblemParams
     )
     {
-        Plato::Elliptic::ScalarFunctionBaseFactory<PhysicsT> tFactory;
+        Plato::Elliptic::ScalarFunctionBaseFactory<PhysicsType> tFactory;
 
         auto tFunctionParams = aProblemParams.sublist("Criteria").sublist(mFunctionName);
 
@@ -72,7 +76,7 @@ public:
               Teuchos::ParameterList & aProblemParams,
         const std::string            & aName
     ) :
-        Plato::WorksetBase<PhysicsT>(aSpatialModel.Mesh),
+        Plato::WorksetBase<ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
         mFunctionName (aName)
@@ -88,7 +92,7 @@ public:
         const Plato::SpatialModel & aSpatialModel,
               Plato::DataMap      & aDataMap
     ) :
-        Plato::WorksetBase<PhysicsT>(aSpatialModel.Mesh),
+        Plato::WorksetBase<ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
         mFunctionName ("Division Function")
@@ -265,28 +269,28 @@ public:
 
 } // namespace Plato
 
-#include "Thermal.hpp"
+//TODO #include "Thermal.hpp"
 #include "Mechanics.hpp"
-#include "Electromechanics.hpp"
-#include "Thermomechanics.hpp"
+//TODO #include "Electromechanics.hpp"
+//TODO #include "Thermomechanics.hpp"
 
 #ifdef PLATOANALYZE_1D
-extern template class Plato::Elliptic::DivisionFunction<::Plato::Thermal<1>>;
-extern template class Plato::Elliptic::DivisionFunction<::Plato::Mechanics<1>>;
-extern template class Plato::Elliptic::DivisionFunction<::Plato::Electromechanics<1>>;
-extern template class Plato::Elliptic::DivisionFunction<::Plato::Thermomechanics<1>>;
+//TODO extern template class Plato::Elliptic::DivisionFunction<::Plato::Thermal<1>>;
+//TODO extern template class Plato::Elliptic::DivisionFunction<::Plato::Mechanics<1>>;
+//TODO extern template class Plato::Elliptic::DivisionFunction<::Plato::Electromechanics<1>>;
+//TODO extern template class Plato::Elliptic::DivisionFunction<::Plato::Thermomechanics<1>>;
 #endif
 
 #ifdef PLATOANALYZE_2D
-extern template class Plato::Elliptic::DivisionFunction<::Plato::Thermal<2>>;
-extern template class Plato::Elliptic::DivisionFunction<::Plato::Mechanics<2>>;
-extern template class Plato::Elliptic::DivisionFunction<::Plato::Electromechanics<2>>;
-extern template class Plato::Elliptic::DivisionFunction<::Plato::Thermomechanics<2>>;
+//TODO extern template class Plato::Elliptic::DivisionFunction<::Plato::Thermal<2>>;
+//TODO extern template class Plato::Elliptic::DivisionFunction<::Plato::Mechanics<2>>;
+//TODO extern template class Plato::Elliptic::DivisionFunction<::Plato::Electromechanics<2>>;
+//TODO extern template class Plato::Elliptic::DivisionFunction<::Plato::Thermomechanics<2>>;
 #endif
 
 #ifdef PLATOANALYZE_3D
-extern template class Plato::Elliptic::DivisionFunction<::Plato::Thermal<3>>;
-extern template class Plato::Elliptic::DivisionFunction<::Plato::Mechanics<3>>;
-extern template class Plato::Elliptic::DivisionFunction<::Plato::Electromechanics<3>>;
-extern template class Plato::Elliptic::DivisionFunction<::Plato::Thermomechanics<3>>;
+//TODO extern template class Plato::Elliptic::DivisionFunction<::Plato::Thermal<3>>;
+//TODO extern template class Plato::Elliptic::DivisionFunction<::Plato::Mechanics<3>>;
+//TODO extern template class Plato::Elliptic::DivisionFunction<::Plato::Electromechanics<3>>;
+//TODO extern template class Plato::Elliptic::DivisionFunction<::Plato::Thermomechanics<3>>;
 #endif

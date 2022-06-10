@@ -16,7 +16,7 @@ namespace Elliptic
 /******************************************************************************//**
  * \brief Scalar function base factory
  **********************************************************************************/
-template<typename PhysicsT>
+template<typename PhysicsType>
 class ScalarFunctionBaseFactory
 {
 public:
