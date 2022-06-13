@@ -101,7 +101,7 @@ struct FunctionFactory
         if(tLowerFuncType == "elliptic")
         {
             return Plato::Elliptic::makeVectorFunction<EvaluationType, Plato::Elliptic::ThermoelastostaticResidual>
-                     (aSpatialDomain, aDataMap, aParamList, tLowerFuncType);
+                     (aSpatialDomain, aDataMap, aParamList, aFuncType);
         }
         else
         {

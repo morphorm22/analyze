@@ -171,4 +171,30 @@ mapPoints(
     });
 }
 
+/******************************************************************************//**
+ * \brief compute function values at gauss points
+**********************************************************************************/
+template<typename ConfigScalarType, typename ElementType>
+Plato::ScalarMultiVectorT<ConfigScalarType>
+computeSpatialWeights(
+    const Plato::SpatialDomain                    & aSpatialDomain,
+    const Plato::ScalarArray3DT<ConfigScalarType> & aConfig,
+    const std::string                             & aFunction
+)
+{
+    auto tCubWeights = ElementType::getCubWeights();
+    auto tNumPoints  = tCubWeights.size();
+
+    auto tNumCells = aSpatialDomain.numCells();
+
+    Plato::ScalarArray3DT<ConfigScalarType> tPhysicalPoints("physical points", tNumCells, tNumPoints, ElementType::mNumSpatialDims);
+    Plato::mapPoints<ElementType>(aConfig, tPhysicalPoints);
+
+    Plato::ScalarMultiVectorT<ConfigScalarType> tFxnValues("function values", tNumCells*tNumPoints, 1);
+    Plato::getFunctionValues<ElementType::mNumSpatialDims>(tPhysicalPoints, aFunction, tFxnValues);
+
+    return tFxnValues;
+}
+
+
 }

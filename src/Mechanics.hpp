@@ -14,8 +14,8 @@
 #include "elliptic/VolumeAverageCriterionDenominator.hpp"
 #include "TensileEnergyDensityLocalMeasure.hpp"
 #include "VonMisesLocalMeasure.hpp"
-#ifdef NOPE
 #include "elliptic/VolAvgStressPNormDenominator.hpp"
+#ifdef NOPE
 #include "Plato_AugLagStressCriterionQuadratic.hpp"
 #include "Plato_AugLagStressCriterionGeneral.hpp"
 #include "Plato_AugLagStressCriterion.hpp"
@@ -292,12 +292,12 @@ struct FunctionFactory
             return Plato::MechanicsFactory::vol_avg_criterion_denominator<EvaluationType>
                        (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
-#ifdef NOPE
         else if(tLowerFuncType == "vol avg stress p-norm denominator")
         {
-            return Plato::MechanicsFactory::makeScalarFunction<EvaluationType, Plato::Elliptic::VolAvgStressPNormDenominator>
+            return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::VolAvgStressPNormDenominator>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
+#ifdef NOPE
         else if(tLowerFuncType == "stress constraint")
         {
             return Plato::MechanicsFactory::stress_constraint_linear<EvaluationType>
@@ -325,35 +325,6 @@ struct FunctionFactory
             ANALYZE_THROWERR(tErrorString)
         }
     }
-
-#ifdef COMPILE_DEAD_CODE
-    /******************************************************************************//**
-     * \brief Create a local measure for use in augmented lagrangian quadratic
-     * \param [in] aProblemParams input parameters
-     * \param [in] aFuncName scalar function name
-    **********************************************************************************/
-    template <typename EvaluationType>
-    std::shared_ptr<Plato::AbstractLocalMeasure<EvaluationType,Plato::SimplexMechanics<EvaluationType::SpatialDim>>> 
-    createLocalMeasure(Teuchos::ParameterList& aProblemParams, const std::string & aFuncName)
-    {
-        auto tFunctionSpecs = aProblemParams.sublist("Criteria").sublist(aFuncName);
-        auto tLocalMeasure = tFunctionSpecs.get<std::string>("Local Measure", "VonMises");
-
-        if(tLocalMeasure == "VonMises")
-        {
-            return std::make_shared<VonMisesLocalMeasure<EvaluationType, Plato::SimplexMechanics<EvaluationType::SpatialDim>>>(aProblemParams, "VonMises");
-        }
-        else if(tLocalMeasure == "TensileEnergyDensity")
-        {
-            return std::make_shared<TensileEnergyDensityLocalMeasure<EvaluationType, Plato::SimplexMechanics<EvaluationType::SpatialDim>>>
-                                                             (aProblemParams, "TensileEnergyDensity");
-        }
-        else
-        {
-            ANALYZE_THROWERR("Unknown 'Local Measure' specified in 'Plato Problem' ParameterList")
-        }
-    }
-#endif
 };
 // struct FunctionFactory
 

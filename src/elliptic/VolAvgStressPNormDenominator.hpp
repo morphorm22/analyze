@@ -9,18 +9,12 @@
 #include "ImplicitFunctors.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
 #include "ExpInstMacros.hpp"
-#include "Simp.hpp"
-#include "Ramp.hpp"
-#include "Heaviside.hpp"
-#include "NoPenalty.hpp"
 
 #include "alg/Basis.hpp"
 #include "Plato_TopOptFunctors.hpp"
 #include "PlatoMeshExpr.hpp"
-#include "UtilsOmegaH.hpp"
 #include "alg/Cubature.hpp"
 #include "BLAS2.hpp"
-#include <Omega_h_expr.hpp>
 
 namespace Plato
 {
@@ -31,16 +25,17 @@ namespace Elliptic
 /******************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
 class VolAvgStressPNormDenominator : 
-  public Plato::SimplexMechanics<EvaluationType::SpatialDim>,
+  public EvaluationType::ElementType,
   public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
 /******************************************************************************/
 {
   private:
-    static constexpr Plato::OrdinalType SpaceDim = EvaluationType::SpatialDim;
-    
-    using Plato::SimplexMechanics<SpaceDim>::mNumVoigtTerms;
-    using Plato::Simplex<SpaceDim>::mNumNodesPerCell;
-    using Plato::SimplexMechanics<SpaceDim>::mNumDofsPerCell;
+    using ElementType = typename EvaluationType::ElementType;
+
+    using ElementType::mNumVoigtTerms;
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumDofsPerCell;
+    using ElementType::mNumSpatialDims;
 
     using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mSpatialDomain;
     using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mDataMap;
@@ -50,51 +45,12 @@ class VolAvgStressPNormDenominator :
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
     
-    Plato::Scalar mQuadratureWeight;
-
     IndicatorFunctionType mIndicatorFunction;
-    Plato::ApplyWeighting<SpaceDim,1/*number of terms*/,IndicatorFunctionType> mApplyWeighting;
+    Plato::ApplyWeighting<mNumNodesPerCell, /*number of terms=*/1, IndicatorFunctionType> mApplyWeighting;
 
     Teuchos::RCP<TensorNormBase<mNumVoigtTerms,EvaluationType>> mNorm;
 
-    std::string mSpatialWeightingFunctionString = "1.0";
-
-    Omega_h::Reals mFxnValues;
-
-    void computeSpatialWeightingValues(const Plato::SpatialDomain & aSpatialDomain)
-    {
-      // get refCellQuadraturePoints, quadratureWeights
-      //
-      Plato::OrdinalType tQuadratureDegree = 1;
-
-      Plato::OrdinalType tNumPoints = Plato::Cubature::getNumCubaturePoints(SpaceDim, tQuadratureDegree);
-
-      Kokkos::View<Plato::Scalar**, Plato::Layout, Plato::MemSpace>
-          tRefCellQuadraturePoints("ref quadrature points", tNumPoints, SpaceDim);
-      Kokkos::View<Plato::Scalar*, Plato::Layout, Plato::MemSpace> tQuadratureWeights("quadrature weights", tNumPoints);
-
-      Plato::Cubature::getCubature(SpaceDim, tQuadratureDegree, tRefCellQuadraturePoints, tQuadratureWeights);
-
-      // get basis values
-      //
-      Plato::Basis tBasis(SpaceDim);
-      Plato::OrdinalType tNumFields = tBasis.basisCardinality();
-      Kokkos::View<Plato::Scalar**, Plato::Layout, Plato::MemSpace>
-          tRefCellBasisValues("ref basis values", tNumFields, tNumPoints);
-      tBasis.getValues(tRefCellQuadraturePoints, tRefCellBasisValues);
-
-      // map points to physical space
-      //
-      Plato::OrdinalType tNumCells = aSpatialDomain.numCells();
-      Kokkos::View<Plato::Scalar***, Plato::Layout, Plato::MemSpace>
-          tQuadraturePoints("quadrature points", tNumCells, tNumPoints, SpaceDim);
-
-      Plato::mapPoints<SpaceDim>(aSpatialDomain, tRefCellQuadraturePoints, tQuadraturePoints);
-
-      // get integrand values at quadrature points
-      //
-      Plato::getFunctionValues<SpaceDim>(tQuadraturePoints, mSpatialWeightingFunctionString, mFxnValues);
-    }
+    std::string mSpatialWeightFunction = "1.0";
 
   public:
     /**************************************************************************/
@@ -105,77 +61,71 @@ class VolAvgStressPNormDenominator :
               Teuchos::ParameterList & aPenaltyParams,
               std::string            & aFunctionName
     ) :
-        Plato::Elliptic::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aFunctionName),
+        Plato::Elliptic::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aProblemParams, aFunctionName),
         mIndicatorFunction (aPenaltyParams),
         mApplyWeighting    (mIndicatorFunction)
     /**************************************************************************/
     {
-
-//TODO quadrature
-      mQuadratureWeight = 1.0; // for a 1-point quadrature rule for simplices
-      for (Plato::OrdinalType d = 2; d <= SpaceDim; d++)
-      { 
-        mQuadratureWeight /= Plato::Scalar(d);
-      }
-
       auto params = aProblemParams.sublist("Criteria").get<Teuchos::ParameterList>(aFunctionName);
 
       TensorNormFactory<mNumVoigtTerms, EvaluationType> normFactory;
       mNorm = normFactory.create(params);
 
       if (params.isType<std::string>("Function"))
-        mSpatialWeightingFunctionString = params.get<std::string>("Function");
-      
-      this->computeSpatialWeightingValues(aSpatialDomain);
+        mSpatialWeightFunction = params.get<std::string>("Function");
     }
 
     /**************************************************************************/
     void
-    evaluate(
+    evaluate_conditional(
         const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
               Plato::ScalarVectorT      <ResultScalarType>  & aResult,
               Plato::Scalar aTimeStep = 0.0
-    ) const
+    ) const override
     /**************************************************************************/
     {
+      auto tSpatialWeights = Plato::computeSpatialWeights<ConfigScalarType, ElementType>(mSpatialDomain, aConfig, mSpatialWeightFunction);
+
       auto tNumCells = mSpatialDomain.numCells();
 
-      Plato::ComputeGradientWorkset<SpaceDim> tComputeGradient;
+      Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
 
-      using StrainScalarType = 
-        typename Plato::fad_type_t<Plato::SimplexMechanics<EvaluationType::SpatialDim>,
-                            StateScalarType, ConfigScalarType>;
+      Plato::ScalarVectorT<ConfigScalarType> tCellVolume("cell weight", tNumCells);
 
-      Plato::ScalarVectorT<ConfigScalarType>
-        tCellVolume("cell weight", tNumCells);
+      Plato::ScalarMultiVectorT<ResultScalarType> tCellWeights("weighted one", tNumCells, mNumVoigtTerms);
 
-      Plato::ScalarArray3DT<ConfigScalarType>
-        tGradient("gradient", tNumCells, mNumNodesPerCell, SpaceDim);
-    
-      Plato::ScalarMultiVectorT<ResultScalarType>
-        tWeightedOne("weighted one", tNumCells, mNumVoigtTerms);
-      Plato::blas2::fill(0.0, tWeightedOne);
+      auto tCubPoints = ElementType::getCubPoints();
+      auto tCubWeights = ElementType::getCubWeights();
+      auto tNumPoints = tCubWeights.size();
 
-      Plato::Scalar tOne = 1.0;
-
-      auto quadratureWeight = mQuadratureWeight;
-      auto applyWeighting   = mApplyWeighting;
-      auto tFxnValues       = mFxnValues;
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType cellOrdinal)
+      auto applyWeighting = mApplyWeighting;
+      Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-        tComputeGradient(cellOrdinal, tGradient, aConfig, tCellVolume);
-        tCellVolume(cellOrdinal) *= quadratureWeight * tFxnValues[cellOrdinal];
+        auto tCubPoint  = tCubPoints(iGpOrdinal);
+        auto tCubWeight = tCubWeights(iGpOrdinal);
 
-        tWeightedOne(cellOrdinal, 0) = tOne;
+        // compute cell volume
+        //
+        auto tJacobian = ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal);
+
+        ConfigScalarType tVolume = Plato::determinant(tJacobian) * tCubWeight * tSpatialWeights(iCellOrdinal*tNumPoints + iGpOrdinal, 0);
+
+        Kokkos::atomic_add(&tCellVolume(iCellOrdinal), tVolume);
+
         // apply weighting
         //
-        applyWeighting(cellOrdinal, tWeightedOne, aControl);
+        ResultScalarType tWeightedOne(1.0);
+        auto tBasisValues = ElementType::basisValues(tCubPoint);
+        applyWeighting(iCellOrdinal, aControl, tBasisValues, tWeightedOne);
 
-      },"Compute Weighted Stress Pnorm Demoninator");
+        Kokkos::atomic_add(&tCellWeights(iCellOrdinal, 0), tWeightedOne);
 
-      mNorm->evaluate(aResult, tWeightedOne, aControl, tCellVolume);
+      });
+
+      mNorm->evaluate(aResult, tCellWeights, aControl, tCellVolume);
 
     }
 
@@ -205,9 +155,9 @@ class VolAvgStressPNormDenominator :
 
 
 #ifdef PLATOANALYZE_2D
-PLATO_EXPL_DEC(Plato::Elliptic::VolAvgStressPNormDenominator, Plato::SimplexMechanics, 2)
+//TODO PLATO_EXPL_DEC(Plato::Elliptic::VolAvgStressPNormDenominator, Plato::SimplexMechanics, 2)
 #endif
 
 #ifdef PLATOANALYZE_3D
-PLATO_EXPL_DEC(Plato::Elliptic::VolAvgStressPNormDenominator, Plato::SimplexMechanics, 3)
+//TODO PLATO_EXPL_DEC(Plato::Elliptic::VolAvgStressPNormDenominator, Plato::SimplexMechanics, 3)
 #endif

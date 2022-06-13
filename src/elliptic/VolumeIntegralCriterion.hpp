@@ -164,29 +164,6 @@ public:
     }
 
     /******************************************************************************//**
-     * \brief compute spatial weights
-     * \param [in] aInput node location data
-    **********************************************************************************/
-    Plato::ScalarMultiVectorT<ConfigT>
-    computeSpatialWeights(
-        const Plato::ScalarArray3DT<ConfigT> & aConfig
-    ) const
-    {
-        auto tCubWeights = ElementType::getCubWeights();
-        auto tNumPoints  = tCubWeights.size();
-
-        auto tNumCells = mSpatialDomain.numCells();
-
-        Plato::ScalarArray3DT<ConfigT> tPhysicalPoints("physical points", tNumCells, tNumPoints, mNumSpatialDims);
-        Plato::mapPoints<ElementType>(aConfig, tPhysicalPoints);
-
-        Plato::ScalarMultiVectorT<ConfigT> tFxnValues("function values", tNumCells*tNumPoints, 1);
-        Plato::getFunctionValues<mNumSpatialDims>(tPhysicalPoints, mSpatialWeightFunction, tFxnValues);
-
-        return tFxnValues;
-    }
-
-    /******************************************************************************//**
      * \brief Evaluate volume average criterion
      * \param [in] aState 2D container of state variables
      * \param [in] aControl 2D container of control variables
@@ -202,7 +179,7 @@ public:
               Plato::Scalar aTimeStep = 0.0
     ) const override
     {
-        auto tSpatialWeights  = computeSpatialWeights(aConfigWS);
+        auto tSpatialWeights = Plato::computeSpatialWeights<ConfigT, ElementType>(mSpatialDomain, aConfigWS, mSpatialWeightFunction);
 
         auto tNumCells = mSpatialDomain.numCells();
         auto tCubPoints  = ElementType::getCubPoints();

@@ -102,15 +102,17 @@ class StressPNorm :
 
         auto tNumCells = mSpatialDomain.numCells();
       
-        Plato::ScalarMultiVector tFxnValues("function values", tNumCells*tNumPoints, 1);
-        Kokkos::deep_copy(tFxnValues, 1.0);
+        Plato::ScalarMultiVectorT<ConfigScalarType> tFxnValues("function values", tNumCells*tNumPoints, 1);
 
-        if (mFuncString != "1.0")
+        if (mFuncString == "1.0")
+        {
+            Kokkos::deep_copy(tFxnValues, 1.0);
+        }
+        else
         {
             Plato::ScalarArray3DT<ConfigScalarType> tPhysicalPoints("physical points", tNumCells, tNumPoints, mNumSpatialDims);
             Plato::mapPoints<ElementType>(aConfig, tPhysicalPoints);
 
-            Plato::ScalarMultiVectorT<ConfigScalarType> tFxnValues("function values", tNumCells*tNumPoints, 1);
             Plato::getFunctionValues<mNumSpatialDims>(tPhysicalPoints, mFuncString, tFxnValues);
         }
 
