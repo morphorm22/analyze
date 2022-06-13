@@ -31,7 +31,6 @@
 #include "elliptic/VectorFunction.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/PhysicsScalarFunction.hpp"
-//#include "elliptic/SolutionFunction.hpp"
 //#include "geometric/GeometryScalarFunction.hpp"
 #include "ApplyConstraints.hpp"
 #include "elliptic/Problem.hpp"

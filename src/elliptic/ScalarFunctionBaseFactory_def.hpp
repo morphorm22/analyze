@@ -3,11 +3,11 @@
 #include "elliptic/PhysicsScalarFunction.hpp"
 #include "elliptic/VolumeAverageCriterion.hpp"
 #include "elliptic/DivisionFunction.hpp"
+#include "elliptic/SolutionFunction.hpp"
 
 #ifdef NOPE
 #include "elliptic/ScalarFunctionBase.hpp"
 #include "elliptic/WeightedSumFunction.hpp"
-#include "elliptic/SolutionFunction.hpp"
 #include "elliptic/LeastSquaresFunction.hpp"
 #include "elliptic/MassPropertiesFunction.hpp"
 #include "AnalyzeMacros.hpp"
@@ -44,11 +44,6 @@ namespace Elliptic
             return std::make_shared<WeightedSumFunction<PhysicsType>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
         }
         else
-        if(tFunctionType == "Solution")
-        {
-            return std::make_shared<SolutionFunction<PhysicsType>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
-        }
-        else
         if(tFunctionType == "Least Squares")
         {
             return std::make_shared<LeastSquaresFunction<PhysicsType>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
@@ -60,6 +55,11 @@ namespace Elliptic
         }
         else
 #endif
+        if(tFunctionType == "Solution")
+        {
+            return std::make_shared<SolutionFunction<PhysicsType>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
+        }
+        else
         if(tFunctionType == "Division")
         {
             return std::make_shared<DivisionFunction<PhysicsType>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);

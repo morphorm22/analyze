@@ -20,8 +20,10 @@ namespace Elliptic
 /******************************************************************************//**
  * \brief Solution function class
  **********************************************************************************/
-template<typename PhysicsT>
-class SolutionFunction : public Plato::Elliptic::ScalarFunctionBase, public Plato::WorksetBase<PhysicsT>
+template<typename PhysicsType>
+class SolutionFunction :
+    public Plato::Elliptic::ScalarFunctionBase,
+    public Plato::WorksetBase<typename PhysicsType::ElementType>
 {
     enum solution_type_t
     {
@@ -34,17 +36,19 @@ class SolutionFunction : public Plato::Elliptic::ScalarFunctionBase, public Plat
     };
 
 private:
-    using Plato::WorksetBase<PhysicsT>::mNumDofsPerCell;  /*!< number of degree of freedom per cell/element */
-    using Plato::WorksetBase<PhysicsT>::mNumNodesPerCell; /*!< number of nodes per cell/element */
-    using Plato::WorksetBase<PhysicsT>::mNumDofsPerNode;  /*!< number of degree of freedom per node */
-    using Plato::WorksetBase<PhysicsT>::mNumSpatialDims;  /*!< number of spatial dimensions */
-    using Plato::WorksetBase<PhysicsT>::mNumControl;      /*!< number of control variables */
-    using Plato::WorksetBase<PhysicsT>::mNumNodes;        /*!< total number of nodes in the mesh */
-    using Plato::WorksetBase<PhysicsT>::mNumCells;        /*!< total number of cells/elements in the mesh */
+    using ElementType = typename PhysicsType::ElementType;
 
-    using Plato::WorksetBase<PhysicsT>::mGlobalStateEntryOrdinal; /*!< number of degree of freedom per cell/element */
-    using Plato::WorksetBase<PhysicsT>::mControlEntryOrdinal;     /*!< number of degree of freedom per cell/element */
-    using Plato::WorksetBase<PhysicsT>::mConfigEntryOrdinal;      /*!< number of degree of freedom per cell/element */
+    using Plato::WorksetBase<ElementType>::mNumDofsPerCell;  /*!< number of degree of freedom per cell/element */
+    using Plato::WorksetBase<ElementType>::mNumNodesPerCell; /*!< number of nodes per cell/element */
+    using Plato::WorksetBase<ElementType>::mNumDofsPerNode;  /*!< number of degree of freedom per node */
+    using Plato::WorksetBase<ElementType>::mNumSpatialDims;  /*!< number of spatial dimensions */
+    using Plato::WorksetBase<ElementType>::mNumControl;      /*!< number of control variables */
+    using Plato::WorksetBase<ElementType>::mNumNodes;        /*!< total number of nodes in the mesh */
+    using Plato::WorksetBase<ElementType>::mNumCells;        /*!< total number of cells/elements in the mesh */
+
+    using Plato::WorksetBase<ElementType>::mGlobalStateEntryOrdinal; /*!< number of degree of freedom per cell/element */
+    using Plato::WorksetBase<ElementType>::mControlEntryOrdinal;     /*!< number of degree of freedom per cell/element */
+    using Plato::WorksetBase<ElementType>::mConfigEntryOrdinal;      /*!< number of degree of freedom per cell/element */
 
     std::string mFunctionName; /*!< User defined function name */
     std::string mDomainName;   /*!< Name of the node set that represents the domain of interest */
@@ -336,7 +340,7 @@ public:
               Teuchos::ParameterList & aProblemParams,
               std::string            & aName
     ) :
-        Plato::WorksetBase<PhysicsT>(aSpatialModel.Mesh),
+        Plato::WorksetBase<ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),
         mFunctionName (aName),
         mNormal{0.0}
@@ -724,26 +728,26 @@ public:
 
 #include "Thermal.hpp"
 #include "Mechanics.hpp"
-#include "Electromechanics.hpp"
+// TODO #include "Electromechanics.hpp"
 #include "Thermomechanics.hpp"
 
 #ifdef PLATOANALYZE_1D
-extern template class Plato::Elliptic::SolutionFunction<::Plato::Thermal<1>>;
-extern template class Plato::Elliptic::SolutionFunction<::Plato::Mechanics<1>>;
-extern template class Plato::Elliptic::SolutionFunction<::Plato::Electromechanics<1>>;
-extern template class Plato::Elliptic::SolutionFunction<::Plato::Thermomechanics<1>>;
+// TODO extern template class Plato::Elliptic::SolutionFunction<::Plato::Thermal<1>>;
+// TODO extern template class Plato::Elliptic::SolutionFunction<::Plato::Mechanics<1>>;
+// TODO extern template class Plato::Elliptic::SolutionFunction<::Plato::Electromechanics<1>>;
+// TODO extern template class Plato::Elliptic::SolutionFunction<::Plato::Thermomechanics<1>>;
 #endif
 
 #ifdef PLATOANALYZE_2D
-extern template class Plato::Elliptic::SolutionFunction<::Plato::Thermal<2>>;
-extern template class Plato::Elliptic::SolutionFunction<::Plato::Mechanics<2>>;
-extern template class Plato::Elliptic::SolutionFunction<::Plato::Electromechanics<2>>;
-extern template class Plato::Elliptic::SolutionFunction<::Plato::Thermomechanics<2>>;
+// TODO extern template class Plato::Elliptic::SolutionFunction<::Plato::Thermal<2>>;
+// TODO extern template class Plato::Elliptic::SolutionFunction<::Plato::Mechanics<2>>;
+// TODO extern template class Plato::Elliptic::SolutionFunction<::Plato::Electromechanics<2>>;
+// TODO extern template class Plato::Elliptic::SolutionFunction<::Plato::Thermomechanics<2>>;
 #endif
 
 #ifdef PLATOANALYZE_3D
-extern template class Plato::Elliptic::SolutionFunction<::Plato::Thermal<3>>;
-extern template class Plato::Elliptic::SolutionFunction<::Plato::Mechanics<3>>;
-extern template class Plato::Elliptic::SolutionFunction<::Plato::Electromechanics<3>>;
-extern template class Plato::Elliptic::SolutionFunction<::Plato::Thermomechanics<3>>;
+// TODO extern template class Plato::Elliptic::SolutionFunction<::Plato::Thermal<3>>;
+// TODO extern template class Plato::Elliptic::SolutionFunction<::Plato::Mechanics<3>>;
+// TODO extern template class Plato::Elliptic::SolutionFunction<::Plato::Electromechanics<3>>;
+// TODO extern template class Plato::Elliptic::SolutionFunction<::Plato::Thermomechanics<3>>;
 #endif
