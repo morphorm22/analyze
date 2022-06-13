@@ -41,8 +41,10 @@ class InternalThermoelasticEnergy :
 
     static constexpr int TDofOffset = mNumSpatialDims;
 
-    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mSpatialDomain;
-    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mDataMap;
+    using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
+
+    using FunctionBaseType::mSpatialDomain;
+    using FunctionBaseType::mDataMap;
 
     using StateScalarType   = typename EvaluationType::StateScalarType;
     using ControlScalarType = typename EvaluationType::ControlScalarType;
@@ -52,8 +54,6 @@ class InternalThermoelasticEnergy :
     IndicatorFunctionType mIndicatorFunction;
     Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms,  IndicatorFunctionType> mApplyStressWeighting;
     Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyFluxWeighting;
-
-    std::vector<std::string> mPlottable;
 
     Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mMaterialModel;
 
@@ -66,7 +66,7 @@ class InternalThermoelasticEnergy :
               Teuchos::ParameterList & aPenaltyParams,
               std::string            & aFunctionName
     ) :
-        Plato::Elliptic::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aProblemParams, aFunctionName),
+        FunctionBaseType      (aSpatialDomain, aDataMap, aProblemParams, aFunctionName),
         mIndicatorFunction    (aPenaltyParams),
         mApplyStressWeighting (mIndicatorFunction),
         mApplyFluxWeighting   (mIndicatorFunction)
@@ -99,11 +99,6 @@ class InternalThermoelasticEnergy :
 
         Plato::ThermoelasticModelFactory<mNumSpatialDims> mmfactory(tProblemParams);
         mMaterialModel = mmfactory.create(tMaterialName);
-
-        if( tProblemParams.isType<Teuchos::Array<std::string>>("Plottable") )
-        {
-            mPlottable = tProblemParams.get<Teuchos::Array<std::string>>("Plottable").toVector();
-        }
     }
 
     /**************************************************************************/
@@ -114,7 +109,7 @@ class InternalThermoelasticEnergy :
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
               Plato::ScalarVectorT      <ResultScalarType>  & aResult,
               Plato::Scalar aTimeStep = 0.0
-    ) const
+    ) const override
     /**************************************************************************/
     {
       auto tNumCells = mSpatialDomain.numCells();
@@ -154,23 +149,23 @@ class InternalThermoelasticEnergy :
 
           tVolume *= tCubWeights(iGpOrdinal);
 
-          // compute strain and electric field
+          // compute strain and temperature gradient
           //
           kinematics(iCellOrdinal, tStrain, tTGrad, aState, tGradient);
 
-          // compute stress and electric displacement
+          // compute stress and thermal flux
           //
           StateScalarType tTemperature(0.0);
           auto tBasisValues = ElementType::basisValues(tCubPoint);
           interpolateFromNodal(iCellOrdinal, tBasisValues, aState, tTemperature);
-          kinetics(iCellOrdinal, tStress, tFlux, tStrain, tTGrad, tTemperature);
+          kinetics(tStress, tFlux, tStrain, tTGrad, tTemperature);
 
           // apply weighting
           //
           applyStressWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
           applyFluxWeighting  (iCellOrdinal, aControl, tBasisValues, tFlux);
 
-          // compute element internal energy (inner product of strain and weighted stress)
+          // compute element internal energy
           //
           mechanicalScalarProduct(iCellOrdinal, aResult, tStress, tStrain, tVolume);
           thermalScalarProduct   (iCellOrdinal, aResult, tFlux,   tTGrad,  tVolume);

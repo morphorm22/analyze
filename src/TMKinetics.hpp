@@ -74,12 +74,12 @@ class TMKinetics : public ElementType
      **********************************************************************************/
     template<typename KineticsScalarType, typename KinematicsScalarType, typename StateScalarType>
     DEVICE_TYPE inline void
-    operator()( int cellOrdinal,
-                Plato::Array<mNumVoigtTerms,  KineticsScalarType>         & aStress,
-                Plato::Array<mNumSpatialDims, KineticsScalarType>         & aFlux,
-                Plato::Array<mNumVoigtTerms,  KinematicsScalarType> const & aStrain,
-                Plato::Array<mNumSpatialDims, KinematicsScalarType> const & aTGrad,
-                StateScalarType                                     const & aTemperature
+    operator()(
+        Plato::Array<mNumVoigtTerms,  KineticsScalarType>         & aStress,
+        Plato::Array<mNumSpatialDims, KineticsScalarType>         & aFlux,
+        Plato::Array<mNumVoigtTerms,  KinematicsScalarType> const & aStrain,
+        Plato::Array<mNumSpatialDims, KinematicsScalarType> const & aTGrad,
+        StateScalarType                                     const & aTemperature
     ) const
     {
         if (mModelType == Plato::MaterialModelType::Linear)

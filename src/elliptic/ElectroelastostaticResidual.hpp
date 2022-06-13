@@ -4,18 +4,17 @@
 #include <memory>
 
 #include "PlatoTypes.hpp"
-#include "SimplexFadTypes.hpp"
-#include "SimplexElectromechanics.hpp"
+#include "FadTypes.hpp"
 #include "EMKinematics.hpp"
 #include "EMKinetics.hpp"
-#include "StressDivergence.hpp"
-#include "FluxDivergence.hpp"
+#include "GeneralStressDivergence.hpp"
+#include "GradientMatrix.hpp"
+#include "GeneralFluxDivergence.hpp"
 
 #include "elliptic/AbstractVectorFunction.hpp"
 
 #include "ApplyWeighting.hpp"
 #include "CellForcing.hpp"
-#include "LinearTetCubRuleDegreeOne.hpp"
 #include "LinearElectroelasticMaterial.hpp"
 #include "NaturalBCs.hpp"
 #include "BodyLoads.hpp"
@@ -30,29 +29,30 @@ namespace Elliptic
 /******************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
 class ElectroelastostaticResidual :
-        public Plato::SimplexElectromechanics<EvaluationType::SpatialDim>,
-        public Plato::Elliptic::AbstractVectorFunction<EvaluationType>
+    public EvaluationType::ElementType,
+    public Plato::Elliptic::AbstractVectorFunction<EvaluationType>
 /******************************************************************************/
 {
 private:
-    static constexpr Plato::OrdinalType SpaceDim = EvaluationType::SpatialDim;
+    using ElementType = typename EvaluationType::ElementType;
+
+    using ElementType::mNumVoigtTerms;
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumDofsPerNode;
+    using ElementType::mNumDofsPerCell;
+    using ElementType::mNumSpatialDims;
+
+    using FunctionBaseType = Plato::Elliptic::AbstractVectorFunction<EvaluationType>;
+
+    using FunctionBaseType::mSpatialDomain;
+    using FunctionBaseType::mDataMap;
+    using FunctionBaseType::mDofNames;
 
     static constexpr Plato::OrdinalType NElecDims = 1;
-    static constexpr Plato::OrdinalType NMechDims = SpaceDim;
+    static constexpr Plato::OrdinalType NMechDims = mNumSpatialDims;
 
-    static constexpr Plato::OrdinalType EDofOffset = SpaceDim;
+    static constexpr Plato::OrdinalType EDofOffset = mNumSpatialDims;
     static constexpr Plato::OrdinalType MDofOffset = 0;
-
-    using PhysicsType = typename Plato::SimplexElectromechanics<SpaceDim>;
-
-    using Plato::SimplexElectromechanics<SpaceDim>::mNumVoigtTerms;
-    using Plato::Simplex<SpaceDim>::mNumNodesPerCell;
-    using PhysicsType::mNumDofsPerNode;
-    using PhysicsType::mNumDofsPerCell;
-
-    using Plato::Elliptic::AbstractVectorFunction<EvaluationType>::mSpatialDomain;
-    using Plato::Elliptic::AbstractVectorFunction<EvaluationType>::mDataMap;
-    using Plato::Elliptic::AbstractVectorFunction<EvaluationType>::mDofNames;
 
     using StateScalarType   = typename EvaluationType::StateScalarType;
     using ControlScalarType = typename EvaluationType::ControlScalarType;
@@ -60,17 +60,15 @@ private:
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
     IndicatorFunctionType mIndicatorFunction;
-    ApplyWeighting<SpaceDim, SpaceDim,       IndicatorFunctionType> mApplyEDispWeighting;
-    ApplyWeighting<SpaceDim, mNumVoigtTerms, IndicatorFunctionType> mApplyStressWeighting;
+    ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyEDispWeighting;
+    ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms,  IndicatorFunctionType> mApplyStressWeighting;
 
-    std::shared_ptr<Plato::BodyLoads<EvaluationType, PhysicsType>> mBodyLoads;
+    std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
 
-    std::shared_ptr<Plato::NaturalBCs<SpaceDim, NMechDims, mNumDofsPerNode, MDofOffset>> mBoundaryLoads;
-    std::shared_ptr<Plato::NaturalBCs<SpaceDim, NElecDims, mNumDofsPerNode, EDofOffset>> mBoundaryCharges;
+    std::shared_ptr<Plato::NaturalBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>> mBoundaryLoads;
+    std::shared_ptr<Plato::NaturalBCs<ElementType, NElecDims, mNumDofsPerNode, EDofOffset>> mBoundaryCharges;
 
-    std::shared_ptr<Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>> mCubatureRule;
-
-    Teuchos::RCP<Plato::LinearElectroelasticMaterial<SpaceDim>> mMaterialModel;
+    Teuchos::RCP<Plato::LinearElectroelasticMaterial<mNumSpatialDims>> mMaterialModel;
 
     std::vector<std::string> mPlottable;
 
@@ -82,39 +80,38 @@ public:
               Teuchos::ParameterList & aProblemParams,
               Teuchos::ParameterList & aPenaltyParams
     ) :
-        Plato::Elliptic::AbstractVectorFunction<EvaluationType>(aSpatialDomain, aDataMap),
+        FunctionBaseType      (aSpatialDomain, aDataMap),
         mIndicatorFunction    (aPenaltyParams),
         mApplyStressWeighting (mIndicatorFunction),
         mApplyEDispWeighting  (mIndicatorFunction),
         mBodyLoads            (nullptr),
         mBoundaryLoads        (nullptr),
-        mBoundaryCharges      (nullptr),
-        mCubatureRule(std::make_shared<Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>>())
+        mBoundaryCharges      (nullptr)
     /**************************************************************************/
     {
         // obligatory: define dof names in order
         mDofNames.push_back("displacement X");
-        if(SpaceDim > 1) mDofNames.push_back("displacement Y");
-        if(SpaceDim > 2) mDofNames.push_back("displacement Z");
+        if(mNumSpatialDims > 1) mDofNames.push_back("displacement Y");
+        if(mNumSpatialDims > 2) mDofNames.push_back("displacement Z");
         mDofNames.push_back("electric potential");
 
         // create material model and get stiffness
         //
-        Plato::ElectroelasticModelFactory<SpaceDim> mmfactory(aProblemParams);
+        Plato::ElectroelasticModelFactory<mNumSpatialDims> mmfactory(aProblemParams);
         mMaterialModel = mmfactory.create(mSpatialDomain.getMaterialName());
 
         // parse body loads
         // 
         if(aProblemParams.isSublist("Body Loads"))
         {
-            mBodyLoads = std::make_shared<Plato::BodyLoads<EvaluationType, PhysicsType>>(aProblemParams.sublist("Body Loads"));
+            mBodyLoads = std::make_shared<Plato::BodyLoads<EvaluationType, ElementType>>(aProblemParams.sublist("Body Loads"));
         }
   
         // parse mechanical boundary Conditions
         // 
         if(aProblemParams.isSublist("Mechanical Natural Boundary Conditions"))
         {
-            mBoundaryLoads = std::make_shared<Plato::NaturalBCs<SpaceDim, NMechDims, mNumDofsPerNode, MDofOffset>>
+            mBoundaryLoads = std::make_shared<Plato::NaturalBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>>
                 (aProblemParams.sublist("Mechanical Natural Boundary Conditions"));
         }
   
@@ -122,7 +119,7 @@ public:
         // 
         if(aProblemParams.isSublist("Electrical Natural Boundary Conditions"))
         {
-            mBoundaryCharges = std::make_shared<Plato::NaturalBCs<SpaceDim, NElecDims, mNumDofsPerNode, EDofOffset>>
+            mBoundaryCharges = std::make_shared<Plato::NaturalBCs<ElementType, NElecDims, mNumDofsPerNode, EDofOffset>>
                 (aProblemParams.sublist("Electrical Natural Boundary Conditions"));
         }
   
@@ -145,76 +142,113 @@ public:
 
     /**************************************************************************/
     void evaluate(
-        const Plato::ScalarMultiVectorT <StateScalarType>   & state,
-        const Plato::ScalarMultiVectorT <ControlScalarType> & control,
-        const Plato::ScalarArray3DT     <ConfigScalarType>  & config,
-              Plato::ScalarMultiVectorT <ResultScalarType>  & result,
+        const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
+        const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
+        const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
+              Plato::ScalarMultiVectorT <ResultScalarType>  & aResult,
               Plato::Scalar aTimeStep = 0.0
     ) const
     /**************************************************************************/
     {
       auto tNumCells = mSpatialDomain.numCells();
 
-      using GradScalarType =
-      typename Plato::fad_type_t<Plato::SimplexElectromechanics<EvaluationType::SpatialDim>, StateScalarType, ConfigScalarType>;
+      using GradScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
-      Plato::ComputeGradientWorkset<SpaceDim> computeGradient;
-      Plato::EMKinematics<SpaceDim>                  kinematics;
-      Plato::EMKinetics<SpaceDim>                    kinetics(mMaterialModel);
+      Plato::ComputeGradientMatrix<ElementType> computeGradient;
+      Plato::EMKinematics<ElementType>          kinematics;
+      Plato::EMKinetics<ElementType>            kinetics(mMaterialModel);
       
-      Plato::StressDivergence<SpaceDim, mNumDofsPerNode, MDofOffset> stressDivergence;
-      Plato::FluxDivergence  <SpaceDim, mNumDofsPerNode, EDofOffset> edispDivergence;
+      Plato::GeneralStressDivergence<ElementType, mNumDofsPerNode, MDofOffset> stressDivergence;
+      Plato::GeneralFluxDivergence  <ElementType, mNumDofsPerNode, EDofOffset> edispDivergence;
 
-      Plato::ScalarVectorT<ConfigScalarType> cellVolume("cell weight",tNumCells);
+      Plato::ScalarVectorT<ConfigScalarType> tCellVolume("cell weight",tNumCells);
 
-      Plato::ScalarArray3DT<ConfigScalarType> gradient("gradient", tNumCells, mNumNodesPerCell, SpaceDim);
-
-      Plato::ScalarMultiVectorT<GradScalarType> strain("strain", tNumCells, mNumVoigtTerms);
-      Plato::ScalarMultiVectorT<GradScalarType> efield("efield", tNumCells, SpaceDim);
+      Plato::ScalarMultiVectorT<GradScalarType> tCellStrain("strain", tNumCells, mNumVoigtTerms);
+      Plato::ScalarMultiVectorT<GradScalarType> tCellEField("efield", tNumCells, mNumSpatialDims);
     
-      Plato::ScalarMultiVectorT<ResultScalarType> stress("stress", tNumCells, mNumVoigtTerms);
-      Plato::ScalarMultiVectorT<ResultScalarType> edisp ("edisp" , tNumCells, SpaceDim);
+      Plato::ScalarMultiVectorT<ResultScalarType> tCellStress("stress", tNumCells, mNumVoigtTerms);
+      Plato::ScalarMultiVectorT<ResultScalarType> tCellEDisp ("edisp" , tNumCells, mNumSpatialDims);
     
-      auto quadratureWeight = mCubatureRule->getCubWeight();
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType cellOrdinal)
-      {
-        computeGradient(cellOrdinal, gradient, config, cellVolume);
-        cellVolume(cellOrdinal) *= quadratureWeight;
-
-        // compute strain and electric field
-        //
-        kinematics(cellOrdinal, strain, efield, state, gradient);
-    
-        // compute stress and electric displacement
-        //
-        kinetics(cellOrdinal, stress, edisp, strain, efield);
-
-      }, "Cauchy stress");
+      auto tCubPoints = ElementType::getCubPoints();
+      auto tCubWeights = ElementType::getCubWeights();
+      auto tNumPoints = tCubWeights.size();
 
       auto& applyStressWeighting = mApplyStressWeighting;
       auto& applyEDispWeighting  = mApplyEDispWeighting;
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType cellOrdinal)
+      Kokkos::parallel_for("compute element state", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-        // apply weighting
-        //
-        applyStressWeighting(cellOrdinal, stress, control);
-        applyEDispWeighting (cellOrdinal, edisp,  control);
+          ConfigScalarType tVolume(0.0);
+
+          Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, ConfigScalarType> tGradient;
+
+          Plato::Array<ElementType::mNumVoigtTerms,  GradScalarType>   tStrain(0.0);
+          Plato::Array<ElementType::mNumSpatialDims, GradScalarType>   tEField(0.0);
+          Plato::Array<ElementType::mNumVoigtTerms,  ResultScalarType> tStress(0.0);
+          Plato::Array<ElementType::mNumSpatialDims, ResultScalarType> tEDisp (0.0);
+
+          auto tCubPoint = tCubPoints(iGpOrdinal);
+
+          computeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
+
+          tVolume *= tCubWeights(iGpOrdinal);
+
+          // compute strain and electric field
+          //
+          kinematics(iCellOrdinal, tStrain, tEField, aState, tGradient);
     
-        // compute divergence
-        //
-        stressDivergence(cellOrdinal, result, stress, gradient, cellVolume);
-        edispDivergence (cellOrdinal, result, edisp,  gradient, cellVolume);
-      }, "Apply weighting and compute divergence");
+          // compute stress and electric displacement
+          //
+          kinetics(tStress, tEDisp, tStrain, tEField);
+
+          // apply weighting
+          //
+          auto tBasisValues = ElementType::basisValues(tCubPoint);
+          applyStressWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
+          applyEDispWeighting (iCellOrdinal, aControl, tBasisValues, tEDisp);
+    
+          // compute divergence
+          //
+          stressDivergence(iCellOrdinal, aResult, tStress, tGradient, tVolume);
+          edispDivergence (iCellOrdinal, aResult, tEDisp,  tGradient, tVolume);
+
+          for(int i=0; i<ElementType::mNumVoigtTerms; i++)
+          {
+              Kokkos::atomic_add(&tCellStrain(iCellOrdinal,i), tVolume*tStrain(i));
+              Kokkos::atomic_add(&tCellStress(iCellOrdinal,i), tVolume*tStress(i));
+          }
+          for(int i=0; i<ElementType::mNumSpatialDims; i++)
+          {
+              Kokkos::atomic_add(&tCellEField(iCellOrdinal,i), tVolume*tEField(i));
+              Kokkos::atomic_add(&tCellEDisp(iCellOrdinal,i), tVolume*tEDisp(i));
+          }
+          Kokkos::atomic_add(&tCellVolume(iCellOrdinal), tVolume);
+      });
+
+      Kokkos::parallel_for("compute cell quantities", Kokkos::RangePolicy<>(0, tNumCells),
+      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal)
+      {
+          for(int i=0; i<ElementType::mNumVoigtTerms; i++)
+          {
+              tCellStrain(iCellOrdinal,i) /= tCellVolume(iCellOrdinal);
+              tCellStress(iCellOrdinal,i) /= tCellVolume(iCellOrdinal);
+          }
+          for(int i=0; i<ElementType::mNumSpatialDims; i++)
+          {
+              tCellEField(iCellOrdinal,i) /= tCellVolume(iCellOrdinal);
+              tCellEDisp(iCellOrdinal,i) /= tCellVolume(iCellOrdinal);
+          }
+      });
 
       if( mBodyLoads != nullptr )
       {
-          mBodyLoads->get( mSpatialDomain, state, control, result, -1.0 );
+          mBodyLoads->get( mSpatialDomain, aState, aControl, aConfig, aResult, -1.0 );
       }
 
-     if( std::count(mPlottable.begin(),mPlottable.end(),"strain") ) toMap(mDataMap, strain, "strain", mSpatialDomain);
-     if( std::count(mPlottable.begin(),mPlottable.end(),"efield") ) toMap(mDataMap, strain, "efield", mSpatialDomain);
-     if( std::count(mPlottable.begin(),mPlottable.end(),"stress") ) toMap(mDataMap, stress, "stress", mSpatialDomain);
-     if( std::count(mPlottable.begin(),mPlottable.end(),"edisp" ) ) toMap(mDataMap, stress, "edisp" , mSpatialDomain);
+     if( std::count(mPlottable.begin(),mPlottable.end(),"strain") ) toMap(mDataMap, tCellStrain, "strain", mSpatialDomain);
+     if( std::count(mPlottable.begin(),mPlottable.end(),"efield") ) toMap(mDataMap, tCellEField, "efield", mSpatialDomain);
+     if( std::count(mPlottable.begin(),mPlottable.end(),"stress") ) toMap(mDataMap, tCellStress, "stress", mSpatialDomain);
+     if( std::count(mPlottable.begin(),mPlottable.end(),"edisp" ) ) toMap(mDataMap, tCellEDisp,  "edisp",  mSpatialDomain);
 
     }
     /**************************************************************************/

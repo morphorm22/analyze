@@ -1,7 +1,6 @@
 #ifndef EMKINEMATICS_HPP
 #define EMKINEMATICS_HPP
 
-#include "SimplexElectromechanics.hpp"
 #include "PlatoStaticsTypes.hpp"
 
 namespace Plato
@@ -14,43 +13,46 @@ namespace Plato
     and electric field.
 */
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-class EMKinematics : public Plato::SimplexElectromechanics<SpaceDim>
+template<typename ElementType>
+class EMKinematics : ElementType
 {
   private:
 
-    using Plato::SimplexElectromechanics<SpaceDim>::mNumVoigtTerms;
-    using Plato::SimplexElectromechanics<SpaceDim>::mNumNodesPerCell;
-    using Plato::SimplexElectromechanics<SpaceDim>::mNumDofsPerNode;
+    using ElementType::mNumSpatialDims;
+    using ElementType::mNumVoigtTerms;
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumDofsPerNode;
 
   public:
 
     template<typename StrainScalarType, typename StateScalarType, typename GradientScalarType>
     DEVICE_TYPE inline void
-    operator()( Plato::OrdinalType cellOrdinal,
-                Plato::ScalarMultiVectorT< StrainScalarType   > const& strain,
-                Plato::ScalarMultiVectorT< StrainScalarType   > const& efield,
-                Plato::ScalarMultiVectorT< StateScalarType    > const& state,
-                Plato::ScalarArray3DT<     GradientScalarType > const& gradient) const {
+    operator()(
+        Plato::OrdinalType                                                           aCellOrdinal,
+        Plato::Array<mNumVoigtTerms,  StrainScalarType>                            & aStrain,
+        Plato::Array<mNumSpatialDims, StrainScalarType>                            & aEField,
+        Plato::ScalarMultiVectorT<StateScalarType>                           const & aState,
+        Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, GradientScalarType> const & aGradient) const
+    {
 
       // compute strain
       //
       Plato::OrdinalType voigtTerm=0;
-      for(Plato::OrdinalType iDof=0; iDof<SpaceDim; iDof++){
-        strain(cellOrdinal,voigtTerm)=0.0;
+      for(Plato::OrdinalType iDof=0; iDof<mNumSpatialDims; iDof++){
+        aStrain(voigtTerm)=0.0;
         for( Plato::OrdinalType iNode=0; iNode<mNumNodesPerCell; iNode++){
           Plato::OrdinalType localOrdinal = iNode*mNumDofsPerNode+iDof;
-          strain(cellOrdinal,voigtTerm) += state(cellOrdinal,localOrdinal)*gradient(cellOrdinal,iNode,iDof);
+          aStrain(voigtTerm) += aState(aCellOrdinal,localOrdinal)*aGradient(iNode,iDof);
         }
         voigtTerm++;
       }
-      for (Plato::OrdinalType jDof=SpaceDim-1; jDof>=1; jDof--){
+      for (Plato::OrdinalType jDof=mNumSpatialDims-1; jDof>=1; jDof--){
         for (Plato::OrdinalType iDof=jDof-1; iDof>=0; iDof--){
           for( Plato::OrdinalType iNode=0; iNode<mNumNodesPerCell; iNode++){
             Plato::OrdinalType iLocalOrdinal = iNode*mNumDofsPerNode+iDof;
             Plato::OrdinalType jLocalOrdinal = iNode*mNumDofsPerNode+jDof;
-            strain(cellOrdinal,voigtTerm) +=(state(cellOrdinal,jLocalOrdinal)*gradient(cellOrdinal,iNode,iDof)
-                                            +state(cellOrdinal,iLocalOrdinal)*gradient(cellOrdinal,iNode,jDof));
+            aStrain(voigtTerm) +=(aState(aCellOrdinal,jLocalOrdinal)*aGradient(iNode, iDof)
+                                 +aState(aCellOrdinal,iLocalOrdinal)*aGradient(iNode, jDof));
           }
           voigtTerm++;
         }
@@ -58,12 +60,12 @@ class EMKinematics : public Plato::SimplexElectromechanics<SpaceDim>
  
       // compute efield
       //
-      Plato::OrdinalType dofOffset = SpaceDim;
-      for(Plato::OrdinalType iDof=0; iDof<SpaceDim; iDof++){
-        efield(cellOrdinal,iDof) = 0.0;
+      Plato::OrdinalType dofOffset = mNumSpatialDims;
+      for(Plato::OrdinalType iDof=0; iDof<mNumSpatialDims; iDof++){
+        aEField(iDof) = 0.0;
         for( Plato::OrdinalType iNode=0; iNode<mNumNodesPerCell; iNode++){
           Plato::OrdinalType localOrdinal = iNode*mNumDofsPerNode+dofOffset;
-          efield(cellOrdinal,iDof) -= state(cellOrdinal,localOrdinal)*gradient(cellOrdinal,iNode,iDof);
+          aEField(iDof) -= aState(aCellOrdinal,localOrdinal)*aGradient(iNode, iDof);
         }
       }
     }

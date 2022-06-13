@@ -516,53 +516,6 @@ class ComputeVolume
 };
 /******************************************************************************/
 
-#ifdef NOPE
-/******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-class ComputeGradientMatrix : public Plato::SimplexMechanics<SpaceDim>
-{
-  private:
-
-    using Plato::SimplexMechanics<SpaceDim>::mNumVoigtTerms;
-    using Plato::SimplexMechanics<SpaceDim>::mNumNodesPerCell;
-    using Plato::SimplexMechanics<SpaceDim>::mNumDofsPerCell;
-    static constexpr auto mNumSpaceDim = SpaceDim;
-
-  public:
-
-    DEVICE_TYPE
-    void
-    operator()( const Plato::Array<mNumSpaceDim>* gradients,
-                      Plato::Array<mNumVoigtTerms>* gradientMatrix) const
-    {
-      for (Plato::OrdinalType iDof=0; iDof<mNumDofsPerCell; iDof++){
-        for (Plato::OrdinalType iVoigt=0; iVoigt<mNumVoigtTerms; iVoigt++){
-          gradientMatrix[iDof][iVoigt] = 0.0;
-        }
-      }
-
-      for (Plato::OrdinalType iNode=0; iNode<mNumNodesPerCell; iNode++)
-      {
-        Plato::OrdinalType voigtTerm=0;
-        for (Plato::OrdinalType iDof=0; iDof<mNumSpaceDim; iDof++){
-          gradientMatrix[mNumSpaceDim*iNode+iDof][voigtTerm] = gradients[iNode][iDof];
-          voigtTerm++;
-        }
-
-        for (Plato::OrdinalType jDof=mNumSpaceDim-1; jDof>=1; jDof--){
-          for (Plato::OrdinalType iDof=jDof-1; iDof>=0; iDof--){
-            gradientMatrix[mNumSpaceDim*iNode+iDof][voigtTerm] = gradients[iNode][jDof];
-            gradientMatrix[mNumSpaceDim*iNode+jDof][voigtTerm] = gradients[iNode][iDof];
-            voigtTerm++;
-          }
-        }
-      }
-    }
-};
-/******************************************************************************/
-#endif
-
-
 /******************************************************************************/
 template<Plato::OrdinalType SpaceDim, typename OrdinalLookupType>
 class Assemble

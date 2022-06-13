@@ -11,7 +11,6 @@
 #include "elliptic/AbstractScalarFunction.hpp"
 #include "ExpInstMacros.hpp"
 #include "InterpolateFromNodal.hpp"
-#include "LinearTetCubRuleDegreeOne.hpp"
 #include "ThermoelasticMaterial.hpp"
 
 #include "alg/Basis.hpp"
@@ -42,8 +41,10 @@ class TMStressPNorm :
 
     static constexpr int TDofOffset = mNumSpatialDims;
 
-    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mSpatialDomain;
-    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mDataMap;
+    using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
+
+    using FunctionBaseType::mSpatialDomain;
+    using FunctionBaseType::mDataMap;
 
     using StateScalarType   = typename EvaluationType::StateScalarType;
     using ControlScalarType = typename EvaluationType::ControlScalarType;
@@ -59,32 +60,6 @@ class TMStressPNorm :
 
     std::string mFuncString = "1.0";
 
-    /******************************************************************************/
-    template<typename ConfigScalarType>
-    void
-    computeSpatialWeightingValues(
-        const Plato::SpatialDomain                        & aSpatialDomain,
-        const Plato::ScalarArray3DT<ConfigScalarType>     & aConfig,
-        const Plato::ScalarMultiVectorT<ConfigScalarType> & aFxnValues
-    ) const
-    /******************************************************************************/
-    {
-        auto tCubPoints  = ElementType::getCubPoints();
-        auto tCubWeights = ElementType::getCubWeights();
-        auto tNumPoints  = tCubWeights.size();
-
-        // map points to physical space
-        //
-        Plato::OrdinalType tNumCells = aSpatialDomain.numCells();
-        Plato::ScalarArray3DT<ConfigScalarType> tPhysicalPoints("cub points physical space", tNumCells, tNumPoints, mNumSpatialDims);
-
-        Plato::mapPoints<ElementType, ConfigScalarType>(aConfig, tPhysicalPoints);
-
-        // get integrand values at quadrature points
-        //
-        Plato::getFunctionValues<mNumSpatialDims, ConfigScalarType>(tPhysicalPoints, mFuncString, aFxnValues);
-    }
-
   public:
     /**************************************************************************/
     TMStressPNorm(
@@ -94,7 +69,7 @@ class TMStressPNorm :
               Teuchos::ParameterList & aPenaltyParams,
               std::string            & aFunctionName
     ) :
-        Plato::Elliptic::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aProblemParams, aFunctionName),
+        FunctionBaseType      (aSpatialDomain, aDataMap, aProblemParams, aFunctionName),
         mIndicatorFunction    (aPenaltyParams),
         mApplyStressWeighting (mIndicatorFunction)
     /**************************************************************************/
@@ -122,7 +97,25 @@ class TMStressPNorm :
     ) const
     /**************************************************************************/
     {
+      auto tCubPoints = ElementType::getCubPoints();
+      auto tCubWeights = ElementType::getCubWeights();
+      auto tNumPoints = tCubWeights.size();
+
       auto tNumCells = mSpatialDomain.numCells();
+
+      Plato::ScalarMultiVectorT<ConfigScalarType> tFxnValues("function values", tNumCells*tNumPoints, 1);
+
+      if (mFuncString == "1.0")
+      {
+          Kokkos::deep_copy(tFxnValues, 1.0);
+      }
+      else
+      {
+          Plato::ScalarArray3DT<ConfigScalarType> tPhysicalPoints("physical points", tNumCells, tNumPoints, mNumSpatialDims);
+          Plato::mapPoints<ElementType>(aConfig, tPhysicalPoints);
+
+          Plato::getFunctionValues<mNumSpatialDims>(tPhysicalPoints, mFuncString, tFxnValues);
+      }
 
       using GradScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
@@ -135,14 +128,7 @@ class TMStressPNorm :
       Plato::ScalarMultiVectorT<ResultScalarType> tCellStress("stress", tNumCells, mNumVoigtTerms);
       Plato::ScalarVectorT<ConfigScalarType> tCellVolume("volume", tNumCells);
 
-      auto tCubPoints = ElementType::getCubPoints();
-      auto tCubWeights = ElementType::getCubWeights();
-      auto tNumPoints = tCubWeights.size();
-
       auto tApplyStressWeighting = mApplyStressWeighting;
-      Plato::ScalarMultiVectorT<ConfigScalarType> tFxnValues("function values", tNumCells*tNumPoints, 1);
-      this->computeSpatialWeightingValues(mSpatialDomain, aConfig, tFxnValues);
-
       Kokkos::parallel_for("compute internal energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
       LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
@@ -160,6 +146,7 @@ class TMStressPNorm :
           tComputeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
 
           tVolume *= tCubWeights(iGpOrdinal);
+          tVolume *= tFxnValues(iCellOrdinal*tNumPoints + iGpOrdinal, 0);
 
           // compute strain and electric field
           //
@@ -170,7 +157,7 @@ class TMStressPNorm :
           StateScalarType tTemperature(0.0);
           auto tBasisValues = ElementType::basisValues(tCubPoint);
           tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState, tTemperature);
-          tKinetics(iCellOrdinal, tStress, tFlux, tStrain, tTGrad, tTemperature);
+          tKinetics(tStress, tFlux, tStrain, tTGrad, tTemperature);
 
           // apply weighting
           //

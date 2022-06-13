@@ -20,7 +20,7 @@
 #include "Quad4.hpp"
 #include "Tet10.hpp"
 #include "Tet4.hpp"
-//TODO #include "Electromechanics.hpp"
+#include "Electromechanics.hpp"
 #include "Thermomechanics.hpp"
 #include "alg/ParallelComm.hpp"
 
@@ -303,7 +303,6 @@ create_thermal_problem
 * \param [in] aMachine   mpi communicator interface
 * \returns shared pointer to abstract problem of type electromechanical
 **********************************************************************************/
-template<Plato::OrdinalType SpatialDim>
 inline
 std::shared_ptr<Plato::AbstractProblem>
 create_electromechanical_problem
@@ -316,9 +315,7 @@ create_electromechanical_problem
 #ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
     {
-// TODO        auto tOutput = std::make_shared < Plato::Elliptic::Problem<::Plato::Electromechanics<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
-// TODO        tOutput->readEssentialBoundaryConditions(aPlatoProb);
-// TODO        return tOutput;
+        return makeProblem<Plato::Elliptic::Problem, Plato::Electromechanics>(aMesh, aPlatoProb, aMachine);
     }
     else
 #endif
@@ -511,7 +508,7 @@ public:
         else
         if(tLowerPhysics == "electromechanical")
         {
-// TODO            return ( Plato::create_electromechanical_problem<SpatialDim>(aMesh, tInputData, aMachine) );
+            return ( Plato::create_electromechanical_problem(aMesh, tInputData, aMachine) );
         }
 #ifdef PLATO_STABILIZED
         else

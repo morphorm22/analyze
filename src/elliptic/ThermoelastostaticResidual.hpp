@@ -200,7 +200,7 @@ public:
           StateScalarType tTemperature(0.0);
           auto tBasisValues = ElementType::basisValues(tCubPoint);
           interpolateFromNodal(iCellOrdinal, tBasisValues, aState, tTemperature);
-          kinetics(iCellOrdinal, tStress, tFlux, tStrain, tTGrad, tTemperature);
+          kinetics(tStress, tFlux, tStrain, tTGrad, tTemperature);
 
           // apply weighting
           //
