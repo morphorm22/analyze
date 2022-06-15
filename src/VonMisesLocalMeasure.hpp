@@ -2,7 +2,7 @@
 
 #include "AbstractLocalMeasure.hpp"
 #include "LinearStress.hpp"
-#include "Strain.hpp"
+#include "SmallStrain.hpp"
 #include "ImplicitFunctors.hpp"
 #include <Teuchos_ParameterList.hpp>
 #include "ElasticModelFactory.hpp"

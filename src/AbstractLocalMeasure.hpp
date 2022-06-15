@@ -2,7 +2,6 @@
 
 #include "SpatialModel.hpp"
 #include "PlatoStaticsTypes.hpp"
-#include "SimplexMechanics.hpp"
 #include <Teuchos_ParameterList.hpp>
 
 namespace Plato

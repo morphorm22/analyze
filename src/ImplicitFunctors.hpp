@@ -5,7 +5,6 @@
 #include "PlatoMathTypes.hpp"
 
 #include <Teuchos_RCPDecl.hpp>
-#include "SimplexMechanics.hpp"
 
 namespace Plato
 {
@@ -65,7 +64,7 @@ class VectorEntryOrdinal
 /******************************************************************************/
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType NodesPerCell=SpaceDim+1>
+template<Plato::OrdinalType SpaceDim, Plato::OrdinalType NodesPerCell>
 class NodeCoordinate
 {
   private:
@@ -95,6 +94,8 @@ class NodeCoordinate
 };
 /******************************************************************************/
 
+// TODO delete. code below is tet4 specific
+#ifdef COMPILE_DEAD_CODE
 /******************************************************************************/
 template<Plato::OrdinalType SpaceDim>
 class JacobianDet
@@ -121,6 +122,7 @@ class JacobianDet
     }
 };
 /******************************************************************************/
+#endif
 
 /******************************************************************************/
 /*! InertialForces Functor.
@@ -156,6 +158,8 @@ public:
 };
 /******************************************************************************/
 
+// TODO delete. code below is tet4 specific
+#ifdef COMPILE_DEAD_CODE
 /******************************************************************************/
 template<Plato::OrdinalType SpaceDim>
 class ComputeGradientWorkset
@@ -564,6 +568,7 @@ class Assemble
     }
 };
 /******************************************************************************/
+#endif
 
 
 /******************************************************************************/
@@ -607,6 +612,8 @@ class BlockMatrixTransposeEntryOrdinal
     }
 };
 
+// TODO delete. code below is tet4 specific
+#ifdef COMPILE_DEAD_CODE
 /******************************************************************************/
 template<Plato::OrdinalType SpaceDim, Plato::OrdinalType BlockSize_I, Plato::OrdinalType BlockSize_J>
 class LocalByGlobalEntryFunctor
@@ -687,6 +694,7 @@ class GlobalByLocalEntryFunctor
     }
 };
 /******************************************************************************/
+#endif
 
 /******************************************************************************/
 template<Plato::OrdinalType SpaceDim,
@@ -731,6 +739,8 @@ class BlockMatrixEntryOrdinal
 };
 /******************************************************************************/
 
+// TODO delete. code below is tet4 specific
+#ifdef COMPILE_DEAD_CODE
 /******************************************************************************/
 template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofsPerNode_J=DofsPerNode>
 class MatrixEntryOrdinal
@@ -771,6 +781,7 @@ class MatrixEntryOrdinal
     }
 };
 /******************************************************************************/
+#endif
 
 /******************************************************************************/
 /*!

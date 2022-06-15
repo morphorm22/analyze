@@ -21,30 +21,30 @@ namespace Elliptic
 /******************************************************************************//**
  * \brief Weighted sum function class \f$ F(x) = \sum_{i = 1}^{n} w_i * f_i(x) \f$
  **********************************************************************************/
-template<typename PhysicsT>
-class WeightedSumFunction : public Plato::Elliptic::ScalarFunctionBase, public Plato::WorksetBase<PhysicsT>
+template<typename PhysicsType>
+class WeightedSumFunction :
+    public Plato::Elliptic::ScalarFunctionBase,
+    public Plato::WorksetBase<typename PhysicsType::ElementType>
 {
 private:
-    using Plato::WorksetBase<PhysicsT>::mNumDofsPerCell; /*!< number of degree of freedom per cell/element */
-    using Plato::WorksetBase<PhysicsT>::mNumNodesPerCell; /*!< number of nodes per cell/element */
-    using Plato::WorksetBase<PhysicsT>::mNumDofsPerNode; /*!< number of degree of freedom per node */
-    using Plato::WorksetBase<PhysicsT>::mNumSpatialDims; /*!< number of spatial dimensions */
-    using Plato::WorksetBase<PhysicsT>::mNumControl; /*!< number of control variables */
-    using Plato::WorksetBase<PhysicsT>::mNumNodes; /*!< total number of nodes in the mesh */
-    using Plato::WorksetBase<PhysicsT>::mNumCells; /*!< total number of cells/elements in the mesh */
+    using ElementType = typename PhysicsType::ElementType;
 
-    using Plato::WorksetBase<PhysicsT>::mGlobalStateEntryOrdinal;
-    using Plato::WorksetBase<PhysicsT>::mControlEntryOrdinal;
-    using Plato::WorksetBase<PhysicsT>::mConfigEntryOrdinal;
+    using Plato::WorksetBase<ElementType>::mNumDofsPerCell;
+    using Plato::WorksetBase<ElementType>::mNumNodesPerCell;
+    using Plato::WorksetBase<ElementType>::mNumDofsPerNode;
+    using Plato::WorksetBase<ElementType>::mNumSpatialDims;
+    using Plato::WorksetBase<ElementType>::mNumControl;
+    using Plato::WorksetBase<ElementType>::mNumNodes;
+    using Plato::WorksetBase<ElementType>::mNumCells;
 
-    std::vector<Plato::Scalar> mFunctionWeights; /*!< Vector of function weights */
-    std::vector<std::shared_ptr<Plato::Elliptic::ScalarFunctionBase>> mScalarFunctionBaseContainer; /*!< Vector of ScalarFunctionBase objects */
+    std::vector<Plato::Scalar> mFunctionWeights;
+    std::vector<std::shared_ptr<Plato::Elliptic::ScalarFunctionBase>> mScalarFunctionBaseContainer;
 
     const Plato::SpatialModel & mSpatialModel;
 
-    Plato::DataMap& mDataMap; /*!< PLATO Engine and Analyze data map */
+    Plato::DataMap& mDataMap;
 
-    std::string mFunctionName; /*!< User defined function name */
+    std::string mFunctionName;
 
 	/******************************************************************************//**
      * \brief Initialization of Weighted Sum Function
@@ -56,7 +56,7 @@ private:
         Teuchos::ParameterList & aProblemParams
     )
     {
-        Plato::Elliptic::ScalarFunctionBaseFactory<PhysicsT> tFactory;
+        Plato::Elliptic::ScalarFunctionBaseFactory<PhysicsType> tFactory;
 
         mScalarFunctionBaseContainer.clear();
         mFunctionWeights.clear();
@@ -100,7 +100,7 @@ public:
               Teuchos::ParameterList & aProblemParams,
               std::string            & aName
     ) :
-        Plato::WorksetBase<PhysicsT>(aSpatialModel.Mesh),
+        Plato::WorksetBase<typename PhysicsType::ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
         mFunctionName (aName)
@@ -116,7 +116,7 @@ public:
         const Plato::SpatialModel & aSpatialModel,
               Plato::DataMap      & aDataMap
     ) :
-        Plato::WorksetBase<PhysicsT>(aSpatialModel.Mesh),
+        Plato::WorksetBase<typename PhysicsType::ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
         mFunctionName ("Weighted Sum")
@@ -278,28 +278,28 @@ public:
 
 } // namespace Plato
 
-#include "Thermal.hpp"
-#include "Mechanics.hpp"
-#include "Electromechanics.hpp"
-#include "Thermomechanics.hpp"
+//TODO #include "Thermal.hpp"
+//TODO #include "Mechanics.hpp"
+//TODO #include "Electromechanics.hpp"
+//TODO #include "Thermomechanics.hpp"
 
 #ifdef PLATOANALYZE_1D
-extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Thermal<1>>;
-extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Mechanics<1>>;
-extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Electromechanics<1>>;
-extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Thermomechanics<1>>;
+//TODO extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Thermal<1>>;
+//TODO extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Mechanics<1>>;
+//TODO extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Electromechanics<1>>;
+//TODO extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Thermomechanics<1>>;
 #endif
 
 #ifdef PLATOANALYZE_2D
-extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Thermal<2>>;
-extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Mechanics<2>>;
-extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Electromechanics<2>>;
-extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Thermomechanics<2>>;
+//TODO extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Thermal<2>>;
+//TODO extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Mechanics<2>>;
+//TODO extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Electromechanics<2>>;
+//TODO extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Thermomechanics<2>>;
 #endif
 
 #ifdef PLATOANALYZE_3D
-extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Thermal<3>>;
-extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Mechanics<3>>;
-extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Electromechanics<3>>;
-extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Thermomechanics<3>>;
+//TODO extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Thermal<3>>;
+//TODO extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Mechanics<3>>;
+//TODO extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Electromechanics<3>>;
+//TODO extern template class Plato::Elliptic::WeightedSumFunction<::Plato::Thermomechanics<3>>;
 #endif

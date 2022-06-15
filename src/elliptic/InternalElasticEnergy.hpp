@@ -4,7 +4,7 @@
 #include "FadTypes.hpp"
 #include "ScalarProduct.hpp"
 #include "ApplyWeighting.hpp"
-#include "Strain.hpp"
+#include "SmallStrain.hpp"
 #include "LinearStress.hpp"
 #include "GeneralStressDivergence.hpp"
 #include "ElasticModelFactory.hpp"
@@ -41,18 +41,18 @@ class InternalElasticEnergy :
     using ElementType::mNumDofsPerCell;
     using ElementType::mNumSpatialDims;
 
-    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mSpatialDomain; /*!< Plato Analyze spatial domain */
-    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mDataMap; /*!< Plato Analyze database */
+    using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
 
-    using StateScalarType   = typename EvaluationType::StateScalarType; /*!< automatic differentiation type for states */
-    using ControlScalarType = typename EvaluationType::ControlScalarType; /*!< automatic differentiation type for controls */
-    using ConfigScalarType  = typename EvaluationType::ConfigScalarType; /*!< automatic differentiation type for configuration */
-    using ResultScalarType  = typename EvaluationType::ResultScalarType; /*!< automatic differentiation type for results */
+    using FunctionBaseType::mSpatialDomain;
+    using FunctionBaseType::mDataMap;
 
-    IndicatorFunctionType mIndicatorFunction; /*!< penalty function */
-    Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, IndicatorFunctionType> mApplyWeighting; /*!< apply penalty function */
+    using StateScalarType   = typename EvaluationType::StateScalarType;
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
+    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+    using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
-    std::vector<std::string> mPlottable; /*!< database of output field names */
+    IndicatorFunctionType mIndicatorFunction;
+    Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, IndicatorFunctionType> mApplyWeighting;
 
     Teuchos::RCP<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterialModel;
 
@@ -76,11 +76,6 @@ class InternalElasticEnergy :
     {
         Plato::ElasticModelFactory<mNumSpatialDims> tMaterialModelFactory(aProblemParams);
         mMaterialModel = tMaterialModelFactory.create(aSpatialDomain.getMaterialName());
-
-        if(aProblemParams.isType < Teuchos::Array < std::string >> ("Plottable"))
-        {
-            mPlottable = aProblemParams.get < Teuchos::Array < std::string >> ("Plottable").toVector();
-        }
     }
 
     /******************************************************************************//**

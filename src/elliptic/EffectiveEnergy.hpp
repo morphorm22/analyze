@@ -4,7 +4,7 @@
 #include "FadTypes.hpp"
 #include "ScalarProduct.hpp"
 #include "ApplyWeighting.hpp"
-#include "Strain.hpp"
+#include "SmallStrain.hpp"
 #include "ElasticModelFactory.hpp"
 #include "ImplicitFunctors.hpp"
 #include "HomogenizedStress.hpp"

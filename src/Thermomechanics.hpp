@@ -3,37 +3,38 @@
 
 #include <memory>
 
-//TODO #include "parabolic/TransientThermomechResidual.hpp"
-
+#ifdef PLATO_PARABOLIC
+#include "parabolic/TransientThermomechResidual.hpp"
 #include "parabolic/AbstractScalarFunction.hpp"
+#include "parabolic/InternalThermoelasticEnergy.hpp"
+#endif
+
 #include "elliptic/AbstractVectorFunction.hpp"
 #include "elliptic/ThermoelastostaticResidual.hpp"
 #include "elliptic/InternalThermoelasticEnergy.hpp"
 #include "elliptic/TMStressPNorm.hpp"
+#include "elliptic/Volume.hpp"
 
-//TODO #include "parabolic/InternalThermoelasticEnergy.hpp"
-//TODO #include "elliptic/Volume.hpp"
 
-//TODO #include "AbstractLocalMeasure.hpp"
+#include "AbstractLocalMeasure.hpp"
 
 #include "AnalyzeMacros.hpp"
 
-//TODO #include "Plato_AugLagStressCriterionQuadratic.hpp"
-//TODO #include "ThermalVonMisesLocalMeasure.hpp"
+#include "Plato_AugLagStressCriterionQuadratic.hpp"
+#include "ThermalVonMisesLocalMeasure.hpp"
 
 namespace Plato
 {
 
 namespace ThermomechanicsFactory
 {
-#ifdef NOPE
     /******************************************************************************//**
     * \brief Create a local measure for use in augmented lagrangian quadratic
     * \param [in] aProblemParams input parameters
     * \param [in] aFuncName scalar function name
     **********************************************************************************/
     template <typename EvaluationType>
-    inline std::shared_ptr<Plato::AbstractLocalMeasure<EvaluationType,Plato::SimplexThermomechanics<EvaluationType::SpatialDim>>> 
+    inline std::shared_ptr<Plato::AbstractLocalMeasure<EvaluationType>>
     create_local_measure(
       const Plato::SpatialDomain   & aSpatialDomain,
             Teuchos::ParameterList & aProblemParams,
@@ -45,7 +46,7 @@ namespace ThermomechanicsFactory
 
         if(tLocalMeasure == "VonMises")
         {
-          return std::make_shared<ThermalVonMisesLocalMeasure<EvaluationType, Plato::SimplexThermomechanics<EvaluationType::SpatialDim>>>
+          return std::make_shared<ThermalVonMisesLocalMeasure<EvaluationType>>
               (aSpatialDomain, aProblemParams, "VonMises");
         }
         else
@@ -69,18 +70,16 @@ namespace ThermomechanicsFactory
         const std::string            & aFuncName)
     {
         auto EvalMeasure = Plato::ThermomechanicsFactory::create_local_measure<EvaluationType>(aSpatialDomain, aInputParams, aFuncName);
-        using Residual = typename Plato::ResidualTypes<Plato::SimplexThermomechanics<EvaluationType::SpatialDim>>;
+        using Residual = typename Plato::Elliptic::ResidualTypes<typename EvaluationType::ElementType>;
         auto PODMeasure = Plato::ThermomechanicsFactory::create_local_measure<Residual>(aSpatialDomain, aInputParams, aFuncName);
 
-        using SimplexT = Plato::SimplexThermomechanics<EvaluationType::SpatialDim>;
-        std::shared_ptr<Plato::AugLagStressCriterionQuadratic<EvaluationType,SimplexT>> tOutput;
-        tOutput = std::make_shared< Plato::AugLagStressCriterionQuadratic<EvaluationType,SimplexT> >
+        std::shared_ptr<Plato::AugLagStressCriterionQuadratic<EvaluationType>> tOutput;
+        tOutput = std::make_shared< Plato::AugLagStressCriterionQuadratic<EvaluationType> >
                     (aSpatialDomain, aDataMap, aInputParams, aFuncName);
-        //ANALYZE_THROWERR("Not finished implementing this for thermomechanics... need local measure that is compatible.")
+
         tOutput->setLocalMeasure(EvalMeasure, PODMeasure);
         return (tOutput);
     }
-#endif
 
 /******************************************************************************/
 struct FunctionFactory
@@ -109,7 +108,7 @@ struct FunctionFactory
         }
     }
 
-#ifdef NOPE
+#ifdef PLATO_PARABOLIC
     /******************************************************************************/
     template <typename EvaluationType>
     std::shared_ptr<Plato::Parabolic::AbstractVectorFunction<EvaluationType>>
@@ -175,12 +174,11 @@ struct FunctionFactory
             return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::TMStressPNorm>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
-# ifdef NOPE
         else
-        if(aStrScalarFunctionType == "Stress Constraint Quadratic")
+        if(tLowerFuncType == "stress constraint quadratic")
         {
             return (Plato::ThermomechanicsFactory::stress_constraint_quadratic<EvaluationType>
-                   (aSpatialDomain, aDataMap, aParamList, aStrScalarFunctionName));
+                   (aSpatialDomain, aDataMap, aProblemParams, aFuncName));
         }
         else
         if(tLowerFuncType == "volume" )
@@ -188,14 +186,13 @@ struct FunctionFactory
             return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::Volume>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
-#endif
         else
         {
             ANALYZE_THROWERR("Unknown 'Objective' specified in 'Plato Problem' ParameterList");
         }
     }
 
-#ifdef NOPE
+#ifdef PLATO_PARABOLIC
     /******************************************************************************/
     template <typename EvaluationType>
     std::shared_ptr<Plato::Parabolic::AbstractScalarFunction<EvaluationType>>

@@ -88,7 +88,7 @@ mapPoints(
     });
 }
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
+template<typename ElementType>
 void
 mapPoints(
     const Plato::SpatialDomain     & aSpatialDomain,
@@ -102,7 +102,7 @@ mapPoints(
 
     Kokkos::deep_copy(aMappedPoints, Plato::Scalar(0.0)); // initialize to 0
 
-    Plato::NodeCoordinate<SpaceDim> tNodeCoordinate(aSpatialDomain.Mesh);
+    Plato::NodeCoordinate<ElementType::mNumSpatialDims, ElementType::mNumNodesPerCell> tNodeCoordinate(aSpatialDomain.Mesh);
 
     auto tCellOrdinals = aSpatialDomain.cellOrdinals();
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
@@ -112,17 +112,17 @@ mapPoints(
         {
             Plato::OrdinalType tNodeOrdinal;
             Scalar tFinalNodeValue = 1.0;
-            for (tNodeOrdinal=0; tNodeOrdinal<SpaceDim; tNodeOrdinal++)
+            for (tNodeOrdinal=0; tNodeOrdinal<ElementType::mNumSpatialDims; tNodeOrdinal++)
             {
                 Scalar tNodeValue = aRefPoints(ptOrdinal,tNodeOrdinal);
                 tFinalNodeValue -= tNodeValue;
-                for (Plato::OrdinalType d=0; d<SpaceDim; d++)
+                for (Plato::OrdinalType d=0; d<ElementType::mNumSpatialDims; d++)
                 {
                     aMappedPoints(aCellOrdinal, ptOrdinal, d) += tNodeValue * tNodeCoordinate(tCellOrdinal, tNodeOrdinal, d);
                 }
             }
-            tNodeOrdinal = SpaceDim;
-            for (Plato::OrdinalType d=0; d<SpaceDim; d++)
+            tNodeOrdinal = ElementType::mNumSpatialDims;
+            for (Plato::OrdinalType d=0; d<ElementType::mNumSpatialDims; d++)
             {
                 aMappedPoints(aCellOrdinal, ptOrdinal, d) += tFinalNodeValue * tNodeCoordinate(tCellOrdinal, tNodeOrdinal, d);
             }
@@ -131,7 +131,7 @@ mapPoints(
 }
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
+template<typename ElementType>
 void
 mapPoints(
     const Plato::SpatialModel      & aSpatialModel,
@@ -145,7 +145,7 @@ mapPoints(
 
     Kokkos::deep_copy(aMappedPoints, Plato::Scalar(0.0)); // initialize to 0
 
-    Plato::NodeCoordinate<SpaceDim> tNodeCoordinate(&(aSpatialModel.Mesh));
+    Plato::NodeCoordinate<ElementType::mNumSpatialDims, ElementType::mNumNodesPerCell> tNodeCoordinate(&(aSpatialModel.Mesh));
 
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
     {
@@ -153,17 +153,17 @@ mapPoints(
         {
             Plato::OrdinalType tNodeOrdinal;
             Scalar tFinalNodeValue = 1.0;
-            for (tNodeOrdinal=0; tNodeOrdinal<SpaceDim; tNodeOrdinal++)
+            for (tNodeOrdinal=0; tNodeOrdinal<ElementType::mNumSpatialDims; tNodeOrdinal++)
             {
                 Scalar tNodeValue = aRefPoints(ptOrdinal,tNodeOrdinal);
                 tFinalNodeValue -= tNodeValue;
-                for (Plato::OrdinalType d=0; d<SpaceDim; d++)
+                for (Plato::OrdinalType d=0; d<ElementType::mNumSpatialDims; d++)
                 {
                     aMappedPoints(aCellOrdinal, ptOrdinal, d) += tNodeValue * tNodeCoordinate(aCellOrdinal, tNodeOrdinal, d);
                 }
             }
-            tNodeOrdinal = SpaceDim;
-            for (Plato::OrdinalType d=0; d<SpaceDim; d++)
+            tNodeOrdinal = ElementType::mNumSpatialDims;
+            for (Plato::OrdinalType d=0; d<ElementType::mNumSpatialDims; d++)
             {
                 aMappedPoints(aCellOrdinal, ptOrdinal, d) += tFinalNodeValue * tNodeCoordinate(aCellOrdinal, tNodeOrdinal, d);
             }

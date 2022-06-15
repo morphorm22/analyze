@@ -4,7 +4,7 @@
 #include "PlatoMathTypes.hpp"
 #include "LinearStress.hpp"
 #include "TensileEnergyDensity.hpp"
-#include "Strain.hpp"
+#include "SmallStrain.hpp"
 #include "ImplicitFunctors.hpp"
 #include <Teuchos_ParameterList.hpp>
 #include "Eigenvalues.hpp"

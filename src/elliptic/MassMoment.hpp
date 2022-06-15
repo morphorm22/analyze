@@ -1,13 +1,9 @@
 #pragma once
 
-#include "Simplex.hpp"
-//#include "SimplexFadTypes.hpp"
 #include "PlatoStaticsTypes.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
-#include "SimplexMechanics.hpp"
 #include "WorksetBase.hpp"
 #include "Plato_TopOptFunctors.hpp"
-#include "LinearTetCubRuleDegreeOne.hpp"
 #include "ImplicitFunctors.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "AnalyzeMacros.hpp"
@@ -26,26 +22,34 @@ namespace Elliptic
  *   type for scalar function (e.g. Residual, Jacobian, GradientZ, etc.)
 **********************************************************************************/
 template<typename EvaluationType>
-class MassMoment : public Plato::SimplexMechanics<EvaluationType::SpatialDim>,
-                   public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+class MassMoment :
+  public EvaluationType::ElementType,
+  public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
 /******************************************************************************/
 {
   private:
-    static constexpr int mSpaceDim = EvaluationType::SpatialDim; /*!< space dimension */
-    static constexpr Plato::OrdinalType mNumVoigtTerms = Plato::SimplexMechanics<mSpaceDim>::mNumVoigtTerms; /*!< number of Voigt terms */
-    static constexpr Plato::OrdinalType mNumNodesPerCell = Plato::SimplexMechanics<mSpaceDim>::mNumNodesPerCell; /*!< number of nodes per cell/element */
-    
-    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mSpatialDomain; /*!< domain object */
-    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mDataMap; /*!< data map object */
+    using ElementType = typename EvaluationType::ElementType;
 
-    using StateScalarType   = typename EvaluationType::StateScalarType;  /*!< state variables automatic differentiation type */
-    using ControlScalarType = typename EvaluationType::ControlScalarType; /*!< control variables automatic differentiation type */
-    using ConfigScalarType  = typename EvaluationType::ConfigScalarType; /*!< configuration variables automatic differentiation type */
-    using ResultScalarType  = typename EvaluationType::ResultScalarType; /*!< result variables automatic differentiation type */
+    using ElementType::mNumVoigtTerms;
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumSpatialDims;
 
-    Plato::Scalar mCellMaterialDensity; /*!< material density */
+    using ElementType::mNumDofsPerNode;
+    using ElementType::mNumDofsPerCell;
 
-    std::string mCalculationType; /*!< calculation type = Mass, CGx, CGy, CGz, Ixx, Iyy, Izz, Ixy, Ixz, Iyz */
+    using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
+    using FunctionBaseType::mSpatialDomain;
+    using FunctionBaseType::mDataMap;
+
+    using StateScalarType   = typename EvaluationType::StateScalarType;
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
+    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+
+    Plato::Scalar mCellMaterialDensity;
+
+    /*!< calculation type = Mass, CGx, CGy, CGz, Ixx, Iyy, Izz, Ixy, Ixz, Iyz */
+    std::string mCalculationType;
 
   public:
     /******************************************************************************//**
@@ -59,7 +63,7 @@ class MassMoment : public Plato::SimplexMechanics<EvaluationType::SpatialDim>,
               Plato::DataMap         & aDataMap, 
               Teuchos::ParameterList & aInputParams
     ) :
-       Plato::Elliptic::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, "MassMoment"),
+       FunctionBaseType(aSpatialDomain, aDataMap, aInputParams, "MassMoment"),
        mCellMaterialDensity(1.0),
        mCalculationType("")
     /**************************************************************************/
@@ -110,13 +114,13 @@ class MassMoment : public Plato::SimplexMechanics<EvaluationType::SpatialDim>,
      * \param [in] aTimeStep time step (default = 0)
     **********************************************************************************/
     void
-    evaluate(
+    evaluate_conditional(
         const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
               Plato::ScalarVectorT      <ResultScalarType>  & aResult,
               Plato::Scalar aTimeStep = 0.0
-    ) const 
+    ) const override
     /**************************************************************************/
     {
       if (mCalculationType == "Mass")
@@ -162,25 +166,30 @@ class MassMoment : public Plato::SimplexMechanics<EvaluationType::SpatialDim>,
     {
       auto tNumCells = mSpatialDomain.numCells();
 
-      Plato::ComputeCellVolume<mSpaceDim> tComputeCellVolume;
-
       auto tCellMaterialDensity = mCellMaterialDensity;
 
-      Plato::LinearTetCubRuleDegreeOne<mSpaceDim> tCubatureRule;
-      auto tCubWeight = tCubatureRule.getCubWeight();
-      auto tBasisFunc = tCubatureRule.getBasisFunctions();
+      auto tCubPoints = ElementType::getCubPoints();
+      auto tCubWeights = ElementType::getCubWeights();
+      auto tNumPoints = tCubWeights.size();
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+      Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-        ConfigScalarType tCellVolume;
-        tComputeCellVolume(aCellOrdinal, aConfig, tCellVolume);
-        tCellVolume *= tCubWeight;
+        auto tCubPoint  = tCubPoints(iGpOrdinal);
+        auto tCubWeight = tCubWeights(iGpOrdinal);
 
-        auto tCellMass = Plato::cell_mass<mNumNodesPerCell>(aCellOrdinal, tBasisFunc, aControl);
+        auto tJacobian = ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal);
 
-        aResult(aCellOrdinal) = ( tCellMass * tCellMaterialDensity * tCellVolume );
+        ResultScalarType tVolume = Plato::determinant(tJacobian);
 
-      }, "mass calculation");
+        tVolume *= tCubWeight;
+
+        auto tBasisValues = ElementType::basisValues(tCubPoint);
+        auto tCellMass = Plato::cell_mass<mNumNodesPerCell>(iCellOrdinal, tBasisValues, aControl);
+
+        Kokkos::atomic_add(&aResult(iCellOrdinal), tCellMass * tCellMaterialDensity * tVolume);
+
+      });
     }
 
     /******************************************************************************//**
@@ -201,36 +210,38 @@ class MassMoment : public Plato::SimplexMechanics<EvaluationType::SpatialDim>,
     ) const 
     /**************************************************************************/
     {
-      assert(aComponent < mSpaceDim);
+      assert(aComponent < mNumSpatialDims);
 
       auto tNumCells = mSpatialDomain.numCells();
 
-      Plato::ComputeCellVolume<mSpaceDim> tComputeCellVolume;
-
       auto tCellMaterialDensity = mCellMaterialDensity;
 
-      Plato::LinearTetCubRuleDegreeOne<mSpaceDim> tCubatureRule;
-      auto tCubPoint  = tCubatureRule.getCubPointsCoords();
-      auto tCubWeight = tCubatureRule.getCubWeight();
-      auto tBasisFunc = tCubatureRule.getBasisFunctions();
-      auto tNumPoints = tCubatureRule.getNumCubPoints();
+      auto tCubPoints  = ElementType::getCubPoints();
+      auto tCubWeights = ElementType::getCubWeights();
+      auto tNumPoints  = tCubWeights.size();
 
-      Plato::ScalarMultiVectorT<ConfigScalarType> tMappedPoints("mapped quad points", tNumCells, mSpaceDim);
-      mapQuadraturePoint(tCubPoint, aConfig, tMappedPoints);
+      Plato::ScalarArray3DT<ConfigScalarType> tMappedPoints("mapped quad points", tNumCells, tNumPoints, mNumSpatialDims);
+      mapQuadraturePoints(aConfig, tMappedPoints);
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & tCellOrdinal)
+      Kokkos::parallel_for("first moment calculation", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-        ConfigScalarType tCellVolume;
-        tComputeCellVolume(tCellOrdinal, aConfig, tCellVolume);
-        tCellVolume *= tCubWeight;
+        auto tCubPoint  = tCubPoints(iGpOrdinal);
+        auto tCubWeight = tCubWeights(iGpOrdinal);
 
-        auto tCellMass = Plato::cell_mass<mNumNodesPerCell>(tCellOrdinal, tBasisFunc, aControl);
+        auto tJacobian = ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal);
 
-        ConfigScalarType tMomentArm = tMappedPoints(tCellOrdinal, aComponent);
+        ResultScalarType tVolume = Plato::determinant(tJacobian);
 
-        aResult(tCellOrdinal) = ( tCellMass * tCellMaterialDensity * tCellVolume * tMomentArm );
+        tVolume *= tCubWeight;
 
-      }, "first moment calculation");
+        auto tBasisValues = ElementType::basisValues(tCubPoint);
+        auto tCellMass = Plato::cell_mass<mNumNodesPerCell>(iCellOrdinal, tBasisValues, aControl);
+
+        ConfigScalarType tMomentArm = tMappedPoints(iCellOrdinal, iGpOrdinal, aComponent);
+
+        Kokkos::atomic_add(&aResult(iCellOrdinal), tCellMass * tCellMaterialDensity * tVolume *tMomentArm);
+      });
     }
 
 
@@ -254,39 +265,41 @@ class MassMoment : public Plato::SimplexMechanics<EvaluationType::SpatialDim>,
     ) const 
     /**************************************************************************/
     {
-      assert(aComponent1 < mSpaceDim);
-      assert(aComponent2 < mSpaceDim);
+      assert(aComponent1 < mNumSpatialDims);
+      assert(aComponent2 < mNumSpatialDims);
 
       auto tNumCells = mSpatialDomain.numCells();
 
-      Plato::ComputeCellVolume<mSpaceDim> tComputeCellVolume;
-
       auto tCellMaterialDensity = mCellMaterialDensity;
 
-      Plato::LinearTetCubRuleDegreeOne<mSpaceDim> tCubatureRule;
-      auto tCubPoint  = tCubatureRule.getCubPointsCoords();
-      auto tCubWeight = tCubatureRule.getCubWeight();
-      auto tBasisFunc = tCubatureRule.getBasisFunctions();
-      auto tNumPoints = tCubatureRule.getNumCubPoints();
+      auto tCubPoints  = ElementType::getCubPoints();
+      auto tCubWeights = ElementType::getCubWeights();
+      auto tNumPoints  = tCubWeights.size();
 
-      Plato::ScalarMultiVectorT<ConfigScalarType> tMappedPoints("mapped quad points", tNumCells, mSpaceDim);
-      mapQuadraturePoint(tCubPoint, aConfig, tMappedPoints);
+      Plato::ScalarArray3DT<ConfigScalarType> tMappedPoints("mapped quad points", tNumCells, tNumPoints, mNumSpatialDims);
+      mapQuadraturePoints(aConfig, tMappedPoints);
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & tCellOrdinal)
+      Kokkos::parallel_for("second moment calculation", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-        ConfigScalarType tCellVolume;
-        tComputeCellVolume(tCellOrdinal, aConfig, tCellVolume);
-        tCellVolume *= tCubWeight;
+        auto tCubPoint  = tCubPoints(iGpOrdinal);
+        auto tCubWeight = tCubWeights(iGpOrdinal);
 
-        auto tCellMass = Plato::cell_mass<mNumNodesPerCell>(tCellOrdinal, tBasisFunc, aControl);
+        auto tJacobian = ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal);
 
-        ConfigScalarType tMomentArm1 = tMappedPoints(tCellOrdinal, aComponent1);
-        ConfigScalarType tMomentArm2 = tMappedPoints(tCellOrdinal, aComponent2);
+        ResultScalarType tVolume = Plato::determinant(tJacobian);
+
+        tVolume *= tCubWeight;
+
+        auto tBasisValues = ElementType::basisValues(tCubPoint);
+        auto tCellMass = Plato::cell_mass<mNumNodesPerCell>(iCellOrdinal, tBasisValues, aControl);
+
+        ConfigScalarType tMomentArm1 = tMappedPoints(iCellOrdinal, iGpOrdinal, aComponent1);
+        ConfigScalarType tMomentArm2 = tMappedPoints(iCellOrdinal, iGpOrdinal, aComponent2);
         ConfigScalarType tSecondMoment  = tMomentArm1 * tMomentArm2;
 
-        aResult(tCellOrdinal) = ( tCellMass * tCellMaterialDensity * tCellVolume * tSecondMoment );
-
-      }, "second moment calculation");
+        Kokkos::atomic_add(&aResult(iCellOrdinal), tCellMass * tCellMaterialDensity * tVolume * tSecondMoment);
+      });
     }
 
     /******************************************************************************//**
@@ -296,35 +309,34 @@ class MassMoment : public Plato::SimplexMechanics<EvaluationType::SpatialDim>,
      * \param [out] aMappedPoints points mapped to physical domain
     **********************************************************************************/
     void
-    mapQuadraturePoint(
-        const Plato::ScalarVector                          & aRefPoint,
-        const Plato::ScalarArray3DT     <ConfigScalarType> & aConfig,
-              Plato::ScalarMultiVectorT <ConfigScalarType> & aMappedPoints
+    mapQuadraturePoints(
+        const Plato::ScalarArray3DT <ConfigScalarType> & aConfig,
+              Plato::ScalarArray3DT <ConfigScalarType> & aMappedPoints
     ) const
     /******************************************************************************/
     {
-      Plato::OrdinalType tNumCells  = mSpatialDomain.numCells();
+        auto tNumCells = mSpatialDomain.numCells();
 
-      Kokkos::deep_copy(aMappedPoints, static_cast<ConfigScalarType>(0.0));
+        auto tCubPoints = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints = tCubWeights.size();
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType tCellOrdinal) {
-        Plato::OrdinalType tNodeOrdinal;
-        Plato::Scalar tFinalNodeValue = 1.0;
-        for (tNodeOrdinal = 0; tNodeOrdinal < mSpaceDim; ++tNodeOrdinal)
+        Kokkos::deep_copy(aMappedPoints, static_cast<ConfigScalarType>(0.0));
+
+        Kokkos::parallel_for("map points", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
-          Plato::Scalar tNodeValue = aRefPoint(tNodeOrdinal);
-          tFinalNodeValue -= tNodeValue;
-          for (Plato::OrdinalType tDim = 0; tDim < mSpaceDim; ++tDim)
-          {
-            aMappedPoints(tCellOrdinal,tDim) += tNodeValue * aConfig(tCellOrdinal,tNodeOrdinal,tDim);
-          }
-        }
-        tNodeOrdinal = mSpaceDim;
-        for (Plato::OrdinalType tDim = 0; tDim < mSpaceDim; ++tDim)
-        {
-          aMappedPoints(tCellOrdinal,tDim) += tFinalNodeValue * aConfig(tCellOrdinal,tNodeOrdinal,tDim);
-        }
-      }, "map single quadrature point to physical domain");
+            auto tCubPoint    = tCubPoints(iGpOrdinal);
+            auto tBasisValues = ElementType::basisValues(tCubPoint);
+
+            for (Plato::OrdinalType iDim=0; iDim<mNumSpatialDims; iDim++)
+            {
+                for (Plato::OrdinalType iNodeOrdinal=0; iNodeOrdinal<mNumNodesPerCell; iNodeOrdinal++)
+                {
+                    aMappedPoints(iCellOrdinal, iGpOrdinal, iDim) += tBasisValues(iNodeOrdinal) * aConfig(iCellOrdinal, iNodeOrdinal, iDim);
+                }
+            }
+        });
     }
 };
 // class MassMoment
@@ -334,22 +346,22 @@ class MassMoment : public Plato::SimplexMechanics<EvaluationType::SpatialDim>,
 } // namespace Plato
 
 #ifdef PLATOANALYZE_1D
-extern template class Plato::Elliptic::MassMoment<Plato::ResidualTypes<Plato::SimplexMechanics<1>>>;
-extern template class Plato::Elliptic::MassMoment<Plato::JacobianTypes<Plato::SimplexMechanics<1>>>;
-extern template class Plato::Elliptic::MassMoment<Plato::GradientXTypes<Plato::SimplexMechanics<1>>>;
-extern template class Plato::Elliptic::MassMoment<Plato::GradientZTypes<Plato::SimplexMechanics<1>>>;
+//TODO extern template class Plato::Elliptic::MassMoment<Plato::ResidualTypes<Plato::SimplexMechanics<1>>>;
+//TODO extern template class Plato::Elliptic::MassMoment<Plato::JacobianTypes<Plato::SimplexMechanics<1>>>;
+//TODO extern template class Plato::Elliptic::MassMoment<Plato::GradientXTypes<Plato::SimplexMechanics<1>>>;
+//TODO extern template class Plato::Elliptic::MassMoment<Plato::GradientZTypes<Plato::SimplexMechanics<1>>>;
 #endif
 
 #ifdef PLATOANALYZE_2D
-extern template class Plato::Elliptic::MassMoment<Plato::ResidualTypes<Plato::SimplexMechanics<2>>>;
-extern template class Plato::Elliptic::MassMoment<Plato::JacobianTypes<Plato::SimplexMechanics<2>>>;
-extern template class Plato::Elliptic::MassMoment<Plato::GradientXTypes<Plato::SimplexMechanics<2>>>;
-extern template class Plato::Elliptic::MassMoment<Plato::GradientZTypes<Plato::SimplexMechanics<2>>>;
+//TODO extern template class Plato::Elliptic::MassMoment<Plato::ResidualTypes<Plato::SimplexMechanics<2>>>;
+//TODO extern template class Plato::Elliptic::MassMoment<Plato::JacobianTypes<Plato::SimplexMechanics<2>>>;
+//TODO extern template class Plato::Elliptic::MassMoment<Plato::GradientXTypes<Plato::SimplexMechanics<2>>>;
+//TODO extern template class Plato::Elliptic::MassMoment<Plato::GradientZTypes<Plato::SimplexMechanics<2>>>;
 #endif
 
 #ifdef PLATOANALYZE_3D
-extern template class Plato::Elliptic::MassMoment<Plato::ResidualTypes<Plato::SimplexMechanics<3>>>;
-extern template class Plato::Elliptic::MassMoment<Plato::JacobianTypes<Plato::SimplexMechanics<3>>>;
-extern template class Plato::Elliptic::MassMoment<Plato::GradientXTypes<Plato::SimplexMechanics<3>>>;
-extern template class Plato::Elliptic::MassMoment<Plato::GradientZTypes<Plato::SimplexMechanics<3>>>;
+//TODO extern template class Plato::Elliptic::MassMoment<Plato::ResidualTypes<Plato::SimplexMechanics<3>>>;
+//TODO extern template class Plato::Elliptic::MassMoment<Plato::JacobianTypes<Plato::SimplexMechanics<3>>>;
+//TODO extern template class Plato::Elliptic::MassMoment<Plato::GradientXTypes<Plato::SimplexMechanics<3>>>;
+//TODO extern template class Plato::Elliptic::MassMoment<Plato::GradientZTypes<Plato::SimplexMechanics<3>>>;
 #endif

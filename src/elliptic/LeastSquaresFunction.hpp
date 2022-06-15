@@ -22,30 +22,39 @@ namespace Elliptic
 /******************************************************************************//**
  * \brief Least Squares function class \f$ F(x) = \sum_{i = 1}^{n} w_i * (f_i(x) - gold_i(x))^2 \f$
  **********************************************************************************/
-template<typename PhysicsT>
-class LeastSquaresFunction : public Plato::Elliptic::ScalarFunctionBase, public Plato::WorksetBase<PhysicsT>
+template<typename PhysicsType>
+class LeastSquaresFunction :
+    public Plato::Elliptic::ScalarFunctionBase,
+    public Plato::WorksetBase<typename PhysicsType::ElementType>
 {
 private:
-    using Plato::WorksetBase<PhysicsT>::mNumDofsPerNode; /*!< number of degree of freedom per node */
-    using Plato::WorksetBase<PhysicsT>::mNumSpatialDims; /*!< number of spatial dimensions */
-    using Plato::WorksetBase<PhysicsT>::mNumNodes;       /*!< total number of nodes in the mesh */
+    using ElementType = typename PhysicsType::ElementType;
 
-    std::vector<Plato::Scalar> mFunctionWeights; /*!< Vector of function weights */
-    std::vector<Plato::Scalar> mFunctionGoldValues; /*!< Vector of function gold values */
-    std::vector<Plato::Scalar> mFunctionNormalization; /*!< Vector of function normalization values */
-    std::vector<std::shared_ptr<Plato::Elliptic::ScalarFunctionBase>> mScalarFunctionBaseContainer; /*!< Vector of ScalarFunctionBase objects */
+    using Plato::WorksetBase<ElementType>::mNumDofsPerCell;
+    using Plato::WorksetBase<ElementType>::mNumNodesPerCell;
+    using Plato::WorksetBase<ElementType>::mNumDofsPerNode;
+    using Plato::WorksetBase<ElementType>::mNumSpatialDims;
+    using Plato::WorksetBase<ElementType>::mNumControl;
+    using Plato::WorksetBase<ElementType>::mNumNodes;
+    using Plato::WorksetBase<ElementType>::mNumCells;
+
+    std::vector<Plato::Scalar> mFunctionWeights;
+    std::vector<Plato::Scalar> mFunctionGoldValues;
+    std::vector<Plato::Scalar> mFunctionNormalization;
+    std::vector<std::shared_ptr<Plato::Elliptic::ScalarFunctionBase>> mScalarFunctionBaseContainer;
 
     const Plato::SpatialModel & mSpatialModel;
 
-    Plato::DataMap& mDataMap; /*!< PLATO Engine and Analyze data map */
+    Plato::DataMap& mDataMap;
 
-    std::string mFunctionName; /*!< User defined function name */
+    std::string mFunctionName;
 
     bool mGradientWRTStateIsZero = false;
 
-    const Plato::Scalar mFunctionNormalizationCutoff = 0.1; /*!< if (|GoldValue| > 0.1) then ((f - f_gold) / f_gold)^2 ; otherwise  (f - f_gold)^2 */
+    /*!< if (|GoldValue| > 0.1) then ((f - f_gold) / f_gold)^2 ; otherwise  (f - f_gold)^2 */
+    const Plato::Scalar mFunctionNormalizationCutoff = 0.1;
 
-	/******************************************************************************//**
+    /******************************************************************************//**
      * \brief Initialization of Least Squares Function
      * \param [in] aProblemParams input parameters database
     **********************************************************************************/
@@ -53,7 +62,7 @@ private:
         Teuchos::ParameterList & aProblemParams
     )
     {
-        Plato::Elliptic::ScalarFunctionBaseFactory<PhysicsT> tFactory;
+        Plato::Elliptic::ScalarFunctionBaseFactory<PhysicsType> tFactory;
 
         mScalarFunctionBaseContainer.clear();
         mFunctionWeights.clear();
@@ -110,7 +119,7 @@ public:
               Teuchos::ParameterList & aProblemParams,
               std::string            & aName
     ) :
-        Plato::WorksetBase<PhysicsT>(aSpatialModel.Mesh),
+        Plato::WorksetBase<typename PhysicsType::ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
         mFunctionName (aName)
@@ -127,7 +136,7 @@ public:
         const Plato::SpatialModel & aSpatialModel,
               Plato::DataMap      & aDataMap
     ) :
-        Plato::WorksetBase<PhysicsT>(aSpatialModel.Mesh),
+        Plato::WorksetBase<typename PhysicsType::ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
         mFunctionName ("Least Squares")
@@ -357,28 +366,28 @@ public:
 
 } // namespace Plato
 
-#include "Thermal.hpp"
-#include "Mechanics.hpp"
-#include "Electromechanics.hpp"
-#include "Thermomechanics.hpp"
+//TODO #include "Thermal.hpp"
+//TODO #include "Mechanics.hpp"
+//TODO #include "Electromechanics.hpp"
+//TODO #include "Thermomechanics.hpp"
 
 #ifdef PLATOANALYZE_1D
-extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermal<1>>;
-extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Mechanics<1>>;
-extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Electromechanics<1>>;
-extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermomechanics<1>>;
+//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermal<1>>;
+//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Mechanics<1>>;
+//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Electromechanics<1>>;
+//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermomechanics<1>>;
 #endif
 
 #ifdef PLATOANALYZE_2D
-extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermal<2>>;
-extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Mechanics<2>>;
-extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Electromechanics<2>>;
-extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermomechanics<2>>;
+//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermal<2>>;
+//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Mechanics<2>>;
+//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Electromechanics<2>>;
+//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermomechanics<2>>;
 #endif
 
 #ifdef PLATOANALYZE_3D
-extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermal<3>>;
-extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Mechanics<3>>;
-extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Electromechanics<3>>;
-extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermomechanics<3>>;
+//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermal<3>>;
+//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Mechanics<3>>;
+//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Electromechanics<3>>;
+//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermomechanics<3>>;
 #endif

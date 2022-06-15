@@ -15,10 +15,10 @@
 #include "TensileEnergyDensityLocalMeasure.hpp"
 #include "VonMisesLocalMeasure.hpp"
 #include "elliptic/VolAvgStressPNormDenominator.hpp"
-#ifdef NOPE
-#include "Plato_AugLagStressCriterionQuadratic.hpp"
-#include "Plato_AugLagStressCriterionGeneral.hpp"
 #include "Plato_AugLagStressCriterion.hpp"
+#include "Plato_AugLagStressCriterionGeneral.hpp"
+#include "Plato_AugLagStressCriterionQuadratic.hpp"
+#ifdef NOPE
 #include "AbstractLocalMeasure.hpp"
 #include "IntermediateDensityPenalty.hpp"
 #endif
@@ -68,7 +68,6 @@ namespace MechanicsFactory
   }
 
 
-#ifdef NOPE
 /******************************************************************************//**
  * \brief Create augmented Lagrangian stress constraint criterion tailored for linear problems
  * \param [in] aSpatialDomain Plato Analyze spatial domain
@@ -128,19 +127,16 @@ stress_constraint_quadratic(
 )
 {
     auto EvalMeasure = Plato::MechanicsFactory::create_local_measure<EvaluationType>(aSpatialDomain, aProblemParams, aFuncName);
-    using Residual = typename Plato::ResidualTypes<Plato::SimplexMechanics<EvaluationType::SpatialDim>>;
+    using Residual = typename Plato::Elliptic::ResidualTypes<typename EvaluationType::ElementType>;
     auto PODMeasure = Plato::MechanicsFactory::create_local_measure<Residual>(aSpatialDomain, aProblemParams, aFuncName);
 
-    using SimplexT = Plato::SimplexMechanics<EvaluationType::SpatialDim>;
-    std::shared_ptr<Plato::AugLagStressCriterionQuadratic<EvaluationType,SimplexT>> tOutput;
-    tOutput = std::make_shared< Plato::AugLagStressCriterionQuadratic<EvaluationType,SimplexT> >
+    std::shared_ptr<Plato::AugLagStressCriterionQuadratic<EvaluationType>> tOutput;
+    tOutput = std::make_shared< Plato::AugLagStressCriterionQuadratic<EvaluationType> >
         (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
 
     tOutput->setLocalMeasure(EvalMeasure, PODMeasure);
     return (tOutput);
 }
-
-#endif 
 
 /******************************************************************************//**
  * \brief Create the numerator of the volume average criterion (i.e. a volume integral criterion)
@@ -297,7 +293,6 @@ struct FunctionFactory
             return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::VolAvgStressPNormDenominator>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
-#ifdef NOPE
         else if(tLowerFuncType == "stress constraint")
         {
             return Plato::MechanicsFactory::stress_constraint_linear<EvaluationType>
@@ -313,6 +308,7 @@ struct FunctionFactory
             return Plato::MechanicsFactory::stress_constraint_quadratic<EvaluationType>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
+#ifdef NOPE
         else if(tLowerFuncType == "density penalty")
         {
             return std::make_shared<Plato::IntermediateDensityPenalty<EvaluationType>>

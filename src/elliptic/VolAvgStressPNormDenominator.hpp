@@ -2,7 +2,7 @@
 
 #include "ScalarProduct.hpp"
 #include "ApplyWeighting.hpp"
-#include "Strain.hpp"
+#include "SmallStrain.hpp"
 #include "LinearStress.hpp"
 #include "TensorPNorm.hpp"
 #include "ElasticModelFactory.hpp"
