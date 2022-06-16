@@ -18,10 +18,8 @@
 #include "Plato_AugLagStressCriterion.hpp"
 #include "Plato_AugLagStressCriterionGeneral.hpp"
 #include "Plato_AugLagStressCriterionQuadratic.hpp"
-#ifdef NOPE
 #include "AbstractLocalMeasure.hpp"
 #include "IntermediateDensityPenalty.hpp"
-#endif
 
 #include "MakeFunctions.hpp"
 
@@ -223,7 +221,6 @@ struct FunctionFactory
     }
 
 
-#ifdef NOPE
     /******************************************************************************/
     template <typename EvaluationType>
     std::shared_ptr<Plato::Parabolic::AbstractScalarFunction<EvaluationType>>
@@ -237,7 +234,6 @@ struct FunctionFactory
     {
         ANALYZE_THROWERR("Not yet implemented")
     }
-#endif
 
     /******************************************************************************//**
      * \brief Create a PLATO scalar function (i.e. optimization criterion)
@@ -308,13 +304,11 @@ struct FunctionFactory
             return Plato::MechanicsFactory::stress_constraint_quadratic<EvaluationType>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
-#ifdef NOPE
         else if(tLowerFuncType == "density penalty")
         {
             return std::make_shared<Plato::IntermediateDensityPenalty<EvaluationType>>
-                       (aSpatialDomain, aDataMap, aProblemParams.sublist("Criteria"), aFuncName);
+                       (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
-#endif
         else
         {
             const std::string tErrorString = std::string("Function '") + tLowerFuncType + "' not implemented yet in steady state mechanics.";
