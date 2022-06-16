@@ -34,7 +34,7 @@ struct FunctionFactory
         auto tLowerFuncType = Plato::tolower(aFuncType);
         if(tLowerFuncType == "elliptic")
         {
-            return Plato::Elliptic::makeVectorFunction<EvaluationType, Plato::Elliptic::ElectroelastostaticResidual>
+            return Plato::makeVectorFunction<EvaluationType, Plato::Elliptic::ElectroelastostaticResidual>
                      (aSpatialDomain, aDataMap, aParamList, aFuncType);
         }
         else
@@ -58,13 +58,13 @@ struct FunctionFactory
         auto tLowerFuncType = Plato::tolower(aFuncType);
         if(tLowerFuncType == "internal electroelastic energy")
         {
-            return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::InternalElectroelasticEnergy>
+            return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::InternalElectroelasticEnergy>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else
         if(tLowerFuncType == "stress p-norm")
         {
-            return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::EMStressPNorm>
+            return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::EMStressPNorm>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else

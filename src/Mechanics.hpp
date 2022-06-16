@@ -211,7 +211,7 @@ struct FunctionFactory
         auto tLowerPDE = Plato::tolower(aPDE);
         if(tLowerPDE == "elliptic")
         {
-            return Plato::Elliptic::makeVectorFunction<EvaluationType, Plato::Elliptic::ElastostaticResidual>
+            return Plato::makeVectorFunction<EvaluationType, Plato::Elliptic::ElastostaticResidual>
                      (aSpatialDomain, aDataMap, aProblemParams, aPDE);
         }
         else
@@ -256,22 +256,22 @@ struct FunctionFactory
         auto tLowerFuncType = Plato::tolower(aFuncType);
         if(tLowerFuncType == "internal elastic energy")
         {
-            return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::InternalElasticEnergy>
+            return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::InternalElasticEnergy>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else if(tLowerFuncType == "stress p-norm")
         {
-            return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::StressPNorm>
+            return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::StressPNorm>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else if(tLowerFuncType == "effective energy")
         {
-            return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::EffectiveEnergy>
+            return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::EffectiveEnergy>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else if(tLowerFuncType == "volume")
         {
-            return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::Volume>
+            return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::Volume>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else if (tLowerFuncType == "volume average criterion numerator")
@@ -286,7 +286,7 @@ struct FunctionFactory
         }
         else if(tLowerFuncType == "vol avg stress p-norm denominator")
         {
-            return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::VolAvgStressPNormDenominator>
+            return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::VolAvgStressPNormDenominator>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else if(tLowerFuncType == "stress constraint")

@@ -25,6 +25,9 @@ protected:
           bool                   mCompute;       /*!< if true, include in evaluation */
 
 public:
+
+    using AbstractType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
+
     /******************************************************************************//**
      * \brief Abstract scalar function constructor
      * \param [in] aSpatialDomain Plato Analyze spatial domain

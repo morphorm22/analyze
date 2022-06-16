@@ -4,16 +4,14 @@
 #include "Ramp.hpp"
 #include "Heaviside.hpp"
 #include "NoPenalty.hpp"
+#include "PlatoUtilities.hpp"
 
 namespace Plato
 {
 
-namespace Elliptic
-{
-
 template<typename EvaluationT, template <typename, typename> typename FunctionT>
 inline
-std::shared_ptr<Plato::Elliptic::AbstractVectorFunction<EvaluationT>>
+std::shared_ptr<typename FunctionT<EvaluationT, Plato::NoPenalty>::AbstractType>
 makeVectorFunction(
     const Plato::SpatialDomain   & aSpatialDomain,
           Plato::DataMap         & aDataMap,
@@ -49,7 +47,7 @@ makeVectorFunction(
 
 template<typename EvaluationT, template <typename, typename> typename FunctionT>
 inline
-std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<EvaluationT>>
+std::shared_ptr<typename FunctionT<EvaluationT, Plato::NoPenalty>::AbstractType>
 makeScalarFunction(
     const Plato::SpatialDomain   & aSpatialDomain,
           Plato::DataMap         & aDataMap,
@@ -83,6 +81,5 @@ makeScalarFunction(
 }
 
 
-} // end namespace Elliptic
 
 } // end namespace Plato

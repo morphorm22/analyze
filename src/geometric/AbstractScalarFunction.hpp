@@ -28,6 +28,9 @@ protected:
           bool                   mCompute;         /*!< if true, include in evaluation */
  
 public:
+
+    using AbstractType = typename Plato::Geometric::AbstractScalarFunction<EvaluationType>;
+
     /******************************************************************************//**
      * \brief Abstract scalar function constructor
      * \param [in] aMesh mesh database

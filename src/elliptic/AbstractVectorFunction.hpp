@@ -24,6 +24,9 @@ protected:
           std::vector<std::string>   mDofNames;       /*!< state dof names */
 
 public:
+
+    using AbstractType = Plato::Elliptic::AbstractVectorFunction<EvaluationType>;
+
     /******************************************************************************//**
      * \brief Constructor
      * \param [in] aSpatialDomain Plato spatial model

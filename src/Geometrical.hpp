@@ -4,6 +4,7 @@
 #include "Ramp.hpp"
 #include "Heaviside.hpp"
 #include "NoPenalty.hpp"
+#include "MakeFunctions.hpp"
 #include "PlatoUtilities.hpp"
 
 #include "geometric/Volume.hpp"
@@ -22,52 +23,23 @@ struct FunctionFactory{
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aParamList,
-              std::string              aStrScalarFunctionType,
-              std::string              aStrScalarFunctionName
+              std::string              aFuncType,
+              std::string              aFuncName
     )
     {
-        auto tLowerScalarFunc = Plato::tolower(aStrScalarFunctionType);
-        if( tLowerScalarFunc == "volume" )
+        auto tLowerFuncType = Plato::tolower(aFuncType);
+        if( tLowerFuncType == "volume" )
         {
-            auto penaltyParams = aParamList.sublist("Criteria").sublist(aStrScalarFunctionName).sublist("Penalty Function");
-            std::string tPenaltyType = penaltyParams.get<std::string>("Type");
-            auto tLowerPenaltyType = Plato::tolower(tPenaltyType);
-            if( tLowerPenaltyType == "simp" )
-            {
-                return std::make_shared<Plato::Geometric::Volume<EvaluationType, Plato::MSIMP>>
-                   (aSpatialDomain, aDataMap, aParamList, penaltyParams, aStrScalarFunctionName);
-            }
-            else
-            if( tLowerPenaltyType == "ramp" )
-            {
-                return std::make_shared<Plato::Geometric::Volume<EvaluationType, Plato::RAMP>>
-                   (aSpatialDomain, aDataMap, aParamList, penaltyParams, aStrScalarFunctionName);
-            }
-            else
-            if( tLowerPenaltyType == "heaviside" )
-            {
-                return std::make_shared<Plato::Geometric::Volume<EvaluationType, Plato::Heaviside>>
-                   (aSpatialDomain, aDataMap, aParamList, penaltyParams, aStrScalarFunctionName);
-            }
-            else
-            if( tLowerPenaltyType == "nopenalty" )
-            {
-                return std::make_shared<Plato::Geometric::Volume<EvaluationType, Plato::NoPenalty>>
-                   (aSpatialDomain, aDataMap, aParamList, penaltyParams, aStrScalarFunctionName);
-            }
-            else
-            {
-                ANALYZE_THROWERR(std::string("Unknown 'Penalty Function' of type '") + tLowerPenaltyType + "' specified in ParameterList");
-            }
-// TODO        } else
-// TODO        if( tLowerScalarFunc == "geometry misfit" )
+            return Plato::makeScalarFunction<EvaluationType, Plato::Geometric::Volume>
+                (aSpatialDomain, aDataMap, aParamList, aFuncName);
+        }
+// TODO    if( tLowerFuncType == "geometry misfit" )
 // TODO        {
 // TODO            return std::make_shared<Plato::Geometric::GeometryMisfit<EvaluationType>>
 // TODO               (aSpatialDomain, aDataMap, aParamList, aStrScalarFunctionName);
-        }
         else
         {
-            ANALYZE_THROWERR(std::string("Unknown 'Objective' of type '") + tLowerScalarFunc + "' specified in 'Plato Problem' ParameterList");
+            ANALYZE_THROWERR(std::string("Unknown 'Objective' of type '") + tLowerFuncType + "' specified in 'Plato Problem' ParameterList");
         }
     }
 };

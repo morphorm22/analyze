@@ -34,7 +34,7 @@ struct FunctionFactory{
         auto tLowerPDE = Plato::tolower(aPDE);
         if(tLowerPDE == "elliptic")
         {
-            return Plato::Elliptic::makeVectorFunction<EvaluationType, Plato::Elliptic::ThermostaticResidual>
+            return Plato::makeVectorFunction<EvaluationType, Plato::Elliptic::ThermostaticResidual>
                      (aSpatialDomain, aDataMap, aProblemParams, aPDE);
         }
         else
@@ -56,7 +56,7 @@ struct FunctionFactory{
         auto tLowerPDE = Plato::tolower(aPDE);
         if(tLowerPDE == "elliptic")
         {
-            return Plato::Parabolic::makeVectorFunction<EvaluationType, Plato::Parabolic::HeatEquationResidual>
+            return Plato::makeVectorFunction<EvaluationType, Plato::Parabolic::HeatEquationResidual>
                      (aSpatialDomain, aDataMap, aProblemParams, aPDE);
         }
         else
@@ -81,12 +81,12 @@ struct FunctionFactory{
         auto tLowerFuncType = Plato::tolower(aFuncType);
         if(tLowerFuncType == "internal thermal energy")
         {
-            return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::InternalThermalEnergy>
+            return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::InternalThermalEnergy>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         } else
         if( tLowerFuncType == "flux p-norm" )
         {
-            return Plato::Elliptic::makeScalarFunction<EvaluationType, Plato::Elliptic::FluxPNorm>
+            return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::FluxPNorm>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else
@@ -109,13 +109,13 @@ struct FunctionFactory{
         auto tLowerFuncType = Plato::tolower(aFuncType);
         if(tLowerFuncType == "internal thermal energy")
         {
-            return Plato::Parabolic::makeScalarFunction<EvaluationType, Plato::Parabolic::InternalThermalEnergy>
+            return Plato::makeScalarFunction<EvaluationType, Plato::Parabolic::InternalThermalEnergy>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else
         if( tLowerFuncType == "temperature average" )
         {
-            return Plato::Parabolic::makeScalarFunction<EvaluationType, Plato::Parabolic::TemperatureAverage>
+            return Plato::makeScalarFunction<EvaluationType, Plato::Parabolic::TemperatureAverage>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else
