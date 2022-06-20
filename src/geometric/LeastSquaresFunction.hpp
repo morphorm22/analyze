@@ -22,26 +22,30 @@ namespace Geometric
 /******************************************************************************//**
  * \brief Least Squares function class \f$ F(x) = \sum_{i = 1}^{n} w_i * (f_i(x) - gold_i(x))^2 \f$
  **********************************************************************************/
-template<typename PhysicsT>
-class LeastSquaresFunction : public Plato::Geometric::ScalarFunctionBase, public Plato::Geometric::WorksetBase<PhysicsT>
+template<typename PhysicsType>
+class LeastSquaresFunction :
+    public Plato::Geometric::ScalarFunctionBase,
+    public Plato::Geometric::WorksetBase<typename PhysicsType::ElementType>
 {
 private:
-    using Plato::Geometric::WorksetBase<PhysicsT>::mNumSpatialDims; /*!< number of spatial dimensions */
-    using Plato::Geometric::WorksetBase<PhysicsT>::mNumNodes; /*!< total number of nodes in the mesh */
-    using Plato::Geometric::WorksetBase<PhysicsT>::mNumCells; /*!< total number of cells/elements in the mesh */
+    using ElementType = typename PhysicsType::ElementType;
 
-    std::vector<Plato::Scalar> mFunctionWeights; /*!< Vector of function weights */
-    std::vector<Plato::Scalar> mFunctionGoldValues; /*!< Vector of function gold values */
-    std::vector<Plato::Scalar> mFunctionNormalization; /*!< Vector of function normalization values */
-    std::vector<std::shared_ptr<Plato::Geometric::ScalarFunctionBase>> mScalarFunctionBaseContainer; /*!< Vector of ScalarFunctionBase objects */
+    using Plato::Geometric::WorksetBase<ElementType>::mNumSpatialDims;
+    using Plato::Geometric::WorksetBase<ElementType>::mNumNodes;
+
+    std::vector<Plato::Scalar> mFunctionWeights;
+    std::vector<Plato::Scalar> mFunctionGoldValues;
+    std::vector<Plato::Scalar> mFunctionNormalization;
+    std::vector<std::shared_ptr<Plato::Geometric::ScalarFunctionBase>> mScalarFunctionBaseContainer;
 
     const Plato::SpatialModel & mSpatialModel;
 
-    Plato::DataMap& mDataMap; /*!< PLATO Engine and Analyze data map */
+    Plato::DataMap& mDataMap;
 
-    std::string mFunctionName; /*!< User defined function name */
+    std::string mFunctionName;
 
-    const Plato::Scalar mFunctionNormalizationCutoff = 0.1; /*!< if (|GoldValue| > 0.1) then ((f - f_gold) / f_gold)^2 ; otherwise  (f - f_gold)^2 */
+    /*!< if (|GoldValue| > 0.1) then ((f - f_gold) / f_gold)^2 ; otherwise  (f - f_gold)^2 */
+    const Plato::Scalar mFunctionNormalizationCutoff = 0.1;
 
     /******************************************************************************//**
      * \brief Initialization of Least Squares Function
@@ -52,7 +56,7 @@ private:
         Teuchos::ParameterList & aProblemParams
     )
     {
-        Plato::Geometric::ScalarFunctionBaseFactory<PhysicsT> tFactory;
+        Plato::Geometric::ScalarFunctionBaseFactory<PhysicsType> tFactory;
 
         mScalarFunctionBaseContainer.clear();
         mFunctionWeights.clear();
@@ -109,7 +113,7 @@ public:
               Teuchos::ParameterList & aProblemParams,
         const std::string            & aName
     ) :
-        Plato::Geometric::WorksetBase<PhysicsT>(aSpatialModel.Mesh),
+        Plato::Geometric::WorksetBase<ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
         mFunctionName (aName)
@@ -126,7 +130,7 @@ public:
         const Plato::SpatialModel & aSpatialModel,
               Plato::DataMap      & aDataMap
     ) :
-        Plato::Geometric::WorksetBase<PhysicsT>(aSpatialModel.Mesh),
+        Plato::Geometric::WorksetBase<ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
         mFunctionName ("Least Squares")

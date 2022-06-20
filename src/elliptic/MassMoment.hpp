@@ -30,7 +30,6 @@ class MassMoment :
   private:
     using ElementType = typename EvaluationType::ElementType;
 
-    using ElementType::mNumVoigtTerms;
     using ElementType::mNumNodesPerCell;
     using ElementType::mNumSpatialDims;
 

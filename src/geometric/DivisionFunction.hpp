@@ -19,15 +19,19 @@ namespace Geometric
 /******************************************************************************//**
  * \brief Division function class \f$ F(x) = numerator(x) / denominator(x) \f$
  **********************************************************************************/
-template<typename PhysicsT>
-class DivisionFunction : public Plato::Geometric::ScalarFunctionBase, public Plato::Geometric::WorksetBase<PhysicsT>
+template<typename PhysicsType>
+class DivisionFunction :
+    public Plato::Geometric::ScalarFunctionBase,
+    public Plato::Geometric::WorksetBase<typename PhysicsType::ElementType>
 {
 private:
-    using Plato::Geometric::WorksetBase<PhysicsT>::mNumSpatialDims; /*!< number of spatial dimensions */
-    using Plato::Geometric::WorksetBase<PhysicsT>::mNumNodes; /*!< total number of nodes in the mesh */
+    using ElementType = typename PhysicsType::ElementType;
 
-    std::shared_ptr<Plato::Geometric::ScalarFunctionBase> mScalarFunctionBaseNumerator; /*!< numerator function */
-    std::shared_ptr<Plato::Geometric::ScalarFunctionBase> mScalarFunctionBaseDenominator; /*!< denominator function */
+    using Plato::Geometric::WorksetBase<ElementType>::mNumSpatialDims;
+    using Plato::Geometric::WorksetBase<ElementType>::mNumNodes;
+
+    std::shared_ptr<Plato::Geometric::ScalarFunctionBase> mScalarFunctionBaseNumerator;
+    std::shared_ptr<Plato::Geometric::ScalarFunctionBase> mScalarFunctionBaseDenominator;
 
     const Plato::SpatialModel & mSpatialModel;
 
@@ -44,7 +48,7 @@ private:
         Teuchos::ParameterList & aProblemParams
     )
     {
-        Plato::Geometric::ScalarFunctionBaseFactory<PhysicsT> tFactory;
+        Plato::Geometric::ScalarFunctionBaseFactory<PhysicsType> tFactory;
 
         auto tFunctionParams = aProblemParams.sublist("Criteria").sublist(mFunctionName);
 
@@ -72,7 +76,7 @@ public:
               Teuchos::ParameterList & aProblemParams,
         const std::string            & aName
     ) :
-        Plato::Geometric::WorksetBase<PhysicsT>(aSpatialModel.Mesh),
+        Plato::Geometric::WorksetBase<ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
         mFunctionName (aName)
@@ -88,7 +92,7 @@ public:
         const Plato::SpatialModel & aSpatialModel,
               Plato::DataMap      & aDataMap
     ) :
-        Plato::Geometric::WorksetBase<PhysicsT>(aSpatialModel.Mesh),
+        Plato::Geometric::WorksetBase<ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
         mFunctionName ("Division Function")

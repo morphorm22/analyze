@@ -10,7 +10,7 @@ include (${CMAKE_CURRENT_SOURCE_DIR}/add_test.cmake)
 ## if SKIP_MATH is provided as the optional third argument below, unit tests
 ## will be compiled without checking for math exceptions.
 
-#Plato_add_test(MassProperties MassPropertiesTests.cpp)
+Plato_add_test(MassProperties MassPropertiesTests.cpp)
 Plato_add_test(VolumeAverageCriterion VolumeAverageCriterionTests.cpp SKIP_MATH)
 #TODO Plato_add_test(GeometryMisfit GeometryMisfitTests.cpp)
 Plato_add_test(LinearMaterialModel LinearMaterialModelTests.cpp)

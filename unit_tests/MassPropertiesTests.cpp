@@ -8,8 +8,11 @@
 
 #include "PlatoTestHelpers.hpp"
 
+#include "Tri3.hpp"
+#include "Tet4.hpp"
 #include "BLAS1.hpp"
 #include "Analyze_Diagnostics.hpp"
+#include "geometric/GeometricalElement.hpp"
 #include "geometric/WeightedSumFunction.hpp"
 #include "geometric/GeometryScalarFunction.hpp"
 #include "geometric/MassPropertiesFunction.hpp"
@@ -23,6 +26,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassInsteadOfVolume2D)
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
+
+    using ElementType = typename Plato::GeometricalElement<Plato::Tri3>;
 
     Teuchos::RCP<Teuchos::ParameterList> params =
       Teuchos::getParametersFromXmlString(
@@ -51,7 +56,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassInsteadOfVolume2D)
       "</ParameterList>                                                               \n"
     );
 
-    using Residual = typename Plato::Geometric::Evaluation<Plato::Simplex<tSpaceDim>>::Residual;
+    using Residual = typename Plato::Geometric::Evaluation<ElementType>::Residual;
     using ConfigT  = typename Residual::ConfigScalarType;
     using ResultT  = typename Residual::ResultScalarType;
     using ControlT = typename Residual::ControlScalarType;
@@ -67,18 +72,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassInsteadOfVolume2D)
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
     Plato::SpatialModel tSpatialModel(tMesh, *params);
-    Plato::Geometric::WeightedSumFunction<Plato::Geometrical<tSpaceDim>> tWeightedSum(tSpatialModel, tDataMap);
+    Plato::Geometric::WeightedSumFunction<Plato::Geometrical<Plato::Tri3>> tWeightedSum(tSpatialModel, tDataMap);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
     const Plato::Scalar tMaterialDensity = 0.5;
-    const std::shared_ptr<Plato::Geometric::MassMoment<Residual>> tCriterion =
-          std::make_shared<Plato::Geometric::MassMoment<Residual>>(tOnlyDomain, tDataMap);
+    const auto tCriterion = std::make_shared<Plato::Geometric::MassMoment<Residual>>(tOnlyDomain, tDataMap);
     tCriterion->setMaterialDensity(tMaterialDensity);
     tCriterion->setCalculationType("Mass");
 
-    const std::shared_ptr<Plato::Geometric::GeometryScalarFunction<Plato::Geometrical<tSpaceDim>>> tGeometryScalarFunc =
-          std::make_shared<Plato::Geometric::GeometryScalarFunction<Plato::Geometrical<tSpaceDim>>>(tSpatialModel, tDataMap);
+    const auto tGeometryScalarFunc =
+          std::make_shared<Plato::Geometric::GeometryScalarFunction<Plato::Geometrical<Plato::Tri3>>>(tSpatialModel, tDataMap);
 
     tGeometryScalarFunc->setEvaluator(tCriterion, tOnlyDomain.getDomainName());
 
@@ -101,6 +105,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassInsteadOfVolume3D)
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+
+    using ElementType = typename Plato::GeometricalElement<Plato::Tet4>;
 
     Teuchos::RCP<Teuchos::ParameterList> params =
       Teuchos::getParametersFromXmlString(
@@ -129,7 +135,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassInsteadOfVolume3D)
       "</ParameterList>                                                               \n"
     );
 
-    using Residual = typename Plato::Geometric::Evaluation<Plato::Simplex<tSpaceDim>>::Residual;
+    using Residual = typename Plato::Geometric::Evaluation<ElementType>::Residual;
     using ConfigT  = typename Residual::ConfigScalarType;
     using ResultT  = typename Residual::ResultScalarType;
     using ControlT = typename Residual::ControlScalarType;
@@ -145,19 +151,17 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassInsteadOfVolume3D)
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
     Plato::SpatialModel tSpatialModel(tMesh, *params);
-    Plato::Geometric::WeightedSumFunction<Plato::Geometrical<tSpaceDim>> tWeightedSum(tSpatialModel, tDataMap);
+    Plato::Geometric::WeightedSumFunction<Plato::Geometrical<Plato::Tet4>> tWeightedSum(tSpatialModel, tDataMap);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
     const Plato::Scalar tMaterialDensity = 0.5;
-    const std::shared_ptr<Plato::Geometric::MassMoment<Residual>> tCriterion =
-          std::make_shared<Plato::Geometric::MassMoment<Residual>>(tOnlyDomain, tDataMap);
+    const auto tCriterion = std::make_shared<Plato::Geometric::MassMoment<Residual>>(tOnlyDomain, tDataMap);
     tCriterion->setMaterialDensity(tMaterialDensity);
     tCriterion->setCalculationType("Mass");
 
-//    const std::shared_ptr<Plato::Geometric::GeometryScalarFunction<Plato::Geometrical<tSpaceDim>>> tGeometryScalarFunc =
     const auto tGeometryScalarFunc =
-          std::make_shared<Plato::Geometric::GeometryScalarFunction<Plato::Geometrical<tSpaceDim>>>(tSpatialModel, tDataMap);
+          std::make_shared<Plato::Geometric::GeometryScalarFunction<Plato::Geometrical<Plato::Tet4>>>(tSpatialModel, tDataMap);
 
     tGeometryScalarFunc->setEvaluator(tCriterion, tOnlyDomain.getDomainName());
 
@@ -180,6 +184,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3D)
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 15; // Need high mesh density in order to get correct inertias
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+
+    using ElementType = typename Plato::GeometricalElement<Plato::Tet4>;
 
     //const Plato::OrdinalType tNumCells = tMesh->NumElements();
 
@@ -221,7 +227,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3D)
     Plato::DataMap tDataMap;
     Plato::SpatialModel tSpatialModel(tMesh, *tParams);
     std::string tFuncName = "Mass Properties";
-    Plato::Geometric::MassPropertiesFunction<Plato::Geometrical<tSpaceDim>>
+    Plato::Geometric::MassPropertiesFunction<Plato::Geometrical<Plato::Tet4>>
           tMassProperties(tSpatialModel, tDataMap, *tParams, tFuncName);
 
     auto tObjFuncVal = tMassProperties.value(tControl);
@@ -245,8 +251,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3DNormalized)
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 15; // Need high mesh density in order to get correct inertias
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
-
-    //const Plato::OrdinalType tNumCells = tMesh->NumElements();
 
     // Create control workset
     const Plato::Scalar tPseudoDensity = 0.8;
@@ -286,7 +290,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3DNormalized)
     Plato::DataMap tDataMap;
     Plato::SpatialModel tSpatialModel(tMesh, *tParams);
     std::string tFuncName = "Mass Properties";
-    Plato::Geometric::MassPropertiesFunction<Plato::Geometrical<tSpaceDim>>
+    Plato::Geometric::MassPropertiesFunction<Plato::Geometrical<Plato::Tet4>>
           tMassProperties(tSpatialModel, tDataMap, *tParams, tFuncName);
 
     auto tObjFuncVal = tMassProperties.value(tControl);
@@ -312,9 +316,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesGradZ_3D)
     constexpr Plato::OrdinalType tMeshWidth = 1;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
-    //const Plato::OrdinalType tNumCells = tMesh->NumElements();
+    using ElementType = typename Plato::GeometricalElement<Plato::Tet4>;
 
-    using GradientZ = typename Plato::Geometric::Evaluation<Plato::Simplex<tSpaceDim>>::GradientZ;
+    using GradientZ = typename Plato::Geometric::Evaluation<ElementType>::GradientZ;
 
     Teuchos::RCP<Teuchos::ParameterList> tParams =
     Teuchos::getParametersFromXmlString(
@@ -347,10 +351,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesGradZ_3D)
     Plato::DataMap tDataMap;
     Plato::SpatialModel tSpatialModel(tMesh, *tParams);
     std::string tFuncName = "Mass Properties";
-    Plato::Geometric::MassPropertiesFunction<Plato::Geometrical<tSpaceDim>>
+    Plato::Geometric::MassPropertiesFunction<Plato::Geometrical<Plato::Tet4>>
           tMassProperties(tSpatialModel, tDataMap, *tParams, tFuncName);
 
-    Plato::test_partial_control<GradientZ, Plato::Geometrical<tSpaceDim>>(tMesh, tMassProperties);
+    Plato::test_partial_control<GradientZ, ElementType>(tMesh, tMassProperties);
 }
 
 } // namespace MassPropertiesTest

@@ -30,13 +30,9 @@ class LeastSquaresFunction :
 private:
     using ElementType = typename PhysicsType::ElementType;
 
-    using Plato::WorksetBase<ElementType>::mNumDofsPerCell;
-    using Plato::WorksetBase<ElementType>::mNumNodesPerCell;
     using Plato::WorksetBase<ElementType>::mNumDofsPerNode;
     using Plato::WorksetBase<ElementType>::mNumSpatialDims;
-    using Plato::WorksetBase<ElementType>::mNumControl;
     using Plato::WorksetBase<ElementType>::mNumNodes;
-    using Plato::WorksetBase<ElementType>::mNumCells;
 
     std::vector<Plato::Scalar> mFunctionWeights;
     std::vector<Plato::Scalar> mFunctionGoldValues;

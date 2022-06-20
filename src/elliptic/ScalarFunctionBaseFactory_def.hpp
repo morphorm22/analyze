@@ -7,11 +7,9 @@
 #include "elliptic/WeightedSumFunction.hpp"
 #include "elliptic/LeastSquaresFunction.hpp"
 
-#ifdef NOPE
 #include "elliptic/ScalarFunctionBase.hpp"
 #include "elliptic/MassPropertiesFunction.hpp"
 #include "AnalyzeMacros.hpp"
-#endif
 
 namespace Plato
 {
@@ -38,13 +36,11 @@ namespace Elliptic
         auto tFunctionParams = aProblemParams.sublist("Criteria").sublist(aFunctionName);
         auto tFunctionType = tFunctionParams.get<std::string>("Type", "Not Defined");
 
-#ifdef NOPE
         if(tFunctionType == "Mass Properties")
         {
             return std::make_shared<MassPropertiesFunction<PhysicsType>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
         }
         else
-#endif
         if(tFunctionType == "Least Squares")
         {
             return std::make_shared<LeastSquaresFunction<PhysicsType>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);

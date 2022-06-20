@@ -4,7 +4,7 @@
 #include <cassert>
 #include <vector>
 
-#include <Omega_h_eigen.hpp>
+#include "PlatoEigen.hpp"
 
 #include "BLAS1.hpp"
 #include "PlatoMathTypes.hpp"
@@ -29,15 +29,19 @@ namespace Geometric
 /******************************************************************************//**
  * \brief Mass properties function class
  **********************************************************************************/
-template<typename PhysicsT>
-class MassPropertiesFunction : public Plato::Geometric::ScalarFunctionBase, public Plato::Geometric::WorksetBase<PhysicsT>
+template<typename PhysicsType>
+class MassPropertiesFunction :
+    public Plato::Geometric::ScalarFunctionBase,
+    public Plato::Geometric::WorksetBase<typename PhysicsType::ElementType>
 {
 private:
-    using Residual  = typename Plato::Geometric::Evaluation<typename PhysicsT::SimplexT>::Residual;
-    using GradientX = typename Plato::Geometric::Evaluation<typename PhysicsT::SimplexT>::GradientX;
-    using GradientZ = typename Plato::Geometric::Evaluation<typename PhysicsT::SimplexT>::GradientZ;
+    using ElementType = typename PhysicsType::ElementType;
 
-    std::shared_ptr<Plato::Geometric::LeastSquaresFunction<PhysicsT>> mLeastSquaresFunction;
+    using Residual  = typename Plato::Geometric::Evaluation<ElementType>::Residual;
+    using GradientX = typename Plato::Geometric::Evaluation<ElementType>::GradientX;
+    using GradientZ = typename Plato::Geometric::Evaluation<ElementType>::GradientZ;
+
+    std::shared_ptr<Plato::Geometric::LeastSquaresFunction<PhysicsType>> mLeastSquaresFunction;
 
     const Plato::SpatialModel & mSpatialModel;
 
@@ -47,10 +51,9 @@ private:
 
     std::map<std::string, Plato::Scalar> mMaterialDensities; /*!< material density */
 
-    Omega_h::Tensor<3> mInertiaRotationMatrix;
-    Omega_h::Vector<3> mInertiaPrincipalValues;
-
-    Omega_h::Tensor<3> mMinusRotatedParallelAxisTheoremMatrix;
+    Plato::Matrix<3,3> mInertiaRotationMatrix;
+    Plato::Array<3>    mInertiaPrincipalValues;
+    Plato::Matrix<3,3> mMinusRotatedParallelAxisTheoremMatrix;
 
     Plato::Scalar mMeshExtentX;
     Plato::Scalar mMeshExtentY;
@@ -206,7 +209,7 @@ private:
     )
     {
         printf("Creating all mass properties function.\n");
-        mLeastSquaresFunction = std::make_shared<Plato::Geometric::LeastSquaresFunction<PhysicsT>>(aSpatialModel, mDataMap);
+        mLeastSquaresFunction = std::make_shared<Plato::Geometric::LeastSquaresFunction<PhysicsType>>(aSpatialModel, mDataMap);
         std::map<std::string, Plato::Scalar> tWeightMap;
         std::map<std::string, Plato::Scalar> tGoldValueMap;
         for (Plato::OrdinalType tPropertyIndex = 0; tPropertyIndex < aPropertyNames.size(); ++tPropertyIndex)
@@ -303,27 +306,22 @@ private:
         const Plato::Scalar CGy = aGoldValueMap[std::string("CGy")]; 
         const Plato::Scalar CGz = aGoldValueMap[std::string("CGz")];
 
-        Omega_h::Vector<3> tCGVector = Omega_h::vector_3(CGx, CGy, CGz);
+        Plato::Array<3> tCGVector({CGx, CGy, CGz});
 
-        const Plato::Scalar tNormSquared = tCGVector * tCGVector;
+        const Plato::Scalar tNormSquared = Plato::dot(tCGVector, tCGVector);
 
-        Omega_h::Tensor<3> tParallelAxisTheoremMatrix = 
-            (tNormSquared * Omega_h::identity_tensor<3>()) - Omega_h::outer_product(tCGVector, tCGVector);
+        Plato::Matrix<3,3> tParallelAxisTheoremMatrix = Plato::plus(Plato::identity<3>(tNormSquared), Plato::outer_product(tCGVector, tCGVector), -1.0);
 
-        Omega_h::Tensor<3> tGoldInertiaTensor = Omega_h::tensor_3(Ixx,Ixy,Ixz,
-                                                                  Ixy,Iyy,Iyz,
-                                                                  Ixz,Iyz,Izz);
-        Omega_h::Tensor<3> tGoldInertiaTensorAboutCG = tGoldInertiaTensor - (Mass * tParallelAxisTheoremMatrix);
-    
-        auto tEigenPair = Omega_h::decompose_eigen_jacobi<3>(tGoldInertiaTensorAboutCG);
-        mInertiaRotationMatrix = tEigenPair.q;
-        mInertiaPrincipalValues = tEigenPair.l;
+        Plato::Matrix<3,3> tGoldInertiaTensor({Ixx,Ixy,Ixz, Ixy,Iyy,Iyz, Ixz,Iyz,Izz});
 
-        printf("Eigenvalues of GoldInertiaTensor : %f, %f, %f\n", mInertiaPrincipalValues(0), 
-            mInertiaPrincipalValues(1), mInertiaPrincipalValues(2));
+        Plato::Matrix<3,3> tGoldInertiaTensorAboutCG = Plato::plus(tGoldInertiaTensor, tParallelAxisTheoremMatrix, -Mass);
 
-        mMinusRotatedParallelAxisTheoremMatrix = -1.0 *
-            (Omega_h::transpose<3,3>(mInertiaRotationMatrix) * (tParallelAxisTheoremMatrix * mInertiaRotationMatrix));
+        Plato::decomposeEigenJacobi<3>(tGoldInertiaTensorAboutCG, mInertiaRotationMatrix, mInertiaPrincipalValues);
+
+        printf("Eigenvalues of GoldInertiaTensor : %f, %f, %f\n", mInertiaPrincipalValues(0), mInertiaPrincipalValues(1), mInertiaPrincipalValues(2));
+
+        mMinusRotatedParallelAxisTheoremMatrix = Plato::times(-1.0,
+            Plato::times(Plato::transpose(mInertiaRotationMatrix), Plato::times(tParallelAxisTheoremMatrix, mInertiaRotationMatrix)));
     }
 
     /******************************************************************************//**
@@ -342,7 +340,7 @@ private:
     )
     {
         printf("Creating itemized mass properties function.\n");
-        mLeastSquaresFunction = std::make_shared<Plato::Geometric::LeastSquaresFunction<PhysicsT>>(aSpatialModel, mDataMap);
+        mLeastSquaresFunction = std::make_shared<Plato::Geometric::LeastSquaresFunction<PhysicsType>>(aSpatialModel, mDataMap);
         for (Plato::OrdinalType tPropertyIndex = 0; tPropertyIndex < aPropertyNames.size(); ++tPropertyIndex)
         {
             const std::string   tPropertyName      = aPropertyNames[tPropertyIndex];
@@ -427,11 +425,11 @@ private:
      * \param [in] aSpatialModel Plato Analyze spatial model
      * \return physics scalar function
     **********************************************************************************/
-    std::shared_ptr<Plato::Geometric::GeometryScalarFunction<PhysicsT>>
+    std::shared_ptr<Plato::Geometric::GeometryScalarFunction<PhysicsType>>
     getMassFunction(const Plato::SpatialModel & aSpatialModel)
     {
-        std::shared_ptr<Plato::Geometric::GeometryScalarFunction<PhysicsT>> tMassFunction =
-             std::make_shared<Plato::Geometric::GeometryScalarFunction<PhysicsT>>(aSpatialModel, mDataMap);
+        std::shared_ptr<Plato::Geometric::GeometryScalarFunction<PhysicsType>> tMassFunction =
+             std::make_shared<Plato::Geometric::GeometryScalarFunction<PhysicsType>>(aSpatialModel, mDataMap);
         tMassFunction->setFunctionName("Mass Function");
 
         std::string tCalculationType = std::string("Mass");
@@ -475,8 +473,8 @@ private:
     {
         const std::string tNumeratorName = std::string("CG Numerator (Moment type = ")
                                          + aMomentType + ")";
-        std::shared_ptr<Plato::Geometric::GeometryScalarFunction<PhysicsT>> tNumerator =
-             std::make_shared<Plato::Geometric::GeometryScalarFunction<PhysicsT>>(aSpatialModel, mDataMap);
+        std::shared_ptr<Plato::Geometric::GeometryScalarFunction<PhysicsType>> tNumerator =
+             std::make_shared<Plato::Geometric::GeometryScalarFunction<PhysicsType>>(aSpatialModel, mDataMap);
         tNumerator->setFunctionName(tNumeratorName);
 
         for(const auto& tDomain : mSpatialModel.Domains)
@@ -504,12 +502,12 @@ private:
 
         const std::string tDenominatorName = std::string("CG Mass Denominator (Moment type = ")
                                            + aMomentType + ")";
-        std::shared_ptr<Plato::Geometric::GeometryScalarFunction<PhysicsT>> tDenominator = 
+        std::shared_ptr<Plato::Geometric::GeometryScalarFunction<PhysicsType>> tDenominator = 
              getMassFunction(aSpatialModel);
         tDenominator->setFunctionName(tDenominatorName);
 
-        std::shared_ptr<Plato::Geometric::DivisionFunction<PhysicsT>> tMomentOverMassRatioFunction =
-             std::make_shared<Plato::Geometric::DivisionFunction<PhysicsT>>(aSpatialModel, mDataMap);
+        std::shared_ptr<Plato::Geometric::DivisionFunction<PhysicsType>> tMomentOverMassRatioFunction =
+             std::make_shared<Plato::Geometric::DivisionFunction<PhysicsType>>(aSpatialModel, mDataMap);
         tMomentOverMassRatioFunction->allocateNumeratorFunction(tNumerator);
         tMomentOverMassRatioFunction->allocateDenominatorFunction(tDenominator);
         tMomentOverMassRatioFunction->setFunctionName(std::string("CG ") + aMomentType);
@@ -530,8 +528,8 @@ private:
     {
         const std::string tInertiaName = std::string("Second Mass Moment (Moment type = ")
                                          + aMomentType + ")";
-        std::shared_ptr<Plato::Geometric::GeometryScalarFunction<PhysicsT>> tSecondMomentFunction =
-             std::make_shared<Plato::Geometric::GeometryScalarFunction<PhysicsT>>(aSpatialModel, mDataMap);
+        std::shared_ptr<Plato::Geometric::GeometryScalarFunction<PhysicsType>> tSecondMomentFunction =
+             std::make_shared<Plato::Geometric::GeometryScalarFunction<PhysicsType>>(aSpatialModel, mDataMap);
         tSecondMomentFunction->setFunctionName(tInertiaName);
 
 
@@ -574,8 +572,8 @@ private:
         const std::string         & aAxes
     )
     {
-        std::shared_ptr<Plato::Geometric::WeightedSumFunction<PhysicsT>> tMomentOfInertiaFunction = 
-               std::make_shared<Plato::Geometric::WeightedSumFunction<PhysicsT>>(aSpatialModel, mDataMap);
+        std::shared_ptr<Plato::Geometric::WeightedSumFunction<PhysicsType>> tMomentOfInertiaFunction = 
+               std::make_shared<Plato::Geometric::WeightedSumFunction<PhysicsType>>(aSpatialModel, mDataMap);
         tMomentOfInertiaFunction->setFunctionName(std::string("Inertia ") + aAxes);
 
         if (aAxes == "XX")
@@ -645,8 +643,8 @@ private:
         const std::string         & aAxes
     )
     {
-        std::shared_ptr<Plato::Geometric::WeightedSumFunction<PhysicsT>> tMomentOfInertiaFunction = 
-               std::make_shared<Plato::Geometric::WeightedSumFunction<PhysicsT>>(aSpatialModel, mDataMap);
+        std::shared_ptr<Plato::Geometric::WeightedSumFunction<PhysicsType>> tMomentOfInertiaFunction = 
+               std::make_shared<Plato::Geometric::WeightedSumFunction<PhysicsType>>(aSpatialModel, mDataMap);
         tMomentOfInertiaFunction->setFunctionName(std::string("InertiaRot ") + aAxes);
 
         std::vector<Plato::Scalar> tInertiaWeights(6);
@@ -781,7 +779,7 @@ public:
               Teuchos::ParameterList & aProblemParams,
               std::string            & aName
     ) :
-        Plato::Geometric::WorksetBase<PhysicsT>(aSpatialModel.Mesh),
+        Plato::Geometric::WorksetBase<typename PhysicsType::ElementType>(aSpatialModel.Mesh),
         mSpatialModel    (aSpatialModel),
         mDataMap         (aDataMap),
         mFunctionName    (aName)
@@ -894,16 +892,16 @@ public:
 
 } // namespace Plato
 
-#include "Geometrical.hpp"
+//TODO #include "Geometrical.hpp"
 
 #ifdef PLATOANALYZE_1D
-extern template class Plato::Geometric::MassPropertiesFunction<::Plato::Geometrical<1>>;
+//TODO extern template class Plato::Geometric::MassPropertiesFunction<::Plato::Geometrical<1>>;
 #endif
 
 #ifdef PLATOANALYZE_2D
-extern template class Plato::Geometric::MassPropertiesFunction<::Plato::Geometrical<2>>;
+//TODO extern template class Plato::Geometric::MassPropertiesFunction<::Plato::Geometrical<2>>;
 #endif
 
 #ifdef PLATOANALYZE_3D
-extern template class Plato::Geometric::MassPropertiesFunction<::Plato::Geometrical<3>>;
+//TODO extern template class Plato::Geometric::MassPropertiesFunction<::Plato::Geometrical<3>>;
 #endif

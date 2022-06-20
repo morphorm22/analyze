@@ -65,6 +65,26 @@ public:
         }
     }
 
+    /******************************************************************************//**
+     * \brief Abstract scalar function constructor.  
+     * \param [in] aSpatialDomain Plato Analyze spatial domain
+     * \param [in] aDataMap PLATO Engine and PLATO Analyze data map
+     * \param [in] aName my abstract scalar function name
+    **********************************************************************************/
+    AbstractScalarFunction(
+        const Plato::SpatialDomain   & aSpatialDomain,
+              Plato::DataMap         & aDataMap,
+        const std::string            & aName
+    ) :
+        mSpatialDomain   (aSpatialDomain),
+        mDataMap         (aDataMap),
+        mFunctionName    (aName),
+        mHasBoundaryTerm (false),
+        mCompute         (true)
+    {
+    }
+
+
     decltype(mHasBoundaryTerm) hasBoundaryTerm() const { return mHasBoundaryTerm; }
 
     /******************************************************************************//**
