@@ -275,7 +275,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateVonMises)
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     constexpr Plato::OrdinalType tNumVoigtTerms = ElementType::mNumVoigtTerms;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
-    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    auto tCellStiffMatrix = tMatModel.getStiffnessMatrix();
 
     const auto tLocalMeasure = std::make_shared<Plato::VonMisesLocalMeasure<Residual>>(tOnlyDomain, tCellStiffMatrix, "VonMises");
     tCriterion.setLocalMeasure(tLocalMeasure, tLocalMeasure);
@@ -585,7 +585,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_CheckThermalVonMises3D)
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnergyScalarFuncBaseGradZ_3D)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
@@ -631,7 +630,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnergyScalarFuncBaseGradU_2D)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
@@ -677,7 +675,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnergyScalarFuncBaseGradU_3D)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
@@ -806,7 +803,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateTensileEnergyDe
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnergyCriterionGradZ_2D)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
@@ -837,7 +833,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnergyCriterionGradZ_3D)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
@@ -868,7 +863,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnergyCriterionGradU_2D)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 
@@ -900,7 +894,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnergyCriterionGradU_3D)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
@@ -1221,7 +1214,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_VonMises1D)
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_ComputeStructuralMass_3D)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
@@ -1745,7 +1737,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_FiniteDiff_CriterionGradU
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagGeneral_computeStructuralMass)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 

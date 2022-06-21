@@ -8,7 +8,7 @@
 #include "PlatoUtilities.hpp"
 
 #include "geometric/Volume.hpp"
-//TODO #include "geometric/GeometryMisfit.hpp"
+#include "geometric/GeometryMisfit.hpp"
 #include "geometric/AbstractScalarFunction.hpp"
 
 namespace Plato {
@@ -33,10 +33,12 @@ struct FunctionFactory{
             return Plato::makeScalarFunction<EvaluationType, Plato::Geometric::Volume>
                 (aSpatialDomain, aDataMap, aParamList, aFuncName);
         }
-// TODO    if( tLowerFuncType == "geometry misfit" )
-// TODO        {
-// TODO            return std::make_shared<Plato::Geometric::GeometryMisfit<EvaluationType>>
-// TODO               (aSpatialDomain, aDataMap, aParamList, aStrScalarFunctionName);
+        else
+        if( tLowerFuncType == "geometry misfit" )
+        {
+            return std::make_shared<Plato::Geometric::GeometryMisfit<EvaluationType>>
+                (aSpatialDomain, aDataMap, aParamList, aFuncName);
+        }
         else
         {
             ANALYZE_THROWERR(std::string("Unknown 'Objective' of type '") + tLowerFuncType + "' specified in 'Plato Problem' ParameterList");

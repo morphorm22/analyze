@@ -67,8 +67,8 @@ class Bar2
         const Plato::Matrix<mNumSpatialDims, mNumSpatialDims+1, ScalarType> & aJacobian
     )
     {
-        auto ax = aJacobian(0,0)*aJacobian(0,0);
-        auto ay = aJacobian(0,1)*aJacobian(0,1);
+        ScalarType ax = aJacobian(0,0)*aJacobian(0,0);
+        ScalarType ay = aJacobian(0,1)*aJacobian(0,1);
 
         return sqrt(ax*ax+ay*ay);
     }

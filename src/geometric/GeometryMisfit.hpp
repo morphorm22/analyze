@@ -1,7 +1,7 @@
 #pragma once
 
 #include "geometric/WorksetBase.hpp"
-#include "SurfaceIntegralUtilities.hpp"
+#include "SurfaceArea.hpp"
 
 #include "PlatoStaticsTypes.hpp"
 #include "ImplicitFunctors.hpp"
@@ -77,14 +77,22 @@ namespace Geometric
 
 /******************************************************************************/
 template<typename EvaluationType>
-class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<EvaluationType>
+class GeometryMisfit :
+    public EvaluationType::ElementType,
+    public Plato::Geometric::AbstractScalarFunction<EvaluationType>
 /******************************************************************************/
 {
   private:
-    static constexpr int SpaceDim = EvaluationType::SpatialDim;
-    
-    using Plato::Geometric::AbstractScalarFunction<EvaluationType>::mSpatialDomain;
-    using Plato::Geometric::AbstractScalarFunction<EvaluationType>::mDataMap;
+    using ElementType = typename EvaluationType::ElementType;
+
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumNodesPerFace;
+    using ElementType::mNumSpatialDims;
+
+    using FunctionBaseType = typename Plato::Geometric::AbstractScalarFunction<EvaluationType>;
+
+    using FunctionBaseType::mSpatialDomain;
+    using FunctionBaseType::mDataMap;
 
     using ControlScalarType = typename EvaluationType::ControlScalarType;
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
@@ -103,7 +111,7 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
               Teuchos::ParameterList & aFunctionParams, 
               std::string            & aFunctionName
     ) :
-        Plato::Geometric::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aFunctionParams, aFunctionName),
+        FunctionBaseType(aSpatialDomain, aDataMap, aFunctionParams, aFunctionName),
         mPointCloudName("")
     /**************************************************************************/
     {
@@ -118,7 +126,7 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
 
     /**************************************************************************/
     void
-    evaluate(
+    evaluate_conditional(
         const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
         const Plato::ScalarArray3DT    <ConfigScalarType > & aConfig,
               Plato::ScalarVectorT     <ResultScalarType > & aResult
@@ -128,7 +136,7 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
 
     /**************************************************************************/
     void
-    evaluate_boundary(
+    evaluate_boundary_conditional(
         const Plato::SpatialModel                          & aModel,
         const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
         const Plato::ScalarArray3DT    <ConfigScalarType > & aConfig,
@@ -147,10 +155,9 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
         auto tPoints = mDataMap.scalarMultiVectors[mPointCloudName];
 
         // create functors
-        Plato::CalculateSurfaceArea<SpaceDim> tCalculateSurfaceArea;
-        Plato::CalculateSurfaceJacobians<SpaceDim> tCalculateSurfaceJacobians;
+        Plato::SurfaceArea<ElementType> surfaceArea;
 
-        auto tNumFaces = tElementOrds.size();
+        Plato::OrdinalType tNumFaces = tElementOrds.size();
         Plato::ScalarVector tResultDenominator("denominator", tNumFaces);
 
         // for each point in the cloud, compute the square of the average normal distance to the nearest face
@@ -162,26 +169,26 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
             auto tElementOrdinal = tElementOrds(tLocalFaceOrdinal);
 
             // compute the map from local node id to global
-            Plato::OrdinalType tLocalNodeOrds[SpaceDim];
-            for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<SpaceDim; tNodeOrd++)
+            Plato::Array<mNumNodesPerFace, Plato::OrdinalType> tLocalNodeOrds;
+            for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<mNumNodesPerFace; tNodeOrd++)
             {
-                tLocalNodeOrds[tNodeOrd] = tNodeOrds(tLocalFaceOrdinal*SpaceDim+tNodeOrd);
+                tLocalNodeOrds[tNodeOrd] = tNodeOrds(tLocalFaceOrdinal*mNumNodesPerFace+tNodeOrd);
             }
 
             // get face centroid
             ConfigScalarType C_x = aConfig(tElementOrdinal, tLocalNodeOrds[0], Dim::X);
             ConfigScalarType C_y = aConfig(tElementOrdinal, tLocalNodeOrds[0], Dim::Y);
             ConfigScalarType C_z = aConfig(tElementOrdinal, tLocalNodeOrds[0], Dim::Z);
-            for (Plato::OrdinalType tFaceVertI=1; tFaceVertI<SpaceDim; tFaceVertI++)
+            for (Plato::OrdinalType tFaceVertI=1; tFaceVertI<mNumNodesPerFace; tFaceVertI++)
             {
                 C_x += aConfig(tElementOrdinal, tLocalNodeOrds[tFaceVertI], Dim::X);
                 C_y += aConfig(tElementOrdinal, tLocalNodeOrds[tFaceVertI], Dim::Y);
                 C_z += aConfig(tElementOrdinal, tLocalNodeOrds[tFaceVertI], Dim::Z);
             }
-            constexpr Plato::OrdinalType cNumVertsPerFace = SpaceDim;
-            C_x /= cNumVertsPerFace;
-            C_y /= cNumVertsPerFace;
-            C_z /= cNumVertsPerFace;
+            constexpr Plato::OrdinalType cNumNodesPerFace = mNumNodesPerFace;
+            C_x /= cNumNodesPerFace;
+            C_y /= cNumNodesPerFace;
+            C_z /= cNumNodesPerFace;
 
             // get vertex 0 coordinates
             ConfigScalarType a_x = aConfig(tElementOrdinal, tLocalNodeOrds[0], Dim::X);
@@ -227,25 +234,34 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
 
         }, "compute misfit");
 
-        // it appears that the ComputeIntegralWeight() function is missing a 1/2 factor.
-        Plato::Scalar tMultiplier = 1.0/2.0;
 
-        Plato::ScalarArray3DT<ConfigScalarType> tJacobian("jacobian", tNumFaces, SpaceDim-1, SpaceDim);
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aFaceOrdinal)
+        auto tCubatureWeights = ElementType::Face::getCubWeights();
+        auto tCubaturePoints  = ElementType::Face::getCubPoints();
+        auto tNumCubPoints = tCubatureWeights.size();
+
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumFaces),
+        LAMBDA_EXPRESSION(const Plato::OrdinalType & aFaceOrdinal)
         {
             auto tElementOrdinal = tElementOrds(aFaceOrdinal);
 
             // compute the map from local node id to global
-            Plato::OrdinalType tLocalNodeOrds[SpaceDim];
-            for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<SpaceDim; tNodeOrd++)
+            Plato::Array<ElementType::mNumNodesPerFace, Plato::OrdinalType> tLocalNodeOrds;
+            for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<ElementType::mNumNodesPerFace; tNodeOrd++)
             {
-                tLocalNodeOrds[tNodeOrd] = tNodeOrds(aFaceOrdinal*SpaceDim+tNodeOrd);
+                tLocalNodeOrds(tNodeOrd) = tNodeOrds(aFaceOrdinal*ElementType::mNumNodesPerFace+tNodeOrd);
             }
 
-            // compute integration weights
-            ConfigScalarType tWeight(0.0);
-            tCalculateSurfaceJacobians(tElementOrdinal, aFaceOrdinal, tLocalNodeOrds, aConfig, tJacobian);
-            tCalculateSurfaceArea(aFaceOrdinal, tMultiplier, tJacobian, tWeight);
+            ResultScalarType tWeight(0.0);
+            for(Plato::OrdinalType iGpOrdinal=0; iGpOrdinal<tNumCubPoints; iGpOrdinal++)
+            {
+                auto tCubatureWeight = tCubatureWeights(iGpOrdinal);
+                auto tCubaturePoint = tCubaturePoints(iGpOrdinal);
+                auto tBasisGrads  = ElementType::Face::basisGrads(tCubaturePoint);
+
+                ResultScalarType tSurfaceArea(0.0);
+                surfaceArea(tElementOrdinal, tLocalNodeOrds, tBasisGrads, aConfig, tSurfaceArea);
+                tWeight += tSurfaceArea * tCubatureWeight;
+            }
 
             if (tResultDenominator(aFaceOrdinal) != 0)
             {
@@ -269,19 +285,18 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
         auto tElementOrds  = aMesh->GetSideSetElements(mSideSetName);
         auto tNodeOrds     = aMesh->GetSideSetLocalNodes(mSideSetName);
 
-        constexpr auto cNodesPerFace = SpaceDim;
         const auto cNodesPerElement = aMesh->NumNodesPerElement();
 
         auto tNumFaces = tElementOrds.size();
         Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aFaceOrdinal)
         {
-            for (Plato::OrdinalType tNodeI=0; tNodeI<cNodesPerFace; tNodeI++)
+            for (Plato::OrdinalType tNodeI=0; tNodeI<mNumNodesPerFace; tNodeI++)
             {
-                auto tElemLocalVertexOrdinal = tNodeOrds(aFaceOrdinal*cNodesPerFace+tNodeI);
+                auto tElemLocalVertexOrdinal = tNodeOrds(aFaceOrdinal*mNumNodesPerFace+tNodeI);
                 auto tMeshLocalVertexOrdinal = tConnectivity(tElementOrds(aFaceOrdinal)*cNodesPerElement + tElemLocalVertexOrdinal);
-                for (Plato::OrdinalType tDimI=0; tDimI<SpaceDim; tDimI++)
+                for (Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
                 {
-                    aCentroids(tDimI, aFaceOrdinal) += tCoords(tMeshLocalVertexOrdinal * SpaceDim + tDimI) / cNodesPerFace;
+                    aCentroids(tDimI, aFaceOrdinal) += tCoords(tMeshLocalVertexOrdinal * mNumSpatialDims + tDimI) / mNumNodesPerFace;
                 }
             }
 
@@ -307,7 +322,7 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
             auto tElementOrds = aMesh->GetSideSetElements(mSideSetName);
 
             // create centroids
-            Plato::ScalarMultiVector tCentroids("face centroids", SpaceDim, tElementOrds.size());
+            Plato::ScalarMultiVector tCentroids("face centroids", mNumSpatialDims, tElementOrds.size());
             faceCentroids(aMesh, tCentroids);
 
             // construct search tree (this needs to be done in the constructor since the search result doesn't change)
@@ -356,7 +371,7 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
         {
             // TODO index directly into aIndices?
             auto tCentroidOrd = aIndices(aOffsets(aPointOrdinal));
-            for(Plato::OrdinalType iDim=0; iDim<SpaceDim; iDim++)
+            for(Plato::OrdinalType iDim=0; iDim<mNumSpatialDims; iDim++)
             {
                 tVectors(iDim, aPointOrdinal) = aCentroids(iDim, tCentroidOrd) - aPoints(iDim, aPointOrdinal);
             }
@@ -469,7 +484,7 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
             auto tNewValue = stod(tSubstr);
             tParsedValues.push_back(stod(tSubstr));
         }
-        if (tParsedValues.size() != SpaceDim)
+        if (tParsedValues.size() != mNumSpatialDims)
         {
             ANALYZE_THROWERR("Error reading point cloud: line encountered with other than three values");
         }
@@ -506,12 +521,12 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
         std::vector<std::vector<Plato::Scalar>> aPoints
     )
     {
-        Plato::ScalarMultiVector tDevicePoints("point cloud", SpaceDim, aPoints.size());
+        Plato::ScalarMultiVector tDevicePoints("point cloud", mNumSpatialDims, aPoints.size());
         auto tDevicePoints_Host = Kokkos::create_mirror_view(tDevicePoints);
 
         for (Plato::OrdinalType iPoint=0; iPoint<aPoints.size(); iPoint++)
         {
-            for (Plato::OrdinalType iDim=0; iDim<SpaceDim; iDim++)
+            for (Plato::OrdinalType iDim=0; iDim<mNumSpatialDims; iDim++)
             {
                 tDevicePoints_Host(iDim, iPoint) = aPoints[iPoint][iDim];
             }

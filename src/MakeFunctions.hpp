@@ -4,6 +4,7 @@
 #include "Ramp.hpp"
 #include "Heaviside.hpp"
 #include "NoPenalty.hpp"
+#include "SpatialModel.hpp"
 #include "PlatoUtilities.hpp"
 
 namespace Plato

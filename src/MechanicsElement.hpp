@@ -14,6 +14,7 @@ class MechanicsElement : public TopoElementTypeT, public ElementBase<TopoElement
 {
   public:
     using TopoElementTypeT::mNumNodesPerCell;
+    using TopoElementTypeT::mNumNodesPerFace;
     using TopoElementTypeT::mNumSpatialDims;
 
     using TopoElementType = TopoElementTypeT;

@@ -1300,7 +1300,6 @@ TEUCHOS_UNIT_TEST( DerivativeTests, ElastostaticResidual2D_InhomogeneousEssentia
     );
 
     // SETUP INPUT PARAMETERS
-    constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 3;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
 

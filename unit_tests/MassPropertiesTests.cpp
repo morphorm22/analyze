@@ -181,7 +181,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassInsteadOfVolume3D)
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3D)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 15; // Need high mesh density in order to get correct inertias
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
@@ -248,7 +247,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3D)
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3DNormalized)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 15; // Need high mesh density in order to get correct inertias
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
@@ -312,7 +310,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3DNormalized)
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesGradZ_3D)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
