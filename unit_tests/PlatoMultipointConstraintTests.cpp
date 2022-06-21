@@ -7,7 +7,6 @@
 #include "EssentialBCs.hpp"
 #include "elliptic/VectorFunction.hpp"
 #include "ApplyConstraints.hpp"
-#include "SimplexMechanics.hpp"
 #include "LinearElasticMaterial.hpp"
 #include "alg/PlatoSolverFactory.hpp"
 #include "MultipointConstraints.hpp"

@@ -80,19 +80,27 @@ private:
         {
             return std::make_shared<MPCType<Plato::Tet4>>(aSpatialModel, aName, mParamList);
         }
+        else
         if( Plato::tolower(tElementType) == "hex8" ||
             Plato::tolower(tElementType) == "hexa8" )
         {
             return std::make_shared<MPCType<Plato::Hex8>>(aSpatialModel, aName, mParamList);
         }
+        else
         if( Plato::tolower(tElementType) == "hex27" ||
             Plato::tolower(tElementType) == "hexa27" )
         {
             return std::make_shared<MPCType<Plato::Hex27>>(aSpatialModel, aName, mParamList);
         }
+        else
         if( Plato::tolower(tElementType) == "quad4" )
         {
             return std::make_shared<MPCType<Plato::Quad4>>(aSpatialModel, aName, mParamList);
+        }
+        else
+        if( Plato::tolower(tElementType) == "tri3" )
+        {
+            return std::make_shared<MPCType<Plato::Tri3>>(aSpatialModel, aName, mParamList);
         }
         else
         {
