@@ -26,7 +26,7 @@ Plato_add_test(SolverInterface PlatoSolverInterfaceTests.cpp)
 Plato_add_test(PlatoMathTypes PlatoMathTypesTests.cpp)
 Plato_add_test(MultipointConstraint PlatoMultipointConstraintTests.cpp)
 Plato_add_test(AugLagStress PlatoAugLagStressTest.cpp)
-
+Plato_add_test(TensorNorm TensorNormTests.cpp)
 
 if(STABILIZED)
   Plato_add_test(StabilizedMechanics StabilizedMechanicsTests.cpp)
