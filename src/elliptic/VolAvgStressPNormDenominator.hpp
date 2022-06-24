@@ -7,8 +7,9 @@
 #include "TensorPNorm.hpp"
 #include "ElasticModelFactory.hpp"
 #include "ImplicitFunctors.hpp"
+#include "GradientMatrix.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
-#include "ExpInstMacros.hpp"
+#include "elliptic/ExpInstMacros.hpp"
 
 #include "alg/Basis.hpp"
 #include "Plato_TopOptFunctors.hpp"
@@ -153,11 +154,6 @@ class VolAvgStressPNormDenominator :
 
 } // namespace Plato
 
+#include "MechanicsElement.hpp"
 
-#ifdef PLATOANALYZE_2D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::VolAvgStressPNormDenominator, Plato::SimplexMechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::VolAvgStressPNormDenominator, Plato::SimplexMechanics, 3)
-#endif
+PLATO_ELLIPTIC_DEC(Plato::Elliptic::VolAvgStressPNormDenominator, Plato::MechanicsElement)

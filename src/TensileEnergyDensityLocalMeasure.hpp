@@ -3,12 +3,13 @@
 #include "AbstractLocalMeasure.hpp"
 #include "PlatoMathTypes.hpp"
 #include "LinearStress.hpp"
+#include "GradientMatrix.hpp"
 #include "TensileEnergyDensity.hpp"
 #include "SmallStrain.hpp"
 #include "ImplicitFunctors.hpp"
 #include <Teuchos_ParameterList.hpp>
 #include "Eigenvalues.hpp"
-#include "ExpInstMacros.hpp"
+#include "BaseExpInstMacros.hpp"
 
 namespace Plato
 {
@@ -168,14 +169,7 @@ public:
 }
 //namespace Plato
 
-#ifdef PLATOANALYZE_1D
-// TODO PLATO_EXPL_DEC2(Plato::TensileEnergyDensityLocalMeasure, Plato::SimplexMechanics, 1)
-#endif
+#include "MechanicsElement.hpp"
+#include "elliptic/ExpInstMacros.hpp"
 
-#ifdef PLATOANALYZE_2D
-// TODO PLATO_EXPL_DEC2(Plato::TensileEnergyDensityLocalMeasure, Plato::SimplexMechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-// TODO PLATO_EXPL_DEC2(Plato::TensileEnergyDensityLocalMeasure, Plato::SimplexMechanics, 3)
-#endif
+PLATO_ELLIPTIC_DEC_3(Plato::TensileEnergyDensityLocalMeasure, Plato::MechanicsElement)

@@ -1,10 +1,12 @@
 #pragma once
 
+#include "FadTypes.hpp"
 #include "AbstractLocalMeasure.hpp"
 #include "VonMisesYieldFunction.hpp"
 #include "ImplicitFunctors.hpp"
+#include "GradientMatrix.hpp"
 #include <Teuchos_ParameterList.hpp>
-#include "ExpInstMacros.hpp"
+#include "BaseExpInstMacros.hpp"
 #include "TMKinematics.hpp"
 #include "TMKinetics.hpp"
 #include "InterpolateFromNodal.hpp"
@@ -145,16 +147,7 @@ public:
 }
 //namespace Plato
 
-// TODO #include "SimplexThermomechanics.hpp"
+#include "ThermomechanicsElement.hpp"
+#include "elliptic/ExpInstMacros.hpp"
 
-#ifdef PLATOANALYZE_1D
-// TODO PLATO_EXPL_DEC2(Plato::ThermalVonMisesLocalMeasure, Plato::SimplexThermomechanics, 1)
-#endif
-
-#ifdef PLATOANALYZE_2D
-// TODO PLATO_EXPL_DEC2(Plato::ThermalVonMisesLocalMeasure, Plato::SimplexThermomechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-// TODO PLATO_EXPL_DEC2(Plato::ThermalVonMisesLocalMeasure, Plato::SimplexThermomechanics, 3)
-#endif
+PLATO_ELLIPTIC_DEC_3(Plato::ThermalVonMisesLocalMeasure, Plato::ThermomechanicsElement)

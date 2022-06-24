@@ -1,5 +1,4 @@
-#ifndef PLATO_PROBLEM_HPP
-#define PLATO_PROBLEM_HPP
+#pragma once
 
 #include "PlatoUtilities.hpp"
 
@@ -734,28 +733,13 @@ private:
 
 } // namespace Plato
 
-//TODO #include "Thermal.hpp"
-//TODO #include "Mechanics.hpp"
-//TODO #include "Electromechanics.hpp"
-//TODO #include "Thermomechanics.hpp"
+#include "Thermal.hpp"
+#include "Mechanics.hpp"
+#include "Thermomechanics.hpp"
+#include "Electromechanics.hpp"
+#include "BaseExpInstMacros.hpp"
 
-#ifdef PLATOANALYZE_1D
-//TODO extern template class Plato::Elliptic::Problem<::Plato::Thermal<1>>;
-//TODO extern template class Plato::Elliptic::Problem<::Plato::Mechanics<1>>;
-//TODO extern template class Plato::Elliptic::Problem<::Plato::Electromechanics<1>>;
-//TODO extern template class Plato::Elliptic::Problem<::Plato::Thermomechanics<1>>;
-#endif
-#ifdef PLATOANALYZE_2D
-//TODO extern template class Plato::Elliptic::Problem<::Plato::Thermal<2>>;
-//TODO extern template class Plato::Elliptic::Problem<::Plato::Mechanics<2>>;
-//TODO extern template class Plato::Elliptic::Problem<::Plato::Electromechanics<2>>;
-//TODO extern template class Plato::Elliptic::Problem<::Plato::Thermomechanics<2>>;
-#endif
-#ifdef PLATOANALYZE_3D
-//TODO extern template class Plato::Elliptic::Problem<::Plato::Thermal<3>>;
-//TODO extern template class Plato::Elliptic::Problem<::Plato::Mechanics<3>>;
-//TODO extern template class Plato::Elliptic::Problem<::Plato::Electromechanics<3>>;
-//TODO extern template class Plato::Elliptic::Problem<::Plato::Thermomechanics<3>>;
-#endif
-
-#endif // PLATO_PROBLEM_HPP
+PLATO_ELEMENT_DEC(Plato::Elliptic::Problem, Plato::Thermal)
+PLATO_ELEMENT_DEC(Plato::Elliptic::Problem, Plato::Mechanics)
+PLATO_ELEMENT_DEC(Plato::Elliptic::Problem, Plato::Thermomechanics)
+PLATO_ELEMENT_DEC(Plato::Elliptic::Problem, Plato::Electromechanics)

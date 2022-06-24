@@ -146,16 +146,3 @@ public:
 // class LinearStress
 
 }// namespace Plato
-
-
-#ifdef PLATOANALYZE_1D
-//TODO PLATO_EXPL_DEC2(Plato::LinearStress, Plato::SimplexMechanics, 1)
-#endif
-
-#ifdef PLATOANALYZE_2D
-//TODO PLATO_EXPL_DEC2(Plato::LinearStress, Plato::SimplexMechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-//TODO PLATO_EXPL_DEC2(Plato::LinearStress, Plato::SimplexMechanics, 3)
-#endif

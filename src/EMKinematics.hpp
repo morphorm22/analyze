@@ -1,6 +1,7 @@
 #ifndef EMKINEMATICS_HPP
 #define EMKINEMATICS_HPP
 
+#include "PlatoMathTypes.hpp"
 #include "PlatoStaticsTypes.hpp"
 
 namespace Plato

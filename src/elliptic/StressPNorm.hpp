@@ -13,9 +13,10 @@
 #include "ImplicitFunctors.hpp"
 #include "Plato_TopOptFunctors.hpp"
 #include "PlatoMeshExpr.hpp"
+#include "GradientMatrix.hpp"
 
 #include "ElasticModelFactory.hpp"
-#include "ExpInstMacros.hpp"
+#include "elliptic/ExpInstMacros.hpp"
 
 namespace Plato
 {
@@ -195,16 +196,8 @@ class StressPNorm :
 
 } // namespace Plato
 
-#ifdef PLATOANALYZE_1D
-//PLATO_EXPL_DEC(Plato::Elliptic::StressPNorm, Plato::SimplexMechanics, 1)
-#endif
+#include "MechanicsElement.hpp"
 
-#ifdef PLATOANALYZE_2D
-//PLATO_EXPL_DEC(Plato::Elliptic::StressPNorm, Plato::SimplexMechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-//PLATO_EXPL_DEC(Plato::Elliptic::StressPNorm, Plato::SimplexMechanics, 3)
-#endif
+PLATO_ELLIPTIC_DEC(Plato::Elliptic::StressPNorm, Plato::MechanicsElement)
 
 #endif

@@ -10,7 +10,9 @@
 #include "InterpolateFromNodal.hpp"
 #include "ThermoelasticMaterial.hpp"
 #include "ToMap.hpp"
-#include "ExpInstMacros.hpp"
+#include "GradientMatrix.hpp"
+#include "elliptic/ExpInstMacros.hpp"
+#include "elliptic/AbstractScalarFunction.hpp"
 
 namespace Plato
 {
@@ -178,16 +180,8 @@ class InternalThermoelasticEnergy :
 
 } // namespace Plato
 
-#ifdef PLATOANALYZE_1D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::InternalThermoelasticEnergy, Plato::SimplexThermomechanics, 1)
-#endif
+#include "ThermomechanicsElement.hpp"
 
-#ifdef PLATOANALYZE_2D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::InternalThermoelasticEnergy, Plato::SimplexThermomechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::InternalThermoelasticEnergy, Plato::SimplexThermomechanics, 3)
-#endif
+PLATO_ELLIPTIC_DEC(Plato::Elliptic::InternalThermoelasticEnergy, Plato::ThermomechanicsElement)
 
 #endif

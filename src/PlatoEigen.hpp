@@ -1,5 +1,7 @@
 #pragma once
 
+#include "PlatoMathTypes.hpp"
+
 namespace Plato {
 
 template <Plato::OrdinalType N, typename ScalarType>

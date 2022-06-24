@@ -1,6 +1,7 @@
 #ifndef APPLY_WEIGHTING_HPP
 #define APPLY_WEIGHTING_HPP
 
+#include "PlatoMathTypes.hpp"
 #include "PlatoStaticsTypes.hpp"
 
 namespace Plato

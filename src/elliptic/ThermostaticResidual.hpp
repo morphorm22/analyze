@@ -1,11 +1,12 @@
 #ifndef THERMOSTATIC_RESIDUAL_HPP
 #define THERMOSTATIC_RESIDUAL_HPP
 
+#include "FadTypes.hpp"
 #include "ApplyWeighting.hpp"
 #include "ScalarGrad.hpp"
 #include "ThermalFlux.hpp"
+#include "GradientMatrix.hpp"
 #include "GeneralFluxDivergence.hpp"
-#include "PlatoMathHelpers.hpp"
 #include "ToMap.hpp"
 #include "InterpolateFromNodal.hpp"
 
@@ -16,7 +17,7 @@
 #include "NaturalBCs.hpp"
 #include "BodyLoads.hpp"
 
-#include "ExpInstMacros.hpp"
+#include "elliptic/ExpInstMacros.hpp"
 
 namespace Plato
 {
@@ -224,16 +225,8 @@ class ThermostaticResidual :
 
 } // namespace Plato
 
-#ifdef PLATOANALYZE_1D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::ThermostaticResidual, Plato::SimplexThermal, 1)
-#endif
+#include "ThermalElement.hpp"
 
-#ifdef PLATOANALYZE_2D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::ThermostaticResidual, Plato::SimplexThermal, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::ThermostaticResidual, Plato::SimplexThermal, 3)
-#endif
+PLATO_ELLIPTIC_DEC(Plato::Elliptic::ThermostaticResidual, Plato::ThermalElement)
 
 #endif

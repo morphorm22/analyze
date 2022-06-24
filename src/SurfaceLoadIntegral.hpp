@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "FadTypes.hpp"
 #include "SpatialModel.hpp"
 #include "SurfaceArea.hpp"
 
@@ -135,7 +136,8 @@ void SurfaceLoadIntegral<ElementType, NumDofs, DofsPerNode, DofOffset>::operator
           for( Plato::OrdinalType tDof=0; tDof<NumDofs; tDof++)
           {
               auto tElementDofOrdinal = tLocalNodeOrds[tNode] * DofsPerNode + tDof + DofOffset;
-              Kokkos::atomic_add(&aResult(tElementOrdinal,tElementDofOrdinal), tBasisValues(tNode)*tFlux[tDof]*tSurfaceArea);
+              ResultScalarType tResult = tBasisValues(tNode)*tFlux[tDof]*tSurfaceArea;
+              Kokkos::atomic_add(&aResult(tElementOrdinal,tElementDofOrdinal), tResult);
           }
       }
     }, "surface load integral");

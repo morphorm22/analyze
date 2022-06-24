@@ -8,10 +8,12 @@
 #include "ThermalFlux.hpp"
 #include "ScalarProduct.hpp"
 #include "ApplyWeighting.hpp"
+#include "GradientMatrix.hpp"
 #include "ImplicitFunctors.hpp"
+#include "InterpolateFromNodal.hpp"
 #include "ThermalConductivityMaterial.hpp"
 
-#include "ExpInstMacros.hpp"
+#include "elliptic/ExpInstMacros.hpp"
 
 namespace Plato
 {
@@ -149,16 +151,8 @@ class InternalThermalEnergy :
 
 } // namespace Plato
 
-#ifdef PLATOANALYZE_1D
-//PLATO_EXPL_DEC(Plato::Elliptic::InternalThermalEnergy, Plato::SimplexThermal, 1)
-#endif
+#include "ThermalElement.hpp"
 
-#ifdef PLATOANALYZE_2D
-//PLATO_EXPL_DEC(Plato::Elliptic::InternalThermalEnergy, Plato::SimplexThermal, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-//PLATO_EXPL_DEC(Plato::Elliptic::InternalThermalEnergy, Plato::SimplexThermal, 3)
-#endif
+PLATO_ELLIPTIC_DEC(Plato::Elliptic::InternalThermalEnergy, Plato::ThermalElement)
 
 #endif

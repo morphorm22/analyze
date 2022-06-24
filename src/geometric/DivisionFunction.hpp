@@ -222,15 +222,6 @@ public:
 } // namespace Plato
 
 #include "Geometrical.hpp"
+#include "BaseExpInstMacros.hpp"
 
-#ifdef PLATOANALYZE_1D
-//TODO extern template class Plato::Geometric::DivisionFunction<::Plato::Geometrical<1>>;
-#endif
-
-#ifdef PLATOANALYZE_2D
-//TODO extern template class Plato::Geometric::DivisionFunction<::Plato::Geometrical<2>>;
-#endif
-
-#ifdef PLATOANALYZE_3D
-//TODO extern template class Plato::Geometric::DivisionFunction<::Plato::Geometrical<3>>;
-#endif
+PLATO_ELEMENT_DEC(Plato::Geometric::DivisionFunction, Plato::Geometrical)

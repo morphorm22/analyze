@@ -3,9 +3,12 @@
 
 #include "parabolic/AbstractVectorFunction.hpp"
 #include "parabolic/AbstractScalarFunction.hpp"
-//TODO #include "parabolic/HeatEquationResidual.hpp"
-//TODO #include "parabolic/InternalThermalEnergy.hpp"
-//TODO #include "parabolic/TemperatureAverage.hpp"
+
+#ifdef PLATO_PARABOLIC
+  #include "parabolic/HeatEquationResidual.hpp"
+  #include "parabolic/InternalThermalEnergy.hpp"
+  #include "parabolic/TemperatureAverage.hpp"
+#endif
 
 #include "elliptic/AbstractVectorFunction.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"

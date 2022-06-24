@@ -486,25 +486,7 @@ public:
 
 }// namespace Plato
 
-//TODO #include "Mechanics.hpp"
+#include "MechanicsElement.hpp"
+#include "elliptic/ExpInstMacros.hpp"
 
-#ifdef PLATOANALYZE_1D
-//TODO extern template class Plato::AugLagStressCriterionGeneral<Plato::ResidualTypes<Plato::SimplexMechanics<1>>>;
-//TODO extern template class Plato::AugLagStressCriterionGeneral<Plato::JacobianTypes<Plato::SimplexMechanics<1>>>;
-//TODO extern template class Plato::AugLagStressCriterionGeneral<Plato::GradientXTypes<Plato::SimplexMechanics<1>>>;
-//TODO extern template class Plato::AugLagStressCriterionGeneral<Plato::GradientZTypes<Plato::SimplexMechanics<1>>>;
-#endif
-
-#ifdef PLATOANALYZE_2D
-//TODO extern template class Plato::AugLagStressCriterionGeneral<Plato::ResidualTypes<Plato::SimplexMechanics<2>>>;
-//TODO extern template class Plato::AugLagStressCriterionGeneral<Plato::JacobianTypes<Plato::SimplexMechanics<2>>>;
-//TODO extern template class Plato::AugLagStressCriterionGeneral<Plato::GradientXTypes<Plato::SimplexMechanics<2>>>;
-//TODO extern template class Plato::AugLagStressCriterionGeneral<Plato::GradientZTypes<Plato::SimplexMechanics<2>>>;
-#endif
-
-#ifdef PLATOANALYZE_3D
-//TODO extern template class Plato::AugLagStressCriterionGeneral<Plato::ResidualTypes<Plato::SimplexMechanics<3>>>;
-//TODO extern template class Plato::AugLagStressCriterionGeneral<Plato::JacobianTypes<Plato::SimplexMechanics<3>>>;
-//TODO extern template class Plato::AugLagStressCriterionGeneral<Plato::GradientXTypes<Plato::SimplexMechanics<3>>>;
-//TODO extern template class Plato::AugLagStressCriterionGeneral<Plato::GradientZTypes<Plato::SimplexMechanics<3>>>;
-#endif
+PLATO_ELLIPTIC_DEC_3(Plato::AugLagStressCriterionGeneral, Plato::MechanicsElement)

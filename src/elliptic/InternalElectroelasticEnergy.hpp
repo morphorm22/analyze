@@ -11,7 +11,8 @@
 #include "EMKinetics.hpp"
 #include "ApplyWeighting.hpp"
 #include "ToMap.hpp"
-#include "ExpInstMacros.hpp"
+#include "GradientMatrix.hpp"
+#include "elliptic/ExpInstMacros.hpp"
 
 namespace Plato
 {
@@ -157,16 +158,8 @@ class InternalElectroelasticEnergy :
 
 } // namespace Plato
 
-#ifdef PLATOANALYZE_1D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::InternalElectroelasticEnergy, Plato::SimplexElectromechanics, 1)
-#endif
+#include "ElectromechanicsElement.hpp"
 
-#ifdef PLATOANALYZE_2D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::InternalElectroelasticEnergy, Plato::SimplexElectromechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::InternalElectroelasticEnergy, Plato::SimplexElectromechanics, 3)
-#endif
+PLATO_ELLIPTIC_DEC(Plato::Elliptic::InternalElectroelasticEnergy, Plato::ElectromechanicsElement)
 
 #endif

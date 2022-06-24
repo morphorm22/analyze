@@ -1,9 +1,10 @@
 #pragma once
 
-// TODO: doxygen
-
 namespace Plato {
 
+/******************************************************************************//**
+ * \brief Gradient matrix functor
+**********************************************************************************/
 template<typename ElementType>
 class ComputeGradientMatrix : public ElementType
 {

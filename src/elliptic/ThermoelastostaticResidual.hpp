@@ -7,6 +7,8 @@
 #include "FadTypes.hpp"
 #include "TMKinematics.hpp"
 #include "TMKinetics.hpp"
+#include "GradientMatrix.hpp"
+#include "ToMap.hpp"
 #include "GeneralStressDivergence.hpp"
 #include "GeneralFluxDivergence.hpp"
 #include "elliptic/AbstractVectorFunction.hpp"
@@ -16,6 +18,8 @@
 #include "NaturalBCs.hpp"
 #include "BodyLoads.hpp"
 #include "BLAS2.hpp"
+
+#include "elliptic/ExpInstMacros.hpp"
 
 namespace Plato
 {
@@ -278,4 +282,8 @@ public:
 } // namespace Elliptic
 
 } // namespace Plato
+
+#include "ThermomechanicsElement.hpp"
+
+PLATO_ELLIPTIC_DEC(Plato::Elliptic::ThermoelastostaticResidual, Plato::ThermomechanicsElement)
 #endif

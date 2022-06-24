@@ -44,8 +44,8 @@ public:
             Plato::OrdinalType tLocalOrdinal = tNodeIndex * NumDofsPerNode + DofOffset;
             for(Plato::OrdinalType tDimIndex = 0; tDimIndex < mNumSpatialDims; tDimIndex++)
             {
-                Kokkos::atomic_add(&aOutput(aCellOrdinal, tLocalOrdinal),
-                    aScale * aFlux(tDimIndex) * aGradient(tNodeIndex, tDimIndex) * aCellVolume);
+                ForcingScalarType tValue = aScale * aFlux(tDimIndex) * aGradient(tNodeIndex, tDimIndex) * aCellVolume;
+                Kokkos::atomic_add(&aOutput(aCellOrdinal, tLocalOrdinal), tValue);
             }
         }
     }

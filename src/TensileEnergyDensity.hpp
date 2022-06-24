@@ -1,5 +1,6 @@
 #pragma once
 
+#include "PlatoMathTypes.hpp"
 #include "PlatoStaticsTypes.hpp"
 
 namespace Plato

@@ -362,28 +362,13 @@ public:
 
 } // namespace Plato
 
-//TODO #include "Thermal.hpp"
-//TODO #include "Mechanics.hpp"
-//TODO #include "Electromechanics.hpp"
-//TODO #include "Thermomechanics.hpp"
+#include "Thermal.hpp"
+#include "Mechanics.hpp"
+#include "Thermomechanics.hpp"
+#include "Electromechanics.hpp"
+#include "BaseExpInstMacros.hpp"
 
-#ifdef PLATOANALYZE_1D
-//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermal<1>>;
-//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Mechanics<1>>;
-//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Electromechanics<1>>;
-//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermomechanics<1>>;
-#endif
-
-#ifdef PLATOANALYZE_2D
-//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermal<2>>;
-//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Mechanics<2>>;
-//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Electromechanics<2>>;
-//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermomechanics<2>>;
-#endif
-
-#ifdef PLATOANALYZE_3D
-//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermal<3>>;
-//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Mechanics<3>>;
-//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Electromechanics<3>>;
-//TODO extern template class Plato::Elliptic::LeastSquaresFunction<::Plato::Thermomechanics<3>>;
-#endif
+PLATO_ELEMENT_DEC(Plato::Elliptic::LeastSquaresFunction, Plato::Thermal)
+PLATO_ELEMENT_DEC(Plato::Elliptic::LeastSquaresFunction, Plato::Mechanics)
+PLATO_ELEMENT_DEC(Plato::Elliptic::LeastSquaresFunction, Plato::Thermomechanics)
+PLATO_ELEMENT_DEC(Plato::Elliptic::LeastSquaresFunction, Plato::Electromechanics)

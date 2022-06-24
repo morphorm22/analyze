@@ -13,15 +13,6 @@
 #include "elliptic/PhysicsScalarFunction.hpp"
 #include "elliptic/DivisionFunction.hpp"
 
-// TODO #include "Thermal.hpp"
-#include "Mechanics.hpp"
-// TODO #include "Electromechanics.hpp"
-// TODO #include "Thermomechanics.hpp"
-#ifdef PLATO_STABILIZED
-#include "StabilizedMechanics.hpp"
-#include "StabilizedThermomechanics.hpp"
-#endif
-
 #include <Teuchos_ParameterList.hpp>
 
 namespace Plato
@@ -302,25 +293,21 @@ public:
 
 } // namespace Plato
 
+#include "Thermal.hpp"
+#include "Mechanics.hpp"
+#include "Electromechanics.hpp"
+#include "Thermomechanics.hpp"
+#include "ExpInstMacros.hpp"
 
-#ifdef PLATOANALYZE_2D
-// TODO extern template class Plato::Elliptic::VolumeAverageCriterion<::Plato::Thermal<2>>;
-// TODO extern template class Plato::Elliptic::VolumeAverageCriterion<::Plato::Mechanics<2>>;
-// TODO extern template class Plato::Elliptic::VolumeAverageCriterion<::Plato::Electromechanics<2>>;
-// TODO extern template class Plato::Elliptic::VolumeAverageCriterion<::Plato::Thermomechanics<2>>;
-#ifdef PLATO_STABILIZED
-// TODO extern template class Plato::Elliptic::VolumeAverageCriterion<::Plato::StabilizedMechanics<2>>;
-// TODO extern template class Plato::Elliptic::VolumeAverageCriterion<::Plato::StabilizedThermomechanics<2>>;
-#endif
-#endif
+PLATO_ELEMENT_DEC(Plato::Elliptic::VolumeAverageCriterion, Plato::Thermal)
+PLATO_ELEMENT_DEC(Plato::Elliptic::VolumeAverageCriterion, Plato::Mechanics)
+PLATO_ELEMENT_DEC(Plato::Elliptic::VolumeAverageCriterion, Plato::Thermomechanics)
+PLATO_ELEMENT_DEC(Plato::Elliptic::VolumeAverageCriterion, Plato::Electromechanics)
 
-#ifdef PLATOANALYZE_3D
-// TODO extern template class Plato::Elliptic::VolumeAverageCriterion<::Plato::Thermal<3>>;
-// TODO extern template class Plato::Elliptic::VolumeAverageCriterion<::Plato::Mechanics<3>>;
-// TODO extern template class Plato::Elliptic::VolumeAverageCriterion<::Plato::Electromechanics<3>>;
-// TODO extern template class Plato::Elliptic::VolumeAverageCriterion<::Plato::Thermomechanics<3>>;
 #ifdef PLATO_STABILIZED
-// TODO extern template class Plato::Elliptic::VolumeAverageCriterion<::Plato::StabilizedMechanics<3>>;
-// TODO extern template class Plato::Elliptic::VolumeAverageCriterion<::Plato::StabilizedThermomechanics<3>>;
-#endif
+#include "StabilizedMechanics.hpp"
+#include "StabilizedThermomechanics.hpp"
+
+PLATO_ELEMENT_DEC(Plato::Elliptic::VolumeAverageCriterion, Plato::StabilizedMechanics)
+PLATO_ELEMENT_DEC(Plato::Elliptic::VolumeAverageCriterion, Plato::StabilizedThermomechanics)
 #endif

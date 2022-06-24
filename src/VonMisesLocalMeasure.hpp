@@ -3,10 +3,11 @@
 #include "AbstractLocalMeasure.hpp"
 #include "LinearStress.hpp"
 #include "SmallStrain.hpp"
+#include "GradientMatrix.hpp"
 #include "ImplicitFunctors.hpp"
 #include <Teuchos_ParameterList.hpp>
 #include "ElasticModelFactory.hpp"
-#include "ExpInstMacros.hpp"
+#include "BaseExpInstMacros.hpp"
 #include "VonMisesYieldFunction.hpp"
 
 namespace Plato
@@ -133,14 +134,7 @@ public:
 }
 //namespace Plato
 
-#ifdef PLATOANALYZE_1D
-// TODO PLATO_EXPL_DEC2(Plato::VonMisesLocalMeasure, Plato::SimplexMechanics, 1)
-#endif
+#include "MechanicsElement.hpp"
+#include "elliptic/ExpInstMacros.hpp"
 
-#ifdef PLATOANALYZE_2D
-// TODO PLATO_EXPL_DEC2(Plato::VonMisesLocalMeasure, Plato::SimplexMechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-// TODO PLATO_EXPL_DEC2(Plato::VonMisesLocalMeasure, Plato::SimplexMechanics, 3)
-#endif
+PLATO_ELLIPTIC_DEC_3(Plato::VonMisesLocalMeasure, Plato::MechanicsElement)

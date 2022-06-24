@@ -7,6 +7,7 @@
 #include "ImplicitFunctors.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "AnalyzeMacros.hpp"
+#include "elliptic/ExpInstMacros.hpp"
 
 #include <Teuchos_ParameterList.hpp>
 
@@ -344,23 +345,6 @@ class MassMoment :
 
 } // namespace Plato
 
-#ifdef PLATOANALYZE_1D
-//TODO extern template class Plato::Elliptic::MassMoment<Plato::ResidualTypes<Plato::SimplexMechanics<1>>>;
-//TODO extern template class Plato::Elliptic::MassMoment<Plato::JacobianTypes<Plato::SimplexMechanics<1>>>;
-//TODO extern template class Plato::Elliptic::MassMoment<Plato::GradientXTypes<Plato::SimplexMechanics<1>>>;
-//TODO extern template class Plato::Elliptic::MassMoment<Plato::GradientZTypes<Plato::SimplexMechanics<1>>>;
-#endif
+#include "MechanicsElement.hpp"
 
-#ifdef PLATOANALYZE_2D
-//TODO extern template class Plato::Elliptic::MassMoment<Plato::ResidualTypes<Plato::SimplexMechanics<2>>>;
-//TODO extern template class Plato::Elliptic::MassMoment<Plato::JacobianTypes<Plato::SimplexMechanics<2>>>;
-//TODO extern template class Plato::Elliptic::MassMoment<Plato::GradientXTypes<Plato::SimplexMechanics<2>>>;
-//TODO extern template class Plato::Elliptic::MassMoment<Plato::GradientZTypes<Plato::SimplexMechanics<2>>>;
-#endif
-
-#ifdef PLATOANALYZE_3D
-//TODO extern template class Plato::Elliptic::MassMoment<Plato::ResidualTypes<Plato::SimplexMechanics<3>>>;
-//TODO extern template class Plato::Elliptic::MassMoment<Plato::JacobianTypes<Plato::SimplexMechanics<3>>>;
-//TODO extern template class Plato::Elliptic::MassMoment<Plato::GradientXTypes<Plato::SimplexMechanics<3>>>;
-//TODO extern template class Plato::Elliptic::MassMoment<Plato::GradientZTypes<Plato::SimplexMechanics<3>>>;
-#endif
+PLATO_ELLIPTIC_DEC_3(Plato::Elliptic::MassMoment, Plato::MechanicsElement)

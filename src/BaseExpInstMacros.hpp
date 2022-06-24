@@ -1,5 +1,22 @@
-#ifndef EXP_INST_MACROS_HPP
-#define EXP_INST_MACROS_HPP
+#pragma once
+
+#define PLATO_ELEMENT_DEF(C, T) \
+template class C<T<Plato::Tet4>>; \
+template class C<T<Plato::Tri3>>; \
+template class C<T<Plato::Tet10>>; \
+template class C<T<Plato::Hex8>>; \
+template class C<T<Plato::Quad4>>; \
+template class C<T<Plato::Hex27>>;
+
+#define PLATO_ELEMENT_DEC(C, T) \
+extern template class C<T<Plato::Tet4>>; \
+extern template class C<T<Plato::Tri3>>; \
+extern template class C<T<Plato::Tet10>>; \
+extern template class C<T<Plato::Hex8>>; \
+extern template class C<T<Plato::Quad4>>; \
+extern template class C<T<Plato::Hex27>>;
+
+// TODO delete below once element abstraction is done
 
 #define PLATO_EXPL_DEF_INC(C, T, D) \
 template class C<Plato::ResidualTypes<T<D>>, Plato::MSIMP >; \
@@ -156,5 +173,3 @@ template class C<P<D,M>,Plato::Fluids::GradPreviousMassTypes<S<D,M>>>; \
 template class C<P<D,M>,Plato::Fluids::GradPreviousEnergyTypes<S<D,M>>>; \
 template class C<P<D,M>,Plato::Fluids::GradPreviousMomentumTypes<S<D,M>>>; \
 template class C<P<D,M>,Plato::Fluids::GradMomentumPredictorTypes<S<D,M>>>;
-
-#endif

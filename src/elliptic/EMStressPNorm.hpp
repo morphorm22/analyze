@@ -10,7 +10,9 @@
 #include "EMKinematics.hpp"
 #include "EMKinetics.hpp"
 #include "TensorPNorm.hpp"
-#include "ExpInstMacros.hpp"
+#include "elliptic/ExpInstMacros.hpp"
+#include "PlatoMeshExpr.hpp"
+#include "GradientMatrix.hpp"
 
 namespace Plato
 {
@@ -196,16 +198,8 @@ class EMStressPNorm :
 
 } // namespace Plato
 
-#ifdef PLATOANALYZE_1D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::EMStressPNorm, Plato::SimplexElectromechanics, 1)
-#endif
+#include "ElectromechanicsElement.hpp"
 
-#ifdef PLATOANALYZE_2D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::EMStressPNorm, Plato::SimplexElectromechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::EMStressPNorm, Plato::SimplexElectromechanics, 3)
-#endif
+PLATO_ELLIPTIC_DEC(Plato::Elliptic::EMStressPNorm, Plato::ElectromechanicsElement)
 
 #endif

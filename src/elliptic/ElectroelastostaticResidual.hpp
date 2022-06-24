@@ -8,6 +8,7 @@
 #include "EMKinematics.hpp"
 #include "EMKinetics.hpp"
 #include "GeneralStressDivergence.hpp"
+#include "ToMap.hpp"
 #include "GradientMatrix.hpp"
 #include "GeneralFluxDivergence.hpp"
 
@@ -19,6 +20,8 @@
 #include "NaturalBCs.hpp"
 #include "BodyLoads.hpp"
 #include "BLAS2.hpp"
+
+#include "elliptic/ExpInstMacros.hpp"
 
 namespace Plato
 {
@@ -279,4 +282,9 @@ public:
 } // namespace Elliptic
 
 } // namespace Plato
+
+#include "ElectromechanicsElement.hpp"
+
+PLATO_ELLIPTIC_DEC(Plato::Elliptic::ElectroelastostaticResidual, Plato::ElectromechanicsElement)
+
 #endif

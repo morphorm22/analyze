@@ -9,6 +9,7 @@
 #include "LinearStress.hpp"
 #include "GeneralStressDivergence.hpp"
 #include "elliptic/AbstractVectorFunction.hpp"
+#include "elliptic/EvaluationTypes.hpp"
 #include "ApplyWeighting.hpp"
 #include "CellForcing.hpp"
 #include "ToMap.hpp"
@@ -18,10 +19,8 @@
 #include "BodyLoads.hpp"
 #include "NaturalBCs.hpp"
 
-#include "ExpInstMacros.hpp"
+#include "elliptic/ExpInstMacros.hpp"
 
-// includes below here are verified to be necessary
-#include "MechanicsElement.hpp"
 #include "GradientMatrix.hpp"
 
 namespace Plato
@@ -43,6 +42,8 @@ class ElastostaticResidual :
 {
 private:
     using ElementType = typename EvaluationType::ElementType;
+
+//    using ThisThing = typename EvaluationType::Dafuq;
 
     using ElementType::mNumVoigtTerms;
     using ElementType::mNumNodesPerCell;
@@ -299,16 +300,8 @@ public:
 
 } // namespace Plato
 
-#ifdef PLATOANALYZE_1D
-//PLATO_EXPL_DEC(Plato::Elliptic::ElastostaticResidual, Plato::SimplexMechanics, 1)
-#endif
+#include "MechanicsElement.hpp"
 
-#ifdef PLATOANALYZE_2D
-//PLATO_EXPL_DEC(Plato::Elliptic::ElastostaticResidual, Plato::SimplexMechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-//PLATO_EXPL_DEC(Plato::Elliptic::ElastostaticResidual, Plato::MechanicsElement<Plato::Tet10>, 3)
-#endif
+PLATO_ELLIPTIC_DEC(Plato::Elliptic::ElastostaticResidual, Plato::MechanicsElement)
 
 #endif

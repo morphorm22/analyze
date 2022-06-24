@@ -11,7 +11,7 @@
 #include "Plato_TopOptFunctors.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
-#include "ExpInstMacros.hpp"
+#include "elliptic/ExpInstMacros.hpp"
 #include "AbstractLocalMeasure.hpp"
 
 namespace Plato
@@ -361,20 +361,9 @@ public:
 
 }
 //namespace Plato
-//TODO #include "SimplexMechanics.hpp"
-//TODO #include "SimplexThermomechanics.hpp"
 
-#ifdef PLATOANALYZE_1D
-//TODO PLATO_EXPL_DEC2(Plato::AugLagStressCriterionQuadratic, Plato::SimplexMechanics, 1)
-//TODO PLATO_EXPL_DEC2(Plato::AugLagStressCriterionQuadratic, Plato::SimplexThermomechanics, 1)
-#endif
+#include "MechanicsElement.hpp"
+#include "ThermomechanicsElement.hpp"
 
-#ifdef PLATOANALYZE_2D
-//TODO PLATO_EXPL_DEC2(Plato::AugLagStressCriterionQuadratic, Plato::SimplexMechanics, 2)
-//TODO PLATO_EXPL_DEC2(Plato::AugLagStressCriterionQuadratic, Plato::SimplexThermomechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-//TODO PLATO_EXPL_DEC2(Plato::AugLagStressCriterionQuadratic, Plato::SimplexMechanics, 3)
-//TODO PLATO_EXPL_DEC2(Plato::AugLagStressCriterionQuadratic, Plato::SimplexThermomechanics, 3)
-#endif
+PLATO_ELLIPTIC_DEC_3(Plato::AugLagStressCriterionQuadratic, Plato::MechanicsElement)
+PLATO_ELLIPTIC_DEC_3(Plato::AugLagStressCriterionQuadratic, Plato::ThermomechanicsElement)

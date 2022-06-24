@@ -1,5 +1,6 @@
 #pragma once
 
+#include <set>
 #include <memory>
 #include <cassert>
 #include <vector>
@@ -892,16 +893,7 @@ public:
 
 } // namespace Plato
 
-//TODO #include "Geometrical.hpp"
+#include "geometric/ExpInstMacros.hpp"
+#include "Geometrical.hpp"
 
-#ifdef PLATOANALYZE_1D
-//TODO extern template class Plato::Geometric::MassPropertiesFunction<::Plato::Geometrical<1>>;
-#endif
-
-#ifdef PLATOANALYZE_2D
-//TODO extern template class Plato::Geometric::MassPropertiesFunction<::Plato::Geometrical<2>>;
-#endif
-
-#ifdef PLATOANALYZE_3D
-//TODO extern template class Plato::Geometric::MassPropertiesFunction<::Plato::Geometrical<3>>;
-#endif
+PLATO_GEOMETRIC_DEC_2(Plato::Geometric::MassPropertiesFunction, Plato::Geometrical)

@@ -50,45 +50,21 @@ public:
 
 } // namespace Plato
 
-// TODO #include "Thermal.hpp"
+#include "Thermal.hpp"
 #include "Mechanics.hpp"
-// TODO #include "Electromechanics.hpp"
-// TODO #include "Thermomechanics.hpp"
+#include "Thermomechanics.hpp"
+#include "Electromechanics.hpp"
+#include "BaseExpInstMacros.hpp"
+
+PLATO_ELEMENT_DEC(Plato::Elliptic::ScalarFunctionBaseFactory, Plato::Thermal)
+PLATO_ELEMENT_DEC(Plato::Elliptic::ScalarFunctionBaseFactory, Plato::Mechanics)
+PLATO_ELEMENT_DEC(Plato::Elliptic::ScalarFunctionBaseFactory, Plato::Thermomechanics)
+PLATO_ELEMENT_DEC(Plato::Elliptic::ScalarFunctionBaseFactory, Plato::Electromechanics)
 
 #ifdef PLATO_STABILIZED
-// TODO #include "StabilizedMechanics.hpp"
-// TODO #include "StabilizedThermomechanics.hpp"
-#endif
+#include "StabilizedMechanics.hpp"
+#include "StabilizedThermomechanics.hpp"
 
-#ifdef PLATOANALYZE_1D
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Thermal<1>>;
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Mechanics<1>>;
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Electromechanics<1>>;
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Thermomechanics<1>>;
-#ifdef PLATO_STABILIZED
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::StabilizedMechanics<1>>;
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::StabilizedThermomechanics<1>>;
-#endif
-#endif
-
-#ifdef PLATOANALYZE_2D
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Thermal<2>>;
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Mechanics<2>>;
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Electromechanics<2>>;
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Thermomechanics<2>>;
-#ifdef PLATO_STABILIZED
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::StabilizedMechanics<2>>;
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::StabilizedThermomechanics<2>>;
-#endif
-#endif
-
-#ifdef PLATOANALYZE_3D
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Thermal<3>>;
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Mechanics<3>>;
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Electromechanics<3>>;
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Thermomechanics<3>>;
-#ifdef PLATO_STABILIZED
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::StabilizedMechanics<3>>;
-// TODO extern template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::StabilizedThermomechanics<3>>;
-#endif
+PLATO_ELEMENT_DEC(Plato::Elliptic::ScalarFunctionBaseFactory, Plato::StabilizedMechanics)
+PLATO_ELEMENT_DEC(Plato::Elliptic::ScalarFunctionBaseFactory, Plato::StabilizedThermomechanics)
 #endif

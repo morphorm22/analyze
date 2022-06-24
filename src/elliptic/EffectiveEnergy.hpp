@@ -9,8 +9,9 @@
 #include "ImplicitFunctors.hpp"
 #include "HomogenizedStress.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
-#include "ExpInstMacros.hpp"
+#include "elliptic/ExpInstMacros.hpp"
 #include "ToMap.hpp"
+#include "GradientMatrix.hpp"
 
 namespace Plato
 {
@@ -187,16 +188,8 @@ class EffectiveEnergy :
 
 } // namespace Plato
 
-#ifdef PLATOANALYZE_1D
-// TODO PLATO_EXPL_DEC(Plato::Elliptic::EffectiveEnergy, Plato::SimplexMechanics, 1)
-#endif
+#include "MechanicsElement.hpp"
 
-#ifdef PLATOANALYZE_2D
-// TODO PLATO_EXPL_DEC(Plato::Elliptic::EffectiveEnergy, Plato::SimplexMechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-// TODO PLATO_EXPL_DEC(Plato::Elliptic::EffectiveEnergy, Plato::SimplexMechanics, 3)
-#endif
+PLATO_ELLIPTIC_DEC(Plato::Elliptic::EffectiveEnergy, Plato::MechanicsElement)
 
 #endif

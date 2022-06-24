@@ -6,11 +6,12 @@
 #include "ApplyWeighting.hpp"
 #include "SmallStrain.hpp"
 #include "LinearStress.hpp"
+#include "GradientMatrix.hpp"
 #include "GeneralStressDivergence.hpp"
 #include "ElasticModelFactory.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
 #include "ImplicitFunctors.hpp"
-#include "ExpInstMacros.hpp"
+#include "elliptic/ExpInstMacros.hpp"
 #include "ToMap.hpp"
 #include "UtilsTeuchos.hpp"
 
@@ -144,16 +145,8 @@ class InternalElasticEnergy :
 
 } // namespace Plato
 
-#ifdef PLATOANALYZE_1D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::InternalElasticEnergy, Plato::SimplexMechanics, 1)
-#endif
+#include "MechanicsElement.hpp"
 
-#ifdef PLATOANALYZE_2D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::InternalElasticEnergy, Plato::SimplexMechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::InternalElasticEnergy, Plato::SimplexMechanics, 3)
-#endif
+PLATO_ELLIPTIC_DEC(Plato::Elliptic::InternalElasticEnergy, Plato::MechanicsElement)
 
 #endif

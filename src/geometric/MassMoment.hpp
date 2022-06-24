@@ -331,20 +331,7 @@ class MassMoment :
 
 } // namespace Plato
 
-#ifdef PLATOANALYZE_1D
-//TODO extern template class Plato::Geometric::MassMoment<Plato::Geometric::ResidualTypes <Plato::Simplex<1>>>;
-//TODO extern template class Plato::Geometric::MassMoment<Plato::Geometric::GradientXTypes<Plato::Simplex<1>>>;
-//TODO extern template class Plato::Geometric::MassMoment<Plato::Geometric::GradientZTypes<Plato::Simplex<1>>>;
-#endif
+#include "geometric/ExpInstMacros.hpp"
+#include "GeometricalElement.hpp"
 
-#ifdef PLATOANALYZE_2D
-//TODO extern template class Plato::Geometric::MassMoment<Plato::Geometric::ResidualTypes <Plato::Simplex<2>>>;
-//TODO extern template class Plato::Geometric::MassMoment<Plato::Geometric::GradientXTypes<Plato::Simplex<2>>>;
-//TODO extern template class Plato::Geometric::MassMoment<Plato::Geometric::GradientZTypes<Plato::Simplex<2>>>;
-#endif
-
-#ifdef PLATOANALYZE_3D
-//TODO extern template class Plato::Geometric::MassMoment<Plato::Geometric::ResidualTypes <Plato::Simplex<3>>>;
-//TODO extern template class Plato::Geometric::MassMoment<Plato::Geometric::GradientXTypes<Plato::Simplex<3>>>;
-//TODO extern template class Plato::Geometric::MassMoment<Plato::Geometric::GradientZTypes<Plato::Simplex<3>>>;
-#endif
+PLATO_GEOMETRIC_DEC_3(Plato::Geometric::MassMoment, Plato::GeometricalElement)

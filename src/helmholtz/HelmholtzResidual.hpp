@@ -14,6 +14,7 @@
 
 #include "helmholtz/AddMassTerm.hpp"
 #include "helmholtz/HelmholtzFlux.hpp"
+#include "helmholtz/EvaluationTypes.hpp"
 #include "helmholtz/HelmholtzElement.hpp"
 #include "helmholtz/AbstractVectorFunction.hpp"
 
@@ -236,15 +237,6 @@ class HelmholtzResidual :
 
 } // namespace Plato
 
-#ifdef PLATOANALYZE_1D
-//TODO extern template class Plato::Helmholtz::HelmholtzResidual<Plato::ResidualTypes<Plato::SimplexHelmholtz<1>>>;
-//TODO extern template class Plato::Helmholtz::HelmholtzResidual<Plato::JacobianTypes<Plato::SimplexHelmholtz<1>>>;
-#endif
-#ifdef PLATOANALYZE_2D
-//TODO extern template class Plato::Helmholtz::HelmholtzResidual<Plato::ResidualTypes<Plato::SimplexHelmholtz<2>>>;
-//TODO extern template class Plato::Helmholtz::HelmholtzResidual<Plato::JacobianTypes<Plato::SimplexHelmholtz<2>>>;
-#endif
-#ifdef PLATOANALYZE_3D
-//TODO extern template class Plato::Helmholtz::HelmholtzResidual<Plato::ResidualTypes<Plato::SimplexHelmholtz<3>>>;
-//TODO extern template class Plato::Helmholtz::HelmholtzResidual<Plato::JacobianTypes<Plato::SimplexHelmholtz<3>>>;
-#endif
+#include "helmholtz/ExpInstMacros.hpp"
+
+PLATO_HELMHOLTZ_DEF_3(Plato::Helmholtz::HelmholtzResidual, Plato::HelmholtzElement)

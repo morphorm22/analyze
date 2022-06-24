@@ -7,9 +7,6 @@ configure_file(
 set(ANALYZE_SOURCES
     ParseTools.cpp
     CustomMaterial.cpp
-    AbstractLinearStress.cpp
-    LinearStress.cpp
-    LinearStressFactory.cpp
 ##    ElasticModelFactory.cpp
     LinearElasticMaterial.cpp
     CubicLinearElasticMaterial.cpp
@@ -32,17 +29,15 @@ if(EXPRESSION)
 endif()
 
 ## Augmented Lagrangian sources
-# TODO
-#set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-#    TensileEnergyDensityLocalMeasure.cpp
-#    TensileEnergyDensity.cpp
-#    Plato_AugLagStressCriterionQuadratic.cpp
-#    Plato_AugLagStressCriterionGeneral.cpp
-#    Plato_AugLagStressCriterion.cpp
-#    Plato_StructuralMass.cpp
-#    VonMisesLocalMeasure.cpp
-#    ThermalVonMisesLocalMeasure.cpp
-#)
+set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+    TensileEnergyDensityLocalMeasure.cpp
+    TensileEnergyDensity.cpp
+    Plato_AugLagStressCriterionQuadratic.cpp
+    Plato_AugLagStressCriterionGeneral.cpp
+    Plato_AugLagStressCriterion.cpp
+    VonMisesLocalMeasure.cpp
+    ThermalVonMisesLocalMeasure.cpp
+)
 
 ## core sources
 set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
@@ -119,8 +114,8 @@ if(PLATOANALYZE_ENABLE_MESHMAP)
     geometric/DivisionFunction.cpp
     geometric/GeometryScalarFunction.cpp
     geometric/LeastSquaresFunction.cpp
-#TODO    geometric/MassMoment.cpp
-#TODO    geometric/MassPropertiesFunction.cpp
+    geometric/MassMoment.cpp
+    geometric/MassPropertiesFunction.cpp
     geometric/ScalarFunctionBaseFactory.cpp
     geometric/WeightedSumFunction.cpp
   )
@@ -130,28 +125,30 @@ endif()
 if(ELLIPTIC)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     elliptic/Problem.cpp
-#TODO    elliptic/SolutionFunction.cpp
-#TODO    elliptic/DivisionFunction.cpp
-#TODO    elliptic/LeastSquaresFunction.cpp
-#TODO    elliptic/WeightedSumFunction.cpp
-#TODO    elliptic/ScalarFunctionBaseFactory.cpp
+    elliptic/SolutionFunction.cpp
+    elliptic/DivisionFunction.cpp
+    elliptic/LeastSquaresFunction.cpp
+    elliptic/WeightedSumFunction.cpp
+    elliptic/ScalarFunctionBaseFactory.cpp
     elliptic/PhysicsScalarFunction.cpp
-#TODO    elliptic/MassMoment.cpp
-#TODO    elliptic/MassPropertiesFunction.cpp
-#TODO    elliptic/FluxPNorm.cpp
-#TODO    elliptic/StressPNorm.cpp
-#TODO    elliptic/TMStressPNorm.cpp
-#TODO    elliptic/VolAvgStressPNormDenominator.cpp
-#TODO    elliptic/EMStressPNorm.cpp
-#TODO    elliptic/EffectiveEnergy.cpp
-#TODO    elliptic/InternalThermalEnergy.cpp
-#TODO    elliptic/InternalThermoelasticEnergy.cpp
-#TODO    elliptic/InternalElectroelasticEnergy.cpp
-#TODO    elliptic/InternalElasticEnergy.cpp
+    elliptic/MassMoment.cpp
+    elliptic/MassPropertiesFunction.cpp
+    elliptic/VolAvgStressPNormDenominator.cpp
+    elliptic/FluxPNorm.cpp
+    elliptic/StressPNorm.cpp
+    elliptic/TMStressPNorm.cpp
+    elliptic/EMStressPNorm.cpp
+    elliptic/EffectiveEnergy.cpp
+    elliptic/InternalThermalEnergy.cpp
+    elliptic/InternalThermoelasticEnergy.cpp
+    elliptic/InternalElectroelasticEnergy.cpp
+    elliptic/InternalElasticEnergy.cpp
     elliptic/ElastostaticResidual.cpp
-#TODO    elliptic/ThermostaticResidual.cpp
-#TODO    elliptic/VolumeAverageCriterion.cpp
-#TODO    IntermediateDensityPenalty.cpp
+    elliptic/ThermostaticResidual.cpp
+    elliptic/ElectroelastostaticResidual.cpp
+    elliptic/ThermoelastostaticResidual.cpp
+    elliptic/VolumeAverageCriterion.cpp
+    IntermediateDensityPenalty.cpp
 #TODO    elliptic/updated_lagrangian/Problem.cpp
 #TODO    elliptic/updated_lagrangian/ElastostaticResidual.cpp
 #TODO    elliptic/updated_lagrangian/ScalarFunctionBaseFactory.cpp
@@ -159,7 +156,6 @@ if(ELLIPTIC)
 #TODO    elliptic/updated_lagrangian/InternalElasticEnergy.cpp
 #TODO    elliptic/updated_lagrangian/AbstractEllipticUpLagLinearStress.cpp
 #TODO    elliptic/updated_lagrangian/EllipticUpLagLinearStress.cpp
-#TODO    elliptic/updated_lagrangian/EllipticUpLagLinearStressFactory.cpp
   )
 
   if(EXPRESSION)
@@ -211,7 +207,6 @@ if(HYPERBOLIC)
     hyperbolic/CriterionSurfaceThermalFlux.cpp
     hyperbolic/FluidsWeightedScalarFunction.cpp
     hyperbolic/HyperbolicLinearStress.cpp
-    hyperbolic/HyperbolicLinearStressFactory.cpp
     hyperbolic/HyperbolicScalarFunctionFactory.cpp
     hyperbolic/HyperbolicPhysicsScalarFunction.cpp
     hyperbolic/CriterionMeanSurfacePressure.cpp

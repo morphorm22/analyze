@@ -1,7 +1,6 @@
 #ifndef PLATO_ABSTRACT_LINEAR_STRESS_HPP
 #define PLATO_ABSTRACT_LINEAR_STRESS_HPP
 
-#include "ExpInstMacros.hpp"
 #include "LinearElasticMaterial.hpp"
 #include "FadTypes.hpp"
 
@@ -74,16 +73,3 @@ public:
 
 }// namespace Plato
 #endif
-
-#ifdef PLATOANALYZE_1D
-//TODO PLATO_EXPL_DEC2(Plato::AbstractLinearStress  , Plato::SimplexMechanics, 1)
-#endif
-
-#ifdef PLATOANALYZE_2D
-//TODO PLATO_EXPL_DEC2(Plato::AbstractLinearStress  , Plato::SimplexMechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-//TODO PLATO_EXPL_DEC2(Plato::AbstractLinearStress  , Plato::SimplexMechanics, 3)
-#endif
-

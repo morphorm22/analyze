@@ -8,8 +8,9 @@
 #include "TensorPNorm.hpp"
 #include "ElasticModelFactory.hpp"
 #include "ImplicitFunctors.hpp"
+#include "GradientMatrix.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
-#include "ExpInstMacros.hpp"
+#include "elliptic/ExpInstMacros.hpp"
 #include "InterpolateFromNodal.hpp"
 #include "ThermoelasticMaterial.hpp"
 
@@ -205,16 +206,8 @@ class TMStressPNorm :
 
 } // namespace Plato
 
-#ifdef PLATOANALYZE_1D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::TMStressPNorm, Plato::SimplexThermomechanics, 1)
-#endif
+#include "ThermomechanicsElement.hpp"
 
-#ifdef PLATOANALYZE_2D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::TMStressPNorm, Plato::SimplexThermomechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-//TODO PLATO_EXPL_DEC(Plato::Elliptic::TMStressPNorm, Plato::SimplexThermomechanics, 3)
-#endif
+PLATO_ELLIPTIC_DEC(Plato::Elliptic::TMStressPNorm, Plato::ThermomechanicsElement)
 
 #endif
