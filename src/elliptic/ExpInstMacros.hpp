@@ -20,6 +20,19 @@
 
 #include "elliptic/EvaluationTypes.hpp"
 
+#define SKIP_ELLIPTIC_EXP_INST
+
+#ifdef SKIP_ELLIPTIC_EXP_INST
+#define PLATO_ELLIPTIC_DEF_(C, T)
+#define PLATO_ELLIPTIC_DEC_(C, T)
+#define PLATO_ELLIPTIC_DEF(C, T)
+#define PLATO_ELLIPTIC_DEC(C, T)
+#define PLATO_ELLIPTIC_DEF_3_(C, T)
+#define PLATO_ELLIPTIC_DEC_3_(C, T)
+#define PLATO_ELLIPTIC_DEF_3(C, T)
+#define PLATO_ELLIPTIC_DEC_3(C, T)
+#else
+
 #define PLATO_ELLIPTIC_DEF_(C, T) \
 template class C<Plato::Elliptic::ResidualTypes<T>, Plato::MSIMP >; \
 template class C<Plato::Elliptic::ResidualTypes<T>, Plato::RAMP >; \
@@ -100,3 +113,4 @@ PLATO_ELLIPTIC_DEC_3_(C, T<Plato::Hex8>); \
 PLATO_ELLIPTIC_DEC_3_(C, T<Plato::Quad4>); \
 PLATO_ELLIPTIC_DEC_3_(C, T<Plato::Hex27>);
 
+#endif

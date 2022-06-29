@@ -15,14 +15,17 @@
 #include "AnalyzeMacros.hpp"
 #include "Mechanics.hpp"
 #include "Thermal.hpp"
-#include "Hex8.hpp"
-#include "Hex27.hpp"
-#include "Quad4.hpp"
 #include "Tet10.hpp"
 #include "Tet4.hpp"
 #include "Electromechanics.hpp"
 #include "Thermomechanics.hpp"
 #include "alg/ParallelComm.hpp"
+
+#ifdef PLATO_HEX_ELEMENTS
+#include "Hex8.hpp"
+#include "Hex27.hpp"
+#include "Quad4.hpp"
+#endif
 
 #ifdef PLATO_PLASTICITY
 #include "PlasticityProblem.hpp"
@@ -99,19 +102,34 @@ makeProblem(
     {
         return std::make_shared<ProblemT<PhysicsT<Plato::Tet4>>>(aMesh, aPlatoProb, aMachine);
     }
+    else
     if( Plato::tolower(tElementType) == "hex8" ||
         Plato::tolower(tElementType) == "hexa8" )
     {
+#ifdef PLATO_HEX_ELEMENTS
         return std::make_shared<ProblemT<PhysicsT<Plato::Hex8>>>(aMesh, aPlatoProb, aMachine);
+#else
+        ANALYZE_THROWERR("Not compiled with hex8 elements");
+#endif
     }
+    else
     if( Plato::tolower(tElementType) == "hex27" ||
         Plato::tolower(tElementType) == "hexa27" )
     {
+#ifdef PLATO_HEX_ELEMENTS
         return std::make_shared<ProblemT<PhysicsT<Plato::Hex27>>>(aMesh, aPlatoProb, aMachine);
+#else
+        ANALYZE_THROWERR("Not compiled with hex27 elements");
+#endif
     }
+    else
     if( Plato::tolower(tElementType) == "quad4" )
     {
+#ifdef PLATO_HEX_ELEMENTS
         return std::make_shared<ProblemT<PhysicsT<Plato::Quad4>>>(aMesh, aPlatoProb, aMachine);
+#else
+        ANALYZE_THROWERR("Not compiled with quad4 elements");
+#endif
     }
     else
     {

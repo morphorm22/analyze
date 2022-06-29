@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Hex8.hpp"
 #include "Quad4.hpp"
 #include "PlatoMathTypes.hpp"
 

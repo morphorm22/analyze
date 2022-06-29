@@ -20,6 +20,22 @@
 
 #include "geometric/EvaluationTypes.hpp"
 
+#define SKIP_GEOMETRIC_EXP_INST
+
+#ifdef SKIP_GEOMETRIC_EXP_INST
+#define PLATO_GEOMETRIC_DEF_(C, T)
+#define PLATO_GEOMETRIC_DEC_(C, T)
+#define PLATO_GEOMETRIC_DEF(C, T)
+#define PLATO_GEOMETRIC_DEC(C, T)
+#define PLATO_GEOMETRIC_DEF_2(C, T)
+#define PLATO_GEOMETRIC_DEC_2(C, T)
+#define PLATO_GEOMETRIC_DEF_3_(C, T)
+#define PLATO_GEOMETRIC_DEC_3_(C, T)
+#define PLATO_GEOMETRIC_DEF_3(C, T)
+#define PLATO_GEOMETRIC_DEC_3(C, T)
+#else
+
+
 #define PLATO_GEOMETRIC_DEF_(C, T) \
 template class C<Plato::Geometric::ResidualTypes<T>, Plato::MSIMP >; \
 template class C<Plato::Geometric::ResidualTypes<T>, Plato::RAMP >; \
@@ -106,3 +122,4 @@ PLATO_GEOMETRIC_DEC_3_(C, T<Plato::Hex8>); \
 PLATO_GEOMETRIC_DEC_3_(C, T<Plato::Quad4>); \
 PLATO_GEOMETRIC_DEC_3_(C, T<Plato::Hex27>);
 
+#endif

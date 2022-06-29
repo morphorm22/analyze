@@ -15,6 +15,15 @@
 
 #include "helmholtz/EvaluationTypes.hpp"
 
+#define SKIP_HELMHOLTZ_EXP_INST
+
+#ifdef SKIP_HELMHOLTZ_EXP_INST
+#define PLATO_HELMHOLTZ_DEF_3_(C, T)
+#define PLATO_HELMHOLTZ_DEC_3_(C, T)
+#define PLATO_HELMHOLTZ_DEF_3(C, T)
+#define PLATO_HELMHOLTZ_DEC_3(C, T)
+#else
+
 #define PLATO_HELMHOLTZ_DEF_3_(C, T) \
 extern template class C<Plato::Helmholtz::ResidualTypes<T>>; \
 extern template class C<Plato::Helmholtz::JacobianTypes<T>>; \
@@ -39,3 +48,4 @@ PLATO_HELMHOLTZ_DEC_3_(C, T<Plato::Hex8>); \
 PLATO_HELMHOLTZ_DEC_3_(C, T<Plato::Quad4>); \
 PLATO_HELMHOLTZ_DEC_3_(C, T<Plato::Hex27>);
 
+#endif
