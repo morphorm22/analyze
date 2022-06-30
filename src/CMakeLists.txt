@@ -134,6 +134,8 @@ if(ELLIPTIC)
     elliptic/MassMoment.cpp
     elliptic/MassPropertiesFunction.cpp
     elliptic/VolAvgStressPNormDenominator.cpp
+    elliptic/VolumeIntegralCriterion.cpp
+    elliptic/Volume.cpp
     elliptic/FluxPNorm.cpp
     elliptic/StressPNorm.cpp
     elliptic/TMStressPNorm.cpp
@@ -148,6 +150,7 @@ if(ELLIPTIC)
     elliptic/ElectroelastostaticResidual.cpp
     elliptic/ThermoelastostaticResidual.cpp
     elliptic/VolumeAverageCriterion.cpp
+    elliptic/VolumeAverageCriterionDenominator.cpp
     IntermediateDensityPenalty.cpp
 #TODO    elliptic/updated_lagrangian/Problem.cpp
 #TODO    elliptic/updated_lagrangian/ElastostaticResidual.cpp

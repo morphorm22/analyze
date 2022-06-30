@@ -2,6 +2,21 @@
 
 #include "elliptic/Problem_decl.hpp"
 
+#include "BLAS1.hpp"
+#include "Solutions.hpp"
+#include "Geometrical.hpp"
+#include "EssentialBCs.hpp"
+#include "AnalyzeMacros.hpp"
+#include "AnalyzeOutput.hpp"
+#include "ImplicitFunctors.hpp"
+#include "ApplyConstraints.hpp"
+#include "MultipointConstraints.hpp"
+#include "elliptic/ScalarFunctionBaseFactory.hpp"
+#include "geometric/ScalarFunctionBaseFactory.hpp"
+#include "elliptic/ScalarFunctionBaseFactory_def.hpp"
+#include "geometric/ScalarFunctionBaseFactory_def.hpp"
+
+
 namespace Plato
 {
 

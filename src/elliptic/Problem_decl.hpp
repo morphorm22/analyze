@@ -1,39 +1,13 @@
 #pragma once
 
-#include "PlatoUtilities.hpp"
-
-#include <memory>
-#include <sstream>
-
-#include "BLAS1.hpp"
-#include "Solutions.hpp"
-#include "NaturalBCs.hpp"
-#include "EssentialBCs.hpp"
-#include "AnalyzeOutput.hpp"
-#include "ImplicitFunctors.hpp"
-#include "ApplyConstraints.hpp"
-#include "MultipointConstraints.hpp"
-#include "SpatialModel.hpp"
 #include "PlatoMesh.hpp"
-
-#include "ParseTools.hpp"
-#include "PlatoMathHelpers.hpp"
-#include "PlatoStaticsTypes.hpp"
-#include "PlatoAbstractProblem.hpp"
-#include "PlatoUtilities.hpp"
-
-#include "Geometrical.hpp"
-#include "geometric/ScalarFunctionBase.hpp"
-#include "geometric/ScalarFunctionBaseFactory.hpp"
-#include "geometric/ScalarFunctionBaseFactory_def.hpp"
-
-#include "elliptic/VectorFunction.hpp"
-#include "elliptic/ScalarFunctionBaseFactory.hpp"
-#include "elliptic/ScalarFunctionBaseFactory_def.hpp"
-#include "AnalyzeMacros.hpp"
-
+#include "SpatialModel.hpp"
 #include "alg/ParallelComm.hpp"
+#include "PlatoAbstractProblem.hpp"
 #include "alg/PlatoSolverFactory.hpp"
+#include "elliptic/VectorFunction.hpp"
+#include "elliptic/ScalarFunctionBase.hpp"
+#include "geometric/ScalarFunctionBase.hpp"
 
 namespace Plato
 {
