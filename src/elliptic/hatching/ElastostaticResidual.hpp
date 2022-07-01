@@ -2,13 +2,13 @@
 
 #include <memory>
 
-#include "elliptic/updated_lagrangian/AbstractVectorFunction.hpp"
-#include "elliptic/updated_lagrangian/SimplexMechanics.hpp"
-#include "elliptic/updated_lagrangian/EllipticUpLagSimplexFadTypes.hpp"
+#include "elliptic/hatching/AbstractVectorFunction.hpp"
+#include "elliptic/hatching/SimplexMechanics.hpp"
+#include "elliptic/hatching/EllipticUpLagSimplexFadTypes.hpp"
 
 #include "PlatoTypes.hpp"
 #include "Strain.hpp"
-#include "elliptic/updated_lagrangian/EllipticUpLagLinearStress.hpp"
+#include "elliptic/hatching/EllipticUpLagLinearStress.hpp"
 #include "StressDivergence.hpp"
 #include "ApplyWeighting.hpp"
 #include "CellForcing.hpp"
@@ -24,7 +24,7 @@
 #include "BodyLoads.hpp"
 #include "NaturalBCs.hpp"
 
-#include "elliptic/updated_lagrangian/ExpInstMacros.hpp"
+#include "elliptic/hatching/ExpInstMacros.hpp"
 
 namespace Plato
 {

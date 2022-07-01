@@ -4,8 +4,8 @@
 
 #include "WorksetBase.hpp"
 #include "NaturalBCs.hpp"
-#include "elliptic/updated_lagrangian/AbstractVectorFunction.hpp"
-#include "elliptic/updated_lagrangian/EllipticUpLagSimplexFadTypes.hpp"
+#include "elliptic/hatching/AbstractVectorFunction.hpp"
+#include "elliptic/hatching/EllipticUpLagSimplexFadTypes.hpp"
 
 namespace Plato
 {

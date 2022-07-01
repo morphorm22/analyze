@@ -330,6 +330,7 @@ TEUCHOS_UNIT_TEST( AnalyzeAppTests, InternalEnergyGradX )
 //  TEST_FLOATING_EQUALITY(stdStateOut[0], 17308575.3656760529, 1e-12);
 }
 
+#ifdef PLATO_PARABOLIC
 TEUCHOS_UNIT_TEST( AnalyzeAppTests, InternalEnergyHeatEq )
 { 
   std::string inputFile = "InternalEnergyHeatEq_input.xml";
@@ -338,6 +339,7 @@ TEUCHOS_UNIT_TEST( AnalyzeAppTests, InternalEnergyHeatEq )
   objectiveFiniteDifferenceTest(inputFile, appFile, val1, val2, tol);
   TEST_FLOATING_EQUALITY(val1, val2, tol);
 }
+#endif
 
 TEUCHOS_UNIT_TEST( AnalyzeAppTests, InternalElectroelasticEnergy )
 { 

@@ -3,6 +3,7 @@
 
 #include <Sacado.hpp>
 
+#include "PlatoTypes.hpp"
 #include "SimplexFadTypes.hpp"
 
 namespace Plato

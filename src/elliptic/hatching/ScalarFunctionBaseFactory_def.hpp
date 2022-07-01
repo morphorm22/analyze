@@ -1,7 +1,7 @@
 #pragma once
 
-#include "elliptic/updated_lagrangian/ScalarFunctionBase.hpp"
-#include "elliptic/updated_lagrangian/PhysicsScalarFunction.hpp"
+#include "elliptic/hatching/ScalarFunctionBase.hpp"
+#include "elliptic/hatching/PhysicsScalarFunction.hpp"
 #include "AnalyzeMacros.hpp"
 
 namespace Plato

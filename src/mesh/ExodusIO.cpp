@@ -633,7 +633,6 @@ namespace Plato
 
         Real *tOffsetData = NULL;
         Int tElemCount = 0;
-        for(Int iBlock=0; iBlock<mElementBlocks.size(); iBlock++)
         for(auto& tBlock : mElementBlocks)
         {
             if(tBlock.numElems == 0) continue;

@@ -28,7 +28,6 @@ if(EXPRESSION)
   )
 endif()
 
-## Augmented Lagrangian sources
 set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     TensileEnergyDensityLocalMeasure.cpp
     TensileEnergyDensity.cpp
@@ -152,18 +151,23 @@ if(ELLIPTIC)
     elliptic/VolumeAverageCriterion.cpp
     elliptic/VolumeAverageCriterionDenominator.cpp
     IntermediateDensityPenalty.cpp
-#TODO    elliptic/updated_lagrangian/Problem.cpp
-#TODO    elliptic/updated_lagrangian/ElastostaticResidual.cpp
-#TODO    elliptic/updated_lagrangian/ScalarFunctionBaseFactory.cpp
-#TODO    elliptic/updated_lagrangian/PhysicsScalarFunction.cpp
-#TODO    elliptic/updated_lagrangian/InternalElasticEnergy.cpp
-#TODO    elliptic/updated_lagrangian/AbstractEllipticUpLagLinearStress.cpp
-#TODO    elliptic/updated_lagrangian/EllipticUpLagLinearStress.cpp
   )
+
+  if(HATCHING)
+    set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+      elliptic/hatching/Problem.cpp
+      elliptic/hatching/ElastostaticResidual.cpp
+      elliptic/hatching/ScalarFunctionBaseFactory.cpp
+      elliptic/hatching/PhysicsScalarFunction.cpp
+      elliptic/hatching/InternalElasticEnergy.cpp
+      elliptic/hatching/AbstractEllipticUpLagLinearStress.cpp
+      elliptic/hatching/EllipticUpLagLinearStress.cpp
+    )
+  endif()
 
   if(EXPRESSION)
     set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-      elliptic/updated_lagrangian/EllipticUpLagLinearStressExpression.cpp
+      elliptic/hatching/EllipticUpLagLinearStressExpression.cpp
     )
   endif()
 endif()

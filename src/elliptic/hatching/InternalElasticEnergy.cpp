@@ -1,5 +1,5 @@
-#include "elliptic/updated_lagrangian/InternalElasticEnergy.hpp"
-#include "elliptic/updated_lagrangian/ExpInstMacros.hpp"
+#include "elliptic/hatching/InternalElasticEnergy.hpp"
+#include "elliptic/hatching/ExpInstMacros.hpp"
 
 #ifdef PLATOANALYZE_1D
 PLATO_ELLIPTIC_UPLAG_EXPL_DEF(Plato::Elliptic::UpdatedLagrangian::InternalElasticEnergy, Plato::Elliptic::UpdatedLagrangian::SimplexMechanics, 1)
