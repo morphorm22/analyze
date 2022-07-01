@@ -18,6 +18,7 @@
 
 #include <memory>
 
+#ifdef PLATO_EPETRA
 namespace Plato {
 namespace Devel {
 
@@ -29,7 +30,6 @@ namespace Devel {
 **********************************************************************************/
 template <typename ClassT>
 using rcp = std::shared_ptr<ClassT>;
-
 
 std::vector<std::vector<Plato::Scalar>>
 toFull(rcp<Epetra_VbrMatrix> aInMatrix)
@@ -347,6 +347,8 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector_invali
   TEST_THROW(tSystem.toVector(tConvertedVector,tTestVector),std::range_error);
 }
 
+#endif
+
 
 #ifdef PLATO_TPETRA
 
@@ -418,7 +420,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra )
 
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
-  Plato::Elliptic::VectorFunction<::Plato::Mechanics<Plato::Tri3>
+  Plato::Elliptic::VectorFunction<::Plato::Mechanics<Plato::Tri3>>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
   // compute and test constraint value
@@ -470,7 +472,6 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
@@ -525,7 +526,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
 
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
-  Plato::Elliptic::VectorFunction<::Plato::Mechanics<Plato::Tri3>
+  Plato::Elliptic::VectorFunction<::Plato::Mechanics<Plato::Tri3>>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
   // compute and test constraint value
@@ -540,7 +541,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
   constexpr int tBogusMeshWidth=3;
   auto tBogusMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tBogusMeshWidth);
 
-  Plato::TpetraSystem tSystem(tBogusMesh->nverts(), tMachine, tNumDofsPerNode);
+  Plato::TpetraSystem tSystem(tBogusMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
   TEST_THROW(tSystem.fromMatrix(*jacobian),std::domain_error);
 }
@@ -557,7 +558,6 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToTpetraVector )
 {
   // create test mesh
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
@@ -606,7 +606,6 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToTpetraVector_invalidI
 {
   // create test mesh
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
@@ -643,7 +642,6 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector )
 {
   // create test mesh
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
@@ -691,7 +689,6 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector_invali
 {
   // create test mesh
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
@@ -728,7 +725,6 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector_invali
 {
   // create test mesh
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
@@ -1066,7 +1062,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
   constexpr int meshWidth=8;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using PhysicsType = ::Plato::Mechanics<Physics::Tri3>;
+  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
 
   int tNumDofsPerNode = ElementType::mNumDofsPerNode;
