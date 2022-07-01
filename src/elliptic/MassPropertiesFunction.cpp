@@ -8,7 +8,7 @@
 #include "Mechanics.hpp"
 #include "Thermomechanics.hpp"
 #include "Electromechanics.hpp"
-#include "elliptic/ExpInstMacros.hpp"
+#include "BaseExpInstMacros.hpp"
 
 PLATO_ELEMENT_DEF(Plato::Elliptic::MassPropertiesFunction, Plato::Thermal)
 PLATO_ELEMENT_DEF(Plato::Elliptic::MassPropertiesFunction, Plato::Mechanics)

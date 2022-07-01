@@ -23,6 +23,7 @@
 #include "Solutions.hpp"
 #include "ScalarProduct.hpp"
 #include "FadTypes.hpp"
+#include "Geometrical.hpp"
 #include "WorksetBase.hpp"
 #include "GradientMatrix.hpp"
 #include "SmallStrain.hpp"
