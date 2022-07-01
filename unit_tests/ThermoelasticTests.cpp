@@ -20,6 +20,7 @@
 #include <alg/CrsLinearProblem.hpp>
 #include <alg/ParallelComm.hpp>
 
+#include "Mechanics.hpp"
 #include "Solutions.hpp"
 #include "ScalarProduct.hpp"
 #include "WorksetBase.hpp"

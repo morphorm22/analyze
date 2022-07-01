@@ -10,6 +10,7 @@
 
 #include "Tet4.hpp"
 #include "Tri3.hpp"
+#include "Mechanics.hpp"
 #include "MechanicsElement.hpp"
 #include "ThermomechanicsElement.hpp"
 #include "Solutions.hpp"
@@ -21,6 +22,7 @@
 #include "Plato_AugLagStressCriterionGeneral.hpp"
 #include "Plato_AugLagStressCriterionQuadratic.hpp"
 #include "VonMisesLocalMeasure.hpp"
+#include "VonMisesYieldFunction.hpp"
 #include "TensileEnergyDensityLocalMeasure.hpp"
 #include "ThermalVonMisesLocalMeasure.hpp"
 #include "elliptic/WeightedSumFunction.hpp"

@@ -3,6 +3,8 @@
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
 #include "Tri3.hpp"
+#include "Mechanics.hpp"
+#include "alg/ParallelComm.hpp"
 #include "elliptic/SolutionFunction.hpp"
 
 

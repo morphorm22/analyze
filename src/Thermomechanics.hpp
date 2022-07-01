@@ -15,11 +15,9 @@
 #include "elliptic/TMStressPNorm.hpp"
 #include "elliptic/Volume.hpp"
 
-
+#include "MakeFunctions.hpp"
 #include "AbstractLocalMeasure.hpp"
-
 #include "AnalyzeMacros.hpp"
-
 #include "Plato_AugLagStressCriterionQuadratic.hpp"
 #include "ThermalVonMisesLocalMeasure.hpp"
 

@@ -1,6 +1,14 @@
 #pragma once
 
-#ifdef PLATO_HEX_ELEMENT
+#include "Tet4.hpp"
+#include "Tet10.hpp"
+#include "Tri3.hpp"
+
+#ifdef PLATO_HEX_ELEMENTS
+
+#include "Hex8.hpp"
+#include "Quad4.hpp"
+#include "Hex27.hpp"
 
 #define PLATO_ELEMENT_DEF(C, T) \
 template class C<T<Plato::Tet4>>; \

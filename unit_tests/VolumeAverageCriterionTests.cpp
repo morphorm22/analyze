@@ -9,6 +9,8 @@
 #include "Analyze_Diagnostics.hpp"
 #include "elliptic/Problem.hpp"
 
+#include "Mechanics.hpp"
+
 namespace VolumeAverageCriterionTests
 {
 
