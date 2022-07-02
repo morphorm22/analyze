@@ -1,4 +1,4 @@
-#include "elliptic/updated_lagrangian/PhysicsScalarFunction.hpp"
+#include "elliptic/hatching/PhysicsScalarFunction.hpp"
 
 #ifdef PLATOANALYZE_1D
 // TODO template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermal<1>>;

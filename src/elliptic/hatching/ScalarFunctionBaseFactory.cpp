@@ -1,5 +1,5 @@
-#include "elliptic/updated_lagrangian/ScalarFunctionBaseFactory.hpp"
-#include "elliptic/updated_lagrangian/ScalarFunctionBaseFactory_def.hpp"
+#include "elliptic/hatching/ScalarFunctionBaseFactory.hpp"
+#include "elliptic/hatching/ScalarFunctionBaseFactory_def.hpp"
 
 
 #ifdef PLATOANALYZE_1D

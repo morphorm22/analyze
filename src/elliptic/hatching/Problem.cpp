@@ -1,4 +1,4 @@
-#include "elliptic/updated_lagrangian/Problem.hpp"
+#include "elliptic/hatching/Problem.hpp"
 
 #ifdef PLATOANALYZE_1D
 template class Plato::Elliptic::UpdatedLagrangian::Problem<::Plato::Elliptic::UpdatedLagrangian::Mechanics<1>>;

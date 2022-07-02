@@ -1,7 +1,7 @@
 #ifndef PLATO_ABSTRACT_ELLIPTIC_UPDATED_LAGRANGIAN_LINEAR_STRESS_HPP
 #define PLATO_ABSTRACT_ELLIPTIC_UPDATED_LAGRANGIAN_LINEAR_STRESS_HPP
 
-#include "elliptic/updated_lagrangian/ExpInstMacros.hpp"
+#include "elliptic/hatching/ExpInstMacros.hpp"
 #include "LinearElasticMaterial.hpp"
 #include "EllipticUpLagSimplexFadTypes.hpp"
 #include "SimplexMechanics.hpp"

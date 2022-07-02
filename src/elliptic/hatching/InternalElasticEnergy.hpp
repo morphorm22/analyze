@@ -1,14 +1,14 @@
 #pragma once
 
-#include "elliptic/updated_lagrangian/EllipticUpLagSimplexFadTypes.hpp"
-#include "elliptic/updated_lagrangian/AbstractScalarFunction.hpp"
-#include "elliptic/updated_lagrangian/SimplexMechanics.hpp"
-#include "elliptic/updated_lagrangian/ExpInstMacros.hpp"
+#include "elliptic/hatching/EllipticUpLagSimplexFadTypes.hpp"
+#include "elliptic/hatching/AbstractScalarFunction.hpp"
+#include "elliptic/hatching/SimplexMechanics.hpp"
+#include "elliptic/hatching/ExpInstMacros.hpp"
 
 #include "ScalarProduct.hpp"
 #include "ApplyWeighting.hpp"
 #include "Strain.hpp"
-#include "elliptic/updated_lagrangian/EllipticUpLagLinearStress.hpp"
+#include "elliptic/hatching/EllipticUpLagLinearStress.hpp"
 #include "ElasticModelFactory.hpp"
 #include "LinearTetCubRuleDegreeOne.hpp"
 #include "ImplicitFunctors.hpp"

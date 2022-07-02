@@ -31,7 +31,8 @@ option(HYPERBOLIC      "Compile with Hyperbolic physics"     OFF) # TODO
 option(STABILIZED      "Compile with Stabilized VMS physics" OFF) # TODO
 option(PLASTICITY      "Compile with Plasticity physics"     OFF) # TODO
 option(HELMHOLTZ       "Compile with Helmholtz filter"       OFF) # TODO
-option(EXPRESSION      "Compile with Expression evaluator"   OFF)
+option(EXPRESSION      "Compile with Expression evaluator"   OFF) # TODO: fix this.  expression evaluator is on regardless.
+option(HATCHING        "Compile with hatching algorithm"     OFF) # TODO
 
 option(PLATOANALYZE_UNIT_TEST   "Flag to enable unit tests"  ON)
 option(PLATOANALYZE_SMOKE_TESTS "Flag to enable smoke tests" ON)
@@ -242,6 +243,10 @@ endif()
 if(PARABOLIC)
   message("-- Plato: Parabolic physics added")
   ADD_DEFINITIONS(-DPLATO_PARABOLIC)
+endif()
+if(HATCHING)
+  message("-- Plato: Hatching algorithm added")
+  ADD_DEFINITIONS(-DPLATO_HATCHING)
 endif()
 if(HYPERBOLIC)
   message("-- Plato: Hyperbolic physics added")

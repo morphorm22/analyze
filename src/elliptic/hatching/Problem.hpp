@@ -25,9 +25,9 @@
 #include "geometric/ScalarFunctionBase.hpp"
 #include "geometric/ScalarFunctionBaseFactory.hpp"
 
-#include "elliptic/updated_lagrangian/VectorFunction.hpp"
-#include "elliptic/updated_lagrangian/LagrangianUpdate.hpp"
-#include "elliptic/updated_lagrangian/ScalarFunctionBaseFactory.hpp"
+#include "elliptic/hatching/VectorFunction.hpp"
+#include "elliptic/hatching/LagrangianUpdate.hpp"
+#include "elliptic/hatching/ScalarFunctionBaseFactory.hpp"
 #include "AnalyzeMacros.hpp"
 
 #include "alg/ParallelComm.hpp"
@@ -853,7 +853,7 @@ private:
 
 } // namespace Plato
 
-#include "elliptic/updated_lagrangian/Mechanics.hpp"
+#include "elliptic/hatching/Mechanics.hpp"
 
 #ifdef PLATOANALYZE_1D
 extern template class Plato::Elliptic::UpdatedLagrangian::Problem<::Plato::Elliptic::UpdatedLagrangian::Mechanics<1>>;

@@ -5,7 +5,7 @@
 #include "SpatialModel.hpp"
 #include "PlatoSequence.hpp"
 #include "PlatoStaticsTypes.hpp"
-#include "elliptic/updated_lagrangian/ScalarFunctionBase.hpp"
+#include "elliptic/hatching/ScalarFunctionBase.hpp"
 #include <Teuchos_ParameterList.hpp>
 
 namespace Plato
@@ -57,7 +57,7 @@ public:
 
 } // namespace Plato
 
-#include "elliptic/updated_lagrangian/Mechanics.hpp"
+#include "elliptic/hatching/Mechanics.hpp"
 
 #ifdef PLATOANALYZE_1D
 extern template class Plato::Elliptic::UpdatedLagrangian::ScalarFunctionBaseFactory<::Plato::Elliptic::UpdatedLagrangian::Mechanics<1>>;

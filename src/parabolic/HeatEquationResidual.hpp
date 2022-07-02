@@ -132,7 +132,7 @@ class HeatEquationResidual :
       auto tNumCells = mSpatialDomain.numCells();
 
       using GradScalarType =
-        typename Plato::fad_type_t<Plato::SimplexThermal<EvaluationType::SpatialDim>, StateScalarType, ConfigScalarType>;
+        typename Plato::simplex_fad_type_t<Plato::SimplexThermal<EvaluationType::SpatialDim>, StateScalarType, ConfigScalarType>;
 
       Plato::ScalarArray3DT<ConfigScalarType> tGradient ("gradient", tNumCells, mNumNodesPerCell, SpaceDim);
 

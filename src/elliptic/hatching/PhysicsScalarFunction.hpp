@@ -11,9 +11,9 @@
 #include "WorksetBase.hpp"
 #include "PlatoSequence.hpp"
 #include "PlatoStaticsTypes.hpp"
-#include "elliptic/updated_lagrangian/ScalarFunctionBase.hpp"
-#include "elliptic/updated_lagrangian/AbstractScalarFunction.hpp"
-#include "elliptic/updated_lagrangian/EllipticUpLagSimplexFadTypes.hpp"
+#include "elliptic/hatching/ScalarFunctionBase.hpp"
+#include "elliptic/hatching/AbstractScalarFunction.hpp"
+#include "elliptic/hatching/EllipticUpLagSimplexFadTypes.hpp"
 #include <Teuchos_ParameterList.hpp>
 
 namespace Plato

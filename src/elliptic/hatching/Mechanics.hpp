@@ -2,10 +2,10 @@
 
 #include <memory>
 
-#include "elliptic/updated_lagrangian/SimplexMechanics.hpp"
-#include "elliptic/updated_lagrangian/AbstractScalarFunction.hpp"
-#include "elliptic/updated_lagrangian/InternalElasticEnergy.hpp"
-#include "elliptic/updated_lagrangian/ElastostaticResidual.hpp"
+#include "elliptic/hatching/SimplexMechanics.hpp"
+#include "elliptic/hatching/AbstractScalarFunction.hpp"
+#include "elliptic/hatching/InternalElasticEnergy.hpp"
+#include "elliptic/hatching/ElastostaticResidual.hpp"
 
 // TODO
 // #include "elliptic/StressPNorm.hpp"

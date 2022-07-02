@@ -3,7 +3,7 @@
 #include "SpatialModel.hpp"
 #include "Strain.hpp"
 #include "PlatoStaticsTypes.hpp"
-#include "elliptic/updated_lagrangian/EllipticUpLagSimplexFadTypes.hpp"
+#include "elliptic/hatching/EllipticUpLagSimplexFadTypes.hpp"
 
 namespace Plato
 {
