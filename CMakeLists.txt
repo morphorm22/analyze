@@ -26,7 +26,7 @@ option(PLATOANALYZE_2D "Compile with 2D physics"             OFF) # TODO delete
 option(PLATOANALYZE_3D "Compile with 3D physics"             ON ) # TODO delete
 
 option(ELLIPTIC        "Compile with Elliptic physics"       ON )
-option(PARABOLIC       "Compile with Parabolic physics"      OFF) # TODO
+option(PARABOLIC       "Compile with Parabolic physics"      ON )
 option(HYPERBOLIC      "Compile with Hyperbolic physics"     OFF) # TODO
 option(STABILIZED      "Compile with Stabilized VMS physics" OFF) # TODO
 option(PLASTICITY      "Compile with Plasticity physics"     OFF) # TODO

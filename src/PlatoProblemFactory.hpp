@@ -304,7 +304,7 @@ create_thermal_problem
 #ifdef PLATO_PARABOLIC
     if(tLowerPDE == "parabolic")
     {
-        return std::make_shared < Plato::Parabolic::Problem<::Plato::Thermal<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
+        return makeProblem<Plato::Parabolic::Problem, Plato::Thermal>(aMesh, aPlatoProb, aMachine);
     }
     else
 #endif
@@ -402,7 +402,7 @@ create_thermomechanical_problem
 #ifdef PLATO_PARABOLIC
     if(tLowerPDE == "parabolic")
     {
-        return std::make_shared < Plato::Parabolic::Problem<::Plato::Thermomechanics<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
+        return makeProblem<Plato::Parabolic::Problem, Plato::Thermomechanics>(aMesh, aPlatoProb, aMachine);
     }
     else
 #endif

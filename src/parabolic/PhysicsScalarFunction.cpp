@@ -1,14 +1,14 @@
-#include "parabolic/PhysicsScalarFunction.hpp"
+#include "parabolic/PhysicsScalarFunction_decl.hpp"
 
-#ifdef PLATOANALYZE_1D
-template class Plato::Parabolic::PhysicsScalarFunction<::Plato::Thermal<1>>;
-template class Plato::Parabolic::PhysicsScalarFunction<::Plato::Thermomechanics<1>>;
-#endif
-#ifdef PLATOANALYZE_2D
-template class Plato::Parabolic::PhysicsScalarFunction<::Plato::Thermal<2>>;
-template class Plato::Parabolic::PhysicsScalarFunction<::Plato::Thermomechanics<2>>;
-#endif
-#ifdef PLATOANALYZE_3D
-template class Plato::Parabolic::PhysicsScalarFunction<::Plato::Thermal<3>>;
-template class Plato::Parabolic::PhysicsScalarFunction<::Plato::Thermomechanics<3>>;
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
+
+#include "parabolic/PhysicsScalarFunction_def.hpp"
+
+#include "Thermal.hpp"
+#include "Thermomechanics.hpp"
+#include "BaseExpInstMacros.hpp"
+
+PLATO_ELEMENT_DEF(Plato::Parabolic::PhysicsScalarFunction, Plato::Thermal);
+PLATO_ELEMENT_DEF(Plato::Parabolic::PhysicsScalarFunction, Plato::Thermomechanics);
+
 #endif

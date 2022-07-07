@@ -7,7 +7,6 @@
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
-#include "ImplicitFunctors.hpp"
 #include "LinearThermoelasticMaterial.hpp"
 
 #ifdef HAVE_AMGX
@@ -20,16 +19,19 @@
 #include <type_traits>
 
 #include <Sacado.hpp>
-#include <alg/CrsLinearProblem.hpp>
-#include <alg/ParallelComm.hpp>
-#include <Simp.hpp>
-#include <ApplyWeighting.hpp>
-#include <SimplexFadTypes.hpp>
-#include <WorksetBase.hpp>
-#include <parabolic/VectorFunction.hpp>
-#include <StateValues.hpp>
+
+#include "Tet4.hpp"
+#include "WorksetBase.hpp"
+#include "ProjectToNode.hpp"
+#include "ApplyWeighting.hpp"
+#include "ThermalContent.hpp"
+#include "alg/ParallelComm.hpp"
+#include "ThermalMassMaterial.hpp"
+#include "alg/CrsLinearProblem.hpp"
+#include "GeneralFluxDivergence.hpp"
+#include "GeneralStressDivergence.hpp"
+#include "parabolic/VectorFunction.hpp"
 #include "ApplyConstraints.hpp"
-#include "SimplexThermal.hpp"
 #include "Thermomechanics.hpp"
 #include "ComputedField.hpp"
 
@@ -41,48 +43,49 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  constexpr int spaceDim=3;
-
-  static constexpr int TDofOffset = spaceDim;
 
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
+  using ElementType = typename Plato::ThermomechanicsElement<Plato::Tet4>;
 
   int numCells = tMesh->NumElements();
-  constexpr int numVoigtTerms = Plato::SimplexThermomechanics<spaceDim>::mNumVoigtTerms;
-  constexpr int nodesPerCell  = Plato::SimplexThermomechanics<spaceDim>::mNumNodesPerCell;
-  constexpr int dofsPerCell   = Plato::SimplexThermomechanics<spaceDim>::mNumDofsPerCell;
-  constexpr int dofsPerNode   = Plato::SimplexThermomechanics<spaceDim>::mNumDofsPerNode;
+  int tNumNodes = tMesh->NumNodes();
+
+  constexpr int numSpaceDims  = ElementType::mNumSpatialDims;
+  constexpr int numVoigtTerms = ElementType::mNumVoigtTerms;
+  constexpr int nodesPerCell  = ElementType::mNumNodesPerCell;
+  constexpr int dofsPerCell   = ElementType::mNumDofsPerCell;
+  constexpr int dofsPerNode   = ElementType::mNumDofsPerNode;
+
+  static constexpr int TDofOffset = numSpaceDims;
 
   // create mesh based solution from host data
   //
-  int tNumDofsPerNode = (spaceDim+1);
-  int tNumNodes = tMesh->NumNodes();
-  int tNumDofs = tNumNodes*tNumDofsPerNode;
+  int tNumDofs = tNumNodes*dofsPerNode;
   Plato::ScalarVector state("state", tNumDofs);
   Plato::ScalarVector z("control", tNumDofs);
   Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), LAMBDA_EXPRESSION(const int & aNodeOrdinal)
   {
      z(aNodeOrdinal) = 1.0;
 
-     state(aNodeOrdinal*tNumDofsPerNode+0) = (1e-7)*aNodeOrdinal;
-     state(aNodeOrdinal*tNumDofsPerNode+1) = (2e-7)*aNodeOrdinal;
-     state(aNodeOrdinal*tNumDofsPerNode+2) = (3e-7)*aNodeOrdinal;
-     state(aNodeOrdinal*tNumDofsPerNode+3) = (4e-7)*aNodeOrdinal;
+     state(aNodeOrdinal*dofsPerNode+0) = (1e-7)*aNodeOrdinal;
+     state(aNodeOrdinal*dofsPerNode+1) = (2e-7)*aNodeOrdinal;
+     state(aNodeOrdinal*dofsPerNode+2) = (3e-7)*aNodeOrdinal;
+     state(aNodeOrdinal*dofsPerNode+3) = (4e-7)*aNodeOrdinal;
 
   }, "state");
 
-  Plato::WorksetBase<Plato::SimplexThermomechanics<spaceDim>> worksetBase(tMesh);
+  Plato::WorksetBase<ElementType> worksetBase(tMesh);
 
-  Plato::ScalarArray3DT<Plato::Scalar>     gradient("gradient",numCells,nodesPerCell,spaceDim);
+  Plato::ScalarArray3DT<Plato::Scalar>     gradient("gradient",numCells, nodesPerCell, numSpaceDims);
   Plato::ScalarMultiVectorT<Plato::Scalar> tStrain("strain", numCells, numVoigtTerms);
-  Plato::ScalarMultiVectorT<Plato::Scalar> tGrad("temperature gradient", numCells, spaceDim);
+  Plato::ScalarMultiVectorT<Plato::Scalar> tCellGrad("temperature gradient", numCells, numSpaceDims);
   Plato::ScalarMultiVectorT<Plato::Scalar> tStress("stress", numCells, numVoigtTerms);
-  Plato::ScalarMultiVectorT<Plato::Scalar> tFlux("thermal flux", numCells, spaceDim);
+  Plato::ScalarMultiVectorT<Plato::Scalar> tCellFlux("thermal flux", numCells, numSpaceDims);
   Plato::ScalarMultiVectorT<Plato::Scalar> result("result", numCells, dofsPerCell);
-  Plato::ScalarArray3DT<Plato::Scalar>     configWS("config workset",numCells, nodesPerCell, spaceDim);
-  Plato::ScalarVectorT<Plato::Scalar>      tTemperature("Gauss point temperature", numCells);
-  Plato::ScalarVectorT<Plato::Scalar>      tThermalContent("Gauss point heat content at step k", numCells);
+  Plato::ScalarArray3DT<Plato::Scalar>     configWS("config workset",numCells, nodesPerCell, numSpaceDims);
+  Plato::ScalarVectorT<Plato::Scalar>      tCellTemperature("Gauss point temperature", numCells);
+  Plato::ScalarVectorT<Plato::Scalar>      tCellThermalContent("Gauss point heat content at step k", numCells);
   Plato::ScalarMultiVectorT<Plato::Scalar> massResult("mass", numCells, dofsPerCell);
   Plato::ScalarMultiVectorT<Plato::Scalar> stateWS("state workset",numCells, dofsPerCell);
 
@@ -116,51 +119,88 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
     "</ParameterList>                                                               \n"
   );
 
-  Plato::ThermalMassModelFactory<spaceDim> mmmfactory(*params);
+  Plato::ThermalMassModelFactory<numSpaceDims> mmmfactory(*params);
   auto massMaterialModel = mmmfactory.create("Cookie Dough");
 
-  Plato::ThermoelasticModelFactory<spaceDim> mmfactory(*params);
+  Plato::ThermoelasticModelFactory<numSpaceDims> mmfactory(*params);
   auto materialModel = mmfactory.create("Cookie Dough");
 
-  Plato::ComputeGradientWorkset<spaceDim>  computeGradient;
-  Plato::TMKinematics<spaceDim>                   kinematics;
-  Plato::TMKinetics<spaceDim>                     kinetics(materialModel);
+  Plato::ComputeGradientMatrix<ElementType> computeGradient;
+  Plato::TMKinematics<ElementType>          kinematics;
+  Plato::TMKinetics<ElementType>            kinetics(materialModel);
 
-  Plato::InterpolateFromNodal<spaceDim, dofsPerNode, TDofOffset> interpolateFromNodal;
+  Plato::InterpolateFromNodal<ElementType, dofsPerNode, TDofOffset> interpolateFromNodal;
 
-  Plato::FluxDivergence  <spaceDim, dofsPerNode, TDofOffset> fluxDivergence;
-  Plato::StressDivergence<spaceDim, dofsPerNode> stressDivergence;
+  Plato::GeneralFluxDivergence  <ElementType, dofsPerNode, TDofOffset> fluxDivergence;
+  Plato::GeneralStressDivergence<ElementType, dofsPerNode> stressDivergence;
 
-  Plato::ThermalContent<spaceDim> computeThermalContent(massMaterialModel);
-  Plato::ProjectToNode<spaceDim, dofsPerNode, TDofOffset> projectThermalContent;
-
-  Plato::LinearTetCubRuleDegreeOne<spaceDim> cubatureRule;
-
-  Plato::Scalar quadratureWeight = cubatureRule.getCubWeight();
-  auto basisFunctions = cubatureRule.getBasisFunctions();
+  Plato::ThermalContent<numSpaceDims> computeThermalContent(massMaterialModel);
+  Plato::ProjectToNode<ElementType, dofsPerNode, TDofOffset> projectThermalContent;
 
   Plato::Scalar tTimeStep = 1.0;
 
   Plato::ScalarVectorT<Plato::Scalar> cellVolume("cell volume",numCells);
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), LAMBDA_EXPRESSION(int cellOrdinal)
+
+  auto tCubPoints = ElementType::getCubPoints();
+  auto tCubWeights = ElementType::getCubWeights();
+  auto numPoints = tCubWeights.size();
+
+  Kokkos::parallel_for("flux divergence", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {numCells, numPoints}),
+  LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
   {
-    computeGradient(cellOrdinal, gradient, configWS, cellVolume);
-    cellVolume(cellOrdinal) *= quadratureWeight;
+    Plato::Scalar tVolume(0.0);
 
-    kinematics(cellOrdinal, tStrain, tGrad, stateWS, gradient);
+    Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, Plato::Scalar> tGradient;
 
-    interpolateFromNodal(cellOrdinal, basisFunctions, stateWS, tTemperature);
+    Plato::Array<ElementType::mNumVoigtTerms,  Plato::Scalar> tStrain(0.0);
+    Plato::Array<ElementType::mNumSpatialDims, Plato::Scalar> tTGrad (0.0);
+    Plato::Array<ElementType::mNumVoigtTerms,  Plato::Scalar> tStress(0.0);
+    Plato::Array<ElementType::mNumSpatialDims, Plato::Scalar> tFlux  (0.0);
 
-    kinetics(cellOrdinal, tStress, tFlux, tStrain, tGrad, tTemperature);
+    auto tCubPoint = tCubPoints(iGpOrdinal);
+    auto basisValues = ElementType::basisValues(tCubPoint);
 
-    stressDivergence(cellOrdinal, result, tStress, gradient, cellVolume, tTimeStep/2.0);
+    computeGradient(iCellOrdinal, tCubPoint, configWS, tGradient, tVolume);
+    tVolume *= tCubWeights(iGpOrdinal);
 
-    fluxDivergence(cellOrdinal, result, tFlux, gradient, cellVolume, tTimeStep/2.0);
+    cellVolume(iCellOrdinal) = tVolume;
 
-    computeThermalContent(cellOrdinal, tThermalContent, tTemperature);
-    projectThermalContent(cellOrdinal, cellVolume, basisFunctions, tThermalContent, massResult);
+    for(Plato::OrdinalType iNode=0; iNode<nodesPerCell; iNode++)
+    {
+      for(Plato::OrdinalType iDim=0; iDim<numSpaceDims; iDim++)
+      {
+        gradient(iCellOrdinal, iNode, iDim) = tGradient(iNode, iDim);
+      }
+    }
 
-  }, "divergence");
+    kinematics(iCellOrdinal, tStrain, tTGrad, stateWS, tGradient);
+
+    for(Plato::OrdinalType iDim=0; iDim<numSpaceDims; iDim++)
+    {
+      tCellGrad(iCellOrdinal, iDim) = tTGrad(iDim);
+    }
+
+
+    Plato::Scalar tTemperature(0.0);
+    interpolateFromNodal(iCellOrdinal, basisValues, stateWS, tTemperature);
+    tCellTemperature(iCellOrdinal) = tTemperature;
+    kinetics(tStress, tFlux, tStrain, tTGrad, tTemperature);
+    for(Plato::OrdinalType iDim=0; iDim<numSpaceDims; iDim++)
+    {
+      tCellFlux(iCellOrdinal, iDim) = tFlux(iDim);
+    }
+
+    stressDivergence(iCellOrdinal, result, tStress, tGradient, tVolume, tTimeStep/2.0);
+
+    fluxDivergence(iCellOrdinal, result, tFlux, tGradient, tVolume, tTimeStep/2.0);
+
+    Plato::Scalar tThermalContent(0.0);
+    computeThermalContent(tThermalContent, tTemperature, tTemperature);
+    tCellThermalContent(iCellOrdinal) = tThermalContent;
+
+    projectThermalContent(iCellOrdinal, tVolume, basisValues, tThermalContent, massResult);
+
+  });
 
   // test cell volume
   //
@@ -187,8 +227,8 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
 
   // test state values
   //
-  auto tTemperature_Host = Kokkos::create_mirror_view( tTemperature );
-  Kokkos::deep_copy( tTemperature_Host, tTemperature );
+  auto tTemperature_Host = Kokkos::create_mirror_view( tCellTemperature );
+  Kokkos::deep_copy( tTemperature_Host, tCellTemperature );
 
   std::vector<Plato::Scalar> tTemperature_gold = { 
   2.800000000000000e-6, 2.000000000000000e-6, 1.800000000000000e-6,
@@ -208,8 +248,8 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
 
   // test thermal content
   //
-  auto tThermalContent_Host = Kokkos::create_mirror_view( tThermalContent );
-  Kokkos::deep_copy( tThermalContent_Host, tThermalContent );
+  auto tThermalContent_Host = Kokkos::create_mirror_view( tCellThermalContent );
+  Kokkos::deep_copy( tThermalContent_Host, tCellThermalContent );
 
   std::vector<Plato::Scalar> tThermalContent_gold = { 
   0.8400000000000000, 0.6000000000000000, 0.5399999999999999,
@@ -244,8 +284,8 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
 
   numGoldCells=gradient_gold.size();
   for(int iCell=0; iCell<numGoldCells; iCell++){
-    for(int iNode=0; iNode<spaceDim+1; iNode++){
-      for(int iDim=0; iDim<spaceDim; iDim++){
+    for(int iNode=0; iNode<nodesPerCell; iNode++){
+      for(int iDim=0; iDim<numSpaceDims; iDim++){
         if(gradient_gold[iCell][iNode][iDim] == 0.0){
           TEST_ASSERT(fabs(gradient_Host(iCell,iNode,iDim)) < 1e-12);
         } else {
@@ -257,8 +297,8 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
 
   // test temperature gradient
   //
-  auto tgrad_Host = Kokkos::create_mirror_view( tGrad );
-  Kokkos::deep_copy( tgrad_Host, tGrad );
+  auto tgrad_Host = Kokkos::create_mirror_view( tCellGrad );
+  Kokkos::deep_copy( tgrad_Host, tCellGrad );
 
   std::vector<std::vector<Plato::Scalar>> tgrad_gold = { 
     {7.2e-6, 2.4e-6, 8.0e-7},
@@ -268,7 +308,7 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
   };
 
   for(int iCell=0; iCell<int(tgrad_gold.size()); iCell++){
-    for(int iDim=0; iDim<spaceDim; iDim++){
+    for(int iDim=0; iDim<numSpaceDims; iDim++){
       if(tgrad_gold[iCell][iDim] == 0.0){
         TEST_ASSERT(fabs(tgrad_Host(iCell,iDim)) < 1e-12);
       } else {
@@ -279,8 +319,8 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
 
   // test thermal flux
   //
-  auto tflux_Host = Kokkos::create_mirror_view( tFlux );
-  Kokkos::deep_copy( tflux_Host, tFlux );
+  auto tflux_Host = Kokkos::create_mirror_view( tCellFlux );
+  Kokkos::deep_copy( tflux_Host, tCellFlux );
 
   std::vector<std::vector<Plato::Scalar>> tflux_gold = { 
     {7.2e-3, 2.4e-3, 8.0e-4},
@@ -290,7 +330,7 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
   };
 
   for(int iCell=0; iCell<int(tflux_gold.size()); iCell++){
-    for(int iDim=0; iDim<spaceDim; iDim++){
+    for(int iDim=0; iDim<numSpaceDims; iDim++){
       if(tflux_gold[iCell][iDim] == 0.0){
         TEST_ASSERT(fabs(tflux_Host(iCell,iDim)) < 1e-12);
       } else {
@@ -299,7 +339,6 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
     }
   }
 }
-
 
 /******************************************************************************/
 /*! 
@@ -312,14 +351,18 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, TransientThermomechResidual3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  constexpr int spaceDim=3;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+
+  using ElementType = typename Plato::ThermomechanicsElement<Plato::Tet4>;
+
+  int numCells = tMesh->NumElements();
+  int tNumNodes = tMesh->NumNodes();
+
+  constexpr int dofsPerNode   = ElementType::mNumDofsPerNode;
 
   // create mesh based solution from host data
   //
-  int tNumDofsPerNode = (spaceDim+1);
-  int tNumNodes = tMesh->NumNodes();
-  int tNumDofs = tNumNodes*tNumDofsPerNode;
+  int tNumDofs = tNumNodes*dofsPerNode;
   Plato::ScalarVector state("state", tNumDofs);
   Plato::ScalarVector stateDot("state dot", tNumDofs);
   Plato::ScalarVector z("control", tNumDofs);
@@ -327,14 +370,14 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, TransientThermomechResidual3D )
   {
      z(aNodeOrdinal) = 1.0;
 
-     state(aNodeOrdinal*tNumDofsPerNode+0) = (1e-7)*aNodeOrdinal;
-     state(aNodeOrdinal*tNumDofsPerNode+1) = (2e-7)*aNodeOrdinal;
-     state(aNodeOrdinal*tNumDofsPerNode+2) = (3e-7)*aNodeOrdinal;
-     state(aNodeOrdinal*tNumDofsPerNode+3) = (4e-7)*aNodeOrdinal;
-     stateDot(aNodeOrdinal*tNumDofsPerNode+0) = (4e-7)*aNodeOrdinal;
-     stateDot(aNodeOrdinal*tNumDofsPerNode+1) = (3e-7)*aNodeOrdinal;
-     stateDot(aNodeOrdinal*tNumDofsPerNode+2) = (2e-7)*aNodeOrdinal;
-     stateDot(aNodeOrdinal*tNumDofsPerNode+3) = (1e-7)*aNodeOrdinal;
+     state(aNodeOrdinal*dofsPerNode+0) = (1e-7)*aNodeOrdinal;
+     state(aNodeOrdinal*dofsPerNode+1) = (2e-7)*aNodeOrdinal;
+     state(aNodeOrdinal*dofsPerNode+2) = (3e-7)*aNodeOrdinal;
+     state(aNodeOrdinal*dofsPerNode+3) = (4e-7)*aNodeOrdinal;
+     stateDot(aNodeOrdinal*dofsPerNode+0) = (4e-7)*aNodeOrdinal;
+     stateDot(aNodeOrdinal*dofsPerNode+1) = (3e-7)*aNodeOrdinal;
+     stateDot(aNodeOrdinal*dofsPerNode+2) = (2e-7)*aNodeOrdinal;
+     stateDot(aNodeOrdinal*dofsPerNode+3) = (1e-7)*aNodeOrdinal;
 
   }, "state");
 
@@ -390,7 +433,7 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, TransientThermomechResidual3D )
   //
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *params);
-  Plato::Parabolic::VectorFunction<::Plato::Thermomechanics<spaceDim>>
+  Plato::Parabolic::VectorFunction<::Plato::Thermomechanics<Plato::Tet4>>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
 
 
@@ -536,4 +579,3 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, TransientThermomechResidual3D )
   }
 
 }
-

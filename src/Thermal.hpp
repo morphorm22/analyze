@@ -57,7 +57,7 @@ struct FunctionFactory{
     {
 #ifdef PLATO_PARABOLIC
         auto tLowerPDE = Plato::tolower(aPDE);
-        if(tLowerPDE == "elliptic")
+        if(tLowerPDE == "parabolic")
         {
             return Plato::makeVectorFunction<EvaluationType, Plato::Parabolic::HeatEquationResidual>
                      (aSpatialDomain, aDataMap, aProblemParams, aPDE);

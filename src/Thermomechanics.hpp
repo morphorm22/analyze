@@ -113,32 +113,16 @@ struct FunctionFactory
     createVectorFunctionParabolic(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
-              Teuchos::ParameterList & aParamList,
-              std::string              strVectorFunctionType
+              Teuchos::ParameterList & aProblemParams,
+              std::string              aPDE
     )
     /******************************************************************************/
     {
-        if( strVectorFunctionType == "Parabolic" )
+        auto tLowerPDE = Plato::tolower(aPDE);
+        if( tLowerPDE == "parabolic" )
         {
-            auto tPenaltyParams = aParamList.sublist(strVectorFunctionType).sublist("Penalty Function");
-            std::string tPenaltyType = tPenaltyParams.get<std::string>("Type");
-            if( tPenaltyType == "SIMP" )
-            {
-                return std::make_shared<Plato::Parabolic::TransientThermomechResidual<EvaluationType, Plato::MSIMP>>
-                         (aSpatialDomain, aDataMap, aParamList, tPenaltyParams);
-            } else
-            if( tPenaltyType == "RAMP" )
-            {
-                return std::make_shared<Plato::Parabolic::TransientThermomechResidual<EvaluationType, Plato::RAMP>>
-                         (aSpatialDomain, aDataMap, aParamList, tPenaltyParams);
-            } else
-            if( tPenaltyType == "Heaviside" )
-            {
-                return std::make_shared<Plato::Parabolic::TransientThermomechResidual<EvaluationType, Plato::Heaviside>>
-                         (aSpatialDomain, aDataMap, aParamList, tPenaltyParams);
-            } else {
-                ANALYZE_THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
-            }
+            return Plato::makeVectorFunction<EvaluationType, Plato::Parabolic::TransientThermomechResidual>
+                     (aSpatialDomain, aDataMap, aProblemParams, aPDE);
         }
         else
         {
@@ -197,37 +181,17 @@ struct FunctionFactory
     createScalarFunctionParabolic(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
-              Teuchos::ParameterList & aParamList,
-              std::string              aStrScalarFunctionType,
-              std::string              aStrScalarFunctionName
+              Teuchos::ParameterList & aProblemParams,
+              std::string              aFuncType,
+              std::string              aFuncName
     )
     /******************************************************************************/
     {
-        auto tPenaltyParams = aParamList.sublist("Criteria").sublist(aStrScalarFunctionName).sublist("Penalty Function");
-        std::string tPenaltyType = tPenaltyParams.get<std::string>("Type");
-        if( aStrScalarFunctionType == "Internal Thermoelastic Energy" )
+        auto tLowerFuncType = Plato::tolower(aFuncType);
+        if(tLowerFuncType == "internal thermoelastic energy")
         {
-            if( tPenaltyType == "SIMP" )
-            {
-                return std::make_shared<Plato::Parabolic::InternalThermoelasticEnergy<EvaluationType, Plato::MSIMP>>
-                     (aSpatialDomain, aDataMap, aParamList, tPenaltyParams, aStrScalarFunctionName);
-            }
-            else
-            if( tPenaltyType == "RAMP" )
-            {
-                return std::make_shared<Plato::Parabolic::InternalThermoelasticEnergy<EvaluationType, Plato::RAMP>>
-                     (aSpatialDomain, aDataMap, aParamList, tPenaltyParams, aStrScalarFunctionName);
-            }
-            else
-            if( tPenaltyType == "Heaviside" )
-            {
-                return std::make_shared<Plato::Parabolic::InternalThermoelasticEnergy<EvaluationType, Plato::Heaviside>>
-                     (aSpatialDomain, aDataMap, aParamList, tPenaltyParams, aStrScalarFunctionName);
-            }
-            else
-            {
-                ANALYZE_THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
-            }
+            return Plato::makeScalarFunction<EvaluationType, Plato::Parabolic::InternalThermoelasticEnergy>
+                (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else
         {

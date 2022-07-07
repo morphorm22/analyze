@@ -9,7 +9,6 @@ namespace Parabolic
 {
 
 /******************************************************************************/
-template<typename EvaluationType>
 class TrapezoidIntegrator
 /******************************************************************************/
 {
@@ -30,7 +29,7 @@ public:
     }
 
     /******************************************************************************/
-    Plato::Scalar
+    Plato::Scalar inline
     v_grad_u( Plato::Scalar aTimeStep )
     /******************************************************************************/
     {
@@ -38,7 +37,7 @@ public:
     }
 
     /******************************************************************************/
-    Plato::Scalar
+    Plato::Scalar inline
     v_grad_u_prev( Plato::Scalar aTimeStep )
     /******************************************************************************/
     {
@@ -46,7 +45,7 @@ public:
     }
 
     /******************************************************************************/
-    Plato::Scalar
+    Plato::Scalar inline
     v_grad_v_prev( Plato::Scalar aTimeStep )
     /******************************************************************************/
     {
@@ -55,7 +54,7 @@ public:
 
 
     /******************************************************************************/
-    Plato::ScalarVector 
+    Plato::ScalarVector inline
     v_value(const Plato::ScalarVector & aU,
             const Plato::ScalarVector & aU_prev,
             const Plato::ScalarVector & aV,

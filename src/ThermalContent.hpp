@@ -45,6 +45,29 @@ class ThermalContent
 
     template<typename TScalarType, typename TRateScalarType, typename TContentScalarType>
     DEVICE_TYPE inline void
+    operator()(
+        TContentScalarType & aContent,
+        TRateScalarType      aTemperatureRate,
+        TScalarType          aTemperature
+    ) const
+    {
+      // compute thermal content
+      //
+      if (mModelType == Plato::MaterialModelType::Linear)
+      {
+          aContent = aTemperatureRate*mMassDensity*mSpecificHeat;
+      }
+      else
+      if (mModelType == Plato::MaterialModelType::Nonlinear)
+      {
+          TScalarType tMassDensity = mMassDensityFunctor(aTemperature);
+          TScalarType tSpecificHeat = mSpecificHeatFunctor(aTemperature);
+          aContent = aTemperatureRate*tMassDensity*tSpecificHeat;
+      }
+    }
+
+    template<typename TScalarType, typename TRateScalarType, typename TContentScalarType>
+    DEVICE_TYPE inline void
     operator()( Plato::OrdinalType cellOrdinal,
                 Plato::ScalarVectorT<TContentScalarType> tcontent,
                 Plato::ScalarVectorT<TRateScalarType> temperature_rate,

@@ -51,18 +51,7 @@ public:
 
 #include "Thermal.hpp"
 #include "Thermomechanics.hpp"
+#include "BaseExpInstMacros.hpp"
 
-#ifdef PLATOANALYZE_1D
-extern template class Plato::Parabolic::ScalarFunctionBaseFactory<::Plato::Thermal<1>>;
-extern template class Plato::Parabolic::ScalarFunctionBaseFactory<::Plato::Thermomechanics<1>>;
-#endif
-
-#ifdef PLATOANALYZE_2D
-extern template class Plato::Parabolic::ScalarFunctionBaseFactory<::Plato::Thermal<2>>;
-extern template class Plato::Parabolic::ScalarFunctionBaseFactory<::Plato::Thermomechanics<2>>;
-#endif
-
-#ifdef PLATOANALYZE_3D
-extern template class Plato::Parabolic::ScalarFunctionBaseFactory<::Plato::Thermal<3>>;
-extern template class Plato::Parabolic::ScalarFunctionBaseFactory<::Plato::Thermomechanics<3>>;
-#endif
+PLATO_ELEMENT_DEC(Plato::Parabolic::ScalarFunctionBaseFactory, Plato::Thermal)
+PLATO_ELEMENT_DEC(Plato::Parabolic::ScalarFunctionBaseFactory, Plato::Thermomechanics)
