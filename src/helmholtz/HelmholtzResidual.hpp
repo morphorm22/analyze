@@ -225,8 +225,8 @@ class HelmholtzResidual :
           for( Plato::OrdinalType tNode = 0; tNode < mNumNodesPerFace; tNode++ )
           {
             auto tLocalCellNode = tLocalNodeOrds(tNode);
-            aResult(tElementOrdinal, tLocalCellNode) += tSurfaceLengthScale * tLengthScale * tFilteredDensity *
-              tBasisValues(tNode) * tSurfaceArea;
+            Kokkos::atomic_add(&aResult(tElementOrdinal, tLocalCellNode), tSurfaceLengthScale * tLengthScale * tFilteredDensity *
+              tBasisValues(tNode) * tSurfaceArea);
           }
       }, "add surface mass to left-hand-side");
     }

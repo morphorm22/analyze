@@ -41,7 +41,7 @@ public:
         for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < ElementType::mNumNodesPerCell; tNodeIndex++)
         {
             Plato::OrdinalType tLocalOrdinal = tNodeIndex * ElementType::mNumDofsPerNode + DofOffset;
-            aOutput(aCellOrdinal, tLocalOrdinal) += aBasisFunctions(tNodeIndex) * ( aFilteredDensity - aUnfilteredDensity ) * aCellVolume;
+            Kokkos::atomic_add(&aOutput(aCellOrdinal, tLocalOrdinal), aBasisFunctions(tNodeIndex) * ( aFilteredDensity - aUnfilteredDensity ) * aCellVolume);
         }
     }
 };
