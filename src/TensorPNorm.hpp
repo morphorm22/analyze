@@ -384,12 +384,13 @@ public:
     {
         Plato::OrdinalType numCells = result.extent(0);
         auto exponent = TensorNormBase<VoigtLength, EvalT>::mExponent;
+        auto& tTensorPNorm = mTensorPNorm;
         Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, numCells),
                              LAMBDA_EXPRESSION(Plato::OrdinalType cellOrdinal)
                              {
                                  // compute tensor p-norm of tensor
                                  //
-                                 mTensorPNorm(cellOrdinal, result, tensor, exponent, cellVolume);
+                                 tTensorPNorm(cellOrdinal, result, tensor, exponent, cellVolume);
 
                              },
                              "Compute PNorm");
