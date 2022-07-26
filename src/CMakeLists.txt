@@ -160,7 +160,6 @@ if(ELLIPTIC)
       elliptic/hatching/ScalarFunctionBaseFactory.cpp
       elliptic/hatching/PhysicsScalarFunction.cpp
       elliptic/hatching/InternalElasticEnergy.cpp
-      elliptic/hatching/LinearStress.cpp
     )
   endif()
 endif()

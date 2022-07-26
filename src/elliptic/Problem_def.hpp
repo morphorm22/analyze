@@ -4,6 +4,7 @@
 
 #include "BLAS1.hpp"
 #include "Solutions.hpp"
+#include "ParseTools.hpp"
 #include "Geometrical.hpp"
 #include "EssentialBCs.hpp"
 #include "AnalyzeMacros.hpp"
@@ -13,8 +14,6 @@
 #include "MultipointConstraints.hpp"
 #include "elliptic/ScalarFunctionBaseFactory.hpp"
 #include "geometric/ScalarFunctionBaseFactory.hpp"
-#include "elliptic/ScalarFunctionBaseFactory_def.hpp"
-#include "geometric/ScalarFunctionBaseFactory_def.hpp"
 
 
 namespace Plato

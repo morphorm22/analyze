@@ -1,49 +1,82 @@
 #pragma once
 
-#define PLATO_ELLIPTIC_UPLAG_EXPL_DEF(C, T, D) \
-template class C<Plato::Elliptic::Hatching::ResidualTypes<T<D>>, Plato::MSIMP >; \
-template class C<Plato::Elliptic::Hatching::ResidualTypes<T<D>>, Plato::RAMP >; \
-template class C<Plato::Elliptic::Hatching::ResidualTypes<T<D>>, Plato::Heaviside >; \
-template class C<Plato::Elliptic::Hatching::JacobianTypes<T<D>>, Plato::MSIMP >; \
-template class C<Plato::Elliptic::Hatching::JacobianTypes<T<D>>, Plato::RAMP >; \
-template class C<Plato::Elliptic::Hatching::JacobianTypes<T<D>>, Plato::Heaviside >; \
-template class C<Plato::Elliptic::Hatching::GradientCTypes<T<D>>, Plato::MSIMP >; \
-template class C<Plato::Elliptic::Hatching::GradientCTypes<T<D>>, Plato::RAMP >; \
-template class C<Plato::Elliptic::Hatching::GradientCTypes<T<D>>, Plato::Heaviside >; \
-template class C<Plato::Elliptic::Hatching::GradientXTypes<T<D>>, Plato::MSIMP >; \
-template class C<Plato::Elliptic::Hatching::GradientXTypes<T<D>>, Plato::RAMP >; \
-template class C<Plato::Elliptic::Hatching::GradientXTypes<T<D>>, Plato::Heaviside >; \
-template class C<Plato::Elliptic::Hatching::GradientZTypes<T<D>>, Plato::MSIMP >; \
-template class C<Plato::Elliptic::Hatching::GradientZTypes<T<D>>, Plato::RAMP >; \
-template class C<Plato::Elliptic::Hatching::GradientZTypes<T<D>>, Plato::Heaviside >;
+#include "Ramp.hpp"
+#include "Simp.hpp"
+#include "Heaviside.hpp"
+#include "NoPenalty.hpp"
 
-#define PLATO_ELLIPTIC_UPLAG_EXPL_DEC(C, T, D) \
-extern template class C<Plato::Elliptic::Hatching::ResidualTypes<T<D>>, Plato::MSIMP >; \
-extern template class C<Plato::Elliptic::Hatching::ResidualTypes<T<D>>, Plato::RAMP >; \
-extern template class C<Plato::Elliptic::Hatching::ResidualTypes<T<D>>, Plato::Heaviside >; \
-extern template class C<Plato::Elliptic::Hatching::JacobianTypes<T<D>>, Plato::MSIMP >; \
-extern template class C<Plato::Elliptic::Hatching::JacobianTypes<T<D>>, Plato::RAMP >; \
-extern template class C<Plato::Elliptic::Hatching::JacobianTypes<T<D>>, Plato::Heaviside >; \
-extern template class C<Plato::Elliptic::Hatching::GradientCTypes<T<D>>, Plato::MSIMP >; \
-extern template class C<Plato::Elliptic::Hatching::GradientCTypes<T<D>>, Plato::RAMP >; \
-extern template class C<Plato::Elliptic::Hatching::GradientCTypes<T<D>>, Plato::Heaviside >; \
-extern template class C<Plato::Elliptic::Hatching::GradientXTypes<T<D>>, Plato::MSIMP >; \
-extern template class C<Plato::Elliptic::Hatching::GradientXTypes<T<D>>, Plato::RAMP >; \
-extern template class C<Plato::Elliptic::Hatching::GradientXTypes<T<D>>, Plato::Heaviside >; \
-extern template class C<Plato::Elliptic::Hatching::GradientZTypes<T<D>>, Plato::MSIMP >; \
-extern template class C<Plato::Elliptic::Hatching::GradientZTypes<T<D>>, Plato::RAMP >; \
-extern template class C<Plato::Elliptic::Hatching::GradientZTypes<T<D>>, Plato::Heaviside >;
+#include "Tet4.hpp"
+#include "Tri3.hpp"
+#include "Bar2.hpp"
+
+#include "Tet10.hpp"
+#include "Tri6.hpp"
+
+#ifdef PLATO_HEX_ELEMENTS
+#include "Hex8.hpp"
+#include "Quad4.hpp"
+
+#include "Hex27.hpp"
+#include "Quad9.hpp"
+#endif
+
+#include "elliptic/hatching/EvaluationTypes.hpp"
+
+#define PLATO_ELLIPTIC_HATCHING_EXP_INST_(C, T) \
+template class C<Plato::Elliptic::Hatching::ResidualTypes<T>, Plato::MSIMP >; \
+template class C<Plato::Elliptic::Hatching::ResidualTypes<T>, Plato::RAMP >; \
+template class C<Plato::Elliptic::Hatching::ResidualTypes<T>, Plato::Heaviside >; \
+template class C<Plato::Elliptic::Hatching::ResidualTypes<T>, Plato::NoPenalty >; \
+template class C<Plato::Elliptic::Hatching::JacobianTypes<T>, Plato::MSIMP >; \
+template class C<Plato::Elliptic::Hatching::JacobianTypes<T>, Plato::RAMP >; \
+template class C<Plato::Elliptic::Hatching::JacobianTypes<T>, Plato::Heaviside >; \
+template class C<Plato::Elliptic::Hatching::JacobianTypes<T>, Plato::NoPenalty >; \
+template class C<Plato::Elliptic::Hatching::GradientCTypes<T>, Plato::MSIMP >; \
+template class C<Plato::Elliptic::Hatching::GradientCTypes<T>, Plato::RAMP >; \
+template class C<Plato::Elliptic::Hatching::GradientCTypes<T>, Plato::Heaviside >; \
+template class C<Plato::Elliptic::Hatching::GradientCTypes<T>, Plato::NoPenalty >; \
+template class C<Plato::Elliptic::Hatching::GradientXTypes<T>, Plato::MSIMP >; \
+template class C<Plato::Elliptic::Hatching::GradientXTypes<T>, Plato::RAMP >; \
+template class C<Plato::Elliptic::Hatching::GradientXTypes<T>, Plato::Heaviside >; \
+template class C<Plato::Elliptic::Hatching::GradientXTypes<T>, Plato::NoPenalty >; \
+template class C<Plato::Elliptic::Hatching::GradientZTypes<T>, Plato::MSIMP >; \
+template class C<Plato::Elliptic::Hatching::GradientZTypes<T>, Plato::RAMP >; \
+template class C<Plato::Elliptic::Hatching::GradientZTypes<T>, Plato::Heaviside >; \
+template class C<Plato::Elliptic::Hatching::GradientZTypes<T>, Plato::NoPenalty >;
+
+#define PLATO_ELLIPTIC_HATCHING_EXP_INST_2_(C, T) \
+template class C<Plato::Elliptic::Hatching::ResidualTypes<T>>; \
+template class C<Plato::Elliptic::Hatching::JacobianTypes<T>>; \
+template class C<Plato::Elliptic::Hatching::GradientCTypes<T>>; \
+template class C<Plato::Elliptic::Hatching::GradientXTypes<T>>; \
+template class C<Plato::Elliptic::Hatching::GradientZTypes<T>>;
 
 
-#define PLATO_ELLIPTIC_UPLAG_EXPL_DEC2(C, T, D) \
-extern template class C<Plato::Elliptic::Hatching::ResidualTypes<T<D>>, T<D> >; \
-extern template class C<Plato::Elliptic::Hatching::JacobianTypes<T<D>>, T<D> >; \
-extern template class C<Plato::Elliptic::Hatching::GradientXTypes<T<D>>, T<D> >; \
-extern template class C<Plato::Elliptic::Hatching::GradientZTypes<T<D>>, T<D> >;
+#ifdef PLATO_HEX_ELEMENTS
+  #define PLATO_ELLIPTIC_HATCHING_EXP_INST(C, T) \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_(C, T<Plato::Tet4>); \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_(C, T<Plato::Tri3>); \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_(C, T<Plato::Tet10>); \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_(C, T<Plato::Hex8>); \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_(C, T<Plato::Quad4>); \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_(C, T<Plato::Hex27>);
 
-#define PLATO_ELLIPTIC_UPLAG_EXPL_DEF2(C, T, D) \
-template class C<Plato::Elliptic::Hatching::ResidualTypes<T<D>>, T<D> >; \
-template class C<Plato::Elliptic::Hatching::JacobianTypes<T<D>>, T<D> >; \
-template class C<Plato::Elliptic::Hatching::GradientXTypes<T<D>>, T<D> >; \
-template class C<Plato::Elliptic::Hatching::GradientZTypes<T<D>>, T<D> >;
+  #define PLATO_ELLIPTIC_HATCHING_EXP_INST_2(C, T) \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_2_(C, T<Plato::Tet4>); \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_2_(C, T<Plato::Tri3>); \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_2_(C, T<Plato::Tet10>); \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_2_(C, T<Plato::Hex8>); \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_2_(C, T<Plato::Quad4>); \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_2_(C, T<Plato::Hex27>);
+#else
+  #define PLATO_ELLIPTIC_HATCHING_EXP_INST(C, T) \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_(C, T<Plato::Tet4>); \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_(C, T<Plato::Tri3>); \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_(C, T<Plato::Tet10>);
+
+  #define PLATO_ELLIPTIC_HATCHING_EXP_INST_2(C, T) \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_2_(C, T<Plato::Tet4>); \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_2_(C, T<Plato::Tri3>); \
+  PLATO_ELLIPTIC_HATCHING_EXP_INST_2_(C, T<Plato::Tet10>);
+#endif
 

@@ -34,6 +34,7 @@
 #ifdef PLATO_ELLIPTIC
 #include "elliptic/Problem.hpp"
   #ifdef PLATO_HATCHING
+  #include "elliptic/hatching/Mechanics.hpp"
   #include "elliptic/hatching/Problem.hpp"
   #endif
 #endif

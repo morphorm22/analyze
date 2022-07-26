@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SmallStrain.hpp"
+#include "WorksetBase.hpp"
 #include "SpatialModel.hpp"
 #include "GradientMatrix.hpp"
 #include "PlatoStaticsTypes.hpp"

@@ -1,14 +1,12 @@
-#include "elliptic/hatching/InternalElasticEnergy.hpp"
+#include "elliptic/hatching/InternalElasticEnergy_decl.hpp"
+
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
+
+#include "elliptic/hatching/InternalElasticEnergy_def.hpp"
+
+#include "elliptic/hatching/MechanicsElement.hpp"
 #include "elliptic/hatching/ExpInstMacros.hpp"
 
-#ifdef PLATOANALYZE_1D
-//TODO PLATO_ELLIPTIC_UPLAG_EXPL_DEF(Plato::Elliptic::Hatching::InternalElasticEnergy, Plato::Elliptic::Hatching::SimplexMechanics, 1)
-#endif
+PLATO_ELLIPTIC_HATCHING_EXP_INST(Plato::Elliptic::Hatching::InternalElasticEnergy, Plato::Elliptic::Hatching::MechanicsElement)
 
-#ifdef PLATOANALYZE_2D
-//TODO PLATO_ELLIPTIC_UPLAG_EXPL_DEF(Plato::Elliptic::Hatching::InternalElasticEnergy, Plato::Elliptic::Hatching::SimplexMechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-//TODO PLATO_ELLIPTIC_UPLAG_EXPL_DEF(Plato::Elliptic::Hatching::InternalElasticEnergy, Plato::Elliptic::Hatching::SimplexMechanics, 3)
 #endif

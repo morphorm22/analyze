@@ -2,11 +2,13 @@
 #include "Teuchos_UnitTestHarness.hpp"
 
 #include "Tet4.hpp"
+#include "ToMap.hpp"
 #include "BLAS1.hpp"
 #include "SpatialModel.hpp"
 #include "PlatoSequence.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "elliptic/hatching/Problem.hpp"
+#include "elliptic/hatching/Mechanics.hpp"
 #include "elliptic/hatching/PhysicsScalarFunction.hpp"
 
 namespace HatchingTestUtils
