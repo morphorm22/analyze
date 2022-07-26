@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Simplex.hpp"
-
 namespace Plato
 {
 
