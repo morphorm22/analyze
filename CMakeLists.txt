@@ -32,7 +32,7 @@ option(STABILIZED      "Compile with Stabilized VMS physics" OFF) # TODO
 option(PLASTICITY      "Compile with Plasticity physics"     OFF) # TODO
 option(HELMHOLTZ       "Compile with Helmholtz filter"       OFF) # TODO
 option(EXPRESSION      "Compile with Expression evaluator"   OFF) # TODO: fix this.  expression evaluator is on regardless.
-option(HATCHING        "Compile with hatching algorithm"     OFF) # TODO
+option(HATCHING        "Compile with hatching algorithm"     ON )
 
 option(PLATOANALYZE_UNIT_TEST   "Flag to enable unit tests"  ON)
 option(PLATOANALYZE_SMOKE_TESTS "Flag to enable smoke tests" ON)

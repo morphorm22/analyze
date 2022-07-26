@@ -19,16 +19,17 @@ class Tet4
     static constexpr Plato::OrdinalType mNumSpatialDims  = 3;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 4;
     static constexpr Plato::OrdinalType mNumNodesPerFace = 3;
+    static constexpr Plato::OrdinalType mNumGaussPoints  = 1;
 
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
 
-    static inline Plato::Array<1>
-    getCubWeights() { return Plato::Array<1>({Plato::Scalar(1.0)/6}); }
+    static inline Plato::Array<mNumGaussPoints>
+    getCubWeights() { return Plato::Array<mNumGaussPoints>({Plato::Scalar(1.0)/6}); }
 
-    static inline Plato::Matrix<1,mNumSpatialDims>
+    static inline Plato::Matrix<mNumGaussPoints,mNumSpatialDims>
     getCubPoints()
     {
-        return Plato::Matrix<1,mNumSpatialDims>({
+        return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>({
             Plato::Scalar(1.0)/4, Plato::Scalar(1.0)/4, Plato::Scalar(1.0)/4
         });
     }

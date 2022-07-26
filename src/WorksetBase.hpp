@@ -236,8 +236,11 @@ public:
      * \param [in] aLocalState local state (scalar type), as a 1-D Kokkos::View
      * \param [in/out] aLocalStateWS local state workset (scalar type), as a 2-D Kokkos::View
     **********************************************************************************/
-    void worksetLocalState( const Plato::ScalarVectorT<Plato::Scalar> & aLocalState,
-                                  Plato::ScalarMultiVectorT<Plato::Scalar> & aLocalStateWS ) const
+    void
+    worksetLocalState(
+        const Plato::ScalarArray3DT<Plato::Scalar> & aLocalState,
+              Plato::ScalarArray3DT<Plato::Scalar> & aLocalStateWS
+    ) const
     {
       Plato::workset_local_state_scalar_scalar<mNumLocalDofsPerCell>(
               mNumCells, aLocalState, aLocalStateWS);
@@ -250,9 +253,9 @@ public:
     **********************************************************************************/
     void
     worksetLocalState(
-        const Plato::ScalarVectorT<Plato::Scalar>      & aLocalState,
-              Plato::ScalarMultiVectorT<Plato::Scalar> & aLocalStateWS,
-        const Plato::SpatialDomain                     & aDomain
+        const Plato::ScalarArray3DT<Plato::Scalar> & aLocalState,
+              Plato::ScalarArray3DT<Plato::Scalar> & aLocalStateWS,
+        const Plato::SpatialDomain                 & aDomain
     ) const
     {
       Plato::workset_local_state_scalar_scalar<mNumLocalDofsPerCell>(
@@ -264,8 +267,11 @@ public:
      * \param [in] aLocalState local state (scalar type), as a 1-D Kokkos::View
      * \param [in/out] aFadLocalStateWS local state workset (AD type), as a 2-D Kokkos::View
     **********************************************************************************/
-    void worksetLocalState( const Plato::ScalarVectorT<Plato::Scalar> & aLocalState,
-                            Plato::ScalarMultiVectorT<LocalStateFad>  & aFadLocalStateWS ) const
+    void
+    worksetLocalState(
+        const Plato::ScalarArray3DT<Plato::Scalar> & aLocalState,
+              Plato::ScalarArray3DT<LocalStateFad> & aFadLocalStateWS
+    ) const
     {
       Plato::workset_local_state_scalar_fad<mNumLocalDofsPerCell, LocalStateFad>(
               mNumCells, aLocalState, aFadLocalStateWS);
@@ -278,9 +284,9 @@ public:
     **********************************************************************************/
     void
     worksetLocalState(
-        const Plato::ScalarVectorT<Plato::Scalar>      & aLocalState,
-              Plato::ScalarMultiVectorT<LocalStateFad> & aFadLocalStateWS,
-        const Plato::SpatialDomain                     & aDomain
+        const Plato::ScalarArray3DT<Plato::Scalar> & aLocalState,
+              Plato::ScalarArray3DT<LocalStateFad> & aFadLocalStateWS,
+        const Plato::SpatialDomain                 & aDomain
     ) const
     {
       Plato::workset_local_state_scalar_fad<mNumLocalDofsPerCell, LocalStateFad>(
@@ -682,6 +688,61 @@ public:
     ) const
     {
         Plato::assemble_transpose_jacobian
+            (mNumCells, aNumRowsPerCell, aNumColumnsPerCell, aMatrixEntryOrdinal, aJacobianWorkset, aReturnValue);
+    }
+
+    /******************************************************************************//**
+     * \brief Assemble transpose Jacobian
+     *
+     * \tparam MatrixEntriesOrdinalType Input container of matrix ordinal
+     * \tparam JacobianWorksetType Input container, as a 2-D Kokkos::View
+     * \tparam AssembledJacobianType Output container, as a 1-D Kokkos::View
+     *
+     * \param [in] aNumRowsPerCell     number of rows per matrix - (use row count from untransposed matrix)
+     * \param [in] aNumColumnsPerCell  number of columns per matrix - (use column count from untransposed matrix)
+     * \param [in] aMatrixEntryOrdinal Jacobian entry ordinal (i.e. local-to-global ID map)
+     * \param [in] aJacobianWorkset    workset of cell Jacobians
+     * \param [in/out] aReturnValue    assembled transposed Jacobian
+    **********************************************************************************/
+    template<class MatrixEntriesOrdinalType, class JacobianWorksetType, class AssembledJacobianType>
+    void
+    assembleStateJacobianTranspose(
+              Plato::OrdinalType         aNumRowsPerCell,
+              Plato::OrdinalType         aNumColumnsPerCell,
+        const MatrixEntriesOrdinalType & aMatrixEntryOrdinal,
+        const JacobianWorksetType      & aJacobianWorkset,
+              AssembledJacobianType    & aReturnValue,
+        const Plato::SpatialDomain     & aDomain
+    ) const
+    {
+        Plato::assemble_state_jacobian_transpose
+            (aDomain, aNumRowsPerCell, aNumColumnsPerCell, aMatrixEntryOrdinal, aJacobianWorkset, aReturnValue);
+    }
+
+    /******************************************************************************//**
+     * \brief Assemble transpose Jacobian
+     *
+     * \tparam MatrixEntriesOrdinalType Input container of matrix ordinal
+     * \tparam JacobianWorksetType Input container, as a 2-D Kokkos::View
+     * \tparam AssembledJacobianType Output container, as a 1-D Kokkos::View
+     *
+     * \param [in] aNumRowsPerCell     number of rows per matrix - (use row count from untransposed matrix)
+     * \param [in] aNumColumnsPerCell  number of columns per matrix - (use column count from untransposed matrix)
+     * \param [in] aMatrixEntryOrdinal Jacobian entry ordinal (i.e. local-to-global ID map)
+     * \param [in] aJacobianWorkset    workset of cell Jacobians
+     * \param [in/out] aReturnValue    assembled transposed Jacobian
+    **********************************************************************************/
+    template<class MatrixEntriesOrdinalType, class JacobianWorksetType, class AssembledJacobianType>
+    void
+    assembleStateJacobianTranspose(
+              Plato::OrdinalType         aNumRowsPerCell,
+              Plato::OrdinalType         aNumColumnsPerCell,
+        const MatrixEntriesOrdinalType & aMatrixEntryOrdinal,
+        const JacobianWorksetType      & aJacobianWorkset,
+              AssembledJacobianType    & aReturnValue
+    ) const
+    {
+        Plato::assemble_state_jacobian_transpose
             (mNumCells, aNumRowsPerCell, aNumColumnsPerCell, aMatrixEntryOrdinal, aJacobianWorkset, aReturnValue);
     }
 

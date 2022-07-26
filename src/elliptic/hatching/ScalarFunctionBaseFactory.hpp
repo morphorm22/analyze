@@ -14,15 +14,17 @@ namespace Plato
 namespace Elliptic
 {
 
-namespace UpdatedLagrangian
+namespace Hatching
 {
 
 /******************************************************************************//**
  * \brief Scalar function base factory
  **********************************************************************************/
-template<typename PhysicsT>
+template<typename PhysicsType>
 class ScalarFunctionBaseFactory
 {
+    using ElementType = typename PhysicsType::ElementType;
+
 public:
     /******************************************************************************//**
      * \brief Constructor
@@ -41,17 +43,17 @@ public:
      * \param [in] aInputParams parameter input
      * \param [in] aFunctionName name of function in parameter list
      **********************************************************************************/
-    std::shared_ptr<Plato::Elliptic::UpdatedLagrangian::ScalarFunctionBase> 
+    std::shared_ptr<Plato::Elliptic::Hatching::ScalarFunctionBase> 
     create(
-              Plato::SpatialModel                 & aSpatialModel,
-        const Plato::Sequence<PhysicsT::SpaceDim> & aSequence,
-              Plato::DataMap                      & aDataMap,
-              Teuchos::ParameterList              & aInputParams,
-              std::string                         & aFunctionName);
+              Plato::SpatialModel          & aSpatialModel,
+        const Plato::Sequence<ElementType> & aSequence,
+              Plato::DataMap               & aDataMap,
+              Teuchos::ParameterList       & aInputParams,
+              std::string                  & aFunctionName);
 };
 // class ScalarFunctionBaseFactory
 
-} // namespace UpdatedLagrangian
+} // namespace Hatching
 
 } // namespace Elliptic
 
@@ -60,13 +62,13 @@ public:
 #include "elliptic/hatching/Mechanics.hpp"
 
 #ifdef PLATOANALYZE_1D
-extern template class Plato::Elliptic::UpdatedLagrangian::ScalarFunctionBaseFactory<::Plato::Elliptic::UpdatedLagrangian::Mechanics<1>>;
+// TODO extern template class Plato::Elliptic::Hatching::ScalarFunctionBaseFactory<::Plato::Elliptic::Hatching::Mechanics<1>>;
 #endif
 
 #ifdef PLATOANALYZE_2D
-extern template class Plato::Elliptic::UpdatedLagrangian::ScalarFunctionBaseFactory<::Plato::Elliptic::UpdatedLagrangian::Mechanics<2>>;
+// TODO extern template class Plato::Elliptic::Hatching::ScalarFunctionBaseFactory<::Plato::Elliptic::Hatching::Mechanics<2>>;
 #endif
 
 #ifdef PLATOANALYZE_3D
-extern template class Plato::Elliptic::UpdatedLagrangian::ScalarFunctionBaseFactory<::Plato::Elliptic::UpdatedLagrangian::Mechanics<3>>;
+// TODO extern template class Plato::Elliptic::Hatching::ScalarFunctionBaseFactory<::Plato::Elliptic::Hatching::Mechanics<3>>;
 #endif

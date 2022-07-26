@@ -165,11 +165,9 @@ create_mechanical_problem
     }
     else
   #ifdef PLATO_HATCHING
-    if(tLowerPDE == "updated lagrangian elliptic")
+    if(tLowerPDE == "elliptic hatching")
     {
-        using PhysicsType = Plato::Elliptic::UpdatedLagrangian::Mechanics<SpatialDim>;
-        auto tOutput = std::make_shared<Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType>> (aMesh, aPlatoProb, aMachine);
-        return tOutput;
+        return makeProblem<Plato::Elliptic::Hatching::Problem, Plato::Elliptic::Hatching::Mechanics>(aMesh, aPlatoProb, aMachine);
     }
   #endif
 #endif

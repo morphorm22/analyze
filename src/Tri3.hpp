@@ -17,16 +17,17 @@ class Tri3
     static constexpr Plato::OrdinalType mNumSpatialDims  = 2;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 3;
     static constexpr Plato::OrdinalType mNumNodesPerFace = 2;
+    static constexpr Plato::OrdinalType mNumGaussPoints  = 1;
 
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
 
-    static inline Plato::Array<1>
-    getCubWeights() { return Plato::Array<1>({Plato::Scalar(1)/2}); }
+    static inline Plato::Array<mNumGaussPoints>
+    getCubWeights() { return Plato::Array<mNumGaussPoints>({Plato::Scalar(1)/2}); }
 
-    static inline Plato::Matrix<1,mNumSpatialDims>
+    static inline Plato::Matrix<mNumGaussPoints,mNumSpatialDims>
     getCubPoints()
     {
-        return Plato::Matrix<1,mNumSpatialDims>({
+        return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>({
             Plato::Scalar(1)/3, Plato::Scalar(1)/3
         });
     }

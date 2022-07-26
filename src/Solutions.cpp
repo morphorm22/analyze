@@ -48,6 +48,18 @@ void Solutions::set(const std::string& aTag, const Plato::ScalarMultiVector& aDa
     mSolution[tLowerTag] = aData;
 }
 
+void Solutions::set(const std::string& aTag, const Plato::ScalarArray3D& aData)
+{
+    auto tLowerTag = Plato::tolower(aTag);
+    mSolutionArray3D[tLowerTag] = aData;
+}
+
+void Solutions::set(const std::string& aTag, const Plato::ScalarArray4D& aData)
+{
+    auto tLowerTag = Plato::tolower(aTag);
+    mSolutionArray4D[tLowerTag] = aData;
+}
+
 void
 Solutions::set(
     const std::string              & aTag,
@@ -68,6 +80,28 @@ Plato::ScalarMultiVector Solutions::get(const std::string& aTag) const
         ANALYZE_THROWERR(std::string("Solution with tag '") + aTag + "' is not defined.")
     }
     return tItr->second;
+}
+
+void Solutions::get(const std::string& aTag, Plato::ScalarArray3D & aData) const
+{
+    auto tLowerTag = Plato::tolower(aTag);
+    auto tItr = mSolutionArray3D.find(tLowerTag);
+    if(tItr == mSolutionArray3D.end())
+    {
+        ANALYZE_THROWERR(std::string("Solution of type ScalarArray3D with tag '") + aTag + "' is not defined.")
+    }
+    aData = tItr->second;
+}
+
+void Solutions::get(const std::string& aTag, Plato::ScalarArray4D & aData) const
+{
+    auto tLowerTag = Plato::tolower(aTag);
+    auto tItr = mSolutionArray4D.find(tLowerTag);
+    if(tItr == mSolutionArray4D.end())
+    {
+        ANALYZE_THROWERR(std::string("Solution of type ScalarArray4D with tag '") + aTag + "' is not defined.")
+    }
+    aData = tItr->second;
 }
 
 void Solutions::setNumDofs(const std::string& aTag, const Plato::OrdinalType& aNumDofs)

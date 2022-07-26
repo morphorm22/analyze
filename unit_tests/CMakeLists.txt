@@ -17,10 +17,7 @@ include (${CMAKE_CURRENT_SOURCE_DIR}/add_test.cmake)
 #TODO: update StructuralDynamics to new element
 #Plato_add_test(PlatoFunctors PlatoFunctorsTest.cpp)
 
-#TODO: update hatched inherent strain to new element
-#Plato_add_test(EllipticUpdLag EllipticUpdLagTests.cpp)
-
-
+Plato_add_test(EllipticHatching EllipticHatchingTests.cpp)
 Plato_add_test(MassProperties MassPropertiesTests.cpp)
 Plato_add_test(VolumeAverageCriterion VolumeAverageCriterionTests.cpp SKIP_MATH)
 Plato_add_test(GeometryMisfit GeometryMisfitTests.cpp)

@@ -612,8 +612,6 @@ class BlockMatrixTransposeEntryOrdinal
     }
 };
 
-// TODO delete. code below is tet4 specific
-#ifdef COMPILE_DEAD_CODE
 /******************************************************************************/
 template<Plato::OrdinalType SpaceDim, Plato::OrdinalType BlockSize_I, Plato::OrdinalType BlockSize_J>
 class LocalByGlobalEntryFunctor
@@ -655,13 +653,12 @@ class LocalByGlobalEntryFunctor
         return Plato::OrdinalType(-1);
     }
 };
-/******************************************************************************/
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode_I, Plato::OrdinalType DofsPerElem_J>
+//template<Plato::OrdinalType mNumNodesPerCell, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofsPerGP>
+template<typename ElementType>
 class GlobalByLocalEntryFunctor
 {
-  private:
     const typename CrsMatrixType::RowMapVectorT mRowMap;
     const typename CrsMatrixType::OrdinalVectorT mColumnIndices;
     const Plato::OrdinalVectorT<const Plato::OrdinalType> mCells2nodes;
@@ -675,26 +672,29 @@ class GlobalByLocalEntryFunctor
     DEVICE_TYPE
     inline
     Plato::OrdinalType
-    operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType icellDof, Plato::OrdinalType jcellDof) const
+    operator()(
+        Plato::OrdinalType cellOrdinal,
+        Plato::OrdinalType gpOrdinal,
+        Plato::OrdinalType icellDof,
+        Plato::OrdinalType jcellDof
+    ) const
     {
-        auto iNode = icellDof / DofsPerNode_I;
-        auto iDof  = icellDof % DofsPerNode_I;
-        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * (SpaceDim+1) + iNode);
-        Plato::OrdinalType jLocalOrdinal = cellOrdinal;
+        auto iNode = icellDof / ElementType::mNumDofsPerNode;
+        auto iDof  = icellDof % ElementType::mNumDofsPerNode;
+        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * ElementType::mNumNodesPerCell + iNode);
+        Plato::OrdinalType jLocalOrdinal = cellOrdinal*ElementType::mNumGaussPoints + gpOrdinal;
         Plato::OrdinalType rowStart = mRowMap(iLocalOrdinal);
         Plato::OrdinalType rowEnd   = mRowMap(iLocalOrdinal+1);
         for (Plato::OrdinalType entryOrdinal=rowStart; entryOrdinal<rowEnd; entryOrdinal++)
         {
           if (mColumnIndices(entryOrdinal) == jLocalOrdinal)
           {
-            return entryOrdinal*DofsPerNode_I*DofsPerElem_J+iDof*DofsPerElem_J+jcellDof;
+            return entryOrdinal*ElementType::mNumDofsPerNode*ElementType::mNumLocalStatesPerGP+iDof*ElementType::mNumLocalStatesPerGP+jcellDof;
           }
         }
         return Plato::OrdinalType(-1);
     }
 };
-/******************************************************************************/
-#endif
 
 /******************************************************************************/
 template<Plato::OrdinalType SpaceDim,
@@ -797,9 +797,7 @@ class MatrixEntryOrdinal
   number of non-zero block entries (NNodesPerCell)
 */
 template <typename MatrixType,
-          Plato::OrdinalType NodesPerElem,
-          Plato::OrdinalType DofsPerNode_I,
-          Plato::OrdinalType DofsPerElem_J>
+          typename ElementType>
 Teuchos::RCP<MatrixType>
 CreateGlobalByLocalBlockMatrix( Plato::Mesh aMesh )
 /******************************************************************************/
@@ -810,9 +808,9 @@ CreateGlobalByLocalBlockMatrix( Plato::Mesh aMesh )
 
     auto tNumElems = aMesh->NumElements();
     auto tNumNodes = aMesh->NumNodes();
-    auto tNumNonZeros = tNumElems*NodesPerElem;
+    auto tNumNonZeros = tNumElems*ElementType::mNumGaussPoints*ElementType::mNumNodesPerCell;
 
-    constexpr Plato::OrdinalType numBlockDofs = DofsPerNode_I*DofsPerElem_J;
+    constexpr Plato::OrdinalType numBlockDofs = ElementType::mNumDofsPerNode*ElementType::mNumLocalStatesPerGP;
 
     typename MatrixType::RowMapVectorT  rowMap        ("row map",        tNumNodes+1);
     typename MatrixType::ScalarVectorT  entries       ("matrix entries", tNumNonZeros*numBlockDofs);
@@ -822,21 +820,25 @@ CreateGlobalByLocalBlockMatrix( Plato::Mesh aMesh )
     {
       auto tFrom = tOffsetMap(aNodeOrdinal);
       auto tTo   = tOffsetMap(aNodeOrdinal+1);
-      rowMap(aNodeOrdinal)   = tFrom;
-      rowMap(aNodeOrdinal+1) = tTo;
+      rowMap(aNodeOrdinal)   = ElementType::mNumGaussPoints*tFrom;
+      rowMap(aNodeOrdinal+1) = ElementType::mNumGaussPoints*tTo;
 
-      for( decltype(tFrom) tColumnEntry = tFrom; tColumnEntry < tTo; tColumnEntry++ )
+      for( decltype(tFrom) tOffset = tFrom; tOffset < tTo; tOffset++ )
       {
-          columnIndices(tColumnEntry) = tElementOrds(tColumnEntry);
+          for( decltype(tFrom) tGPOrd = 0; tGPOrd < ElementType::mNumGaussPoints; tGPOrd++ )
+          {
+              auto tColumnEntry = ElementType::mNumGaussPoints * tOffset + tGPOrd;
+              columnIndices(tColumnEntry) = ElementType::mNumGaussPoints*tElementOrds(tOffset) + tGPOrd;
+          }
       }
     });
 
     auto retMatrix = Teuchos::rcp(
      new MatrixType( rowMap, columnIndices, entries,
-                     tNumNodes*DofsPerNode_I,
-                     tNumElems*DofsPerElem_J,
-                     DofsPerNode_I,
-                     DofsPerElem_J )
+                     tNumNodes*ElementType::mNumDofsPerNode,
+                     tNumElems*ElementType::mNumGaussPoints*ElementType::mNumLocalStatesPerGP,
+                     ElementType::mNumDofsPerNode,
+                     ElementType::mNumLocalStatesPerGP )
     );
     return retMatrix;
 }

@@ -15,22 +15,23 @@ class Bar2
     static constexpr Plato::OrdinalType mNumSpatialDims  = 1;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 2;
     static constexpr Plato::OrdinalType mNumNodesPerFace = 1;
+    static constexpr Plato::OrdinalType mNumGaussPoints  = 2;
 
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
 
-    static inline Plato::Array<2>
+    static inline Plato::Array<mNumGaussPoints>
     getCubWeights()
     {
-        return Plato::Array<2>({
+        return Plato::Array<mNumGaussPoints>({
             Plato::Scalar(1.0), Plato::Scalar(1.0)
         });
     }
 
-    static inline Plato::Matrix<2,mNumSpatialDims>
+    static inline Plato::Matrix<mNumGaussPoints,mNumSpatialDims>
     getCubPoints()
     {
         const Plato::Scalar sqt = 0.57735026918962584208117050366127; // sqrt(1.0/3.0)
-        return Plato::Matrix<2,mNumSpatialDims>({ -sqt,  sqt });
+        return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>({ -sqt,  sqt });
     }
 
     DEVICE_TYPE static inline Plato::Array<mNumNodesPerCell>

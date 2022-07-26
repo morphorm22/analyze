@@ -26,8 +26,10 @@
 #include "geometric/ScalarFunctionBaseFactory.hpp"
 
 #include "elliptic/hatching/VectorFunction.hpp"
-#include "elliptic/hatching/LagrangianUpdate.hpp"
+#include "elliptic/hatching/StateUpdate.hpp"
 #include "elliptic/hatching/ScalarFunctionBaseFactory.hpp"
+// TODO: remove this (temporarily allowing implicit instantiation)
+#include "elliptic/hatching/ScalarFunctionBaseFactory_def.hpp"
 #include "AnalyzeMacros.hpp"
 
 #include "alg/ParallelComm.hpp"
@@ -39,31 +41,31 @@ namespace Plato
 namespace Elliptic
 {
 
-namespace UpdatedLagrangian
+namespace Hatching
 {
 
 /******************************************************************************//**
  * \brief Manage scalar and vector function evaluations
 **********************************************************************************/
-template<typename PhysicsT>
+template<typename PhysicsType>
 class Problem: public Plato::AbstractProblem
 {
 private:
 
-    using Criterion       = std::shared_ptr<Plato::Elliptic::UpdatedLagrangian::ScalarFunctionBase>;
+    using Criterion       = std::shared_ptr<Plato::Elliptic::Hatching::ScalarFunctionBase>;
     using Criteria        = std::map<std::string, Criterion>;
 
     using LinearCriterion = std::shared_ptr<Plato::Geometric::ScalarFunctionBase>;
     using LinearCriteria  = std::map<std::string, LinearCriterion>;
 
-    static constexpr Plato::OrdinalType SpatialDim = PhysicsT::mNumSpatialDims;
-    static constexpr Plato::OrdinalType NumVoigtTerms = PhysicsT::mNumVoigtTerms;
+    using ElementType = typename PhysicsType::ElementType;
+    using TopoElementType = typename ElementType::TopoElementType;
 
-    using VectorFunctionType = Plato::Elliptic::UpdatedLagrangian::VectorFunction<PhysicsT>;
+    using VectorFunctionType = Plato::Elliptic::Hatching::VectorFunction<PhysicsType>;
 
     Plato::SpatialModel mSpatialModel; /*!< SpatialModel instance contains the mesh, meshsets, domains, etc. */
 
-    Plato::Sequence<SpatialDim> mSequence;
+    Plato::Sequence<ElementType> mSequence;
 
     std::shared_ptr<VectorFunctionType> mPDE; /*!< equality constraint interface */
 
@@ -81,7 +83,7 @@ private:
 
     Plato::ScalarMultiVector mGlobalStates;
     Plato::ScalarMultiVector mTotalStates;
-    Plato::ScalarMultiVector mLocalStates;
+    Plato::ScalarArray4D     mLocalStates;
 
     bool mIsSelfAdjoint; /*!< indicates if problem is self-adjoint */
 
@@ -93,7 +95,7 @@ private:
 
     rcp<Plato::AbstractSolver> mSolver;
 
-    Plato::LagrangianUpdate<PhysicsT> mLagrangianUpdate;
+    Plato::StateUpdate<PhysicsType> mStateUpdate;
 
     std::string mPDEType; /*!< partial differential equation type */
     std::string mPhysics; /*!< physics used for the simulation */
@@ -115,21 +117,21 @@ public:
       mNumNewtonSteps(Plato::ParseTools::getSubParam<int>   (aProblemParams, "Newton Iteration", "Maximum Iterations",  1  )),
       mNewtonIncTol  (Plato::ParseTools::getSubParam<double>(aProblemParams, "Newton Iteration", "Increment Tolerance", 0.0)),
       mNewtonResTol  (Plato::ParseTools::getSubParam<double>(aProblemParams, "Newton Iteration", "Residual Tolerance",  0.0)),
-      mSaveState     (aProblemParams.sublist("Updated Lagrangian Elliptic").isType<Teuchos::Array<std::string>>("Plottable")),
+      mSaveState     (aProblemParams.sublist("Elliptic Hatching").isType<Teuchos::Array<std::string>>("Plottable")),
       mResidual      ("MyResidual", mPDE->size()),
       mGlobalStates  ("Global states", mSequence.getNumSteps(), mPDE->size()),
       mTotalStates   ("Total states",  mSequence.getNumSteps(), mPDE->size()),
-      mLocalStates   ("Local states",  mSequence.getNumSteps(), mPDE->stateSize()),
+      mLocalStates   ("Local states",  mSequence.getNumSteps(), aMesh->NumElements(), ElementType::mNumGaussPoints, ElementType::mNumVoigtTerms),
       mGlobalJacobian(Teuchos::null),
       mIsSelfAdjoint (aProblemParams.get<bool>("Self-Adjoint", false)),
-      mLagrangianUpdate(mSpatialModel),
+      mStateUpdate   (mSpatialModel),
       mPDEType       (aProblemParams.get<std::string>("PDE Constraint")),
       mPhysics       (aProblemParams.get<std::string>("Physics"))
     {
         this->initialize(aProblemParams);
 
         Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
-        mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, PhysicsT::mNumDofsPerNode);
+        mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode);
     }
 
     ~Problem(){}
@@ -183,11 +185,11 @@ public:
     {
         if(mGlobalJacobian->isBlockMatrix())
         {
-            Plato::applyBlockConstraints<PhysicsT::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, mBcValues, aScale);
+            Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, mBcValues, aScale);
         }
         else
         {
-            Plato::applyConstraints<PhysicsT::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, mBcValues, aScale);
+            Plato::applyConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, mBcValues, aScale);
         }
     }
     
@@ -248,10 +250,10 @@ public:
 
             mSpatialModel.applyMask(tSequenceStep.getMask());
 
-            Plato::ScalarVector tLocalState;
+            Plato::ScalarArray3D tLocalState;
             if (tStepIndex > 0)
             {
-                tLocalState  = Kokkos::subview(mLocalStates, tStepIndex-1, Kokkos::ALL());
+                tLocalState  = Kokkos::subview(mLocalStates, tStepIndex-1, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL());
 
                 // copy forward the previous total state
                 Kokkos::deep_copy(tTotalState, Kokkos::subview(mTotalStates, tStepIndex-1, Kokkos::ALL()));
@@ -259,7 +261,7 @@ public:
             else
             {
                 // kokkos initializes new views to zero.
-                tLocalState  = Plato::ScalarVector("initial local state",  mPDE->stateSize());
+                tLocalState  = Plato::ScalarArray3D("initial local state", numCells(), ElementType::mNumGaussPoints, ElementType::mNumVoigtTerms);
             }
 
             // inner loop for non-linear models
@@ -285,7 +287,7 @@ public:
                 Plato::ScalarVector tDeltaD("increment", tGlobalState.extent(0));
                 Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tDeltaD);
 
-                tSequenceStep.template constrainInactiveNodes<PhysicsT::mNumDofsPerNode>(mGlobalJacobian, mResidual);
+                tSequenceStep.template constrainInactiveNodes<ElementType::mNumDofsPerNode>(mGlobalJacobian, mResidual);
 
                 mSolver->solve(*mGlobalJacobian, tDeltaD, mResidual);
                 Plato::blas1::axpy(1.0, tDeltaD, tGlobalState);
@@ -303,9 +305,9 @@ public:
             // compute residual at end state
             mResidual  = mPDE->value(tGlobalState, tLocalState, aControl);
 
-            Plato::ScalarVector tUpdatedLocalState = Kokkos::subview(mLocalStates, tStepIndex, Kokkos::ALL());
-            mDataMap.scalarMultiVectors["total strain"] = Plato::ScalarMultiVector("total strain", numCells(), NumVoigtTerms);
-            mLagrangianUpdate(mDataMap, tLocalState, tUpdatedLocalState);
+            Plato::ScalarArray3D tUpdatedLocalState = Kokkos::subview(mLocalStates, tStepIndex, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL());
+            mDataMap.scalarMultiVectors["total strain"] = Plato::ScalarMultiVector("total strain", numCells(), ElementType::mNumVoigtTerms);
+            mStateUpdate(mDataMap, tLocalState, tUpdatedLocalState);
 
             Plato::blas1::axpy(1.0, tGlobalState, tTotalState);
             mDataMap.vectorNodeFields["total displacement"] = tTotalState;
@@ -459,11 +461,10 @@ public:
             mSpatialModel.applyMask(tSequenceStep.getMask());
 
             auto tU = Kokkos::subview(mGlobalStates, tStepIndex, Kokkos::ALL());
-            auto tC = Kokkos::subview(mLocalStates, tStepIndex, Kokkos::ALL());
+            auto tC = Kokkos::subview(mLocalStates, tStepIndex, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL());
 
             Plato::ScalarVector tAdjoint_U = Kokkos::subview(mGlobalAdjoints, tStepIndex, Kokkos::ALL());
             Plato::ScalarVector tAdjoint_C = Kokkos::subview(mLocalAdjoints, tStepIndex, Kokkos::ALL());
-
 
             // F_{,c^k}
             auto t_dFdc = aCriterion->gradient_c(aSolution, mLocalStates, aControl, tStepIndex);
@@ -493,19 +494,19 @@ public:
             Plato::blas1::scale(-1.0, t_dFdc);
             Kokkos::deep_copy(tAdjoint_C, t_dFdc);
 
-            Plato::ScalarVector tC_prev;
+            Plato::ScalarArray3D tC_prev;
             if (tStepIndex > 0)
             {
-                tC_prev = Kokkos::subview(mLocalStates, tStepIndex-1, Kokkos::ALL());
+                tC_prev = Kokkos::subview(mLocalStates, tStepIndex-1, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL());
             }
             else
             {
                 // kokkos initializes new views to zero.
-                tC_prev = Plato::ScalarVector("initial local state",  mPDE->stateSize());
+                tC_prev = Plato::ScalarArray3D("initial local state", numCells(), ElementType::mNumGaussPoints, ElementType::mNumVoigtTerms);
             }
 
             // H_{,u^k}^{k}
-            auto t_dHdu = mLagrangianUpdate.gradient_u_T(tU, tC, tC_prev);
+            auto t_dHdu = mStateUpdate.gradient_u_T(tU, tC, tC_prev);
 
             // f_{,u^k} += \H_{,u^k}^{k}^T \mu^{k}
             Plato::MatrixTimesVectorPlusVector(t_dHdu, tAdjoint_C, t_dFdu);
@@ -517,7 +518,7 @@ public:
 
             this->applyAdjointConstraints(mGlobalJacobian, t_dFdu);
 
-            tSequenceStep.template constrainInactiveNodes<PhysicsT::mNumDofsPerNode>(mGlobalJacobian, t_dFdu);
+            tSequenceStep.template constrainInactiveNodes<ElementType::mNumDofsPerNode>(mGlobalJacobian, t_dFdu);
 
             mSolver->solve(*mGlobalJacobian, tAdjoint_U, t_dFdu);
 
@@ -594,7 +595,7 @@ public:
             mSpatialModel.applyMask(tSequenceStep.getMask());
 
             auto tU = Kokkos::subview(mGlobalStates, tStepIndex, Kokkos::ALL());
-            auto tC = Kokkos::subview(mLocalStates, tStepIndex, Kokkos::ALL());
+            auto tC = Kokkos::subview(mLocalStates, tStepIndex, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL());
 
             Plato::ScalarVector tAdjoint_U = Kokkos::subview(mGlobalAdjoints, tStepIndex, Kokkos::ALL());
             Plato::ScalarVector tAdjoint_C = Kokkos::subview(mLocalAdjoints, tStepIndex, Kokkos::ALL());
@@ -628,19 +629,19 @@ public:
             Plato::blas1::scale(-1.0, t_dFdc);
             Kokkos::deep_copy(tAdjoint_C, t_dFdc);
 
-            Plato::ScalarVector tC_prev;
+            Plato::ScalarArray3D tC_prev;
             if (tStepIndex > 0)
             {
-                tC_prev = Kokkos::subview(mLocalStates, tStepIndex-1, Kokkos::ALL());
+                tC_prev = Kokkos::subview(mLocalStates, tStepIndex-1, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL());
             }
             else
             {
                 // kokkos initializes new views to zero.
-                tC_prev = Plato::ScalarVector("initial local state",  mPDE->stateSize());
+                tC_prev = Plato::ScalarArray3D("initial local state", numCells(), ElementType::mNumGaussPoints, ElementType::mNumVoigtTerms);
             }
 
             // H_{,u^k}^{k}
-            auto t_dHdu = mLagrangianUpdate.gradient_u_T(tU, tC, tC_prev);
+            auto t_dHdu = mStateUpdate.gradient_u_T(tU, tC, tC_prev);
 
             // f_{,u^k} += \H_{,u^k}^{k}^T \mu^{k}
             Plato::MatrixTimesVectorPlusVector(t_dHdu, tAdjoint_C, t_dFdu);
@@ -652,7 +653,7 @@ public:
 
             this->applyAdjointConstraints(mGlobalJacobian, t_dFdu);
 
-            tSequenceStep.template constrainInactiveNodes<PhysicsT::mNumDofsPerNode>(mGlobalJacobian, t_dFdu);
+            tSequenceStep.template constrainInactiveNodes<ElementType::mNumDofsPerNode>(mGlobalJacobian, t_dFdu);
 
             mSolver->solve(*mGlobalJacobian, tAdjoint_U, t_dFdu);
 
@@ -665,7 +666,7 @@ public:
 
             // H_{,x}^T
             // dHdx is returned transposed, nxm.  n=x.size() and m=c.size().
-            auto t_dHdx = mLagrangianUpdate.gradient_x(tU, tC, tC_prev);
+            auto t_dHdx = mStateUpdate.gradient_x(tU, tC, tC_prev);
 
             // F_{,x} += \mu^k R_{,x}^k
             Plato::MatrixTimesVectorPlusVector(t_dHdx, tAdjoint_C, t_dFdx);
@@ -745,7 +746,7 @@ public:
         {
             ANALYZE_THROWERR("ESSENTIAL BOUNDARY CONDITIONS SUBLIST IS NOT DEFINED IN THE INPUT FILE.")
         }
-        Plato::EssentialBCs<PhysicsT>
+        Plato::EssentialBCs<ElementType>
         tEssentialBoundaryConditions(aProblemParams.sublist("Essential Boundary Conditions", false), mSpatialModel.Mesh);
         tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
     }
@@ -780,8 +781,8 @@ private:
 
         if(aProblemParams.isSublist("Criteria"))
         {
-            Plato::Geometric::ScalarFunctionBaseFactory<Plato::Geometrical<SpatialDim>> tLinearFunctionBaseFactory;
-            Plato::Elliptic::UpdatedLagrangian::ScalarFunctionBaseFactory<PhysicsT> tNonlinearFunctionBaseFactory;
+            Plato::Geometric::ScalarFunctionBaseFactory<Plato::Geometrical<TopoElementType>> tLinearFunctionBaseFactory;
+            Plato::Elliptic::Hatching::ScalarFunctionBaseFactory<PhysicsType> tNonlinearFunctionBaseFactory;
 
             auto tCriteriaParams = aProblemParams.sublist("Criteria");
             for(Teuchos::ParameterList::ConstIterator tIndex = tCriteriaParams.begin(); tIndex != tCriteriaParams.end(); ++tIndex)
@@ -823,11 +824,11 @@ private:
         Plato::blas1::scale(static_cast<Plato::Scalar>(0.0), tDirichletValues);
         if(mGlobalJacobian->isBlockMatrix())
         {
-            Plato::applyBlockConstraints<PhysicsT::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tDirichletValues);
+            Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tDirichletValues);
         }
         else
         {
-            Plato::applyConstraints<PhysicsT::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tDirichletValues);
+            Plato::applyConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tDirichletValues);
         }
     }
 
@@ -847,22 +848,8 @@ private:
 };
 // class Problem
 
-} // namespace UpdatedLagrangian
+} // namespace Hatching
 
 } // namespace Elliptic
 
 } // namespace Plato
-
-#include "elliptic/hatching/Mechanics.hpp"
-
-#ifdef PLATOANALYZE_1D
-extern template class Plato::Elliptic::UpdatedLagrangian::Problem<::Plato::Elliptic::UpdatedLagrangian::Mechanics<1>>;
-#endif
-
-#ifdef PLATOANALYZE_2D
-extern template class Plato::Elliptic::UpdatedLagrangian::Problem<::Plato::Elliptic::UpdatedLagrangian::Mechanics<2>>;
-#endif
-
-#ifdef PLATOANALYZE_3D
-extern template class Plato::Elliptic::UpdatedLagrangian::Problem<::Plato::Elliptic::UpdatedLagrangian::Mechanics<3>>;
-#endif

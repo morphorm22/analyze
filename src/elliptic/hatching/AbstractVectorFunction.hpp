@@ -9,7 +9,7 @@ namespace Plato
 namespace Elliptic
 {
 
-namespace UpdatedLagrangian
+namespace Hatching
 {
 
 /******************************************************************************//**
@@ -26,6 +26,9 @@ protected:
           std::vector<std::string>   mDofNames;       /*!< state dof names */
 
 public:
+
+    using AbstractType = Plato::Elliptic::Hatching::AbstractVectorFunction<EvaluationType>;
+
     /******************************************************************************//**
      * @brief Constructor
      * @param [in] aSpatialDomain Plato spatial model
@@ -89,7 +92,7 @@ public:
     virtual void
     evaluate(
         const Plato::ScalarMultiVectorT <typename EvaluationType::GlobalStateScalarType> & aGlobalState,
-        const Plato::ScalarMultiVectorT <typename EvaluationType::LocalStateScalarType>  & aLocalState,
+        const Plato::ScalarArray3DT     <typename EvaluationType::LocalStateScalarType>  & aLocalState,
         const Plato::ScalarMultiVectorT <typename EvaluationType::ControlScalarType>     & aControl,
         const Plato::ScalarArray3DT     <typename EvaluationType::ConfigScalarType>      & aConfig,
               Plato::ScalarMultiVectorT <typename EvaluationType::ResultScalarType>      & aResult,
@@ -111,7 +114,7 @@ public:
     evaluate_boundary(
         const Plato::SpatialModel                                                        & aModel,
         const Plato::ScalarMultiVectorT <typename EvaluationType::GlobalStateScalarType> & aGlobalState,
-        const Plato::ScalarMultiVectorT <typename EvaluationType::LocalStateScalarType>  & aLocalState,
+        const Plato::ScalarArray3DT     <typename EvaluationType::LocalStateScalarType>  & aLocalState,
         const Plato::ScalarMultiVectorT <typename EvaluationType::ControlScalarType>     & aControl,
         const Plato::ScalarArray3DT     <typename EvaluationType::ConfigScalarType>      & aConfig,
               Plato::ScalarMultiVectorT <typename EvaluationType::ResultScalarType>      & aResult,
@@ -119,7 +122,7 @@ public:
 };
 // class AbstractVectorFunction
 
-} // namespace UpdatedLagrangian
+} // namespace Hatching
 
 } // namespace Elliptic
 

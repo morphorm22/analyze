@@ -11,9 +11,9 @@
 #include "WorksetBase.hpp"
 #include "PlatoSequence.hpp"
 #include "PlatoStaticsTypes.hpp"
+#include "elliptic/hatching/EvaluationTypes.hpp"
 #include "elliptic/hatching/ScalarFunctionBase.hpp"
 #include "elliptic/hatching/AbstractScalarFunction.hpp"
-#include "elliptic/hatching/EllipticUpLagSimplexFadTypes.hpp"
 #include <Teuchos_ParameterList.hpp>
 
 namespace Plato
@@ -22,40 +22,45 @@ namespace Plato
 namespace Elliptic
 {
 
-namespace UpdatedLagrangian
+namespace Hatching
 {
 
 /******************************************************************************//**
  * \brief Physics scalar function class
  **********************************************************************************/
-template<typename PhysicsT>
-class PhysicsScalarFunction : public ScalarFunctionBase, public Plato::WorksetBase<PhysicsT>
+template<typename PhysicsType>
+class PhysicsScalarFunction :
+    public ScalarFunctionBase,
+    public Plato::WorksetBase<typename PhysicsType::ElementType>
 {
 private:
-    using Plato::WorksetBase<PhysicsT>::mNumDofsPerCell;
-    using Plato::WorksetBase<PhysicsT>::mNumLocalDofsPerCell;
-    using Plato::WorksetBase<PhysicsT>::mNumNodesPerCell;
-    using Plato::WorksetBase<PhysicsT>::mNumDofsPerNode;
-    using Plato::WorksetBase<PhysicsT>::mNumSpatialDims;
-    using Plato::WorksetBase<PhysicsT>::mNumNodes;
-    using Plato::WorksetBase<PhysicsT>::mNumCells;
+    using ElementType = typename PhysicsType::ElementType;
 
-    using Plato::WorksetBase<PhysicsT>::mGlobalStateEntryOrdinal;
-//    using Plato::WorksetBase<PhysicsT>::mLocalStateEntryOrdinal;
-    using Plato::WorksetBase<PhysicsT>::mControlEntryOrdinal;
-    using Plato::WorksetBase<PhysicsT>::mConfigEntryOrdinal;
+    using Plato::WorksetBase<ElementType>::mNumDofsPerCell;
+    using Plato::WorksetBase<ElementType>::mNumLocalDofsPerCell;
+    using Plato::WorksetBase<ElementType>::mNumLocalStatesPerGP;
+    using Plato::WorksetBase<ElementType>::mNumNodesPerCell;
+    using Plato::WorksetBase<ElementType>::mNumDofsPerNode;
+    using Plato::WorksetBase<ElementType>::mNumSpatialDims;
+    using Plato::WorksetBase<ElementType>::mNumGaussPoints;
+    using Plato::WorksetBase<ElementType>::mNumNodes;
+    using Plato::WorksetBase<ElementType>::mNumCells;
 
-    using Residual  = typename Plato::Elliptic::UpdatedLagrangian::Evaluation<typename PhysicsT::SimplexT>::Residual;
-    using GradientU = typename Plato::Elliptic::UpdatedLagrangian::Evaluation<typename PhysicsT::SimplexT>::Jacobian;
-    using GradientC = typename Plato::Elliptic::UpdatedLagrangian::Evaluation<typename PhysicsT::SimplexT>::GradientC;
-    using GradientX = typename Plato::Elliptic::UpdatedLagrangian::Evaluation<typename PhysicsT::SimplexT>::GradientX;
-    using GradientZ = typename Plato::Elliptic::UpdatedLagrangian::Evaluation<typename PhysicsT::SimplexT>::GradientZ;
+    using Plato::WorksetBase<ElementType>::mGlobalStateEntryOrdinal;
+    using Plato::WorksetBase<ElementType>::mControlEntryOrdinal;
+    using Plato::WorksetBase<ElementType>::mConfigEntryOrdinal;
 
-    using ValueFunction     = std::shared_ptr<Plato::Elliptic::UpdatedLagrangian::AbstractScalarFunction<Residual>>;
-    using GradientUFunction = std::shared_ptr<Plato::Elliptic::UpdatedLagrangian::AbstractScalarFunction<GradientU>>;
-    using GradientCFunction = std::shared_ptr<Plato::Elliptic::UpdatedLagrangian::AbstractScalarFunction<GradientC>>;
-    using GradientXFunction = std::shared_ptr<Plato::Elliptic::UpdatedLagrangian::AbstractScalarFunction<GradientX>>;
-    using GradientZFunction = std::shared_ptr<Plato::Elliptic::UpdatedLagrangian::AbstractScalarFunction<GradientZ>>;
+    using Residual  = typename Plato::Elliptic::Hatching::Evaluation<ElementType>::Residual;
+    using GradientU = typename Plato::Elliptic::Hatching::Evaluation<ElementType>::Jacobian;
+    using GradientC = typename Plato::Elliptic::Hatching::Evaluation<ElementType>::GradientC;
+    using GradientX = typename Plato::Elliptic::Hatching::Evaluation<ElementType>::GradientX;
+    using GradientZ = typename Plato::Elliptic::Hatching::Evaluation<ElementType>::GradientZ;
+
+    using ValueFunction     = std::shared_ptr<Plato::Elliptic::Hatching::AbstractScalarFunction<Residual>>;
+    using GradientUFunction = std::shared_ptr<Plato::Elliptic::Hatching::AbstractScalarFunction<GradientU>>;
+    using GradientCFunction = std::shared_ptr<Plato::Elliptic::Hatching::AbstractScalarFunction<GradientC>>;
+    using GradientXFunction = std::shared_ptr<Plato::Elliptic::Hatching::AbstractScalarFunction<GradientX>>;
+    using GradientZFunction = std::shared_ptr<Plato::Elliptic::Hatching::AbstractScalarFunction<GradientZ>>;
 
     std::map<std::string, ValueFunction>     mValueFunctions;
     std::map<std::string, GradientUFunction> mGradientUFunctions;
@@ -65,7 +70,7 @@ private:
 
     Plato::SpatialModel & mSpatialModel;
 
-    const Plato::Sequence<PhysicsT::SpaceDim> & mSequence;
+    const Plato::Sequence<ElementType> & mSequence;
 
     Plato::DataMap& mDataMap;
     std::string mFunctionName;
@@ -80,7 +85,7 @@ private:
         Teuchos::ParameterList & aProblemParams
     )
     {
-        typename PhysicsT::FunctionFactory tFactory;
+        typename PhysicsType::FunctionFactory tFactory;
 
         auto tProblemDefault = aProblemParams.sublist("Criteria").sublist(mFunctionName);
         auto tFunctionType = tProblemDefault.get<std::string>("Scalar Function Type", "");
@@ -112,13 +117,13 @@ public:
      * \param [in] aName user defined function name
     **********************************************************************************/
     PhysicsScalarFunction(
-              Plato::SpatialModel                 & aSpatialModel,
-        const Plato::Sequence<PhysicsT::SpaceDim> & aSequence,
-              Plato::DataMap                      & aDataMap,
-              Teuchos::ParameterList              & aProblemParams,
-              std::string                         & aName
+              Plato::SpatialModel          & aSpatialModel,
+        const Plato::Sequence<ElementType> & aSequence,
+              Plato::DataMap               & aDataMap,
+              Teuchos::ParameterList       & aProblemParams,
+              std::string                  & aName
     ) :
-        Plato::WorksetBase<PhysicsT>(aSpatialModel.Mesh),
+        Plato::WorksetBase<ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),
         mSequence     (aSequence),
         mDataMap      (aDataMap),
@@ -133,11 +138,11 @@ public:
      * \param [in] aDataMap Plato Analyze data map
     **********************************************************************************/
     PhysicsScalarFunction(
-              Plato::SpatialModel                 & aSpatialModel,
-        const Plato::Sequence<PhysicsT::SpaceDim> & aSequence,
-              Plato::DataMap                      & aDataMap
+              Plato::SpatialModel          & aSpatialModel,
+        const Plato::Sequence<ElementType> & aSequence,
+              Plato::DataMap               & aDataMap
     ) :
-        Plato::WorksetBase<PhysicsT>(aSpatialModel.Mesh),
+        Plato::WorksetBase<ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),
         mSequence     (aSequence),
         mDataMap      (aDataMap),
@@ -234,13 +239,13 @@ public:
             auto tName     = tDomain.getDomainName();
 
             Plato::ScalarMultiVector tStateWS("state workset", tNumCells, mNumDofsPerCell);
-            Plato::WorksetBase<PhysicsT>::worksetState(aState, tStateWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetState(aState, tStateWS, tDomain);
 
             Plato::ScalarMultiVector tControlWS("control workset", tNumCells, mNumNodesPerCell);
-            Plato::WorksetBase<PhysicsT>::worksetControl(aControl, tControlWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetControl(aControl, tControlWS, tDomain);
 
             Plato::ScalarArray3D tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-            Plato::WorksetBase<PhysicsT>::worksetConfig(tConfigWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetConfig(tConfigWS, tDomain);
 
             mValueFunctions.at(tName)->updateProblem(tStateWS, tControlWS, tConfigWS);
             mGradientUFunctions.at(tName)->updateProblem(tStateWS, tControlWS, tConfigWS);
@@ -260,10 +265,10 @@ public:
     **********************************************************************************/
     Plato::Scalar
     value(
-        const Plato::Solutions                 & aSolution,
-        const Plato::ScalarMultiVector         & aLocalStates,
-        const Plato::ScalarVector              & aControl,
-              Plato::Scalar                      aTimeStep = 0.0
+        const Plato::Solutions     & aSolution,
+        const Plato::ScalarArray4D & aLocalStates,
+        const Plato::ScalarVector  & aControl,
+              Plato::Scalar          aTimeStep = 0.0
     ) const override
     {
         using ConfigScalar      = typename Residual::ConfigScalarType;
@@ -297,12 +302,12 @@ public:
                 // workset control
                 //
                 Plato::ScalarMultiVectorT<ControlScalar> tControlWS("control workset", tNumCells, mNumNodesPerCell);
-                Plato::WorksetBase<PhysicsT>::worksetControl(aControl, tControlWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetControl(aControl, tControlWS, tDomain);
 
                 // workset config
                 //
                 Plato::ScalarArray3DT<ConfigScalar> tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-                Plato::WorksetBase<PhysicsT>::worksetConfig(tConfigWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetConfig(tConfigWS, tDomain);
 
                 // create result view
                 //
@@ -310,25 +315,25 @@ public:
                 mDataMap.scalarVectors[mValueFunctions.at(tName)->getName()] = tResult;
 
                 Plato::ScalarMultiVectorT<GlobalStateScalar> tGlobalStateWS("global state workset", tNumCells, mNumDofsPerCell);
-                Plato::ScalarMultiVectorT<LocalStateScalar> tLocalStateWS ("local state workset",  tNumCells, mNumLocalDofsPerCell);
+                Plato::ScalarArray3DT    <LocalStateScalar>  tLocalStateWS ("local state workset",  tNumCells, mNumGaussPoints, mNumLocalStatesPerGP);
 
                 // workset global state
                 //
                 auto tGlobalState = Kokkos::subview(tGlobalStates, tStepIndex, Kokkos::ALL());
-                Plato::WorksetBase<PhysicsT>::worksetState(tGlobalState, tGlobalStateWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetState(tGlobalState, tGlobalStateWS, tDomain);
 
                 // workset local state
                 //
-                Plato::ScalarVector tLocalState;
+                Plato::ScalarArray3D tLocalState;
                 if (tStepIndex > 0)
                 {
-                    tLocalState  = Kokkos::subview(aLocalStates, tStepIndex-1, Kokkos::ALL()); 
+                    tLocalState  = Kokkos::subview(aLocalStates, tStepIndex-1, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL()); 
                 }
                 else
                 {
-                    tLocalState = Plato::ScalarVector("initial local state", aLocalStates.extent(1));
+                    tLocalState = Plato::ScalarArray3D("initial local state", aLocalStates.extent(1), aLocalStates.extent(2), aLocalStates.extent(3));
                 }
-                Plato::WorksetBase<PhysicsT>::worksetLocalState(tLocalState, tLocalStateWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetLocalState(tLocalState, tLocalStateWS, tDomain);
 
                 // evaluate function
                 //
@@ -355,10 +360,10 @@ public:
     **********************************************************************************/
     Plato::ScalarVector
     gradient_x(
-        const Plato::Solutions                 & aSolution,
-        const Plato::ScalarMultiVector         & aLocalStates,
-        const Plato::ScalarVector              & aControl,
-              Plato::Scalar                      aTimeStep = 0.0
+        const Plato::Solutions     & aSolution,
+        const Plato::ScalarArray4D & aLocalStates,
+        const Plato::ScalarVector  & aControl,
+              Plato::Scalar          aTimeStep = 0.0
     ) const override
     {
         using ConfigScalar      = typename GradientX::ConfigScalarType;
@@ -392,37 +397,37 @@ public:
                 auto tName     = tDomain.getDomainName();
 
                 Plato::ScalarMultiVectorT<GlobalStateScalar> tGlobalStateWS("global state workset", tNumCells, mNumDofsPerCell);
-                Plato::ScalarMultiVectorT<LocalStateScalar>  tLocalStateWS ("local state workset",  tNumCells, mNumLocalDofsPerCell);
+                Plato::ScalarArray3DT    <LocalStateScalar>  tLocalStateWS ("local state workset",  tNumCells, mNumGaussPoints, mNumLocalStatesPerGP);
 
                 // workset control
                 //
                 Plato::ScalarMultiVectorT<ControlScalar> tControlWS("control workset", tNumCells, mNumNodesPerCell);
-                Plato::WorksetBase<PhysicsT>::worksetControl(aControl, tControlWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetControl(aControl, tControlWS, tDomain);
 
                 // workset config
                 //
                 Plato::ScalarArray3DT<ConfigScalar> tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-                Plato::WorksetBase<PhysicsT>::worksetConfig(tConfigWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetConfig(tConfigWS, tDomain);
 
                 Plato::ScalarVectorT<ResultScalar> tResult("result workset", tNumCells);
 
                 // workset global state
                 //
                 auto tGlobalState = Kokkos::subview(tGlobalStates, tStepIndex, Kokkos::ALL());
-                Plato::WorksetBase<PhysicsT>::worksetState(tGlobalState, tGlobalStateWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetState(tGlobalState, tGlobalStateWS, tDomain);
 
                 // workset local state
                 //
-                Plato::ScalarVector tLocalState;
+                Plato::ScalarArray3D tLocalState;
                 if (tStepIndex > 0)
                 {
-                    tLocalState  = Kokkos::subview(aLocalStates, tStepIndex-1, Kokkos::ALL()); 
+                    tLocalState  = Kokkos::subview(aLocalStates, tStepIndex-1, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL()); 
                 }
                 else
                 {
-                    tLocalState = Plato::ScalarVector("initial local state", aLocalStates.extent(1));
+                    tLocalState = Plato::ScalarArray3D("initial local state", aLocalStates.extent(1), aLocalStates.extent(2), aLocalStates.extent(3));
                 }
-                Plato::WorksetBase<PhysicsT>::worksetLocalState(tLocalState, tLocalStateWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetLocalState(tLocalState, tLocalStateWS, tDomain);
 
                 // evaluate function
                 //
@@ -452,11 +457,11 @@ public:
     **********************************************************************************/
     Plato::ScalarVector
     gradient_u(
-        const Plato::Solutions         & aSolution,
-        const Plato::ScalarMultiVector & aLocalStates,
-        const Plato::ScalarVector      & aControl,
-              Plato::OrdinalType         aStepIndex,
-              Plato::Scalar              aTimeStep = 0.0
+        const Plato::Solutions     & aSolution,
+        const Plato::ScalarArray4D & aLocalStates,
+        const Plato::ScalarVector  & aControl,
+              Plato::OrdinalType     aStepIndex,
+              Plato::Scalar          aTimeStep = 0.0
     ) const override
     {
         using ConfigScalar      = typename GradientU::ConfigScalarType;
@@ -485,33 +490,33 @@ public:
             // workset global state
             //
             Plato::ScalarMultiVectorT<GlobalStateScalar> tGlobalStateWS("sacado-ized state", tNumCells, mNumDofsPerCell);
-            Plato::WorksetBase<PhysicsT>::worksetState(tGlobalState, tGlobalStateWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetState(tGlobalState, tGlobalStateWS, tDomain);
 
             // workset local state
             //
             // workset local state
             //
-            Plato::ScalarVector tLocalState;
+            Plato::ScalarArray3D tLocalState;
             if (aStepIndex > 0)
             {
-                tLocalState  = Kokkos::subview(aLocalStates, aStepIndex-1, Kokkos::ALL()); 
+                tLocalState  = Kokkos::subview(aLocalStates, aStepIndex-1, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL()); 
             }
             else
             {
-                tLocalState = Plato::ScalarVector("initial local state", aLocalStates.extent(1));
+                tLocalState = Plato::ScalarArray3D("initial local state", aLocalStates.extent(1), aLocalStates.extent(2), aLocalStates.extent(3));
             }
-            Plato::ScalarMultiVectorT<LocalStateScalar> tLocalStateWS("sacado-ized state", tNumCells, mNumLocalDofsPerCell);
-            Plato::WorksetBase<PhysicsT>::worksetLocalState(tLocalState, tLocalStateWS, tDomain);
+            Plato::ScalarArray3DT<LocalStateScalar> tLocalStateWS("sacado-ized state", tNumCells, mNumGaussPoints, mNumLocalStatesPerGP);
+            Plato::WorksetBase<ElementType>::worksetLocalState(tLocalState, tLocalStateWS, tDomain);
 
             // workset control
             //
             Plato::ScalarMultiVectorT<ControlScalar> tControlWS("control workset", tNumCells, mNumNodesPerCell);
-            Plato::WorksetBase<PhysicsT>::worksetControl(aControl, tControlWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetControl(aControl, tControlWS, tDomain);
 
             // workset config
             //
             Plato::ScalarArray3DT<ConfigScalar> tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-            Plato::WorksetBase<PhysicsT>::worksetConfig(tConfigWS, tDomain);
+            Plato::WorksetBase<ElementType>::worksetConfig(tConfigWS, tDomain);
 
             // create return view
             //
@@ -541,11 +546,11 @@ public:
     **********************************************************************************/
     Plato::ScalarVector
     gradient_c(
-        const Plato::Solutions         & aSolution,
-        const Plato::ScalarMultiVector & aLocalStates,
-        const Plato::ScalarVector      & aControl,
-              Plato::OrdinalType         aStepIndex,
-              Plato::Scalar              aTimeStep = 0.0
+        const Plato::Solutions     & aSolution,
+        const Plato::ScalarArray4D & aLocalStates,
+        const Plato::ScalarVector  & aControl,
+              Plato::OrdinalType     aStepIndex,
+              Plato::Scalar          aTimeStep = 0.0
     ) const override
     {
         using ConfigScalar      = typename GradientC::ConfigScalarType;
@@ -577,23 +582,23 @@ public:
                 // workset global state
                 //
                 Plato::ScalarMultiVectorT<GlobalStateScalar> tGlobalStateWS("sacado-ized state", tNumCells, mNumDofsPerCell);
-                Plato::WorksetBase<PhysicsT>::worksetState(tGlobalState, tGlobalStateWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetState(tGlobalState, tGlobalStateWS, tDomain);
 
                 // workset local state
                 //
-                auto tLocalState = Kokkos::subview(aLocalStates, aStepIndex, Kokkos::ALL());
-                Plato::ScalarMultiVectorT<LocalStateScalar> tLocalStateWS("sacado-ized state", tNumCells, mNumLocalDofsPerCell);
-                Plato::WorksetBase<PhysicsT>::worksetLocalState(tLocalState, tLocalStateWS, tDomain);
+                auto tLocalState = Kokkos::subview(aLocalStates, aStepIndex, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL());
+                Plato::ScalarArray3DT<LocalStateScalar> tLocalStateWS("sacado-ized state", tNumCells, mNumGaussPoints, mNumLocalStatesPerGP);
+                Plato::WorksetBase<ElementType>::worksetLocalState(tLocalState, tLocalStateWS, tDomain);
 
                 // workset control
                 //
                 Plato::ScalarMultiVectorT<ControlScalar> tControlWS("control workset", tNumCells, mNumNodesPerCell);
-                Plato::WorksetBase<PhysicsT>::worksetControl(aControl, tControlWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetControl(aControl, tControlWS, tDomain);
 
                 // workset config
                 //
                 Plato::ScalarArray3DT<ConfigScalar> tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-                Plato::WorksetBase<PhysicsT>::worksetConfig(tConfigWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetConfig(tConfigWS, tDomain);
 
                 // create return view
                 //
@@ -621,10 +626,10 @@ public:
     **********************************************************************************/
     Plato::ScalarVector
     gradient_z(
-        const Plato::Solutions                 & aSolution,
-        const Plato::ScalarMultiVector         & aLocalStates,
-        const Plato::ScalarVector              & aControl,
-              Plato::Scalar                      aTimeStep = 0.0
+        const Plato::Solutions     & aSolution,
+        const Plato::ScalarArray4D & aLocalStates,
+        const Plato::ScalarVector  & aControl,
+              Plato::Scalar          aTimeStep = 0.0
     ) const override
     {        
         using ConfigScalar      = typename GradientZ::ConfigScalarType;
@@ -658,17 +663,17 @@ public:
                 auto tName     = tDomain.getDomainName();
 
                 Plato::ScalarMultiVectorT<GlobalStateScalar> tGlobalStateWS("global state workset", tNumCells, mNumDofsPerCell);
-                Plato::ScalarMultiVectorT<LocalStateScalar>  tLocalStateWS ("local state workset",  tNumCells, mNumLocalDofsPerCell);
+                Plato::ScalarArray3DT    <LocalStateScalar>  tLocalStateWS ("local state workset",  tNumCells, mNumGaussPoints, mNumLocalStatesPerGP);
 
                 // workset control
                 //
                 Plato::ScalarMultiVectorT<ControlScalar> tControlWS("control workset", tNumCells, mNumNodesPerCell);
-                Plato::WorksetBase<PhysicsT>::worksetControl(aControl, tControlWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetControl(aControl, tControlWS, tDomain);
 
                 // workset config
                 //
                 Plato::ScalarArray3DT<ConfigScalar> tConfigWS("config workset", tNumCells, mNumNodesPerCell, mNumSpatialDims);
-                Plato::WorksetBase<PhysicsT>::worksetConfig(tConfigWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetConfig(tConfigWS, tDomain);
 
                 // create result
                 //
@@ -677,20 +682,20 @@ public:
                 // global workset state
                 //
                 auto tGlobalState = Kokkos::subview(tGlobalStates, tStepIndex, Kokkos::ALL());
-                Plato::WorksetBase<PhysicsT>::worksetState(tGlobalState, tGlobalStateWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetState(tGlobalState, tGlobalStateWS, tDomain);
 
                 // workset local state
                 //
-                Plato::ScalarVector tLocalState;
+                Plato::ScalarArray3D tLocalState;
                 if (tStepIndex > 0)
                 {
-                    tLocalState  = Kokkos::subview(aLocalStates, tStepIndex-1, Kokkos::ALL()); 
+                    tLocalState  = Kokkos::subview(aLocalStates, tStepIndex-1, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL()); 
                 }
                 else
                 {
-                    tLocalState = Plato::ScalarVector("initial local state", aLocalStates.extent(1));
+                    tLocalState = Plato::ScalarArray3D("initial local state", aLocalStates.extent(1), aLocalStates.extent(2), aLocalStates.extent(3));
                 }
-                Plato::WorksetBase<PhysicsT>::worksetLocalState(tLocalState, tLocalStateWS, tDomain);
+                Plato::WorksetBase<ElementType>::worksetLocalState(tLocalState, tLocalStateWS, tDomain);
 
                 // evaluate function
                 //
@@ -729,7 +734,7 @@ public:
 };
 //class PhysicsScalarFunction
 
-} // namespace UpdatedLagrangian
+} // namespace Hatching
 
 } // namespace Elliptic
 
@@ -740,19 +745,19 @@ public:
 // TODO #include "Thermomechanics.hpp"
 
 #ifdef PLATOANALYZE_1D
-extern template class Plato::Elliptic::UpdatedLagrangian::PhysicsScalarFunction<::Plato::Elliptic::UpdatedLagrangian::Mechanics<1>>;
+// TODO extern template class Plato::Elliptic::Hatching::PhysicsScalarFunction<::Plato::Elliptic::Hatching::Mechanics<1>>;
 // TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Electromechanics<1>>;
 // TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermomechanics<1>>;
 #endif
 
 #ifdef PLATOANALYZE_2D
-extern template class Plato::Elliptic::UpdatedLagrangian::PhysicsScalarFunction<::Plato::Elliptic::UpdatedLagrangian::Mechanics<2>>;
+// TODO extern template class Plato::Elliptic::Hatching::PhysicsScalarFunction<::Plato::Elliptic::Hatching::Mechanics<2>>;
 // TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Electromechanics<2>>;
 // TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermomechanics<2>>;
 #endif
 
 #ifdef PLATOANALYZE_3D
-extern template class Plato::Elliptic::UpdatedLagrangian::PhysicsScalarFunction<::Plato::Elliptic::UpdatedLagrangian::Mechanics<3>>;
+// TODO extern template class Plato::Elliptic::Hatching::PhysicsScalarFunction<::Plato::Elliptic::Hatching::Mechanics<3>>;
 // TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Electromechanics<3>>;
 // TODO extern template class Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermomechanics<3>>;
 #endif

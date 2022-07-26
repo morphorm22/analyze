@@ -17,26 +17,27 @@ class Quad9
     static constexpr Plato::OrdinalType mNumSpatialDims  = 2;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 9;
     static constexpr Plato::OrdinalType mNumNodesPerFace = 3;
+    static constexpr Plato::OrdinalType mNumGaussPoints  = 9;
 
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
 
-    static inline Plato::Array<9>
+    static inline Plato::Array<mNumGaussPoints>
     getCubWeights()
     {
         constexpr Plato::Scalar wc = 0.30864197530864195817557060763647; // 25/81
         constexpr Plato::Scalar we = 0.49382716049382713308091297221836; // 40/81
         constexpr Plato::Scalar wf = 0.79012345679012341292946075554937; // 64/81
 
-        return Plato::Array<9>({
+        return Plato::Array<mNumGaussPoints>({
             wc, we, wc, we, wf, we, wc, we, wc
         });
     }
 
-    static inline Plato::Matrix<9,mNumSpatialDims>
+    static inline Plato::Matrix<mNumGaussPoints,mNumSpatialDims>
     getCubPoints()
     {
         constexpr Plato::Scalar p = 0.77459666924148340427791481488384; // sqrt(3.0/5.0)
-        return Plato::Matrix<9,mNumSpatialDims>({
+        return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>({
             -p, -p,   0, -p,   p, -p,
             -p,  0,   0,  0,   p,  0,
             -p,  p,   0,  p,   p,  p

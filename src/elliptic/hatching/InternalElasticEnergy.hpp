@@ -1,22 +1,15 @@
 #pragma once
 
-#include "elliptic/hatching/EllipticUpLagSimplexFadTypes.hpp"
+#include "elliptic/hatching/MechanicsElement.hpp"
 #include "elliptic/hatching/AbstractScalarFunction.hpp"
-#include "elliptic/hatching/SimplexMechanics.hpp"
-#include "elliptic/hatching/ExpInstMacros.hpp"
 
+#include "FadTypes.hpp"
+#include "SmallStrain.hpp"
 #include "ScalarProduct.hpp"
 #include "ApplyWeighting.hpp"
-#include "Strain.hpp"
-#include "elliptic/hatching/EllipticUpLagLinearStress.hpp"
+#include "GradientMatrix.hpp"
 #include "ElasticModelFactory.hpp"
-#include "LinearTetCubRuleDegreeOne.hpp"
-#include "ImplicitFunctors.hpp"
-#include "ToMap.hpp"
-#include "Simp.hpp"
-#include "Ramp.hpp"
-#include "Heaviside.hpp"
-#include "NoPenalty.hpp"
+#include "elliptic/hatching/LinearStress.hpp"
 
 namespace Plato
 {
@@ -24,7 +17,7 @@ namespace Plato
 namespace Elliptic
 {
 
-namespace UpdatedLagrangian
+namespace Hatching
 {
 
 /******************************************************************************//**
@@ -35,17 +28,22 @@ namespace UpdatedLagrangian
 **********************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
 class InternalElasticEnergy : 
-  public Plato::Elliptic::UpdatedLagrangian::SimplexMechanics<EvaluationType::SpatialDim>,
-  public Plato::Elliptic::UpdatedLagrangian::AbstractScalarFunction<EvaluationType>
+  public EvaluationType::ElementType,
+  public Plato::Elliptic::Hatching::AbstractScalarFunction<EvaluationType>
 {
   private:
-    static constexpr Plato::OrdinalType mSpaceDim = EvaluationType::SpatialDim; /*!< spatial dimensions */
-    
-    using Plato::Elliptic::UpdatedLagrangian::SimplexMechanics<mSpaceDim>::mNumVoigtTerms; /*!< number of Voigt terms */
-    using Plato::Simplex<mSpaceDim>::mNumNodesPerCell; /*!< number of nodes per cell */
+    using ElementType = typename EvaluationType::ElementType;
 
-    using Plato::Elliptic::UpdatedLagrangian::AbstractScalarFunction<EvaluationType>::mSpatialDomain;
-    using Plato::Elliptic::UpdatedLagrangian::AbstractScalarFunction<EvaluationType>::mDataMap;
+    using ElementType::mNumVoigtTerms;
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumDofsPerNode;
+    using ElementType::mNumDofsPerCell;
+    using ElementType::mNumSpatialDims;
+
+    using FunctionBaseType = typename Plato::Elliptic::Hatching::AbstractScalarFunction<EvaluationType>;
+
+    using FunctionBaseType::mSpatialDomain;
+    using FunctionBaseType::mDataMap;
 
     using GlobalStateScalarType = typename EvaluationType::GlobalStateScalarType;
     using LocalStateScalarType  = typename EvaluationType::LocalStateScalarType;
@@ -53,15 +51,10 @@ class InternalElasticEnergy :
     using ConfigScalarType      = typename EvaluationType::ConfigScalarType;
     using ResultScalarType      = typename EvaluationType::ResultScalarType;
 
-    IndicatorFunctionType mIndicatorFunction; /*!< penalty function */
-    Plato::ApplyWeighting<mSpaceDim,mNumVoigtTerms,IndicatorFunctionType> mApplyWeighting; /*!< apply penalty function */
+    IndicatorFunctionType mIndicatorFunction;
+    Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, IndicatorFunctionType> mApplyWeighting;
 
-    std::shared_ptr<Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>> mCubatureRule;
-
-    std::vector<std::string> mPlottable; /*!< database of output field names */
-
-    Teuchos::RCP<Plato::LinearElasticMaterial<mSpaceDim>> mMaterialModel;
-
+    Teuchos::RCP<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterialModel;
 
   public:
     /******************************************************************************//**
@@ -77,18 +70,12 @@ class InternalElasticEnergy :
               Teuchos::ParameterList & aPenaltyParams,
               std::string            & aFunctionName
     ) :
-        Plato::Elliptic::UpdatedLagrangian::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aFunctionName),
+        Plato::Elliptic::Hatching::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aProblemParams, aFunctionName),
         mIndicatorFunction (aPenaltyParams),
-        mApplyWeighting    (mIndicatorFunction),
-        mCubatureRule(std::make_shared<Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>>())
+        mApplyWeighting    (mIndicatorFunction)
     {
-        Plato::ElasticModelFactory<mSpaceDim> tMaterialModelFactory(aProblemParams);
+        Plato::ElasticModelFactory<mNumSpatialDims> tMaterialModelFactory(aProblemParams);
         mMaterialModel = tMaterialModelFactory.create(aSpatialDomain.getMaterialName());
-
-        if(aProblemParams.isType < Teuchos::Array < std::string >> ("Plottable"))
-        {
-            mPlottable = aProblemParams.get < Teuchos::Array < std::string >> ("Plottable").toVector();
-        }
     }
 
     /******************************************************************************//**
@@ -100,85 +87,74 @@ class InternalElasticEnergy :
      * @param [in] aTimeStep time step (default = 0)
     **********************************************************************************/
     void
-    evaluate(
+    evaluate_conditional(
         const Plato::ScalarMultiVectorT <GlobalStateScalarType> & aGlobalState,
-        const Plato::ScalarMultiVectorT <LocalStateScalarType>  & aLocalState,
+        const Plato::ScalarArray3DT     <LocalStateScalarType>  & aLocalState,
         const Plato::ScalarMultiVectorT <ControlScalarType>     & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>      & aConfig,
               Plato::ScalarVectorT      <ResultScalarType>      & aResult,
-              Plato::Scalar aTimeStep = 0.0) const
+              Plato::Scalar aTimeStep = 0.0) const override
     {
-      using SimplexPhysics = typename Plato::SimplexMechanics<mSpaceDim>;
-      using StrainScalarType = 
-        typename Plato::fad_type_t<Plato::Elliptic::UpdatedLagrangian::SimplexMechanics<EvaluationType::SpatialDim>, GlobalStateScalarType, ConfigScalarType>;
+        using StrainScalarType = typename Plato::fad_type_t<ElementType, GlobalStateScalarType, ConfigScalarType>;
       
-      auto tNumCells = mSpatialDomain.numCells();
+        auto tNumCells = mSpatialDomain.numCells();
       
-      Plato::Strain<mSpaceDim> tComputeVoigtStrainIncrement;
-      Plato::ScalarProduct<mNumVoigtTerms> tComputeScalarProduct;
-      Plato::ComputeGradientWorkset<mSpaceDim> tComputeGradient;
-      Plato::Elliptic::UpdatedLagrangian::EllipticUpLagLinearStress<EvaluationType,
-                          SimplexPhysics> tComputeVoigtStress(mMaterialModel);
+        Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
+        Plato::SmallStrain<ElementType>           tComputeVoigtStrainIncrement;
+        Plato::ScalarProduct<mNumVoigtTerms>      tComputeScalarProduct;
 
-      Plato::ScalarVectorT<ConfigScalarType>
-        tCellVolume("cell weight",tNumCells);
+        Plato::Elliptic::Hatching::LinearStress<ElementType> tComputeVoigtStress(mMaterialModel);
 
-      Kokkos::View<StrainScalarType**, Plato::Layout, Plato::MemSpace>
-        tStrainIncrement("strain increment", tNumCells, mNumVoigtTerms);
+        auto tCubPoints = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints = tCubWeights.size();
 
-      Kokkos::View<ConfigScalarType***, Plato::Layout, Plato::MemSpace>
-        tGradient("gradient", tNumCells, mNumNodesPerCell, mSpaceDim);
+        auto tApplyWeighting  = mApplyWeighting;
+        Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        {
+            ConfigScalarType tVolume(0.0);
 
-      Kokkos::View<ResultScalarType**, Plato::Layout, Plato::MemSpace>
-        tStress("stress", tNumCells, mNumVoigtTerms);
+            Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, ConfigScalarType> tGradient;
 
-      auto tQuadratureWeight = mCubatureRule->getCubWeight();
+            Plato::Array<ElementType::mNumVoigtTerms, StrainScalarType> tStrainIncrement(0.0);
+            Plato::Array<ElementType::mNumVoigtTerms, ResultScalarType> tStress(0.0);
 
-      auto tApplyWeighting  = mApplyWeighting;
-      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), LAMBDA_EXPRESSION(const int & aCellOrdinal)
-      {
-        tComputeGradient(aCellOrdinal, tGradient, aConfig, tCellVolume);
-        tCellVolume(aCellOrdinal) *= tQuadratureWeight;
+            auto tCubPoint = tCubPoints(iGpOrdinal);
 
-        // compute strain increment
-        //
-        tComputeVoigtStrainIncrement(aCellOrdinal, tStrainIncrement, aGlobalState, tGradient);
+            tComputeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
+            tVolume *= tCubWeights(iGpOrdinal);
 
-        // compute stress
-        //
-        tComputeVoigtStress(aCellOrdinal, tStress, tStrainIncrement, aLocalState);
+            // compute strain increment
+            //
+            tComputeVoigtStrainIncrement(iCellOrdinal, tStrainIncrement, aGlobalState, tGradient);
 
-        // apply weighting
-        //
-        tApplyWeighting(aCellOrdinal, tStress, aControl);
+            // compute stress
+            //
+            tComputeVoigtStress(iCellOrdinal, iGpOrdinal, tStress, tStrainIncrement, aLocalState);
+
+            // apply weighting
+            //
+            auto tBasisValues = ElementType::basisValues(tCubPoint);
+            tApplyWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
     
-        // compute element internal energy (0.5 * inner product of total strain and weighted stress)
-        //
-        tComputeScalarProduct(aCellOrdinal, aResult, tStress, tStrainIncrement, tCellVolume, 0.5);
-        tComputeScalarProduct(aCellOrdinal, aResult, tStress, aLocalState, tCellVolume, 0.5);
+            // compute element internal energy (0.5 * inner product of total strain and weighted stress)
+            //
+            tComputeScalarProduct(iCellOrdinal, aResult, tStress, tStrainIncrement, tVolume, 0.5);
 
-      },"energy gradient");
+            Plato::Array<ElementType::mNumVoigtTerms, LocalStateScalarType> tLocalState;
+            for(Plato::OrdinalType iVoigt=0; iVoigt<ElementType::mNumVoigtTerms; iVoigt++)
+            {
+                tLocalState(iVoigt) = aLocalState(iCellOrdinal, iGpOrdinal, iVoigt);
+            }
+            tComputeScalarProduct(iCellOrdinal, aResult, tStress, tLocalState, tVolume, 0.5);
+        });
     }
 };
 // class InternalElasticEnergy
 
-} // namespace UpdatedLagrangian
+} // namespace Hatching
 
 } // namespace Elliptic
 
 } // namespace Plato
-
-#ifdef PLATOANALYZE_1D
-PLATO_ELLIPTIC_UPLAG_EXPL_DEC(Plato::Elliptic::UpdatedLagrangian::InternalElasticEnergy, 
-                              Plato::Elliptic::UpdatedLagrangian::SimplexMechanics, 1)
-#endif
-
-#ifdef PLATOANALYZE_2D
-PLATO_ELLIPTIC_UPLAG_EXPL_DEC(Plato::Elliptic::UpdatedLagrangian::InternalElasticEnergy,
-                              Plato::Elliptic::UpdatedLagrangian::SimplexMechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-PLATO_ELLIPTIC_UPLAG_EXPL_DEC(Plato::Elliptic::UpdatedLagrangian::InternalElasticEnergy,
-                              Plato::Elliptic::UpdatedLagrangian::SimplexMechanics, 3)
-#endif

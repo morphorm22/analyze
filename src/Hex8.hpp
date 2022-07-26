@@ -19,23 +19,24 @@ class Hex8
     static constexpr Plato::OrdinalType mNumSpatialDims  = 3;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 8;
     static constexpr Plato::OrdinalType mNumNodesPerFace = 4;
+    static constexpr Plato::OrdinalType mNumGaussPoints  = 8;
 
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
 
-    static inline Plato::Array<8>
+    static inline Plato::Array<mNumGaussPoints>
     getCubWeights()
     {
-        return Plato::Array<8>({
+        return Plato::Array<mNumGaussPoints>({
             Plato::Scalar(1.0), Plato::Scalar(1.0), Plato::Scalar(1.0), Plato::Scalar(1.0),
             Plato::Scalar(1.0), Plato::Scalar(1.0), Plato::Scalar(1.0), Plato::Scalar(1.0)
         });
     }
 
-    static inline Plato::Matrix<8,mNumSpatialDims>
+    static inline Plato::Matrix<mNumGaussPoints,mNumSpatialDims>
     getCubPoints()
     {
         const Plato::Scalar sqt = 0.57735026918962584208117050366127; // sqrt(1.0/3.0)
-        return Plato::Matrix<8,mNumSpatialDims>({
+        return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>({
             -sqt, -sqt, -sqt,
              sqt, -sqt, -sqt,
              sqt,  sqt, -sqt,
