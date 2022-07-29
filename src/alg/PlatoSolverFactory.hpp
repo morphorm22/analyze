@@ -6,6 +6,9 @@
 #ifdef PLATO_TPETRA
 #include "alg/TpetraLinearSolver.hpp"
 #endif
+#ifdef PLATO_TACHO
+#include "alg/TachoLinearSolver.hpp"
+#endif
 
 namespace Plato {
 
