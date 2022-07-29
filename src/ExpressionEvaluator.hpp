@@ -2430,6 +2430,7 @@ evaluateNode( const Plato::OrdinalType thread,
       break;
     case NodeID::NEGATIVE:
       for( Plato::OrdinalType i=0; i<mNumValues; ++i )
+        result(thread,i) = -right(thread,i);
       break;
 
     case NodeID::ADDITION:

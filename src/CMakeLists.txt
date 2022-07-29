@@ -30,7 +30,6 @@ endif()
 
 set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     TensileEnergyDensityLocalMeasure.cpp
-    TensileEnergyDensity.cpp
     Plato_AugLagStressCriterionQuadratic.cpp
     Plato_AugLagStressCriterionGeneral.cpp
     Plato_AugLagStressCriterion.cpp

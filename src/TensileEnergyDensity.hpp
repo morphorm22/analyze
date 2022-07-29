@@ -50,15 +50,3 @@ class TensileEnergyDensity
 
 }
 //namespace Plato
-
-#ifdef PLATOANALYZE_1D
-extern template class Plato::TensileEnergyDensity<1>;
-#endif
-
-#ifdef PLATOANALYZE_2D
-extern template class Plato::TensileEnergyDensity<2>;
-#endif
-
-#ifdef PLATOANALYZE_3D
-extern template class Plato::TensileEnergyDensity<3>;
-#endif
