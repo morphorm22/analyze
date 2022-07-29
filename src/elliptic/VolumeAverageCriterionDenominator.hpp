@@ -92,7 +92,7 @@ class VolumeAverageCriterionDenominator :
 
       auto quadratureWeight = mQuadratureWeight;
       auto tSpatialWeights  = mSpatialWeights;
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType cellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(Plato::OrdinalType cellOrdinal)
       {
         tComputeGradient(cellOrdinal, tGradient, aConfig, tCellVolume);
         tCellVolume(cellOrdinal) *= quadratureWeight;

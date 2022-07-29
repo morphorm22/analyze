@@ -28,7 +28,7 @@ class HelmholtzFlux
     }
 
     template<typename HGradScalarType, typename HFluxScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()( Plato::OrdinalType cellOrdinal,
                 Plato::ScalarMultiVectorT<HFluxScalarType> tflux,
                 Plato::ScalarMultiVectorT<HGradScalarType> tgrad) const {

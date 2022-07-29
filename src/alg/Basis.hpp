@@ -11,7 +11,6 @@
 
 #include <Kokkos_Core.hpp>
 
-#include "alg/PlatoLambda.hpp"
 #include "PlatoTypes.hpp"
 
 namespace Plato {

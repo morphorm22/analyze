@@ -144,7 +144,7 @@ public:
 
         const Plato::Scalar tLameLambda = mLameConstantLambda;
         const Plato::Scalar tLameMu     = mLameConstantMu;
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & tCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & tCellOrdinal)
         {
             tComputeGradient(tCellOrdinal, tGradient, aConfigWS, tVolume);
             tComputeCauchyStrain(tCellOrdinal, tCauchyStrain, aStateWS, tGradient);

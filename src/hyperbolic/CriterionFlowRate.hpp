@@ -143,7 +143,7 @@ public:
             Plato::ScalarArray3DT<ConfigT> tJacobians("face Jacobians", tNumFaces, mNumSpatialDimsOnFace, mNumSpatialDims);
             Plato::ScalarMultiVectorT<CurVelT> tCurVelGP("current velocity at Gauss points", tNumElements, mNumSpatialDims);
 
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aSideOrdinal)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal)
             {
                 auto tElementOrdinal = tElementOrds(aSideOrdinal);
                 auto tElemFaceOrdinal = tFaceOrds(aSideOrdinal);

@@ -53,7 +53,7 @@ class LagrangianUpdate : public Plato::WorksetBase<PhysicsT>
             Plato::Strain<mNumSpatialDims>                 tComputeVoigtStrainIncrement;
             Plato::ScalarVectorT<ConfigScalarType>         tCellVolume("cell weight",tNumCells);
 
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
             {
                 tComputeGradient             (aCellOrdinal, tGradient, aConfig, tCellVolume);
                 tComputeVoigtStrainIncrement (aCellOrdinal, tStrainIncrement, aGlobalState, tGradient);
@@ -109,7 +109,7 @@ public:
 
         auto tNumCells = tStrainInc.extent(0);
         auto tNumTerms = tStrainInc.extent(1);
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
         {
             for (ordT iTerm=0; iTerm<tNumTerms; iTerm++)
             {
@@ -124,7 +124,7 @@ public:
 
             auto tNumCells = tTotalStrain.extent(0);
             auto tNumTerms = tTotalStrain.extent(1);
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
             {
                 for (ordT iTerm=0; iTerm<tNumTerms; iTerm++)
                 {

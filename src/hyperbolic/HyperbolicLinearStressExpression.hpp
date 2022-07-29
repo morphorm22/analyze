@@ -170,7 +170,7 @@ public:
 
       Kokkos::parallel_for("Creating a local copy",
                            Kokkos::RangePolicy<>(0, mNumVoigtTerms),
-                           LAMBDA_EXPRESSION(const Plato::OrdinalType & iIndex)
+                           KOKKOS_LAMBDA(const Plato::OrdinalType & iIndex)
       {
         tReferenceStrain(iIndex) = this->mReferenceStrain(iIndex);
 
@@ -191,7 +191,7 @@ public:
 
       Kokkos::parallel_for("Convert vel grad and strain to common state type",
                            Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0}, {tNumCells,mNumVoigtTerms}),
-                           LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal,
+                           KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal,
                                              const Plato::OrdinalType & tVoigtIndex)
       {
           // Convert the vel grad and strain to the common state type.
@@ -280,7 +280,7 @@ public:
       // evaluation is over a single parallel index.
       Kokkos::parallel_for("Compute linear stress",
                            Kokkos::RangePolicy<>(0, tNumCells),
-                           LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+                           KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
       {
         // Compute the stress.  This loop cannot be parallelized
         // because the cell stiffness is set locally and is used by

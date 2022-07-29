@@ -30,7 +30,7 @@ class NodeOrdinal
     * \param [in] aCellOrdinal mesh-local element ordinal
     * \param [in] aNodeOrdinal elem-local node ordinal
     **********************************************************************************/
-    DEVICE_TYPE inline
+    KOKKOS_FUNCTION inline
     Plato::OrdinalType
     operator()(
         Plato::OrdinalType aCellOrdinal,
@@ -55,7 +55,7 @@ class VectorEntryOrdinal
       Plato::Mesh mesh ) :
       mCells2nodes(mesh->Connectivity()) {}
 
-    DEVICE_TYPE inline Plato::OrdinalType
+    KOKKOS_FUNCTION inline Plato::OrdinalType
     operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType nodeOrdinal, Plato::OrdinalType dofOrdinal=0) const
     {
         Plato::OrdinalType vertexNumber = mCells2nodes(cellOrdinal*(SpaceDim+1) + nodeOrdinal);
@@ -77,7 +77,7 @@ class NodeCoordinate
       mCells2nodes(aMesh->Connectivity()),
       mCoords(aMesh->Coordinates()) { }
 
-    DEVICE_TYPE
+    KOKKOS_FUNCTION
     inline
     Plato::Scalar
     operator()(Plato::OrdinalType aCellOrdinal, Plato::OrdinalType aNodeOrdinal, Plato::OrdinalType aDimOrdinal) const
@@ -100,7 +100,7 @@ class JacobianDet
     JacobianDet( Plato::Mesh mesh ) :
       mNodeCoordinate(mesh) {}
 
-    DEVICE_TYPE
+    KOKKOS_FUNCTION
     inline
     Plato::Scalar
     operator()(Plato::OrdinalType cellOrdinal) const {
@@ -127,7 +127,7 @@ class ComputeProjectionWorkset
 public:
     /******************************************************************************/
     template<typename GaussPointScalarType, typename ProjectedScalarType, typename VolumeScalarType>
-    DEVICE_TYPE inline void operator()(const Plato::OrdinalType & aCellOrdinal,
+    KOKKOS_FUNCTION inline void operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarVectorT<VolumeScalarType> & aCellVolume,
                                        const Plato::ScalarVectorT<Plato::Scalar> & tBasisFunctions,
                                        const Plato::ScalarMultiVectorT<GaussPointScalarType> & aStateValues,
@@ -159,7 +159,7 @@ class ComputeGradientWorkset
 
   public:
     template<typename ScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()(Plato::OrdinalType aCellOrdinal,
                Plato::ScalarArray3DT<ScalarType> aGradients,
                Plato::ScalarArray3DT<ScalarType> aConfig,
@@ -168,7 +168,7 @@ class ComputeGradientWorkset
 
   template<>
   template<typename ScalarType>
-  DEVICE_TYPE inline void
+  KOKKOS_FUNCTION inline void
   ComputeGradientWorkset<3>::operator()(Plato::OrdinalType aCellOrdinal,
                                         Plato::ScalarArray3DT<ScalarType> aGradients,
                                         Plato::ScalarArray3DT<ScalarType> aConfig,
@@ -222,7 +222,7 @@ class ComputeGradientWorkset
 
   template<>
   template<typename ScalarType>
-  DEVICE_TYPE inline void
+  KOKKOS_FUNCTION inline void
   ComputeGradientWorkset<2>::operator()(Plato::OrdinalType cellOrdinal,
                                         Plato::ScalarArray3DT<ScalarType> gradients,
                                         Plato::ScalarArray3DT<ScalarType> config,
@@ -256,7 +256,7 @@ class ComputeGradientWorkset
 
   template<>
   template<typename ScalarType>
-  DEVICE_TYPE inline void
+  KOKKOS_FUNCTION inline void
   ComputeGradientWorkset<1>::operator()(Plato::OrdinalType cellOrdinal,
                                         Plato::ScalarArray3DT<ScalarType> gradients,
                                         Plato::ScalarArray3DT<ScalarType> config,
@@ -283,7 +283,7 @@ class ComputeCellVolume
 
   public:
     template<typename ScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()(Plato::OrdinalType cellOrdinal,
                Plato::ScalarArray3DT<ScalarType> config,
                ScalarType& cellVolume) const;
@@ -291,7 +291,7 @@ class ComputeCellVolume
 
   template<>
   template<typename ScalarType>
-  DEVICE_TYPE inline void
+  KOKKOS_FUNCTION inline void
   ComputeCellVolume<3>::operator()(Plato::OrdinalType cellOrdinal,
                                    Plato::ScalarArray3DT<ScalarType> config,
                                    ScalarType& cellVolume) const
@@ -316,7 +316,7 @@ class ComputeCellVolume
 
   template<>
   template<typename ScalarType>
-  DEVICE_TYPE inline void
+  KOKKOS_FUNCTION inline void
   ComputeCellVolume<2>::operator()(Plato::OrdinalType cellOrdinal,
                                    Plato::ScalarArray3DT<ScalarType> config,
                                    ScalarType& cellVolume) const
@@ -334,7 +334,7 @@ class ComputeCellVolume
 
   template<>
   template<typename ScalarType>
-  DEVICE_TYPE inline void
+  KOKKOS_FUNCTION inline void
   ComputeCellVolume<1>::operator()(Plato::OrdinalType cellOrdinal,
                                    Plato::ScalarArray3DT<ScalarType> config,
                                    ScalarType& cellVolume) const
@@ -359,7 +359,7 @@ class ComputeCellVolume
 
 
       template<typename ScalarType>
-      DEVICE_TYPE inline void
+      KOKKOS_FUNCTION inline void
       operator()(Plato::OrdinalType aCellOrdinal,
                  int*               aCellLocalNodeOrdinals,
                  Plato::ScalarArray3DT<ScalarType> config,
@@ -369,7 +369,7 @@ class ComputeCellVolume
 
     template<>
     template<typename ScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     ComputeSurfaceArea<3>::operator()(Plato::OrdinalType aCellOrdinal,
                                       int*                aCellLocalNodeOrdinals,
                                       Plato::ScalarArray3DT<ScalarType> config,
@@ -394,7 +394,7 @@ class ComputeCellVolume
 
     template<>
     template<typename ScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     ComputeSurfaceArea<2>::operator()(Plato::OrdinalType aCellOrdinal,
                                       int*                aCellLocalNodeOrdinals,
                                       Plato::ScalarArray3DT<ScalarType> config,
@@ -404,7 +404,7 @@ class ComputeCellVolume
 
     template<>
     template<typename ScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     ComputeSurfaceArea<1>::operator()(Plato::OrdinalType aCellOrdinal,
                                       int*                aCellLocalNodeOrdinals,
                                       Plato::ScalarArray3DT<ScalarType> config,
@@ -425,7 +425,7 @@ class ComputeGradient
       NodeCoordinate<SpaceDim> nodeCoordinate) :
       mNodeCoordinate(nodeCoordinate) {}
 
-    DEVICE_TYPE
+    KOKKOS_FUNCTION
     inline
     void
     operator()(Plato::OrdinalType cellOrdinal,
@@ -488,7 +488,7 @@ class ComputeVolume
       NodeCoordinate<SpaceDim> nodeCoordinate) :
       mNodeCoordinate(nodeCoordinate) {}
 
-    DEVICE_TYPE
+    KOKKOS_FUNCTION
     inline
 	Scalar
     operator()(Plato::OrdinalType cellOrdinal) const
@@ -524,7 +524,7 @@ class ComputeGradientMatrix : public Plato::SimplexMechanics<SpaceDim>
 
   public:
 
-    DEVICE_TYPE
+    KOKKOS_FUNCTION
     void
     operator()( const Plato::Array<mNumSpaceDim>* gradients,
                       Plato::Array<mNumVoigtTerms>* gradientMatrix) const
@@ -581,7 +581,7 @@ class Assemble
         mEntryOrdinalLookup(aEntryOrdinalLookup),
         mEntriesLength(mMatrixEntries.size()) {}
 
-    DEVICE_TYPE
+    KOKKOS_FUNCTION
     inline
     void
     operator()(Plato::OrdinalType cellOrdinal,
@@ -621,7 +621,7 @@ class BlockMatrixTransposeEntryOrdinal
       mColumnIndices(matrix->columnIndices()),
       mCells2nodes(mesh->Connectivity()) { }
 
-    DEVICE_TYPE
+    KOKKOS_FUNCTION
     inline
     Plato::OrdinalType
     operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType icellDof, Plato::OrdinalType jcellDof) const
@@ -666,7 +666,7 @@ class LocalByGlobalEntryFunctor
       mColumnIndices (tMatrix->columnIndices()),
       mCells2nodes   (tMesh->Connectivity()) { }
 
-    DEVICE_TYPE
+    KOKKOS_FUNCTION
     inline
     Plato::OrdinalType
     operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType icellDof, Plato::OrdinalType jcellDof) const
@@ -703,7 +703,7 @@ class GlobalByLocalEntryFunctor
       mColumnIndices(matrix->columnIndices()),
       mCells2nodes(mesh->Connectivity()) { }
 
-    DEVICE_TYPE
+    KOKKOS_FUNCTION
     inline
     Plato::OrdinalType
     operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType icellDof, Plato::OrdinalType jcellDof) const
@@ -741,7 +741,7 @@ class BlockMatrixEntryOrdinal
       mColumnIndices(matrix->columnIndices()),
       mCells2nodes(mesh->Connectivity()) { }
 
-    DEVICE_TYPE
+    KOKKOS_FUNCTION
     inline
     Plato::OrdinalType
     operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType icellDof, Plato::OrdinalType jcellDof) const
@@ -782,7 +782,7 @@ class MatrixEntryOrdinal
       mColumnIndices(aMatrix->columnIndices()),
       mCells2nodes(aMesh->Connectivity()) { }
 
-    DEVICE_TYPE
+    KOKKOS_FUNCTION
     inline
     Plato::OrdinalType
     operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType icellDof, Plato::OrdinalType jcellDof) const
@@ -842,7 +842,7 @@ CreateGlobalByLocalBlockMatrix( Plato::Mesh aMesh )
     typename MatrixType::ScalarVectorT  entries       ("matrix entries", tNumNonZeros*numBlockDofs);
     typename MatrixType::OrdinalVectorT columnIndices ("column indices", tNumNonZeros);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumNodes), LAMBDA_EXPRESSION(Plato::OrdinalType aNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumNodes), KOKKOS_LAMBDA(Plato::OrdinalType aNodeOrdinal)
     {
       auto tFrom = tOffsetMap(aNodeOrdinal);
       auto tTo   = tOffsetMap(aNodeOrdinal+1);
@@ -897,7 +897,7 @@ CreateLocalByGlobalBlockMatrix( Plato::Mesh aMesh )
     typename MatrixType::ScalarVectorT  entries       ("matrix entries", tNumNonZeros*numBlockDofs);
     typename MatrixType::OrdinalVectorT columnIndices ("column indices", tNumNonZeros);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumElems), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumElems), KOKKOS_LAMBDA(Plato::OrdinalType aCellOrdinal)
     {
       auto tFrom = aCellOrdinal*NodesPerElem;
       auto tTo   = (aCellOrdinal+1)*NodesPerElem;
@@ -955,7 +955,7 @@ CreateBlockMatrix( Plato::Mesh aMesh )
     // The compressed row storage format in omega_h doesn't include diagonals.  This
     // function creates a CRSMatrix with diagonal entries included.
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,numRows), LAMBDA_EXPRESSION(Plato::OrdinalType rowNumber)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,numRows), KOKKOS_LAMBDA(Plato::OrdinalType rowNumber)
     {
       auto entryOffset_oh = tOffsetMap(rowNumber);
       auto R0 = tOffsetMap(rowNumber) + rowNumber;
@@ -1039,7 +1039,7 @@ CreateMatrix( Plato::Mesh aMesh )
     // function creates a CRSMatrix with diagonal entries included and expands the
     // graph to DofsPerNode.
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,numRows), LAMBDA_EXPRESSION(Plato::OrdinalType rowNumber)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,numRows), KOKKOS_LAMBDA(Plato::OrdinalType rowNumber)
     {
       auto entryOffset_oh = tOffsetMap(rowNumber);
       auto R0 = tOffsetMap(rowNumber) + rowNumber;

@@ -93,7 +93,7 @@ namespace PlatoTestMeshMap
 
     // map from input to output
     //
-    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNElems), LAMBDA_EXPRESSION(int aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNElems), KOKKOS_LAMBDA(int aOrdinal)
     {
         Plato::Scalar tElemBases[cSpaceDim+1];
         // compute element centroid
@@ -183,7 +183,7 @@ namespace PlatoTestMeshMap
 
     // map from input to output
     //
-    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNumVals), LAMBDA_EXPRESSION(int aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNumVals), KOKKOS_LAMBDA(int aOrdinal)
     {
         tMathMap(aOrdinal, tXin, tXout);
     }, "compute");
@@ -253,7 +253,7 @@ namespace PlatoTestMeshMap
 
     // map from input to output
     //
-    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNumVals), LAMBDA_EXPRESSION(int aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNumVals), KOKKOS_LAMBDA(int aOrdinal)
     {
         tMathMap(aOrdinal, tXin, tXout);
     }, "compute");
@@ -336,7 +336,7 @@ namespace PlatoTestMeshMap
     auto tDim = tMesh->NumDimensions();
     Kokkos::View<double*, MemSpace> tInField("not symmetric", tNVerts);
     using OrdinalType = typename Kokkos::View<double*, MemSpace>::size_type;
-    Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalType>(0, tNVerts), LAMBDA_EXPRESSION(OrdinalType iVertOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalType>(0, tNVerts), KOKKOS_LAMBDA(OrdinalType iVertOrdinal)
     {
         tInField(iVertOrdinal) = tCoords(iVertOrdinal*tDim+2);
     }, "compute field");

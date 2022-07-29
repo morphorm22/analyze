@@ -273,7 +273,7 @@ void print_view2(const Plato::ScalarVectorT<DataType> & aView)
  {
     printf("Printing view now: ");
     printf("\n size is %d",aView.extent(0));
-    Kokkos::parallel_for("print view values on device", aView.extent(0), LAMBDA_EXPRESSION(const int & aIndex)
+    Kokkos::parallel_for("print view values on device", aView.extent(0), KOKKOS_LAMBDA(const int & aIndex)
     {
         printf("Ordinal %d \n",aIndex);
         printf("[%d] \n",aView(aIndex));

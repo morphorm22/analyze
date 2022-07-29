@@ -171,7 +171,7 @@ class StressPNorm :
       auto quadratureWeight = mQuadratureWeight;
       auto applyWeighting   = mApplyWeighting;
       auto tFxnValues       = mFxnValues;
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType cellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(Plato::OrdinalType cellOrdinal)
       {
         computeGradient(cellOrdinal, gradient, aConfig, cellVolume);
         cellVolume(cellOrdinal) *= quadratureWeight * tFxnValues[cellOrdinal];

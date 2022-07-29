@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "alg/PlatoLambda.hpp"
 #include "PlatoStaticsTypes.hpp"
 
 namespace Plato
@@ -41,7 +40,7 @@ public:
      *
     *******************************************************************************/
     template<typename ConfigScalarType, typename ResultScalarType>
-    DEVICE_TYPE inline void operator()
+    KOKKOS_FUNCTION inline void operator()
     (const Plato::OrdinalType & aCellOrdinal,
      const Plato::OrdinalType & aFaceOrdinal,
      const Plato::OrdinalType aLocalNodeOrd[SpatialDim],
@@ -55,7 +54,7 @@ public:
 *******************************************************************************/
 template<>
 template<typename ConfigScalarType, typename ResultScalarType>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 CalculateSurfaceJacobians<1>::operator()
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::OrdinalType & aFaceOrdinal,
@@ -70,7 +69,7 @@ CalculateSurfaceJacobians<1>::operator()
 *******************************************************************************/
 template<>
 template<typename ConfigScalarType, typename ResultScalarType>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 CalculateSurfaceJacobians<2>::operator()
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::OrdinalType & aFaceOrdinal,
@@ -96,7 +95,7 @@ CalculateSurfaceJacobians<2>::operator()
 *******************************************************************************/
 template<>
 template<typename ConfigScalarType, typename ResultScalarType>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 CalculateSurfaceJacobians<3>::operator()
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::OrdinalType & aFaceOrdinal,
@@ -147,7 +146,7 @@ public:
      *
     *******************************************************************************/
     template<typename ConfigScalarType, typename ResultScalarType>
-    DEVICE_TYPE inline void operator()
+    KOKKOS_FUNCTION inline void operator()
     (const Plato::OrdinalType & aFaceOrdinal,
      const Plato::Scalar & aMultiplier,
      const Plato::ScalarArray3DT<ConfigScalarType> & aJacobian,
@@ -166,7 +165,7 @@ public:
      *
     *******************************************************************************/
     template<typename ConfigScalarType, typename ResultScalarType>
-    DEVICE_TYPE inline void operator()
+    KOKKOS_FUNCTION inline void operator()
     (const Plato::OrdinalType & aFaceOrdinal,
      const Plato::Scalar & aMultiplier,
      const Plato::ScalarArray3DT<ConfigScalarType> & aJacobian,
@@ -179,7 +178,7 @@ public:
 *******************************************************************************/
 template<>
 template<typename ConfigScalarType, typename ResultScalarType>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 CalculateSurfaceArea<1>::operator()
 (const Plato::OrdinalType & aFaceOrdinal,
  const Plato::Scalar & aMultiplier,
@@ -195,7 +194,7 @@ CalculateSurfaceArea<1>::operator()
 *******************************************************************************/
 template<>
 template<typename ConfigScalarType, typename ResultScalarType>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 CalculateSurfaceArea<2>::operator()
 (const Plato::OrdinalType & aFaceOrdinal,
  const Plato::Scalar & aMultiplier,
@@ -213,7 +212,7 @@ CalculateSurfaceArea<2>::operator()
 *******************************************************************************/
 template<>
 template<typename ConfigScalarType, typename ResultScalarType>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 CalculateSurfaceArea<3>::operator()
 (const Plato::OrdinalType & aFaceOrdinal,
  const Plato::Scalar & aMultiplier,
@@ -232,7 +231,7 @@ CalculateSurfaceArea<3>::operator()
 *******************************************************************************/
 template<>
 template<typename ConfigScalarType, typename ResultScalarType>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 CalculateSurfaceArea<1>::operator()
 (const Plato::OrdinalType & aFaceOrdinal,
  const Plato::Scalar & aMultiplier,
@@ -248,7 +247,7 @@ CalculateSurfaceArea<1>::operator()
 *******************************************************************************/
 template<>
 template<typename ConfigScalarType, typename ResultScalarType>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 CalculateSurfaceArea<2>::operator()
 (const Plato::OrdinalType & aFaceOrdinal,
  const Plato::Scalar & aMultiplier,
@@ -266,7 +265,7 @@ CalculateSurfaceArea<2>::operator()
 *******************************************************************************/
 template<>
 template<typename ConfigScalarType, typename ResultScalarType>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 CalculateSurfaceArea<3>::operator()
 (const Plato::OrdinalType & aFaceOrdinal,
  const Plato::Scalar & aMultiplier,

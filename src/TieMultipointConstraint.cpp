@@ -74,7 +74,7 @@ get(OrdinalVector & aMpcChildNodes,
     auto tChildNodes = mChildNodes;
     auto tParentNodes = mParentNodes;
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberChildNodes), LAMBDA_EXPRESSION(Plato::OrdinalType nodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberChildNodes), KOKKOS_LAMBDA(Plato::OrdinalType nodeOrdinal)
     {
         tMpcChildNodes(aOffsetChild + nodeOrdinal) = tChildNodes(nodeOrdinal); // child node ID
         tMpcParentNodes(aOffsetParent + nodeOrdinal) = tParentNodes(nodeOrdinal); // parent node ID
@@ -115,7 +115,7 @@ updateNodesets(const OrdinalType& tNumberChildNodes,
     auto tChildNodes = mChildNodes;
     auto tParentNodes = mParentNodes;
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberChildNodes), LAMBDA_EXPRESSION(Plato::OrdinalType nodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberChildNodes), KOKKOS_LAMBDA(Plato::OrdinalType nodeOrdinal)
     {
         tChildNodes(nodeOrdinal) = tChildNodeLids(nodeOrdinal); // child node ID
         tParentNodes(nodeOrdinal) = tParentNodeLids(nodeOrdinal); // parent node ID

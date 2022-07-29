@@ -57,7 +57,7 @@ public:
      *
     **********************************************************************************/
     template<typename OutputScalarType, typename WeightScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()(const Plato::OrdinalType & aCellOrdinal,
                const WeightScalarType & aCellDensity,
                const Plato::ScalarArray3DT<OutputScalarType> & aOutput) const
@@ -85,7 +85,7 @@ public:
      *
     **********************************************************************************/
     template<typename OutputScalarType, typename WeightScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()(const Plato::OrdinalType & aCellOrdinal,
                const WeightScalarType & aCellDensity,
                const Plato::ScalarMultiVectorT<OutputScalarType> & aOutput) const

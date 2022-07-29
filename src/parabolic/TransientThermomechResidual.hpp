@@ -207,7 +207,7 @@ class TransientThermomechResidual :
       auto& tApplyFluxWeighting   = mApplyFluxWeighting;
       auto& tApplyMassWeighting   = mApplyMassWeighting;
       auto tQuadratureWeight = mCubatureRule->getCubWeight();
-      Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType tCellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumCells), KOKKOS_LAMBDA(Plato::OrdinalType tCellOrdinal)
       {
     
         tComputeGradient(tCellOrdinal, tGradient, aConfig, tCellVolume);

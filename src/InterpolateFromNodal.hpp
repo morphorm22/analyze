@@ -52,7 +52,7 @@ public:
     *
     *******************************************************************************/
     template<typename InStateType, typename OutStateType>
-    DEVICE_TYPE inline void operator()(const Plato::OrdinalType & aCellOrdinal,
+    KOKKOS_FUNCTION inline void operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarVector & aBasisFunctions,
                                        const Plato::ScalarMultiVectorT<InStateType> & aNodalCellStates,
                                        const Plato::ScalarVectorT<OutStateType> & aStateValues) const
@@ -84,7 +84,7 @@ public:
     *
     *******************************************************************************/
     template<typename InStateType, typename OutStateType>
-    DEVICE_TYPE inline void operator()(const Plato::OrdinalType & aCellOrdinal,
+    KOKKOS_FUNCTION inline void operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarVector & aBasisFunctions,
                                        const Plato::ScalarMultiVectorT<InStateType> & aNodalCellStates,
                                        const Plato::ScalarMultiVectorT<OutStateType> & aStateValues) const

@@ -294,7 +294,7 @@ namespace Plato
             ANALYZE_THROWERR("Dimension mismatch");
         }
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumRows), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
         {
             aToVector(aOrdinal) = aFromVector(aOrdinal, aColIndex);
         }, "extract column");

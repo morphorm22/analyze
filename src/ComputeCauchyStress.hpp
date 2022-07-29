@@ -44,7 +44,7 @@ public:
      * \param [out] aStress                Cauchy stress tensor
     **********************************************************************************/
     template<typename StrainT, typename ControlT, typename StressT>
-    DEVICE_TYPE
+    KOKKOS_FUNCTION
     inline void operator()
     (const Plato::OrdinalType & aCellOrdinal,
      const ControlT & aPenalizedBulkModulus,
@@ -59,7 +59,7 @@ public:
 **********************************************************************************/
 template<>
 template<typename StrainT, typename ControlT, typename StressT>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 ComputeCauchyStress<3>::operator()
 (const Plato::OrdinalType & aCellOrdinal,
  const ControlT & aPenalizedBulkModulus,
@@ -95,7 +95,7 @@ ComputeCauchyStress<3>::operator()
 **********************************************************************************/
 template<>
 template<typename StrainT, typename ControlT, typename StressT>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 ComputeCauchyStress<2>::operator()
 (const Plato::OrdinalType & aCellOrdinal,
  const ControlT & aPenalizedBulkModulus,
@@ -125,7 +125,7 @@ ComputeCauchyStress<2>::operator()
 **********************************************************************************/
 template<>
 template<typename StrainT, typename ControlT, typename StressT>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 ComputeCauchyStress<1>::operator()
 (const Plato::OrdinalType & aCellOrdinal,
  const ControlT & aPenalizedBulkModulus,

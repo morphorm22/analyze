@@ -562,7 +562,7 @@ local_workset_matrix_vector_multiply(const Plato::ScalarArray3D & aWorkset,
     Plato::ScalarVector tResult("result", tVectorSize);
 
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), 
-                         LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+                         KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         Plato::OrdinalType tStartingRowIndex = aCellOrdinal * tNumLocalDofsPerCell;
         for (Plato::OrdinalType tRow = 0; tRow < tNumLocalDofsPerCell; ++tRow)
@@ -593,7 +593,7 @@ global_workset_matrix_vector_multiply(const Plato::ScalarArray3D & aWorkset,
 
     Plato::ScalarVector tResult("result", aNumMatrixRows);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumWorksetRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumWorksetRows), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for (Plato::OrdinalType tWorksetCol = 0; tWorksetCol < tNumWorksetCols; ++tWorksetCol)
         {
@@ -631,7 +631,7 @@ control_workset_matrix_vector_multiply(const Plato::ScalarArray3D & aWorkset,
 
     Plato::ScalarVector tResult("result", aNumMatrixRows);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumWorksetRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumWorksetRows), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for (Plato::OrdinalType tWorksetCol = 0; tWorksetCol < tNumWorksetCols; ++tWorksetCol)
         {
@@ -757,7 +757,7 @@ test_partial_global_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<Simpl
                                                                          tLocalState, tPrevLocalState,
                                                                          tControl, tTimeData);
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tTotalNumDofs), LAMBDA_EXPRESSION(const Plato::OrdinalType & aDofOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tTotalNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & aDofOrdinal)
         {
             Plato::Scalar tValuePlus1Eps  = tVectorValueOne(aDofOrdinal);
             Plato::Scalar tValueMinus1Eps = tVectorValueTwo(aDofOrdinal);
@@ -896,7 +896,7 @@ test_partial_prev_global_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<
                                                                          tControl, tTimeData);
 
         Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tTotalNumDofs), 
-                                 LAMBDA_EXPRESSION(const Plato::OrdinalType & aDofOrdinal)
+                                 KOKKOS_LAMBDA(const Plato::OrdinalType & aDofOrdinal)
         {
             Plato::Scalar tValuePlus1Eps  = tVectorValueOne(aDofOrdinal);
             Plato::Scalar tValueMinus1Eps = tVectorValueTwo(aDofOrdinal);
@@ -1030,7 +1030,7 @@ test_partial_local_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<Simple
                                                                          tControl, tTimeData);
 
         Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tTotalNumLocalDofs), 
-                                 LAMBDA_EXPRESSION(const Plato::OrdinalType & aDofOrdinal)
+                                 KOKKOS_LAMBDA(const Plato::OrdinalType & aDofOrdinal)
         {
             Plato::Scalar tValuePlus1Eps  = tVectorValueOne(aDofOrdinal);
             Plato::Scalar tValueMinus1Eps = tVectorValueTwo(aDofOrdinal);
@@ -1164,7 +1164,7 @@ test_partial_prev_local_state(Plato::Mesh aMesh, Plato::LocalVectorFunctionInc<S
                                                                          tControl, tTimeData);
 
         Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tTotalNumLocalDofs), 
-                                 LAMBDA_EXPRESSION(const Plato::OrdinalType & aDofOrdinal)
+                                 KOKKOS_LAMBDA(const Plato::OrdinalType & aDofOrdinal)
         {
             Plato::Scalar tValuePlus1Eps  = tVectorValueOne(aDofOrdinal);
             Plato::Scalar tValueMinus1Eps = tVectorValueTwo(aDofOrdinal);
@@ -1303,7 +1303,7 @@ test_partial_local_vect_func_inc_wrt_control(Plato::Mesh aMesh, Plato::LocalVect
                                                                          tTrialControl, tTimeData);
 
         Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tTotalNumLocalDofs), 
-                                 LAMBDA_EXPRESSION(const Plato::OrdinalType & aDofOrdinal)
+                                 KOKKOS_LAMBDA(const Plato::OrdinalType & aDofOrdinal)
         {
             Plato::Scalar tValuePlus1Eps  = tVectorValueOne(aDofOrdinal);
             Plato::Scalar tValueMinus1Eps = tVectorValueTwo(aDofOrdinal);

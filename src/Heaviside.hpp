@@ -107,7 +107,7 @@ public:
      * \param [in] aInput material density
     **********************************************************************************/
     template<typename ScalarType>
-    DEVICE_TYPE inline ScalarType operator()( ScalarType aInput ) const
+    KOKKOS_FUNCTION inline ScalarType operator()( ScalarType aInput ) const
     {
         if (aInput <= -mRegLength)
         {

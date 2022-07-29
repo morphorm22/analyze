@@ -80,7 +80,7 @@ void MultipointConstraints::getMaps(OrdinalVector & nodeTypes,
 
     auto tChildNodes = mChildNodes;
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumChildNodes), LAMBDA_EXPRESSION(Plato::OrdinalType childOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumChildNodes), KOKKOS_LAMBDA(Plato::OrdinalType childOrdinal)
     {
         OrdinalType childNode = tChildNodes(childOrdinal);
         tCondensedNodeCounter(childNode) = 0; // mark child DOF with 0
@@ -124,7 +124,7 @@ void MultipointConstraints::assembleTransformMatrix(const Teuchos::RCP<Plato::Cr
     Plato::CrsMatrixType::ScalarVectorT outEntries("transform matrix entries", tOutNnz);
 
     // build row map
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, mNumNodes), LAMBDA_EXPRESSION(Plato::OrdinalType iRowOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, mNumNodes), KOKKOS_LAMBDA(Plato::OrdinalType iRowOrdinal)
     {
         OrdinalType nodeType = aNodeTypes(iRowOrdinal);
         if(nodeType == -1) // Child Node
@@ -156,7 +156,7 @@ void MultipointConstraints::assembleTransformMatrix(const Teuchos::RCP<Plato::Cr
 
     auto tParentNodes = mParentNodes;
     auto tNumDofsPerNode = mNumDofsPerNode;
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, mNumNodes), LAMBDA_EXPRESSION(Plato::OrdinalType nodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, mNumNodes), KOKKOS_LAMBDA(Plato::OrdinalType nodeOrdinal)
     {
         OrdinalType tColMapOrdinal = outRowMap(nodeOrdinal);
         OrdinalType nodeType = aNodeTypes(nodeOrdinal);
@@ -210,7 +210,7 @@ void MultipointConstraints::assembleRhs(const ScalarVector & aMpcValues)
     auto tChildNodes = mChildNodes;
     auto tRhs = mRhs;
     auto tNumDofsPerNode = mNumDofsPerNode;
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumChildNodes), LAMBDA_EXPRESSION(Plato::OrdinalType childOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumChildNodes), KOKKOS_LAMBDA(Plato::OrdinalType childOrdinal)
     {
         OrdinalType childNode = tChildNodes(childOrdinal);
         for(OrdinalType dofOrdinal=0; dofOrdinal<tNumDofsPerNode; dofOrdinal++)
@@ -268,7 +268,7 @@ void MultipointConstraints::checkEssentialBcsConflicts(const OrdinalVector & aBc
     // check for child node conflicts
     Plato::OrdinalType tNumChildConflicts(0);
     Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNumBcDofs),
-    LAMBDA_EXPRESSION(const Plato::OrdinalType& aBcOrdinal, Plato::OrdinalType & aUpdate)
+    KOKKOS_LAMBDA(const Plato::OrdinalType& aBcOrdinal, Plato::OrdinalType & aUpdate)
     {
         OrdinalType tBcDof = tBcDofs(aBcOrdinal);
         OrdinalType tBcNode = ( tBcDof - tBcDof % tNumDofsPerNode ) / tNumDofsPerNode;
@@ -290,7 +290,7 @@ void MultipointConstraints::checkEssentialBcsConflicts(const OrdinalVector & aBc
     // check for parent node conflicts
     Plato::OrdinalType tNumParentConflicts(0);
     Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNumBcDofs),
-    LAMBDA_EXPRESSION(const Plato::OrdinalType& aBcOrdinal, Plato::OrdinalType & aUpdate)
+    KOKKOS_LAMBDA(const Plato::OrdinalType& aBcOrdinal, Plato::OrdinalType & aUpdate)
     {
         OrdinalType tBcDof = tBcDofs(aBcOrdinal);
         OrdinalType tBcNode = ( tBcDof - tBcDof % tNumDofsPerNode ) / tNumDofsPerNode;

@@ -155,7 +155,7 @@ public:
 
             auto tCubWeight = mCubatureRule.getCubWeight();
             auto tBasisFunctions = mCubatureRule.getBasisFunctions();
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType &aCellOrdinal)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType &aCellOrdinal)
             {
                 // 1. calculate weighted cell volume
                 tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
@@ -354,7 +354,7 @@ public:
 
             auto tCubWeight = mCubatureRule.getCubWeight();
             auto tBasisFunctions = mCubatureRule.getBasisFunctions();
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType &aCellOrdinal)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType &aCellOrdinal)
             {
                 // 1. calculate weighted cell volume
                 tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);

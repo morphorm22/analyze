@@ -67,7 +67,7 @@ public:
              typename StressScalarType,
              typename GradientScalarType,
              typename VolumeScalarType>
-    DEVICE_TYPE inline void operator()(const Plato::OrdinalType & aCellOrdinal,
+    KOKKOS_FUNCTION inline void operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarMultiVectorT<ForcingScalarType> & aOutput,
                                        const Plato::ScalarMultiVectorT<StressScalarType> & aStress,
                                        const Plato::ScalarArray3DT<GradientScalarType> & aGradient,

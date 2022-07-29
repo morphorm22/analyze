@@ -180,7 +180,7 @@ class RelaxedMicromorphicResidual :
 
         Plato::ComputeCellVolume<SpaceDim> tComputeVolume;
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
         {
             Plato::Scalar tThisVolume;
             tComputeVolume(aCellOrdinal, aConfig, tThisVolume);
@@ -330,7 +330,7 @@ class RelaxedMicromorphicResidual :
       auto& tApplyStressWeighting = mApplyStressWeighting;
       auto& tApplyMassWeighting = mApplyMassWeighting;
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
       {
         tComputeGradient(aCellOrdinal, tGradient, aConfig, tCellVolume);
         tCellVolume(aCellOrdinal) *= tQuadratureWeight;

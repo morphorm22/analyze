@@ -121,7 +121,7 @@ void SurfaceLoadIntegral<SpatialDim,NumDofs,DofsPerNode,DofOffset>::operator()(
         ANALYZE_THROWERR("Natural Boundary Condition: A non-finite cubature weight was detected.")
     }
     auto tCubWeightTimesScale = aScale * tCubatureWeight;
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aSideOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumFaces), KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal)
     {
       auto tElementOrdinal = tElementOrds(aSideOrdinal);
 

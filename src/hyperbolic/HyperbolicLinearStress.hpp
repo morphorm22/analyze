@@ -104,7 +104,7 @@ public:
       // parallelism can be exploited.
       Kokkos::parallel_for("Compute linear stress",
                            Kokkos::MDRangePolicy< Kokkos::Rank<2> >( {0, 0}, {tNumCells, mNumVoigtTerms} ),
-                           LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal,
+                           KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal,
                                              const Plato::OrdinalType & tVoigtIndex_I)
       {
           aCauchyStress(aCellOrdinal, tVoigtIndex_I) = 0.0;
@@ -126,7 +126,7 @@ public:
      * \param [in]  aSmallStrain Infinitesimal strain tensor
      * \param [in]  aVelGrad Velocity gradient tensor
     **********************************************************************************/
-    DEVICE_TYPE inline void operator()(Plato::OrdinalType aCellOrdinal,
+    KOKKOS_FUNCTION inline void operator()(Plato::OrdinalType aCellOrdinal,
                                        Plato::ScalarMultiVectorT<ResultT > const& aCauchyStress,
                                        Plato::ScalarMultiVectorT<StrainT > const& aSmallStrain,
                                        Plato::ScalarMultiVectorT<VelGradT> const& aVelGrad) const

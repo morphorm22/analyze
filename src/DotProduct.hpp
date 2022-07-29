@@ -20,7 +20,7 @@ public:
     ~DotProduct(){}
 
     template<typename ProductScalarType, typename ViewScalarTypeOne, typename ViewScalarTypeTwo>
-    DEVICE_TYPE inline void operator()(const Plato::OrdinalType & aCellOrdinal,
+    KOKKOS_FUNCTION inline void operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarMultiVectorT<ViewScalarTypeOne> & aInputOne,
                                        const Plato::ScalarMultiVectorT<ViewScalarTypeTwo> & aInputTwo,
                                        const Plato::ScalarVectorT<ProductScalarType> & aOutput) const

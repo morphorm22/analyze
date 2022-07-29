@@ -112,7 +112,7 @@ class FluxPNorm :
       auto tQuadratureWeight = mCubatureRule->getCubWeight();
       auto& applyWeighting  = mApplyWeighting;
       auto exponent         = mExponent;
-      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), LAMBDA_EXPRESSION(const int & aCellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), KOKKOS_LAMBDA(const int & aCellOrdinal)
       {
         computeGradient(aCellOrdinal, gradient, aConfig, cellVolume);
         cellVolume(aCellOrdinal) *= tQuadratureWeight;
@@ -145,7 +145,7 @@ class FluxPNorm :
     {
       auto scale = pow(resultScalar,(1.0-mExponent)/mExponent)/mExponent;
       auto numEntries = resultVector.size();
-      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numEntries), LAMBDA_EXPRESSION(int entryOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numEntries), KOKKOS_LAMBDA(int entryOrdinal)
       {
         resultVector(entryOrdinal) *= scale;
       },"scale vector");

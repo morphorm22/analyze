@@ -50,7 +50,7 @@ TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormDefaultVolumeScaling)
     Kokkos::deep_copy(tControl, 1.0);
     Kokkos::deep_copy(tCellVolume, 0.5);    
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), LAMBDA_EXPRESSION(const int & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), KOKKOS_LAMBDA(const int & aCellOrdinal)
     {
         for (int tVoigtIndex=0; tVoigtIndex<numVoigt; tVoigtIndex++)
         {
@@ -109,7 +109,7 @@ TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormSpecifiedVolumeScaling)
     Kokkos::deep_copy(tControl, 1.0);
     Kokkos::deep_copy(tCellVolume, 2.7);    
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), LAMBDA_EXPRESSION(const int & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), KOKKOS_LAMBDA(const int & aCellOrdinal)
     {
         for (int tVoigtIndex=0; tVoigtIndex<numVoigt; tVoigtIndex++)
         {
@@ -168,7 +168,7 @@ TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormNoVolumeScaling)
     Kokkos::deep_copy(tControl, 1.0);
     Kokkos::deep_copy(tCellVolume, 15.3);    
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), LAMBDA_EXPRESSION(const int & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), KOKKOS_LAMBDA(const int & aCellOrdinal)
     {
         for (int tVoigtIndex=0; tVoigtIndex<numVoigt; tVoigtIndex++)
         {

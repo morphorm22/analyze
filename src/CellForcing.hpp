@@ -47,7 +47,7 @@ public:
         auto tCellStiffness = mCellStiffness;
         auto tColumnIndex = mColumnIndex;
 
-        Kokkos::parallel_for(Kokkos::RangePolicy < Plato::OrdinalType > (0, tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy < Plato::OrdinalType > (0, tNumCells), KOKKOS_LAMBDA(Plato::OrdinalType aCellOrdinal)
         {
             // add forcing
             //

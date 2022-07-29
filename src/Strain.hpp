@@ -34,7 +34,7 @@ public:
      * \param [in]     aGradientMatrix spatial gradient matrix
     *******************************************************************************/
     template<typename ScalarType>
-    DEVICE_TYPE inline void operator()(Plato::OrdinalType aCellOrdinal,
+    KOKKOS_FUNCTION inline void operator()(Plato::OrdinalType aCellOrdinal,
                                        Kokkos::View<ScalarType**, Plato::Layout, Plato::MemSpace> const& aStrain,
                                        Kokkos::View<ScalarType**, Plato::Layout, Plato::MemSpace> const& aState,
                                        Plato::Array<mNumVoigtTerms> const* aGradientMatrix) const
@@ -53,7 +53,7 @@ public:
     }
 
     template<typename StrainScalarType, typename DispScalarType, typename GradientScalarType>
-    DEVICE_TYPE inline void operator()(Plato::OrdinalType aCellOrdinal,
+    KOKKOS_FUNCTION inline void operator()(Plato::OrdinalType aCellOrdinal,
                                        Plato::ScalarMultiVectorT<StrainScalarType> const& aStrain,
                                        Plato::ScalarMultiVectorT<DispScalarType> const& aState,
                                        Plato::ScalarArray3DT<GradientScalarType> const& aGradient) const

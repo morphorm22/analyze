@@ -156,7 +156,7 @@ public:
             Plato::ScalarVectorT<ConfigT> tSurfaceArea("surface area", tNumFaces);
             Plato::ScalarVectorT<CurrentTempT> tCurrentTempGP("current temperature at GP", tNumCells);
 
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aSideOrdinal)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal)
             {
                 Plato::OrdinalType tElementOrdinal = tElementOrds(aSideOrdinal);
 
@@ -186,7 +186,7 @@ public:
                 }
             }, "integrate surface temperature");
 
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aElementOrdinal)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aElementOrdinal)
             {
                 aResult(aElementOrdinal) = ( static_cast<Plato::Scalar>(1.0) / tSurfaceAreaSum(0) ) * tResult(aElementOrdinal);
             }, "calculate mean surface temperature");

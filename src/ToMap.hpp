@@ -96,7 +96,7 @@ toMap(
 
     auto tNumCells = aSpatialDomain.numCells();
     auto tOrdinals = aSpatialDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tGlobalOrdinal = tOrdinals[aCellOrdinal];
         tData(tGlobalOrdinal) = aInput(aCellOrdinal);
@@ -120,7 +120,7 @@ toMap(
 {
     auto tNumEntries = aFrom.extent(0);
     Plato::ScalarVector tTo(aName, tNumEntries);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumEntries), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumEntries), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
     {
         tTo(aOrdinal) = aFrom(aOrdinal);
     }, "cast");
@@ -183,7 +183,7 @@ toMap(
 
     auto tNumCells = aSpatialDomain.numCells();
     auto tOrdinals = aSpatialDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tGlobalOrdinal = tOrdinals[aCellOrdinal];
         for(decltype(tDim) iDim=0; iDim<tDim; iDim++)
@@ -254,7 +254,7 @@ toMap(
 
     auto tNumCells = aSpatialDomain.numCells();
     auto tOrdinals = aSpatialDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tGlobalOrdinal = tOrdinals[aCellOrdinal];
         for(decltype(tDim1) iDim1=0; iDim1<tDim1; iDim1++)

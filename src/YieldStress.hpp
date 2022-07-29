@@ -35,7 +35,7 @@ public:
      * \param [in]  aPenalizedInitialYieldStress,
      * \param [in]  aPenalizedHardeningModulusIsotropic
     **********************************************************************************/
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()(Plato::OrdinalType const & aCellOrdinal,
                ResultT & aYieldStress,
                Plato::ScalarMultiVectorT< LocalStateT > const& aLocalState,
@@ -63,7 +63,7 @@ public:
      * \param [in]  aPenalizedInitialYieldStress,
      * \param [in]  aPenalizedHardeningModulusIsotropic
     **********************************************************************************/
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()(Plato::OrdinalType const & aCellOrdinal,
                Plato::ScalarMultiVectorT< ResultT     > const& aYieldStress,
                Plato::ScalarMultiVectorT< LocalStateT > const& aLocalState,
@@ -117,7 +117,7 @@ public:
         // Compute the yield stress.
         Kokkos::parallel_for( "Compute yield stress",
                               Kokkos::RangePolicy<>(0, tNumCells),
-                              LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+                              KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
         {
           aYieldStress(aCellOrdinal, 0) =
             aPenalizedInitialYieldStress(aCellOrdinal) +

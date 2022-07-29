@@ -94,7 +94,7 @@ class TemperatureAverage :
       auto basisFunctions = mCubatureRule->getBasisFunctions();
       auto quadratureWeight = mCubatureRule->getCubWeight();
       auto applyWeighting  = mApplyWeighting;
-      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNumCells), LAMBDA_EXPRESSION(const int & aCellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNumCells), KOKKOS_LAMBDA(const int & aCellOrdinal)
       {
         ConfigScalarType tCellVolume(0.0);
         tComputeCellVolume(aCellOrdinal, aConfig, tCellVolume);

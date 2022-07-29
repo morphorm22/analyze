@@ -255,7 +255,7 @@ public:
       // Copy the result into a ScalarVector
       Plato::ScalarVector tSpatialWeightingValues("spatial weights", tFxnValues.size());
       Plato::OrdinalType tNumLocalVals = tFxnValues.size();
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
       {
           tSpatialWeightingValues(aOrdinal) = tFxnValues[aOrdinal];
       }, "copy vector");

@@ -67,7 +67,7 @@ public:
         Plato::ScalarVector tReturnValue("velocity residual", tNumData);
 
         auto tAlpha = mAlpha;
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumData), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumData), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
         {
             tReturnValue(aOrdinal) = aV(aOrdinal) - 1.0/(tAlpha*dt)*(aU(aOrdinal) - aU_prev(aOrdinal) - dt*(1.0-tAlpha)*aV_prev(aOrdinal));
         }, "Velocity residual value");

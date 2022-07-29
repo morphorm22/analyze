@@ -28,7 +28,7 @@ namespace blas1
 inline void abs(const Plato::ScalarVector & aVector)
 {
     Plato::OrdinalType tLength = aVector.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
     {
         aVector(aOrdinal) = fabs(aVector(aOrdinal));
     }, "calculate absolute value");
@@ -76,7 +76,7 @@ inline Plato::Scalar dot(const VecOneT & aVec1, const VecTwoT & aVec2)
     Plato::Scalar tOutput = 0.;
     const Plato::OrdinalType tSize = aVec1.size();
     Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tSize),
-                            LAMBDA_EXPRESSION(const Plato::OrdinalType & aIndex, Plato::Scalar & aSum)
+                            KOKKOS_LAMBDA(const Plato::OrdinalType & aIndex, Plato::Scalar & aSum)
     {
         aSum += aVec1(aIndex) * aVec2(aIndex);
     }, tOutput);
@@ -123,7 +123,7 @@ inline void fill(const Plato::Scalar & aInput, const VectorT & aVector)
     }
 
     Plato::OrdinalType tNumLocalVals = aVector.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
     {
         aVector(aOrdinal) = aInput;
     }, "fill vector");
@@ -172,7 +172,7 @@ inline void fill(const Plato::Scalar & aMultiplier,
     }
 
     const Plato::OrdinalType tNumLocalVals = aOutput.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), LAMBDA_EXPRESSION(const Plato::OrdinalType & aIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), KOKKOS_LAMBDA(const Plato::OrdinalType & aIndex)
     {
         aOutput(aOrdinals(aIndex)) = aMultiplier * aValues(aIndex);
     }, "fill vector");
@@ -196,7 +196,7 @@ inline void copy(const VecOneT & aInput, const VecTwoT & aOutput)
     }
 
     Plato::OrdinalType tNumLocalVals = aInput.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
     {
         aOutput(aOrdinal) = aInput(aOrdinal);
     }, "copy vector");
@@ -224,7 +224,7 @@ inline void scale(const Plato::Scalar & aInput, const VecT & aVector)
     }
 
     Plato::OrdinalType tNumLocalVals = aVector.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
     {
         aVector(aOrdinal) *= aInput;
     }, "scale vector");
@@ -249,7 +249,7 @@ inline void axpy(const Plato::Scalar & aAlpha, const VecT & aInput, const VecT &
     }
 
     Plato::OrdinalType tNumLocalVals = aInput.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
     {
         aOutput(aOrdinal) += aAlpha * aInput(aOrdinal);
     }, "Plato::axpy");
@@ -286,7 +286,7 @@ void update(const Plato::Scalar & aAlpha, const VecT & aInput, const Plato::Scal
     }
 
     Plato::OrdinalType tNumLocalVals = aInput.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
     {
         aOutput(aOrdinal) = aAlpha * aInput(aOrdinal) + aBeta * aOutput(aOrdinal);
     }, "update vector");
@@ -310,7 +310,7 @@ void local_sum(const VecT & aInput, ScalarT & aOutput)
 
     ScalarT tOutput = 0.0;
     const Plato::OrdinalType tNumLocalElems = aInput.size();
-    Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNumLocalElems), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal, ScalarT & aLocalSum)
+    Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNumLocalElems), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal, ScalarT & aLocalSum)
     {
       aLocalSum += aInput(aCellOrdinal);
     }, tOutput);
@@ -405,7 +405,7 @@ inline void extract(const Plato::ScalarVector& aFromVector, Plato::ScalarVector&
 
     auto tNumRows = aToVector.extent(0);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumRows), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
     {
         aToVector(aOrdinal) = aFromVector(aOrdinal*NumStride + NumOffset);
     }, "extract");

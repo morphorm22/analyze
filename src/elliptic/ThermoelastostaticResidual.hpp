@@ -185,7 +185,7 @@ public:
       auto quadratureWeight = mCubatureRule->getCubWeight();
       auto basisFunctions = mCubatureRule->getBasisFunctions();
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), LAMBDA_EXPRESSION(int cellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), KOKKOS_LAMBDA(int cellOrdinal)
       {
         computeGradient(cellOrdinal, gradient, config, cellVolume);
         cellVolume(cellOrdinal) *= quadratureWeight;
@@ -203,7 +203,7 @@ public:
 
       auto& applyStressWeighting = mApplyStressWeighting;
       auto& applyFluxWeighting  = mApplyFluxWeighting;
-      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), LAMBDA_EXPRESSION(int cellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), KOKKOS_LAMBDA(int cellOrdinal)
       {
         // apply weighting
         //

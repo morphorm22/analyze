@@ -63,7 +63,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_Eigenvalue1D)
 
     Plato::ScalarMultiVector tPrincipalStrains("principal strains", tNumCells, tSpaceDim);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & tCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & tCellOrdinal)
     {
         tComputeEigenvalues(tCellOrdinal, tCauchyStrain, tPrincipalStrains, true);
     }, "Test Computing Eigenvalues");
@@ -98,7 +98,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_Eigenvalue2D)
 
     Plato::ScalarMultiVector tPrincipalStrains("principal strains", tNumCells, tSpaceDim);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & tCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & tCellOrdinal)
     {
         tComputeEigenvalues(tCellOrdinal, tCauchyStrain, tPrincipalStrains, true);
     }, "Test Computing Eigenvalues");
@@ -136,7 +136,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_Eigenvalue3D)
 
     Plato::ScalarMultiVector tPrincipalStrains("principal strains", tNumCells, tSpaceDim);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & tCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & tCellOrdinal)
     {
         tComputeEigenvalues(tCellOrdinal, tCauchyStrain, tPrincipalStrains, true);
     }, "Test Computing Eigenvalues");
@@ -189,7 +189,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateVonMises)
     const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
     Plato::ScalarVector tState("States", tNumDofs);
     Plato::blas1::fill(0.1, tState);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
             {   tState(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal);}, "fill state");
     Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
     tWorksetBase.worksetState(tState, tStateWS);
@@ -294,7 +294,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateTensileEnergyDe
     Plato::ScalarVector tState("States", tNumDofs);
     Plato::blas1::fill(0.1, tState);
     //Plato::fill(0.0, tState);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
             { tState(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal) * 2; }, "fill state");
     Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
     tWorksetBase.worksetState(tState, tStateWS);
@@ -388,7 +388,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvalTensileEnergyScalar
     const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
     Plato::ScalarMultiVector tStates("States", /*numStates=*/ 1, tNumDofs);
     Kokkos::deep_copy(tStates, 0.1);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
             { tStates(0, aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal) * 2; }, "fill state");
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
@@ -485,7 +485,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_CheckThermalVonMises3D)
     Plato::OrdinalType tDofToSet = Plato::SimplexThermomechanics<tSpaceDim>::mTDofOffset;
     Plato::Scalar tTemperature = 11.0;
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs / tDofStride),
-                         LAMBDA_EXPRESSION(const Plato::OrdinalType & aNodeIndex)
+                         KOKKOS_LAMBDA(const Plato::OrdinalType & aNodeIndex)
     {
         Plato::OrdinalType tIndex = tDofStride * aNodeIndex + tDofToSet;
         tState(tIndex) = tTemperature;
@@ -713,7 +713,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateTensileEnergyDe
     Plato::ScalarVector tState("States", tNumDofs);
     Plato::blas1::fill(0.1, tState);
     //Plato::fill(0.0, tState);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
             { tState(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); }, "fill state");
     Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
     tWorksetBase.worksetState(tState, tStateWS);
@@ -1062,7 +1062,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_VonMises3D)
     Plato::ScalarVector tCellVonMises("Von Mises Stress", tNumCells);
 
     Plato::VonMisesYieldFunction<tSpaceDim> tVonMises;
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType tCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(Plato::OrdinalType tCellOrdinal)
             {
                 tVonMises(tCellOrdinal, tCellCauchyStress, tCellVonMises);
             }, "Test Von Mises Yield Stress Calculation");
@@ -1096,7 +1096,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_VonMises2D)
     Plato::ScalarVector tCellVonMises("Von Mises Stress", tNumCells);
 
     Plato::VonMisesYieldFunction<tSpaceDim> tVonMises;
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType tCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(Plato::OrdinalType tCellOrdinal)
             {
                 tVonMises(tCellOrdinal, tCellCauchyStress, tCellVonMises);
             }, "Test Von Mises Yield Stress Calculation");
@@ -1126,7 +1126,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_VonMises1D)
     Plato::ScalarVector tCellVonMises("Von Mises Stress", tNumCells);
 
     Plato::VonMisesYieldFunction<tSpaceDim> tVonMises;
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType tCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(Plato::OrdinalType tCellOrdinal)
             {
                 tVonMises(tCellOrdinal, tCellCauchyStress, tCellVonMises);
             }, "Test Von Mises Yield Stress Calculation");
@@ -1196,7 +1196,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_CriterionEval_3D)
     const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
     Plato::ScalarVector tState("States", tNumDofs);
     Plato::blas1::fill(0.1, tState);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
             {   tState(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal);}, "fill state");
     Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
     tWorksetBase.worksetState(tState, tStateWS);
@@ -1830,7 +1830,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLag_CellDensity)
     Kokkos::deep_copy(tCellControls, tHostCellControls);
 
     Plato::ScalarVector tCellDensity("Cell Density", tNumCells);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType tCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(Plato::OrdinalType tCellOrdinal)
     { tCellDensity(tCellOrdinal) = Plato::cell_density<tNumNodesPerCell>(tCellOrdinal, tCellControls); }, "Test cell density inline function");
 
     constexpr Plato::Scalar tTolerance = 1e-4;
@@ -1869,7 +1869,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusTensileEnergy2D)
     const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
     Plato::ScalarMultiVector tStates("States", /*numStates=*/ 1, tNumDofs);
     Kokkos::deep_copy(tStates, 0.1);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
             { tStates(0, aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal) * 2; }, "fill state");
 
     // ALLOCATE PLATO CRITERION

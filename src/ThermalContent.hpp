@@ -44,7 +44,7 @@ class ThermalContent
     }
 
     template<typename TScalarType, typename TRateScalarType, typename TContentScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()( Plato::OrdinalType cellOrdinal,
                 Plato::ScalarVectorT<TContentScalarType> tcontent,
                 Plato::ScalarVectorT<TRateScalarType> temperature_rate,
@@ -67,7 +67,7 @@ class ThermalContent
       }
     }
     template<typename TRateScalarType, typename TContentScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()( Plato::OrdinalType cellOrdinal,
                 Plato::ScalarVectorT<TContentScalarType> tcontent,
                 Plato::ScalarVectorT<TRateScalarType> temperature_rate) const {

@@ -97,7 +97,7 @@ public:
         auto & tApplyProjection = mApplyProjection;
         auto & tPenaltyFunction = mPenaltyFunction;
         auto tQuadratureWeight = mCubatureRule->getCubWeight();
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
         {
             ConfigScalarType tCellVolume;
             tComputeCellVolume(aCellOrdinal, aConfig, tCellVolume);

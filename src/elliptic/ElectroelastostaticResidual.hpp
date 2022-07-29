@@ -176,7 +176,7 @@ public:
       Plato::ScalarMultiVectorT<ResultScalarType> edisp ("edisp" , tNumCells, SpaceDim);
     
       auto quadratureWeight = mCubatureRule->getCubWeight();
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType cellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(Plato::OrdinalType cellOrdinal)
       {
         computeGradient(cellOrdinal, gradient, config, cellVolume);
         cellVolume(cellOrdinal) *= quadratureWeight;
@@ -193,7 +193,7 @@ public:
 
       auto& applyStressWeighting = mApplyStressWeighting;
       auto& applyEDispWeighting  = mApplyEDispWeighting;
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType cellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(Plato::OrdinalType cellOrdinal)
       {
         // apply weighting
         //
