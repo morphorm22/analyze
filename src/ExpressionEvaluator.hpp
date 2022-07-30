@@ -758,6 +758,26 @@ set_variable( const char * varName,
         }
         else
         {
+          if( values.extent(0) != mNumValues )
+          {
+              std::stringstream errorMsg1, errorMsg2;
+
+              errorMsg1 << "Invalid call to set_variable - "
+                        << "The vector, '" << varName << "' "
+                        << "has " << values.extent(0) << " values."
+                        << "The number of expected values is "
+                        << mNumValues << ".";
+
+              if( mNumThreads == values.extent(0) && mNumValues == 1 )
+                  errorMsg2 << "When the number of vector values equals "
+			    << "the number of threads and "
+			    << "the number of values expected is one "
+                            << "set each value as a scalar constant "
+                            << "on a per thread basis.";
+
+              GPU_WARNING( errorMsg1.str().c_str(), errorMsg2.str().c_str());
+          }
+
           // Value does not exists so add it.
           index = mMapCounts(t, VECTOR_DATA_SOURCE)++;
 
@@ -790,6 +810,10 @@ ExpressionEvaluator<ResultType, StateType, VectorType, ScalarType>::
 set_variable( const char * varName,
               const StateType & values ) const
 {
+  if( mNumThreads == 0 )
+      GPU_WARNING( "Invalid call to set_variable - "
+                   "setup_storage has not been called.", "The number of threads has not been set." );
+
   // Even though there is only a single input across all threads set
   // up the map for each thread so that the map can be used regardless
   // of which thread is being processed. This is opposed to an unique
@@ -810,6 +834,33 @@ set_variable( const char * varName,
         }
         else
         {
+          if( values.extent(0) != mNumThreads ||
+              values.extent(1) != mNumValues )
+          {
+              std::stringstream errorMsg1, errorMsg2;
+
+              errorMsg1 << "Invalid call to set_variable - ";
+
+              if( values.extent(0) != mNumThreads )
+                  errorMsg1 << "The vector, '" << varName << "' "
+                            << "has " << values.extent(0) << " threads."
+                            << "The number of expected threads is "
+                            << mNumValues << ".";
+
+              if( values.extent(1) != mNumValues )
+                  errorMsg1 << "The vector, '" << varName << "' "
+                            << "has " << values.extent(0) << " values."
+                            << "The number of expected values is "
+                            << mNumThreads << ".";
+
+              if( mNumValues == 1 )
+                  errorMsg2 << "When the number of values expected is one. "
+                            << "Set each value as a scalar constant "
+                            << "on a per thread basis.";
+
+              GPU_WARNING( errorMsg1.str().c_str(), errorMsg2.str().c_str());
+          }
+
           // Value does not exists so add it.
           index = mMapCounts(t, STATE_DATA_SOURCE)++;
 
