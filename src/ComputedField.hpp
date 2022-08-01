@@ -19,13 +19,13 @@ class ComputedField
     const std::string   mFuncString;
 
     Plato::ScalarMultiVectorT<ScalarType> mValues;
-  
+
   public:
-  
+
   /**************************************************************************/
   ComputedField<SpaceDim, ScalarType>(
-    const Plato::Mesh   aMesh, 
-    const std::string & aName, 
+    const Plato::Mesh   aMesh,
+    const std::string & aName,
     const std::string & aFunc) :
     mName(aName),
     mFuncString(aFunc),
@@ -37,8 +37,8 @@ class ComputedField
 
   /**************************************************************************/
   void initialize(
-    const Plato::Mesh   aMesh, 
-    const std::string & aName, 
+    const Plato::Mesh   aMesh,
+    const std::string & aName,
     const std::string & aFunc)
   /**************************************************************************/
   {
@@ -62,12 +62,31 @@ class ComputedField
                         Plato::Scalar> tExpEval;
 
     tExpEval.parse_expression(aFunc.c_str());
-    tExpEval.setup_storage(tNumPoints, /*num vals to eval =*/ 1); 
+    tExpEval.setup_storage(tNumPoints, /*num vals to eval =*/ 1);
+
+    // The coords are indexed by threads so set the values outside the
+    // parallel for loop.
+    tExpEval.set_variable("x", tXcoords);
+    tExpEval.set_variable("y", tYcoords);
+    tExpEval.set_variable("z", tZcoords);
+
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumPoints), LAMBDA_EXPRESSION(Plato::OrdinalType aPointOrdinal)
     {
-        tExpEval.set_variable("x", tXcoords, aPointOrdinal);
-        tExpEval.set_variable("y", tYcoords, aPointOrdinal);
-        tExpEval.set_variable("z", tZcoords, aPointOrdinal);
+        // Set the coords as a constant on a per thread basis. This
+        // call works but is not needed as the coords are indexed by
+        // threads so set the values outside the parallel for loop.
+
+        // tExpEval.set_variable("x", tXcoords(aPointOrdinal), aPointOrdinal);
+        // tExpEval.set_variable("y", tYcoords(aPointOrdinal), aPointOrdinal);
+        // tExpEval.set_variable("z", tZcoords(aPointOrdinal), aPointOrdinal);
+
+        // This call works but is not needed as values are used across
+        // all threads so set the values outside the parallel for loop.
+
+        // tExpEval.set_variable("x", tXcoords, aPointOrdinal);
+        // tExpEval.set_variable("y", tYcoords, aPointOrdinal);
+        // tExpEval.set_variable("z", tZcoords, aPointOrdinal);
+
         tExpEval.evaluate_expression( aPointOrdinal, tValues );
     }, "evaluate");
     Kokkos::fence();
@@ -75,7 +94,7 @@ class ComputedField
   }
 
   ~ComputedField(){}
-  
+
 //  /******************************************************************************/
 //  void get(Plato::ScalarMultiVectorT<ScalarValue> aValues)
 //  /******************************************************************************/
@@ -88,8 +107,8 @@ class ComputedField
   /******************************************************************************/
   {
     TEUCHOS_TEST_FOR_EXCEPTION(
-      mValues.extent(0)*aStride != aValues.extent(0), 
-      std::logic_error, 
+      mValues.extent(0)*aStride != aValues.extent(0),
+      std::logic_error,
       "Size mismatch in field initialization:  Mod(view, stride) != 0");
     auto tFromValues = mValues;
     auto tToValues = aValues;
@@ -131,9 +150,9 @@ class ComputedFields
     {
         const Teuchos::ParameterEntry &entry = params.entry(i);
         const std::string             &name  = params.name(i);
-  
+
         TEUCHOS_TEST_FOR_EXCEPTION(!entry.isList(), std::logic_error, "Parameter in Computed Fields block not valid.  Expect lists only.");
-  
+
         std::string function = params.sublist(name).get<std::string>("Function");
         auto newCF = std::make_shared<Plato::ComputedField<SpaceDim, ScalarType>>(aMesh, name, function);
         CFs.push_back(newCF);
