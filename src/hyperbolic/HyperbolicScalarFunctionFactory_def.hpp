@@ -16,9 +16,9 @@ namespace Hyperbolic
      * \param [in] aInputParams parameter input
      * \param [in] aFunctionName name of function in parameter list
      **********************************************************************************/
-    template <typename PhysicsT>
+    template <typename PhysicsType>
     std::shared_ptr<Plato::Hyperbolic::ScalarFunctionBase>
-    ScalarFunctionFactory<PhysicsT>::create(
+    ScalarFunctionFactory<PhysicsType>::create(
         Plato::SpatialModel    & aSpatialModel,
         Plato::DataMap         & aDataMap,
         Teuchos::ParameterList & aInputParams,
@@ -30,7 +30,7 @@ namespace Hyperbolic
 
         if(tFunctionType == "Scalar Function")
         {
-            return std::make_shared<Hyperbolic::PhysicsScalarFunction<PhysicsT>>(aSpatialModel, aDataMap, aInputParams, aFunctionName);
+            return std::make_shared<Hyperbolic::PhysicsScalarFunction<PhysicsType>>(aSpatialModel, aDataMap, aInputParams, aFunctionName);
         }
         else
         {

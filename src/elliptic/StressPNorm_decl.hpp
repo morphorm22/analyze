@@ -65,7 +65,7 @@ class StressPNorm :
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
               Plato::ScalarVectorT      <ResultScalarType>  & aResult,
               Plato::Scalar aTimeStep = 0.0
-    ) const;
+    ) const override;
 
     /**************************************************************************/
     void

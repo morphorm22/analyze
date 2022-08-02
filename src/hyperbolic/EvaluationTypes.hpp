@@ -1,24 +1,25 @@
-#ifndef HYPERBOLIC_SIMPLEX_FAD_TYPES
-#define HYPERBOLIC_SIMPLEX_FAD_TYPES
+#pragma once
 
 #include <Sacado.hpp>
 
-#include "../SimplexFadTypes.hpp"
+#include "FadTypes.hpp"
 
 namespace Plato {
 
 namespace Hyperbolic {
 
-template <typename SimplexPhysicsT>
+template <typename ElementTypeT>
 struct EvaluationTypes
 {
-    static constexpr int NumNodesPerCell = SimplexPhysicsT::mNumNodesPerCell;
-    static constexpr int NumControls = SimplexPhysicsT::mNumControl;
-    static constexpr int SpatialDim = SimplexPhysicsT::mNumSpatialDims;
+    static constexpr int NumNodesPerCell = ElementTypeT::mNumNodesPerCell;
+    static constexpr int NumControls = ElementTypeT::mNumControl;
+    static constexpr int SpatialDim = ElementTypeT::mNumSpatialDims;
+
+    using ElementType = ElementTypeT;
 };
 
-template <typename SimplexPhysicsT>
-struct ResidualTypes : EvaluationTypes<SimplexPhysicsT>
+template <typename ElementType>
+struct ResidualTypes : EvaluationTypes<ElementType>
 {
   using StateScalarType       = Plato::Scalar;
   using StateDotScalarType    = Plato::Scalar;
@@ -28,10 +29,10 @@ struct ResidualTypes : EvaluationTypes<SimplexPhysicsT>
   using ResultScalarType      = Plato::Scalar;
 };
 
-template <typename SimplexPhysicsT>
-struct GradientUTypes : EvaluationTypes<SimplexPhysicsT>
+template <typename ElementType>
+struct GradientUTypes : EvaluationTypes<ElementType>
 {
-  using SFadType = typename SimplexFadTypes<SimplexPhysicsT>::StateFad;
+  using SFadType = typename Plato::FadTypes<ElementType>::StateFad;
 
   using StateScalarType       = SFadType;
   using StateDotScalarType    = Plato::Scalar;
@@ -41,10 +42,10 @@ struct GradientUTypes : EvaluationTypes<SimplexPhysicsT>
   using ResultScalarType      = SFadType;
 };
 
-template <typename SimplexPhysicsT>
-struct GradientVTypes : EvaluationTypes<SimplexPhysicsT>
+template <typename ElementType>
+struct GradientVTypes : EvaluationTypes<ElementType>
 {
-  using SFadType = typename SimplexFadTypes<SimplexPhysicsT>::StateFad;
+  using SFadType = typename Plato::FadTypes<ElementType>::StateFad;
 
   using StateScalarType       = Plato::Scalar;
   using StateDotScalarType    = SFadType;
@@ -54,10 +55,10 @@ struct GradientVTypes : EvaluationTypes<SimplexPhysicsT>
   using ResultScalarType      = SFadType;
 };
 
-template <typename SimplexPhysicsT>
-struct GradientATypes : EvaluationTypes<SimplexPhysicsT>
+template <typename ElementType>
+struct GradientATypes : EvaluationTypes<ElementType>
 {
-  using SFadType = typename SimplexFadTypes<SimplexPhysicsT>::StateFad;
+  using SFadType = typename Plato::FadTypes<ElementType>::StateFad;
 
   using StateScalarType       = Plato::Scalar;
   using StateDotScalarType    = Plato::Scalar;
@@ -67,10 +68,10 @@ struct GradientATypes : EvaluationTypes<SimplexPhysicsT>
   using ResultScalarType      = SFadType;
 };
 
-template <typename SimplexPhysicsT>
-struct GradientXTypes : EvaluationTypes<SimplexPhysicsT>
+template <typename ElementType>
+struct GradientXTypes : EvaluationTypes<ElementType>
 {
-  using SFadType = typename SimplexFadTypes<SimplexPhysicsT>::ConfigFad;
+  using SFadType = typename Plato::FadTypes<ElementType>::ConfigFad;
 
   using StateScalarType       = Plato::Scalar;
   using StateDotScalarType    = Plato::Scalar;
@@ -80,10 +81,10 @@ struct GradientXTypes : EvaluationTypes<SimplexPhysicsT>
   using ResultScalarType      = SFadType;
 };
 
-template <typename SimplexPhysicsT>
-struct GradientZTypes : EvaluationTypes<SimplexPhysicsT>
+template <typename ElementType>
+struct GradientZTypes : EvaluationTypes<ElementType>
 {
-  using SFadType = typename SimplexFadTypes<SimplexPhysicsT>::ControlFad;
+  using SFadType = typename Plato::FadTypes<ElementType>::ControlFad;
 
   using StateScalarType       = Plato::Scalar;
   using StateDotScalarType    = Plato::Scalar;
@@ -93,18 +94,16 @@ struct GradientZTypes : EvaluationTypes<SimplexPhysicsT>
   using ResultScalarType      = SFadType;
 };
 
-template <typename SimplexPhysicsT>
+template <typename ElementTypeT>
 struct Evaluation {
-   using Residual  = ResidualTypes<SimplexPhysicsT>;
-   using GradientU = GradientUTypes<SimplexPhysicsT>;
-   using GradientV = GradientVTypes<SimplexPhysicsT>;
-   using GradientA = GradientATypes<SimplexPhysicsT>;
-   using GradientX = GradientXTypes<SimplexPhysicsT>;
-   using GradientZ = GradientZTypes<SimplexPhysicsT>;
+   using Residual  = ResidualTypes<ElementTypeT>;
+   using GradientU = GradientUTypes<ElementTypeT>;
+   using GradientV = GradientVTypes<ElementTypeT>;
+   using GradientA = GradientATypes<ElementTypeT>;
+   using GradientX = GradientXTypes<ElementTypeT>;
+   using GradientZ = GradientZTypes<ElementTypeT>;
 };
 
 } // namespace Hyperbolic
   
 } // namespace Plato
-
-#endif

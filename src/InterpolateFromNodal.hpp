@@ -70,6 +70,7 @@ public:
             aStateValues(aCellOrdinal) += aBasisFunctions(tNodeIndex) * aNodalCellStates(aCellOrdinal, tCellDofIndex);
         }
     }
+
     template<typename InStateType, typename OutStateType>
     DEVICE_TYPE inline void
     operator()(
@@ -105,20 +106,20 @@ public:
     *
     *******************************************************************************/
     template<typename InStateType, typename OutStateType>
-    DEVICE_TYPE inline void operator()(const Plato::OrdinalType & aCellOrdinal,
-                                       const Plato::ScalarVector & aBasisFunctions,
-                                       const Plato::ScalarMultiVectorT<InStateType> & aNodalCellStates,
-                                       const Plato::ScalarMultiVectorT<OutStateType> & aStateValues) const
+    DEVICE_TYPE inline void 
+    operator()(
+        const Plato::OrdinalType                         & aCellOrdinal,
+        const Plato::Array<mNumNodesPerCell>             & aBasisFunctions,
+        const Plato::ScalarMultiVectorT<InStateType>     & aNodalCellStates,
+              Plato::Array<NumDofsPerNode, OutStateType> & aStateValues) const
     {
-
-
         for(Plato::OrdinalType tDofIndex = 0; tDofIndex < NumDofs; tDofIndex++)
         {
-            aStateValues(aCellOrdinal, tDofIndex) = 0.0;
+            aStateValues(tDofIndex) = 0.0;
             for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
             {
                 Plato::OrdinalType tCellDofIndex = (NumDofsPerNode * tNodeIndex) + DofOffset + tDofIndex;
-                aStateValues(aCellOrdinal, tDofIndex) += aBasisFunctions(tNodeIndex) * aNodalCellStates(aCellOrdinal, tCellDofIndex);
+                aStateValues(tDofIndex) += aBasisFunctions(tNodeIndex) * aNodalCellStates(aCellOrdinal, tCellDofIndex);
             }
         }
     }

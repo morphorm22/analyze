@@ -1,7 +1,5 @@
-#ifndef PLATO_RAYLEIGH_STRESS_HPP
-#define PLATO_RAYLEIGH_STRESS_HPP
+#pragma once
 
-#include "SimplexMechanics.hpp"
 #include "LinearElasticMaterial.hpp"
 
 #include "PlatoMathTypes.hpp"
@@ -16,13 +14,16 @@ namespace Plato
  stress tensor in Voigt notation = {s_xx, s_yy, s_zz, s_yz, s_xz, s_xy}
  */
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-class RayleighStress : public Plato::SimplexMechanics<SpaceDim>
+template< typename EvaluationType, typename ElementType >
+class RayleighStress : public ElementType
 {
 private:
-    using Plato::SimplexMechanics<SpaceDim>::mNumVoigtTerms;               /*!< number of stress/strain terms */
 
-    const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;  /*!< material stiffness matrix */
+    static constexpr auto mSpaceDim = EvaluationType::SpatialDim; /*!< spatial dimensions */
+
+    using ElementType::mNumVoigtTerms; /*!< number of stress/strain terms */
+
+    const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness; /*!< material stiffness matrix */
     Plato::Array<mNumVoigtTerms> mReferenceStrain;                       /*!< reference voigt strain tensor */
     Plato::Scalar mRayleighB;
 
@@ -44,7 +45,7 @@ public:
      * \brief Constructor
      * \param [in] aMaterialModel material model interface
     **********************************************************************************/
-    RayleighStress(const Teuchos::RCP<Plato::LinearElasticMaterial<SpaceDim>> aMaterialModel) :
+    RayleighStress(const Teuchos::RCP<Plato::LinearElasticMaterial<mSpaceDim>> aMaterialModel) :
             mCellStiffness(aMaterialModel->getStiffnessMatrix()),
             mReferenceStrain(aMaterialModel->getReferenceStrain()),
             mRayleighB(aMaterialModel->getRayleighB())
@@ -53,25 +54,22 @@ public:
 
     /******************************************************************************//**
      * \brief Compute Cauchy stress tensor
-     * \param [in]  aCellOrdinal element ordinal
      * \param [out] aCauchyStress Cauchy stress tensor
      * \param [in]  aSmallStrain Infinitesimal strain tensor
      * \param [in]  aVelGrad Velocity gradient tensor
     **********************************************************************************/
     template<typename StressScalarType, typename StrainScalarType, typename VelGradScalarType>
     DEVICE_TYPE inline void
-    operator()( int cellOrdinal,
-                Kokkos::View<StressScalarType**, Kokkos::LayoutRight, Plato::MemSpace> const& aCauchyStress,
-                Kokkos::View<StrainScalarType**, Kokkos::LayoutRight, Plato::MemSpace> const& aSmallStrain,
-                Kokkos::View<VelGradScalarType**, Kokkos::LayoutRight, Plato::MemSpace> const& aVelGrad) const {
-
-      // compute stress
-      //
-      for( int iVoigt=0; iVoigt<mNumVoigtTerms; iVoigt++){
-        aCauchyStress(cellOrdinal,iVoigt) = 0.0;
-        for( int jVoigt=0; jVoigt<mNumVoigtTerms; jVoigt++){
-          aCauchyStress(cellOrdinal,iVoigt) += (aSmallStrain(cellOrdinal,jVoigt)-mReferenceStrain(jVoigt))*mCellStiffness(iVoigt, jVoigt)
-                                     +  aVelGrad(cellOrdinal,jVoigt)*mCellStiffness(iVoigt, jVoigt)*mRayleighB;
+    operator()( Plato::Array<mNumVoigtTerms, StressScalarType>        & aCauchyStress,
+                const Plato::Array<mNumVoigtTerms, StrainScalarType>  & aSmallStrain,
+                const Plato::Array<mNumVoigtTerms, VelGradScalarType> & aVelGrad
+    ) const 
+    {
+      for( Plato::OrdinalType iVoigt=0; iVoigt<mNumVoigtTerms; iVoigt++){
+        aCauchyStress(iVoigt) = 0.0;
+        for( Plato::OrdinalType jVoigt=0; jVoigt<mNumVoigtTerms; jVoigt++){
+          aCauchyStress(iVoigt) += (aSmallStrain(jVoigt)-mReferenceStrain(jVoigt))*mCellStiffness(iVoigt, jVoigt)
+                                     +  aVelGrad(jVoigt)*mCellStiffness(iVoigt, jVoigt)*mRayleighB;
         }
       }
     }
@@ -79,4 +77,3 @@ public:
 // class RayleighStress
 
 }// namespace Plato
-#endif

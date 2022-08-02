@@ -65,9 +65,9 @@ class ComputedField
     tExpEval.setup_storage(tNumPoints, /*num vals to eval =*/ 1); 
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumPoints), LAMBDA_EXPRESSION(Plato::OrdinalType aPointOrdinal)
     {
-        tExpEval.set_variable("x", tXcoords, aPointOrdinal);
-        tExpEval.set_variable("y", tYcoords, aPointOrdinal);
-        tExpEval.set_variable("z", tZcoords, aPointOrdinal);
+        tExpEval.set_variable("x", tXcoords(aPointOrdinal), aPointOrdinal);
+        tExpEval.set_variable("y", tYcoords(aPointOrdinal), aPointOrdinal);
+        tExpEval.set_variable("z", tZcoords(aPointOrdinal), aPointOrdinal);
         tExpEval.evaluate_expression( aPointOrdinal, tValues );
     }, "evaluate");
     Kokkos::fence();

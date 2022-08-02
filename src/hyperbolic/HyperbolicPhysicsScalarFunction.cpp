@@ -1,11 +1,16 @@
-#include "hyperbolic/HyperbolicPhysicsScalarFunction.hpp"
+#include "hyperbolic/HyperbolicPhysicsScalarFunction_decl.hpp"
 
-#ifdef PLATOANALYZE_1D
-template class Plato::Hyperbolic::PhysicsScalarFunction<::Plato::Hyperbolic::Mechanics<1>>;
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
+
+#include "hyperbolic/HyperbolicPhysicsScalarFunction_def.hpp"
+
+#include "BaseExpInstMacros.hpp"
+#include "HyperbolicMechanics.hpp"
+PLATO_ELEMENT_DEF(Plato::Hyperbolic::PhysicsScalarFunction, Plato::Hyperbolic::Mechanics)
+
+#ifdef PLATO_MICROMORPHIC
+#include "MicromorphicMechanics.hpp"
+PLATO_ELEMENT_DEF(Plato::Hyperbolic::PhysicsScalarFunction, Plato::Hyperbolic::MicromorphicMechanics)
 #endif
-#ifdef PLATOANALYZE_2D
-template class Plato::Hyperbolic::PhysicsScalarFunction<::Plato::Hyperbolic::Mechanics<2>>;
-#endif
-#ifdef PLATOANALYZE_3D
-template class Plato::Hyperbolic::PhysicsScalarFunction<::Plato::Hyperbolic::Mechanics<3>>;
+
 #endif

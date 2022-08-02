@@ -1,9 +1,3 @@
-/*
- * AbstractScalarFunction.hpp
- *
- *  Created on: Apr 6, 2021
- */
-
 #pragma once
 
 #include "WorkSets.hpp"

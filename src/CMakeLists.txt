@@ -189,46 +189,52 @@ endif()
 ## hyperbolic sources
 if(HYPERBOLIC)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    AbstractVolumetricSource.cpp
-    hyperbolic/BrinkmanForces.cpp
-    hyperbolic/CriterionVolume.cpp
-    hyperbolic/ThermalBuoyancy.cpp
-    hyperbolic/PressureResidual.cpp
-    hyperbolic/CriterionFlowRate.cpp
-    hyperbolic/TemperatureResidual.cpp
-    hyperbolic/FluidsQuasiImplicit.cpp
-    hyperbolic/FluidsScalarFunction.cpp
-    hyperbolic/FluidsVectorFunction.cpp
-    hyperbolic/FluidsThermalSources.cpp
-    hyperbolic/FluidsWorkSetBuilders.cpp
-    hyperbolic/InternalThermalForces.cpp
-    hyperbolic/MomentumSurfaceForces.cpp
-    hyperbolic/FluidsCriterionFactory.cpp
-    hyperbolic/AbstractHyperbolicLinearStress.cpp
-    hyperbolic/AbstractScalarFunction.cpp
-    hyperbolic/AbstractVectorFunction.cpp
-    hyperbolic/VelocityCorrectorResidual.cpp
-    hyperbolic/VelocityPredictorResidual.cpp
-    hyperbolic/CriterionThermalCompliance.cpp
-    hyperbolic/FluidsUniformThermalSource.cpp
-    hyperbolic/CriterionSurfaceThermalFlux.cpp
-    hyperbolic/FluidsWeightedScalarFunction.cpp
-    hyperbolic/HyperbolicLinearStress.cpp
+    hyperbolic/HyperbolicProblem.cpp
+    hyperbolic/ElastomechanicsResidual.cpp
     hyperbolic/HyperbolicScalarFunctionFactory.cpp
     hyperbolic/HyperbolicPhysicsScalarFunction.cpp
-    hyperbolic/CriterionMeanSurfacePressure.cpp
-    hyperbolic/FluidsLeastSquaresScalarFunction.cpp
-    hyperbolic/CriterionMeanSurfaceTemperature.cpp
-    hyperbolic/FluidsStabilizedUniformThermalSource.cpp
-    hyperbolic/MicromorphicLinearElasticMaterial.cpp
-    hyperbolic/CubicMicromorphicLinearElasticMaterial.cpp
-    hyperbolic/MicromorphicInertiaMaterial.cpp
-    hyperbolic/CubicMicromorphicInertiaMaterial.cpp
+    hyperbolic/HyperbolicInternalElasticEnergy.cpp
+    hyperbolic/HyperbolicStressPNorm.cpp
   )
 
-  if(EXPRESSION)
+  if(FLUIDS)
     set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-      hyperbolic/HyperbolicLinearStressExpression.cpp
+      AbstractVolumetricSource.cpp
+      hyperbolic/AbstractScalarFunction.cpp
+      hyperbolic/AbstractVectorFunction.cpp
+      hyperbolic/BrinkmanForces.cpp
+      hyperbolic/FluidsQuasiImplicit.cpp
+      hyperbolic/FluidsScalarFunction.cpp
+      hyperbolic/FluidsVectorFunction.cpp
+      hyperbolic/FluidsThermalSources.cpp
+      hyperbolic/FluidsWorkSetBuilders.cpp
+      hyperbolic/FluidsCriterionFactory.cpp
+      hyperbolic/FluidsUniformThermalSource.cpp
+      hyperbolic/FluidsWeightedScalarFunction.cpp
+      hyperbolic/FluidsLeastSquaresScalarFunction.cpp
+      hyperbolic/FluidsStabilizedUniformThermalSource.cpp
+      hyperbolic/CriterionVolume.cpp
+      hyperbolic/ThermalBuoyancy.cpp
+      hyperbolic/PressureResidual.cpp
+      hyperbolic/CriterionFlowRate.cpp
+      hyperbolic/TemperatureResidual.cpp
+      hyperbolic/InternalThermalForces.cpp
+      hyperbolic/MomentumSurfaceForces.cpp
+      hyperbolic/VelocityCorrectorResidual.cpp
+      hyperbolic/VelocityPredictorResidual.cpp
+      hyperbolic/CriterionThermalCompliance.cpp
+      hyperbolic/CriterionSurfaceThermalFlux.cpp
+      hyperbolic/CriterionMeanSurfacePressure.cpp
+      hyperbolic/CriterionMeanSurfaceTemperature.cpp
+    )
+  endif()
+
+  if(MICROMORPHIC)
+    set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+      hyperbolic/MicromorphicLinearElasticMaterial.cpp
+      hyperbolic/CubicMicromorphicLinearElasticMaterial.cpp
+      hyperbolic/MicromorphicInertiaMaterial.cpp
+      hyperbolic/CubicMicromorphicInertiaMaterial.cpp
     )
   endif()
 endif()

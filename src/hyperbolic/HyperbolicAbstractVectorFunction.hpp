@@ -1,5 +1,4 @@
-#ifndef ABSTRACT_VECTOR_FUNCTION_HYPERBOLIC_HPP
-#define ABSTRACT_VECTOR_FUNCTION_HYPERBOLIC_HPP
+#pragma once
 
 #include "Solutions.hpp"
 
@@ -9,10 +8,8 @@ namespace Plato
 namespace Hyperbolic
 {
 
-/******************************************************************************/
 template<typename EvaluationType>
 class AbstractVectorFunction
-/******************************************************************************/
 {
 protected:
     const Plato::SpatialDomain & mSpatialDomain;
@@ -23,7 +20,9 @@ protected:
     std::vector<std::string> mDofDotDotNames;
 
 public:
-    /******************************************************************************/
+
+    using AbstractType = typename Plato::Hyperbolic::AbstractVectorFunction<EvaluationType>;
+
     explicit 
     AbstractVectorFunction(
         const Plato::SpatialDomain     & aSpatialDomain,
@@ -32,7 +31,6 @@ public:
               std::vector<std::string>   aStateDotNames,
               std::vector<std::string>   aStateDotDotNames
     ) :
-    /******************************************************************************/
         mSpatialDomain  (aSpatialDomain),
         mDataMap        (aDataMap),
         mDofNames       (aStateNames),
@@ -40,60 +38,35 @@ public:
         mDofDotDotNames (aStateDotDotNames)
     {
     }
-    /******************************************************************************/
     virtual ~AbstractVectorFunction()
-    /******************************************************************************/
     {
     }
 
-    /****************************************************************************//**
-    * \brief Return reference to mesh data base 
-    ********************************************************************************/
     decltype(mSpatialDomain.Mesh) getMesh() const
     {
         return (mSpatialDomain.Mesh);
     }
 
-    /****************************************************************************//**
-    * \brief Return reference to state index map
-    ********************************************************************************/
     const decltype(mDofNames)& getDofNames() const
     {
         return (mDofNames);
     }
 
-    /****************************************************************************//**
-    * \brief Return reference to state dot index map
-    ********************************************************************************/
     const decltype(mDofDotNames)& getDofDotNames() const
     {
         return (mDofDotNames);
     }
 
-    /****************************************************************************//**
-    * \brief Return reference to state dot dot index map
-    ********************************************************************************/
     const decltype(mDofDotDotNames)& getDofDotDotNames() const
     {
         return (mDofDotDotNames);
     }
 
-    /**************************************************************************//**
-    * \brief return the maximum eigenvalue of the gradient wrt state
-    * \param [in] aConfig Current node locations
-    * \return maximum eigenvalue
-    ******************************************************************************/
     virtual Plato::Scalar getMaxEigenvalue(const Plato::ScalarArray3D & aConfig) const = 0;
 
-    /**************************************************************************//**
-    * \brief Call the output state function in the residual
-    * \param [in] aSolutions State solutions database
-    * \return output solutions database
-    ******************************************************************************/
     virtual Plato::Solutions 
     getSolutionStateOutputData(const Plato::Solutions &aSolutions) const = 0;
 
-    /******************************************************************************/
     virtual void
     evaluate(
         const Plato::ScalarMultiVectorT< typename EvaluationType::StateScalarType       > & aState,
@@ -104,9 +77,7 @@ public:
               Plato::ScalarMultiVectorT< typename EvaluationType::ResultScalarType      > & aResult,
               Plato::Scalar aTimeStep = 0.0, 
               Plato::Scalar aCurrentTime = 0.0) const = 0;
-    /******************************************************************************/
 
-    /******************************************************************************/
     virtual void
     evaluate_boundary(
         const Plato::SpatialModel                                                         & aSpatialModel,
@@ -118,11 +89,8 @@ public:
               Plato::ScalarMultiVectorT< typename EvaluationType::ResultScalarType      > & aResult,
               Plato::Scalar aTimeStep = 0.0, 
               Plato::Scalar aCurrentTime = 0.0) const = 0;
-    /******************************************************************************/
 };
 
 } // namespace Hyperbolic
 
 } // namespace Plato
-
-#endif

@@ -39,7 +39,6 @@ Plato_add_test(PlatoMathTypes PlatoMathTypesTests.cpp)
 Plato_add_test(MultipointConstraint PlatoMultipointConstraintTests.cpp)
 Plato_add_test(AugLagStress PlatoAugLagStressTest.cpp)
 
-
 if(STABILIZED)
   Plato_add_test(StabilizedMechanics StabilizedMechanicsTests.cpp)
 endif()
@@ -57,8 +56,12 @@ endif()
 
 if(HYPERBOLIC)
   Plato_add_test(TransientDynamics TransientDynamicsTests.cpp)
-  Plato_add_test(RelaxedMicromorphic RelaxedMicromorphicTests.cpp)
-  Plato_add_test(ComputationalFluidDynamics ComputationalFluidDynamicsTests.cpp SKIP_MATH)
+  if(FLUIDS)
+    Plato_add_test(ComputationalFluidDynamics ComputationalFluidDynamicsTests.cpp SKIP_MATH)
+  endif()
+  if(MICROMORPHIC)
+    Plato_add_test(RelaxedMicromorphic RelaxedMicromorphicTests.cpp)
+  endif()
 endif()
 
 if(HELMHOLTZ)

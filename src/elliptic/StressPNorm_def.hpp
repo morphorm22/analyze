@@ -5,10 +5,8 @@
 #include "FadTypes.hpp"
 #include "SmallStrain.hpp"
 #include "LinearStress.hpp"
-#include "ScalarProduct.hpp"
 #include "PlatoMeshExpr.hpp"
 #include "GradientMatrix.hpp"
-#include "Plato_TopOptFunctors.hpp"
 
 namespace Plato
 {

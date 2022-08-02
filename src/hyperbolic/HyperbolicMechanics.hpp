@@ -1,142 +1,91 @@
-#ifndef PLATO_HYPERBOLIC_MECHANICS_HPP
-#define PLATO_HYPERBOLIC_MECHANICS_HPP
+#pragma once
 
 #include "Simp.hpp"
 #include "Ramp.hpp"
 #include "Heaviside.hpp"
+
 #include "SpatialModel.hpp"
-#include "SimplexMechanics.hpp"
-#include "hyperbolic/HyperbolicAbstractScalarFunction.hpp"
+#include "MechanicsElement.hpp"
+
+#include "MakeFunctions.hpp"
+
 #include "hyperbolic/ElastomechanicsResidual.hpp"
+#include "hyperbolic/HyperbolicAbstractScalarFunction.hpp"
 #include "hyperbolic/HyperbolicInternalElasticEnergy.hpp"
 #include "hyperbolic/HyperbolicStressPNorm.hpp"
 
 namespace Plato
 {
-  namespace Hyperbolic
-  {
-    struct FunctionFactory
+
+namespace Hyperbolic
+{
+
+struct FunctionFactory
+{
+    /******************************************************************************/
+    template <typename EvaluationType>
+    std::shared_ptr<::Plato::Hyperbolic::AbstractVectorFunction<EvaluationType>>
+    createVectorFunctionHyperbolic(
+        const Plato::SpatialDomain   & aSpatialDomain,
+              Plato::DataMap         & aDataMap,
+              Teuchos::ParameterList & aProblemParams,
+              std::string              aPDE
+    )
     {
-      /******************************************************************************/
-      template <typename EvaluationType>
-      std::shared_ptr<::Plato::Hyperbolic::AbstractVectorFunction<EvaluationType>>
-      createVectorFunctionHyperbolic(
-          const Plato::SpatialDomain   & aSpatialDomain,
-                Plato::DataMap         & aDataMap,
-                Teuchos::ParameterList & aProblemParams,
-                std::string              strVectorFunctionType
-      )
-      {
-        if( !aProblemParams.isSublist(strVectorFunctionType) )
+        auto tLowerPDE = Plato::tolower(aPDE);
+        if(tLowerPDE == "hyperbolic")
         {
-            std::cout << " Warning: '" << strVectorFunctionType << "' ParameterList not found" << std::endl;
-            std::cout << " Warning: Using defaults. " << std::endl;
-        }
-        auto tFunctionParams = aProblemParams.sublist(strVectorFunctionType);
-        if( strVectorFunctionType == "Hyperbolic" )
-        {
-            if( !tFunctionParams.isSublist("Penalty Function") )
-            {
-                std::cout << " Warning: 'Penalty Function' ParameterList not found" << std::endl;
-                std::cout << " Warning: Using defaults. " << std::endl;
-            }
-            auto tPenaltyParams = tFunctionParams.sublist("Penalty Function");
-            std::string tPenaltyType = tPenaltyParams.get<std::string>("Type");
-            if( tPenaltyType == "SIMP" )
-            {
-                std::cout << tFunctionParams << std::endl;
-                return std::make_shared<TransientMechanicsResidual<EvaluationType, Plato::MSIMP>>
-                         (aSpatialDomain, aDataMap, aProblemParams, tPenaltyParams);
-            } else
-            if( tPenaltyType == "RAMP" )
-            {
-                return std::make_shared<TransientMechanicsResidual<EvaluationType, Plato::RAMP>>
-                         (aSpatialDomain, aDataMap, aProblemParams, tPenaltyParams);
-            } else
-            if( tPenaltyType == "Heaviside" )
-            {
-                return std::make_shared<TransientMechanicsResidual<EvaluationType, Plato::Heaviside>>
-                         (aSpatialDomain, aDataMap, aProblemParams, tPenaltyParams);
-            } else {
-                ANALYZE_THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
-            }
+            return Plato::makeVectorFunction<EvaluationType, Plato::Hyperbolic::TransientMechanicsResidual>
+                     (aSpatialDomain, aDataMap, aProblemParams, aPDE);
         }
         else
         {
             ANALYZE_THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
         }
-      }
-      /******************************************************************************/
-      template <typename EvaluationType>
-      std::shared_ptr<::Plato::Hyperbolic::AbstractScalarFunction<EvaluationType>>
-      createScalarFunction(
-          const Plato::SpatialDomain   & aSpatialDomain,
-                Plato::DataMap&          aDataMap,
-                Teuchos::ParameterList & aProblemParams,
-                std::string              strScalarFunctionType,
-                std::string              strScalarFunctionName
-      )
-      /******************************************************************************/
-      {
-        auto tFunctionParams = aProblemParams.sublist("Criteria").sublist(strScalarFunctionName);
-        std::string tPenaltyType = tFunctionParams.sublist("Penalty Function").get<std::string>("Type");
-
-        if( strScalarFunctionType == "Internal Elastic Energy" )
-        {
-          if( tPenaltyType == "SIMP" ){
-            return std::make_shared<Plato::Hyperbolic::InternalElasticEnergy<EvaluationType, Plato::MSIMP>>
-                     (aSpatialDomain, aDataMap, aProblemParams, tFunctionParams, strScalarFunctionName);
-          } else
-          if( tPenaltyType == "RAMP" ){
-            return std::make_shared<Plato::Hyperbolic::InternalElasticEnergy<EvaluationType, Plato::RAMP>>
-                     (aSpatialDomain, aDataMap, aProblemParams, tFunctionParams, strScalarFunctionName);
-          } else
-          if( tPenaltyType == "Heaviside" ){
-            return std::make_shared<Plato::Hyperbolic::InternalElasticEnergy<EvaluationType, Plato::Heaviside>>
-                     (aSpatialDomain, aDataMap, aProblemParams, tFunctionParams, strScalarFunctionName);
-          } else {
-            throw std::runtime_error("Unknown 'Type' specified in 'Penalty Function' ParameterList");
-          }
-        }
-        else
-        if( strScalarFunctionType == "Stress P-Norm" )
-        {
-          if( tPenaltyType == "SIMP" ){
-            return std::make_shared<Plato::Hyperbolic::StressPNorm<EvaluationType, Plato::MSIMP>>
-                     (aSpatialDomain, aDataMap, aProblemParams, tFunctionParams, strScalarFunctionName);
-          } else
-          if( tPenaltyType == "RAMP" ){
-            return std::make_shared<Plato::Hyperbolic::StressPNorm<EvaluationType, Plato::RAMP>>
-                     (aSpatialDomain, aDataMap, aProblemParams, tFunctionParams, strScalarFunctionName);
-          } else
-          if( tPenaltyType == "Heaviside" ){
-            return std::make_shared<Plato::Hyperbolic::StressPNorm<EvaluationType, Plato::Heaviside>>
-                     (aSpatialDomain, aDataMap, aProblemParams, tFunctionParams, strScalarFunctionName);
-          } else {
-            throw std::runtime_error("Unknown 'Type' specified in 'Penalty Function' ParameterList");
-          }
-        }
-        else
-        {
-          throw std::runtime_error("Unknown 'Criterion' specified in 'Plato Problem' ParameterList");
-        }
-      }
-    };
-
-    /******************************************************************************//**
-     * \brief Concrete class for use as the SimplexPhysics template argument in
-     *        Plato::Hyperbolic::Problem
-    **********************************************************************************/
-    template<Plato::OrdinalType SpaceDimParam>
-    class Mechanics: public Plato::SimplexMechanics<SpaceDimParam>
+    }
+    /******************************************************************************/
+    template <typename EvaluationType>
+    std::shared_ptr<::Plato::Hyperbolic::AbstractScalarFunction<EvaluationType>>
+    createScalarFunction(
+        const Plato::SpatialDomain   & aSpatialDomain,
+              Plato::DataMap         & aDataMap,
+              Teuchos::ParameterList & aProblemParams,
+              std::string              aFuncType,
+              std::string              aFuncName
+    )
+    /******************************************************************************/
     {
-    public:
-        typedef Plato::Hyperbolic::FunctionFactory FunctionFactory;
-        using SimplexT = SimplexMechanics<SpaceDimParam>;
-        static constexpr Plato::OrdinalType SpaceDim = SpaceDimParam;
-    };
-  } // namespace Hyperbolic
+        auto tLowerFuncType = Plato::tolower(aFuncType);
+
+        if(tLowerFuncType == "internal elastic energy")
+        {
+            return Plato::makeScalarFunction<EvaluationType, Plato::Hyperbolic::InternalElasticEnergy>
+                (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
+        }
+        else if(tLowerFuncType == "stress p-norm")
+        {
+            return Plato::makeScalarFunction<EvaluationType, Plato::Hyperbolic::StressPNorm>
+                (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
+        }
+        else
+        {
+          const std::string tErrorString = std::string("Function '") + tLowerFuncType + "' not implemented yet in transient mechanics.";
+          ANALYZE_THROWERR(tErrorString)
+        }
+    }
+};
+
+/******************************************************************************//**
+ * \brief Concrete class for use as the Physics template argument in
+ *        Plato::Hyperbolic::Problem
+**********************************************************************************/
+template<typename TopoElementType>
+class Mechanics
+{
+public:
+    typedef Plato::Hyperbolic::FunctionFactory FunctionFactory;
+    using ElementType = MechanicsElement<TopoElementType>;
+};
+} // namespace Hyperbolic
 
 } // namespace Plato
-
-#endif
