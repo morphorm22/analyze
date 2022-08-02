@@ -8,7 +8,7 @@ namespace Plato
 namespace Elliptic
 {
 
-namespace UpdatedLagrangian
+namespace Hatching
 {
 
 /******************************************************************************//**
@@ -35,10 +35,10 @@ public:
      **********************************************************************************/
     virtual Plato::Scalar
     value(
-        const Plato::Solutions                 & aSolution,
-        const Plato::ScalarMultiVector         & aLocalState,
-        const Plato::ScalarVector              & aControl,
-              Plato::Scalar                      aTimeStep = 0.0) const = 0;
+        const Plato::Solutions     & aSolution,
+        const Plato::ScalarArray4D & aLocalState,
+        const Plato::ScalarVector  & aControl,
+              Plato::Scalar          aTimeStep = 0.0) const = 0;
 
     /******************************************************************************//**
      * @brief Return function gradient wrt design variables
@@ -50,10 +50,10 @@ public:
      **********************************************************************************/
     virtual Plato::ScalarVector
     gradient_z(
-        const Plato::Solutions                 & aSolution,
-        const Plato::ScalarMultiVector         & aLocalState,
-        const Plato::ScalarVector              & aControl,
-              Plato::Scalar                      aTimeStep = 0.0) const = 0;
+        const Plato::Solutions     & aSolution,
+        const Plato::ScalarArray4D & aLocalState,
+        const Plato::ScalarVector  & aControl,
+              Plato::Scalar          aTimeStep = 0.0) const = 0;
 
     /******************************************************************************//**
      * @brief Return function gradient wrt state variables
@@ -66,11 +66,11 @@ public:
      **********************************************************************************/
     virtual Plato::ScalarVector
     gradient_u(
-        const Plato::Solutions         & aSolution,
-        const Plato::ScalarMultiVector & aLocalState,
-        const Plato::ScalarVector      & aControl,
-              Plato::OrdinalType         aStepIndex,
-              Plato::Scalar              aTimeStep = 0.0) const = 0;
+        const Plato::Solutions     & aSolution,
+        const Plato::ScalarArray4D & aLocalState,
+        const Plato::ScalarVector  & aControl,
+              Plato::OrdinalType     aStepIndex,
+              Plato::Scalar          aTimeStep = 0.0) const = 0;
 
     /******************************************************************************//**
      * @brief Return function gradient wrt local state variables
@@ -83,11 +83,11 @@ public:
      **********************************************************************************/
     virtual Plato::ScalarVector
     gradient_c(
-        const Plato::Solutions         & aSolution,
-        const Plato::ScalarMultiVector & aLocalState,
-        const Plato::ScalarVector      & aControl,
-              Plato::OrdinalType         aStepIndex,
-              Plato::Scalar              aTimeStep = 0.0) const = 0;
+        const Plato::Solutions     & aSolution,
+        const Plato::ScalarArray4D & aLocalState,
+        const Plato::ScalarVector  & aControl,
+              Plato::OrdinalType     aStepIndex,
+              Plato::Scalar          aTimeStep = 0.0) const = 0;
 
     /******************************************************************************//**
      * @brief Return function gradient wrt configurtion variables
@@ -99,10 +99,10 @@ public:
      **********************************************************************************/
     virtual Plato::ScalarVector
     gradient_x(
-        const Plato::Solutions                 & aSolution,
-        const Plato::ScalarMultiVector         & aLocalState,
-        const Plato::ScalarVector              & aControl,
-              Plato::Scalar                      aTimeStep = 0.0) const = 0;
+        const Plato::Solutions     & aSolution,
+        const Plato::ScalarArray4D & aLocalState,
+        const Plato::ScalarVector  & aControl,
+              Plato::Scalar          aTimeStep = 0.0) const = 0;
 
     /******************************************************************************//**
      * \fn virtual void updateProblem(const Plato::ScalarVector & aState,
@@ -118,7 +118,7 @@ public:
 
 }; // class ScalarFunctionBase
 
-} // namespace UpdatedLagrangian
+} // namespace Hatching
 
 } // namespace Elliptic
 

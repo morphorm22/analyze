@@ -121,8 +121,7 @@ namespace Elliptic
     
           scalarGrad(iCellOrdinal, tGrad, aState, tGradient);
     
-          StateScalarType tTemperature(0.0);
-          interpolateFromNodal(iCellOrdinal, tBasisValues, aState, tTemperature);
+          StateScalarType tTemperature = interpolateFromNodal(iCellOrdinal, tBasisValues, aState);
           thermalFlux(tFlux, tGrad, tTemperature);
     
           tVolume *= tCubWeights(iGpOrdinal);

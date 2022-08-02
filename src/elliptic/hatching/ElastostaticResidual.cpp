@@ -1,12 +1,12 @@
-#include "elliptic/hatching/ElastostaticResidual.hpp"
+#include "elliptic/hatching/ElastostaticResidual_decl.hpp"
+
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
+
+#include "elliptic/hatching/ElastostaticResidual_def.hpp"
+
+#include "MechanicsElement.hpp"
 #include "elliptic/hatching/ExpInstMacros.hpp"
 
-#ifdef PLATOANALYZE_1D
-PLATO_ELLIPTIC_UPLAG_EXPL_DEF(Plato::Elliptic::UpdatedLagrangian::ElastostaticResidual, Plato::Elliptic::UpdatedLagrangian::SimplexMechanics, 1)
-#endif
-#ifdef PLATOANALYZE_2D
-PLATO_ELLIPTIC_UPLAG_EXPL_DEF(Plato::Elliptic::UpdatedLagrangian::ElastostaticResidual, Plato::Elliptic::UpdatedLagrangian::SimplexMechanics, 2)
-#endif
-#ifdef PLATOANALYZE_3D
-PLATO_ELLIPTIC_UPLAG_EXPL_DEF(Plato::Elliptic::UpdatedLagrangian::ElastostaticResidual, Plato::Elliptic::UpdatedLagrangian::SimplexMechanics, 3)
+PLATO_ELLIPTIC_HATCHING_EXP_INST(Plato::Elliptic::Hatching::ElastostaticResidual, Plato::Elliptic::Hatching::MechanicsElement)
+
 #endif

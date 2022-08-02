@@ -1,5 +1,4 @@
-#ifndef ABSTRACT_VECTOR_FUNCTION_VMS_HPP
-#define ABSTRACT_VECTOR_FUNCTION_VMS_HPP
+#pragma once
 
 #include "PlatoStaticsTypes.hpp"
 #include "SpatialModel.hpp"
@@ -8,13 +7,16 @@
 namespace Plato
 {
 
+namespace Stabilized
+{
+
 /******************************************************************************//**
- * \brief Abstract vector function (i.e. PDE) interface for Variational Multi-Scale (VMS)
+ * \brief Abstract vector function (i.e. PDE) interface for Variational Multi-Scale
  * \tparam EvaluationType evaluation type use to determine automatic differentiation
  *   type for scalar function (e.g. Residual, Jacobian, GradientZ, etc.)
  **********************************************************************************/
 template<typename EvaluationType>
-class AbstractVectorFunctionVMS
+class AbstractVectorFunction
 {
 protected:
     const Plato::SpatialDomain     & mSpatialDomain; /*!< Plato Analyze spatial model */
@@ -22,13 +24,16 @@ protected:
           std::vector<std::string>   mDofNames;      /*!< state dof names */
 
 public:
+
+    using AbstractType = Plato::Stabilized::AbstractVectorFunction<EvaluationType>;
+
     /******************************************************************************//**
      * \brief Constructor
      * \param [in] aSpatialDomain Plato Analyze spatial model
      * \param [in] aDataMap Plato Analyze database
     **********************************************************************************/
     explicit
-    AbstractVectorFunctionVMS(
+    AbstractVectorFunction(
         const Plato::SpatialDomain & aSpatialDomain,
               Plato::DataMap& aDataMap
     ) :
@@ -40,7 +45,7 @@ public:
     /******************************************************************************//**
      * \brief Destructor
     **********************************************************************************/
-    virtual ~AbstractVectorFunctionVMS()
+    virtual ~AbstractVectorFunction()
     {
     }
 
@@ -124,8 +129,7 @@ public:
               Plato::Scalar              aTimeStep = 0.0)
     { return; }
 };
-// class AbstractVectorFunctionVMS
+// class AbstractVectorFunction
 
+} // namespace Stabilized
 } // namespace Plato
-
-#endif

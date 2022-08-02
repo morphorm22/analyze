@@ -1,28 +1,104 @@
 #include "PlatoTestHelpers.hpp"
 #include "Teuchos_UnitTestHarness.hpp"
 
+#include "Tet4.hpp"
+#include "ToMap.hpp"
 #include "BLAS1.hpp"
 #include "SpatialModel.hpp"
 #include "PlatoSequence.hpp"
 #include "PlatoMathHelpers.hpp"
-#include "elliptic/updated_lagrangian/Problem.hpp"
-#include "elliptic/updated_lagrangian/PhysicsScalarFunction.hpp"
+#include "elliptic/hatching/Problem.hpp"
+#include "elliptic/hatching/Mechanics.hpp"
+#include "elliptic/hatching/PhysicsScalarFunction.hpp"
 
-template <class VectorFunctionT, class SolutionT, class ControlT>
+namespace HatchingTestUtils
+{
+
+Plato::ScalarArray3D
+RandomStep(Plato::Scalar aLowerBound, Plato::Scalar aUpperBound, Plato::ScalarArray3D aPattern)
+{
+    auto tSize0 = aPattern.extent(0);
+    auto tSize1 = aPattern.extent(1);
+    auto tSize2 = aPattern.extent(2);
+    Plato::ScalarArray3D tStep = Plato::ScalarArray3D("Step", tSize0, tSize1, tSize2);
+    auto tHostStep = Kokkos::create_mirror(tStep);
+
+    unsigned int tRANDOM_SEED = 1;
+    std::srand(tRANDOM_SEED);
+    for(decltype(tSize0) iDim0; iDim0<tSize0; iDim0)
+    {
+      for(decltype(tSize1) iDim1; iDim1<tSize1; iDim1)
+      {
+        for(decltype(tSize2) iDim2; iDim2<tSize2; iDim2)
+        {
+          const Plato::Scalar tRandNum = static_cast<Plato::Scalar>(std::rand()) / static_cast<Plato::Scalar>(RAND_MAX);
+          tHostStep(iDim0, iDim1, iDim2) = aLowerBound + ( (aUpperBound - aLowerBound) * tRandNum);
+        }
+      }
+    }
+    Kokkos::deep_copy(tStep, tHostStep);
+    return tStep;
+}
+
+void axpy(const Plato::Scalar & aAlpha, Plato::ScalarArray3D aInput, Plato::ScalarArray3D aOutput)
+{
+    auto tSize0 = aInput.extent(0);
+    auto tSize1 = aInput.extent(1);
+    auto tSize2 = aInput.extent(2);
+    Kokkos::parallel_for("axpy", Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0, 0, 0}, {tSize0, tSize1, tSize2}),
+    LAMBDA_EXPRESSION(const Plato::OrdinalType iDim0, const Plato::OrdinalType iDim1, const Plato::OrdinalType iDim2)
+    {
+        aOutput(iDim0, iDim1, iDim2) += aAlpha * aInput(iDim0, iDim1, iDim2);
+    });
+}
+
+void
+Flatten(Plato::ScalarArray3D aArray3D, Plato::ScalarVector & aVector)
+{
+    auto tSize0 = aArray3D.extent(0);
+    auto tSize1 = aArray3D.extent(1);
+    auto tSize2 = aArray3D.extent(2);
+    auto tSize = tSize0*tSize1*tSize2;
+    Kokkos::resize(aVector, tSize);
+    Kokkos::parallel_for("flatten", Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0, 0, 0}, {tSize0, tSize1, tSize2}),
+    LAMBDA_EXPRESSION(const Plato::OrdinalType iDim0, const Plato::OrdinalType iDim1, const Plato::OrdinalType iDim2)
+    {
+        aVector(iDim0*tSize1*tSize2+iDim1*tSize2+iDim2) = aArray3D(iDim0, iDim1, iDim2);
+    });
+}
+
+void
+Unflatten(Plato::ScalarArray3D aArray3D, Plato::ScalarVector & aVector)
+{
+    auto tSize0 = aArray3D.extent(0);
+    auto tSize1 = aArray3D.extent(1);
+    auto tSize2 = aArray3D.extent(2);
+    auto tSize = tSize0*tSize1*tSize2;
+    Kokkos::resize(aVector, tSize);
+    Kokkos::parallel_for("flatten", Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0, 0, 0}, {tSize0, tSize1, tSize2}),
+    LAMBDA_EXPRESSION(const Plato::OrdinalType iDim0, const Plato::OrdinalType iDim1, const Plato::OrdinalType iDim2)
+    {
+        aArray3D(iDim0, iDim1, iDim2) = aVector(iDim0*tSize1*tSize2+iDim1*tSize2+iDim2);
+    });
+}
+
+template <class ElementType, class VectorFunctionT, class SolutionT, class ControlT>
 Plato::Scalar testVectorFunction_Partial_z(VectorFunctionT& aVectorFunction, SolutionT aSolution, ControlT aControl, int aStepIndex)
 {
     auto tState = aSolution.get("State");
     Plato::ScalarVector tGlobalState = Kokkos::subview(tState, aStepIndex, Kokkos::ALL());
-    Plato::ScalarVector tPrevLocalState;
+    Plato::ScalarArray3D tPrevLocalState;
     if (aStepIndex > 0)
     {
-        auto tLocalState = aSolution.get("Local State");
-        tPrevLocalState = Kokkos::subview(tLocalState, aStepIndex-1, Kokkos::ALL());
+        Plato::ScalarArray4D tLocalState;
+        aSolution.get("Local State", tLocalState);
+        tPrevLocalState = Kokkos::subview(tLocalState, aStepIndex-1, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL());
     }
     else
     {
         // kokkos initializes new views to zero.
-        tPrevLocalState = Plato::ScalarVector("initial local state",  aVectorFunction.stateSize());
+        tPrevLocalState = Plato::ScalarArray3D("initial local state", aVectorFunction.numCells(),
+                                              ElementType::mNumGaussPoints, ElementType::mNumLocalStatesPerGP);
     }
 
     // compute initial R and dRdz
@@ -57,10 +133,11 @@ Plato::Scalar testVectorFunction_Partial_z(VectorFunctionT& aVectorFunction, Sol
     return std::fabs(tDeltaFD - tDeltaAD) / (tPer != 0 ? tPer : 1.0);
 }
 
-template <class ProblemT, class VectorT>
+template <class ElementType, class ProblemT, class VectorT>
 Plato::Scalar testProblem_Total_z(ProblemT& aProblem, VectorT aControl, std::string aCriterionName, Plato::Scalar aAlpha = 1.0e-1)
 {
     // compute initial F and dFdz
+    auto tSolution = aProblem.solution(aControl);
     auto t_value = aProblem.criterionValue(aControl, aCriterionName);
     auto t_dFdz = aProblem.criterionGradient(aControl, aCriterionName);
 
@@ -103,21 +180,23 @@ void perturbMesh(MeshT& aMesh, VectorT aPerturb)
     }, "tweak mesh");
     aMesh->SetCoordinates(tCoordsCopy);
 }
-template <class VectorFunctionT, class SolutionT, class ControlT>
+template <class ElementType, class VectorFunctionT, class SolutionT, class ControlT>
 Plato::Scalar testVectorFunction_Partial_u(VectorFunctionT& aVectorFunction, SolutionT aSolution, ControlT aControl, int aStepIndex)
 {
     auto tState = aSolution.get("State");
     Plato::ScalarVector tGlobalState = Kokkos::subview(tState, aStepIndex, Kokkos::ALL());
-    Plato::ScalarVector tPrevLocalState;
+    Plato::ScalarArray3D tPrevLocalState;
     if (aStepIndex > 0)
     {
-        auto tLocalState = aSolution.get("Local State");
-        tPrevLocalState = Kokkos::subview(tLocalState, aStepIndex-1, Kokkos::ALL());
+        Plato::ScalarArray4D tLocalState;
+        aSolution.get("Local State", tLocalState);
+        tPrevLocalState = Kokkos::subview(tLocalState, aStepIndex-1, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL());
     }
     else
     {
         // kokkos initializes new views to zero.
-        tPrevLocalState = Plato::ScalarVector("initial local state",  aVectorFunction.stateSize());
+        tPrevLocalState = Plato::ScalarArray3D("initial local state",  aVectorFunction.numCells(),
+            ElementType::mNumGaussPoints, ElementType::mNumLocalStatesPerGP);
     }
 
     // compute initial R and dRdu
@@ -154,21 +233,23 @@ Plato::Scalar testVectorFunction_Partial_u(VectorFunctionT& aVectorFunction, Sol
     Plato::Scalar tPer = (fabs(tDeltaFD) + fabs(tDeltaAD))/2.0;
     return tErrorNorm / (tPer != 0 ? tPer : 1.0);
 }
-template <class VectorFunctionT, class SolutionT, class ControlT>
+template <class ElementType, class VectorFunctionT, class SolutionT, class ControlT>
 Plato::Scalar testVectorFunction_Partial_u_T(VectorFunctionT& aVectorFunction, SolutionT aSolution, ControlT aControl, int aStepIndex)
 {
     auto tState = aSolution.get("State");
     Plato::ScalarVector tGlobalState = Kokkos::subview(tState, aStepIndex, Kokkos::ALL());
-    Plato::ScalarVector tPrevLocalState;
+    Plato::ScalarArray3D tPrevLocalState;
     if (aStepIndex > 0)
     {
-        auto tLocalState = aSolution.get("Local State");
-        tPrevLocalState = Kokkos::subview(tLocalState, aStepIndex-1, Kokkos::ALL());
+        Plato::ScalarArray4D tLocalState;
+        aSolution.get("Local State", tLocalState);
+        tPrevLocalState = Kokkos::subview(tLocalState, aStepIndex-1, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL());
     }
     else
     {
         // kokkos initializes new views to zero.
-        tPrevLocalState = Plato::ScalarVector("initial local state",  aVectorFunction.stateSize());
+        tPrevLocalState = Plato::ScalarArray3D("initial local state",  aVectorFunction.numCells(),
+            ElementType::mNumGaussPoints, ElementType::mNumLocalStatesPerGP);
     }
 
     // compute initial R and dRduT
@@ -205,48 +286,49 @@ Plato::Scalar testVectorFunction_Partial_u_T(VectorFunctionT& aVectorFunction, S
     Plato::Scalar tPer = (fabs(tDeltaFD) + fabs(tDeltaAD))/2.0;
     return tErrorNorm / (tPer != 0 ? tPer : 1.0);
 }
-template <class VectorFunctionT, class SolutionT, class ControlT>
+template <class ElementType, class VectorFunctionT, class SolutionT, class ControlT>
 Plato::Scalar testVectorFunction_Partial_cp_T(VectorFunctionT& aVectorFunction, SolutionT aSolution, ControlT aControl, int aStepIndex)
 {
     auto tState = aSolution.get("State");
     Plato::ScalarVector tGlobalState = Kokkos::subview(tState, aStepIndex, Kokkos::ALL());
-    Plato::ScalarVector tPrevLocalState;
+    Plato::ScalarArray3D tPrevLocalState;
     if (aStepIndex > 0)
     {
-        auto tLocalStates = aSolution.get("Local State");
-        tPrevLocalState = Kokkos::subview(tLocalStates, aStepIndex-1, Kokkos::ALL());
+        Plato::ScalarArray4D tLocalStates;
+        aSolution.get("Local State", tLocalStates);
+        tPrevLocalState = Kokkos::subview(tLocalStates, aStepIndex-1, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL());
     }
     else
     {
         // kokkos initializes new views to zero.
-        tPrevLocalState = Plato::ScalarVector("initial local state",  aVectorFunction.stateSize());
+        tPrevLocalState = Plato::ScalarArray3D("initial local state", aVectorFunction.numCells(),
+            ElementType::mNumGaussPoints, ElementType::mNumLocalStatesPerGP);
     }
 
     // compute initial R and dRdcpT
     auto tResidual = aVectorFunction.value(tGlobalState, tPrevLocalState, aControl);
     auto t_dRdcpT = aVectorFunction.gradient_cp_T(tGlobalState, tPrevLocalState, aControl);
 
-    Plato::ScalarVector tStep = Plato::ScalarVector("Step", tPrevLocalState.extent(0));
-    auto tHostStep = Kokkos::create_mirror(tStep);
-    Plato::blas1::random(250000.0, 500000.0, tHostStep);
-    Kokkos::deep_copy(tStep, tHostStep);
+    auto tStep = HatchingTestUtils::RandomStep(250000.0, 500000.0, tPrevLocalState);
 
     // compute F at z - step
-    Plato::blas1::axpy(-1.0, tStep, tPrevLocalState);
+    HatchingTestUtils::axpy(-1.0, tStep, tPrevLocalState);
     auto tResidualNeg = aVectorFunction.value(tGlobalState, tPrevLocalState, aControl);
 
     // compute F at z + step
-    Plato::blas1::axpy(2.0, tStep, tPrevLocalState);
+    HatchingTestUtils::axpy(2.0, tStep, tPrevLocalState);
     auto tResidualPos = aVectorFunction.value(tGlobalState, tPrevLocalState, aControl);
-    Plato::blas1::axpy(-1.0, tStep, tPrevLocalState);
+    HatchingTestUtils::axpy(-1.0, tStep, tPrevLocalState);
 
     // compute actual change in F over 2 * deltaZ
     Plato::blas1::axpy(-1.0, tResidualNeg, tResidualPos);
     auto tDeltaFD = Plato::blas1::norm(tResidualPos);
 
     Plato::ScalarVector tDeltaR = Plato::ScalarVector("delta R", tResidual.extent(0));
-    Plato::blas1::scale(2.0, tStep);
-    Plato::VectorTimesMatrixPlusVector(tStep, t_dRdcpT, tDeltaR);
+    Plato::ScalarVector tFlatStep;
+    HatchingTestUtils::Flatten(tStep, tFlatStep);
+    Plato::blas1::scale(2.0, tFlatStep);
+    Plato::VectorTimesMatrixPlusVector(tFlatStep, t_dRdcpT, tDeltaR);
     auto tDeltaAD = Plato::blas1::norm(tDeltaR);
 
     Plato::blas1::axpy(-1.0, tResidualPos, tDeltaR);
@@ -260,7 +342,8 @@ template <class ScalarFunctionT, class SolutionT, class ControlT>
 Plato::Scalar testScalarFunction_Partial_z(ScalarFunctionT aScalarFunction, SolutionT aSolution, ControlT aControl)
 {
     // compute initial F and dFdz
-    auto tLocalState = aSolution.get("Local State");
+    Plato::ScalarArray4D tLocalState;
+    aSolution.get("Local State", tLocalState);
     auto t_value0 = aScalarFunction.value(aSolution, tLocalState, aControl);
     auto t_dFdz = aScalarFunction.gradient_z(aSolution, tLocalState, aControl);
 
@@ -294,7 +377,8 @@ template <class ScalarFunctionT, class SolutionT, class ControlT>
 Plato::Scalar testScalarFunction_Partial_c(ScalarFunctionT aScalarFunction, SolutionT aSolution, ControlT aControl, int aTimeStep)
 {
     // compute initial F and dFdc
-    auto tLocalStates = aSolution.get("Local State");
+    Plato::ScalarArray4D tLocalStates;
+    aSolution.get("Local State", tLocalStates);
     auto t_value0 = aScalarFunction.value(aSolution, tLocalStates, aControl);
     std::cout << "t_value0:" << t_value0 << std::endl;
     auto t_dFdc = aScalarFunction.gradient_c(aSolution, tLocalStates, aControl, aTimeStep);
@@ -304,9 +388,9 @@ Plato::Scalar testScalarFunction_Partial_c(ScalarFunctionT aScalarFunction, Solu
     std::cout << "tNorm:" << tNorm << std::endl;
 
     // compute F at c - deltac
-    Plato::ScalarVector tLocalState = Kokkos::subview(tLocalStates, aTimeStep, Kokkos::ALL());
+    Plato::ScalarArray3D tLocalState = Kokkos::subview(tLocalStates, aTimeStep, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL());
 
-    Plato::ScalarVector tStep("step", tLocalState.extent(0));
+    Plato::ScalarVector tStep("step", t_dFdc.extent(0));
     if (tNorm != 0)
     {
       Plato::blas1::axpy(-tAlpha/tNorm, t_dFdc, tStep);
@@ -315,16 +399,18 @@ Plato::Scalar testScalarFunction_Partial_c(ScalarFunctionT aScalarFunction, Solu
     {
       Kokkos::deep_copy(tStep, tAlpha);
     }
-    Plato::blas1::axpy(-1.0, tStep, tLocalState);
+    Plato::ScalarArray3D tStep3D("step 3d", tLocalState.extent(0), tLocalState.extent(1), tLocalState.extent(2));
+    HatchingTestUtils::Unflatten(tStep3D, tStep);
+    HatchingTestUtils::axpy(-1.0, tStep3D, tLocalState);
     
     auto t_valueNeg = aScalarFunction.value(aSolution, tLocalStates, aControl);
     std::cout << "t_valueNeg:" << t_valueNeg << std::endl;
 
     // compute F at c + deltac
-    Plato::blas1::axpy(2.0, tStep, tLocalState);
+    HatchingTestUtils::axpy(2.0, tStep3D, tLocalState);
     auto t_valuePos = aScalarFunction.value(aSolution, tLocalStates, aControl);
     std::cout << "t_valuePos:" << t_valuePos << std::endl;
-    Plato::blas1::axpy(-1.0, tStep, tLocalState);
+    HatchingTestUtils::axpy(-1.0, tStep3D, tLocalState);
 
     // compute actual change in F over 2 * deltaZ
     auto tDeltaFD = (t_valuePos - t_valueNeg);
@@ -352,7 +438,8 @@ Plato::Scalar
 testScalarFunction_Partial_u(ScalarFunctionT aScalarFunction, SolutionT aSolution, ControlT aControl, int aTimeStep, Plato::Scalar aAlpha = 1.0e-4)
 {
     // compute initial F and dFdu
-    auto tLocalState = aSolution.get("Local State");
+    Plato::ScalarArray4D tLocalState;
+    aSolution.get("Local State", tLocalState);
     auto t_value0 = aScalarFunction.value(aSolution, tLocalState, aControl);
     auto t_dFdu = aScalarFunction.gradient_u(aSolution, tLocalState, aControl, aTimeStep);
 
@@ -392,12 +479,14 @@ testScalarFunction_Partial_u(ScalarFunctionT aScalarFunction, SolutionT aSolutio
     }
 }
 
-TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
+} // end namespace HatchingTestUtils
+
+
+TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D )
 {
   // create test mesh
   //
   constexpr int cMeshWidth=2;
-  constexpr int cSpaceDim=3;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
 
   // create input
@@ -406,9 +495,9 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
     Teuchos::getParametersFromXmlString(
     "<ParameterList name='Plato Problem'>                                                   \n"
     "  <Parameter name='Physics' type='string' value='Mechanics'/>                          \n"
-    "  <Parameter name='PDE Constraint' type='string' value='Updated Lagrangian Elliptic'/> \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic Hatching'/>           \n"
     "  <Parameter name='Self-Adjoint' type='bool' value='false'/>                           \n"
-    "  <ParameterList name='Updated Lagrangian Elliptic'>                                   \n"
+    "  <ParameterList name='Elliptic Hatching'>                                             \n"
     "    <ParameterList name='Penalty Function'>                                            \n"
     "      <Parameter name='Type' type='string' value='SIMP'/>                              \n"
     "      <Parameter name='Exponent' type='double' value='3.0'/>                           \n"
@@ -501,76 +590,87 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  using PhysicsType = Plato::Elliptic::UpdatedLagrangian::Mechanics<cSpaceDim>;
+  using PhysicsType = Plato::Elliptic::Hatching::Mechanics<Plato::Tet4>;
+
+  constexpr int cSpaceDim = Plato::Tet4::mNumSpatialDims;
 
   int tNumNodes = tMesh->NumNodes();
   Plato::ScalarVector tControl("control", tNumNodes);
   Plato::blas1::fill(1.0, tControl);
 
   Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
-  Plato::Sequence<cSpaceDim> tSequence(tSpatialModel, *tInputParams);
+  Plato::Sequence<typename PhysicsType::ElementType> tSequence(tSpatialModel, *tInputParams);
   Plato::DataMap tDataMap;
 
   // create PDE constraint
   //
   std::string tMyConstraint = tInputParams->get<std::string>("PDE Constraint");
-  Plato::Elliptic::UpdatedLagrangian::VectorFunction<PhysicsType>
+  Plato::Elliptic::Hatching::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *tInputParams, tMyConstraint);
 
   Plato::Solutions tSolution;
   {
-    Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> tProblem(tMesh, *tInputParams, tMachine);
+    Plato::Elliptic::Hatching::Problem<PhysicsType> tProblem(tMesh, *tInputParams, tMachine);
     tSolution = tProblem.solution(tControl);
   }
 
   // compute and test constraint gradient_z
   //
-  auto t_dRdz0_error = testVectorFunction_Partial_z(vectorFunction, tSolution, tControl, /*timeStep=*/ 0);
+  auto t_dRdz0_error = HatchingTestUtils::testVectorFunction_Partial_z<typename PhysicsType::ElementType>
+                         (vectorFunction, tSolution, tControl, /*timeStep=*/ 0);
   TEST_ASSERT(t_dRdz0_error < 1.0e-6);
 
-  auto t_dRdz1_error = testVectorFunction_Partial_z(vectorFunction, tSolution, tControl, /*timeStep=*/ 1);
+  auto t_dRdz1_error = HatchingTestUtils::testVectorFunction_Partial_z<typename PhysicsType::ElementType>
+                         (vectorFunction, tSolution, tControl, /*timeStep=*/ 1);
   TEST_ASSERT(t_dRdz1_error < 1.0e-6);
 
   // compute and test constraint gradient_u
   //
-  auto t_dRdu0_error = testVectorFunction_Partial_u(vectorFunction, tSolution, tControl, /*timeStep=*/ 0);
+  auto t_dRdu0_error = HatchingTestUtils::testVectorFunction_Partial_u<typename PhysicsType::ElementType>
+                         (vectorFunction, tSolution, tControl, /*timeStep=*/ 0);
   TEST_ASSERT(t_dRdu0_error < 1.0e-6);
 
-  auto t_dRdu1_error = testVectorFunction_Partial_u(vectorFunction, tSolution, tControl, /*timeStep=*/ 1);
+  auto t_dRdu1_error = HatchingTestUtils::testVectorFunction_Partial_u<typename PhysicsType::ElementType>
+                         (vectorFunction, tSolution, tControl, /*timeStep=*/ 1);
   TEST_ASSERT(t_dRdu1_error < 1.0e-6);
 
   // compute and test constraint gradient_u_T
   //
-  auto t_dRduT0_error = testVectorFunction_Partial_u_T(vectorFunction, tSolution, tControl, /*timeStep=*/ 0);
+  auto t_dRduT0_error = HatchingTestUtils::testVectorFunction_Partial_u_T<typename PhysicsType::ElementType>
+                          (vectorFunction, tSolution, tControl, /*timeStep=*/ 0);
   TEST_ASSERT(t_dRduT0_error < 1.0e-6);
 
-  auto t_dRduT1_error = testVectorFunction_Partial_u_T(vectorFunction, tSolution, tControl, /*timeStep=*/ 1);
+  auto t_dRduT1_error = HatchingTestUtils::testVectorFunction_Partial_u_T<typename PhysicsType::ElementType>
+                          (vectorFunction, tSolution, tControl, /*timeStep=*/ 1);
   TEST_ASSERT(t_dRduT1_error < 1.0e-6);
 
   // compute and test constraint gradient_cp_T
   //
-  auto t_dRdcpT0_error = testVectorFunction_Partial_cp_T(vectorFunction, tSolution, tControl, /*timeStep=*/ 0);
+  auto t_dRdcpT0_error = HatchingTestUtils::testVectorFunction_Partial_cp_T<typename PhysicsType::ElementType>
+                           (vectorFunction, tSolution, tControl, /*timeStep=*/ 0);
   TEST_ASSERT(t_dRdcpT0_error < 1.0e-6);
 
-  auto t_dRdcpT1_error = testVectorFunction_Partial_cp_T(vectorFunction, tSolution, tControl, /*timeStep=*/ 1);
+  auto t_dRdcpT1_error = HatchingTestUtils::testVectorFunction_Partial_cp_T<typename PhysicsType::ElementType>
+                           (vectorFunction, tSolution, tControl, /*timeStep=*/ 1);
   TEST_ASSERT(t_dRdcpT1_error < 1.0e-6);
 
 
   // create objective
   //
   std::string tMyFunction("Internal Energy");
-  using FunctionType = Plato::Elliptic::UpdatedLagrangian::PhysicsScalarFunction<PhysicsType>;
+  using FunctionType = Plato::Elliptic::Hatching::PhysicsScalarFunction<PhysicsType>;
   FunctionType scalarFunction(tSpatialModel, tSequence, tDataMap, *tInputParams, tMyFunction);
 
   // compute and test criterion value
   //
-  auto tLocalState = tSolution.get("Local State");
+  Plato::ScalarArray4D tLocalState;
+  tSolution.get("Local State", tLocalState);
   auto t_value = scalarFunction.value(tSolution, tLocalState, tControl);
   TEST_FLOATING_EQUALITY(t_value, -0.00125000, 1e-7);
 
   // compute and test criterion gradient_z
   //
-  auto t_dFdz_error = testScalarFunction_Partial_z(scalarFunction, tSolution, tControl);
+  auto t_dFdz_error = HatchingTestUtils::testScalarFunction_Partial_z(scalarFunction, tSolution, tControl);
   TEST_ASSERT(t_dFdz_error < 1.0e-10);
 
   // compute and test criterion gradient_x
@@ -587,17 +687,18 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
     }
     Kokkos::deep_copy(tState, tGlobalState_Host);
 
-    auto tLocalState = tSolution.get("Local State");
+    Plato::ScalarArray4D tLocalState;
+    tSolution.get("Local State", tLocalState);
     auto tLocalState_Host = Kokkos::create_mirror(tLocalState);
     auto tCellMask0 = tSequence.getSteps()[0].getMask()->cellMask();
     auto tCellMask0_Host = Kokkos::create_mirror(tCellMask0);
     Kokkos::deep_copy(tCellMask0_Host, tCellMask0);
 
-    auto tNumState = tLocalState_Host.extent(1);
-    for(int i=0; i<tNumState/6; i++)
+    auto tNumCells = tLocalState_Host.extent(1);
+    for(int iCell=0; iCell<tNumCells; iCell++)
     {
-      if( tCellMask0_Host(i) ) tLocalState_Host(0, 6*i+2) = 1.0e-6;
-      tLocalState_Host(1, 6*i+2) = 5.0e-7;
+      if( tCellMask0_Host(iCell) ) tLocalState_Host(0, iCell, /*iGP=*/ 0, 2) = 1.0e-6;
+      tLocalState_Host(1, iCell, /*iGP=*/ 0, 2) = 5.0e-7;
     }
     Kokkos::deep_copy(tLocalState, tLocalState_Host);
 
@@ -613,18 +714,18 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
     Plato::blas1::scale(-tAlpha/tNorm, tStep);
 
     // compute F at z - deltaZ
-    perturbMesh(tMesh, tStep);
+    HatchingTestUtils::perturbMesh(tMesh, tStep);
     FunctionType scalarFunctionNeg(tSpatialModel, tSequence, tDataMap, *tInputParams, tMyFunction);
     auto t_valueNeg = scalarFunctionNeg.value(tSolution, tLocalState, tControl);
 
     // compute F at z + deltaZ
     Plato::blas1::scale(-2.0, tStep);
-    perturbMesh(tMesh, tStep);
+    HatchingTestUtils::perturbMesh(tMesh, tStep);
     FunctionType scalarFunctionPos(tSpatialModel, tSequence, tDataMap, *tInputParams, tMyFunction);
     auto t_valuePos = scalarFunctionPos.value(tSolution, tLocalState, tControl);
 
     Plato::blas1::scale(-1.0/2.0, tStep);
-    perturbMesh(tMesh, tStep);
+    HatchingTestUtils::perturbMesh(tMesh, tStep);
 
     // compute actual change in F over 2 * deltaZ
     auto tDeltaFD = (t_valuePos - t_valueNeg);
@@ -663,25 +764,25 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
 
   // compute and test criterion gradient_c
   //
-  auto t_dFdc0_error = testScalarFunction_Partial_c(scalarFunction, tSolution, tControl, /*timeStep=*/ 0);
+  auto t_dFdc0_error = HatchingTestUtils::testScalarFunction_Partial_c(scalarFunction, tSolution, tControl, /*timeStep=*/ 0);
   TEST_ASSERT(t_dFdc0_error < 1.0e-8);
 
-  auto t_dFdc1_error = testScalarFunction_Partial_c(scalarFunction, tSolution, tControl, /*timeStep=*/ 1);
+  auto t_dFdc1_error = HatchingTestUtils::testScalarFunction_Partial_c(scalarFunction, tSolution, tControl, /*timeStep=*/ 1);
   TEST_ASSERT(t_dFdc1_error < 1.0e-8);
 
 
   // compute and test criterion gradient_u
   //
-  auto t_dFdu0_error = testScalarFunction_Partial_u(scalarFunction, tSolution, tControl, /*timeStep=*/ 0);
+  auto t_dFdu0_error = HatchingTestUtils::testScalarFunction_Partial_u(scalarFunction, tSolution, tControl, /*timeStep=*/ 0);
   TEST_ASSERT(t_dFdu0_error < 1.0e-8);
 
-  auto t_dFdu1_error = testScalarFunction_Partial_u(scalarFunction, tSolution, tControl, /*timeStep=*/ 1, /*stepSize=*/ 1.0e-8);
+  auto t_dFdu1_error = HatchingTestUtils::testScalarFunction_Partial_u(scalarFunction, tSolution, tControl, /*timeStep=*/ 1, /*stepSize=*/ 1.0e-8);
   TEST_ASSERT(t_dFdu1_error < 1.0e-8);
 
   auto tCriterionName = "Internal Energy";
   Plato::ScalarVector t_dFdx;
   {
-    Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> tProblem(tMesh, *tInputParams, tMachine);
+    Plato::Elliptic::Hatching::Problem<PhysicsType> tProblem(tMesh, *tInputParams, tMachine);
     tSolution = tProblem.solution(tControl);
 
     /*****************************************************
@@ -698,7 +799,7 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
      Test Problem::criterionGradient(aControl);
      *****************************************************/
 
-    auto t_dPdz_error = testProblem_Total_z(tProblem, tControl, "Internal Energy", /*stepsize=*/ 1e-4);
+    auto t_dPdz_error = HatchingTestUtils::testProblem_Total_z<typename PhysicsType::ElementType>(tProblem, tControl, "Internal Energy", /*stepsize=*/ 1e-4);
     TEST_ASSERT(t_dPdz_error < 1.0e-6);
 
 
@@ -721,15 +822,15 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
   // compute F at x - deltax
   Plato::Scalar t_valueNeg(0);
   {
-    perturbMesh(tMesh, tStep);
-    Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> tProblem2(tMesh, *tInputParams, tMachine);
+    HatchingTestUtils::perturbMesh(tMesh, tStep);
+    Plato::Elliptic::Hatching::Problem<PhysicsType> tProblem2(tMesh, *tInputParams, tMachine);
     tSolution = tProblem2.solution(tControl);
     t_valueNeg = tProblem2.criterionValue(tControl, tCriterionName);
   }
 
   Plato::Scalar t_valueNegToo(0);
   {
-    Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> tProblem3(tMesh, *tInputParams, tMachine);
+    Plato::Elliptic::Hatching::Problem<PhysicsType> tProblem3(tMesh, *tInputParams, tMachine);
     tSolution = tProblem3.solution(tControl);
     t_valueNegToo = tProblem3.criterionValue(tControl, tCriterionName);
   }
@@ -739,8 +840,8 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
   Plato::blas1::scale(-2.0, tStep);
   Plato::Scalar t_valuePos(0);
   {
-    perturbMesh(tMesh, tStep);
-    Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> tProblem4(tMesh, *tInputParams, tMachine);
+    HatchingTestUtils::perturbMesh(tMesh, tStep);
+    Plato::Elliptic::Hatching::Problem<PhysicsType> tProblem4(tMesh, *tInputParams, tMachine);
     tSolution = tProblem4.solution(tControl);
     t_valuePos = tProblem4.criterionValue(tControl, tCriterionName);
   }
@@ -758,17 +859,16 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D )
 
   // change mesh back 
   Plato::blas1::scale(-1.0/2.0, tStep);
-  perturbMesh(tMesh, tStep);
+  HatchingTestUtils::perturbMesh(tMesh, tStep);
 }
 
 
 
-TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_full )
+TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D_full )
 {
   // create test mesh
   //
   constexpr int cMeshWidth=2;
-  constexpr int cSpaceDim=3;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
 
   // create input
@@ -777,9 +877,9 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_full )
     Teuchos::getParametersFromXmlString(
     "<ParameterList name='Plato Problem'>                                                   \n"
     "  <Parameter name='Physics' type='string' value='Mechanics'/>                          \n"
-    "  <Parameter name='PDE Constraint' type='string' value='Updated Lagrangian Elliptic'/> \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic Hatching'/>           \n"
     "  <Parameter name='Self-Adjoint' type='bool' value='false'/>                           \n"
-    "  <ParameterList name='Updated Lagrangian Elliptic'>                                   \n"
+    "  <ParameterList name='Elliptic Hatching'>                                             \n"
     "    <ParameterList name='Penalty Function'>                                            \n"
     "      <Parameter name='Type' type='string' value='SIMP'/>                              \n"
     "      <Parameter name='Exponent' type='double' value='3.0'/>                           \n"
@@ -857,8 +957,8 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_full )
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  using PhysicsType = Plato::Elliptic::UpdatedLagrangian::Mechanics<cSpaceDim>;
-  auto* tProblem = new Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> (tMesh, *tInputParams, tMachine);
+  using PhysicsType = Plato::Elliptic::Hatching::Mechanics<Plato::Tet4>;
+  auto* tProblem = new Plato::Elliptic::Hatching::Problem<PhysicsType> (tMesh, *tInputParams, tMachine);
 
   TEST_ASSERT(tProblem != nullptr);
 
@@ -867,66 +967,76 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_full )
   Plato::blas1::fill(1.0, tControl);
 
   Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
-  Plato::Sequence<cSpaceDim> tSequence(tSpatialModel, *tInputParams);
+  Plato::Sequence<typename PhysicsType::ElementType> tSequence(tSpatialModel, *tInputParams);
   Plato::DataMap tDataMap;
 
   auto tSolution = tProblem->solution(tControl);
 
+#ifdef NOPE
   // create PDE constraint
   //
   std::string tMyConstraint = tInputParams->get<std::string>("PDE Constraint");
-  Plato::Elliptic::UpdatedLagrangian::VectorFunction<PhysicsType>
+  Plato::Elliptic::Hatching::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *tInputParams, tMyConstraint);
 
   // compute and test constraint gradient_z
   //
-  auto t_dRdz0_error = testVectorFunction_Partial_z(vectorFunction, tSolution, tControl, /*timeStep=*/ 0);
+  auto t_dRdz0_error = HatchingTestUtils::testVectorFunction_Partial_z<typename PhysicsType::ElementType>
+                         (vectorFunction, tSolution, tControl, /*timeStep=*/ 0);
   TEST_ASSERT(t_dRdz0_error < 1.0e-6);
 
-  auto t_dRdz1_error = testVectorFunction_Partial_z(vectorFunction, tSolution, tControl, /*timeStep=*/ 1);
+  auto t_dRdz1_error = HatchingTestUtils::testVectorFunction_Partial_z<typename PhysicsType::ElementType>
+                         (vectorFunction, tSolution, tControl, /*timeStep=*/ 1);
   TEST_ASSERT(t_dRdz1_error < 1.0e-6);
 
   // compute and test constraint gradient_u
   //
-  auto t_dRdu0_error = testVectorFunction_Partial_u(vectorFunction, tSolution, tControl, /*timeStep=*/ 0);
+  auto t_dRdu0_error = HatchingTestUtils::testVectorFunction_Partial_u<typename PhysicsType::ElementType>
+                         (vectorFunction, tSolution, tControl, /*timeStep=*/ 0);
   TEST_ASSERT(t_dRdu0_error < 1.0e-6);
 
-  auto t_dRdu1_error = testVectorFunction_Partial_u(vectorFunction, tSolution, tControl, /*timeStep=*/ 1);
+  auto t_dRdu1_error = HatchingTestUtils::testVectorFunction_Partial_u<typename PhysicsType::ElementType>
+                         (vectorFunction, tSolution, tControl, /*timeStep=*/ 1);
   TEST_ASSERT(t_dRdu1_error < 1.0e-6);
 
   // compute and test constraint gradient_u_T
   //
-  auto t_dRduT0_error = testVectorFunction_Partial_u_T(vectorFunction, tSolution, tControl, /*timeStep=*/ 0);
+  auto t_dRduT0_error = HatchingTestUtils::testVectorFunction_Partial_u_T<typename PhysicsType::ElementType>
+                          (vectorFunction, tSolution, tControl, /*timeStep=*/ 0);
   TEST_ASSERT(t_dRduT0_error < 1.0e-6);
 
-  auto t_dRduT1_error = testVectorFunction_Partial_u_T(vectorFunction, tSolution, tControl, /*timeStep=*/ 1);
+  auto t_dRduT1_error = HatchingTestUtils::testVectorFunction_Partial_u_T<typename PhysicsType::ElementType>
+                          (vectorFunction, tSolution, tControl, /*timeStep=*/ 1);
   TEST_ASSERT(t_dRduT1_error < 1.0e-6);
 
   // compute and test constraint gradient_cp_T
   //
-  auto t_dRdcpT0_error = testVectorFunction_Partial_cp_T(vectorFunction, tSolution, tControl, /*timeStep=*/ 0);
+  auto t_dRdcpT0_error = HatchingTestUtils::testVectorFunction_Partial_cp_T<typename PhysicsType::ElementType>
+                           (vectorFunction, tSolution, tControl, /*timeStep=*/ 0);
   TEST_ASSERT(t_dRdcpT0_error < 1.0e-6);
 
-  auto t_dRdcpT1_error = testVectorFunction_Partial_cp_T(vectorFunction, tSolution, tControl, /*timeStep=*/ 1);
+  auto t_dRdcpT1_error = HatchingTestUtils::testVectorFunction_Partial_cp_T<typename PhysicsType::ElementType>
+                           (vectorFunction, tSolution, tControl, /*timeStep=*/ 1);
   TEST_ASSERT(t_dRdcpT1_error < 1.0e-6);
 
 
   // create objective
   //
   std::string tMyFunction("Internal Energy");
-  using FunctionType = Plato::Elliptic::UpdatedLagrangian::PhysicsScalarFunction<PhysicsType>;
+  using FunctionType = Plato::Elliptic::Hatching::PhysicsScalarFunction<PhysicsType>;
   FunctionType scalarFunction(tSpatialModel, tSequence, tDataMap, *tInputParams, tMyFunction);
 
   // compute and test criterion gradient_z
   //
-  auto t_dFdz_error = testScalarFunction_Partial_z(scalarFunction, tSolution, tControl);
+  auto t_dFdz_error = HatchingTestUtils::testScalarFunction_Partial_z(scalarFunction, tSolution, tControl);
   TEST_ASSERT(t_dFdz_error < 1.0e-10);
 
   // compute and test criterion gradient_x
   //
   {
     // compute initial F and dFdx
-    auto tLocalState = tSolution.get("Local State");
+    Plato::ScalarArray4D tLocalState;
+    tSolution.get("Local State", tLocalState);
     auto t_value0 = scalarFunction.value(tSolution, tLocalState, tControl);
     auto t_dFdx = scalarFunction.gradient_x(tSolution, tLocalState, tControl);
 
@@ -938,18 +1048,18 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_full )
     Plato::blas1::scale(-tAlpha/tNorm, tStep);
 
     // compute F at z - deltaZ
-    perturbMesh(tMesh, tStep);
+    HatchingTestUtils::perturbMesh(tMesh, tStep);
     FunctionType scalarFunctionNeg(tSpatialModel, tSequence, tDataMap, *tInputParams, tMyFunction);
     auto t_valueNeg = scalarFunctionNeg.value(tSolution, tLocalState, tControl);
 
     // compute F at z + deltaZ
     Plato::blas1::scale(-2.0, tStep);
-    perturbMesh(tMesh, tStep);
+    HatchingTestUtils::perturbMesh(tMesh, tStep);
     FunctionType scalarFunctionPos(tSpatialModel, tSequence, tDataMap, *tInputParams, tMyFunction);
     auto t_valuePos = scalarFunctionPos.value(tSolution, tLocalState, tControl);
 
     Plato::blas1::scale(-1.0/2.0, tStep);
-    perturbMesh(tMesh, tStep);
+    HatchingTestUtils::perturbMesh(tMesh, tStep);
 
     // compute actual change in F over 2 * deltaZ
     auto tDeltaFD = (t_valuePos - t_valueNeg);
@@ -967,28 +1077,28 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_full )
 
   // compute and test criterion gradient_c
   //
-  auto t_dFdc0_error = testScalarFunction_Partial_c(scalarFunction, tSolution, tControl, /*timeStep=*/ 0);
+  auto t_dFdc0_error = HatchingTestUtils::testScalarFunction_Partial_c(scalarFunction, tSolution, tControl, /*timeStep=*/ 0);
   TEST_ASSERT(t_dFdc0_error < 1.0e-10);
 
-  auto t_dFdc1_error = testScalarFunction_Partial_c(scalarFunction, tSolution, tControl, /*timeStep=*/ 1);
+  auto t_dFdc1_error = HatchingTestUtils::testScalarFunction_Partial_c(scalarFunction, tSolution, tControl, /*timeStep=*/ 1);
   TEST_ASSERT(t_dFdc1_error < 1.0e-10);
 
 
   // compute and test criterion gradient_u
   //
-  auto t_dFdu0_error = testScalarFunction_Partial_u(scalarFunction, tSolution, tControl, /*timeStep=*/ 0);
+  auto t_dFdu0_error = HatchingTestUtils::testScalarFunction_Partial_u(scalarFunction, tSolution, tControl, /*timeStep=*/ 0);
   TEST_ASSERT(t_dFdu0_error < 1.0e-10);
 
-  auto t_dFdu1_error = testScalarFunction_Partial_u(scalarFunction, tSolution, tControl, /*timeStep=*/ 1);
+  auto t_dFdu1_error = HatchingTestUtils::testScalarFunction_Partial_u(scalarFunction, tSolution, tControl, /*timeStep=*/ 1);
   TEST_ASSERT(t_dFdu1_error < 1.0e-10);
 
-
+#endif
 
   /*****************************************************
    Test Problem::criterionGradient(aControl);
    *****************************************************/
 
-  auto t_dPdz_error = testProblem_Total_z(*tProblem, tControl, "Internal Energy", 1.0e-4);
+  auto t_dPdz_error = HatchingTestUtils::testProblem_Total_z<typename PhysicsType::ElementType>(*tProblem, tControl, "Internal Energy", 1.0e-4);
   TEST_ASSERT(t_dPdz_error < 1.0e-6);
 
 
@@ -1009,23 +1119,23 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_full )
   Plato::blas1::scale(-tAlpha/tNorm, tStep);
 
   // compute F at x - deltax
-  perturbMesh(tMesh, tStep);
+  HatchingTestUtils::perturbMesh(tMesh, tStep);
   delete tProblem;
-  tProblem = new Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> (tMesh, *tInputParams, tMachine);
+  tProblem = new Plato::Elliptic::Hatching::Problem<PhysicsType> (tMesh, *tInputParams, tMachine);
   tSolution = tProblem->solution(tControl);
   auto t_valueNeg = tProblem->criterionValue(tControl, tCriterionName);
 
   delete tProblem;
-  tProblem = new Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> (tMesh, *tInputParams, tMachine);
+  tProblem = new Plato::Elliptic::Hatching::Problem<PhysicsType> (tMesh, *tInputParams, tMachine);
   tSolution = tProblem->solution(tControl);
   auto t_valueNegToo = tProblem->criterionValue(tControl, tCriterionName);
   TEST_FLOATING_EQUALITY(t_valueNeg, t_valueNegToo, 1e-15);
 
   // compute F at x + deltax
   Plato::blas1::scale(-2.0, tStep);
-  perturbMesh(tMesh, tStep);
+  HatchingTestUtils::perturbMesh(tMesh, tStep);
   delete tProblem;
-  tProblem = new Plato::Elliptic::UpdatedLagrangian::Problem<PhysicsType> (tMesh, *tInputParams, tMachine);
+  tProblem = new Plato::Elliptic::Hatching::Problem<PhysicsType> (tMesh, *tInputParams, tMachine);
   tSolution = tProblem->solution(tControl);
   auto t_valuePos = tProblem->criterionValue(tControl, tCriterionName);
 
@@ -1042,20 +1152,20 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_full )
 
   // change mesh back 
   Plato::blas1::scale(-1.0/2.0, tStep);
-  perturbMesh(tMesh, tStep);
+  HatchingTestUtils::perturbMesh(tMesh, tStep);
 
   delete tProblem;
 }
 
-TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_LagrangianUpdate )
+TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D_StateUpdate )
 {
   Teuchos::RCP<Teuchos::ParameterList> tInputParams =
     Teuchos::getParametersFromXmlString(
     "<ParameterList name='Plato Problem'>                                                   \n"
     "  <Parameter name='Physics' type='string' value='Mechanics'/>                          \n"
-    "  <Parameter name='PDE Constraint' type='string' value='Updated Lagrangian Elliptic'/> \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic Hatching'/>           \n"
     "  <Parameter name='Self-Adjoint' type='bool' value='false'/>                           \n"
-    "  <ParameterList name='Updated Lagrangian Elliptic'>                                   \n"
+    "  <ParameterList name='Elliptic Hatching'>                                             \n"
     "    <ParameterList name='Penalty Function'>                                            \n"
     "      <Parameter name='Type' type='string' value='SIMP'/>                              \n"
     "      <Parameter name='Exponent' type='double' value='3.0'/>                           \n"
@@ -1087,64 +1197,72 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_LagrangianUpdate )
   // create test mesh
   //
   constexpr int cMeshWidth=2;
-  constexpr int cSpaceDim=3;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth, "omfg.exo");
 
   Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
 
   /*****************************************************
-   Test Elliptic::LagrangianUpdate(aMesh);
+   Test Elliptic::StateUpdate(aMesh);
    *****************************************************/
 
-  using PhysicsType = Plato::Elliptic::UpdatedLagrangian::Mechanics<cSpaceDim>;
-  auto* tLagrangianUpdate = new Plato::LagrangianUpdate<PhysicsType> (tSpatialModel);
+  using PhysicsType = Plato::Elliptic::Hatching::Mechanics<Plato::Tet4>;
+  auto* tStateUpdate = new Plato::StateUpdate<PhysicsType> (tSpatialModel);
 
 
   /*****************************************************
-   Call LagrangianUpdate::operator()
+   Call StateUpdate::operator()
    *****************************************************/
 
    Plato::DataMap tDataMap;
 
+   auto tNumEl = tMesh->NumElements();
+   constexpr auto cNumGP = PhysicsType::ElementType::mNumGaussPoints;
+   constexpr auto cNumVT = PhysicsType::ElementType::mNumVoigtTerms;
+   constexpr auto cNumDm = PhysicsType::ElementType::mNumSpatialDims;
+
    Plato::Scalar tTestVal = 1.0;
    // create 'strain increment' view
-   Plato::ScalarMultiVectorT<Plato::Scalar> tStrainIncrement("strain increment", tMesh->NumElements(), PhysicsType::mNumVoigtTerms);
+   Plato::ScalarArray3D tStrainIncrement("strain increment", tNumEl, cNumGP, cNumVT);
    Kokkos::deep_copy(tStrainIncrement, tTestVal);
 
    // add 'strain increment' view to datamap
    Plato::toMap(tDataMap, tStrainIncrement, "strain increment");
 
    // define current and updated state view
-   Plato::ScalarVector tLocalState("current state", tMesh->NumElements() * PhysicsType::mNumVoigtTerms);
-   Plato::ScalarVector tUpdatedLocalState("current state", tMesh->NumElements() * PhysicsType::mNumVoigtTerms);
+   Plato::ScalarArray3D tLocalState("current state", tNumEl, cNumGP, cNumVT);
+   Plato::ScalarArray3D tUpdatedLocalState("current state", tNumEl, cNumGP, cNumVT);
 
    // compute updated local state
-   tLagrangianUpdate->operator()(tDataMap, tLocalState, tUpdatedLocalState);
+   tStateUpdate->operator()(tDataMap, tLocalState, tUpdatedLocalState);
 
    // check values
    auto tUpdatedLocalState_Host = Kokkos::create_mirror_view(tUpdatedLocalState);
    Kokkos::deep_copy(tUpdatedLocalState_Host, tUpdatedLocalState);
 
-  for(int iVal=0; iVal<int(tUpdatedLocalState_Host.size()); iVal++){
-    TEST_FLOATING_EQUALITY(tUpdatedLocalState_Host[iVal], tTestVal, 1e-14);
+  for(int iElem=0; iElem<tNumEl; iElem++){
+    for(int iGp=0; iGp<cNumGP; iGp++){
+      for(int iTerm=0; iTerm<cNumVT; iTerm++){
+        TEST_FLOATING_EQUALITY(tUpdatedLocalState_Host(iElem, iGp, iTerm), tTestVal, 1e-14);
+      }
+    }
   }
 
   /*****************************************************
-   Call LagrangianUpdate::gradient_*()
+   Call StateUpdate::gradient_*()
    *****************************************************/
 
   // create a displacement field, u_x = x, u_y = 0, u_z = 0
   auto tNumNodes = tMesh->NumNodes();
   auto tCoords = tMesh->Coordinates();
-  Plato::ScalarVector tU("displacement", tNumNodes * cSpaceDim);
+  Plato::ScalarVector tU("displacement", tNumNodes * cNumDm);
   Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), LAMBDA_EXPRESSION(int aNodeOrdinal)
   {
-    tU(aNodeOrdinal * cSpaceDim + 0) = tCoords[aNodeOrdinal * cSpaceDim + 0];
-    tU(aNodeOrdinal * cSpaceDim + 1) = 0.0;
-    tU(aNodeOrdinal * cSpaceDim + 2) = 0.0;
+    tU(aNodeOrdinal * cNumDm + 0) = tCoords[aNodeOrdinal * cNumDm + 0];
+    tU(aNodeOrdinal * cNumDm + 1) = 0.0;
+    tU(aNodeOrdinal * cNumDm + 2) = 0.0;
   }, "initial data");
 
-  auto t_dHdx = tLagrangianUpdate->gradient_x(tU, tUpdatedLocalState, tLocalState);
+  auto t_dHdx = tStateUpdate->gradient_x(tU, tUpdatedLocalState, tLocalState);
 
   auto t_dHdx_entries = t_dHdx->entries();
   auto t_dHdx_entriesHost = Kokkos::create_mirror_view( t_dHdx_entries );
@@ -1169,7 +1287,7 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_LagrangianUpdate )
   }
 
 
-  auto t_dHdu = tLagrangianUpdate->gradient_u_T(tU, tUpdatedLocalState, tLocalState);
+  auto t_dHdu = tStateUpdate->gradient_u_T(tU, tUpdatedLocalState, tLocalState);
 
   auto t_dHdu_entries = t_dHdu->entries();
   auto t_dHdu_entriesHost = Kokkos::create_mirror_view( t_dHdu_entries );
@@ -1193,19 +1311,19 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_LagrangianUpdate )
     TEST_FLOATING_EQUALITY(t_dHdu_entriesHost(i), gold_t_dHdu_entries[i], 1.0e-14);
   }
 
-  delete tLagrangianUpdate;
+  delete tStateUpdate;
 }
 
 
-TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_LagrangianUpdate_2layer )
+TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D_StateUpdate_2layer )
 {
   Teuchos::RCP<Teuchos::ParameterList> tInputParams =
     Teuchos::getParametersFromXmlString(
     "<ParameterList name='Plato Problem'>                                                   \n"
     "  <Parameter name='Physics' type='string' value='Mechanics'/>                          \n"
-    "  <Parameter name='PDE Constraint' type='string' value='Updated Lagrangian Elliptic'/> \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic Hatching'/>           \n"
     "  <Parameter name='Self-Adjoint' type='bool' value='false'/>                           \n"
-    "  <ParameterList name='Updated Lagrangian Elliptic'>                                   \n"
+    "  <ParameterList name='Elliptic Hatching'>                                             \n"
     "    <ParameterList name='Penalty Function'>                                            \n"
     "      <Parameter name='Type' type='string' value='SIMP'/>                              \n"
     "      <Parameter name='Exponent' type='double' value='3.0'/>                           \n"
@@ -1254,27 +1372,33 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_LagrangianUpdate_2layer )
   // create test mesh
   //
   constexpr int cMeshWidth=2;
-  constexpr int cSpaceDim=3;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
 
+  using PhysicsType = Plato::Elliptic::Hatching::Mechanics<Plato::Tet4>;
+
   Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
-  Plato::Sequence<cSpaceDim> tSequence(tSpatialModel, *tInputParams);
+  Plato::Sequence<typename PhysicsType::ElementType> tSequence(tSpatialModel, *tInputParams);
 
   /*****************************************************
-   Test Elliptic::LagrangianUpdate(aMesh);
+   Test Elliptic::StateUpdate(aMesh);
    *****************************************************/
 
-  using PhysicsType = Plato::Elliptic::UpdatedLagrangian::Mechanics<cSpaceDim>;
-  auto* tLagrangianUpdate = new Plato::LagrangianUpdate<PhysicsType> (tSpatialModel);
+  auto* tStateUpdate = new Plato::StateUpdate<PhysicsType> (tSpatialModel);
 
   int tNumNodes = tMesh->NumNodes();
   Plato::ScalarVector tControl("control", tNumNodes);
   Plato::blas1::fill(1.0, tControl);
 
+  auto tNumEl = tMesh->NumElements();
+  constexpr auto cNumGP = PhysicsType::ElementType::mNumGaussPoints;
+  constexpr auto cNumVT = PhysicsType::ElementType::mNumVoigtTerms;
+  constexpr auto cNumDm = PhysicsType::ElementType::mNumSpatialDims;
+  constexpr auto cNumDPN = PhysicsType::ElementType::mNumDofsPerNode;
+
   // create solution 
   Plato::DataMap tDataMap;
-  Plato::ScalarMultiVector tGlobalStates("global state", /*numsteps=*/ 2, tMesh->NumNodes() * PhysicsType::mNumDofsPerNode);
-  Plato::ScalarMultiVector tLocalStates("local state", /*numsteps=*/ 2, tMesh->NumElements() * PhysicsType::mNumVoigtTerms);
+  Plato::ScalarMultiVector tGlobalStates("global state", /*numsteps=*/ 2, tMesh->NumNodes() * cNumDPN);
+  Plato::ScalarArray4D tLocalStates("local state", /*numsteps=*/ 2, tNumEl, cNumGP, cNumVT);
   {
     auto tGlobalStates_Host = Kokkos::create_mirror(tGlobalStates);
     std::vector<int> tDispIndices({5,11,20,41,50,53,62,65,74});
@@ -1290,73 +1414,74 @@ TEUCHOS_UNIT_TEST( EllipticUpdLagProblemTests, 3D_LagrangianUpdate_2layer )
     auto tCellMask0_Host = Kokkos::create_mirror(tCellMask0);
     Kokkos::deep_copy(tCellMask0_Host, tCellMask0);
 
-    auto tNumState = tLocalStates_Host.extent(1);
-    for(int i=0; i<tNumState/6; i++)
+    for(int iElem=0; iElem<tNumEl; iElem++)
     {
-      if( tCellMask0_Host(i) ) tLocalStates_Host(0, 6*i+2) = 1.0e-6;
-      tLocalStates_Host(1, 6*i+2) = 5.0e-7;
+      if( tCellMask0_Host(iElem) ) tLocalStates_Host(0, iElem, /*iGP=*/ 0, 2) = 1.0e-6;
+      tLocalStates_Host(1, iElem, /*iGP=*/ 0, 2) = 5.0e-7;
     }
     Kokkos::deep_copy(tLocalStates, tLocalStates_Host);
 
     // create 'strain increment' view
-    Plato::ScalarMultiVector tStrainIncrement("strain increment", tMesh->NumElements(), PhysicsType::mNumVoigtTerms);
+    Plato::ScalarArray3D tStrainIncrement("strain increment", tMesh->NumElements(), cNumGP, cNumVT);
 
     // add 'strain increment' view to datamap
     Plato::toMap(tDataMap, tStrainIncrement, "strain increment");
   }
 
   /*****************************************************
-   Test LagrangianUpdate::gradient_x()
+   Test StateUpdate::gradient_x()
    *****************************************************/
 
-  using VectorFunctionType = Plato::Elliptic::UpdatedLagrangian::VectorFunction<PhysicsType>;
+  using VectorFunctionType = Plato::Elliptic::Hatching::VectorFunction<PhysicsType>;
   auto tResidualFunction = std::make_shared<VectorFunctionType>(tSpatialModel, tDataMap, *tInputParams, tInputParams->get<std::string>("PDE Constraint"));
 
   int tStepIndex = 1;
 
   // compute updated local state, eta_0, at x_0
   Plato::ScalarVector tGlobalState = Kokkos::subview(tGlobalStates, tStepIndex, Kokkos::ALL());
-  Plato::ScalarVector tLocalState = Kokkos::subview(tLocalStates, tStepIndex-1, Kokkos::ALL());
+  Plato::ScalarArray3D tLocalState = Kokkos::subview(tLocalStates, tStepIndex-1, Kokkos::ALL(), Kokkos::ALL(), Kokkos::ALL());
   auto tResidual = tResidualFunction->value(tGlobalState, tLocalState, tControl);
-  Plato::ScalarVector tUpdatedLocalState_0("eta_0", tLocalState.extent(0));
-  tLagrangianUpdate->operator()(tDataMap, tLocalState, tUpdatedLocalState_0);
+  Plato::ScalarArray3D tUpdatedLocalState_0("eta_0", tLocalState.extent(0), tLocalState.extent(1), tLocalState.extent(2));
+  tStateUpdate->operator()(tDataMap, tLocalState, tUpdatedLocalState_0);
 
   // compute gradient_x at x_0
-  auto t_dHdx = tLagrangianUpdate->gradient_x(tGlobalState, tUpdatedLocalState_0, tLocalState);
+  auto t_dHdx = tStateUpdate->gradient_x(tGlobalState, tUpdatedLocalState_0, tLocalState);
 
-  Plato::ScalarVector tStep = Plato::ScalarVector("Step", tMesh->NumNodes() * PhysicsType::mNumSpatialDims);
+  Plato::ScalarVector tStep = Plato::ScalarVector("Step", tMesh->NumNodes() * cNumDm);
   auto tHostStep = Kokkos::create_mirror(tStep);
   Plato::blas1::random(0.0, 0.00001, tHostStep);
   Kokkos::deep_copy(tStep, tHostStep);
 
   // perturb mesh with deltaX (now at x_1)
-  perturbMesh(tMesh, tStep);
+  HatchingTestUtils::perturbMesh(tMesh, tStep);
   tResidualFunction = nullptr;
   tResidualFunction = std::make_shared<VectorFunctionType>(tSpatialModel, tDataMap, *tInputParams, tInputParams->get<std::string>("PDE Constraint"));
 
   // compute updated local state, eta_1, at x_1
-  Plato::ScalarVector tUpdatedLocalState_1("eta_1", tLocalState.extent(0));
+  Plato::ScalarArray3D tUpdatedLocalState_1("eta_1", tLocalState.extent(0), tLocalState.extent(1), tLocalState.extent(2));
   tResidual = tResidualFunction->value(tGlobalState, tLocalState, tControl);
-  tLagrangianUpdate->operator()(tDataMap, tLocalState, tUpdatedLocalState_1);
+  tStateUpdate->operator()(tDataMap, tLocalState, tUpdatedLocalState_1);
 
   // compute deltaFD (eta_1 - eta_0)
-  Plato::ScalarVector tDiffFD("difference", tUpdatedLocalState_0.extent(0));
-  Kokkos::deep_copy(tDiffFD, tUpdatedLocalState_1);
-  Plato::blas1::axpy(-1.0, tUpdatedLocalState_0, tDiffFD);
+  Plato::ScalarVector tDiffFD("difference", tUpdatedLocalState_0.extent(0)*tUpdatedLocalState_0.extent(1)*tUpdatedLocalState_0.extent(2));
+  HatchingTestUtils::Flatten(tUpdatedLocalState_1, tDiffFD);
+  Plato::ScalarVector tState_0("difference", tUpdatedLocalState_0.extent(0)*tUpdatedLocalState_0.extent(1)*tUpdatedLocalState_0.extent(2));
+  HatchingTestUtils::Flatten(tUpdatedLocalState_0, tState_0);
+  Plato::blas1::axpy(-1.0, tState_0, tDiffFD);
   auto tNormFD = Plato::blas1::norm(tDiffFD);
 
   // compute deltaAD (gradient_x . deltaX)
-  Plato::ScalarVector tDiffAD("difference", tUpdatedLocalState_0.extent(0));
+  Plato::ScalarVector tDiffAD("difference", tUpdatedLocalState_0.extent(0)*tUpdatedLocalState_0.extent(1)*tUpdatedLocalState_0.extent(2));
   Plato::VectorTimesMatrixPlusVector(tStep, t_dHdx, tDiffAD);
   auto tNormAD = Plato::blas1::norm(tDiffAD);
 
   // perturb mesh back to x_0 (just in case more test are added later)
   Plato::blas1::scale( -1.0, tStep);
-  perturbMesh(tMesh, tStep);
+  HatchingTestUtils::perturbMesh(tMesh, tStep);
 
   Plato::Scalar tPer = fabs(tNormFD) + fabs(tNormAD);
   Plato::Scalar t_dHdx_error = std::fabs(tNormFD - tNormAD) / (tPer != 0 ? tPer : 1.0);
   TEST_ASSERT(t_dHdx_error < 5.0e-6);
 
-  delete tLagrangianUpdate;
+  delete tStateUpdate;
 }

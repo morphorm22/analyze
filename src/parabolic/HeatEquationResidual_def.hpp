@@ -117,8 +117,7 @@ namespace Parabolic
     
           // compute flux
           //
-          StateScalarType tTemperature(0.0);
-          tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState, tTemperature);
+          StateScalarType tTemperature = tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState);
           tThermalFlux(tFlux, tGrad, tTemperature);
     
           // apply weighting
@@ -131,8 +130,7 @@ namespace Parabolic
 
           // compute temperature at gausspoints
           //
-          StateDotScalarType tTemperatureRate(0.0);
-          tInterpolateFromNodal(iCellOrdinal, tBasisValues, aStateDot, tTemperatureRate);
+          StateDotScalarType tTemperatureRate = tInterpolateFromNodal(iCellOrdinal, tBasisValues, aStateDot);
 
           // compute the time rate of internal thermal energy
           //

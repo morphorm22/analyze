@@ -10,7 +10,7 @@ namespace Plato
 namespace Elliptic
 {
 
-namespace UpdatedLagrangian
+namespace Hatching
 {
 
     /******************************************************************************//**
@@ -20,14 +20,14 @@ namespace UpdatedLagrangian
      * \param [in] aProblemParams parameter input
      * \param [in] aFunctionName name of function in parameter list
      **********************************************************************************/
-    template <typename PhysicsT>
-    std::shared_ptr<Plato::Elliptic::UpdatedLagrangian::ScalarFunctionBase> 
-    ScalarFunctionBaseFactory<PhysicsT>::create(
-              Plato::SpatialModel                 & aSpatialModel,
-        const Plato::Sequence<PhysicsT::SpaceDim> & aSequence,
-              Plato::DataMap                      & aDataMap,
-              Teuchos::ParameterList              & aProblemParams,
-              std::string                         & aFunctionName
+    template <typename PhysicsType>
+    std::shared_ptr<Plato::Elliptic::Hatching::ScalarFunctionBase> 
+    ScalarFunctionBaseFactory<PhysicsType>::create(
+              Plato::SpatialModel                                & aSpatialModel,
+        const Plato::Sequence<typename PhysicsType::ElementType> & aSequence,
+              Plato::DataMap                                     & aDataMap,
+              Teuchos::ParameterList                             & aProblemParams,
+              std::string                                        & aFunctionName
     ) 
     {
         auto tFunctionParams = aProblemParams.sublist("Criteria").sublist(aFunctionName);
@@ -35,14 +35,14 @@ namespace UpdatedLagrangian
 
         if(tFunctionType == "Scalar Function")
         {
-            return std::make_shared<PhysicsScalarFunction<PhysicsT>>(aSpatialModel, aSequence, aDataMap, aProblemParams, aFunctionName);
+            return std::make_shared<PhysicsScalarFunction<PhysicsType>>(aSpatialModel, aSequence, aDataMap, aProblemParams, aFunctionName);
         }
         else
         {
             return nullptr;
         }
     }
-} // namespace UpdatedLagrangian
+} // namespace Hatching
 
 } // namespace Elliptic
 

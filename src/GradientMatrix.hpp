@@ -1,5 +1,7 @@
 #pragma once
 
+#include "PlatoStaticsTypes.hpp"
+
 namespace Plato {
 
 /******************************************************************************//**

@@ -53,22 +53,21 @@ public:
     *   \param aStateValues      cell interpolated state at the cubature points 
     *
     *******************************************************************************/
-    template<typename InStateType, typename OutStateType>
-    DEVICE_TYPE inline void
+    template<typename StateType>
+    DEVICE_TYPE inline StateType
     operator()(
-        const Plato::OrdinalType                     & aCellOrdinal,
-        const Plato::ScalarVector                    & aBasisFunctions,
-        const Plato::ScalarMultiVectorT<InStateType> & aNodalCellStates,
-        const Plato::ScalarVectorT<OutStateType>     & aStateValues) const
+        const Plato::OrdinalType                   & aCellOrdinal,
+        const Plato::Array<mNumNodesPerCell>       & aBasisFunctions,
+        const Plato::ScalarMultiVectorT<StateType> & aNodalCellStates) const
     {
-
-        aStateValues(aCellOrdinal) = 0.0;
+        StateType tStateValue = 0.0;
 
         for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
         {
             Plato::OrdinalType tCellDofIndex = (NumDofsPerNode * tNodeIndex) + DofOffset;
-            aStateValues(aCellOrdinal) += aBasisFunctions(tNodeIndex) * aNodalCellStates(aCellOrdinal, tCellDofIndex);
+            tStateValue += aBasisFunctions(tNodeIndex) * aNodalCellStates(aCellOrdinal, tCellDofIndex);
         }
+        return tStateValue;
     }
 
     template<typename InStateType, typename OutStateType>
@@ -77,9 +76,8 @@ public:
         const Plato::OrdinalType                     & aCellOrdinal,
         const Plato::Array<mNumNodesPerCell>         & aBasisFunctions,
         const Plato::ScalarMultiVectorT<InStateType> & aNodalCellStates,
-              OutStateType                           & aStateValue ) const
+        OutStateType                                 & aStateValue) const
     {
-
         aStateValue = 0.0;
 
         for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
@@ -106,12 +104,12 @@ public:
     *
     *******************************************************************************/
     template<typename InStateType, typename OutStateType>
-    DEVICE_TYPE inline void 
+    DEVICE_TYPE inline void
     operator()(
-        const Plato::OrdinalType                         & aCellOrdinal,
-        const Plato::Array<mNumNodesPerCell>             & aBasisFunctions,
-        const Plato::ScalarMultiVectorT<InStateType>     & aNodalCellStates,
-              Plato::Array<NumDofsPerNode, OutStateType> & aStateValues) const
+        const Plato::OrdinalType                     & aCellOrdinal,
+        const Plato::Array<mNumNodesPerCell>         & aBasisFunctions,
+        const Plato::ScalarMultiVectorT<InStateType> & aNodalCellStates,
+              Plato::Array<NumDofs, OutStateType>    & aStateValues) const
     {
         for(Plato::OrdinalType tDofIndex = 0; tDofIndex < NumDofs; tDofIndex++)
         {

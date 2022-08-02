@@ -56,6 +56,10 @@ using ScalarArray3DT = typename Kokkos::View<ScalarType***, Plato::Layout, Plato
 using ScalarArray3D  = ScalarArray3DT<Plato::Scalar>;
 
 template <typename ScalarType>
+using ScalarArray4DT = typename Kokkos::View<ScalarType****, Plato::Layout, Plato::MemSpace>;
+using ScalarArray4D  = ScalarArray4DT<Plato::Scalar>;
+
+template <typename ScalarType>
 using HostScalarArray3DT = typename Kokkos::View<ScalarType***, Kokkos::HostSpace>;
 using HostScalarArray3D  = HostScalarArray3DT<Plato::Scalar>;
 

@@ -45,7 +45,7 @@ class TemperatureAverage :
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
               Teuchos::ParameterList & aPenaltyParams,
-              std::string            & aFunctionName
+        const std::string            & aFunctionName
     );
 
     /**************************************************************************/

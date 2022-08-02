@@ -4,6 +4,7 @@
 
 #include "PlatoMesh.hpp"
 #include "ParseTools.hpp"
+#include "Geometrical.hpp"
 #include "EssentialBCs.hpp"
 #include "AnalyzeOutput.hpp"
 #include "AnalyzeMacros.hpp"

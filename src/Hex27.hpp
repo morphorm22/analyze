@@ -20,10 +20,11 @@ class Hex27
     static constexpr Plato::OrdinalType mNumSpatialDims  = 3;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 27;
     static constexpr Plato::OrdinalType mNumNodesPerFace = 9;
+    static constexpr Plato::OrdinalType mNumGaussPoints  = 27;
 
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
 
-    static inline Plato::Array<27>
+    static inline Plato::Array<mNumGaussPoints>
     getCubWeights()
     {
         constexpr Plato::Scalar wc = 0.17146776406035665885063679070299; // 125/729
@@ -31,18 +32,18 @@ class Hex27
         constexpr Plato::Scalar wf = 0.43895747599451301335093944544496; // 320/729
         constexpr Plato::Scalar wb = 0.70233196159122079915704262020881; // 512/729
 
-        return Plato::Array<27>({
+        return Plato::Array<mNumGaussPoints>({
             wc, we, wc, we, wf, we, wc, we, wc,
             we, wf, we, wf, wb, wf, we, wf, we,
             wc, we, wc, we, wf, we, wc, we, wc
         });
     }
 
-    static inline Plato::Matrix<27,mNumSpatialDims>
+    static inline Plato::Matrix<mNumGaussPoints,mNumSpatialDims>
     getCubPoints()
     {
         constexpr Plato::Scalar p = 0.77459666924148340427791481488384; // sqrt(3.0/5.0)
-        return Plato::Matrix<27,mNumSpatialDims>({
+        return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>({
             -p, -p, -p,    0, -p, -p,    p, -p, -p,
             -p,  0, -p,    0,  0, -p,    p,  0, -p,
             -p,  p, -p,    0,  p, -p,    p,  p, -p,

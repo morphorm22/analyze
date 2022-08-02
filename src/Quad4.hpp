@@ -18,22 +18,23 @@ class Quad4
     static constexpr Plato::OrdinalType mNumSpatialDims  = 2;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 4;
     static constexpr Plato::OrdinalType mNumNodesPerFace = 2;
+    static constexpr Plato::OrdinalType mNumGaussPoints  = 4;
 
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
 
-    static inline Plato::Array<4>
+    static inline Plato::Array<mNumGaussPoints>
     getCubWeights()
     {
-        return Plato::Array<4>({
+        return Plato::Array<mNumGaussPoints>({
             Plato::Scalar(1.0), Plato::Scalar(1.0), Plato::Scalar(1.0), Plato::Scalar(1.0)
         });
     }
 
-    static inline Plato::Matrix<4,mNumSpatialDims>
+    static inline Plato::Matrix<mNumGaussPoints,mNumSpatialDims>
     getCubPoints()
     {
         const Plato::Scalar sqt = 0.57735026918962584208117050366127; // sqrt(1.0/3.0)
-        return Plato::Matrix<4,mNumSpatialDims>({
+        return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>({
             -sqt, -sqt,
              sqt, -sqt,
              sqt,  sqt,

@@ -14,16 +14,17 @@ class Tri6
     static constexpr Plato::OrdinalType mNumSpatialDims  = 2;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 6;
     static constexpr Plato::OrdinalType mNumNodesPerFace = 3;
+    static constexpr Plato::OrdinalType mNumGaussPoints  = 3;
 
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
 
-    static inline Plato::Array<3>
-    getCubWeights() { return Plato::Array<3>({Plato::Scalar(1.0)/6.0, Plato::Scalar(1.0)/6.0, Plato::Scalar(1.0)/6.0}); }
+    static inline Plato::Array<mNumGaussPoints>
+    getCubWeights() { return Plato::Array<mNumGaussPoints>({Plato::Scalar(1.0)/6.0, Plato::Scalar(1.0)/6.0, Plato::Scalar(1.0)/6.0}); }
 
-    static inline Plato::Matrix<3,mNumSpatialDims>
+    static inline Plato::Matrix<mNumGaussPoints,mNumSpatialDims>
     getCubPoints()
     {
-        return Plato::Matrix<3,mNumSpatialDims>({
+        return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>({
             Plato::Scalar(2.0)/3, Plato::Scalar(1.0)/6, 
             Plato::Scalar(1.0)/6, Plato::Scalar(2.0)/3, 
             Plato::Scalar(1.0)/6, Plato::Scalar(1.0)/6 

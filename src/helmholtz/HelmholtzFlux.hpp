@@ -19,13 +19,12 @@ template<typename ElementType>
 class HelmholtzFlux
 {
   private:
-    Plato::Scalar mLengthScale;
+    Plato::Array<ElementType::mNumSpatialDims> mLengthScale;
 
   public:
 
-    HelmholtzFlux(const Plato::Scalar aLengthScale) {
-      mLengthScale = aLengthScale;
-    }
+    HelmholtzFlux(const Plato::Array<ElementType::mNumSpatialDims> & aLengthScale) :
+      mLengthScale(aLengthScale) {}
 
     template<typename HGradScalarType, typename HFluxScalarType>
     DEVICE_TYPE inline void
@@ -37,10 +36,8 @@ class HelmholtzFlux
     {
       // scale filtered density gradient
       //
-      Plato::Scalar tLengthScaleSquared = mLengthScale*mLengthScale;
-
       for( Plato::OrdinalType iDim=0; iDim<ElementType::mNumSpatialDims; iDim++){
-        aFlux(iDim) = tLengthScaleSquared*aGrad(iDim);
+        aFlux(iDim) = mLengthScale(iDim)*mLengthScale(iDim)*aGrad(iDim);
       }
     }
 };

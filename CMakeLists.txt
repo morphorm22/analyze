@@ -14,25 +14,21 @@ if(PLATOANALYZE_ENABLE_MPMD)
   option(PLATOANALYZE_ENABLE_ESP      "Enable ESP"            OFF)
 endif()
 
-option(PLATOANALYZE_ENABLE_MESHMAP  "Enable Plato MeshMap"  OFF)
+option(PLATOANALYZE_ENABLE_MESHMAP  "Enable Plato MeshMap"  ON )
 
-option(PLATOANALYZE_ENABLE_ENGINEMESH "Enable EngineMesh"           OFF)
+option(PLATOANALYZE_ENABLE_ENGINEMESH "Enable EngineMesh"           ON )
 option(PLATOANALYZE_ENABLE_TPETRA     "Enable Tpetra"               OFF)
 option(PLATOANALYZE_ENABLE_EPETRA     "Enable Tpetra"               OFF)
 option(PLATOANALYZE_ENABLE_PYTHON     "Enable the Python interface" OFF)
 
-option(PLATOANALYZE_1D "Compile with 1D physics"             OFF) # TODO delete
-option(PLATOANALYZE_2D "Compile with 2D physics"             OFF) # TODO delete
-option(PLATOANALYZE_3D "Compile with 3D physics"             ON ) # TODO delete
-
 option(ELLIPTIC        "Compile with Elliptic physics"       ON )
 option(PARABOLIC       "Compile with Parabolic physics"      ON )
 option(HYPERBOLIC      "Compile with Hyperbolic physics"     ON) # TODO
-option(STABILIZED      "Compile with Stabilized VMS physics" OFF) # TODO
+option(STABILIZED      "Compile with Stabilized VMS physics" ON )
 option(PLASTICITY      "Compile with Plasticity physics"     OFF) # TODO
-option(HELMHOLTZ       "Compile with Helmholtz filter"       OFF) # TODO
+option(HELMHOLTZ       "Compile with Helmholtz filter"       ON )
 option(EXPRESSION      "Compile with Expression evaluator"   OFF) # TODO: fix this.  expression evaluator is on regardless.
-option(HATCHING        "Compile with hatching algorithm"     OFF) # TODO
+option(HATCHING        "Compile with hatching algorithm"     ON )
 option(FLUIDS          "Compile with Fluids physics"         OFF) # TODO
 option(MICROMORPHIC    "Compile with Micromorphic physics"   OFF) # TODO
 
@@ -224,19 +220,6 @@ IF( AMGX_FOUND )
       ${AMGX_LIBRARIES}
      )
 ENDIF()
-
-if (PLATOANALYZE_1D)
-  add_definitions(-DPLATOANALYZE_1D)
-  message("-- Plato: 1d physics added")
-endif()
-if (PLATOANALYZE_2D)
-  add_definitions(-DPLATOANALYZE_2D)
-  message("-- Plato: 2d physics added")
-endif()
-if (PLATOANALYZE_3D)
-  add_definitions(-DPLATOANALYZE_3D)
-  message("-- Plato: 3d physics added")
-endif()
 
 if(ELLIPTIC)
   message("-- Plato: Elliptic physics added")

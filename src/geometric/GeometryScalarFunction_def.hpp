@@ -52,7 +52,7 @@ namespace Geometric
         const Plato::SpatialModel    & aSpatialModel,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
-              std::string            & aName
+        const std::string            & aName
     ) :
         Plato::Geometric::WorksetBase<ElementType>(aSpatialModel.Mesh),
         mSpatialModel (aSpatialModel),

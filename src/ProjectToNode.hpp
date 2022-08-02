@@ -45,8 +45,8 @@ public:
             for(Plato::OrdinalType tDofIndex = 0; tDofIndex < NumArgDofs; tDofIndex++)
             {
                 Plato::OrdinalType tMyDofIndex = (mNumDofsPerNode * tNodeIndex) + tDofIndex + DofOffset;
-                Kokkos::atomic_add(&aResult(aCellOrdinal, tMyDofIndex), aScale * aBasisValues(tNodeIndex)
-                        * aStateValues(tDofIndex) * aVolume);
+                ProjectedScalarType tResult = aScale * aBasisValues(tNodeIndex) * aStateValues(tDofIndex) * aVolume;
+                Kokkos::atomic_add(&aResult(aCellOrdinal, tMyDofIndex), tResult);
             }
         }
     }
@@ -74,8 +74,8 @@ public:
         for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
         {
             Plato::OrdinalType tMyDofIndex = (mNumDofsPerNode * tNodeIndex) + DofOffset;
-            Kokkos::atomic_add(&aResult(aCellOrdinal, tMyDofIndex), aScale * aBasisValues(tNodeIndex)
-                    * aStateValue * aVolume);
+            ProjectedScalarType tResult = aScale * aBasisValues(tNodeIndex) * aStateValue * aVolume;
+            Kokkos::atomic_add(&aResult(aCellOrdinal, tMyDofIndex), tResult);
         }
     }
 };

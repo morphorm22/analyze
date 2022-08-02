@@ -95,9 +95,8 @@ namespace Parabolic
 
           // compute stress and thermal flux
           //
-          StateScalarType tTemperature(0.0);
           auto tBasisValues = ElementType::basisValues(tCubPoint);
-          interpolateFromNodal(iCellOrdinal, tBasisValues, aState, tTemperature);
+          StateScalarType tTemperature = interpolateFromNodal(iCellOrdinal, tBasisValues, aState);
           kinetics(tStress, tFlux, tStrain, tTGrad, tTemperature);
 
           // apply weighting

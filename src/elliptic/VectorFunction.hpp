@@ -38,8 +38,8 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
     using Plato::WorksetBase<ElementType>::mNumNodes;
     using Plato::WorksetBase<ElementType>::mNumCells;
 
-    using Plato::WorksetBase<ElementType>::mGlobalStateEntryOrdinal;
-    using Plato::WorksetBase<ElementType>::mControlEntryOrdinal;
+// NEEDED?    using Plato::WorksetBase<ElementType>::mGlobalStateEntryOrdinal;
+// NEEDED?    using Plato::WorksetBase<ElementType>::mControlEntryOrdinal;
 
     using Residual  = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
     using Jacobian  = typename Plato::Elliptic::Evaluation<ElementType>::Jacobian;

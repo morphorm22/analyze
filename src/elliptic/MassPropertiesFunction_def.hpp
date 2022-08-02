@@ -1,5 +1,7 @@
 #pragma once
 
+#include <set>
+
 #include "MassPropertiesFunction_decl.hpp"
 
 #include "BLAS1.hpp"

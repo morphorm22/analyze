@@ -30,7 +30,6 @@ endif()
 
 set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     TensileEnergyDensityLocalMeasure.cpp
-    TensileEnergyDensity.cpp
     Plato_AugLagStressCriterionQuadratic.cpp
     Plato_AugLagStressCriterionGeneral.cpp
     Plato_AugLagStressCriterion.cpp
@@ -73,8 +72,8 @@ ENDIF()
 ## Stabilized VMS sources
 if(STABILIZED)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    EllipticVMSProblem.cpp
-    StabilizedElastostaticEnergy.cpp
+    stabilized/Problem.cpp
+    stabilized/ElastostaticEnergy.cpp
   )
 endif()
 
@@ -160,14 +159,6 @@ if(ELLIPTIC)
       elliptic/hatching/ScalarFunctionBaseFactory.cpp
       elliptic/hatching/PhysicsScalarFunction.cpp
       elliptic/hatching/InternalElasticEnergy.cpp
-      elliptic/hatching/AbstractEllipticUpLagLinearStress.cpp
-      elliptic/hatching/EllipticUpLagLinearStress.cpp
-    )
-  endif()
-
-  if(EXPRESSION)
-    set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-      elliptic/hatching/EllipticUpLagLinearStressExpression.cpp
     )
   endif()
 endif()
