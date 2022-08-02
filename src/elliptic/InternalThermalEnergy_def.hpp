@@ -27,7 +27,7 @@ namespace Elliptic
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
               Teuchos::ParameterList & aPenaltyParams,
-              std::string            & aFunctionName
+        const std::string            & aFunctionName
     ) :
         Plato::Elliptic::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aProblemParams, aFunctionName),
         mIndicatorFunction (aPenaltyParams),
@@ -93,8 +93,7 @@ namespace Elliptic
 
           // compute flux
           //
-          StateScalarType tTemperature(0.0);
-          tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState, tTemperature);
+          StateScalarType tTemperature = tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState);
           tComputeThermalFlux(tFlux, tGrad, tTemperature);
 
           // apply weighting

@@ -88,8 +88,7 @@ namespace Elliptic
 
           // compute flux
           //
-          StateScalarType tTemperature(0.0);
-          tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState, tTemperature);
+          StateScalarType tTemperature = tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState);
           thermalFlux(tFlux, tGrad, tTemperature);
 
           // apply weighting

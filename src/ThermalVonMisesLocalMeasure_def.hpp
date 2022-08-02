@@ -96,9 +96,8 @@ namespace Plato
 
             // compute stress and electric displacement
             //
-            StateT tTemperature(0.0);
             auto tBasisValues = ElementType::basisValues(tCubPoint);
-            tInterpolateFromNodal(iCellOrdinal, tBasisValues, aStateWS, tTemperature);
+            StateT tTemperature = tInterpolateFromNodal(iCellOrdinal, tBasisValues, aStateWS);
             tKinetics(tStress, tFlux, tStrain, tTGrad, tTemperature);
 
             ResultT tResult(0);

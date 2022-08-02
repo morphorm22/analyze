@@ -18,7 +18,7 @@ namespace Parabolic
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
               Teuchos::ParameterList & aPenaltyParams,
-              std::string            & aFunctionName
+        const std::string            & aFunctionName
     ) :
         FunctionBaseType   (aSpatialDomain, aDataMap, aProblemParams, aFunctionName),
         mIndicatorFunction (aPenaltyParams),
@@ -65,8 +65,7 @@ namespace Parabolic
 
           // compute temperature at Gauss points
           //
-          TScalarType tState(0.0);
-          tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState, tState);
+          TScalarType tState = tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState);
 
           // apply weighting
           //

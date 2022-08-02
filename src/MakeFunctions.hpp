@@ -53,7 +53,7 @@ makeScalarFunction(
     const Plato::SpatialDomain   & aSpatialDomain,
           Plato::DataMap         & aDataMap,
           Teuchos::ParameterList & aProblemParams,
-          std::string            & aFuncName
+    const std::string            & aFuncName
 )
 {
     auto tPenaltyParams = aProblemParams.sublist("Criteria").sublist(aFuncName).sublist("Penalty Function");

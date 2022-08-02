@@ -1,5 +1,4 @@
-#ifndef ELLIPTIC_VMS_PROBLEM_HPP
-#define ELLIPTIC_VMS_PROBLEM_HPP
+#pragma once
 
 #include <memory>
 #include <sstream>
@@ -13,7 +12,7 @@
 
 #include "Solutions.hpp"
 #include "AnalyzeOutput.hpp"
-#include "VectorFunctionVMS.hpp"
+#include "stabilized/VectorFunction.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "PlatoStaticsTypes.hpp"
 #include "PlatoAbstractProblem.hpp"
@@ -31,11 +30,14 @@
 namespace Plato
 {
 
+namespace Stabilized
+{
+
 /******************************************************************************//**
  * \brief Manage scalar and vector function evaluations
 **********************************************************************************/
-template<typename SimplexPhysics>
-class EllipticVMSProblem: public Plato::AbstractProblem
+template<typename PhysicsType>
+class Problem: public Plato::AbstractProblem
 {
 private:
 
@@ -45,15 +47,19 @@ private:
     using LinearCriterion = std::shared_ptr<Plato::Geometric::ScalarFunctionBase>;
     using LinearCriteria  = std::map<std::string, LinearCriterion>;
 
-    static constexpr auto mSpaceDim = SimplexPhysics::SpaceDim; /*!< spatial dimensions*/
-    static constexpr auto mPressureDofOffset = SimplexPhysics::mPressureDofOffset;          /*!< number of pressure dofs offset*/
-    static constexpr auto mNumGlobalDofsPerNode = SimplexPhysics::mNumDofsPerNode;          /*!< number of global degrees of freedom per node*/
+    using ElementType = typename PhysicsType::ElementType;
+    using TopoElementType = typename ElementType::TopoElementType;
+
+    using ProjectorType = typename PhysicsType::ProjectorType;
+
+    using VectorFunctionType = Plato::Stabilized::VectorFunction<PhysicsType>;
+    using ProjectorFunctionType = Plato::Stabilized::VectorFunction<ProjectorType>;
 
     Plato::SpatialModel mSpatialModel; /*!< SpatialModel instance contains the mesh, meshsets, domains, etc. */
 
     // required
-    Plato::VectorFunctionVMS<SimplexPhysics> mPDEConstraint; /*!< equality constraint interface */
-    Plato::VectorFunctionVMS<typename SimplexPhysics::ProjectorT> mStateProjection; /*!< projection interface */
+    VectorFunctionType mPDEConstraint; /*!< equality constraint interface */
+    ProjectorFunctionType mStateProjection; /*!< projection interface */
 
     // optional
     LinearCriteria mLinearCriteria;
@@ -87,7 +93,7 @@ public:
      * \param [in] aMesh mesh database
      * \param [in] aInputParams input parameters database
     **********************************************************************************/
-    EllipticVMSProblem(
+    Problem(
       Plato::Mesh              aMesh,
       Teuchos::ParameterList & aInputParams,
       Comm::Machine            aMachine
@@ -111,7 +117,7 @@ public:
         this->initialize(aInputParams);
 
         Plato::SolverFactory tSolverFactory(aInputParams.sublist("Linear Solver"));
-        mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, SimplexPhysics::mNumDofsPerNode);
+        mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode);
     }
 
 
@@ -138,7 +144,7 @@ public:
         {
             ANALYZE_THROWERR("ESSENTIAL BOUNDARY CONDITIONS SUBLIST IS NOT DEFINED IN THE INPUT FILE.")
         }
-        Plato::EssentialBCs<SimplexPhysics>
+        Plato::EssentialBCs<ElementType>
         tEssentialBoundaryConditions(aInputParams.sublist("Essential Boundary Conditions", false), mSpatialModel.Mesh);
         tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
     }
@@ -181,11 +187,11 @@ public:
 
         if(mJacobian->isBlockMatrix())
         {
-            Plato::applyBlockConstraints<SimplexPhysics::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tBcValues);
+            Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tBcValues);
         }
         else
         {
-            Plato::applyConstraints<SimplexPhysics::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tBcValues);
+            Plato::applyConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tBcValues);
         }
     }
 
@@ -207,11 +213,11 @@ public:
 
         if(aMatrix->isBlockMatrix())
         {
-            Plato::applyBlockConstraints<SimplexPhysics::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tBcValues);
+            Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tBcValues);
         }
         else
         {
-            Plato::applyConstraints<SimplexPhysics::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tBcValues);
+            Plato::applyConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tBcValues);
         }
     }
 
@@ -253,7 +259,7 @@ public:
                 mProjJacobian = mStateProjection.gradient_u (mProjPGrad, mProjectState, aControl);
 
                 Plato::blas1::scale(static_cast<Plato::Scalar>(-1.0), mProjResidual);
-                Plato::Solve::RowSummed<SimplexPhysics::mNumSpatialDims>(mProjJacobian, mProjPGrad, mProjResidual);
+                Plato::Solve::RowSummed<ElementType::mNumSpatialDims>(mProjJacobian, mProjPGrad, mProjResidual);
 
                 // compute the state solution
                 mResidual = mPDEConstraint.value      (tState, mProjPGrad, aControl);
@@ -268,8 +274,7 @@ public:
                 Plato::blas1::update(static_cast<Plato::Scalar>(1.0), tStateIncrement, static_cast<Plato::Scalar>(1.0), tState);
 
                 // copy projection state
-                Plato::blas1::extract<SimplexPhysics::mNumDofsPerNode,
-                                      SimplexPhysics::ProjectorT::SimplexT::mProjectionDof>(tState, mProjectState);
+                Plato::blas1::extract<ElementType::mNumDofsPerNode, ProjectorType::ElementType::mProjectionDof>(tState, mProjectState);
             }
 
             mResidual = mPDEConstraint.value(tState, mProjPGrad, aControl);
@@ -448,12 +453,11 @@ public:
             Plato::ScalarVector tStateAtStepK = Kokkos::subview(tState, tStepIndex, Kokkos::ALL());
             Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), mProjPGrad);
             // extract projection state
-            Plato::blas1::extract<SimplexPhysics::mNumDofsPerNode,
-                                  SimplexPhysics::ProjectorT::SimplexT::mProjectionDof>(tStateAtStepK, mProjectState);
+            Plato::blas1::extract<ElementType::mNumDofsPerNode, ProjectorType::ElementType::mProjectionDof>(tStateAtStepK, mProjectState);
             mProjResidual = mStateProjection.value      (mProjPGrad, mProjectState, aControl);
             mProjJacobian = mStateProjection.gradient_u (mProjPGrad, mProjectState, aControl);
             Plato::blas1::scale(static_cast<Plato::Scalar>(-1.0), mProjResidual);
-            Plato::Solve::RowSummed<SimplexPhysics::mNumSpatialDims>(mProjJacobian, mProjPGrad, mProjResidual);
+            Plato::Solve::RowSummed<ElementType::mNumSpatialDims>(mProjJacobian, mProjPGrad, mProjResidual);
 
             // compute dgdu^T: Transpose of partial of PDE wrt state
             mJacobian = mPDEConstraint.gradient_u_T(tStateAtStepK, mProjPGrad, aControl);
@@ -465,7 +469,7 @@ public:
             auto t_dg_dPI_T = mPDEConstraint.gradient_n_T(tStateAtStepK, mProjPGrad, aControl);
 
             // compute dgdu^T - dP_dn_T X (mProjJacobian)^-1 X t_dg_dPI_T
-            auto tRow = SimplexPhysics::ProjectorT::SimplexT::mProjectionDof;
+            auto tRow = ProjectorType::ElementType::mProjectionDof;
             Plato::Condense(mJacobian, t_dP_dn_T, mProjJacobian,  t_dg_dPI_T, tRow);
 
             this->applyAdjointConstraints(mJacobian, t_df_du);
@@ -476,7 +480,7 @@ public:
             // compute adjoint variable for projection equation
             Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), mProjResidual);
             Plato::MatrixTimesVectorPlusVector(t_dg_dPI_T, tLambda, mProjResidual);
-            Plato::Solve::RowSummed<SimplexPhysics::mNumSpatialDims>(mProjJacobian, mEta, mProjResidual);
+            Plato::Solve::RowSummed<ElementType::mNumSpatialDims>(mProjJacobian, mEta, mProjResidual);
 
             // compute dgdz: partial of PDE wrt state.
             // dgdz is returned transposed, nxm.  n=z.size() and m=u.size().
@@ -603,12 +607,11 @@ public:
             auto mProjResidual = mStateProjection.value      (mProjPGrad, tStateAtStepK, aControl);
             auto mProjJacobian = mStateProjection.gradient_u (mProjPGrad, tStateAtStepK, aControl);
             // extract projection state
-            Plato::blas1::extract<SimplexPhysics::mNumDofsPerNode,
-                                  SimplexPhysics::ProjectorT::SimplexT::mProjectionDof>(tStateAtStepK, mProjectState);
+            Plato::blas1::extract<ElementType::mNumDofsPerNode, ProjectorType::ElementType::mProjectionDof>(tStateAtStepK, mProjectState);
             mProjResidual = mStateProjection.value      (mProjPGrad, mProjectState, aControl);
             mProjJacobian = mStateProjection.gradient_u (mProjPGrad, mProjectState, aControl);
             Plato::blas1::scale(static_cast<Plato::Scalar>(-1.0), mProjResidual);
-            Plato::Solve::RowSummed<SimplexPhysics::mNumSpatialDims>(mProjJacobian, mProjPGrad, mProjResidual);
+            Plato::Solve::RowSummed<ElementType::mNumSpatialDims>(mProjJacobian, mProjPGrad, mProjResidual);
 
             // compute dgdu^T: Transpose of partial of PDE wrt state
             mJacobian = mPDEConstraint.gradient_u_T(tStateAtStepK, mProjPGrad, aControl);
@@ -620,7 +623,7 @@ public:
             auto t_dg_dPI_T = mPDEConstraint.gradient_n_T(tStateAtStepK, mProjPGrad, aControl);
 
             // compute dgdu^T - dP_dn_T X (mProjJacobian)^-1 X t_dg_dPI_T
-            auto tRow = SimplexPhysics::ProjectorT::SimplexT::mProjectionDof;
+            auto tRow = ProjectorType::ElementType::mProjectionDof;
             Plato::Condense(mJacobian, t_dP_dn_T, mProjJacobian,  t_dg_dPI_T, tRow);
 
             this->applyAdjointConstraints(mJacobian, t_df_du);
@@ -631,7 +634,7 @@ public:
             // compute adjoint variable for projection equation
             Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), mProjResidual);
             Plato::MatrixTimesVectorPlusVector(t_dg_dPI_T, tLambda, mProjResidual);
-            Plato::Solve::RowSummed<SimplexPhysics::mNumSpatialDims>(mProjJacobian, mEta, mProjResidual);
+            Plato::Solve::RowSummed<ElementType::mNumSpatialDims>(mProjJacobian, mEta, mProjResidual);
 
             // compute dgdx: partial of PDE wrt configuration
             // dgdx is returned transposed, nxm.  n=z.size() and m=u.size().
@@ -685,8 +688,8 @@ private:
 
         if(aProblemParams.isSublist("Criteria"))
         {
-            Plato::Geometric::ScalarFunctionBaseFactory<Plato::Geometrical<mSpaceDim>> tLinearFunctionBaseFactory;
-            Plato::Elliptic::ScalarFunctionBaseFactory<SimplexPhysics> tNonlinearFunctionBaseFactory;
+            Plato::Geometric::ScalarFunctionBaseFactory<Plato::Geometrical<TopoElementType>> tLinearFunctionBaseFactory;
+            Plato::Elliptic::ScalarFunctionBaseFactory<PhysicsType> tNonlinearFunctionBaseFactory;
 
             auto tCriteriaParams = aProblemParams.sublist("Criteria");
             for(Teuchos::ParameterList::ConstIterator tIndex = tCriteriaParams.begin(); tIndex != tCriteriaParams.end(); ++tIndex)
@@ -737,22 +740,21 @@ private:
 };
 // class EllipticVMSProblem
 
+} // namespace Stabilized
 } // namespace Plato
 
-#include "StabilizedMechanics.hpp"
-#include "StabilizedThermomechanics.hpp"
+//TODO #include "StabilizedMechanics.hpp"
+//TODO #include "StabilizedThermomechanics.hpp"
 
 #ifdef PLATOANALYZE_1D
-extern template class Plato::EllipticVMSProblem<::Plato::StabilizedMechanics<1>>;
-extern template class Plato::EllipticVMSProblem<::Plato::StabilizedThermomechanics<1>>;
+//TODO extern template class Plato::EllipticVMSProblem<::Plato::StabilizedMechanics<1>>;
+//TODO extern template class Plato::EllipticVMSProblem<::Plato::StabilizedThermomechanics<1>>;
 #endif
 #ifdef PLATOANALYZE_2D
-extern template class Plato::EllipticVMSProblem<::Plato::StabilizedMechanics<2>>;
-extern template class Plato::EllipticVMSProblem<::Plato::StabilizedThermomechanics<2>>;
+//TODO extern template class Plato::EllipticVMSProblem<::Plato::StabilizedMechanics<2>>;
+//TODO extern template class Plato::EllipticVMSProblem<::Plato::StabilizedThermomechanics<2>>;
 #endif
 #ifdef PLATOANALYZE_3D
-extern template class Plato::EllipticVMSProblem<::Plato::StabilizedMechanics<3>>;
-extern template class Plato::EllipticVMSProblem<::Plato::StabilizedThermomechanics<3>>;
+//TODO extern template class Plato::EllipticVMSProblem<::Plato::StabilizedMechanics<3>>;
+//TODO extern template class Plato::EllipticVMSProblem<::Plato::StabilizedThermomechanics<3>>;
 #endif
-
-#endif // PLATO_PROBLEM_HPP

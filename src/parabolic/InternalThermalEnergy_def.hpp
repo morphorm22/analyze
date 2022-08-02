@@ -21,7 +21,7 @@ namespace Parabolic
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
               Teuchos::ParameterList & aPenaltyParams,
-              std::string            & aFunctionName
+        const std::string            & aFunctionName
     ) :
         FunctionBaseType   (aSpatialDomain, aDataMap, aProblemParams, aFunctionName),
         mIndicatorFunction (aPenaltyParams),
@@ -84,8 +84,7 @@ namespace Parabolic
 
           // compute flux
           //
-          StateScalarType tTemperature(0.0);
-          tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState, tTemperature);
+          StateScalarType tTemperature = tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState);
           thermalFlux(tFlux, tGrad, tTemperature);
 
           // apply weighting

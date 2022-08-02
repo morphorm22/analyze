@@ -21,12 +21,16 @@
 #include <Sacado.hpp>
 
 #include "Tet4.hpp"
+#include "TMKinetics.hpp"
 #include "WorksetBase.hpp"
+#include "TMKinematics.hpp"
 #include "ProjectToNode.hpp"
 #include "ApplyWeighting.hpp"
 #include "ThermalContent.hpp"
+#include "GradientMatrix.hpp"
 #include "alg/ParallelComm.hpp"
 #include "ThermalMassMaterial.hpp"
+#include "InterpolateFromNodal.hpp"
 #include "alg/CrsLinearProblem.hpp"
 #include "GeneralFluxDivergence.hpp"
 #include "GeneralStressDivergence.hpp"

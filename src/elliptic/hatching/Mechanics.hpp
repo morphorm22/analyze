@@ -2,7 +2,6 @@
 
 #include <memory>
 
-#include "elliptic/hatching/MechanicsElement.hpp"
 #include "elliptic/hatching/AbstractScalarFunction.hpp"
 #include "elliptic/hatching/InternalElasticEnergy.hpp"
 #include "elliptic/hatching/ElastostaticResidual.hpp"
@@ -48,7 +47,7 @@ struct FunctionFactory
     {
         auto tLowerPDE = Plato::tolower(aPDE);
 
-        if(aPDE == "Elliptic Hatching")
+        if(tLowerPDE == "elliptic hatching")
         {
             return Plato::makeVectorFunction<EvaluationType, Plato::Elliptic::Hatching::ElastostaticResidual>
                      (aSpatialDomain, aDataMap, aProblemParams, aPDE);

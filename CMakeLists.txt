@@ -24,7 +24,7 @@ option(PLATOANALYZE_ENABLE_PYTHON     "Enable the Python interface" OFF)
 option(ELLIPTIC        "Compile with Elliptic physics"       ON )
 option(PARABOLIC       "Compile with Parabolic physics"      ON )
 option(HYPERBOLIC      "Compile with Hyperbolic physics"     OFF) # TODO
-option(STABILIZED      "Compile with Stabilized VMS physics" OFF) # TODO
+option(STABILIZED      "Compile with Stabilized VMS physics" ON )
 option(PLASTICITY      "Compile with Plasticity physics"     OFF) # TODO
 option(HELMHOLTZ       "Compile with Helmholtz filter"       ON )
 option(EXPRESSION      "Compile with Expression evaluator"   OFF) # TODO: fix this.  expression evaluator is on regardless.

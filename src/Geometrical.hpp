@@ -24,7 +24,7 @@ struct FunctionFactory{
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aParamList,
               std::string              aFuncType,
-              std::string              aFuncName
+        const std::string            & aFuncName
     )
     {
         auto tLowerFuncType = Plato::tolower(aFuncType);

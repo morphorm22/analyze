@@ -69,7 +69,7 @@ public:
         const Plato::SpatialModel    & aSpatialModel,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
-              std::string            & aName
+        const std::string            & aName
     );
 
     /******************************************************************************//**

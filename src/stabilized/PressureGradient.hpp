@@ -1,7 +1,5 @@
-#ifndef PRESSURE_GRADIENT_HPP
-#define PRESSURE_GRADIENT_HPP
+#pragma once
 
-#include "Simplex.hpp"
 #include "PlatoStaticsTypes.hpp"
 
 namespace Plato
@@ -20,11 +18,13 @@ namespace Plato
 
  */
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-class PressureGradient : public Plato::Simplex<SpaceDim>
+template<typename ElementType>
+class PressureGradient : public ElementType
 {
 private:
-    using Plato::Simplex<SpaceDim>::mNumNodesPerCell; /*!< number of nodes per cell */
+    using ElementType::mNumSpatialDims;
+    using ElementType::mNumNodesPerCell;
+
     Plato::Scalar mPressureScaling; /*!< Pressure scaling term used to improve condition number, which may be high due to poor scaling */
 
 public:
@@ -45,25 +45,27 @@ public:
      * \param [in] aGradient       configuration gradient workset
     **********************************************************************************/
     template<typename ResultScalarType, typename StateScalarType, typename GradientScalarType>
-    DEVICE_TYPE inline void operator()(Plato::OrdinalType aCellOrdinal,
-                                       Plato::ScalarMultiVectorT<ResultScalarType> const& aPressureGrad,
-                                       Plato::ScalarMultiVectorT<StateScalarType> const& aPressure,
-                                       Plato::ScalarArray3DT<GradientScalarType> const& aGradient) const
+    DEVICE_TYPE inline void
+    operator()(
+        Plato::OrdinalType                                      aCellOrdinal,
+        Plato::Array<mNumSpatialDims, ResultScalarType>       & aPressureGrad,
+        Plato::ScalarMultiVectorT<StateScalarType>      const & aPressure,
+        Plato::Matrix<mNumNodesPerCell,
+                     mNumSpatialDims,
+                     GradientScalarType>                const & aGradient
+    ) const
     {
-        for(Plato::OrdinalType tDimIndex = 0; tDimIndex < SpaceDim; tDimIndex++)
+        for(Plato::OrdinalType tDimIndex = 0; tDimIndex < mNumSpatialDims; tDimIndex++)
         {
-            aPressureGrad(aCellOrdinal, tDimIndex) = 0.0;
+            aPressureGrad(tDimIndex) = 0.0;
             for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
             {
-                aPressureGrad(aCellOrdinal, tDimIndex) += mPressureScaling * aPressure(aCellOrdinal, tNodeIndex)
-                                                          * aGradient(aCellOrdinal, tNodeIndex, tDimIndex);
+                aPressureGrad(tDimIndex) += mPressureScaling * aPressure(aCellOrdinal, tNodeIndex)
+                                                             * aGradient(tNodeIndex, tDimIndex);
             }
         }
     }
 };
 // class PressureGradient
 
-}
-// namespace Plato
-
-#endif
+} // namespace Plato

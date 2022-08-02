@@ -143,8 +143,6 @@ class HelmholtzResidual :
       LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
         ConfigScalarType tVolume(0.0);
-        StateScalarType tFilteredDensity;
-        ControlScalarType tUnfilteredDensity;
         Plato::Array<ElementType::mNumSpatialDims, GradScalarType> tGrad;
         Plato::Array<ElementType::mNumSpatialDims, ResultScalarType> tFlux;
 
@@ -159,8 +157,8 @@ class HelmholtzResidual :
         // compute filtered and unfiltered densities
         //
         auto tBasisValues = ElementType::basisValues(tCubPoint);
-        tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState, tFilteredDensity);
-        tInterpolateFromNodal(iCellOrdinal, tBasisValues, aControl, tUnfilteredDensity);
+        StateScalarType tFilteredDensity = tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState);
+        ControlScalarType tUnfilteredDensity = tInterpolateFromNodal(iCellOrdinal, tBasisValues, aControl);
 
         // compute filtered density gradient
         //

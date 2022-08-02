@@ -109,7 +109,7 @@ class GeometryMisfit :
         const Plato::SpatialDomain   & aSpatialDomain, 
               Plato::DataMap         & aDataMap, 
               Teuchos::ParameterList & aFunctionParams, 
-              std::string            & aFunctionName
+        const std::string            & aFunctionName
     ) :
         FunctionBaseType(aSpatialDomain, aDataMap, aFunctionParams, aFunctionName),
         mPointCloudName("")

@@ -23,7 +23,7 @@ namespace Elliptic
               Plato::DataMap         & aDataMap, 
               Teuchos::ParameterList & aProblemParams, 
               Teuchos::ParameterList & aPenaltyParams,
-              std::string            & aFunctionName
+        const std::string            & aFunctionName
     ) :
         FunctionBaseType      (aSpatialDomain, aDataMap, aProblemParams, aFunctionName),
         mIndicatorFunction    (aPenaltyParams),
@@ -111,9 +111,8 @@ namespace Elliptic
 
           // compute stress and electric displacement
           //
-          StateScalarType tTemperature(0.0);
           auto tBasisValues = ElementType::basisValues(tCubPoint);
-          tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState, tTemperature);
+          StateScalarType tTemperature = tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState);
           tKinetics(tStress, tFlux, tStrain, tTGrad, tTemperature);
 
           // apply weighting

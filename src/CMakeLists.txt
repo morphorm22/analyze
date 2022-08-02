@@ -72,8 +72,8 @@ ENDIF()
 ## Stabilized VMS sources
 if(STABILIZED)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    EllipticVMSProblem.cpp
-    StabilizedElastostaticEnergy.cpp
+    stabilized/Problem.cpp
+    stabilized/ElastostaticEnergy.cpp
   )
 endif()
 

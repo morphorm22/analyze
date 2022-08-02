@@ -1,10 +1,11 @@
-#ifndef KINEMATICS_HPP
-#define KINEMATICS_HPP
+#pragma once
 
-#include "SimplexMechanics.hpp"
 #include "PlatoStaticsTypes.hpp"
 
 namespace Plato
+{
+
+namespace Stabilized
 {
 
 /******************************************************************************/
@@ -14,14 +15,15 @@ namespace Plato
  and symmetric gradient of the displacement.
  */
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-class StabilizedKinematics : public Plato::SimplexStabilizedMechanics<SpaceDim>
+template<typename ElementType>
+class Kinematics : ElementType
 {
 private:
-    using Plato::SimplexStabilizedMechanics<SpaceDim>::mNumVoigtTerms;     /*!< number of Voigt terms */
-    using Plato::SimplexStabilizedMechanics<SpaceDim>::mNumNodesPerCell;   /*!< number of nodes per cell */
-    using Plato::SimplexStabilizedMechanics<SpaceDim>::mNumDofsPerNode;    /*!< number of nodes per node */
-    using Plato::SimplexStabilizedMechanics<SpaceDim>::mPressureDofOffset; /*!< number of pressure dofs offset */
+    using ElementType::mNumVoigtTerms;
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumDofsPerNode;
+    using ElementType::mNumSpatialDims;
+    using ElementType::mPressureDofOffset;
 
 public:
     /***********************************************************************************
@@ -33,28 +35,32 @@ public:
      * \param [in] aGradient configuration gradient workset
      **********************************************************************************/
     template<typename StrainScalarType, typename StateScalarType, typename GradientScalarType>
-    DEVICE_TYPE inline void operator()(Plato::OrdinalType aCellOrdinal,
-                                       Plato::ScalarMultiVectorT<StrainScalarType> const& aStrain,
-                                       Plato::ScalarMultiVectorT<StrainScalarType> const& aPressureGrad,
-                                       Plato::ScalarMultiVectorT<StateScalarType> const& aState,
-                                       Plato::ScalarArray3DT<GradientScalarType> const& aGradient) const
+    DEVICE_TYPE inline void
+    operator()(
+        Plato::OrdinalType                                      aCellOrdinal,
+        Plato::Array<mNumVoigtTerms, StrainScalarType>        & aStrain,
+        Plato::Array<mNumSpatialDims, StrainScalarType>       & aPressureGrad,
+        Plato::ScalarMultiVectorT<StateScalarType>      const & aState,
+        Plato::Matrix<mNumNodesPerCell,
+                     mNumSpatialDims,
+                     GradientScalarType>                const & aGradient) const
     {
         // compute strain
         //
         Plato::OrdinalType tVoigtTerm = 0;
-        for(Plato::OrdinalType tDofIndex = 0; tDofIndex < SpaceDim; tDofIndex++)
+        for(Plato::OrdinalType tDofIndex = 0; tDofIndex < mNumSpatialDims; tDofIndex++)
         {
-            aStrain(aCellOrdinal, tVoigtTerm) = 0.0;
+            aStrain(tVoigtTerm) = 0.0;
             for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
             {
                 Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumDofsPerNode + tDofIndex;
-                aStrain(aCellOrdinal, tVoigtTerm) += aState(aCellOrdinal, tLocalOrdinal)
-                        * aGradient(aCellOrdinal, tNodeIndex, tDofIndex);
+                aStrain(tVoigtTerm) += aState(aCellOrdinal, tLocalOrdinal)
+                                     * aGradient(tNodeIndex, tDofIndex);
             }
             tVoigtTerm++;
         }
 
-        for(Plato::OrdinalType tDofJ = SpaceDim - 1; tDofJ >= 1; tDofJ--)
+        for(Plato::OrdinalType tDofJ = mNumSpatialDims - 1; tDofJ >= 1; tDofJ--)
         {
             for(Plato::OrdinalType tDofI = tDofJ - 1; tDofI >= 0; tDofI--)
             {
@@ -62,9 +68,9 @@ public:
                 {
                     Plato::OrdinalType tLocalOrdinalI = tNodeIndex * mNumDofsPerNode + tDofI;
                     Plato::OrdinalType tLocalOrdinalJ = tNodeIndex * mNumDofsPerNode + tDofJ;
-                    aStrain(aCellOrdinal, tVoigtTerm) +=
-                            ( aState(aCellOrdinal, tLocalOrdinalJ) * aGradient(aCellOrdinal, tNodeIndex, tDofI)
-                            + aState(aCellOrdinal, tLocalOrdinalI) * aGradient(aCellOrdinal, tNodeIndex, tDofJ) );
+                    aStrain(tVoigtTerm) +=
+                            ( aState(aCellOrdinal, tLocalOrdinalJ) * aGradient(tNodeIndex, tDofI)
+                            + aState(aCellOrdinal, tLocalOrdinalI) * aGradient(tNodeIndex, tDofJ) );
                 }
                 tVoigtTerm++;
             }
@@ -72,21 +78,19 @@ public:
 
         // compute pressure gradient
         //
-        for(Plato::OrdinalType tDofIndex = 0; tDofIndex < SpaceDim; tDofIndex++)
+        for(Plato::OrdinalType tDofIndex = 0; tDofIndex < mNumSpatialDims; tDofIndex++)
         {
-            aPressureGrad(aCellOrdinal, tDofIndex) = 0.0;
+            aPressureGrad(tDofIndex) = 0.0;
             for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
             {
                 Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumDofsPerNode + mPressureDofOffset;
-                aPressureGrad(aCellOrdinal, tDofIndex) += aState(aCellOrdinal, tLocalOrdinal)
-                        * aGradient(aCellOrdinal, tNodeIndex, tDofIndex);
+                aPressureGrad(tDofIndex) += aState(aCellOrdinal, tLocalOrdinal)
+                                          * aGradient(tNodeIndex, tDofIndex);
             }
         }
     }
 };
-// class StabilizedKinematics
+// class Kinematics
 
-}
-// namespace Plato
-
-#endif
+} // namespace Stabilized
+} // namespace Plato
