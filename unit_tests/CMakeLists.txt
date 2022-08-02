@@ -53,6 +53,10 @@ if(HELMHOLTZ)
   Plato_add_test(HelmholtzFilter PlatoHelmholtzFilterTests.cpp)
 endif()
 
+if(PLATOANALYZE_ENABLE_TACHO)
+  Plato_add_test(TachoSolver TachoSolverTests.cpp)
+endif()
+
 if(PLATOANALYZE_ENABLE_MPMD)
   set(AnalyzeApp_HEADERS
     ${CMAKE_SOURCE_DIR}/src/Analyze_App.hpp
