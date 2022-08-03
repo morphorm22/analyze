@@ -5,8 +5,8 @@
 #include "Heaviside.hpp"
 #include "SpatialModel.hpp"
 
-#include "hyperbolic/SimplexMicromorphicMechanics.hpp"
-#include "hyperbolic/RelaxedMicromorphicResidual.hpp"
+#include "hyperbolic/micromorphic/SimplexMicromorphicMechanics.hpp"
+#include "hyperbolic/micromorphic/RelaxedMicromorphicResidual.hpp"
 
 namespace Plato
 {

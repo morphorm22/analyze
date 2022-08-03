@@ -1,4 +1,4 @@
-#include "hyperbolic/MicromorphicInertiaMaterial.hpp"
+#include "hyperbolic/micromorphic/MicromorphicInertiaMaterial.hpp"
 
 namespace Plato
 {

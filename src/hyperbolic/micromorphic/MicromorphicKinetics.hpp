@@ -1,7 +1,7 @@
 #pragma once
 
 #include "PlatoMathTypes.hpp"
-#include "hyperbolic/SimplexMicromorphicMechanics.hpp"
+#include "hyperbolic/micromorphic/SimplexMicromorphicMechanics.hpp"
 
 namespace Plato
 {

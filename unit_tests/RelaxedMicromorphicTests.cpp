@@ -16,14 +16,14 @@
 
 #include "PlatoProblemFactory.hpp"
 #include "PlatoAbstractProblem.hpp"
-
-#include "hyperbolic/MicromorphicElasticModelFactory.hpp"
-#include "hyperbolic/MicromorphicInertiaModelFactory.hpp"
-#include "hyperbolic/MicromorphicKinematics.hpp"
-#include "hyperbolic/MicromorphicKinetics.hpp"
-#include "hyperbolic/FullStressDivergence.hpp"
-#include "hyperbolic/ProjectStressToNode.hpp"
 #include "hyperbolic/InertialContent.hpp"
+
+#include "hyperbolic/micromorphic/MicromorphicElasticModelFactory.hpp"
+#include "hyperbolic/micromorphic/MicromorphicInertiaModelFactory.hpp"
+#include "hyperbolic/micromorphic/MicromorphicKinematics.hpp"
+#include "hyperbolic/micromorphic/MicromorphicKinetics.hpp"
+#include "hyperbolic/micromorphic/FullStressDivergence.hpp"
+#include "hyperbolic/micromorphic/ProjectStressToNode.hpp"
 
 namespace RelaxedMicromorphicTest
 {

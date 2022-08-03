@@ -222,10 +222,10 @@ if(HYPERBOLIC)
 
   if(MICROMORPHIC)
     set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-      hyperbolic/MicromorphicLinearElasticMaterial.cpp
-      hyperbolic/CubicMicromorphicLinearElasticMaterial.cpp
-      hyperbolic/MicromorphicInertiaMaterial.cpp
-      hyperbolic/CubicMicromorphicInertiaMaterial.cpp
+      hyperbolic/micromorphic/MicromorphicLinearElasticMaterial.cpp
+      hyperbolic/micromorphic/CubicMicromorphicLinearElasticMaterial.cpp
+      hyperbolic/micromorphic/MicromorphicInertiaMaterial.cpp
+      hyperbolic/micromorphic/CubicMicromorphicInertiaMaterial.cpp
     )
   endif()
 endif()

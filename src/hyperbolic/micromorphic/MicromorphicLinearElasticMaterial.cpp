@@ -1,4 +1,4 @@
-#include "hyperbolic/MicromorphicLinearElasticMaterial.hpp"
+#include "hyperbolic/micromorphic/MicromorphicLinearElasticMaterial.hpp"
 
 namespace Plato
 {

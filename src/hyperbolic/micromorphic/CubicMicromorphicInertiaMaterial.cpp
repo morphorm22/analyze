@@ -4,7 +4,7 @@
  *  Created on: Oct 27, 2021
  */
 
-#include "hyperbolic/CubicMicromorphicInertiaMaterial.hpp"
+#include "hyperbolic/micromorphic/CubicMicromorphicInertiaMaterial.hpp"
 
 namespace Plato
 {

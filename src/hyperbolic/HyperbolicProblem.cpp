@@ -5,11 +5,11 @@
 #include "hyperbolic/HyperbolicProblem_def.hpp"
 #include "BaseExpInstMacros.hpp"
 
-#include "HyperbolicMechanics.hpp"
+#include "hyperbolic/HyperbolicMechanics.hpp"
 PLATO_ELEMENT_DEF(Plato::Hyperbolic::HyperbolicProblem, Plato::Hyperbolic::Mechanics)
 
 #ifdef PLATO_MICROMORPHIC
-#include "MicromorphicMechanics.hpp"
+#include "hyperbolic/micromorphic/MicromorphicMechanics.hpp"
 PLATO_ELEMENT_DEF(Plato::Hyperbolic::HyperbolicProblem, Plato::Hyperbolic::MicromorphicMechanics)
 #endif
 

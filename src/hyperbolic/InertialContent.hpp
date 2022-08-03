@@ -4,7 +4,7 @@
 #include "LinearElasticMaterial.hpp"
 
 #ifdef PLATO_MICROMORPHIC
-#include "hyperbolic/MicromorphicInertiaMaterial.hpp"
+#include "hyperbolic/micromorphic/MicromorphicInertiaMaterial.hpp"
 #endif
 
 namespace Plato
@@ -31,7 +31,6 @@ class InertialContent : public ElementType
             mRayleighA   (aMaterialModel->getRayleighA()) {}
 
     #ifdef PLATO_MICROMORPHIC
-    // overloaded for micromorphic materials
     InertialContent(const Teuchos::RCP<Plato::MicromorphicInertiaMaterial<mNumSpatialDims>> aMaterialModel ) :
             mCellDensity (aMaterialModel->getMacroscopicMassDensity()),
             mRayleighA   (aMaterialModel->getRayleighA()) {}

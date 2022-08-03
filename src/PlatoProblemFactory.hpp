@@ -49,6 +49,9 @@
   #ifdef PLATO_FLUIDS
   #include "hyperbolic/FluidsQuasiImplicit.hpp"
   #endif
+  #ifdef PLATO_MICROMORPHIC
+  #include "hyperbolic/micromorphic/MicromorphicMechanics.hpp"
+  #endif
 #endif
 
 #ifdef PLATO_STABILIZED

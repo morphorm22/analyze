@@ -50,10 +50,10 @@ public:
 } // namespace Plato
 
 #include "BaseExpInstMacros.hpp"
-#include "HyperbolicMechanics.hpp"
+#include "hyperbolic/HyperbolicMechanics.hpp"
 PLATO_ELEMENT_DEC(Plato::Hyperbolic::ScalarFunctionFactory, Plato::Hyperbolic::Mechanics)
 
 #ifdef PLATO_MICROMORPHIC
-#include "MicromorphicMechanics.hpp"
+#include "hyperbolic/micromorphic/MicromorphicMechanics.hpp"
 PLATO_ELEMENT_DEC(Plato::Hyperbolic::ScalarFunctionFactory, Plato::Hyperbolic::MicromorphicMechanics)
 #endif

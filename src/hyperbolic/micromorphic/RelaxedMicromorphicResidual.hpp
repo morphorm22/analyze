@@ -11,7 +11,6 @@
 #include "NaturalBCs.hpp"
 #include "Plato_Solve.hpp"
 #include "ProjectToNode.hpp"
-#include "RayleighStress.hpp"
 #include "ApplyWeighting.hpp"
 #include "ApplyConstraints.hpp"
 #include "PlatoMathHelpers.hpp"
@@ -19,16 +18,18 @@
 #include "PlatoAbstractProblem.hpp"
 #include "LinearTetCubRuleDegreeOne.hpp"
 
+#include "hyperbolic/RayleighStress.hpp"
 #include "hyperbolic/Newmark.hpp"
 #include "hyperbolic/InertialContent.hpp"
 #include "hyperbolic/HyperbolicVectorFunction.hpp"
-#include "hyperbolic/SimplexMicromorphicMechanics.hpp"
-#include "hyperbolic/MicromorphicElasticModelFactory.hpp"
-#include "hyperbolic/MicromorphicInertiaModelFactory.hpp"
-#include "hyperbolic/MicromorphicKinematics.hpp"
-#include "hyperbolic/MicromorphicKinetics.hpp"
-#include "hyperbolic/FullStressDivergence.hpp"
-#include "hyperbolic/ProjectStressToNode.hpp"
+
+#include "hyperbolic/micromorphic/SimplexMicromorphicMechanics.hpp"
+#include "hyperbolic/micromorphic/MicromorphicElasticModelFactory.hpp"
+#include "hyperbolic/micromorphic/MicromorphicInertiaModelFactory.hpp"
+#include "hyperbolic/micromorphic/MicromorphicKinematics.hpp"
+#include "hyperbolic/micromorphic/MicromorphicKinetics.hpp"
+#include "hyperbolic/micromorphic/FullStressDivergence.hpp"
+#include "hyperbolic/micromorphic/ProjectStressToNode.hpp"
 
 /******************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>

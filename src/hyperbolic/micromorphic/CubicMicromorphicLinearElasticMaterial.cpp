@@ -4,7 +4,7 @@
  *  Created on: Oct 18, 2021
  */
 
-#include "hyperbolic/CubicMicromorphicLinearElasticMaterial.hpp"
+#include "hyperbolic/micromorphic/CubicMicromorphicLinearElasticMaterial.hpp"
 
 namespace Plato
 {

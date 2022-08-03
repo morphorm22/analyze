@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hyperbolic/SimplexMicromorphicMechanics.hpp"
+#include "hyperbolic/micromorphic/SimplexMicromorphicMechanics.hpp"
 #include "PlatoStaticsTypes.hpp"
 
 namespace Plato

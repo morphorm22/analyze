@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include "hyperbolic/MicromorphicInertiaMaterial.hpp"
+#include "hyperbolic/micromorphic/MicromorphicInertiaMaterial.hpp"
 
-#include "hyperbolic/CubicMicromorphicInertiaMaterial.hpp"
+#include "hyperbolic/micromorphic/CubicMicromorphicInertiaMaterial.hpp"
 
 namespace Plato
 {
