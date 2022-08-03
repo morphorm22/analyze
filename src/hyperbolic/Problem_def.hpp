@@ -13,7 +13,7 @@
 #include "ComputedField.hpp"
 
 #include "hyperbolic/Newmark.hpp"
-#include "hyperbolic/HyperbolicScalarFunctionFactory.hpp"
+#include "hyperbolic/ScalarFunctionFactory.hpp"
 
 namespace Plato
 {
@@ -21,8 +21,8 @@ namespace Plato
 namespace Hyperbolic
 {
     template<typename PhysicsType>
-    HyperbolicProblem<PhysicsType>::
-    HyperbolicProblem(
+    Problem<PhysicsType>::
+    Problem(
       Plato::Mesh              aMesh,
       Teuchos::ParameterList & aProblemParams,
       Comm::Machine            aMachine
@@ -57,7 +57,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     void
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     parseIntegrator(
       Teuchos::ParameterList & aProblemParams
     )
@@ -94,7 +94,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     void
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     allocateStateData()
     {
         mDisplacement = Plato::ScalarMultiVector("Displacement", mNumSteps, mPDEConstraint.size());
@@ -104,7 +104,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     void
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     parseCriteria(
       Teuchos::ParameterList & aProblemParams
     )
@@ -142,7 +142,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     void
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     parseComputedFields(
       Teuchos::ParameterList & aProblemParams,
       Plato::Mesh              aMesh
@@ -156,7 +156,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     void
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     parseInitialState(
       Teuchos::ParameterList & aProblemParams
     )
@@ -216,7 +216,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     void
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     parseLinearSolver(
       Teuchos::ParameterList & aProblemParams,
       Plato::Mesh              aMesh,
@@ -229,7 +229,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     void
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     output(const std::string& aFilepath)
     {
         auto tDataMap = this->getDataMap();
@@ -240,7 +240,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     void
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     applyConstraints(
       const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
       const Plato::ScalarVector & aVector
@@ -258,7 +258,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     void
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     applyConstraintType(
       const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
       const Plato::ScalarVector                & aVector,
@@ -278,13 +278,13 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     void
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     updateProblem(const Plato::ScalarVector & aControl, const Plato::Solutions & aSolution)
     { return; }
 
     template<typename PhysicsType>
     Plato::Solutions
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     solution(const Plato::ScalarVector & aControl)
     {
         this->computeInitialState(aControl);
@@ -308,7 +308,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     void
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     forwardStepUForm(
         const Plato::ScalarVector & aControl,
               Plato::Scalar       & aCurrentTime,
@@ -401,7 +401,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     void
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     forwardStepAForm(
         const Plato::ScalarVector & aControl,
               Plato::Scalar       & aCurrentTime,
@@ -499,7 +499,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     void
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     computeInitialState(
         const Plato::ScalarVector & aControl
     )
@@ -525,7 +525,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     void
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     constrainFieldsAtBoundary(
               Plato::ScalarVector & aDisplacement,
               Plato::ScalarVector & aVelocity,
@@ -544,7 +544,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     void
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     constrainUFormFieldsAtBoundary(
               Plato::ScalarVector & aVelocity,
               Plato::ScalarVector & aAcceleration,
@@ -564,7 +564,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     void
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     constrainAFormFieldsAtBoundary(
               Plato::ScalarVector & aDisplacement,
               Plato::ScalarVector & aVelocity,
@@ -584,7 +584,7 @@ namespace Hyperbolic
     
     template<typename PhysicsType>
     Plato::Scalar
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     criterionValue(
         const Plato::ScalarVector & aControl,
         const Plato::Solutions    & aSolution,
@@ -604,7 +604,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     Plato::Scalar
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     criterionValue(
         const Plato::ScalarVector & aControl,
         const std::string         & aName
@@ -624,7 +624,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     Plato::ScalarVector
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     criterionGradient(
         const Plato::ScalarVector & aControl,
         const std::string         & aName
@@ -644,7 +644,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     Plato::ScalarVector
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     criterionGradient(
         const Plato::ScalarVector & aControl,
         const Plato::Solutions    & aSolution,
@@ -664,7 +664,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     Plato::ScalarVector
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     criterionGradient(
       const Plato::ScalarVector & aControl,
       const Plato::Solutions    & aSolution,
@@ -809,7 +809,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     Plato::ScalarVector
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     criterionGradientX(
         const Plato::ScalarVector & aControl,
         const std::string         & aName
@@ -829,7 +829,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     Plato::ScalarVector
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     criterionGradientX(
         const Plato::ScalarVector & aControl,
         const Plato::Solutions    & aSolution,
@@ -849,7 +849,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     Plato::ScalarVector
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     criterionGradientX(
         const Plato::ScalarVector & aControl,
         const Plato::Solutions    & aSolution,
@@ -994,7 +994,7 @@ namespace Hyperbolic
 
     template<typename PhysicsType>
     Plato::Solutions
-    HyperbolicProblem<PhysicsType>::
+    Problem<PhysicsType>::
     getSolution() const
     {
         Plato::Solutions tSolution(mPhysics, mPDE);

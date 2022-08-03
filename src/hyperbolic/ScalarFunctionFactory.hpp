@@ -4,7 +4,7 @@
 
 #include "SpatialModel.hpp"
 #include "PlatoStaticsTypes.hpp"
-#include "hyperbolic/HyperbolicScalarFunctionBase.hpp"
+#include "hyperbolic/ScalarFunctionBase.hpp"
 #include <Teuchos_ParameterList.hpp>
 
 namespace Plato
@@ -50,7 +50,7 @@ public:
 } // namespace Plato
 
 #include "BaseExpInstMacros.hpp"
-#include "hyperbolic/HyperbolicMechanics.hpp"
+#include "hyperbolic/Mechanics.hpp"
 PLATO_ELEMENT_DEC(Plato::Hyperbolic::ScalarFunctionFactory, Plato::Hyperbolic::Mechanics)
 
 #ifdef PLATO_MICROMORPHIC

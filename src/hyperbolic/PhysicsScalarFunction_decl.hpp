@@ -2,8 +2,8 @@
 
 #include "WorksetBase.hpp"
 #include "hyperbolic/EvaluationTypes.hpp"
-#include "hyperbolic/HyperbolicScalarFunctionBase.hpp"
-#include "hyperbolic/HyperbolicAbstractScalarFunction.hpp"
+#include "hyperbolic/ScalarFunctionBase.hpp"
+#include "hyperbolic/AbstractScalarFunction.hpp"
 
 namespace Plato
 {

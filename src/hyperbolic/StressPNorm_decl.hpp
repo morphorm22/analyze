@@ -3,7 +3,7 @@
 #include "TensorPNorm.hpp"
 #include "ApplyWeighting.hpp"
 #include "ElasticModelFactory.hpp"
-#include "hyperbolic/HyperbolicAbstractScalarFunction.hpp"
+#include "hyperbolic/AbstractScalarFunction.hpp"
 #include "hyperbolic/EvaluationTypes.hpp"
 
 namespace Plato

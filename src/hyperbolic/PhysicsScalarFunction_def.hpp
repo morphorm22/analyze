@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hyperbolic/HyperbolicPhysicsScalarFunction_decl.hpp"
+#include "hyperbolic/PhysicsScalarFunction_decl.hpp"
 
 namespace Plato
 {

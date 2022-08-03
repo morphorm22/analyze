@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hyperbolic/HyperbolicInternalElasticEnergy_decl.hpp"
+#include "hyperbolic/InternalElasticEnergy_decl.hpp"
 
 #include "PlatoTypes.hpp"
 #include "PlatoStaticsTypes.hpp"

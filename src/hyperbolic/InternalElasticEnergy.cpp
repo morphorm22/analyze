@@ -1,8 +1,8 @@
-#include "hyperbolic/HyperbolicInternalElasticEnergy_decl.hpp"
+#include "hyperbolic/InternalElasticEnergy_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "hyperbolic/HyperbolicInternalElasticEnergy_def.hpp"
+#include "hyperbolic/InternalElasticEnergy_def.hpp"
 
 #include "MechanicsElement.hpp"
 #include "hyperbolic/ExpInstMacros.hpp"

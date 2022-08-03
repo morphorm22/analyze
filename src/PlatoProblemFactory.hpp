@@ -44,8 +44,8 @@
 #endif
 
 #ifdef PLATO_HYPERBOLIC
-#include "hyperbolic/HyperbolicProblem.hpp"
-#include "hyperbolic/HyperbolicMechanics.hpp"
+#include "hyperbolic/Problem.hpp"
+#include "hyperbolic/Mechanics.hpp"
   #ifdef PLATO_FLUIDS
   #include "hyperbolic/fluids/FluidsQuasiImplicit.hpp"
   #endif
@@ -181,7 +181,7 @@ create_mechanical_problem
     else
     if (tLowerPDE == "hyperbolic")
     {
-        return makeProblem<Plato::Hyperbolic::HyperbolicProblem, Plato::Hyperbolic::Mechanics>(aMesh, aPlatoProb, aMachine);
+        return makeProblem<Plato::Hyperbolic::Problem, Plato::Hyperbolic::Mechanics>(aMesh, aPlatoProb, aMachine);
     }
 #endif
     else

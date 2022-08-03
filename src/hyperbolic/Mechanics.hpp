@@ -10,9 +10,9 @@
 #include "MakeFunctions.hpp"
 
 #include "hyperbolic/ElastomechanicsResidual.hpp"
-#include "hyperbolic/HyperbolicAbstractScalarFunction.hpp"
-#include "hyperbolic/HyperbolicInternalElasticEnergy.hpp"
-#include "hyperbolic/HyperbolicStressPNorm.hpp"
+#include "hyperbolic/AbstractScalarFunction.hpp"
+#include "hyperbolic/InternalElasticEnergy.hpp"
+#include "hyperbolic/StressPNorm.hpp"
 
 namespace Plato
 {

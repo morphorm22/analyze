@@ -1,7 +1,7 @@
 #pragma once
 
-#include "hyperbolic/HyperbolicScalarFunctionBase.hpp"
-#include "hyperbolic/HyperbolicPhysicsScalarFunction.hpp"
+#include "hyperbolic/ScalarFunctionBase.hpp"
+#include "hyperbolic/PhysicsScalarFunction.hpp"
 #include "AnalyzeMacros.hpp"
 
 namespace Plato

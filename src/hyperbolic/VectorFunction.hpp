@@ -4,7 +4,7 @@
 
 #include "SpatialModel.hpp"
 #include "WorksetBase.hpp"
-#include "hyperbolic/HyperbolicAbstractVectorFunction.hpp"
+#include "hyperbolic/AbstractVectorFunction.hpp"
 #include "hyperbolic/EvaluationTypes.hpp"
 
 namespace Plato

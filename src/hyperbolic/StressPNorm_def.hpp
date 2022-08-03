@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hyperbolic/HyperbolicStressPNorm_decl.hpp"
+#include "hyperbolic/StressPNorm_decl.hpp"
 
 #include "PlatoTypes.hpp"
 #include "PlatoStaticsTypes.hpp"

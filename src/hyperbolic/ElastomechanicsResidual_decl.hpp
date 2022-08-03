@@ -4,7 +4,7 @@
 #include "NaturalBCs.hpp"
 #include "ApplyWeighting.hpp"
 #include "ElasticModelFactory.hpp"
-#include "hyperbolic/HyperbolicVectorFunction.hpp"
+#include "hyperbolic/VectorFunction.hpp"
 #include "hyperbolic/EvaluationTypes.hpp"
 
 namespace Plato

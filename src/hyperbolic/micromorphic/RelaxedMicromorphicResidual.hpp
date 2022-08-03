@@ -21,7 +21,7 @@
 #include "hyperbolic/RayleighStress.hpp"
 #include "hyperbolic/Newmark.hpp"
 #include "hyperbolic/InertialContent.hpp"
-#include "hyperbolic/HyperbolicVectorFunction.hpp"
+#include "hyperbolic/VectorFunction.hpp"
 
 #include "hyperbolic/micromorphic/SimplexMicromorphicMechanics.hpp"
 #include "hyperbolic/micromorphic/MicromorphicElasticModelFactory.hpp"

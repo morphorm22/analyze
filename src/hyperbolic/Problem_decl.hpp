@@ -9,8 +9,8 @@
 #include "ComputedField.hpp"
 
 #include "hyperbolic/Newmark.hpp"
-#include "hyperbolic/HyperbolicVectorFunction.hpp"
-#include "hyperbolic/HyperbolicScalarFunctionBase.hpp"
+#include "hyperbolic/VectorFunction.hpp"
+#include "hyperbolic/ScalarFunctionBase.hpp"
 
 namespace Plato
 {
@@ -18,7 +18,7 @@ namespace Plato
 namespace Hyperbolic
 {
 template<typename PhysicsType>
-class HyperbolicProblem: public Plato::AbstractProblem
+class Problem: public Plato::AbstractProblem
 {
   private:
 
@@ -80,7 +80,7 @@ class HyperbolicProblem: public Plato::AbstractProblem
     bool mUForm; /*!< true: displacement-based formulation, false: acceleration-based formulation */
 
   public:
-    HyperbolicProblem(
+    Problem(
       Plato::Mesh              aMesh,
       Teuchos::ParameterList & aProblemParams,
       Comm::Machine            aMachine

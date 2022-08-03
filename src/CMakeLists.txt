@@ -180,12 +180,12 @@ endif()
 ## hyperbolic sources
 if(HYPERBOLIC)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    hyperbolic/HyperbolicProblem.cpp
     hyperbolic/ElastomechanicsResidual.cpp
-    hyperbolic/HyperbolicScalarFunctionFactory.cpp
-    hyperbolic/HyperbolicPhysicsScalarFunction.cpp
-    hyperbolic/HyperbolicInternalElasticEnergy.cpp
-    hyperbolic/HyperbolicStressPNorm.cpp
+    hyperbolic/InternalElasticEnergy.cpp
+    hyperbolic/PhysicsScalarFunction.cpp
+    hyperbolic/Problem.cpp
+    hyperbolic/ScalarFunctionFactory.cpp
+    hyperbolic/StressPNorm.cpp
   )
 
   if(FLUIDS)
