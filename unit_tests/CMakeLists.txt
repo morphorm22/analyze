@@ -17,7 +17,6 @@ include (${CMAKE_CURRENT_SOURCE_DIR}/add_test.cmake)
 #TODO: update StructuralDynamics to new element
 #Plato_add_test(PlatoFunctors PlatoFunctorsTest.cpp)
 
-Plato_add_test(EllipticHatching EllipticHatchingTests.cpp)
 Plato_add_test(MassProperties MassPropertiesTests.cpp)
 Plato_add_test(VolumeAverageCriterion VolumeAverageCriterionTests.cpp SKIP_MATH)
 Plato_add_test(GeometryMisfit GeometryMisfitTests.cpp)
@@ -35,6 +34,10 @@ Plato_add_test(SolverInterface PlatoSolverInterfaceTests.cpp)
 Plato_add_test(PlatoMathTypes PlatoMathTypesTests.cpp)
 Plato_add_test(MultipointConstraint PlatoMultipointConstraintTests.cpp)
 Plato_add_test(AugLagStress PlatoAugLagStressTest.cpp)
+
+if(HATCHING)
+  Plato_add_test(EllipticHatching EllipticHatchingTests.cpp)
+endif()
 
 if(STABILIZED)
   Plato_add_test(StabilizedMechanics StabilizedMechanicsTests.cpp)
