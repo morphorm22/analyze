@@ -150,14 +150,14 @@ namespace Hyperbolic
 
       auto tNumCells = mSpatialDomain.numCells();
 
-      Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
-      Plato::SmallStrain<ElementType>           tComputeVoigtStrain;
-      Plato::LinearStress<EvaluationType, ElementType> tComputeVoigtStress(mMaterialModel);
-      Plato::GeneralStressDivergence<ElementType> tComputeStressDivergence;
+      Plato::ComputeGradientMatrix<ElementType> computeGradient;
+      Plato::SmallStrain<ElementType>           computeVoigtStrain;
+      Plato::LinearStress<EvaluationType, ElementType> computeVoigtStress(mMaterialModel);
+      Plato::GeneralStressDivergence<ElementType> computeStressDivergence;
 
-      Plato::InertialContent<ElementType>       tComputeInertialContent(mMaterialModel);
-      Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode, /*offset=*/0, mNumSpatialDims> tInterpolateFromNodal;
-      Plato::ProjectToNode<ElementType>         tProjectInertialContent;
+      Plato::InertialContent<ElementType>       computeInertialContent(mMaterialModel);
+      Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode, /*offset=*/0, mNumSpatialDims> interpolateFromNodal;
+      Plato::ProjectToNode<ElementType>         projectInertialContent;
 
       Plato::ScalarVectorT<ConfigScalarType>
         tCellVolume("volume",tNumCells);
@@ -172,8 +172,8 @@ namespace Hyperbolic
       auto tCubWeights = ElementType::getCubWeights();
       auto tNumPoints = tCubWeights.size();
 
-      auto& tApplyStressWeighting = mApplyStressWeighting;
-      auto& tApplyMassWeighting = mApplyMassWeighting;
+      auto& applyStressWeighting = mApplyStressWeighting;
+      auto& applyMassWeighting = mApplyMassWeighting;
 
       Kokkos::parallel_for("compute residual", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
       LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
@@ -189,27 +189,27 @@ namespace Hyperbolic
 
           auto tCubPoint = tCubPoints(iGpOrdinal);
 
-          tComputeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
+          computeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
 
-          tComputeVoigtStrain(iCellOrdinal, tStrain, aState, tGradient);
+          computeVoigtStrain(iCellOrdinal, tStrain, aState, tGradient);
 
-          tComputeVoigtStress(tStress, tStrain);
+          computeVoigtStress(tStress, tStrain);
 
           tVolume *= tCubWeights(iGpOrdinal);
 
           auto tBasisValues = ElementType::basisValues(tCubPoint);
 
-          tApplyStressWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
+          applyStressWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
 
-          tComputeStressDivergence(iCellOrdinal, aResult, tStress, tGradient, tVolume);
+          computeStressDivergence(iCellOrdinal, aResult, tStress, tGradient, tVolume);
       
-          tInterpolateFromNodal(iCellOrdinal, tBasisValues, aStateDotDot, tAcceleration);
+          interpolateFromNodal(iCellOrdinal, tBasisValues, aStateDotDot, tAcceleration);
 
-          tComputeInertialContent(tInertialContent, tAcceleration);
+          computeInertialContent(tInertialContent, tAcceleration);
 
-          tApplyMassWeighting(iCellOrdinal, aControl, tBasisValues, tInertialContent);
+          applyMassWeighting(iCellOrdinal, aControl, tBasisValues, tInertialContent);
 
-          tProjectInertialContent(iCellOrdinal, tVolume, tBasisValues, tInertialContent, aResult);
+          projectInertialContent(iCellOrdinal, tVolume, tBasisValues, tInertialContent, aResult);
 
           for(int i=0; i<ElementType::mNumVoigtTerms; i++)
           {
@@ -261,14 +261,14 @@ namespace Hyperbolic
 
       auto tNumCells = mSpatialDomain.numCells();
 
-      Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
-      Plato::SmallStrain<ElementType>           tComputeVoigtStrain;
-      Plato::RayleighStress<EvaluationType, ElementType> tComputeVoigtStress(mMaterialModel);
-      Plato::GeneralStressDivergence<ElementType> tComputeStressDivergence;
+      Plato::ComputeGradientMatrix<ElementType> computeGradient;
+      Plato::SmallStrain<ElementType>           computeVoigtStrain;
+      Plato::RayleighStress<EvaluationType, ElementType> computeVoigtStress(mMaterialModel);
+      Plato::GeneralStressDivergence<ElementType> computeStressDivergence;
 
-      Plato::InertialContent<ElementType>        tComputeInertialContent(mMaterialModel);
-      Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode, /*offset=*/0, mNumSpatialDims> tInterpolateFromNodal;
-      Plato::ProjectToNode<ElementType>         tProjectInertialContent;
+      Plato::InertialContent<ElementType>        computeInertialContent(mMaterialModel);
+      Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode, /*offset=*/0, mNumSpatialDims> interpolateFromNodal;
+      Plato::ProjectToNode<ElementType>         projectInertialContent;
 
       Plato::ScalarVectorT<ConfigScalarType>
         tCellVolume("volume",tNumCells);
@@ -286,8 +286,8 @@ namespace Hyperbolic
       auto tCubWeights = ElementType::getCubWeights();
       auto tNumPoints = tCubWeights.size();
 
-      auto& tApplyStressWeighting = mApplyStressWeighting;
-      auto& tApplyMassWeighting = mApplyMassWeighting;
+      auto& applyStressWeighting = mApplyStressWeighting;
+      auto& applyMassWeighting = mApplyMassWeighting;
 
       Kokkos::parallel_for("compute residual", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
       LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
@@ -305,31 +305,31 @@ namespace Hyperbolic
 
           auto tCubPoint = tCubPoints(iGpOrdinal);
 
-          tComputeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
+          computeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
 
-          tComputeVoigtStrain(iCellOrdinal, tStrain, aState, tGradient);
+          computeVoigtStrain(iCellOrdinal, tStrain, aState, tGradient);
 
-          tComputeVoigtStrain(iCellOrdinal, tVelGrad, aStateDot, tGradient);
+          computeVoigtStrain(iCellOrdinal, tVelGrad, aStateDot, tGradient);
 
-          tComputeVoigtStress(tStress, tStrain, tVelGrad);
+          computeVoigtStress(tStress, tStrain, tVelGrad);
 
           tVolume *= tCubWeights(iGpOrdinal);
 
           auto tBasisValues = ElementType::basisValues(tCubPoint);
 
-          tApplyStressWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
+          applyStressWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
 
-          tComputeStressDivergence(iCellOrdinal, aResult, tStress, tGradient, tVolume);
+          computeStressDivergence(iCellOrdinal, aResult, tStress, tGradient, tVolume);
 
-          tInterpolateFromNodal(iCellOrdinal, tBasisValues, aStateDotDot, tAcceleration);
+          interpolateFromNodal(iCellOrdinal, tBasisValues, aStateDotDot, tAcceleration);
 
-          tInterpolateFromNodal(iCellOrdinal, tBasisValues, aStateDot, tVelocity);
+          interpolateFromNodal(iCellOrdinal, tBasisValues, aStateDot, tVelocity);
 
-          tComputeInertialContent(tInertialContent, tVelocity, tAcceleration);
+          computeInertialContent(tInertialContent, tVelocity, tAcceleration);
           
-          tApplyMassWeighting(iCellOrdinal, aControl, tBasisValues, tInertialContent);
+          applyMassWeighting(iCellOrdinal, aControl, tBasisValues, tInertialContent);
 
-          tProjectInertialContent(iCellOrdinal, tVolume, tBasisValues, tInertialContent, aResult);
+          projectInertialContent(iCellOrdinal, tVolume, tBasisValues, tInertialContent, aResult);
 
           for(int i=0; i<ElementType::mNumVoigtTerms; i++)
           {

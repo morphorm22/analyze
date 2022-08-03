@@ -80,12 +80,12 @@ namespace Hyperbolic
       Plato::ScalarMultiVectorT<ResultScalarType> tCellStress("stress",tNumCells,mNumVoigtTerms);
       Plato::ScalarVectorT<ConfigScalarType> tCellVolume("volume",tNumCells);
 
-      Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
-      Plato::SmallStrain<ElementType>           tComputeVoigtStrain;
+      Plato::ComputeGradientMatrix<ElementType> computeGradient;
+      Plato::SmallStrain<ElementType>           computeVoigtStrain;
 
-      Plato::LinearStress<EvaluationType, ElementType> tComputeVoigtStress(mMaterialModel);
+      Plato::LinearStress<EvaluationType, ElementType> computeVoigtStress(mMaterialModel);
 
-      auto& tApplyWeighting = mApplyWeighting;
+      auto& applyWeighting = mApplyWeighting;
       Kokkos::parallel_for("compute stress", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
       LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
@@ -98,17 +98,17 @@ namespace Hyperbolic
 
           auto tCubPoint = tCubPoints(iGpOrdinal);
 
-          tComputeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
+          computeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
 
-          tComputeVoigtStrain(iCellOrdinal, tStrain, aState, tGradient);
+          computeVoigtStrain(iCellOrdinal, tStrain, aState, tGradient);
 
-          tComputeVoigtStress(tStress, tStrain);
+          computeVoigtStress(tStress, tStrain);
 
           tVolume *= tCubWeights(iGpOrdinal);
           tVolume *= tFxnValues(iCellOrdinal*tNumPoints + iGpOrdinal, 0);
 
           auto tBasisValues = ElementType::basisValues(tCubPoint);
-          tApplyWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
+          applyWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
 
           for(int i=0; i<ElementType::mNumVoigtTerms; i++)
           {

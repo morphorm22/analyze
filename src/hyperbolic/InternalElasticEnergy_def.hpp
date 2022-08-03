@@ -51,17 +51,17 @@ namespace Hyperbolic
 
         auto tNumCells = mSpatialDomain.numCells();
 
-        Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
-        Plato::SmallStrain<ElementType>           tComputeVoigtStrain;
-        Plato::ScalarProduct<mNumVoigtTerms>      tComputeScalarProduct;
+        Plato::ComputeGradientMatrix<ElementType> computeGradient;
+        Plato::SmallStrain<ElementType>           computeVoigtStrain;
+        Plato::ScalarProduct<mNumVoigtTerms>      computeScalarProduct;
 
-        Plato::LinearStress<EvaluationType, ElementType> tComputeVoigtStress(mMaterialModel);
+        Plato::LinearStress<EvaluationType, ElementType> computeVoigtStress(mMaterialModel);
 
         auto tCubPoints = ElementType::getCubPoints();
         auto tCubWeights = ElementType::getCubWeights();
         auto tNumPoints = tCubWeights.size();
 
-        auto& tApplyWeighting = mApplyWeighting;
+        auto& applyWeighting = mApplyWeighting;
         Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
         LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
@@ -74,18 +74,18 @@ namespace Hyperbolic
 
             auto tCubPoint = tCubPoints(iGpOrdinal);
 
-            tComputeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
+            computeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
 
-            tComputeVoigtStrain(iCellOrdinal, tStrain, aState, tGradient);
+            computeVoigtStrain(iCellOrdinal, tStrain, aState, tGradient);
 
-            tComputeVoigtStress(tStress, tStrain);
+            computeVoigtStress(tStress, tStrain);
 
             tVolume *= tCubWeights(iGpOrdinal);
 
             auto tBasisValues = ElementType::basisValues(tCubPoint);
-            tApplyWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
+            applyWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
 
-            tComputeScalarProduct(iCellOrdinal, aResult, tStress, tStrain, tVolume);
+            computeScalarProduct(iCellOrdinal, aResult, tStress, tStrain, tVolume);
         });
     }
 } 

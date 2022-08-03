@@ -165,19 +165,19 @@ TEUCHOS_UNIT_TEST( TransientDynamicsProblemTests, TestResidual3D )
   Plato::ScalarMultiVectorT<Plato::Scalar> tStateDotDotWS("state dot dot workset", tNumCells, tDofsPerCell);
   tWorksetBase.worksetState(a, tStateDotDotWS);
 
-  Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
-  Plato::SmallStrain<ElementType> tVoigtStrain;
+  Plato::ComputeGradientMatrix<ElementType> computeGradient;
+  Plato::SmallStrain<ElementType> computeVoigtStrain;
 
   Plato::ElasticModelFactory<tSpatialDims> mmfactory(*tParamList);
   auto tMaterialModel = mmfactory.create(tOnlyDomain.getMaterialName());
   auto tCellStiffness = tMaterialModel->getStiffnessMatrix();
 
-  Plato::LinearStress<Plato::Hyperbolic::ResidualTypes<ElementType>, ElementType> tVoigtStress(tCellStiffness);
-  Plato::GeneralStressDivergence<ElementType>  tStressDivergence;
+  Plato::LinearStress<Plato::Hyperbolic::ResidualTypes<ElementType>, ElementType> computeVoigtStress(tCellStiffness);
+  Plato::GeneralStressDivergence<ElementType>  computeStressDivergence;
 
-  Plato::InertialContent<ElementType>       tComputeInertialContent(tMaterialModel);
-  Plato::InterpolateFromNodal<ElementType, tNumDofsPerNode, /*offset=*/0, tSpatialDims> tInterpolateFromNodal;
-  Plato::ProjectToNode<ElementType>         tProjectInertialContent;
+  Plato::InertialContent<ElementType>       computeInertialContent(tMaterialModel);
+  Plato::InterpolateFromNodal<ElementType, tNumDofsPerNode, /*offset=*/0, tSpatialDims> interpolateFromNodal;
+  Plato::ProjectToNode<ElementType>         projectInertialContent;
 
   Kokkos::parallel_for("gradients", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
   LAMBDA_EXPRESSION(const int cellOrdinal, const int gpOrdinal)
@@ -196,29 +196,29 @@ TEUCHOS_UNIT_TEST( TransientDynamicsProblemTests, TestResidual3D )
 
     auto tBasisValues = ElementType::basisValues(tCubPoint);
 
-    tComputeGradient(cellOrdinal, tCubPoint, tConfigWS, tGradient, tVolume);
+    computeGradient(cellOrdinal, tCubPoint, tConfigWS, tGradient, tVolume);
     tVolume *= tCubWeights(gpOrdinal);
     for(int iNode=0; iNode<tNodesPerCell; iNode++)
       for(int iDim=0; iDim<tSpatialDims; iDim++)
         tGradients(cellOrdinal, iNode, iDim) = tGradient(iNode, iDim);
 
-    tVoigtStrain(cellOrdinal, tStrain, tStateWS, tGradient);
+    computeVoigtStrain(cellOrdinal, tStrain, tStateWS, tGradient);
     for(int iVoigt=0; iVoigt<tNumVoigtTerms; iVoigt++)
       tStrains(cellOrdinal, iVoigt) = tStrain(iVoigt);
 
-    tVoigtStress(tStress, tStrain);
+    computeVoigtStress(tStress, tStrain);
     for(int iVoigt=0; iVoigt<tNumVoigtTerms; iVoigt++)
       tStresses(cellOrdinal, iVoigt) = tStress(iVoigt);
 
-    tStressDivergence(cellOrdinal, tResults, tStress, tGradient, tVolume);
+    computeStressDivergence(cellOrdinal, tResults, tStress, tGradient, tVolume);
 
-    tInterpolateFromNodal(cellOrdinal, tBasisValues, tStateDotDotWS, tAcceleration);
+    interpolateFromNodal(cellOrdinal, tBasisValues, tStateDotDotWS, tAcceleration);
 
-    tComputeInertialContent(tInertialContent, tAcceleration);
+    computeInertialContent(tInertialContent, tAcceleration);
     for(int iDim=0; iDim<tSpatialDims; iDim++)
       tInertialContents(cellOrdinal, iDim) = tInertialContent(iDim);
 
-    tProjectInertialContent(cellOrdinal, tVolume, tBasisValues, tInertialContent, tResults);
+    projectInertialContent(cellOrdinal, tVolume, tBasisValues, tInertialContent, tResults);
   });
 
   // test gradient
