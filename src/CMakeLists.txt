@@ -190,33 +190,33 @@ if(HYPERBOLIC)
 
   if(FLUIDS)
     set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-      AbstractVolumetricSource.cpp
-      hyperbolic/AbstractScalarFunction.cpp
-      hyperbolic/AbstractVectorFunction.cpp
-      hyperbolic/BrinkmanForces.cpp
-      hyperbolic/FluidsQuasiImplicit.cpp
-      hyperbolic/FluidsScalarFunction.cpp
-      hyperbolic/FluidsVectorFunction.cpp
-      hyperbolic/FluidsThermalSources.cpp
-      hyperbolic/FluidsWorkSetBuilders.cpp
-      hyperbolic/FluidsCriterionFactory.cpp
-      hyperbolic/FluidsUniformThermalSource.cpp
-      hyperbolic/FluidsWeightedScalarFunction.cpp
-      hyperbolic/FluidsLeastSquaresScalarFunction.cpp
-      hyperbolic/FluidsStabilizedUniformThermalSource.cpp
-      hyperbolic/CriterionVolume.cpp
-      hyperbolic/ThermalBuoyancy.cpp
-      hyperbolic/PressureResidual.cpp
-      hyperbolic/CriterionFlowRate.cpp
-      hyperbolic/TemperatureResidual.cpp
-      hyperbolic/InternalThermalForces.cpp
-      hyperbolic/MomentumSurfaceForces.cpp
-      hyperbolic/VelocityCorrectorResidual.cpp
-      hyperbolic/VelocityPredictorResidual.cpp
-      hyperbolic/CriterionThermalCompliance.cpp
-      hyperbolic/CriterionSurfaceThermalFlux.cpp
-      hyperbolic/CriterionMeanSurfacePressure.cpp
-      hyperbolic/CriterionMeanSurfaceTemperature.cpp
+      hyperbolic/fluids/AbstractScalarFunction.cpp
+      hyperbolic/fluids/AbstractVectorFunction.cpp
+      hyperbolic/fluids/AbstractVolumetricSource.cpp
+      hyperbolic/fluids/BrinkmanForces.cpp
+      hyperbolic/fluids/FluidsQuasiImplicit.cpp
+      hyperbolic/fluids/FluidsScalarFunction.cpp
+      hyperbolic/fluids/FluidsVectorFunction.cpp
+      hyperbolic/fluids/FluidsThermalSources.cpp
+      hyperbolic/fluids/FluidsWorkSetBuilders.cpp
+      hyperbolic/fluids/FluidsCriterionFactory.cpp
+      hyperbolic/fluids/FluidsUniformThermalSource.cpp
+      hyperbolic/fluids/FluidsWeightedScalarFunction.cpp
+      hyperbolic/fluids/FluidsLeastSquaresScalarFunction.cpp
+      hyperbolic/fluids/FluidsStabilizedUniformThermalSource.cpp
+      hyperbolic/fluids/CriterionVolume.cpp
+      hyperbolic/fluids/ThermalBuoyancy.cpp
+      hyperbolic/fluids/PressureResidual.cpp
+      hyperbolic/fluids/CriterionFlowRate.cpp
+      hyperbolic/fluids/TemperatureResidual.cpp
+      hyperbolic/fluids/InternalThermalForces.cpp
+      hyperbolic/fluids/MomentumSurfaceForces.cpp
+      hyperbolic/fluids/VelocityCorrectorResidual.cpp
+      hyperbolic/fluids/VelocityPredictorResidual.cpp
+      hyperbolic/fluids/CriterionThermalCompliance.cpp
+      hyperbolic/fluids/CriterionSurfaceThermalFlux.cpp
+      hyperbolic/fluids/CriterionMeanSurfacePressure.cpp
+      hyperbolic/fluids/CriterionMeanSurfaceTemperature.cpp
     )
   endif()
 

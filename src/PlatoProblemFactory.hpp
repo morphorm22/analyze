@@ -47,7 +47,7 @@
 #include "hyperbolic/HyperbolicProblem.hpp"
 #include "hyperbolic/HyperbolicMechanics.hpp"
   #ifdef PLATO_FLUIDS
-  #include "hyperbolic/FluidsQuasiImplicit.hpp"
+  #include "hyperbolic/fluids/FluidsQuasiImplicit.hpp"
   #endif
   #ifdef PLATO_MICROMORPHIC
   #include "hyperbolic/micromorphic/MicromorphicMechanics.hpp"
