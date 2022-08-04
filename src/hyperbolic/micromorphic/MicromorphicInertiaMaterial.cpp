@@ -192,4 +192,4 @@ MicromorphicInertiaMaterial<3>::MicromorphicInertiaMaterial(const Teuchos::Param
     }
 }
 
-} // namespace Plato
+} 

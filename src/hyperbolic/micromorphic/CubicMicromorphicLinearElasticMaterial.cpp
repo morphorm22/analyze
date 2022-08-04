@@ -1,17 +1,8 @@
-/*
- * CubicMicromorphicLinearElasticMaterial.cpp
- *
- *  Created on: Oct 18, 2021
- */
-
 #include "hyperbolic/micromorphic/CubicMicromorphicLinearElasticMaterial.hpp"
 
 namespace Plato
 {
 
-/******************************************************************************//**
- * \brief Linear elastic Cubic micromorphic material model constructor. - 1D
-**********************************************************************************/
 template<>
 Plato::CubicMicromorphicLinearElasticMaterial<1>::
 CubicMicromorphicLinearElasticMaterial(const Teuchos::ParameterList& paramList) :
@@ -29,9 +20,6 @@ CubicMicromorphicLinearElasticMaterial(const Teuchos::ParameterList& paramList) 
     mCellStiffnessCm(0, 0)   = tLambda_m + 2.0 * tMu_m;
 }
 
-/******************************************************************************//**
- * \brief Linear elastic Cubic micromorphic material model constructor. - 2D
-**********************************************************************************/
 template<>
 Plato::CubicMicromorphicLinearElasticMaterial<2>::
 CubicMicromorphicLinearElasticMaterial(const Teuchos::ParameterList& paramList) :
@@ -59,9 +47,6 @@ CubicMicromorphicLinearElasticMaterial(const Teuchos::ParameterList& paramList) 
     mCellStiffnessCm(2, 2)   = tMu_star_m;
 }
 
-/******************************************************************************//**
- * \brief Linear elastic Cubic micromorphic material model constructor. - 3D
-**********************************************************************************/
 template<>
 Plato::CubicMicromorphicLinearElasticMaterial<3>::
 CubicMicromorphicLinearElasticMaterial(const Teuchos::ParameterList& paramList) :
@@ -106,4 +91,3 @@ CubicMicromorphicLinearElasticMaterial(const Teuchos::ParameterList& paramList) 
 }
 
 }
-// namespace Plato

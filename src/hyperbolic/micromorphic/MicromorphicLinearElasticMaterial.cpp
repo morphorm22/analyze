@@ -210,4 +210,4 @@ MicromorphicLinearElasticMaterial<3>::MicromorphicLinearElasticMaterial(const Te
     }
 }
 
-} // namespace Plato
+} 

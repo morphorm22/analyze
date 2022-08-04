@@ -226,6 +226,7 @@ if(HYPERBOLIC)
       hyperbolic/micromorphic/CubicMicromorphicLinearElasticMaterial.cpp
       hyperbolic/micromorphic/MicromorphicInertiaMaterial.cpp
       hyperbolic/micromorphic/CubicMicromorphicInertiaMaterial.cpp
+      hyperbolic/micromorphic/RelaxedMicromorphicResidual.cpp
     )
   endif()
 endif()

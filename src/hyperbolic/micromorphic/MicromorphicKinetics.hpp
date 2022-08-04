@@ -1,24 +1,23 @@
 #pragma once
 
 #include "PlatoMathTypes.hpp"
-#include "hyperbolic/micromorphic/SimplexMicromorphicMechanics.hpp"
+#include "hyperbolic/micromorphic/MicromorphicLinearElasticMaterial.hpp"
+#include "hyperbolic/micromorphic/MicromorphicInertiaMaterial.hpp"
 
 namespace Plato
 {
 
-/******************************************************************************/
-/*! micromorphic kinetics functor.
+namespace Hyperbolic
+{
 
-    Given a set of micromorphic strain measures, compute the stress measures
-*/
-/******************************************************************************/
-template<int SpaceDim>
-class MicromorphicKinetics : public Plato::SimplexMicromorphicMechanics<SpaceDim>
+template<typename ElementType>
+class MicromorphicKinetics : public ElementType
 {
   private:
 
-    using Plato::SimplexMicromorphicMechanics<SpaceDim>::mNumVoigtTerms;
-    using Plato::SimplexMicromorphicMechanics<SpaceDim>::mNumSkwTerms;
+    using ElementType::mNumSpatialDims;
+    using ElementType::mNumVoigtTerms;
+    using ElementType::mNumSkwTerms;
 
     const Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellMesoStressSymmetricMaterialTensor; 
     const Plato::Matrix<mNumSkwTerms,mNumSkwTerms>     mCellMesoStressSkewMaterialTensor; 
@@ -27,16 +26,14 @@ class MicromorphicKinetics : public Plato::SimplexMicromorphicMechanics<SpaceDim
 
   public:
 
-    // overloaded for cauchy and micro stresses
-    MicromorphicKinetics(const Teuchos::RCP<Plato::MicromorphicLinearElasticMaterial<SpaceDim>> aMaterialModel) :
+    MicromorphicKinetics(const Teuchos::RCP<Plato::MicromorphicLinearElasticMaterial<mNumSpatialDims>> aMaterialModel) :
       mCellMesoStressSymmetricMaterialTensor(aMaterialModel->getStiffnessMatrixCe()),
       mCellMesoStressSkewMaterialTensor(aMaterialModel->getStiffnessMatrixCc()),
       mCellMicroStressSymmetricMaterialTensor(aMaterialModel->getStiffnessMatrixCm())
     {
     }
     
-    // overloaded for inertia stresses
-    MicromorphicKinetics(const Teuchos::RCP<Plato::MicromorphicInertiaMaterial<SpaceDim>> aMaterialModel) :
+    MicromorphicKinetics(const Teuchos::RCP<Plato::MicromorphicInertiaMaterial<mNumSpatialDims>> aMaterialModel) :
       mCellMesoStressSymmetricMaterialTensor(aMaterialModel->getInertiaMatrixTe()),
       mCellMesoStressSkewMaterialTensor(aMaterialModel->getInertiaMatrixTc()),
       mCellMicroStressSymmetricMaterialTensor(aMaterialModel->getInertiaMatrixJm()),
@@ -47,41 +44,41 @@ class MicromorphicKinetics : public Plato::SimplexMicromorphicMechanics<SpaceDim
     // overloaded for cauchy and micro stresses
     template<typename KineticsScalarType, typename KinematicsScalarType, typename StateScalarType>
     DEVICE_TYPE inline void
-    operator()( Plato::OrdinalType aCellOrdinal,
-                Plato::ScalarMultiVectorT<KineticsScalarType> const& aSymmetricMesoStress,
-                Plato::ScalarMultiVectorT<KineticsScalarType> const& aSkewMesoStress,
-                Plato::ScalarMultiVectorT<KineticsScalarType> const& aSymmetricMicroStress,
-                Plato::ScalarMultiVectorT<KinematicsScalarType> const& aSymmetricGradientStrain,
-                Plato::ScalarMultiVectorT<KinematicsScalarType> const& aSkewGradientStrain,
-                Plato::ScalarMultiVectorT<StateScalarType> const& aSymmetricMicroStrain,
-                Plato::ScalarMultiVectorT<StateScalarType> const& aSkewMicroStrain) const
+    operator()( 
+              Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSymmetricMesoStress,
+              Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSkewMesoStress,
+              Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSymmetricMicroStress,
+        const Plato::Array<mNumVoigtTerms, KinematicsScalarType> & aSymmetricGradientStrain,
+        const Plato::Array<mNumSkwTerms, KinematicsScalarType>   & aSkewGradientStrain,
+        const Plato::Array<mNumVoigtTerms, StateScalarType>      & aSymmetricMicroStrain,
+        const Plato::Array<mNumSkwTerms, StateScalarType>        & aSkewMicroStrain) const
     {
-        this->initializeStressesWithZeros(aCellOrdinal, aSymmetricMesoStress,aSkewMesoStress,aSymmetricMicroStress);
-        this->addSymmetricMesoStressTerm(aCellOrdinal,aSymmetricMesoStress,aSymmetricGradientStrain,1.0);
-        this->addSymmetricMesoStressTerm(aCellOrdinal,aSymmetricMesoStress,aSymmetricMicroStrain,-1.0);
-        this->addSkewMesoStressTerm(aCellOrdinal,aSkewMesoStress,aSkewGradientStrain,1.0);
-        this->addSkewMesoStressTerm(aCellOrdinal,aSkewMesoStress,aSkewMicroStrain,-1.0);
-        this->addSymmetricMicroStressTerm(aCellOrdinal,aSymmetricMicroStress,aSymmetricMicroStrain);
+        this->initializeStressesWithZeros(aSymmetricMesoStress,aSkewMesoStress,aSymmetricMicroStress);
+        this->addSymmetricMesoStressTerm(aSymmetricMesoStress,aSymmetricGradientStrain,1.0);
+        this->addSymmetricMesoStressTerm(aSymmetricMesoStress,aSymmetricMicroStrain,-1.0);
+        this->addSkewMesoStressTerm(aSkewMesoStress,aSkewGradientStrain,1.0);
+        this->addSkewMesoStressTerm(aSkewMesoStress,aSkewMicroStrain,-1.0);
+        this->addSymmetricMicroStressTerm(aSymmetricMicroStress,aSymmetricMicroStrain);
     }
     
     // overloaded for inertia stresses
     template<typename KineticsScalarType, typename KinematicsScalarType, typename StateScalarType>
     DEVICE_TYPE inline void
-    operator()( Plato::OrdinalType aCellOrdinal,
-                Plato::ScalarMultiVectorT<KineticsScalarType> const& aSymmetricMesoStress,
-                Plato::ScalarMultiVectorT<KineticsScalarType> const& aSkewMesoStress,
-                Plato::ScalarMultiVectorT<KineticsScalarType> const& aSymmetricMicroStress,
-                Plato::ScalarMultiVectorT<KineticsScalarType> const& aSkewMicroStress,
-                Plato::ScalarMultiVectorT<KinematicsScalarType> const& aSymmetricGradientStrain,
-                Plato::ScalarMultiVectorT<KinematicsScalarType> const& aSkewGradientStrain,
-                Plato::ScalarMultiVectorT<StateScalarType> const& aSymmetricMicroStrain,
-                Plato::ScalarMultiVectorT<StateScalarType> const& aSkewMicroStrain) const
+    operator()( 
+              Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSymmetricMesoStress,
+              Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSkewMesoStress,
+              Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSymmetricMicroStress,
+              Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSkewMicroStress,
+        const Plato::Array<mNumVoigtTerms, KinematicsScalarType> & aSymmetricGradientStrain,
+        const Plato::Array<mNumSkwTerms, KinematicsScalarType>   & aSkewGradientStrain,
+        const Plato::Array<mNumVoigtTerms, StateScalarType>      & aSymmetricMicroStrain,
+        const Plato::Array<mNumSkwTerms, StateScalarType>        & aSkewMicroStrain) const
     {
-        this->initializeStressesWithZeros(aCellOrdinal, aSymmetricMesoStress,aSkewMesoStress,aSymmetricMicroStress);
-        this->addSymmetricMesoStressTerm(aCellOrdinal,aSymmetricMesoStress,aSymmetricGradientStrain,1.0);
-        this->addSkewMesoStressTerm(aCellOrdinal,aSkewMesoStress,aSkewGradientStrain,1.0);
-        this->addSymmetricMicroStressTerm(aCellOrdinal,aSymmetricMicroStress,aSymmetricMicroStrain);
-        this->addSkewMicroStressTerm(aCellOrdinal,aSkewMicroStress,aSkewMicroStrain);
+        this->initializeStressesWithZeros(aSymmetricMesoStress,aSkewMesoStress,aSymmetricMicroStress);
+        this->addSymmetricMesoStressTerm(aSymmetricMesoStress,aSymmetricGradientStrain,1.0);
+        this->addSkewMesoStressTerm(aSkewMesoStress,aSkewGradientStrain,1.0);
+        this->addSymmetricMicroStressTerm(aSymmetricMicroStress,aSymmetricMicroStrain);
+        this->addSkewMicroStressTerm(aSkewMicroStress,aSkewMicroStrain);
     }
 
   private:
@@ -89,99 +86,100 @@ class MicromorphicKinetics : public Plato::SimplexMicromorphicMechanics<SpaceDim
     // overloaded for cauchy and micro stresses
     template<typename KineticsScalarType>
     DEVICE_TYPE inline void
-    initializeStressesWithZeros( Plato::OrdinalType aCellOrdinal,
-                                 Plato::ScalarMultiVectorT<KineticsScalarType> const& aSymmetricMesoStress,
-                                 Plato::ScalarMultiVectorT<KineticsScalarType> const& aSkewMesoStress,
-                                 Plato::ScalarMultiVectorT<KineticsScalarType> const& aSymmetricMicroStress) const
+    initializeStressesWithZeros( 
+              Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSymmetricMesoStress,
+              Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSkewMesoStress,
+              Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSymmetricMicroStress) const
     {
         for( Plato::OrdinalType iVoigt=0; iVoigt<mNumVoigtTerms; iVoigt++)
         {
-            aSymmetricMesoStress(aCellOrdinal,iVoigt) = 0.0;
-            aSymmetricMicroStress(aCellOrdinal,iVoigt) = 0.0;
-            aSkewMesoStress(aCellOrdinal,iVoigt) = 0.0;
+            aSymmetricMesoStress(iVoigt) = 0.0;
+            aSymmetricMicroStress(iVoigt) = 0.0;
+            aSkewMesoStress(iVoigt) = 0.0;
         }
     }
     
     // overloaded for inertia stresses
     template<typename KineticsScalarType>
     DEVICE_TYPE inline void
-    initializeStressesWithZeros( Plato::OrdinalType aCellOrdinal,
-                                 Plato::ScalarMultiVectorT<KineticsScalarType> const& aSymmetricMesoStress,
-                                 Plato::ScalarMultiVectorT<KineticsScalarType> const& aSkewMesoStress,
-                                 Plato::ScalarMultiVectorT<KineticsScalarType> const& aSymmetricMicroStress,
-                                 Plato::ScalarMultiVectorT<KineticsScalarType> const& aSkewMicroStress) const
+    initializeStressesWithZeros( 
+              Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSymmetricMesoStress,
+              Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSkewMesoStress,
+              Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSymmetricMicroStress,
+              Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSkewMicroStress) const
     {
         for( Plato::OrdinalType iVoigt=0; iVoigt<mNumVoigtTerms; iVoigt++)
         {
-            aSymmetricMesoStress(aCellOrdinal,iVoigt) = 0.0;
-            aSymmetricMicroStress(aCellOrdinal,iVoigt) = 0.0;
-            aSkewMesoStress(aCellOrdinal,iVoigt) = 0.0;
-            aSkewMicroStress(aCellOrdinal,iVoigt) = 0.0;
+            aSymmetricMesoStress(iVoigt) = 0.0;
+            aSymmetricMicroStress(iVoigt) = 0.0;
+            aSkewMesoStress(iVoigt) = 0.0;
+            aSkewMicroStress(iVoigt) = 0.0;
         }
     }
 
     template<typename StressScalarType, typename StrainScalarType>
     DEVICE_TYPE inline void
-    addSymmetricMesoStressTerm( Plato::OrdinalType aCellOrdinal,
-                                  Plato::ScalarMultiVectorT<StressScalarType> const& aStress,
-                                  Plato::ScalarMultiVectorT<StrainScalarType> const& aStrain,
-                                  const Plato::Scalar aScale = 1.0) const
-    {
-        for( Plato::OrdinalType iVoigt=0; iVoigt<mNumVoigtTerms; iVoigt++)
-        {
-            for( Plato::OrdinalType jVoigt=0; jVoigt<mNumVoigtTerms; jVoigt++){
-                aStress(aCellOrdinal,iVoigt) += aScale*aStrain(aCellOrdinal,jVoigt)*mCellMesoStressSymmetricMaterialTensor(iVoigt, jVoigt);
-            }
-        }
-    }
-
-    template<typename StressScalarType, typename StrainScalarType>
-    DEVICE_TYPE inline void
-    addSkewMesoStressTerm( Plato::OrdinalType aCellOrdinal,
-                             Plato::ScalarMultiVectorT<StressScalarType> const& aStress,
-                             Plato::ScalarMultiVectorT<StrainScalarType> const& aStrain,
-                             const Plato::Scalar aScale = 1.0) const
-    {
-        for( Plato::OrdinalType iSkew=0; iSkew<mNumSkwTerms; iSkew++)
-        {
-            Plato::OrdinalType StressOrdinalI = SpaceDim + iSkew;
-            for( Plato::OrdinalType jSkew=0; jSkew<mNumSkwTerms; jSkew++){
-                aStress(aCellOrdinal,StressOrdinalI) += aScale*aStrain(aCellOrdinal,jSkew)*mCellMesoStressSkewMaterialTensor(iSkew, jSkew);
-            }
-        }
-    }
-
-    template<typename StressScalarType, typename StrainScalarType>
-    DEVICE_TYPE inline void
-    addSymmetricMicroStressTerm( Plato::OrdinalType aCellOrdinal,
-                                                Plato::ScalarMultiVectorT<StressScalarType> const& aStress,
-                                                Plato::ScalarMultiVectorT<StrainScalarType> const& aStrain) const
+    addSymmetricMesoStressTerm( 
+              Plato::Array<mNumVoigtTerms, StressScalarType> & aStress,
+        const Plato::Array<mNumVoigtTerms, StrainScalarType> & aStrain,
+        const Plato::Scalar aScale = 1.0) const
     {
         for( Plato::OrdinalType iVoigt=0; iVoigt<mNumVoigtTerms; iVoigt++)
         {
             for( Plato::OrdinalType jVoigt=0; jVoigt<mNumVoigtTerms; jVoigt++){
-                aStress(aCellOrdinal,iVoigt) += aStrain(aCellOrdinal,jVoigt)*mCellMicroStressSymmetricMaterialTensor(iVoigt, jVoigt);
+                aStress(iVoigt) += aScale*aStrain(jVoigt)*mCellMesoStressSymmetricMaterialTensor(iVoigt, jVoigt);
             }
         }
     }
 
     template<typename StressScalarType, typename StrainScalarType>
     DEVICE_TYPE inline void
-    addSkewMicroStressTerm( Plato::OrdinalType aCellOrdinal,
-                                                Plato::ScalarMultiVectorT<StressScalarType> const& aStress,
-                                                Plato::ScalarMultiVectorT<StrainScalarType> const& aStrain) const
+    addSkewMesoStressTerm( 
+              Plato::Array<mNumVoigtTerms, StressScalarType> & aStress,
+        const Plato::Array<mNumSkwTerms, StrainScalarType>   & aStrain,
+        const Plato::Scalar aScale = 1.0) const
     {
         for( Plato::OrdinalType iSkew=0; iSkew<mNumSkwTerms; iSkew++)
         {
-            Plato::OrdinalType StressOrdinalI = SpaceDim + iSkew;
+            Plato::OrdinalType StressOrdinalI = mNumSpatialDims + iSkew;
             for( Plato::OrdinalType jSkew=0; jSkew<mNumSkwTerms; jSkew++){
-                aStress(aCellOrdinal,StressOrdinalI) += aStrain(aCellOrdinal,jSkew)*mCellMicroStressSkewMaterialTensor(iSkew, jSkew);
+                aStress(StressOrdinalI) += aScale*aStrain(jSkew)*mCellMesoStressSkewMaterialTensor(iSkew, jSkew);
+            }
+        }
+    }
+
+    template<typename StressScalarType, typename StrainScalarType>
+    DEVICE_TYPE inline void
+    addSymmetricMicroStressTerm( 
+              Plato::Array<mNumVoigtTerms, StressScalarType> & aStress,
+        const Plato::Array<mNumVoigtTerms, StrainScalarType> & aStrain) const
+    {
+        for( Plato::OrdinalType iVoigt=0; iVoigt<mNumVoigtTerms; iVoigt++)
+        {
+            for( Plato::OrdinalType jVoigt=0; jVoigt<mNumVoigtTerms; jVoigt++){
+                aStress(iVoigt) += aStrain(jVoigt)*mCellMicroStressSymmetricMaterialTensor(iVoigt, jVoigt);
+            }
+        }
+    }
+
+    template<typename StressScalarType, typename StrainScalarType>
+    DEVICE_TYPE inline void
+    addSkewMicroStressTerm( 
+              Plato::Array<mNumVoigtTerms, StressScalarType> & aStress,
+        const Plato::Array<mNumSkwTerms, StrainScalarType>   & aStrain) const
+    {
+        for( Plato::OrdinalType iSkew=0; iSkew<mNumSkwTerms; iSkew++)
+        {
+            Plato::OrdinalType StressOrdinalI = mNumSpatialDims + iSkew;
+            for( Plato::OrdinalType jSkew=0; jSkew<mNumSkwTerms; jSkew++){
+                aStress(StressOrdinalI) += aStrain(jSkew)*mCellMicroStressSkewMaterialTensor(iSkew, jSkew);
             }
         }
     }
 
 };
-// class MicromorphicKinetics
 
-} // namespace Plato
+}
+
+}
 

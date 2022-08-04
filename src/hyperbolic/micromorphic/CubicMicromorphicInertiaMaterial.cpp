@@ -1,17 +1,8 @@
-/*
- * CubicMicromorphicInertiaMaterial.cpp
- *
- *  Created on: Oct 27, 2021
- */
-
 #include "hyperbolic/micromorphic/CubicMicromorphicInertiaMaterial.hpp"
 
 namespace Plato
 {
 
-/******************************************************************************//**
- * \brief Cubic micromorphic inertia model constructor. - 1D
-**********************************************************************************/
 template<>
 Plato::CubicMicromorphicInertiaMaterial<1>::
 CubicMicromorphicInertiaMaterial(const Teuchos::ParameterList& paramList) :
@@ -35,9 +26,6 @@ CubicMicromorphicInertiaMaterial(const Teuchos::ParameterList& paramList) :
     mCellInertiaJc(0, 0) = tEta_2;
 }
 
-/******************************************************************************//**
- * \brief Cubic micromorphic inertia model constructor. - 2D
-**********************************************************************************/
 template<>
 Plato::CubicMicromorphicInertiaMaterial<2>::
 CubicMicromorphicInertiaMaterial(const Teuchos::ParameterList& paramList) :
@@ -71,9 +59,6 @@ CubicMicromorphicInertiaMaterial(const Teuchos::ParameterList& paramList) :
     mCellInertiaJc(0, 0) = tEta_2;
 }
 
-/******************************************************************************//**
- * \brief Cubic micromorphic inertia model constructor. - 3D
-**********************************************************************************/
 template<>
 Plato::CubicMicromorphicInertiaMaterial<3>::
 CubicMicromorphicInertiaMaterial(const Teuchos::ParameterList& paramList) :
@@ -126,4 +111,3 @@ CubicMicromorphicInertiaMaterial(const Teuchos::ParameterList& paramList) :
 }
 
 }
-// namespace Plato

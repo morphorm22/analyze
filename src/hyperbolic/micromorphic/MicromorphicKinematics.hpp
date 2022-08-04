@@ -1,9 +1,13 @@
 #pragma once
 
-#include "hyperbolic/micromorphic/SimplexMicromorphicMechanics.hpp"
 #include "PlatoStaticsTypes.hpp"
 
+#include "PlatoMathTypes.hpp"
+
 namespace Plato
+{
+
+namespace Hyperbolic
 {
 
 /******************************************************************************/
@@ -18,26 +22,30 @@ namespace Plato
   X is micro distortion tensor
  */
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-class MicromorphicKinematics : public Plato::SimplexMicromorphicMechanics<SpaceDim>
+template<typename ElementType>
+class MicromorphicKinematics : public ElementType
 {
 private:
 
-    using Plato::SimplexMicromorphicMechanics<SpaceDim>::mNumVoigtTerms;
-    using Plato::SimplexMicromorphicMechanics<SpaceDim>::mNumNodesPerCell;
-    using Plato::SimplexMicromorphicMechanics<SpaceDim>::mNumDofsPerNode;
+    using ElementType::mNumSpatialDims;
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumDofsPerNode;
+
+    using ElementType::mNumVoigtTerms;
+    using ElementType::mNumSkwTerms;
 
 public:
 
     template<typename KinematicsScalarType, typename StateScalarType, typename GradientScalarType>
-    DEVICE_TYPE inline void operator()(Plato::OrdinalType aCellOrdinal,
-                                       Plato::ScalarMultiVectorT<KinematicsScalarType> const& aSymmetricGradientStrain,
-                                       Plato::ScalarMultiVectorT<KinematicsScalarType> const& aSkewGradientStrain,
-                                       Plato::ScalarMultiVectorT<StateScalarType> const& aSymmetricMicroStrain,
-                                       Plato::ScalarMultiVectorT<StateScalarType> const& aSkewMicroStrain,
-                                       Plato::ScalarMultiVectorT<StateScalarType> const& aState,
-                                       Plato::ScalarVectorT<Plato::Scalar> const& aBasisFunctions,
-                                       Plato::ScalarArray3DT<GradientScalarType> const& aGradient) const
+    DEVICE_TYPE inline void operator()(
+              Plato::OrdinalType                                                     aCellOrdinal,
+              Plato::Array<mNumVoigtTerms, KinematicsScalarType>                   & aSymmetricGradientStrain,
+              Plato::Array<mNumSkwTerms, KinematicsScalarType>                     & aSkewGradientStrain,
+              Plato::Array<mNumVoigtTerms, StateScalarType>                        & aSymmetricMicroStrain,
+              Plato::Array<mNumSkwTerms, StateScalarType>                          & aSkewMicroStrain,
+        const Plato::ScalarMultiVectorT<StateScalarType>                           & aState,
+        const Plato::Array<mNumNodesPerCell, Plato::Scalar>                        & aBasisFunctions,
+        const Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, GradientScalarType> & aGradient) const
     {
         this->computeSymmetricGradientStrain(aCellOrdinal,aSymmetricGradientStrain,aState,aGradient);
         this->computeSkewGradientStrain(aCellOrdinal,aSkewGradientStrain,aState,aGradient);
@@ -48,34 +56,35 @@ public:
 private:
 
     template<typename KinematicsScalarType, typename StateScalarType, typename GradientScalarType>
-    DEVICE_TYPE inline void computeSymmetricGradientStrain(Plato::OrdinalType aCellOrdinal,
-                                       Plato::ScalarMultiVectorT<KinematicsScalarType> const& aSymmetricGradientStrain,
-                                       Plato::ScalarMultiVectorT<StateScalarType> const& aState,
-                                       Plato::ScalarArray3DT<GradientScalarType> const& aGradient) const
+    DEVICE_TYPE inline void computeSymmetricGradientStrain(
+              Plato::OrdinalType                                                     aCellOrdinal,
+              Plato::Array<mNumVoigtTerms, KinematicsScalarType>                   & aSymmetricGradientStrain,
+        const Plato::ScalarMultiVectorT<StateScalarType>                           & aState,
+        const Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, GradientScalarType> & aGradient) const
     {
         Plato::OrdinalType tVoigtTerm = 0;
-        for(Plato::OrdinalType tDofIndex = 0; tDofIndex < SpaceDim; tDofIndex++)
+        for(Plato::OrdinalType tDofIndex = 0; tDofIndex < mNumSpatialDims; tDofIndex++)
         {
-            aSymmetricGradientStrain(aCellOrdinal, tVoigtTerm) = 0.0;
+            aSymmetricGradientStrain(tVoigtTerm) = 0.0;
             for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
             {
                 Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumDofsPerNode + tDofIndex;
-                aSymmetricGradientStrain(aCellOrdinal, tVoigtTerm) += aState(aCellOrdinal, tLocalOrdinal) * aGradient(aCellOrdinal, tNodeIndex, tDofIndex);
+                aSymmetricGradientStrain(tVoigtTerm) += aState(aCellOrdinal, tLocalOrdinal) * aGradient(tNodeIndex, tDofIndex);
             }
             tVoigtTerm++;
         }
-        for(Plato::OrdinalType tDofIndexJ = SpaceDim - 1; tDofIndexJ >= 1; tDofIndexJ--)
+        for(Plato::OrdinalType tDofIndexJ = mNumSpatialDims - 1; tDofIndexJ >= 1; tDofIndexJ--)
         {
             for(Plato::OrdinalType tDofIndexI = tDofIndexJ - 1; tDofIndexI >= 0; tDofIndexI--)
             {
-                aSymmetricGradientStrain(aCellOrdinal, tVoigtTerm) = 0.0;
+                aSymmetricGradientStrain(tVoigtTerm) = 0.0;
                 for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
                 {
                     Plato::OrdinalType tLocalOrdinalI = tNodeIndex * mNumDofsPerNode + tDofIndexI;
                     Plato::OrdinalType tLocalOrdinalJ = tNodeIndex * mNumDofsPerNode + tDofIndexJ;
-                    aSymmetricGradientStrain(aCellOrdinal, tVoigtTerm) += (aState(aCellOrdinal, tLocalOrdinalJ)
-                            * aGradient(aCellOrdinal, tNodeIndex, tDofIndexI)
-                            + aState(aCellOrdinal, tLocalOrdinalI) * aGradient(aCellOrdinal, tNodeIndex, tDofIndexJ));
+                    aSymmetricGradientStrain(tVoigtTerm) += (aState(aCellOrdinal, tLocalOrdinalJ)
+                            * aGradient(tNodeIndex, tDofIndexI)
+                            + aState(aCellOrdinal, tLocalOrdinalI) * aGradient(tNodeIndex, tDofIndexJ));
                 }
                 tVoigtTerm++;
             }
@@ -83,24 +92,25 @@ private:
     }
 
     template<typename KinematicsScalarType, typename StateScalarType, typename GradientScalarType>
-    DEVICE_TYPE inline void computeSkewGradientStrain(Plato::OrdinalType aCellOrdinal,
-                                       Plato::ScalarMultiVectorT<KinematicsScalarType> const& aSkewGradientStrain,
-                                       Plato::ScalarMultiVectorT<StateScalarType> const& aState,
-                                       Plato::ScalarArray3DT<GradientScalarType> const& aGradient) const
+    DEVICE_TYPE inline void computeSkewGradientStrain(
+              Plato::OrdinalType                                                     aCellOrdinal,
+              Plato::Array<mNumSkwTerms, KinematicsScalarType>                     & aSkewGradientStrain,
+        const Plato::ScalarMultiVectorT<StateScalarType>                           & aState,
+        const Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, GradientScalarType> & aGradient) const
     {
         Plato::OrdinalType tSkwTerm = 0;
-        for(Plato::OrdinalType tDofIndexJ = SpaceDim - 1; tDofIndexJ >= 1; tDofIndexJ--)
+        for(Plato::OrdinalType tDofIndexJ = mNumSpatialDims - 1; tDofIndexJ >= 1; tDofIndexJ--)
         {
             for(Plato::OrdinalType tDofIndexI = tDofIndexJ - 1; tDofIndexI >= 0; tDofIndexI--)
             {
-                aSkewGradientStrain(aCellOrdinal, tSkwTerm) = 0.0;
+                aSkewGradientStrain(tSkwTerm) = 0.0;
                 for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
                 {
                     Plato::OrdinalType tLocalOrdinalI = tNodeIndex * mNumDofsPerNode + tDofIndexI;
                     Plato::OrdinalType tLocalOrdinalJ = tNodeIndex * mNumDofsPerNode + tDofIndexJ;
-                    aSkewGradientStrain(aCellOrdinal, tSkwTerm) += (aState(aCellOrdinal, tLocalOrdinalI)
-                            * aGradient(aCellOrdinal, tNodeIndex, tDofIndexJ)
-                            - aState(aCellOrdinal, tLocalOrdinalJ) * aGradient(aCellOrdinal, tNodeIndex, tDofIndexI));
+                    aSkewGradientStrain(tSkwTerm) += (aState(aCellOrdinal, tLocalOrdinalI)
+                            * aGradient(tNodeIndex, tDofIndexJ)
+                            - aState(aCellOrdinal, tLocalOrdinalJ) * aGradient(tNodeIndex, tDofIndexI));
                 }
                 tSkwTerm++;
             }
@@ -108,32 +118,33 @@ private:
     }
 
     template<typename StateScalarType>
-    DEVICE_TYPE inline void computeSymmetricMicroStrain(Plato::OrdinalType aCellOrdinal,
-                                       Plato::ScalarMultiVectorT<StateScalarType> const& aSymmetricMicroStrain,
-                                       Plato::ScalarMultiVectorT<StateScalarType> const& aState,
-                                       Plato::ScalarVectorT<Plato::Scalar> const& aBasisFunctions) const
+    DEVICE_TYPE inline void computeSymmetricMicroStrain(
+              Plato::OrdinalType                                                     aCellOrdinal,
+              Plato::Array<mNumVoigtTerms, StateScalarType> & aSymmetricMicroStrain,
+        const Plato::ScalarMultiVectorT<StateScalarType>    & aState,
+        const Plato::Array<mNumNodesPerCell, Plato::Scalar> & aBasisFunctions) const
     {
-        Plato::OrdinalType tDofOffset = SpaceDim;
+        Plato::OrdinalType tDofOffset = mNumSpatialDims;
         Plato::OrdinalType tVoigtTerm = 0;
-        for(Plato::OrdinalType tDofIndex = 0; tDofIndex < SpaceDim; tDofIndex++)
+        for(Plato::OrdinalType tDofIndex = 0; tDofIndex < mNumSpatialDims; tDofIndex++)
         {
-            aSymmetricMicroStrain(aCellOrdinal, tVoigtTerm) = 0.0;
+            aSymmetricMicroStrain(tVoigtTerm) = 0.0;
             for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
             {
                 Plato::OrdinalType tLocalOrdinal = tDofOffset + tNodeIndex * mNumDofsPerNode + tDofIndex;
-                aSymmetricMicroStrain(aCellOrdinal, tVoigtTerm) += aState(aCellOrdinal, tLocalOrdinal) * aBasisFunctions(tNodeIndex);
+                aSymmetricMicroStrain(tVoigtTerm) += aState(aCellOrdinal, tLocalOrdinal) * aBasisFunctions(tNodeIndex);
             }
             tVoigtTerm++;
         }
         Plato::OrdinalType tDofIndexTerm2 = mNumVoigtTerms;
-        for(Plato::OrdinalType tDofIndexTerm1 = SpaceDim; tDofIndexTerm1 < mNumVoigtTerms; tDofIndexTerm1++)
+        for(Plato::OrdinalType tDofIndexTerm1 = mNumSpatialDims; tDofIndexTerm1 < mNumVoigtTerms; tDofIndexTerm1++)
         {
-            aSymmetricMicroStrain(aCellOrdinal, tVoigtTerm) = 0.0;
+            aSymmetricMicroStrain(tVoigtTerm) = 0.0;
             for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
             {
                 Plato::OrdinalType tLocalOrdinalTerm1 = tDofOffset + tNodeIndex * mNumDofsPerNode + tDofIndexTerm1; 
                 Plato::OrdinalType tLocalOrdinalTerm2 = tDofOffset + tNodeIndex * mNumDofsPerNode + tDofIndexTerm2;
-                aSymmetricMicroStrain(aCellOrdinal, tVoigtTerm) += (aState(aCellOrdinal, tLocalOrdinalTerm1)
+                aSymmetricMicroStrain(tVoigtTerm) += (aState(aCellOrdinal, tLocalOrdinalTerm1)
                         * aBasisFunctions(tNodeIndex)
                         + aState(aCellOrdinal, tLocalOrdinalTerm2) * aBasisFunctions(tNodeIndex));
             }
@@ -143,22 +154,23 @@ private:
     }
 
     template<typename StateScalarType>
-    DEVICE_TYPE inline void computeSkewMicroStrain(Plato::OrdinalType aCellOrdinal,
-                                       Plato::ScalarMultiVectorT<StateScalarType> const& aSkewMicroStrain,
-                                       Plato::ScalarMultiVectorT<StateScalarType> const& aState,
-                                       Plato::ScalarVectorT<Plato::Scalar> const& aBasisFunctions) const
+    DEVICE_TYPE inline void computeSkewMicroStrain(
+              Plato::OrdinalType                                                     aCellOrdinal,
+              Plato::Array<mNumSkwTerms, StateScalarType>   & aSkewMicroStrain,
+        const Plato::ScalarMultiVectorT<StateScalarType>    & aState,
+        const Plato::Array<mNumNodesPerCell, Plato::Scalar> & aBasisFunctions) const
     {
-        Plato::OrdinalType tDofOffset = SpaceDim;
+        Plato::OrdinalType tDofOffset = mNumSpatialDims;
         Plato::OrdinalType tSkwTerm = 0;
         Plato::OrdinalType tDofIndexTerm2 = mNumVoigtTerms;
-        for(Plato::OrdinalType tDofIndexTerm1 = SpaceDim; tDofIndexTerm1 < mNumVoigtTerms; tDofIndexTerm1++)
+        for(Plato::OrdinalType tDofIndexTerm1 = mNumSpatialDims; tDofIndexTerm1 < mNumVoigtTerms; tDofIndexTerm1++)
         {
-            aSkewMicroStrain(aCellOrdinal, tSkwTerm) = 0.0;
+            aSkewMicroStrain(tSkwTerm) = 0.0;
             for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
             {
                 Plato::OrdinalType tLocalOrdinalTerm1 = tDofOffset + tNodeIndex * mNumDofsPerNode + tDofIndexTerm1; 
                 Plato::OrdinalType tLocalOrdinalTerm2 = tDofOffset + tNodeIndex * mNumDofsPerNode + tDofIndexTerm2;
-                aSkewMicroStrain(aCellOrdinal, tSkwTerm) += (aState(aCellOrdinal, tLocalOrdinalTerm1)
+                aSkewMicroStrain(tSkwTerm) += (aState(aCellOrdinal, tLocalOrdinalTerm1)
                         * aBasisFunctions(tNodeIndex)
                         - aState(aCellOrdinal, tLocalOrdinalTerm2) * aBasisFunctions(tNodeIndex));
             }
@@ -168,7 +180,7 @@ private:
     }
 
 };
-// class MicromorphicKinematics
 
-} // namespace Plato
+}
 
+}

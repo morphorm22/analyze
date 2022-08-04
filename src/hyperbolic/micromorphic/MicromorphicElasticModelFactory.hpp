@@ -1,9 +1,3 @@
-/*
- * MicromorphicElasticModelFactory.hpp
- *
- *  Created on: Oct 19, 2021
- */
-
 #pragma once
 
 #include "hyperbolic/micromorphic/MicromorphicLinearElasticMaterial.hpp"
@@ -13,28 +7,13 @@
 namespace Plato
 {
 
-/******************************************************************************//**
- * \brief Factory for creating linear elastic material models.
- *
- * \tparam SpatialDim spatial dimensions: options 1D, 2D, and 3D
- *
-**********************************************************************************/
 template<Plato::OrdinalType SpatialDim>
 class MicromorphicElasticModelFactory
 {
 public:
-    /******************************************************************************//**
-    * \brief Micromorpic linear elastic material model factory constructor.
-    * \param [in] aParamList input parameter list
-    **********************************************************************************/
     MicromorphicElasticModelFactory(const Teuchos::ParameterList& aParamList) :
             mParamList(aParamList){}
 
-    /******************************************************************************//**
-    * \brief Create a micromorphic linear elastic material model.
-    * \param [in] aModelName name of the model to be created.
-    * \return Teuchos reference counter pointer to linear elastic material model
-    **********************************************************************************/
     Teuchos::RCP<Plato::MicromorphicLinearElasticMaterial<SpatialDim>>
     create(std::string aModelName)
     {
@@ -64,9 +43,7 @@ public:
     }
 
 private:
-    const Teuchos::ParameterList& mParamList; /*!< Input parameter list */
+    const Teuchos::ParameterList& mParamList; 
 };
-// class MicromorphicElasticModelFactory
 
 }
-// namespace Plato
