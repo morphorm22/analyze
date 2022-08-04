@@ -95,17 +95,17 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
         {
             auto tName = tDomain.getDomainName();
 
-            mResidualFunctions[tName]  = tFunctionFactory.template createVectorFunctionHyperbolic<Residual>
+            mResidualFunctions[tName]  = tFunctionFactory.template createVectorFunction<Residual>
                 (tDomain, aDataMap, aParamList, aProblemType);
-            mGradientUFunctions[tName] = tFunctionFactory.template createVectorFunctionHyperbolic<GradientU>
+            mGradientUFunctions[tName] = tFunctionFactory.template createVectorFunction<GradientU>
                 (tDomain, aDataMap, aParamList, aProblemType);
-            mGradientVFunctions[tName] = tFunctionFactory.template createVectorFunctionHyperbolic<GradientV>
+            mGradientVFunctions[tName] = tFunctionFactory.template createVectorFunction<GradientV>
                 (tDomain, aDataMap, aParamList, aProblemType);
-            mGradientAFunctions[tName] = tFunctionFactory.template createVectorFunctionHyperbolic<GradientA>
+            mGradientAFunctions[tName] = tFunctionFactory.template createVectorFunction<GradientA>
                 (tDomain, aDataMap, aParamList, aProblemType);
-            mGradientZFunctions[tName] = tFunctionFactory.template createVectorFunctionHyperbolic<GradientZ>
+            mGradientZFunctions[tName] = tFunctionFactory.template createVectorFunction<GradientZ>
                 (tDomain, aDataMap, aParamList, aProblemType);
-            mGradientXFunctions[tName] = tFunctionFactory.template createVectorFunctionHyperbolic<GradientX>
+            mGradientXFunctions[tName] = tFunctionFactory.template createVectorFunction<GradientX>
                 (tDomain, aDataMap, aParamList, aProblemType);
         }
         // any block can compute the boundary terms for the entire mesh.  We'll use the first block.

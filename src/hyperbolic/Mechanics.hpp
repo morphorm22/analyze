@@ -1,9 +1,5 @@
 #pragma once
 
-#include "Simp.hpp"
-#include "Ramp.hpp"
-#include "Heaviside.hpp"
-
 #include "SpatialModel.hpp"
 #include "MechanicsElement.hpp"
 
@@ -22,10 +18,9 @@ namespace Hyperbolic
 
 struct FunctionFactory
 {
-    /******************************************************************************/
     template <typename EvaluationType>
     std::shared_ptr<::Plato::Hyperbolic::AbstractVectorFunction<EvaluationType>>
-    createVectorFunctionHyperbolic(
+    createVectorFunction(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
@@ -43,7 +38,7 @@ struct FunctionFactory
             ANALYZE_THROWERR("Unknown 'PDE Constraint' specified in 'Plato Problem' ParameterList");
         }
     }
-    /******************************************************************************/
+
     template <typename EvaluationType>
     std::shared_ptr<::Plato::Hyperbolic::AbstractScalarFunction<EvaluationType>>
     createScalarFunction(
@@ -53,7 +48,6 @@ struct FunctionFactory
               std::string              aFuncType,
               std::string              aFuncName
     )
-    /******************************************************************************/
     {
         auto tLowerFuncType = Plato::tolower(aFuncType);
 
@@ -86,6 +80,6 @@ public:
     typedef Plato::Hyperbolic::FunctionFactory FunctionFactory;
     using ElementType = MechanicsElement<TopoElementType>;
 };
-} // namespace Hyperbolic
+} 
 
-} // namespace Plato
+} 
