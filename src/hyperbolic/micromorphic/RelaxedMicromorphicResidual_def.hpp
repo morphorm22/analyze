@@ -193,14 +193,14 @@ namespace Hyperbolic
 
       auto tNumCells = mSpatialDomain.numCells();
 
-      Plato::ComputeGradientMatrix<ElementType> computeGradient;
+      Plato::ComputeGradientMatrix<ElementType>              computeGradient;
       Plato::Hyperbolic::MicromorphicKinematics<ElementType> computeKinematics;
       Plato::Hyperbolic::MicromorphicKinetics<ElementType>   computeKinetics(mMaterialModel);
       Plato::Hyperbolic::MicromorphicKinetics<ElementType>   computeInertiaKinetics(mInertiaModel);
       Plato::Hyperbolic::FullStressDivergence<ElementType>   computeFullStressDivergence;
       Plato::InertialContent<ElementType>                    computeInertialContent(mInertiaModel);
-      Plato::ProjectToNode<ElementType, mNumSpatialDims>                      projectInertialContent;
-      Plato::Hyperbolic::ProjectStressToNode<ElementType>    computeStressForMicromorphicResidual;
+      Plato::ProjectToNode<ElementType, mNumSpatialDims>     projectInertialContent;
+      Plato::Hyperbolic::ProjectStressToNode<ElementType, mNumSpatialDims> computeStressForMicromorphicResidual;
       Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode, /*offset=*/0, mNumSpatialDims> interpolateFromNodal;
 
       Plato::ScalarVectorT<ConfigScalarType>
@@ -268,11 +268,11 @@ namespace Hyperbolic
           applyStressWeighting(iCellOrdinal, aControl, tBasisValues, tSymFreeInertiaStress);
           applyStressWeighting(iCellOrdinal, aControl, tBasisValues, tSkwFreeInertiaStress);
 
-        //   computeFullStressDivergence(iCellOrdinal, aResult, tSymCauchyStress, tSkwCauchyStress, tGradient, tVolume);
-        //   computeStressForMicromorphicResidual(iCellOrdinal, aResult, tSymCauchyStress, tSkwCauchyStress, tSymMicroStress, tBasisValues, tVolume);
+          computeFullStressDivergence(iCellOrdinal, aResult, tSymCauchyStress, tSkwCauchyStress, tGradient, tVolume);
+          computeStressForMicromorphicResidual(iCellOrdinal, aResult, tSymCauchyStress, tSkwCauchyStress, tSymMicroStress, tBasisValues, tVolume);
 
-        //   computeFullStressDivergence(iCellOrdinal, aResult, tSymGradientInertiaStress, tSkwGradientInertiaStress, tGradient, tVolume);
-        //   computeStressForMicromorphicResidual(iCellOrdinal, aResult, tSymFreeInertiaStress, tSkwFreeInertiaStress, tBasisValues, tVolume);
+          computeFullStressDivergence(iCellOrdinal, aResult, tSymGradientInertiaStress, tSkwGradientInertiaStress, tGradient, tVolume);
+          computeStressForMicromorphicResidual(iCellOrdinal, aResult, tSymFreeInertiaStress, tSkwFreeInertiaStress, tBasisValues, tVolume);
 
           interpolateFromNodal(iCellOrdinal, tBasisValues, aStateDotDot, tAcceleration);
           computeInertialContent(tInertialContent, tAcceleration);

@@ -1,5 +1,8 @@
 #pragma once
 
+#include "PlatoStaticsTypes.hpp"
+#include "PlatoMathTypes.hpp"
+
 namespace Plato
 {
 
@@ -36,11 +39,11 @@ public:
     }
 
     // overloaded for cauchy and micro stresses
-    template<typename ForcingScalarType, typename StressScalarType, typename VolumeScalarType>
+    template<typename ProjectedScalarType, typename StressScalarType, typename VolumeScalarType>
     DEVICE_TYPE inline void 
     operator()(
-        const Plato::OrdinalType & aCellOrdinal,
-              Plato::ScalarMultiVectorT<ForcingScalarType>   & aOutput,
+              Plato::OrdinalType                               aCellOrdinal,
+        const Plato::ScalarMultiVectorT<ProjectedScalarType> & aOutput,
         const Plato::Array<mNumVoigtTerms, StressScalarType> & aSymmetricMesoStress,
         const Plato::Array<mNumVoigtTerms, StressScalarType> & aSkewMesoStress,
         const Plato::Array<mNumVoigtTerms, StressScalarType> & aSymmetricMicroStress,
@@ -53,11 +56,11 @@ public:
     }
 
     // overloaded for inertia stresses
-    template<typename ForcingScalarType, typename StressScalarType, typename VolumeScalarType>
+    template<typename ProjectedScalarType, typename StressScalarType, typename VolumeScalarType>
     DEVICE_TYPE inline void 
     operator()(
-        const Plato::OrdinalType & aCellOrdinal,
-              Plato::ScalarMultiVectorT<ForcingScalarType>   & aOutput,
+              Plato::OrdinalType                               aCellOrdinal,
+        const Plato::ScalarMultiVectorT<ProjectedScalarType> & aOutput,
         const Plato::Array<mNumVoigtTerms, StressScalarType> & aSymmetricMicroStress,
         const Plato::Array<mNumVoigtTerms, StressScalarType> & aSkewMicroStress,
         const Plato::Array<mNumNodesPerCell, Plato::Scalar>  & aBasisFunctions,
@@ -101,43 +104,43 @@ private:
         }
     }
 
-    template<typename ForcingScalarType, typename StressScalarType, typename VolumeScalarType>
+    template<typename ProjectedScalarType, typename StressScalarType, typename VolumeScalarType>
     DEVICE_TYPE inline void 
     addSymmetricStressAtNodes(
-        const Plato::OrdinalType & aCellOrdinal,
-              Plato::ScalarMultiVectorT<ForcingScalarType>   & aOutput,
+              Plato::OrdinalType                               aCellOrdinal,
+        const Plato::ScalarMultiVectorT<ProjectedScalarType> & aOutput,
         const Plato::Array<mNumVoigtTerms, StressScalarType> & aStress,
         const Plato::Array<mNumNodesPerCell, Plato::Scalar>  & aBasisFunctions,
         const VolumeScalarType                               & aVolume,
-        const Plato::Scalar                                    aScale) const
+              Plato::Scalar                                    aScale) const
     {
         for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
         {
             for(Plato::OrdinalType tDofIndex = 0; tDofIndex < mNumFullTerms; tDofIndex++)
             {
                 Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumDofsPerNode + tDofIndex + DofOffset;
-                ForcingScalarType tResult = aScale * aVolume * aStress(mVoigtMap[tDofIndex]) * aBasisFunctions(tNodeIndex);
+                ProjectedScalarType tResult = aScale * aVolume * aStress(mVoigtMap[tDofIndex]) * aBasisFunctions(tNodeIndex);
                 Kokkos::atomic_add(&aOutput(aCellOrdinal, tLocalOrdinal), tResult);
             }
         }
     }
 
-    template<typename ForcingScalarType, typename StressScalarType, typename VolumeScalarType>
+    template<typename ProjectedScalarType, typename StressScalarType, typename VolumeScalarType>
     DEVICE_TYPE inline void 
     addSkewStressAtNodes(
-        const Plato::OrdinalType & aCellOrdinal,
-              Plato::ScalarMultiVectorT<ForcingScalarType>   & aOutput,
+              Plato::OrdinalType                               aCellOrdinal,
+        const Plato::ScalarMultiVectorT<ProjectedScalarType> & aOutput,
         const Plato::Array<mNumVoigtTerms, StressScalarType> & aStress,
         const Plato::Array<mNumNodesPerCell, Plato::Scalar>  & aBasisFunctions,
         const VolumeScalarType                               & aVolume,
-        const Plato::Scalar                                    aScale) const
+              Plato::Scalar                                    aScale) const
     {
         for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
         {
             for(Plato::OrdinalType tDofIndex = 0; tDofIndex < mNumFullTerms; tDofIndex++)
             {
                 Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumDofsPerNode + tDofIndex + DofOffset;
-                ForcingScalarType tResult = aScale * mSkewScale[tDofIndex] * aVolume * aStress(mVoigtMap[tDofIndex]) * aBasisFunctions(tNodeIndex);
+                ProjectedScalarType tResult = aScale * mSkewScale[tDofIndex] * aVolume * aStress(mVoigtMap[tDofIndex]) * aBasisFunctions(tNodeIndex);
                 Kokkos::atomic_add(&aOutput(aCellOrdinal, tLocalOrdinal), tResult);
             }
         }

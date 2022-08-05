@@ -696,12 +696,12 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
     
     // initialize functors 
     //
-    Plato::ComputeGradientMatrix<ElementType>       computeGradient;
+    Plato::ComputeGradientMatrix<ElementType>              computeGradient;
     Plato::Hyperbolic::MicromorphicKinematics<ElementType> computeKinematics;
     Plato::Hyperbolic::MicromorphicKinetics<ElementType>   computeKinetics(tMaterialModel);
     Plato::Hyperbolic::MicromorphicKinetics<ElementType>   computeInertiaKinetics(tInertiaModel);
     Plato::Hyperbolic::FullStressDivergence<ElementType>   computeFullStressDivergence;
-    Plato::Hyperbolic::ProjectStressToNode<ElementType>    computeStressForMicromorphicResidual;
+    Plato::Hyperbolic::ProjectStressToNode<ElementType, tSpaceDim>    computeStressForMicromorphicResidual;
     Plato::InterpolateFromNodal<ElementType, tNumDofsPerNode, /*offset=*/0, tSpaceDim> interpolateFromNodal;
     Plato::InertialContent<ElementType>                    computeInertialContent(tInertiaModel);
     Plato::ProjectToNode<ElementType, tSpaceDim>                      projectInertialContent;
@@ -742,6 +742,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
 
         computeGradient(cellOrdinal, tCubPoint, tConfigWS, tGradient, tVolume);
         tVolume *= tCubWeights(gpOrdinal);
+        tCellVolumes(cellOrdinal) = tVolume;
         for(int iNode=0; iNode<tNumNodesPerCell; iNode++)
           for(int iDim=0; iDim<tSpaceDim; iDim++)
             tGradients(cellOrdinal, iNode, iDim) = tGradient(iNode, iDim);
@@ -772,7 +773,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
           tSymMicroStresses(cellOrdinal, iVoigt) = tSymMicroStress(iVoigt);
 
         computeFullStressDivergence(cellOrdinal, tResidual, tSymCauchyStress, tSkwCauchyStress, tGradient, tVolume);
-        // computeStressForMicromorphicResidual(cellOrdinal, tResidual, tSymCauchyStress, tSkwCauchyStress, tSymMicroStress, tBasisValues, tVolume);
+        computeStressForMicromorphicResidual(cellOrdinal, tResidual, tSymCauchyStress, tSkwCauchyStress, tSymMicroStress, tBasisValues, tVolume);
 
         computeKinematics(cellOrdinal, tSymGradientMicroInertia, tSkwGradientMicroInertia, tSymFreeMicroInertia, tSkwFreeMicroInertia, tStateDotDotWS, tBasisValues, tGradient);
 
@@ -802,8 +803,8 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
         for(int iVoigt=0; iVoigt<tNumVoigtTerms; iVoigt++)
           tSkwFreeInertiaStresses(cellOrdinal, iVoigt) = tSkwFreeInertiaStress(iVoigt);
 
-        // computeFullStressDivergence(cellOrdinal, tInertiaResidual, tSymGradientInertiaStress, tSkwGradientInertiaStress, tGradient, tVolume);
-        // computeStressForMicromorphicResidual(cellOrdinal, tInertiaResidual, tSymFreeInertiaStress, tSkwFreeInertiaStress, tBasisValues, tVolume);
+        computeFullStressDivergence(cellOrdinal, tInertiaResidual, tSymGradientInertiaStress, tSkwGradientInertiaStress, tGradient, tVolume);
+        computeStressForMicromorphicResidual(cellOrdinal, tInertiaResidual, tSymFreeInertiaStress, tSkwFreeInertiaStress, tBasisValues, tVolume);
 
         interpolateFromNodal(cellOrdinal, tBasisValues, tStateDotDotWS, tAcceleration);
         computeInertialContent(tInertialContent, tAcceleration);

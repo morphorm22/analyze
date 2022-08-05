@@ -1,6 +1,5 @@
 #pragma once
 
-#include "PlatoTypes.hpp"
 #include "PlatoStaticsTypes.hpp"
 #include "PlatoMathTypes.hpp"
 
@@ -40,16 +39,19 @@ public:
         this->initializeSkewScale();
     }
 
-    template<typename ForcingScalarType, typename StressScalarType, typename GradientScalarType, typename VolumeScalarType>
+    template<typename ForcingScalarType,
+             typename StressScalarType,
+             typename GradientScalarType,
+             typename VolumeScalarType>
     DEVICE_TYPE inline void 
     operator()(
-        const Plato::OrdinalType                                                   & aCellOrdinal,
-              Plato::ScalarMultiVectorT<ForcingScalarType>                         & aOutput,
+              Plato::OrdinalType                                                     aCellOrdinal,
+        const Plato::ScalarMultiVectorT<ForcingScalarType>                         & aOutput,
         const Plato::Array<mNumVoigtTerms, StressScalarType>                       & aSymmetricStress,
         const Plato::Array<mNumVoigtTerms, StressScalarType>                       & aSkewStress,
         const Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, GradientScalarType> & aGradient,
         const VolumeScalarType                                                     & aCellVolume,
-        const Plato::Scalar                                                          aScale = 1.0) const
+              Plato::Scalar                                                          aScale = 1.0) const
     {
         this->addSymmetricStressDivergence(aCellOrdinal,aOutput,aSymmetricStress,aGradient,aCellVolume,aScale);
         this->addSkewStressDivergence(aCellOrdinal,aOutput,aSkewStress,aGradient,aCellVolume,aScale);
@@ -92,15 +94,18 @@ private:
         }
     }
 
-    template<typename ForcingScalarType, typename StressScalarType, typename GradientScalarType, typename VolumeScalarType>
+    template<typename ForcingScalarType,
+             typename StressScalarType,
+             typename GradientScalarType,
+             typename VolumeScalarType>
     DEVICE_TYPE inline void 
     addSymmetricStressDivergence(
-        const Plato::OrdinalType                                                   & aCellOrdinal,
-              Plato::ScalarMultiVectorT<ForcingScalarType>                         & aOutput,
+              Plato::OrdinalType                                                     aCellOrdinal,
+        const Plato::ScalarMultiVectorT<ForcingScalarType>                         & aOutput,
         const Plato::Array<mNumVoigtTerms, StressScalarType>                       & aStress,
         const Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, GradientScalarType> & aGradient,
         const VolumeScalarType                                                     & aCellVolume,
-        const Plato::Scalar                                                          aScale) const
+              Plato::Scalar                                                          aScale) const
     {
         for(Plato::OrdinalType tDimIndexI = 0; tDimIndexI < mNumSpatialDims; tDimIndexI++)
         {
@@ -116,15 +121,18 @@ private:
         }
     }
 
-    template<typename ForcingScalarType, typename StressScalarType, typename GradientScalarType, typename VolumeScalarType>
+    template<typename ForcingScalarType,
+             typename StressScalarType,
+             typename GradientScalarType,
+             typename VolumeScalarType>
     DEVICE_TYPE inline void 
     addSkewStressDivergence(
-        const Plato::OrdinalType                                                   & aCellOrdinal,
-              Plato::ScalarMultiVectorT<ForcingScalarType>                         & aOutput,
+              Plato::OrdinalType                                                     aCellOrdinal,
+        const Plato::ScalarMultiVectorT<ForcingScalarType>                         & aOutput,
         const Plato::Array<mNumVoigtTerms, StressScalarType>                       & aStress,
         const Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, GradientScalarType> & aGradient,
         const VolumeScalarType                                                     & aCellVolume,
-        const Plato::Scalar                                                          aScale) const
+              Plato::Scalar                                                          aScale) const
     {
         for(Plato::OrdinalType tDimIndexI = 0; tDimIndexI < mNumSpatialDims; tDimIndexI++)
         {
