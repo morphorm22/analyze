@@ -80,7 +80,7 @@ testVectorFunction_Partial_z(
     return std::fabs(tDeltaFD - tDeltaAD) / (tPer != 0 ? tPer : 1.0);
 }
 
-TEUCHOS_UNIT_TEST( TransientDynamicsProblemTests, TestResidual3D )
+TEUCHOS_UNIT_TEST( TransientMechanicsElementTests, ElementFunctors3D )
 { 
   // create input
   //
@@ -342,7 +342,7 @@ TEUCHOS_UNIT_TEST( TransientDynamicsProblemTests, TestResidual3D )
   }
 }
 
-TEUCHOS_UNIT_TEST( TransientDynamicsProblemTests, 3D )
+TEUCHOS_UNIT_TEST( TransientMechanicsProblemTests, 3D )
 {
   // create test mesh
   //
@@ -998,7 +998,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_WithMass )
 
 }
 
-TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorUForm )
+TEUCHOS_UNIT_TEST( TransientMechanicsIntegratorTests, NewmarkUForm )
 {
   // create input for transient mechanics residual
   //
@@ -1177,7 +1177,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorUForm )
 
 }
 
-TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorAForm )
+TEUCHOS_UNIT_TEST( TransientMechanicsIntegratorTests, NewmarkAForm )
 {
   // create input for transient mechanics residual
   //
@@ -1616,7 +1616,7 @@ TEUCHOS_UNIT_TEST( TimeDependentBCsTests, EssentialBoundaryDofValuesMatchFunctio
 
 }
 
-TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithConstantNaturalBCs )
+TEUCHOS_UNIT_TEST( TransientMechanicsFormulationTests, UFormAndAFormEquivalenceWithConstantNaturalBCs )
 {
   // create comm
   //
@@ -1830,7 +1830,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithCo
 
 }
 
-TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithInitialConditions )
+TEUCHOS_UNIT_TEST( TransientMechanicsFormulationTests, UFormAndAFormEquivalenceWithInitialConditions )
 {
   // create comm
   //
@@ -2063,7 +2063,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithIn
 
 }
 
-TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithTimeDependentNaturalBCs )
+TEUCHOS_UNIT_TEST( TransientMechanicsFormulationTests, UFormAndAFormEquivalenceWithTimeDependentNaturalBCs )
 {
   // create comm
   //
@@ -2312,7 +2312,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithTi
 
 }
 
-TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithTimeDependentEssentialBCs )
+TEUCHOS_UNIT_TEST( TransientMechanicsFormulationTests, UFormAndAFormEquivalenceWithTimeDependentEssentialBCs )
 {
   // create comm
   //
