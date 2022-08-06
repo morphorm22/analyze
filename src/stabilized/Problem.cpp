@@ -1,14 +1,11 @@
-// TODO #include "EllipticVMSProblem.hpp"
+#include "stabilized/Problem_decl.hpp"
+  
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#ifdef PLATOANALYZE_1D
-//TODO template class Plato::EllipticVMSProblem<::Plato::StabilizedMechanics<1>>;
-//TODO template class Plato::EllipticVMSProblem<::Plato::StabilizedThermomechanics<1>>;
-#endif
-#ifdef PLATOANALYZE_2D
-//TODO template class Plato::EllipticVMSProblem<::Plato::StabilizedMechanics<2>>;
-//TODO template class Plato::EllipticVMSProblem<::Plato::StabilizedThermomechanics<2>>;
-#endif
-#ifdef PLATOANALYZE_3D
-//TODO template class Plato::EllipticVMSProblem<::Plato::StabilizedMechanics<3>>;
-//TODO template class Plato::EllipticVMSProblem<::Plato::StabilizedThermomechanics<3>>;
+#include "stabilized/Mechanics.hpp"
+#include "stabilized/Problem_def.hpp"
+#include "BaseExpInstMacros.hpp"
+
+PLATO_ELEMENT_DEF(Plato::Stabilized::Problem, Plato::Stabilized::Mechanics)
+
 #endif

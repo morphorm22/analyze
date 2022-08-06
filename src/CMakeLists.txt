@@ -74,6 +74,8 @@ if(STABILIZED)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     stabilized/Problem.cpp
     stabilized/ElastostaticEnergy.cpp
+    stabilized/ElastostaticResidual.cpp
+    stabilized/PressureGradientProjectionResidual.cpp
   )
 endif()
 

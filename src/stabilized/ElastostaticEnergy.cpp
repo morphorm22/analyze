@@ -1,14 +1,11 @@
-// TODO #include "StabilizedElastostaticEnergy.hpp"
-// TODO #include "ExpInstMacros.hpp"
+#include "stabilized/ElastostaticEnergy_decl.hpp"
 
-#ifdef PLATOANALYZE_1D
-// TODO PLATO_EXPL_DEF(Plato::StabilizedElastostaticEnergy, Plato::SimplexStabilizedMechanics, 1)
-#endif
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#ifdef PLATOANALYZE_2D
-// TODO PLATO_EXPL_DEF(Plato::StabilizedElastostaticEnergy, Plato::SimplexStabilizedMechanics, 2)
-#endif
+#include "stabilized/ElastostaticEnergy_def.hpp"
+#include "stabilized/MechanicsElement.hpp"
+#include "elliptic/ExpInstMacros.hpp"
 
-#ifdef PLATOANALYZE_3D
-// TODO PLATO_EXPL_DEF(Plato::StabilizedElastostaticEnergy, Plato::SimplexStabilizedMechanics, 3)
+PLATO_ELLIPTIC_EXP_INST(Plato::Stabilized::ElastostaticEnergy, Plato::Stabilized::MechanicsElement)
+
 #endif
