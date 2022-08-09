@@ -32,13 +32,13 @@
 #include "hyperbolic/micromorphic/FullStressDivergence.hpp"
 #include "hyperbolic/micromorphic/ProjectStressToNode.hpp"
 
-#include <Teuchos_UnitTestHarness.hpp>
+#include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
 namespace RelaxedMicromorphicTest
 {
 
-TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ElasticCubic1D)
+TEUCHOS_UNIT_TEST(RelaxedMicromorphicMaterialsTests, ElasticCubic1D)
 {
     Teuchos::RCP<Teuchos::ParameterList> tParams =
       Teuchos::getParametersFromXmlString(
@@ -72,7 +72,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ElasticCubic1D)
     TEST_FLOATING_EQUALITY(692.05, tStiffnessMatrixCm(0,0), tTolerance);
 }
 
-TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ElasticCubic1D_Lambda_e_Keyword_Error)
+TEUCHOS_UNIT_TEST(RelaxedMicromorphicMaterialsTests, ElasticCubic1D_Lambda_e_Keyword_Error)
 {
     Teuchos::RCP<Teuchos::ParameterList> tParams =
       Teuchos::getParametersFromXmlString(
@@ -88,7 +88,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ElasticCubic1D_Lambda_e_Keyword_Error
     TEST_THROW(Plato::CubicMicromorphicLinearElasticMaterial<tSpaceDim> tMaterialModel(*tParams), std::runtime_error);
 }
 
-TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ElasticCubic2D)
+TEUCHOS_UNIT_TEST(RelaxedMicromorphicMaterialsTests, ElasticCubic2D)
 {
     Teuchos::RCP<Teuchos::ParameterList> tParams =
       Teuchos::getParametersFromXmlString(
@@ -140,7 +140,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ElasticCubic2D)
     TEST_FLOATING_EQUALITY(181.28, tStiffnessMatrixCm(2,2), tTolerance);
 }
 
-TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ElasticCubic2D_Mu_star_m_Keyword_Error)
+TEUCHOS_UNIT_TEST(RelaxedMicromorphicMaterialsTests, ElasticCubic2D_Mu_star_m_Keyword_Error)
 {
     Teuchos::RCP<Teuchos::ParameterList> tParams =
       Teuchos::getParametersFromXmlString(
@@ -158,7 +158,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ElasticCubic2D_Mu_star_m_Keyword_Erro
     TEST_THROW(Plato::CubicMicromorphicLinearElasticMaterial<tSpaceDim> tMaterialModel(*tParams), std::runtime_error);
 }
 
-TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ElasticCubic3D)
+TEUCHOS_UNIT_TEST(RelaxedMicromorphicMaterialsTests, ElasticCubic3D)
 {
     Teuchos::RCP<Teuchos::ParameterList> tParams =
       Teuchos::getParametersFromXmlString(
@@ -272,7 +272,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ElasticCubic3D)
     TEST_FLOATING_EQUALITY(181.28,  tStiffnessMatrixCm(5,5), tTolerance);
 }
 
-TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ElasticCubic3D_Mu_c_Keyword_Error)
+TEUCHOS_UNIT_TEST(RelaxedMicromorphicMaterialsTests, ElasticCubic3D_Mu_c_Keyword_Error)
 {
     Teuchos::RCP<Teuchos::ParameterList> tParams =
       Teuchos::getParametersFromXmlString(
@@ -290,7 +290,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ElasticCubic3D_Mu_c_Keyword_Error)
     TEST_THROW(Plato::CubicMicromorphicLinearElasticMaterial<tSpaceDim> tMaterialModel(*tParams), std::runtime_error);
 }
 
-TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, InertiaCubic1D)
+TEUCHOS_UNIT_TEST(RelaxedMicromorphicMaterialsTests, InertiaCubic1D)
 {
     Teuchos::RCP<Teuchos::ParameterList> tParams =
       Teuchos::getParametersFromXmlString(
@@ -332,7 +332,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, InertiaCubic1D)
     TEST_FLOATING_EQUALITY(7.0e-4, tInertiaMatrixJc(0,0), tTolerance);
 }
 
-TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, InertiaCubic1D_Eta_bar_2_Keyword_Error)
+TEUCHOS_UNIT_TEST(RelaxedMicromorphicMaterialsTests, InertiaCubic1D_Eta_bar_2_Keyword_Error)
 {
     Teuchos::RCP<Teuchos::ParameterList> tParams =
       Teuchos::getParametersFromXmlString(
@@ -350,7 +350,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, InertiaCubic1D_Eta_bar_2_Keyword_Erro
     TEST_THROW(Plato::CubicMicromorphicInertiaMaterial<tSpaceDim> tInertiaModel(*tParams), std::runtime_error);
 }
 
-TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, InertiaCubic2D)
+TEUCHOS_UNIT_TEST(RelaxedMicromorphicMaterialsTests, InertiaCubic2D)
 {
     Teuchos::RCP<Teuchos::ParameterList> tParams =
       Teuchos::getParametersFromXmlString(
@@ -410,7 +410,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, InertiaCubic2D)
     TEST_FLOATING_EQUALITY(1.0e-4, tInertiaMatrixJc(0,0), tTolerance);
 }
 
-TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, InertiaCubic2D_Eta_bar_star_1_Keyword_Error)
+TEUCHOS_UNIT_TEST(RelaxedMicromorphicMaterialsTests, InertiaCubic2D_Eta_bar_star_1_Keyword_Error)
 {
     Teuchos::RCP<Teuchos::ParameterList> tParams =
       Teuchos::getParametersFromXmlString(
@@ -430,7 +430,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, InertiaCubic2D_Eta_bar_star_1_Keyword
     TEST_THROW(Plato::CubicMicromorphicInertiaMaterial<tSpaceDim> tInertiaModel(*tParams), std::runtime_error);
 }
 
-TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, InertiaCubic3D)
+TEUCHOS_UNIT_TEST(RelaxedMicromorphicMaterialsTests, InertiaCubic3D)
 {
     Teuchos::RCP<Teuchos::ParameterList> tParams =
       Teuchos::getParametersFromXmlString(
@@ -560,7 +560,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, InertiaCubic3D)
     TEST_FLOATING_EQUALITY(1.0e-4, tInertiaMatrixJc(2,2), tTolerance);
 }
 
-TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, InertiaCubic3D_Eta_3_Keyword_Error)
+TEUCHOS_UNIT_TEST(RelaxedMicromorphicMaterialsTests, InertiaCubic3D_Eta_3_Keyword_Error)
 {
     Teuchos::RCP<Teuchos::ParameterList> tParams =
       Teuchos::getParametersFromXmlString(
@@ -580,7 +580,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, InertiaCubic3D_Eta_3_Keyword_Error)
     TEST_THROW(Plato::CubicMicromorphicInertiaMaterial<tSpaceDim> tInertiaModel(*tParams), std::runtime_error);
 }
 
-TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
+TEUCHOS_UNIT_TEST(RelaxedMicromorphicElementTests, ElementFunctors3D)
 {
     // create test mesh
     //
@@ -1236,20 +1236,12 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
 
 }
 
-TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ErrorAFormNotSpecified)
+TEUCHOS_UNIT_TEST(RelaxedMicromorphicResidualTests, ErrorAFormNotSpecified)
 {
-    // create test mesh
-    //
-    constexpr int tMeshWidth=2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
-    int tNumCells = tMesh->NumElements();
-
     // set parameters
     //
     Teuchos::RCP<Teuchos::ParameterList> tParams =
       Teuchos::getParametersFromXmlString(
-      "<ParameterList name='Problem'>                                    \n"
-      "  <Parameter name='Physics' type='string' value='Plato Driver' />  \n"
       "  <ParameterList name='Plato Problem'>                                    \n"
       "    <Parameter name='Physics' type='string' value='Micromorphic Mechanical' />  \n"
       "    <Parameter name='PDE Constraint' type='string' value='Hyperbolic' /> \n"
@@ -1298,31 +1290,28 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ErrorAFormNotSpecified)
       "      <Parameter name='Newmark Beta' type='double' value='0.0'/>      \n"
       "    </ParameterList>                                                        \n"
       "  </ParameterList>                                                  \n"
-      "</ParameterList>                                                  \n"
     );
 
-    MPI_Comm myComm;
-    MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
-    Plato::Comm::Machine tMachine(myComm);
-    
-    Plato::ProblemFactory tProblemFactory;
-    TEST_THROW(tProblemFactory.create(tMesh, *tParams, tMachine), std::runtime_error);
-}
-
-TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ErrorAFormFalse)
-{
     // create test mesh
     //
     constexpr int tMeshWidth=2;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
     int tNumCells = tMesh->NumElements();
 
+    Plato::SpatialModel tSpatialModel(tMesh, *tParams);
+    Plato::DataMap tDataMap;
+    TEST_THROW(
+    Plato::Hyperbolic::VectorFunction<::Plato::Hyperbolic::MicromorphicMechanics<Plato::Tet4>>
+      tVectorFunction(tSpatialModel, tDataMap, *tParams, tParams->get<std::string>("PDE Constraint")),
+    std::runtime_error);
+}
+
+TEUCHOS_UNIT_TEST(RelaxedMicromorphicResidualTests, ErrorAFormFalse)
+{
     // set parameters
     //
     Teuchos::RCP<Teuchos::ParameterList> tParams =
       Teuchos::getParametersFromXmlString(
-      "<ParameterList name='Problem'>                                    \n"
-      "  <Parameter name='Physics' type='string' value='Plato Driver' />  \n"
       "  <ParameterList name='Plato Problem'>                                    \n"
       "    <Parameter name='Physics' type='string' value='Micromorphic Mechanical' />  \n"
       "    <Parameter name='PDE Constraint' type='string' value='Hyperbolic' /> \n"
@@ -1372,31 +1361,28 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ErrorAFormFalse)
       "      <Parameter name='Newmark Beta' type='double' value='0.0'/>      \n"
       "    </ParameterList>                                                        \n"
       "  </ParameterList>                                                  \n"
-      "</ParameterList>                                                  \n"
     );
 
-    MPI_Comm myComm;
-    MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
-    Plato::Comm::Machine tMachine(myComm);
-    
-    Plato::ProblemFactory tProblemFactory;
-    TEST_THROW(tProblemFactory.create(tMesh, *tParams, tMachine), std::runtime_error);
-}
-
-TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ErrorExplicitNotSpecified)
-{
     // create test mesh
     //
     constexpr int tMeshWidth=2;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
     int tNumCells = tMesh->NumElements();
 
+    Plato::SpatialModel tSpatialModel(tMesh, *tParams);
+    Plato::DataMap tDataMap;
+    TEST_THROW(
+    Plato::Hyperbolic::VectorFunction<::Plato::Hyperbolic::MicromorphicMechanics<Plato::Tet4>>
+      tVectorFunction(tSpatialModel, tDataMap, *tParams, tParams->get<std::string>("PDE Constraint")),
+    std::runtime_error);
+}
+
+TEUCHOS_UNIT_TEST(RelaxedMicromorphicResidualTests, ErrorExplicitNotSpecified)
+{
     // set parameters
     //
     Teuchos::RCP<Teuchos::ParameterList> tParams =
       Teuchos::getParametersFromXmlString(
-      "<ParameterList name='Problem'>                                    \n"
-      "  <Parameter name='Physics' type='string' value='Plato Driver' />  \n"
       "  <ParameterList name='Plato Problem'>                                    \n"
       "    <Parameter name='Physics' type='string' value='Micromorphic Mechanical' />  \n"
       "    <Parameter name='PDE Constraint' type='string' value='Hyperbolic' /> \n"
@@ -1446,18 +1432,427 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, ErrorExplicitNotSpecified)
       "      <Parameter name='Newmark Beta' type='double' value='0.25'/>      \n"
       "    </ParameterList>                                                        \n"
       "  </ParameterList>                                                  \n"
-      "</ParameterList>                                                  \n"
     );
 
-    MPI_Comm myComm;
-    MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
-    Plato::Comm::Machine tMachine(myComm);
-    
-    Plato::ProblemFactory tProblemFactory;
-    TEST_THROW(tProblemFactory.create(tMesh, *tParams, tMachine), std::runtime_error);
+    // create test mesh
+    //
+    constexpr int tMeshWidth=2;
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    int tNumCells = tMesh->NumElements();
+
+    Plato::SpatialModel tSpatialModel(tMesh, *tParams);
+    Plato::DataMap tDataMap;
+    TEST_THROW(
+    Plato::Hyperbolic::VectorFunction<::Plato::Hyperbolic::MicromorphicMechanics<Plato::Tet4>>
+      tVectorFunction(tSpatialModel, tDataMap, *tParams, tParams->get<std::string>("PDE Constraint")),
+    std::runtime_error);
 }
 
-TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, CreateProblem)
+TEUCHOS_UNIT_TEST( RelaxedMicromorphicResidualTests, 3D_NoInertia )
+{
+    // create input for relaxed micromorphic residual
+    //
+    Teuchos::RCP<Teuchos::ParameterList> tParams =
+      Teuchos::getParametersFromXmlString(
+      "  <ParameterList name='Plato Problem'>                                    \n"
+      "    <Parameter name='Physics' type='string' value='Micromorphic Mechanical' />  \n"
+      "    <Parameter name='PDE Constraint' type='string' value='Hyperbolic' /> \n"
+      "    <ParameterList name='Material Models'>                           \n"
+      "      <ParameterList name='material_1'>                           \n"
+      "        <ParameterList name='Cubic Micromorphic Linear Elastic'>     \n"
+      "          <Parameter  name='Lambda_e' type='double' value='-120.74'/>   \n"
+      "          <Parameter  name='Mu_e' type='double' value='557.11'/>   \n"
+      "          <Parameter  name='Mu_star_e' type='double' value='8.37'/>   \n"
+      "          <Parameter  name='Mu_c' type='double' value='1.8e-4'/>   \n"
+      "          <Parameter  name='Lambda_m' type='double' value='180.63'/>   \n"
+      "          <Parameter  name='Mu_m' type='double' value='255.71'/>   \n"
+      "          <Parameter  name='Mu_star_m' type='double' value='181.28'/>   \n"
+      "        </ParameterList>                                                  \n"
+      "        <ParameterList name='Cubic Micromorphic Inertia'>     \n"
+      "          <Parameter  name='Mass Density' type='double' value='0.0'/>   \n"
+      "          <Parameter  name='Eta_bar_1' type='double' value='0.0'/>   \n"
+      "          <Parameter  name='Eta_bar_3' type='double' value='0.0'/>   \n"
+      "          <Parameter  name='Eta_bar_2' type='double' value='0.0'/>   \n"
+      "          <Parameter  name='Eta_bar_star_1' type='double' value='0.0'/>   \n"
+      "          <Parameter  name='Eta_1' type='double' value='0.0'/>   \n"
+      "          <Parameter  name='Eta_3' type='double' value='0.0'/>   \n"
+      "          <Parameter  name='Eta_2' type='double' value='0.0'/>   \n"
+      "          <Parameter  name='Eta_star_1' type='double' value='0.0'/>   \n"
+      "        </ParameterList>                                                  \n"
+      "      </ParameterList>                                                  \n"
+      "    </ParameterList>                                                  \n"
+      "    <ParameterList name='Spatial Model'>                                    \n"
+      "      <ParameterList name='Domains'>                                        \n"
+      "        <ParameterList name='Design Volume'>                                \n"
+      "          <Parameter name='Element Block' type='string' value='body'/>      \n"
+      "          <Parameter name='Material Model' type='string' value='material_1'/> \n"
+      "        </ParameterList>                                                    \n"
+      "      </ParameterList>                                                      \n"
+      "    </ParameterList>                                                        \n"
+      "    <ParameterList name='Hyperbolic'>                                    \n"
+      "      <ParameterList name='Penalty Function'>                                    \n"
+      "        <Parameter name='Type' type='string' value='SIMP'/>      \n"
+      "        <Parameter name='Exponent' type='double' value='3.0'/>      \n"
+      "        <Parameter name='Minimum Value' type='double' value='1e-9'/>      \n"
+      "      </ParameterList>                                                      \n"
+      "    </ParameterList>                                                        \n"
+      "    <ParameterList name='Time Integration'>                                    \n"
+      "      <Parameter name='Termination Time' type='double' value='20.0e-6'/>      \n"
+      "      <Parameter name='A-Form' type='bool' value='true'/>      \n"
+      "      <Parameter name='Newmark Gamma' type='double' value='0.5'/>      \n"
+      "      <Parameter name='Newmark Beta' type='double' value='0.0'/>      \n"
+      "    </ParameterList>                                                        \n"
+      "  </ParameterList>                                                  \n"
+    );
+
+    // create test mesh
+    //
+    constexpr int cMeshWidth=2;
+    constexpr int cSpaceDim=3;
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
+    using ElementType = typename Plato::Hyperbolic::MicromorphicMechanicsElement<Plato::Tet4>;
+    constexpr int tNumDofsPerNode  = ElementType::mNumDofsPerNode;
+    int tNumNodes = tMesh->NumNodes();
+    int tNumDofs = tNumNodes*tNumDofsPerNode;
+
+    // create vector function
+    //
+    Plato::SpatialModel tSpatialModel(tMesh, *tParams);
+
+    Plato::DataMap tDataMap;
+    Plato::Hyperbolic::VectorFunction<::Plato::Hyperbolic::MicromorphicMechanics<Plato::Tet4>>
+      tVectorFunction(tSpatialModel, tDataMap, *tParams, tParams->get<std::string>("PDE Constraint"));
+
+    // create control
+    //
+    auto tNumVerts = tMesh->NumNodes();
+    Plato::ScalarVector tControl("Control", tNumVerts);
+    Plato::blas1::fill(1.0, tControl);
+    
+    // create mesh based state
+    //
+    Plato::ScalarVector tState("state", tNumDofs);
+    Plato::ScalarVector tStateDot("state dot", tNumDofs);
+    Plato::ScalarVector tStateDotDot("state dot dot", tNumDofs);
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), LAMBDA_EXPRESSION(const int & aNodeOrdinal)
+    {
+      for (int tDofOrdinal=0; tDofOrdinal<tNumDofsPerNode; tDofOrdinal++)
+      {
+          tState(aNodeOrdinal*tNumDofsPerNode+tDofOrdinal) = (1e-7)*(tDofOrdinal + 1)*aNodeOrdinal;
+          tStateDot(aNodeOrdinal*tNumDofsPerNode+tDofOrdinal) = (1e-6)*(tDofOrdinal + 1)*aNodeOrdinal;
+          tStateDotDot(aNodeOrdinal*tNumDofsPerNode+tDofOrdinal) = (1e-5)*(tDofOrdinal + 1)*aNodeOrdinal;
+      }
+    }, "state");
+
+    // test residual
+    //
+    auto tResidual = tVectorFunction.value(tState, tStateDot, tStateDotDot, tControl, 0.0);
+    auto tResidual_Host = Kokkos::create_mirror_view( tResidual );
+    Kokkos::deep_copy( tResidual_Host, tResidual );
+
+    std::vector<Plato::Scalar> tNode0Residual_gold = {
+      5.989700987499991e-05, 1.266453644999998e-04, 2.063654026249997e-04, 1.012393593749998e-04, 1.551517968749998e-04, 2.090642343749996e-04,
+      6.491307503124990e-05, 7.172831515624989e-05, 7.979902153124987e-05, 6.491308121874990e-05, 7.172827859374989e-05, 7.979900971874988e-05
+    };
+    int tNodeOrdinal = 0;
+    for(int iDof=0; iDof<tNumDofsPerNode; iDof++){
+        int tLocalOrdinal = tNodeOrdinal*tNumDofsPerNode + iDof;
+        TEST_FLOATING_EQUALITY(tResidual_Host[tLocalOrdinal], tNode0Residual_gold[iDof], 1e-12);
+    }
+
+    // test gradient wrt U
+    //
+    auto tJacobian = tVectorFunction.gradient_u(tState, tStateDot, tStateDotDot, tControl, 0.0);
+    auto jac_entries = tJacobian->entries();
+    auto jac_entriesHost = Kokkos::create_mirror_view( jac_entries );
+    Kokkos::deep_copy(jac_entriesHost, jac_entries);
+
+    std::vector<Plato::Scalar> gold_jac_entries = {
+     1.683700599999997e+02,                        0,                        0,    2.069749999999997e+01,   -2.515416666666663e+00,   -2.515416666666663e+00,                          0,    1.743787499999997e-01,    1.743787499999997e-01,                        0,    1.743712499999997e-01,    1.743712499999997e-01,
+                         0,    1.683700599999998e+02,                        0,   -2.515416666666663e+00,    2.069749999999997e+01,   -2.515416666666663e+00,      1.743787499999997e-01,                        0,    1.743712499999997e-01,    1.743712499999997e-01,                        0,    1.743787499999997e-01,
+                         0,                        0,    1.683700599999998e+02,   -2.515416666666663e+00,   -2.515416666666663e+00,    2.069749999999997e+01,      1.743712499999997e-01,    1.743712499999997e-01,                        0,    1.743787499999997e-01,    1.743787499999997e-01,                        0,
+     2.069749999999997e+01,   -2.515416666666663e+00,   -2.515416666666663e+00,    1.316820312499998e+01,    4.678906249999991e-01,    4.678906249999991e-01,                          0,                        0,                        0,                        0,                        0,                        0,
+    -2.515416666666663e+00,    2.069749999999997e+01,   -2.515416666666663e+00,    4.678906249999991e-01,    1.316820312499998e+01,    4.678906249999991e-01,                          0,                        0,                        0,                        0,                        0,                        0,
+    -2.515416666666663e+00,   -2.515416666666663e+00,    2.069749999999997e+01,    4.678906249999991e-01,    4.678906249999991e-01,    1.316820312499998e+01,                          0,                        0,                        0,                        0,                        0,                        0,
+                         0,    1.743787499999997e-01,    1.743712499999997e-01,                        0,                        0,                        0,      1.481642031249998e+00,                        0,                        0,    1.481639218749998e+00,                        0,                        0,
+     1.743787499999997e-01,                        0,    1.743712499999997e-01,                        0,                        0,                        0,                          0,    1.481642031249998e+00,                        0,                        0,    1.481639218749998e+00,                        0,
+     1.743787499999997e-01,    1.743712499999997e-01,                        0,                        0,                        0,                        0,                          0,                        0,    1.481642031249998e+00,                        0,                        0,    1.481639218749998e+00,
+                         0,    1.743712499999997e-01,    1.743787499999997e-01,                        0,                        0,                        0,      1.481639218749998e+00,                        0,                        0,    1.481642031249998e+00,                        0,                        0,
+     1.743712499999997e-01,                        0,    1.743787499999997e-01,                        0,                        0,                        0,                          0,    1.481639218749998e+00,                        0,                        0,    1.481642031249998e+00,                        0,
+     1.743712499999997e-01,    1.743787499999997e-01,                        0,                        0,                        0,                        0,                          0,                        0,    1.481639218749998e+00,                        0,                        0,    1.481642031249998e+00
+    };
+
+    int jac_entriesSize = gold_jac_entries.size();
+    for(int i=0; i<jac_entriesSize; i++){
+      TEST_FLOATING_EQUALITY(jac_entriesHost(i), gold_jac_entries[i], 1.0e-12);
+    }
+
+    // test gradient wrt V
+    //
+    auto tJacobianV = tVectorFunction.gradient_v(tState, tStateDot, tStateDotDot, tControl, 0.0);
+    auto jacV_entries = tJacobianV->entries();
+    auto jacV_entriesHost = Kokkos::create_mirror_view( jacV_entries );
+    Kokkos::deep_copy(jacV_entriesHost, jacV_entries);
+
+    std::vector<Plato::Scalar> gold_jacV_entries = {
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+
+    int jacV_entriesSize = gold_jacV_entries.size();
+    for(int i=0; i<jacV_entriesSize; i++){
+      if(gold_jacV_entries[i] == 0.0){
+        TEST_ASSERT(fabs(jacV_entriesHost[i]) < 1e-12);
+      } else {
+        TEST_FLOATING_EQUALITY(jacV_entriesHost(i), gold_jacV_entries[i], 1.0e-12);
+      }
+    }
+
+    // test gradient wrt A
+    //
+    auto tJacobianA = tVectorFunction.gradient_a(tState, tStateDot, tStateDotDot, tControl, 0.0);
+    auto jacA_entries = tJacobianA->entries();
+    auto jacA_entriesHost = Kokkos::create_mirror_view( jacA_entries );
+    Kokkos::deep_copy(jacA_entriesHost, jacA_entries);
+
+    std::vector<Plato::Scalar> gold_jacA_entries = {
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+
+    int jacA_entriesSize = gold_jacA_entries.size();
+    for(int i=0; i<jacA_entriesSize; i++){
+      if(gold_jacA_entries[i] == 0.0){
+        TEST_ASSERT(fabs(jacA_entriesHost[i]) < 1e-12);
+      } else {
+        TEST_FLOATING_EQUALITY(jacA_entriesHost(i), gold_jacA_entries[i], 1.0e-12);
+      }
+    }
+}
+
+TEUCHOS_UNIT_TEST( RelaxedMicromorphicResidualTests, 3D_WithInertia )
+{
+    // create input for relaxed micromorphic residual
+    //
+    Teuchos::RCP<Teuchos::ParameterList> tParams =
+      Teuchos::getParametersFromXmlString(
+      "  <ParameterList name='Plato Problem'>                                    \n"
+      "    <Parameter name='Physics' type='string' value='Micromorphic Mechanical' />  \n"
+      "    <Parameter name='PDE Constraint' type='string' value='Hyperbolic' /> \n"
+      "    <ParameterList name='Material Models'>                           \n"
+      "      <ParameterList name='material_1'>                           \n"
+      "        <ParameterList name='Cubic Micromorphic Linear Elastic'>     \n"
+      "          <Parameter  name='Lambda_e' type='double' value='-120.74'/>   \n"
+      "          <Parameter  name='Mu_e' type='double' value='557.11'/>   \n"
+      "          <Parameter  name='Mu_star_e' type='double' value='8.37'/>   \n"
+      "          <Parameter  name='Mu_c' type='double' value='1.8e-4'/>   \n"
+      "          <Parameter  name='Lambda_m' type='double' value='180.63'/>   \n"
+      "          <Parameter  name='Mu_m' type='double' value='255.71'/>   \n"
+      "          <Parameter  name='Mu_star_m' type='double' value='181.28'/>   \n"
+      "        </ParameterList>                                                  \n"
+      "        <ParameterList name='Cubic Micromorphic Inertia'>     \n"
+      "          <Parameter  name='Mass Density' type='double' value='1451.8'/>   \n"
+      "          <Parameter  name='Eta_bar_1' type='double' value='0.6'/>   \n"
+      "          <Parameter  name='Eta_bar_3' type='double' value='2.0'/>   \n"
+      "          <Parameter  name='Eta_bar_2' type='double' value='1.0e-4'/>   \n"
+      "          <Parameter  name='Eta_bar_star_1' type='double' value='0.2'/>   \n"
+      "          <Parameter  name='Eta_1' type='double' value='2300.0'/>   \n"
+      "          <Parameter  name='Eta_3' type='double' value='-1800.0'/>   \n"
+      "          <Parameter  name='Eta_2' type='double' value='1.0e-4'/>   \n"
+      "          <Parameter  name='Eta_star_1' type='double' value='4500.0'/>   \n"
+      "        </ParameterList>                                                  \n"
+      "      </ParameterList>                                                  \n"
+      "    </ParameterList>                                                  \n"
+      "    <ParameterList name='Spatial Model'>                                    \n"
+      "      <ParameterList name='Domains'>                                        \n"
+      "        <ParameterList name='Design Volume'>                                \n"
+      "          <Parameter name='Element Block' type='string' value='body'/>      \n"
+      "          <Parameter name='Material Model' type='string' value='material_1'/> \n"
+      "        </ParameterList>                                                    \n"
+      "      </ParameterList>                                                      \n"
+      "    </ParameterList>                                                        \n"
+      "    <ParameterList name='Hyperbolic'>                                    \n"
+      "      <ParameterList name='Penalty Function'>                                    \n"
+      "        <Parameter name='Type' type='string' value='SIMP'/>      \n"
+      "        <Parameter name='Exponent' type='double' value='3.0'/>      \n"
+      "        <Parameter name='Minimum Value' type='double' value='1e-9'/>      \n"
+      "      </ParameterList>                                                      \n"
+      "    </ParameterList>                                                        \n"
+      "    <ParameterList name='Time Integration'>                                    \n"
+      "      <Parameter name='Termination Time' type='double' value='20.0e-6'/>      \n"
+      "      <Parameter name='A-Form' type='bool' value='true'/>      \n"
+      "      <Parameter name='Newmark Gamma' type='double' value='0.5'/>      \n"
+      "      <Parameter name='Newmark Beta' type='double' value='0.0'/>      \n"
+      "    </ParameterList>                                                        \n"
+      "  </ParameterList>                                                  \n"
+    );
+
+    // create test mesh
+    //
+    constexpr int cMeshWidth=2;
+    constexpr int cSpaceDim=3;
+    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
+    using ElementType = typename Plato::Hyperbolic::MicromorphicMechanicsElement<Plato::Tet4>;
+    constexpr int tNumDofsPerNode  = ElementType::mNumDofsPerNode;
+    int tNumNodes = tMesh->NumNodes();
+    int tNumDofs = tNumNodes*tNumDofsPerNode;
+
+    // create vector function
+    //
+    Plato::SpatialModel tSpatialModel(tMesh, *tParams);
+
+    Plato::DataMap tDataMap;
+    Plato::Hyperbolic::VectorFunction<::Plato::Hyperbolic::MicromorphicMechanics<Plato::Tet4>>
+      tVectorFunction(tSpatialModel, tDataMap, *tParams, tParams->get<std::string>("PDE Constraint"));
+
+    // create control
+    //
+    auto tNumVerts = tMesh->NumNodes();
+    Plato::ScalarVector tControl("Control", tNumVerts);
+    Plato::blas1::fill(1.0, tControl);
+    
+    // create mesh based state
+    //
+    Plato::ScalarVector tState("state", tNumDofs);
+    Plato::ScalarVector tStateDot("state dot", tNumDofs);
+    Plato::ScalarVector tStateDotDot("state dot dot", tNumDofs);
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), LAMBDA_EXPRESSION(const int & aNodeOrdinal)
+    {
+      for (int tDofOrdinal=0; tDofOrdinal<tNumDofsPerNode; tDofOrdinal++)
+      {
+          tState(aNodeOrdinal*tNumDofsPerNode+tDofOrdinal) = (1e-7)*(tDofOrdinal + 1)*aNodeOrdinal;
+          tStateDot(aNodeOrdinal*tNumDofsPerNode+tDofOrdinal) = (1e-6)*(tDofOrdinal + 1)*aNodeOrdinal;
+          tStateDotDot(aNodeOrdinal*tNumDofsPerNode+tDofOrdinal) = (1e-5)*(tDofOrdinal + 1)*aNodeOrdinal;
+      }
+    }, "state");
+
+    // test residual
+    //
+    auto tResidual = tVectorFunction.value(tState, tStateDot, tStateDotDot, tControl, 0.0);
+    auto tResidual_Host = Kokkos::create_mirror_view( tResidual );
+    Kokkos::deep_copy( tResidual_Host, tResidual );
+
+    std::vector<Plato::Scalar> tNode0Residual_gold = {
+      2.914539259874995e-03, 5.941914864499990e-03, 8.974266152624987e-03, -1.736751064062498e-02, -7.969848203124989e-03, 1.427814234374998e-03, 
+      1.554555374656560e-01, 1.737436027057810e-01, 1.920329234121560e-01, 1.554555386905935e-01, 1.737436038879685e-01, 1.920329246190935e-01
+    };
+    int tNodeOrdinal = 0;
+    for(int iDof=0; iDof<tNumDofsPerNode; iDof++){
+        int tLocalOrdinal = tNodeOrdinal*tNumDofsPerNode + iDof;
+        TEST_FLOATING_EQUALITY(tResidual_Host[tLocalOrdinal], tNode0Residual_gold[iDof], 1e-12);
+    }
+
+    // test gradient wrt U
+    //
+    auto tJacobian = tVectorFunction.gradient_u(tState, tStateDot, tStateDotDot, tControl, 0.0);
+    auto jac_entries = tJacobian->entries();
+    auto jac_entriesHost = Kokkos::create_mirror_view( jac_entries );
+    Kokkos::deep_copy(jac_entriesHost, jac_entries);
+
+    std::vector<Plato::Scalar> gold_jac_entries = {
+     1.683700599999997e+02,                        0,                        0,    2.069749999999997e+01,   -2.515416666666663e+00,   -2.515416666666663e+00,                          0,    1.743787499999997e-01,    1.743787499999997e-01,                        0,    1.743712499999997e-01,    1.743712499999997e-01,
+                         0,    1.683700599999998e+02,                        0,   -2.515416666666663e+00,    2.069749999999997e+01,   -2.515416666666663e+00,      1.743787499999997e-01,                        0,    1.743712499999997e-01,    1.743712499999997e-01,                        0,    1.743787499999997e-01,
+                         0,                        0,    1.683700599999998e+02,   -2.515416666666663e+00,   -2.515416666666663e+00,    2.069749999999997e+01,      1.743712499999997e-01,    1.743712499999997e-01,                        0,    1.743787499999997e-01,    1.743787499999997e-01,                        0,
+     2.069749999999997e+01,   -2.515416666666663e+00,   -2.515416666666663e+00,    1.316820312499998e+01,    4.678906249999991e-01,    4.678906249999991e-01,                          0,                        0,                        0,                        0,                        0,                        0,
+    -2.515416666666663e+00,    2.069749999999997e+01,   -2.515416666666663e+00,    4.678906249999991e-01,    1.316820312499998e+01,    4.678906249999991e-01,                          0,                        0,                        0,                        0,                        0,                        0,
+    -2.515416666666663e+00,   -2.515416666666663e+00,    2.069749999999997e+01,    4.678906249999991e-01,    4.678906249999991e-01,    1.316820312499998e+01,                          0,                        0,                        0,                        0,                        0,                        0,
+                         0,    1.743787499999997e-01,    1.743712499999997e-01,                        0,                        0,                        0,      1.481642031249998e+00,                        0,                        0,    1.481639218749998e+00,                        0,                        0,
+     1.743787499999997e-01,                        0,    1.743712499999997e-01,                        0,                        0,                        0,                          0,    1.481642031249998e+00,                        0,                        0,    1.481639218749998e+00,                        0,
+     1.743787499999997e-01,    1.743712499999997e-01,                        0,                        0,                        0,                        0,                          0,                        0,    1.481642031249998e+00,                        0,                        0,    1.481639218749998e+00,
+                         0,    1.743712499999997e-01,    1.743787499999997e-01,                        0,                        0,                        0,      1.481639218749998e+00,                        0,                        0,    1.481642031249998e+00,                        0,                        0,
+     1.743712499999997e-01,                        0,    1.743787499999997e-01,                        0,                        0,                        0,                          0,    1.481639218749998e+00,                        0,                        0,    1.481642031249998e+00,                        0,
+     1.743712499999997e-01,    1.743787499999997e-01,                        0,                        0,                        0,                        0,                          0,                        0,    1.481639218749998e+00,                        0,                        0,    1.481642031249998e+00
+    };
+
+    int jac_entriesSize = gold_jac_entries.size();
+    for(int i=0; i<jac_entriesSize; i++){
+      TEST_FLOATING_EQUALITY(jac_entriesHost(i), gold_jac_entries[i], 1.0e-12);
+    }
+
+    // test gradient wrt V
+    //
+    auto tJacobianV = tVectorFunction.gradient_v(tState, tStateDot, tStateDotDot, tControl, 0.0);
+    auto jacV_entries = tJacobianV->entries();
+    auto jacV_entriesHost = Kokkos::create_mirror_view( jacV_entries );
+    Kokkos::deep_copy(jacV_entriesHost, jacV_entries);
+
+    std::vector<Plato::Scalar> gold_jacV_entries = {
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+
+    int jacV_entriesSize = gold_jacV_entries.size();
+    for(int i=0; i<jacV_entriesSize; i++){
+      if(gold_jacV_entries[i] == 0.0){
+        TEST_ASSERT(fabs(jacV_entriesHost[i]) < 1e-12);
+      } else {
+        TEST_FLOATING_EQUALITY(jacV_entriesHost(i), gold_jacV_entries[i], 1.0e-12);
+      }
+    }
+
+    // test gradient wrt A
+    //
+    auto tJacobianA = tVectorFunction.gradient_a(tState, tStateDot, tStateDotDot, tControl, 0.0);
+    auto jacA_entries = tJacobianA->entries();
+    auto jacA_entriesHost = Kokkos::create_mirror_view( jacA_entries );
+    Kokkos::deep_copy(jacA_entriesHost, jacA_entries);
+
+    std::vector<Plato::Scalar> gold_jacA_entries = {
+     1.194222083333331e+01,                        0,                        0,                        0,                        0,                        0,                          0,                        0,                        0,                        0,                        0,                        0,
+                         0,    1.194222083333331e+01,                        0,                        0,                        0,                        0,                          0,                        0,                        0,                        0,                        0,                        0,
+                         0,                        0,    1.194222083333331e+01,                        0,                        0,                        0,                          0,                        0,                        0,                        0,                        0,                        0,
+                         0,                        0,                        0,    2.187499999999997e+01,   -1.406249999999998e+01,   -1.406249999999998e+01,                          0,                        0,                        0,                        0,                        0,                        0,
+                         0,                        0,                        0,   -1.406249999999998e+01,    2.187499999999997e+01,   -1.406249999999998e+01,                          0,                        0,                        0,                        0,                        0,                        0,
+                         0,                        0,                        0,   -1.406249999999998e+01,   -1.406249999999998e+01,    2.187499999999997e+01,                          0,                        0,                        0,                        0,                        0,                        0,
+                         0,                        0,                        0,                        0,                        0,                        0,      3.515625078124994e+01,                        0,                        0,    3.515624921874995e+01,                        0,                        0,
+                         0,                        0,                        0,                        0,                        0,                        0,                          0,    3.515625078124994e+01,                        0,                        0,    3.515624921874995e+01,                        0,
+                         0,                        0,                        0,                        0,                        0,                        0,                          0,                        0,    3.515625078124994e+01,                        0,                        0,    3.515624921874995e+01,
+                         0,                        0,                        0,                        0,                        0,                        0,      3.515624921874995e+01,                        0,                        0,    3.515625078124994e+01,                        0,                        0,
+                         0,                        0,                        0,                        0,                        0,                        0,                          0,    3.515624921874995e+01,                        0,                        0,    3.515625078124994e+01,                        0,
+                         0,                        0,                        0,                        0,                        0,                        0,                          0,                        0,    3.515624921874995e+01,                        0,                        0,    3.515625078124994e+01
+    };
+
+    int jacA_entriesSize = gold_jacA_entries.size();
+    for(int i=0; i<jacA_entriesSize; i++){
+      if(gold_jacA_entries[i] == 0.0){
+        TEST_ASSERT(fabs(jacA_entriesHost[i]) < 1e-12);
+      } else {
+        TEST_FLOATING_EQUALITY(jacA_entriesHost(i), gold_jacA_entries[i], 1.0e-12);
+      }
+    }
+}
+
+TEUCHOS_UNIT_TEST(RelaxedMicromorphicProblemTests, ConstructWithFactory)
 {
     // create test mesh
     //
@@ -1532,6 +1927,3 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, CreateProblem)
 }
 
 }
-// namespace RelaxedMicromorphicTest
-
-
