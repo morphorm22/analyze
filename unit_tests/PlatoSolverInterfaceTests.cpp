@@ -10,6 +10,7 @@
 #include "SimplexMechanics.hpp"
 #include "LinearElasticMaterial.hpp"
 #include "alg/PlatoSolverFactory.hpp"
+#include "alg/EpetraLinearSolver.hpp"
 
 #ifdef HAVE_AMGX
 #include <alg/AmgXSparseLinearProblem.hpp>

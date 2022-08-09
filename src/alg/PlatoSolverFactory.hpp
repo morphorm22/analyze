@@ -1,14 +1,8 @@
-#ifndef PLATO_SOLVER_FACTORY_HPP
-#define PLATO_SOLVER_FACTORY_HPP
+#pragma once
 
-#include "alg/AmgXLinearSolver.hpp"
-#include "alg/EpetraLinearSolver.hpp"
-#ifdef PLATO_TPETRA
-#include "alg/TpetraLinearSolver.hpp"
-#endif
-#ifdef PLATO_TACHO
-#include "alg/TachoLinearSolver.hpp"
-#endif
+#include "Teuchos_ParameterList.hpp"
+#include "PlatoAbstractSolver.hpp"
+#include "alg/ParallelComm.hpp"
 
 namespace Plato {
 
@@ -41,5 +35,3 @@ class SolverFactory
 };
 
 } // end Plato namespace
-
-#endif

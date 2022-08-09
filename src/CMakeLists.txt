@@ -73,6 +73,7 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     alg/EpetraLinearSolver.cpp
     alg/AmgXLinearSolver.cpp
     alg/PlatoSolverFactory.cpp
+    alg/PlatoAbstractSolver.cpp
 )
 
 ## Stabilized VMS sources

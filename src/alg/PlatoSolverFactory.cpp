@@ -1,6 +1,15 @@
 #include "alg/PlatoSolverFactory.hpp"
 #include "PlatoUtilities.hpp"
 
+#include "alg/AmgXLinearSolver.hpp"
+#include "alg/EpetraLinearSolver.hpp"
+#ifdef PLATO_TPETRA
+#include "alg/TpetraLinearSolver.hpp"
+#endif
+#ifdef PLATO_TACHO
+#include "alg/TachoLinearSolver.hpp"
+#endif
+
 namespace Plato {
 
 std::string determine_solver_stack(const Teuchos::ParameterList& tSolverParams)
