@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "TachoLinearSolver.hpp"
 
 namespace tacho {
@@ -63,7 +65,7 @@ void tachoSolver<SX>::refactorMatrix(const int numTerms, SX *values) {
 }
 
 template <typename SX>
-int tachoSolver<SX>::Initialize(
+void tachoSolver<SX>::Initialize(
     int numRows,
     /// with TACHO_ENABLE_INT_INT, size_type is "int"
     int *rowBegin, int *columns, SX *values, const bool printTimings)
@@ -71,8 +73,7 @@ int tachoSolver<SX>::Initialize(
 {
   m_numRows = numRows;
   if (m_numRows == 0)
-    return 0;
-  m_Solver.setOrderConnectedGraphSeparately(0);
+    return;
 
   const int numTerms = rowBegin[numRows];
   size_type_array_host ap_host((size_type *)rowBegin, numRows + 1);
@@ -88,6 +89,43 @@ int tachoSolver<SX>::Initialize(
   value_type_array ax(values, numTerms);
 #endif
 
+  initializeFromHostData(numRows, ap_host, aj_host, ax, printTimings);
+}
+
+template <typename SX>
+void tachoSolver<SX>::Initialize(int numRows, size_type_array rowBegin,
+                                 ordinal_type_array columns,
+                                 value_type_array ax,
+                                 const bool printTimings)
+{
+  m_numRows = numRows;
+  if (m_numRows == 0)
+    return;
+
+  const int numTerms = rowBegin(numRows);
+
+#if defined(KOKKOS_ENABLE_CUDA)
+  /// transfer A to host
+  size_type_array_host ap_host("ap_host", numRows + 1);
+  ordinal_type_array_host aj_host("aj_host", numTerms);
+  Kokkos::deep_copy(ap_host, rowBegin);
+  Kokkos::deep_copy(aj_host, columns);
+#else
+  size_type_array_host ap_host(rowBegin);
+  ordinal_type_array_host aj_host(columns);
+#endif
+
+  initializeFromHostData(numRows, ap_host, aj_host, ax, printTimings);
+}
+
+template <typename SX>
+void tachoSolver<SX>::initializeFromHostData(int numRows,
+                                             tachoSolver<SX>::size_type_array_host ap_host,
+                                             tachoSolver<SX>::ordinal_type_array_host aj_host,
+                                             tachoSolver<SX>::value_type_array ax,
+                                             const bool printTimings)
+{
+  m_Solver.setOrderConnectedGraphSeparately(0);
   Kokkos::Timer timer;
   {
     if (printTimings)
@@ -117,13 +155,11 @@ int tachoSolver<SX>::Initialize(
     }
   }
   Kokkos::fence();
-
-  return 0;
 }
 
 template <typename SX>
-void tachoSolver<SX>::MySolve(int NRHS, value_type_matrix &b,
-                              value_type_matrix &x) {
+void tachoSolver<SX>::MySolve(int NRHS, value_type_matrix b,
+                              value_type_matrix x) {
   if (m_numRows == 0)
     return;
 
@@ -179,4 +215,34 @@ void tachoSolver<SX>::setSolverParameters(const int *solverParams) {
 
 template class tachoSolver<double>;
 
+tachoSolver<Plato::Scalar> constructSolverFromParameterList(const Teuchos::ParameterList &aSolverParams)
+{
+  // to do: set solutionMethod from aSolverParams
+  constexpr int solutionMethod = 1;
+
+  std::vector<int> tachoParams;
+  tacho::getTachoParams(tachoParams, solutionMethod);
+  tachoParams[tacho::VERBOSITY] = 1;
+
+  return tacho::tachoSolver<Plato::Scalar>(tachoParams.data());
 }
+
+TachoLinearSolver::TachoLinearSolver(const Teuchos::ParameterList &aSolverParams,
+                                     std::shared_ptr<Plato::MultipointConstraints> aMPCs) :
+                                     Plato::AbstractSolver(aMPCs),
+                                     mSolver(constructSolverFromParameterList(aSolverParams))
+{
+}
+
+void TachoLinearSolver::innerSolve(Plato::CrsMatrix<int> aA,
+                                   Plato::ScalarVector aX,
+                                   Plato::ScalarVector aB)
+{
+    mSolver.Initialize(aA.numRows(), aA.rowMap(), aA.columnIndices(), aA.entries());
+    tachoSolver<double>::value_type_matrix x(aX.data(), aA.numRows(), 1);
+    tachoSolver<double>::value_type_matrix b(aB.data(), aA.numRows(), 1);
+    mSolver.MySolve(1, b, x);
+}
+
+
+} // namespace tacho

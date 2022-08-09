@@ -6,6 +6,9 @@
 #include "Tacho_Driver.hpp"
 #include "Teuchos_ScalarTraits.hpp"
 
+#include "PlatoAbstractSolver.hpp"
+#include "PlatoStaticsTypes.hpp"
+
 namespace tacho {
 
 enum TACHO_PARAM_INDICES {
@@ -66,20 +69,43 @@ public:
 
   void refactorMatrix(const int numTerms, SX *values);
 
-  int Initialize(int numRows,
-                 /// with TACHO_ENABLE_INT_INT, size_type is "int"
-                 int *rowBegin, int *columns, SX *values,
-                 const bool printTimings = false);
+  /// with TACHO_ENABLE_INT_INT, size_type is "int"
+  void Initialize(int numRows,
+                  int *rowBegin, int *columns, SX *values,
+                  const bool printTimings = false);
 
-  void MySolve(int NRHS, value_type_matrix &b, value_type_matrix &x);
+  void Initialize(int numRows, size_type_array rowBegin,
+                  ordinal_type_array columns, value_type_array ax,
+                  const bool printTimings = false);
+
+  void MySolve(int NRHS, value_type_matrix b, value_type_matrix x);
 
 private:
   int m_numRows;
   solver_type m_Solver;
   value_type_array m_TempRhs;
 
+  void initializeFromHostData(int numRows, size_type_array_host ap_host,
+                              ordinal_type_array_host aj_host,
+                              value_type_array ax, const bool printTimings);
+
   void setSolutionMethod(const int *solverParams);
   void setSolverParameters(const int *solverParams);
+};
+
+class TachoLinearSolver : public Plato::AbstractSolver
+{
+public:
+    TachoLinearSolver(const Teuchos::ParameterList &aSolverParams,
+                      std::shared_ptr<Plato::MultipointConstraints> aMPCs = nullptr);
+
+    void innerSolve(
+        Plato::CrsMatrix<int> aA,
+        Plato::ScalarVector   aX,
+        Plato::ScalarVector   aB
+    ) override;
+private:
+    tachoSolver<Plato::Scalar> mSolver;
 };
 
 } // namespace tacho
