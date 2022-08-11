@@ -153,26 +153,6 @@ TpetraSystem::toVector(Plato::ScalarVector& tOutVector, const Teuchos::RCP<Tpetr
     Kokkos::deep_copy(tOutVector,tInVectorDeviceView1D);
 }
 
-/******************************************************************************//**
- This constructor creates a new System.
-**********************************************************************************/
-TpetraLinearSolver::TpetraLinearSolver(
-    const Teuchos::ParameterList& aSolverParams,
-    int                     aNumNodes,
-    Comm::Machine           aMachine,
-    int                     aDofsPerNode
-) :
-    mSolverParams(aSolverParams),
-    mSystem(Teuchos::rcp( new TpetraSystem(aNumNodes, aMachine, aDofsPerNode))),
-    mPreLinearSolveTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Pre Linear Solve Setup")),
-    mPreconditionerSetupTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Preconditioner Setup")),
-    mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Tpetra Linear Solve")),
-    mSolverEndTime(mPreLinearSolveTimer->wallTime()),
-    mDofsPerNode(aDofsPerNode)
-{
-    this->initialize();
-}
-
 void
 TpetraLinearSolver::initialize()
 {
@@ -182,11 +162,6 @@ TpetraLinearSolver::initialize()
     setupPreconditionerOptions();
 }
 
-/******************************************************************************//**
- * @brief TpetraLinearSolver constructor with MPCs
-
- This constructor takes a MultipointConstraints instance and creates a new System.
-**********************************************************************************/
 TpetraLinearSolver::TpetraLinearSolver(
     const Teuchos::ParameterList&                   aSolverParams,
     int                                             aNumNodes,

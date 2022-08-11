@@ -127,39 +127,6 @@ EpetraSystem::toVector(Plato::ScalarVector tOutVector, rcp<Epetra_Vector> tInVec
     Kokkos::deep_copy(tOutVector, tInVector_host);
 }
 
-/******************************************************************************//**
- * \brief EpetraLinearSolver constructor
-
- This constructor creates a new System.
-**********************************************************************************/
-EpetraLinearSolver::EpetraLinearSolver(
-    const Teuchos::ParameterList& aSolverParams,
-    int                     aNumNodes,
-    Comm::Machine           aMachine,
-    int                     aDofsPerNode
-) :
-    mSolverParams(aSolverParams),
-    mSystem(std::make_shared<EpetraSystem>(aNumNodes, aMachine, aDofsPerNode)),
-    mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Epetra Linear Solve"))
-{
-    if(mSolverParams.isType<int>("Iterations"))
-        mIterations = mSolverParams.get<int>("Iterations");
-
-    if(mSolverParams.isType<double>("Tolerance"))
-        mTolerance = mSolverParams.get<double>("Tolerance");
-    
-    if(mSolverParams.isType<int>("Display Iterations"))
-        mDisplayIterations = mSolverParams.get<int>("Display Iterations");
-    
-    if(mSolverParams.isParameter("Display Diagnostics"))
-        mDisplayDiagnostics = mSolverParams.get<bool>("Display Diagnostics");
-}
-
-/******************************************************************************//**
- * @brief EpetraLinearSolver constructor with MPCs
-
- This constructor takes MultipointConstraints and creates a new System.
-**********************************************************************************/
 EpetraLinearSolver::EpetraLinearSolver(
     const Teuchos::ParameterList&                   aSolverParams,
     int                                             aNumNodes,

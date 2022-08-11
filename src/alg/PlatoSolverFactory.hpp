@@ -22,15 +22,8 @@ class SolverFactory
     create(
         Plato::OrdinalType                              aNumNodes,
         Comm::Machine                                   aMachine,
-        Plato::OrdinalType                              aDofsPerNode
-    );
-
-    rcp<AbstractSolver>
-    create(
-        Plato::OrdinalType                              aNumNodes,
-        Comm::Machine                                   aMachine,
         Plato::OrdinalType                              aDofsPerNode,
-        std::shared_ptr<Plato::MultipointConstraints>   aMPCs
+        std::shared_ptr<Plato::MultipointConstraints>   aMPCs = nullptr
     );
 };
 
