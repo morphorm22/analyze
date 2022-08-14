@@ -51,7 +51,7 @@
 #ifdef PLATO_STABILIZED
 #include "stabilized/Problem.hpp"
 #include "stabilized/Mechanics.hpp"
-// TODO #include "StabilizedThermomechanics.hpp"
+#include "stabilized/Thermomechanics.hpp"
 #endif
 
 #ifdef PLATO_HELMHOLTZ
@@ -367,9 +367,7 @@ create_stabilized_thermomechanical_problem
 #ifdef PLATO_STABILIZED
     if(tLowerPDE == "elliptic")
     {
-// TODO        auto tOutput = std::make_shared < EllipticVMSProblem<::Plato::StabilizedThermomechanics<SpatialDim>> > (aMesh, aPlatoProb, aMachine);
-// TODO        tOutput->readEssentialBoundaryConditions(aPlatoProb);
-// TODO        return tOutput;
+        return makeProblem<Plato::Stabilized::Problem, Plato::Stabilized::Thermomechanics>(aMesh, aPlatoProb, aMachine);
     }
     else
 #endif

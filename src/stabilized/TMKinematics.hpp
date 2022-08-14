@@ -1,5 +1,4 @@
-#ifndef TMKINEMATICS_HPP
-#define TMKINEMATICS_HPP
+#pragma once
 
 #include "PlatoMathTypes.hpp"
 #include "PlatoStaticsTypes.hpp"
@@ -7,11 +6,14 @@
 namespace Plato
 {
 
-/******************************************************************************/
-/*! Thermomechanical kinematics functor.
+namespace Stabilized
+{
 
- Given a gradient matrix and displacement array, compute the strain
- and temperature gradient.
+/******************************************************************************/
+/*! Two-field thermomechanical kinematics functor.
+
+ Given a gradient matrix and state array, compute the pressure gradient,
+ temperature gradient, and symmetric gradient of the displacement.
  */
 /******************************************************************************/
 template<typename ElementType>
@@ -23,6 +25,8 @@ private:
     using ElementType::mNumVoigtTerms;
     using ElementType::mNumNodesPerCell;
     using ElementType::mNumDofsPerNode;
+    using ElementType::mPressureDofOffset;
+    using ElementType::mTDofOffset;
 
 public:
 
@@ -31,6 +35,7 @@ public:
     operator()(
         Plato::OrdinalType                                                           aCellOrdinal,
         Plato::Array<mNumVoigtTerms,  StrainScalarType>                            & aStrain,
+        Plato::Array<mNumSpatialDims, StrainScalarType>                            & aPressureGrad,
         Plato::Array<mNumSpatialDims, StrainScalarType>                            & aTempGrad,
         Plato::ScalarMultiVectorT<StateScalarType>                           const & aState,
         Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, GradientScalarType> const & aGradient) const
@@ -65,20 +70,31 @@ public:
             }
         }
 
+        // compute pgrad
+        //
+        for(Plato::OrdinalType tDofIndex = 0; tDofIndex < mNumSpatialDims; tDofIndex++)
+        {
+            aPressureGrad(tDofIndex) = 0.0;
+            for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
+            {
+                Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumDofsPerNode + mPressureDofOffset;
+                aPressureGrad(tDofIndex) += aState(aCellOrdinal, tLocalOrdinal) * aGradient(tNodeIndex, tDofIndex);
+            }
+        }
+
         // compute tgrad
         //
-        Plato::OrdinalType tDofOffset = mNumSpatialDims;
         for(Plato::OrdinalType tDofIndex = 0; tDofIndex < mNumSpatialDims; tDofIndex++)
         {
             aTempGrad(tDofIndex) = 0.0;
             for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
             {
-                Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumDofsPerNode + tDofOffset;
+                Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumDofsPerNode + mTDofOffset;
                 aTempGrad(tDofIndex) += aState(aCellOrdinal, tLocalOrdinal) * aGradient(tNodeIndex, tDofIndex);
             }
         }
     }
-}; // class TMKinematics
-} // namespace Plato
+};
 
-#endif
+} // namespace Stabilized
+} // namespace Plato

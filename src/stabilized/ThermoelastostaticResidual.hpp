@@ -1,23 +1,17 @@
-#ifndef STABILIZED_THERMOELASTOSTATIC_RESIDUAL_HPP
-#define STABILIZED_THERMOELASTOSTATIC_RESIDUAL_HPP
-
-#include <memory>
+#pragma once
 
 #include "BLAS2.hpp"
 #include "PlatoTypes.hpp"
-#include "SimplexFadTypes.hpp"
-#include "SimplexThermomechanics.hpp"
 #include "TMKinematics.hpp"
 #include "TMKinetics.hpp"
-#include "StressDivergence.hpp"
+#include "GeneralStressDivergence.hpp"
 #include "PressureDivergence.hpp"
 #include "ProjectToNode.hpp"
-#include "FluxDivergence.hpp"
-#include "AbstractVectorFunctionVMS.hpp"
+#include "GradientMatrix.hpp"
+#include "GeneralFluxDivergence.hpp"
+#include "stabilized/AbstractVectorFunction.hpp"
 #include "ApplyWeighting.hpp"
-#include "CellForcing.hpp"
 #include "InterpolateFromNodal.hpp"
-#include "LinearTetCubRuleDegreeOne.hpp"
 #include "LinearThermoelasticMaterial.hpp"
 #include "NaturalBCs.hpp"
 #include "BodyLoads.hpp"
@@ -25,32 +19,34 @@
 namespace Plato
 {
 
+namespace Stabilized
+{
+
 /******************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
-class StabilizedThermoelastostaticResidual :
-        public Plato::SimplexStabilizedThermomechanics<EvaluationType::SpatialDim>,
-        public Plato::AbstractVectorFunctionVMS<EvaluationType>
+class ThermoelastostaticResidual :
+        public EvaluationType::ElementType,
+        public Plato::Stabilized::AbstractVectorFunction<EvaluationType>
 /******************************************************************************/
 {
 private:
-    static constexpr int SpaceDim = EvaluationType::SpatialDim;
+    using ElementType = typename EvaluationType::ElementType;
 
-    static constexpr int NMechDims  = SpaceDim;
+    using ElementType::mNumSpatialDims;
+    using ElementType::mNumDofsPerNode;
+    using ElementType::mNumDofsPerCell;
+    using ElementType::mNumVoigtTerms;
+    using ElementType::mNumNodesPerCell;
+
+    static constexpr int NMechDims  = mNumSpatialDims;
     static constexpr int NPressDims = 1;
     static constexpr int NThrmDims  = 1;
 
     static constexpr int MDofOffset = 0;
-    static constexpr int PDofOffset = SpaceDim;
-    static constexpr int TDofOffset = SpaceDim+1;
+    static constexpr int PDofOffset = mNumSpatialDims;
+    static constexpr int TDofOffset = mNumSpatialDims+1;
 
-    using PhysicsType = typename Plato::SimplexStabilizedThermomechanics<SpaceDim>;
-
-    using Plato::SimplexStabilizedThermomechanics<SpaceDim>::mNumVoigtTerms;
-    using Plato::Simplex<SpaceDim>::mNumNodesPerCell;
-    using PhysicsType::mNumDofsPerNode;
-    using PhysicsType::mNumDofsPerCell;
-
-    using FunctionBaseType = Plato::AbstractVectorFunctionVMS<EvaluationType>;
+    using FunctionBaseType = Plato::Stabilized::AbstractVectorFunction<EvaluationType>;
 
     using FunctionBaseType::mSpatialDomain;
     using FunctionBaseType::mDataMap;
@@ -62,27 +58,21 @@ private:
     using ConfigScalarType    = typename EvaluationType::ConfigScalarType;
     using ResultScalarType    = typename EvaluationType::ResultScalarType;
 
-    using CubatureType = Plato::LinearTetCubRuleDegreeOne<EvaluationType::SpatialDim>;
-
     IndicatorFunctionType mIndicatorFunction;
-    Plato::ApplyWeighting<SpaceDim, mNumVoigtTerms, IndicatorFunctionType> mApplyTensorWeighting;
-    Plato::ApplyWeighting<SpaceDim, SpaceDim,        IndicatorFunctionType> mApplyVectorWeighting;
-    Plato::ApplyWeighting<SpaceDim, 1,               IndicatorFunctionType> mApplyScalarWeighting;
+    Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms,  IndicatorFunctionType> mApplyTensorWeighting;
+    Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyVectorWeighting;
+    Plato::ApplyWeighting<mNumNodesPerCell, /*num_dofs=*/1,  IndicatorFunctionType> mApplyScalarWeighting;
 
-    std::shared_ptr<Plato::BodyLoads<EvaluationType, PhysicsType>> mBodyLoads;
+    std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
 
-    std::shared_ptr<Plato::NaturalBCs<SpaceDim, NMechDims, mNumDofsPerNode, MDofOffset>> mBoundaryLoads;
-    std::shared_ptr<Plato::NaturalBCs<SpaceDim, NThrmDims, mNumDofsPerNode, TDofOffset>> mBoundaryFluxes;
+    std::shared_ptr<Plato::NaturalBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>> mBoundaryLoads;
+    std::shared_ptr<Plato::NaturalBCs<ElementType, NThrmDims, mNumDofsPerNode, TDofOffset>> mBoundaryFluxes;
 
-    std::shared_ptr<CubatureType> mCubatureRule;
-
-    Teuchos::RCP<Plato::LinearThermoelasticMaterial<SpaceDim>> mMaterialModel;
-
-    std::vector<std::string> mPlottable;
+    Teuchos::RCP<Plato::LinearThermoelasticMaterial<mNumSpatialDims>> mMaterialModel;
 
 public:
     /**************************************************************************/
-    StabilizedThermoelastostaticResidual(
+    ThermoelastostaticResidual(
         const Plato::SpatialDomain & aSpatialDomain,
               Plato::DataMap& aDataMap,
               Teuchos::ParameterList& aProblemParams,
@@ -95,20 +85,19 @@ public:
         mApplyScalarWeighting (mIndicatorFunction),
         mBodyLoads            (nullptr),
         mBoundaryLoads        (nullptr),
-        mBoundaryFluxes       (nullptr),
-        mCubatureRule         (std::make_shared<CubatureType>())
+        mBoundaryFluxes       (nullptr)
     /**************************************************************************/
     {
         // obligatory: define dof names in order
         mDofNames.push_back("displacement X");
-        if(SpaceDim > 1) mDofNames.push_back("displacement Y");
-        if(SpaceDim > 2) mDofNames.push_back("displacement Z");
+        if(mNumSpatialDims > 1) mDofNames.push_back("displacement Y");
+        if(mNumSpatialDims > 2) mDofNames.push_back("displacement Z");
         mDofNames.push_back("pressure");
         mDofNames.push_back("temperature");
 
         // create material model and get stiffness
         //
-        Plato::LinearThermoelasticModelFactory<SpaceDim> mmfactory(aProblemParams);
+        Plato::LinearThermoelasticModelFactory<mNumSpatialDims> mmfactory(aProblemParams);
         mMaterialModel = mmfactory.create(aSpatialDomain.getMaterialName());
   
 
@@ -116,14 +105,14 @@ public:
         // 
         if(aProblemParams.isSublist("Body Loads"))
         {
-            mBodyLoads = std::make_shared<Plato::BodyLoads<EvaluationType, PhysicsType>>(aProblemParams.sublist("Body Loads"));
+            mBodyLoads = std::make_shared<Plato::BodyLoads<EvaluationType, ElementType>>(aProblemParams.sublist("Body Loads"));
         }
   
         // parse mechanical boundary Conditions
         // 
         if(aProblemParams.isSublist("Mechanical Natural Boundary Conditions"))
         {
-            mBoundaryLoads = std::make_shared<Plato::NaturalBCs<SpaceDim, NMechDims, mNumDofsPerNode, MDofOffset>>
+            mBoundaryLoads = std::make_shared<Plato::NaturalBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>>
                                 (aProblemParams.sublist("Mechanical Natural Boundary Conditions"));
         }
   
@@ -131,14 +120,9 @@ public:
         // 
         if(aProblemParams.isSublist("Thermal Natural Boundary Conditions"))
         {
-            mBoundaryFluxes = std::make_shared<Plato::NaturalBCs<SpaceDim, NThrmDims, mNumDofsPerNode, TDofOffset>>
+            mBoundaryFluxes = std::make_shared<Plato::NaturalBCs<ElementType, NThrmDims, mNumDofsPerNode, TDofOffset>>
                                  (aProblemParams.sublist("Thermal Natural Boundary Conditions"));
         }
-  
-        auto tResidualParams = aProblemParams.sublist("Stabilized Elliptic");
-        if( tResidualParams.isType<Teuchos::Array<std::string>>("Plottable") )
-          mPlottable = tResidualParams.get<Teuchos::Array<std::string>>("Plottable").toVector();
-
     }
 
     /****************************************************************************//**
@@ -165,91 +149,94 @@ public:
     {
       auto tNumCells = mSpatialDomain.numCells();
 
-      using GradScalarType =
-      typename Plato::fad_type_t<Plato::SimplexStabilizedThermomechanics
-                <EvaluationType::SpatialDim>, StateScalarType, ConfigScalarType>;
+      using GradScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
-      Plato::ComputeGradientWorkset <SpaceDim> computeGradient;
-      Plato::StabilizedTMKinematics <SpaceDim> kinematics;
-      Plato::StabilizedTMKinetics   <SpaceDim> kinetics(mMaterialModel);
+      Plato::ComputeGradientMatrix    <ElementType> computeGradient;
+      Plato::Stabilized::TMKinematics <ElementType> kinematics;
+      Plato::Stabilized::TMKinetics   <ElementType> kinetics(mMaterialModel);
 
-      Plato::InterpolateFromNodal   <SpaceDim, SpaceDim, 0, SpaceDim>        interpolatePGradFromNodal;
-      Plato::InterpolateFromNodal   <SpaceDim, mNumDofsPerNode, PDofOffset>  interpolatePressureFromNodal;
-      Plato::InterpolateFromNodal   <SpaceDim, mNumDofsPerNode, TDofOffset>  interpolateTemperatureFromNodal;
+      Plato::InterpolateFromNodal <ElementType, mNumSpatialDims, 0, mNumSpatialDims> interpolatePGradFromNodal;
+      Plato::InterpolateFromNodal <ElementType, mNumDofsPerNode, PDofOffset> interpolatePressureFromNodal;
+      Plato::InterpolateFromNodal <ElementType, mNumDofsPerNode, TDofOffset> interpolateTemperatureFromNodal;
       
-      Plato::FluxDivergence         <SpaceDim, mNumDofsPerNode, TDofOffset> fluxDivergence;
-      Plato::FluxDivergence         <SpaceDim, mNumDofsPerNode, PDofOffset> stabDivergence;
-      Plato::StressDivergence       <SpaceDim, mNumDofsPerNode, MDofOffset> stressDivergence;
-      Plato::PressureDivergence     <SpaceDim, mNumDofsPerNode>             pressureDivergence;
+      Plato::GeneralFluxDivergence   <ElementType, mNumDofsPerNode, TDofOffset> fluxDivergence;
+      Plato::GeneralFluxDivergence   <ElementType, mNumDofsPerNode, PDofOffset> stabDivergence;
+      Plato::GeneralStressDivergence <ElementType, mNumDofsPerNode, MDofOffset> stressDivergence;
+      Plato::ProjectToNode           <ElementType, mNumDofsPerNode, PDofOffset> projectVolumeStrain;
 
-      Plato::ProjectToNode          <SpaceDim, mNumDofsPerNode, PDofOffset> projectVolumeStrain;
+      Plato::PressureDivergence <ElementType, mNumDofsPerNode> pressureDivergence;
 
-      Plato::ScalarVectorT      <ResultScalarType>    tVolStrain      ("volume strain",      tNumCells);
-      Plato::ScalarVectorT      <StateScalarType>     tTemperature    ("GP temperature",     tNumCells);
-      Plato::ScalarVectorT      <ResultScalarType>    tPressure       ("GP pressure",        tNumCells);
-      Plato::ScalarVectorT      <ConfigScalarType>    tCellVolume     ("cell weight",        tNumCells);
-      Plato::ScalarMultiVectorT <NodeStateScalarType> tProjectedPGrad ("projected p grad",   tNumCells, SpaceDim);
-      Plato::ScalarMultiVectorT <ResultScalarType>    tTFlux          ("thermal flux",       tNumCells, SpaceDim);
-      Plato::ScalarMultiVectorT <ResultScalarType>    tCellStab       ("cell stabilization", tNumCells, SpaceDim);
-      Plato::ScalarMultiVectorT <GradScalarType>      tPGrad          ("pressure grad",      tNumCells, SpaceDim);
-      Plato::ScalarMultiVectorT <GradScalarType>      tTGrad          ("temperature grad",   tNumCells, SpaceDim);
-      Plato::ScalarMultiVectorT <ResultScalarType>    tDevStress      ("deviatoric stress",  tNumCells, mNumVoigtTerms);
-      Plato::ScalarMultiVectorT <GradScalarType>      tDGrad          ("displacement grad",  tNumCells, mNumVoigtTerms);
-      Plato::ScalarArray3DT     <ConfigScalarType>    tGradient       ("gradient",           tNumCells, mNumNodesPerCell, SpaceDim);
-
-      auto tQuadratureWeight = mCubatureRule->getCubWeight();
-      auto tBasisFunctions   = mCubatureRule->getBasisFunctions();
+      auto tCubPoints = ElementType::getCubPoints();
+      auto tCubWeights = ElementType::getCubWeights();
+      auto tNumPoints = tCubWeights.size();
 
       auto& applyTensorWeighting = mApplyTensorWeighting;
       auto& applyVectorWeighting = mApplyVectorWeighting;
       auto& applyScalarWeighting = mApplyScalarWeighting;
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), LAMBDA_EXPRESSION(int cellOrdinal)
+      Kokkos::parallel_for("compute residual", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
+        ConfigScalarType tVolume(0.0);
+
+        Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, ConfigScalarType> tGradient;
+
         // compute gradient operator and cell volume
         //
-        computeGradient(cellOrdinal, tGradient, aConfigWS, tCellVolume);
-        tCellVolume(cellOrdinal) *= tQuadratureWeight;
+        auto tCubPoint = tCubPoints(iGpOrdinal);
+        computeGradient(iCellOrdinal, tCubPoint, aConfigWS, tGradient, tVolume);
+        tVolume *= tCubWeights(iGpOrdinal);
 
         // compute symmetric gradient of displacement, pressure gradient, and temperature gradient
         //
-        kinematics(cellOrdinal, tDGrad, tPGrad, tTGrad, aStateWS, tGradient);
+        Plato::Array<mNumVoigtTerms, GradScalarType> tDGrad(0.0);
+        Plato::Array<mNumSpatialDims, GradScalarType> tPGrad(0.0);
+        Plato::Array<mNumSpatialDims, GradScalarType> tTGrad(0.0);
+        kinematics(iCellOrdinal, tDGrad, tPGrad, tTGrad, aStateWS, tGradient);
 
         // interpolate projected PGrad, pressure, and temperature to gauss point
         //
-        interpolatePGradFromNodal        ( cellOrdinal, tBasisFunctions, aPGradWS, tProjectedPGrad );
-        interpolatePressureFromNodal     ( cellOrdinal, tBasisFunctions, aStateWS, tPressure       );
-        interpolateTemperatureFromNodal  ( cellOrdinal, tBasisFunctions, aStateWS, tTemperature    );
+        auto tBasisValues = ElementType::basisValues(tCubPoint);
+        Plato::Array<mNumSpatialDims, NodeStateScalarType> tProjectedPGrad(0.0);
+        interpolatePGradFromNodal(iCellOrdinal, tBasisValues, aPGradWS, tProjectedPGrad);
+
+        ResultScalarType tPressure;
+        interpolatePressureFromNodal(iCellOrdinal, tBasisValues, aStateWS, tPressure);
+
+        ResultScalarType tTemperature;
+        interpolateTemperatureFromNodal(iCellOrdinal, tBasisValues, aStateWS, tTemperature);
 
         // compute the constitutive response
         //
-        kinetics(cellOrdinal,     tCellVolume,
-                 tProjectedPGrad, tPressure,   tTemperature,
-                 tDGrad,          tPGrad,      tTGrad,
-                 tDevStress,      tVolStrain,  tTFlux,  tCellStab);
+        ResultScalarType tVolStrain(0.0);
+        Plato::Array<mNumSpatialDims, ResultScalarType> tCellStab(0.0);
+        Plato::Array<mNumSpatialDims, ResultScalarType> tTFlux(0.0);
+        Plato::Array<mNumVoigtTerms, ResultScalarType> tDevStress(0.0);
+        kinetics(tVolume, tProjectedPGrad, tDGrad, tPGrad, tTGrad, tTemperature,
+                 tPressure, tDevStress, tVolStrain, tTFlux, tCellStab);
 
         // apply weighting
         //
-        applyTensorWeighting (cellOrdinal, tDevStress, aControlWS);
-        applyVectorWeighting (cellOrdinal, tCellStab,  aControlWS);
-        applyVectorWeighting (cellOrdinal, tTFlux,     aControlWS);
-        applyScalarWeighting (cellOrdinal, tPressure,  aControlWS);
-        applyScalarWeighting (cellOrdinal, tVolStrain, aControlWS);
+        applyTensorWeighting (iCellOrdinal, aControlWS, tBasisValues, tDevStress);
+        applyVectorWeighting (iCellOrdinal, aControlWS, tBasisValues, tCellStab);
+        applyVectorWeighting (iCellOrdinal, aControlWS, tBasisValues, tTFlux);
+        applyScalarWeighting (iCellOrdinal, aControlWS, tBasisValues, tPressure);
+        applyScalarWeighting (iCellOrdinal, aControlWS, tBasisValues, tVolStrain);
     
         // compute divergence
         //
-        stressDivergence    (cellOrdinal, aResultWS,  tDevStress, tGradient, tCellVolume);
-        pressureDivergence  (cellOrdinal, aResultWS,  tPressure,  tGradient, tCellVolume);
-        stabDivergence      (cellOrdinal, aResultWS,  tCellStab,  tGradient, tCellVolume, -1.0);
-        fluxDivergence      (cellOrdinal, aResultWS,  tTFlux,     tGradient, tCellVolume);
+        stressDivergence    (iCellOrdinal, aResultWS,  tDevStress, tGradient, tVolume);
+        pressureDivergence  (iCellOrdinal, aResultWS,  tPressure,  tGradient, tVolume);
+        stabDivergence      (iCellOrdinal, aResultWS,  tCellStab,  tGradient, tVolume, -1.0);
+        fluxDivergence      (iCellOrdinal, aResultWS,  tTFlux,     tGradient, tVolume);
 
-        projectVolumeStrain (cellOrdinal, tCellVolume, tBasisFunctions, tVolStrain, aResultWS);
+        projectVolumeStrain (iCellOrdinal, tVolume, tBasisValues, tVolStrain, aResultWS);
 
-      }, "Cauchy stress");
+      });
 
       if( mBodyLoads != nullptr )
       {
-          mBodyLoads->get( mSpatialDomain, aStateWS, aControlWS, aResultWS, -1.0 );
+          mBodyLoads->get( mSpatialDomain, aStateWS, aControlWS, aConfigWS, aResultWS, -1.0 );
       }
     }
     /**************************************************************************/
@@ -278,5 +265,5 @@ public:
 };
 // class ThermoelastostaticResidual
 
+} // namespace Stabilized
 } // namespace Plato
-#endif

@@ -12,7 +12,7 @@ include (${CMAKE_CURRENT_SOURCE_DIR}/add_test.cmake)
 
 #TODO: update stablized formulations to new element
 #Plato_add_test(PlatoMathHelpers PlatoMathHelpersTest.cpp)
-#Plato_add_test(TwoField TwoFieldTests.cpp)
+Plato_add_test(TwoField TwoFieldTests.cpp)
 
 #TODO: update StructuralDynamics to new element
 #Plato_add_test(PlatoFunctors PlatoFunctorsTest.cpp)

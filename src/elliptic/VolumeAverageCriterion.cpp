@@ -16,13 +16,10 @@ PLATO_ELEMENT_DEF(Plato::Elliptic::VolumeAverageCriterion, Plato::Thermomechanic
 PLATO_ELEMENT_DEF(Plato::Elliptic::VolumeAverageCriterion, Plato::Electromechanics)
 
 #ifdef PLATO_STABILIZED
-// TODO #include "StabilizedThermomechanics.hpp"
-// TODO PLATO_ELEMENT_DEF(Plato::Elliptic::VolumeAverageCriterion, Plato::StabilizedThermomechanics)
-#endif
-
-#ifdef PLATO_STABILIZED
   #include "stabilized/Mechanics.hpp"
+  #include "stabilized/Thermomechanics.hpp"
   PLATO_ELEMENT_DEF(Plato::Elliptic::VolumeAverageCriterion, Plato::Stabilized::Mechanics)
+  PLATO_ELEMENT_DEF(Plato::Elliptic::VolumeAverageCriterion, Plato::Stabilized::Thermomechanics)
 #endif
 
 #endif

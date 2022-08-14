@@ -17,7 +17,9 @@ PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::MassMoment, Plato::ElectromechanicsEl
 
 #ifdef PLATO_STABILIZED
   #include "stabilized/MechanicsElement.hpp"
+  #include "stabilized/ThermomechanicsElement.hpp"
   PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::MassMoment, Plato::Stabilized::MechanicsElement)
+  PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::MassMoment, Plato::Stabilized::ThermomechanicsElement)
 #endif
 
 #endif

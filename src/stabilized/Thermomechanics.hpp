@@ -1,28 +1,23 @@
-#ifndef PLATO_STABILIZED_THERMOMECHANICS_HPP
-#define PLATO_STABILIZED_THERMOMECHANICS_HPP
+#pragma once
 
 #include <memory>
 
-#include "Simplex.hpp"
-#include "SimplexProjection.hpp"
-#include "AbstractVectorFunctionVMS.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
 #include "parabolic/AbstractScalarFunction.hpp"
-#include "Projection.hpp"
-#include "StabilizedThermoelastostaticResidual.hpp"
+#include "stabilized/Projection.hpp"
+#include "stabilized/AbstractVectorFunction.hpp"
+#include "parabolic/AbstractVectorFunction.hpp"
+#include "stabilized/ThermoelastostaticResidual.hpp"
 #include "PressureGradientProjectionResidual.hpp"
-#include "ThermoPlasticity.hpp"
 #include "AnalyzeMacros.hpp"
-
-#include "Simp.hpp"
-#include "Ramp.hpp"
-#include "Heaviside.hpp"
-#include "NoPenalty.hpp"
 
 namespace Plato
 {
 
-namespace StabilizedThermomechanicsFactory
+namespace Stabilized
+{
+
+namespace ThermomechanicsFactory
 {
 
 /******************************************************************************/
@@ -30,46 +25,21 @@ struct FunctionFactory
 {
     /******************************************************************************/
     template<typename EvaluationType>
-    std::shared_ptr<Plato::AbstractVectorFunctionVMS<EvaluationType>>
+    std::shared_ptr<Plato::Stabilized::AbstractVectorFunction<EvaluationType>>
     createVectorFunction(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aParamList,
-        const std::string            & aStrVectorFunctionType
+        const std::string            & aPDE
     )
     /******************************************************************************/
     {
-        if(aStrVectorFunctionType == "Elliptic")
+        auto tLowerPDE = Plato::tolower(aPDE);
+
+        if(tLowerPDE == "elliptic")
         {
-            auto tPenaltyParams = aParamList.sublist(aStrVectorFunctionType).sublist("Penalty Function");
-            std::string tPenaltyType = tPenaltyParams.get<std::string>("Type", "SIMP");
-            if(tPenaltyType == "SIMP")
-            {
-                return std::make_shared<Plato::StabilizedThermoelastostaticResidual<EvaluationType, Plato::MSIMP>>
-                         (aSpatialDomain, aDataMap, aParamList, tPenaltyParams);
-            }
-            else
-            if(tPenaltyType == "RAMP")
-            {
-                return std::make_shared<Plato::StabilizedThermoelastostaticResidual<EvaluationType, Plato::RAMP>>
-                         (aSpatialDomain, aDataMap, aParamList, tPenaltyParams);
-            }
-            else
-            if(tPenaltyType == "Heaviside")
-            {
-                return std::make_shared<Plato::StabilizedThermoelastostaticResidual<EvaluationType, Plato::Heaviside>>
-                         (aSpatialDomain, aDataMap, aParamList, tPenaltyParams);
-            }
-            else
-            if(tPenaltyType == "NoPenalty")
-            {
-                return std::make_shared<Plato::StabilizedThermoelastostaticResidual<EvaluationType, Plato::NoPenalty>>
-                         (aSpatialDomain, aDataMap, aParamList, tPenaltyParams);
-            }
-            else
-            {
-                ANALYZE_THROWERR("Unknown 'Type' specified in 'Penalty Function' ParameterList");
-            }
+            return Plato::makeVectorFunction<EvaluationType, Plato::Stabilized::ThermoelastostaticResidual>
+                     (aSpatialDomain, aDataMap, aParamList, aPDE);
         }
         else
         {
@@ -126,31 +96,29 @@ struct FunctionFactory
     }
 }; // struct FunctionFactory
 
-} // namespace StabilizedThermomechanicsFactory
+} // namespace ThermomechanicsFactory
+} // namespace Stabilized
+} // namespace Plato
 
+#include "stabilized/ThermomechanicsElement.hpp"
 
+namespace Plato {
+namespace Stabilized {
 /****************************************************************************//**
- * \brief Concrete class for use as the SimplexPhysics template argument in
- *        EllipticVMSProblem
+ * \brief Concrete class for use as the PhysicsType template argument in Problem
  *******************************************************************************/
-template<Plato::OrdinalType SpaceDimParam>
-class StabilizedThermomechanics: public Plato::SimplexStabilizedThermomechanics<SpaceDimParam>
+template<typename TopoElementType>
+class Thermomechanics
 {
 public:
-    typedef Plato::StabilizedThermomechanicsFactory::FunctionFactory FunctionFactory;
-    using SimplexT        = SimplexStabilizedThermomechanics<SpaceDimParam>;
+    typedef Plato::Stabilized::ThermomechanicsFactory::FunctionFactory FunctionFactory;
 
-    using LocalStateT   = typename Plato::ThermoPlasticity<SpaceDimParam>;
-
-    using ProjectorT = typename Plato::Projection<SpaceDimParam,
-                                                  SimplexT::mNumDofsPerNode,
-                                                  SimplexT::mPressureDofOffset,
-                                                  /* numProjectionDofs=*/ 1>;
-
-
-    static constexpr Plato::OrdinalType SpaceDim = SpaceDimParam;
+    using ElementType   = Plato::Stabilized::ThermomechanicsElement<TopoElementType>;
+    using ProjectorType = typename Plato::Stabilized::Projection<TopoElementType,
+                                                                 ElementType::mNumDofsPerNode,
+                                                                 ElementType::mPressureDofOffset,
+                                                                 /* numProjectionDofs=*/ 1>;
 };
 
 } // namespace Plato
-
-#endif
+} // namespace Plato

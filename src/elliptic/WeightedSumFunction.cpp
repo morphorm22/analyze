@@ -17,7 +17,9 @@ PLATO_ELEMENT_DEF(Plato::Elliptic::WeightedSumFunction, Plato::Electromechanics)
 
 #ifdef PLATO_STABILIZED
   #include "stabilized/Mechanics.hpp"
+  #include "stabilized/Thermomechanics.hpp"
   PLATO_ELEMENT_DEF(Plato::Elliptic::WeightedSumFunction, Plato::Stabilized::Mechanics)
+  PLATO_ELEMENT_DEF(Plato::Elliptic::WeightedSumFunction, Plato::Stabilized::Thermomechanics)
 #endif
 
 #endif

@@ -49,7 +49,7 @@ struct FunctionFactory
  *******************************************************************************/
 template<
   typename TopoElementType,
-  Plato::OrdinalType TotalDofsParam = TopoElementType::SpaceDimParam,
+  Plato::OrdinalType TotalDofsParam = TopoElementType::mNumSpatialDims,
   Plato::OrdinalType ProjectionDofOffset = 0,
   Plato::OrdinalType NumProjectionDofs = 1>
 class Projection

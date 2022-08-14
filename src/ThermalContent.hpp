@@ -91,15 +91,15 @@ class ThermalContent
     }
     template<typename TRateScalarType, typename TContentScalarType>
     DEVICE_TYPE inline void
-    operator()( Plato::OrdinalType cellOrdinal,
-                Plato::ScalarVectorT<TContentScalarType> tcontent,
-                Plato::ScalarVectorT<TRateScalarType> temperature_rate) const {
+    operator()(
+        TContentScalarType & tcontent,
+        TRateScalarType      temperature_rate
+    ) const {
 
       // compute thermal content
       //
 
-      TRateScalarType cellTRate = temperature_rate(cellOrdinal);
-      tcontent(cellOrdinal) = cellTRate*mMassDensity*mSpecificHeat;
+      tcontent = temperature_rate*mMassDensity*mSpecificHeat;
     }
 };
 // class ThermalContent

@@ -17,7 +17,9 @@ PLATO_ELEMENT_DEF(Plato::Elliptic::DivisionFunction, Plato::Electromechanics)
 
 #ifdef PLATO_STABILIZED
   #include "stabilized/Mechanics.hpp"
+  #include "stabilized/Thermomechanics.hpp"
   PLATO_ELEMENT_DEF(Plato::Elliptic::DivisionFunction, Plato::Stabilized::Mechanics)
+  PLATO_ELEMENT_DEF(Plato::Elliptic::DivisionFunction, Plato::Stabilized::Thermomechanics)
 #endif
 
 #endif

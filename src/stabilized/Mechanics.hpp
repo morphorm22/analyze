@@ -97,8 +97,9 @@ public:
     using ElementType   = Plato::Stabilized::MechanicsElement<TopoElementType>;
     using ProjectorType = typename Plato::Stabilized::Projection<TopoElementType,
                                                                  ElementType::mNumDofsPerNode,
-                                                                 ElementType::mPressureDofOffset, /* numProjectionDofs=*/ 1>;
+                                                                 ElementType::mPressureDofOffset,
+                                                                 /* numProjectionDofs=*/ 1>;
 };
 
-} // namespace Plato
 } // namespace Stabilized
+} // namespace Plato
