@@ -92,7 +92,7 @@ template class C<Plato::Stabilized::GradientZTypes<T<D, P<D>::mNumDofsPerNode, P
   PLATO_STABILIZED_EXP_INST_2_(C, T, P, Plato::Quad4); \
   PLATO_STABILIZED_EXP_INST_2_(C, T, P, Plato::Hex27);
 #else
-  #define PLATO_STABILIZED_EXP_INST(C, T) \
+  #define PLATO_STABILIZED_EXP_INST_2(C, T, P) \
   PLATO_STABILIZED_EXP_INST_2_(C, T, P, Plato::Tet4); \
   PLATO_STABILIZED_EXP_INST_2_(C, T, P, Plato::Tri3); \
   PLATO_STABILIZED_EXP_INST_2_(C, T, P, Plato::Tet10);

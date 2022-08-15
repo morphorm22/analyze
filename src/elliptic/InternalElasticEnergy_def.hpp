@@ -8,7 +8,6 @@
 #include "LinearStress.hpp"
 #include "ScalarProduct.hpp"
 #include "GradientMatrix.hpp"
-#include "GeneralStressDivergence.hpp"
 
 namespace Plato
 {
@@ -63,7 +62,6 @@ namespace Elliptic
         Plato::ComputeGradientMatrix<ElementType>   computeGradient;
         Plato::SmallStrain<ElementType>             computeVoigtStrain;
         Plato::ScalarProduct<mNumVoigtTerms>        computeScalarProduct;
-        Plato::GeneralStressDivergence<ElementType> computeStressDivergence;
 
         Plato::LinearStress<EvaluationType, ElementType> computeVoigtStress(mMaterialModel);
 

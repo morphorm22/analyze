@@ -1,38 +1,42 @@
-/*!
-  These unit tests are for the transient dynamics formulation
-*/
-
 #include "PlatoTestHelpers.hpp"
-#include "PlatoTypes.hpp"
 #include "Teuchos_UnitTestHarness.hpp"
+#include <Teuchos_XMLParameterListHelpers.hpp>
 
+#include "PlatoTypes.hpp"
+#include "PlatoStaticsTypes.hpp"
 
-#include "Simp.hpp"
-#include "Ramp.hpp"
-#include "Strain.hpp"
+#ifdef HAVE_AMGX
+#include "alg/AmgXSparseLinearProblem.hpp"
+#endif
+
+#include <sstream>
+#include <iostream>
+#include <fstream>
+#include <type_traits>
+#include <Sacado.hpp>
+
+#include "alg/CrsLinearProblem.hpp"
+#include "alg/ParallelComm.hpp"
+
+#include "Tet4.hpp"
 #include "Solutions.hpp"
-#include "Heaviside.hpp"
+#include "GradientMatrix.hpp"
+#include "SmallStrain.hpp"
+#include "LinearStress.hpp"
+#include "GeneralStressDivergence.hpp"
+#include "ApplyWeighting.hpp"
+
+#include "ProjectToNode.hpp"
+#include "InterpolateFromNodal.hpp"
+#include "hyperbolic/InertialContent.hpp"
+
 #include "BodyLoads.hpp"
 #include "NaturalBCs.hpp"
-#include "Plato_Solve.hpp"
-#include "LinearStress.hpp"
-#include "ProjectToNode.hpp"
-#include "ApplyWeighting.hpp"
-#include "StressDivergence.hpp"
-#include "SimplexMechanics.hpp"
-#include "ApplyConstraints.hpp"
-#include "PlatoMathHelpers.hpp"
-#include "InterpolateFromNodal.hpp"
-#include "PlatoAbstractProblem.hpp"
-#include "LinearTetCubRuleDegreeOne.hpp"
-#include "hyperbolic/HyperbolicVectorFunction.hpp"
-#include "hyperbolic/HyperbolicPhysicsScalarFunction.hpp"
-#include "hyperbolic/Newmark.hpp"
-#include "hyperbolic/InertialContent.hpp"
-#include "hyperbolic/ElastomechanicsResidual.hpp"
-#include "hyperbolic/HyperbolicMechanics.hpp"
-#include "hyperbolic/HyperbolicProblem.hpp"
-#include <Teuchos_MathExpr.hpp>
+
+#include "hyperbolic/Problem.hpp"
+#include "hyperbolic/VectorFunction.hpp"
+#include "hyperbolic/PhysicsScalarFunction.hpp"
+#include "hyperbolic/Mechanics.hpp"
 
 template <class VectorFunctionT, class VectorT, class ControlT>
 Plato::Scalar
@@ -76,12 +80,273 @@ testVectorFunction_Partial_z(
     return std::fabs(tDeltaFD - tDeltaAD) / (tPer != 0 ? tPer : 1.0);
 }
 
-TEUCHOS_UNIT_TEST( TransientDynamicsProblemTests, 3D )
+TEUCHOS_UNIT_TEST( TransientMechanicsElementTests, ElementFunctors3D )
+{ 
+  // create input
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                        \n"
+    "  <ParameterList name='Spatial Model'>                                      \n"
+    "    <ParameterList name='Domains'>                                          \n"
+    "      <ParameterList name='Design Volume'>                                  \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>        \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>\n"
+    "      </ParameterList>                                                      \n"
+    "    </ParameterList>                                                        \n"
+    "  </ParameterList>                                                          \n"
+    "  <ParameterList name='Material Models'>                                    \n"
+    "    <ParameterList name='Unobtainium'>                                      \n"
+    "      <ParameterList name='Isotropic Linear Elastic'>                       \n"
+    "        <Parameter name='Mass Density' type='double' value='2.7'/>          \n"
+    "        <Parameter name='Poissons Ratio' type='double' value='0.3'/>        \n"
+    "        <Parameter name='Youngs Modulus' type='double' value='1.0e6'/>      \n"
+    "      </ParameterList>                                                      \n"
+    "    </ParameterList>                                                        \n"
+    "  </ParameterList>                                                          \n"
+    "</ParameterList>                                                            \n"
+  );
+
+  // create test mesh
+  //
+  constexpr int meshWidth=2;
+  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+
+  using ElementType = typename Plato::MechanicsElement<Plato::Tet4>;
+
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+
+  auto tOnlyDomain = tSpatialModel.Domains.front();
+
+  int tNumCells      = tMesh->NumElements();
+  auto tCubPoints    = ElementType::getCubPoints();
+  auto tCubWeights   = ElementType::getCubWeights();
+  auto tNumPoints    = tCubWeights.size();
+  constexpr int tSpatialDims    = ElementType::mNumSpatialDims;
+  constexpr int tNodesPerCell   = ElementType::mNumNodesPerCell;
+  constexpr int tNumVoigtTerms  = ElementType::mNumVoigtTerms;
+  constexpr int tDofsPerCell    = ElementType::mNumDofsPerCell;
+  constexpr int tNumDofsPerNode = ElementType::mNumDofsPerNode;
+
+  // create mesh based displacement and acceleration from host data
+  //
+  std::vector<Plato::Scalar> u_host( tSpatialDims*tMesh->NumNodes() );
+  Plato::Scalar disp = 0.0, dval = 0.0001;
+  for( auto& val : u_host ) val = (disp += dval);
+  Kokkos::View<Plato::Scalar*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>
+    u_host_view(u_host.data(),u_host.size());
+  auto u = Kokkos::create_mirror_view_and_copy( Kokkos::DefaultExecutionSpace(), u_host_view);
+
+  std::vector<Plato::Scalar> a_host( tSpatialDims*tMesh->NumNodes() );
+  Plato::Scalar acc = 0.0, aval = 0.1;
+  for( auto& val : a_host ) val = (acc += aval);
+  Kokkos::View<Plato::Scalar*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>
+    a_host_view(a_host.data(),a_host.size());
+  auto a = Kokkos::create_mirror_view_and_copy( Kokkos::DefaultExecutionSpace(), a_host_view);
+
+  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
+
+  Plato::ScalarArray3DT<Plato::Scalar> tGradients("gradient", tNumCells, tNodesPerCell, tSpatialDims);
+
+  Plato::ScalarMultiVectorT<Plato::Scalar> tStrains("strain", tNumCells, tNumVoigtTerms);
+
+  Plato::ScalarMultiVectorT<Plato::Scalar> tStresses("stress", tNumCells, tNumVoigtTerms);
+
+  Plato::ScalarMultiVectorT<Plato::Scalar> tInertialContents("inertial content", tNumCells, tSpatialDims);
+
+  Plato::ScalarMultiVectorT<Plato::Scalar> tResults("result", tNumCells, tDofsPerCell);
+
+  Plato::ScalarArray3DT<Plato::Scalar> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpatialDims);
+  tWorksetBase.worksetConfig(tConfigWS);
+
+  Plato::ScalarMultiVectorT<Plato::Scalar> tStateWS("state workset", tNumCells, tDofsPerCell);
+  tWorksetBase.worksetState(u, tStateWS);
+
+  Plato::ScalarMultiVectorT<Plato::Scalar> tStateDotDotWS("state dot dot workset", tNumCells, tDofsPerCell);
+  tWorksetBase.worksetState(a, tStateDotDotWS);
+
+  Plato::ComputeGradientMatrix<ElementType> computeGradient;
+  Plato::SmallStrain<ElementType> computeVoigtStrain;
+
+  Plato::ElasticModelFactory<tSpatialDims> mmfactory(*tParamList);
+  auto tMaterialModel = mmfactory.create(tOnlyDomain.getMaterialName());
+  auto tCellStiffness = tMaterialModel->getStiffnessMatrix();
+
+  Plato::LinearStress<Plato::Hyperbolic::ResidualTypes<ElementType>, ElementType> computeVoigtStress(tCellStiffness);
+  Plato::GeneralStressDivergence<ElementType>  computeStressDivergence;
+
+  Plato::InertialContent<ElementType>       computeInertialContent(tMaterialModel);
+  Plato::InterpolateFromNodal<ElementType, tNumDofsPerNode, /*offset=*/0, tSpatialDims> interpolateFromNodal;
+  Plato::ProjectToNode<ElementType>         projectInertialContent;
+
+  Kokkos::parallel_for("gradients", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+  LAMBDA_EXPRESSION(const int cellOrdinal, const int gpOrdinal)
+  {
+    Plato::Scalar tVolume(0.0);
+
+    Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, Plato::Scalar> tGradient;
+
+    Plato::Array<ElementType::mNumVoigtTerms, Plato::Scalar> tStrain(0.0);
+    Plato::Array<ElementType::mNumVoigtTerms, Plato::Scalar> tStress(0.0);
+
+    Plato::Array<ElementType::mNumSpatialDims, Plato::Scalar> tAcceleration(0.0);
+    Plato::Array<ElementType::mNumSpatialDims, Plato::Scalar> tInertialContent(0.0);
+
+    auto tCubPoint = tCubPoints(gpOrdinal);
+
+    auto tBasisValues = ElementType::basisValues(tCubPoint);
+
+    computeGradient(cellOrdinal, tCubPoint, tConfigWS, tGradient, tVolume);
+    tVolume *= tCubWeights(gpOrdinal);
+    for(int iNode=0; iNode<tNodesPerCell; iNode++)
+      for(int iDim=0; iDim<tSpatialDims; iDim++)
+        tGradients(cellOrdinal, iNode, iDim) = tGradient(iNode, iDim);
+
+    computeVoigtStrain(cellOrdinal, tStrain, tStateWS, tGradient);
+    for(int iVoigt=0; iVoigt<tNumVoigtTerms; iVoigt++)
+      tStrains(cellOrdinal, iVoigt) = tStrain(iVoigt);
+
+    computeVoigtStress(tStress, tStrain);
+    for(int iVoigt=0; iVoigt<tNumVoigtTerms; iVoigt++)
+      tStresses(cellOrdinal, iVoigt) = tStress(iVoigt);
+
+    computeStressDivergence(cellOrdinal, tResults, tStress, tGradient, tVolume);
+
+    interpolateFromNodal(cellOrdinal, tBasisValues, tStateDotDotWS, tAcceleration);
+
+    computeInertialContent(tInertialContent, tAcceleration);
+    for(int iDim=0; iDim<tSpatialDims; iDim++)
+      tInertialContents(cellOrdinal, iDim) = tInertialContent(iDim);
+
+    projectInertialContent(cellOrdinal, tVolume, tBasisValues, tInertialContent, tResults);
+  });
+
+  // test gradient
+  //
+  auto tGradient_Host = Kokkos::create_mirror_view( tGradients );
+  Kokkos::deep_copy( tGradient_Host, tGradients );
+
+  std::vector<std::vector<std::vector<Plato::Scalar>>> tGradient_gold = { 
+    {{ 0.0,-2.0, 0.0},{ 2.0, 0.0,-2.0},{-2.0, 2.0, 0.0},{ 0.0, 0.0, 2.0}},
+    {{ 0.0,-2.0, 0.0},{ 0.0, 2.0,-2.0},{-2.0, 0.0, 2.0},{ 2.0, 0.0, 0.0}},
+    {{ 0.0, 0.0,-2.0},{-2.0, 2.0, 0.0},{ 0.0,-2.0, 2.0},{ 2.0, 0.0, 0.0}},
+    {{ 0.0, 0.0,-2.0},{-2.0, 0.0, 2.0},{ 2.0,-2.0, 0.0},{ 0.0, 2.0, 0.0}},
+    {{-2.0, 0.0, 0.0},{ 0.0,-2.0, 2.0},{ 2.0, 0.0,-2.0},{ 0.0, 2.0, 0.0}},
+    {{-2.0, 0.0, 0.0},{ 2.0,-2.0, 0.0},{ 0.0, 2.0,-2.0},{ 0.0, 0.0, 2.0}}
+  };
+
+  int numGoldCells=tGradient_gold.size();
+  for(int iCell=0; iCell<numGoldCells; iCell++){
+    for(int iNode=0; iNode<tNodesPerCell; iNode++){
+      for(int iDim=0; iDim<tSpatialDims; iDim++){
+        if(tGradient_gold[iCell][iNode][iDim] == 0.0){
+          TEST_ASSERT(fabs(tGradient_Host(iCell,iNode,iDim)) < 1e-12);
+        } else {
+          TEST_FLOATING_EQUALITY(tGradient_Host(iCell,iNode,iDim), tGradient_gold[iCell][iNode][iDim], 1e-13);
+        }
+      }
+    }
+  }
+
+  // test strain
+  //
+  auto tStrain_Host = Kokkos::create_mirror_view( tStrains );
+  Kokkos::deep_copy( tStrain_Host, tStrains );
+
+  std::vector<std::vector<Plato::Scalar>> tStrain_gold = { 
+   { 0.0054, 0.0018, 0.0006, 0.0024, 0.0060, 0.0072 },
+   { 0.0054, 0.0018, 0.0006, 0.0024, 0.0060, 0.0072 },
+   { 0.0054, 0.0018, 0.0006, 0.0024, 0.0060, 0.0072 },
+   { 0.0054, 0.0018, 0.0006, 0.0024, 0.0060, 0.0072 },
+   { 0.0054, 0.0018, 0.0006, 0.0024, 0.0060, 0.0072 },
+   { 0.0054, 0.0018, 0.0006, 0.0024, 0.0060, 0.0072 }
+  };
+
+  for(int iCell=0; iCell<int(tStrain_gold.size()); iCell++){
+    for(int iVoigt=0; iVoigt<tNumVoigtTerms; iVoigt++){
+      if(tStrain_gold[iCell][iVoigt] == 0.0){
+        TEST_ASSERT(fabs(tStrain_Host(iCell,iVoigt)) < 1e-12);
+      } else {
+        TEST_FLOATING_EQUALITY(tStrain_Host(iCell,iVoigt), tStrain_gold[iCell][iVoigt], 1e-13);
+      }
+    }
+  }
+
+  // test stress
+  //
+  auto tStress_Host = Kokkos::create_mirror_view( tStresses );
+  Kokkos::deep_copy( tStress_Host, tStresses );
+
+  std::vector<std::vector<Plato::Scalar>> tStress_gold = { 
+   {8653.846153846152, 5884.615384615384, 4961.538461538462, 923.0769230769231, 2307.692307692308, 2769.230769230769},
+   {8653.846153846152, 5884.615384615384, 4961.538461538462, 923.0769230769231, 2307.692307692308, 2769.230769230769},
+   {8653.846153846152, 5884.615384615384, 4961.538461538462, 923.0769230769231, 2307.692307692308, 2769.230769230769},
+   {8653.846153846152, 5884.615384615384, 4961.538461538462, 923.0769230769231, 2307.692307692308, 2769.230769230769},
+   {8653.846153846152, 5884.615384615384, 4961.538461538462, 923.0769230769231, 2307.692307692308, 2769.230769230769},
+   {8653.846153846152, 5884.615384615384, 4961.538461538462, 923.0769230769231, 2307.692307692308, 2769.230769230769}
+  };
+
+  for(int iCell=0; iCell<int(tStress_gold.size()); iCell++){
+    for(int iVoigt=0; iVoigt<tNumVoigtTerms; iVoigt++){
+      if(tStress_gold[iCell][iVoigt] == 0.0){
+        TEST_ASSERT(fabs(tStress_Host(iCell,iVoigt)) < 1e-12);
+      } else {
+        TEST_FLOATING_EQUALITY(tStress_Host(iCell,iVoigt), tStress_gold[iCell][iVoigt], 1e-13);
+      }
+    }
+  }
+
+  // test inertial content
+  //
+  auto tInertialContent_Host = Kokkos::create_mirror_view( tInertialContents );
+  Kokkos::deep_copy( tInertialContent_Host, tInertialContents );
+
+  std::vector<std::vector<Plato::Scalar>> tInertialContent_gold = { 
+   { 5.940, 6.210, 6.480 },
+   { 4.320, 4.590, 4.860 },
+   { 3.915, 4.185, 4.455 }
+  };
+
+  for(int iCell=0; iCell<int(tInertialContent_gold.size()); iCell++){
+    for(int iDim=0; iDim<tSpatialDims; iDim++){
+      if(tInertialContent_gold[iCell][iDim] == 0.0){
+        TEST_ASSERT(fabs(tStrain_Host(iCell,iDim)) < 1e-12);
+      } else {
+        TEST_FLOATING_EQUALITY(tInertialContent_Host(iCell,iDim), tInertialContent_gold[iCell][iDim], 1e-13);
+      }
+    }
+  }
+
+  // test residual
+  //
+  auto tResult_Host = Kokkos::create_mirror_view( tResults );
+  Kokkos::deep_copy( tResult_Host, tResults );
+
+  std::vector<std::vector<Plato::Scalar>> tResult_gold = { 
+   {-115.3536778846152, -245.1599639423073, -38.42778846153840, 264.4540144230764,
+     76.95542067307680, -110.5431730769228, -245.1613701923073, 129.8400360576921,
+    -57.65855769230760,  96.18478365384600,  38.49388221153840, 206.7645192307688 }, 
+   {-115.3621153846152, -245.1684014423073, -38.43622596153840,  19.2532692307692,
+     206.7546754807689, -168.2439182692304, -264.4005769230765, -76.8991706730768,
+     110.6022355769229,  360.5994230769225,  115.4085216346152,  96.1791586538460 }
+  };
+
+  for(int iCell=0; iCell<int(tResult_gold.size()); iCell++){
+    for(int iDof=0; iDof<tDofsPerCell; iDof++){
+      if(tResult_gold[iCell][iDof] == 0.0){
+        TEST_ASSERT(fabs(tResult_Host(iCell,iDof)) < 1e-12);
+      } else {
+        TEST_FLOATING_EQUALITY(tResult_Host(iCell,iDof), tResult_gold[iCell][iDof], 1e-13);
+      }
+    }
+  }
+}
+
+TEUCHOS_UNIT_TEST( TransientMechanicsProblemTests, 3D )
 {
   // create test mesh
   //
   constexpr int cMeshWidth=2;
-  constexpr int cSpaceDim=3;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
 
   // create input for transient mechanics problem
@@ -147,21 +412,18 @@ TEUCHOS_UNIT_TEST( TransientDynamicsProblemTests, 3D )
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  auto* tHyperbolicProblem =
-    new Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>
-    (tMesh, *tInputParams, tMachine);
+  Plato::Hyperbolic::Problem<Plato::Hyperbolic::Mechanics<Plato::Tet4>>
+  tProblem(tMesh, *tInputParams, tMachine);
 
-  TEST_ASSERT(tHyperbolicProblem != nullptr);
-
-  int tNumDofs = cSpaceDim*tMesh->NumNodes();
-  Plato::ScalarVector tControl("control", tNumDofs);
+  auto tNumVerts = tMesh->NumNodes();
+  Plato::ScalarVector tControl("Control", tNumVerts);
   Plato::blas1::fill(1.0, tControl);
 
   /*****************************************************
-   Test HyperbolicProblem::solution(aControl);
+   Test Problem::solution(aControl);
    *****************************************************/
 
-  auto tSolution = tHyperbolicProblem->solution(tControl);
+  auto tSolution = tProblem.solution(tControl);
   auto tDisplacements = tSolution.get("State");
   auto tDisplacement = Kokkos::subview(tDisplacements, /*tStepIndex*/1, Kokkos::ALL());
 
@@ -187,31 +449,27 @@ TEUCHOS_UNIT_TEST( TransientDynamicsProblemTests, 3D )
     }
   }
 
-
   /*****************************************************
-   Test HyperbolicProblem::criterionValue(aControl);
+   Test Problem::criterionValue(aControl);
    *****************************************************/
 
-  auto tCriterionValue = tHyperbolicProblem->criterionValue(tControl, "Internal Energy");
+  auto tCriterionValue = tProblem.criterionValue(tControl, "Internal Energy");
   Plato::Scalar tCriterionValue_gold = 5.43649521380863686677761e-9;
 
   TEST_FLOATING_EQUALITY( tCriterionValue, tCriterionValue_gold, 1e-4);
 
-
   /*********************************************************
-   Test HyperbolicProblem::criterionValue(aControl, aState);
+   Test Problem::criterionValue(aControl, aState);
    *********************************************************/
 
-  tCriterionValue = tHyperbolicProblem->criterionValue(tControl, tSolution, "Internal Energy");
+  tCriterionValue = tProblem.criterionValue(tControl, tSolution, "Internal Energy");
   TEST_FLOATING_EQUALITY( tCriterionValue, tCriterionValue_gold, 1e-4);
 
-
   /*****************************************************
-   Test HyperbolicProblem::criterionGradient(aControl);
+   Test Problem::criterionGradient(aControl);
    *****************************************************/
 
-  auto tCriterionGradient = tHyperbolicProblem->criterionGradient(tControl, "Internal Energy");
-
+  auto tCriterionGradient = tProblem.criterionGradient(tControl, "Internal Energy");
 
   /**************************************************************
    The gradients below are verified with FD check elsewhere. The
@@ -219,57 +477,46 @@ TEUCHOS_UNIT_TEST( TransientDynamicsProblemTests, 3D )
    **************************************************************/
 
   /************************************************************
-   Call HyperbolicProblem::criterionGradient(aControl, aState);
+   Call Problem::criterionGradient(aControl, aState);
    ************************************************************/
 
-  tCriterionGradient = tHyperbolicProblem->criterionGradient(tControl, tSolution, "Internal Energy");
-
+  tCriterionGradient = tProblem.criterionGradient(tControl, tSolution, "Internal Energy");
 
   /*****************************************************
-   Call HyperbolicProblem::criterionGradientX(aControl);
+   Call Problem::criterionGradientX(aControl);
    *****************************************************/
 
-  auto tCriterionGradientX = tHyperbolicProblem->criterionGradientX(tControl, "Internal Energy");
-
+  auto tCriterionGradientX = tProblem.criterionGradientX(tControl, "Internal Energy");
 
   /************************************************************
-   Call HyperbolicProblem::criterionGradientX(aControl, aState);
+   Call Problem::criterionGradientX(aControl, aState);
    ************************************************************/
 
-  tCriterionGradientX = tHyperbolicProblem->criterionGradientX(tControl, tSolution, "Internal Energy");
-
-
+  tCriterionGradientX = tProblem.criterionGradientX(tControl, tSolution, "Internal Energy");
 
   // test criterionValue
   //
-  auto tConstraintValue = tHyperbolicProblem->criterionValue(tControl, "Internal Energy");
-
+  auto tConstraintValue = tProblem.criterionValue(tControl, "Internal Energy");
 
   // test criterionValue
   //
-  tConstraintValue = tHyperbolicProblem->criterionValue(tControl, tSolution, "Internal Energy");
-
-
-  // test criterionGradient
-  //
-  auto tConstraintGradient = tHyperbolicProblem->criterionGradient(tControl, "Internal Energy");
-
+  tConstraintValue = tProblem.criterionValue(tControl, tSolution, "Internal Energy");
 
   // test criterionGradient
   //
-  tConstraintGradient = tHyperbolicProblem->criterionGradient(tControl, tSolution, "Internal Energy");
+  auto tConstraintGradient = tProblem.criterionGradient(tControl, "Internal Energy");
 
+  // test criterionGradient
+  //
+  tConstraintGradient = tProblem.criterionGradient(tControl, tSolution, "Internal Energy");
 
   // test criterionGradientX
   //
-  auto tConstraintGradientX = tHyperbolicProblem->criterionGradientX(tControl, "Internal Energy");
-
+  auto tConstraintGradientX = tProblem.criterionGradientX(tControl, "Internal Energy");
 
   // test criterionGradientX
   //
-  tConstraintGradientX = tHyperbolicProblem->criterionGradientX(tControl, tSolution, "Internal Energy");
-
-  delete tHyperbolicProblem;
+  tConstraintGradientX = tProblem.criterionGradientX(tControl, tSolution, "Internal Energy");
 }
 
 TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_NoMass )
@@ -328,15 +575,16 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_NoMass )
   Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
 
   Plato::DataMap tDataMap;
-  Plato::Hyperbolic::VectorFunction<::Plato::Hyperbolic::Mechanics<cSpaceDim>>
+  Plato::Hyperbolic::VectorFunction<::Plato::Hyperbolic::Mechanics<Plato::Tet4>>
     tVectorFunction(tSpatialModel, tDataMap, *tInputParams, tInputParams->get<std::string>("PDE Constraint"));
 
-  int tNumDofs = cSpaceDim*tMesh->NumNodes();
-  Plato::ScalarVector tControl("control", tMesh->NumNodes());
+  auto tNumVerts = tMesh->NumNodes();
+  Plato::ScalarVector tControl("Control", tNumVerts);
   Plato::blas1::fill(1.0, tControl);
 
   // create mesh based displacement from host data
   //
+  int tNumDofs = cSpaceDim*tMesh->NumNodes();
   std::vector<Plato::Scalar> u_host( cSpaceDim*tMesh->NumNodes() );
   Plato::Scalar disp = 0.0, dval = 1.0e-7;
   for( auto& val : u_host ) val = (disp += dval);
@@ -574,16 +822,17 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_WithMass )
 
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
-  Plato::Hyperbolic::VectorFunction<::Plato::Hyperbolic::Mechanics<cSpaceDim>>
+  Plato::Hyperbolic::VectorFunction<::Plato::Hyperbolic::Mechanics<Plato::Tet4>>
     tVectorFunction(tSpatialModel, tDataMap, *tInputParams, tInputParams->get<std::string>("PDE Constraint"));
 
-  int tNumDofs = cSpaceDim*tMesh->NumNodes();
-  Plato::ScalarVector tControl("control", tNumDofs);
+  auto tNumVerts = tMesh->NumNodes();
+  Plato::ScalarVector tControl("Control", tNumVerts);
   Plato::blas1::fill(1.0, tControl);
 
   // create mesh based displacement from host data
   //
-  std::vector<Plato::Scalar> u_host( cSpaceDim*tMesh->NumNodes() );
+  int tNumDofs = cSpaceDim*tMesh->NumNodes();
+  std::vector<Plato::Scalar> u_host( tNumDofs );
   Plato::Scalar disp = 0.0, dval = 1.0e-7;
   for( auto& val : u_host ) val = (disp += dval);
   Kokkos::View<Plato::Scalar*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>
@@ -749,7 +998,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_WithMass )
 
 }
 
-TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorUForm )
+TEUCHOS_UNIT_TEST( TransientMechanicsIntegratorTests, NewmarkUForm )
 {
   // create input for transient mechanics residual
   //
@@ -789,7 +1038,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorUForm )
   int tNumDofs = cSpaceDim*tMesh->NumNodes();
 
   auto tIntegratorParams = tInputParams->sublist("Time Integration");
-  Plato::NewmarkIntegratorUForm<Plato::Hyperbolic::Mechanics<cSpaceDim>> tIntegrator(tIntegratorParams, 1.0);
+  Plato::NewmarkIntegratorUForm tIntegrator(tIntegratorParams, 1.0);
 
   Plato::Scalar tU_val = 1.0, tV_val = 2.0, tA_val = 3.0;
   Plato::Scalar tU_Prev_val = 3.0, tV_Prev_val = 2.0, tA_Prev_val = 1.0;
@@ -844,7 +1093,6 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorUForm )
       TEST_FLOATING_EQUALITY(tResidualV_host(iVal), tTestVal_V, 1.0e-15);
   }
 
-
   /**************************************
    Test Newmark integrator v_grad_u
    **************************************/
@@ -852,7 +1100,6 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorUForm )
   auto tR_vu = tIntegrator.v_grad_u(tTimeStep);
   auto tTestVal_R_vu = -tGamma/(tBeta*tTimeStep);
   TEST_FLOATING_EQUALITY(tR_vu, tTestVal_R_vu, 1.0e-15);
-
 
   /**************************************
    Test Newmark integrator v_grad_u_prev
@@ -862,7 +1109,6 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorUForm )
   auto tTestVal_R_vu_prev = tGamma/(tBeta*tTimeStep);
   TEST_FLOATING_EQUALITY(tR_vu_prev, tTestVal_R_vu_prev, 1.0e-15);
 
-
   /**************************************
    Test Newmark integrator v_grad_v_prev
    **************************************/
@@ -871,7 +1117,6 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorUForm )
   auto tTestVal_R_vv_prev = tGamma/tBeta - 1.0;
   TEST_FLOATING_EQUALITY(tR_vv_prev, tTestVal_R_vv_prev, 1.0e-15);
 
-
   /**************************************
    Test Newmark integrator v_grad_a_prev
    **************************************/
@@ -879,9 +1124,6 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorUForm )
   auto tR_va_prev = tIntegrator.v_grad_a_prev(tTimeStep);
   auto tTestVal_R_va_prev = (tGamma/(2.0*tBeta) - 1.0) * tTimeStep;
   TEST_FLOATING_EQUALITY(tR_va_prev, tTestVal_R_va_prev, 1.0e-15);
-
-
-
 
   /**************************************
    Test Newmark integrator a_value
@@ -901,7 +1143,6 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorUForm )
       TEST_FLOATING_EQUALITY(tResidualA_host(iVal), tTestVal_A, 1.0e-15);
   }
 
-
   /**************************************
    Test Newmark integrator a_grad_u
    **************************************/
@@ -909,7 +1150,6 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorUForm )
   auto tR_au = tIntegrator.a_grad_u(tTimeStep);
   auto tTestVal_R_au = -1.0/(tBeta*tTimeStep*tTimeStep);
   TEST_FLOATING_EQUALITY(tR_au, tTestVal_R_au, 1.0e-15);
-
 
   /**************************************
    Test Newmark integrator a_grad_u_prev
@@ -919,7 +1159,6 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorUForm )
   auto tTestVal_R_au_prev = 1.0/(tBeta*tTimeStep*tTimeStep);
   TEST_FLOATING_EQUALITY(tR_au_prev, tTestVal_R_au_prev, 1.0e-15);
 
-
   /**************************************
    Test Newmark integrator a_grad_v_prev
    **************************************/
@@ -927,7 +1166,6 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorUForm )
   auto tR_av_prev = tIntegrator.a_grad_v_prev(tTimeStep);
   auto tTestVal_R_av_prev = 1.0/(tBeta*tTimeStep);
   TEST_FLOATING_EQUALITY(tR_av_prev, tTestVal_R_av_prev, 1.0e-15);
-
 
   /**************************************
    Test Newmark integrator a_grad_a_prev
@@ -937,10 +1175,9 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorUForm )
   auto tTestVal_R_aa_prev = 1.0/(2.0*tBeta) - 1.0;
   TEST_FLOATING_EQUALITY(tR_aa_prev, tTestVal_R_aa_prev, 1.0e-15);
 
-
 }
 
-TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorAForm )
+TEUCHOS_UNIT_TEST( TransientMechanicsIntegratorTests, NewmarkAForm )
 {
   // create input for transient mechanics residual
   //
@@ -981,7 +1218,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, NewmarkIntegratorAForm )
   int tNumDofs = cSpaceDim*tMesh->NumNodes();
 
   auto tIntegratorParams = tInputParams->sublist("Time Integration");
-  Plato::NewmarkIntegratorAForm<Plato::Hyperbolic::Mechanics<cSpaceDim>> tIntegrator(tIntegratorParams, 1.0);
+  Plato::NewmarkIntegratorAForm tIntegrator(tIntegratorParams, 1.0);
 
   Plato::Scalar tU_val = 1.0, tV_val = 2.0, tA_val = 3.0;
   Plato::Scalar tU_Prev_val = 3.0, tV_Prev_val = 2.0, tA_Prev_val = 1.0;
@@ -1129,13 +1366,14 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_ScalarFunction )
   Plato::DataMap tDataMap;
   std::string tMyFunction("Internal Energy");
   Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
-  Plato::Hyperbolic::PhysicsScalarFunction<::Plato::Hyperbolic::Mechanics<cSpaceDim>>
+  Plato::Hyperbolic::PhysicsScalarFunction<::Plato::Hyperbolic::Mechanics<Plato::Tet4>>
     tScalarFunction(tSpatialModel, tDataMap, *tInputParams, tMyFunction);
 
   auto tTimeStep = tInputParams->sublist("Time Integration").get<Plato::Scalar>("Time Step");
   auto tNumSteps = tInputParams->sublist("Time Integration").get<int>("Number Time Steps");
 
-  Plato::ScalarVector tControl("control", tNumDofs);
+  auto tNumVerts = tMesh->NumNodes();
+  Plato::ScalarVector tControl("Control", tNumVerts);
   Plato::blas1::fill(1.0, tControl);
 
   Plato::ScalarMultiVector tU("Displacement", tNumSteps, tNumDofs);
@@ -1151,7 +1389,6 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_ScalarFunction )
     }
   }, "initial data");
 
-
   /**************************************
    Test ScalarFunction value
    **************************************/
@@ -1162,7 +1399,6 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_ScalarFunction )
   auto tValue = tScalarFunction.value(tSolution, tControl, tTimeStep);
 
   TEST_FLOATING_EQUALITY(tValue, 78.8914285714285767880938, 1.0e-15);
-
 
   /**************************************
    Test ScalarFunction gradient wrt U
@@ -1187,7 +1423,6 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_ScalarFunction )
     TEST_FLOATING_EQUALITY(tObjGradU_Host[iNode], tObjGradU_gold[iNode], 1e-15);
   }
 
-
   /**************************************
    Test ScalarFunction gradient wrt X
    **************************************/
@@ -1209,7 +1444,6 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_ScalarFunction )
   for(int iNode=0; iNode<int(tObjGradX_gold.size()); iNode++){
     TEST_FLOATING_EQUALITY(tObjGradX_Host[iNode], tObjGradX_gold[iNode], 1e-14);
   }
-
 
   /**************************************
    Test ScalarFunction gradient wrt Z
@@ -1322,18 +1556,19 @@ TEUCHOS_UNIT_TEST( TimeDependentBCsTests, EssentialBoundaryDofValuesMatchFunctio
 
   // construct problem
   //
-  auto tHyperbolicProblem = 
-    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+  auto tProblem = 
+    std::make_unique<Plato::Hyperbolic::Problem<Plato::Hyperbolic::Mechanics<Plato::Tet4>>>
     (tMesh, *tInputParams, tMachine);
 
   //create control
   //
-  int tNumDofs = cSpaceDim*tMesh->NumNodes();
-  Plato::ScalarVector tControl("control", tNumDofs);
+  auto tNumVerts = tMesh->NumNodes();
+  Plato::ScalarVector tControl("Control", tNumVerts);
   Plato::blas1::fill(1.0, tControl);
 
   // initialize
   //
+  int tNumDofs = cSpaceDim*tMesh->NumNodes();
   std::vector<Plato::OrdinalType> tBcDofs = {54, 57, 60, 63, 66, 69, 72, 75, 78};
   Plato::ScalarVector tDisplacement("displacement", tNumDofs);
   Plato::ScalarVector tVelocity("velocity", tNumDofs);
@@ -1342,7 +1577,7 @@ TEUCHOS_UNIT_TEST( TimeDependentBCsTests, EssentialBoundaryDofValuesMatchFunctio
   // fill in function values at t=0
   //
   Plato::Scalar tTime = 0.0;
-  tHyperbolicProblem->constrainFieldsAtBoundary(tDisplacement,tVelocity,tAcceleration,tTime);
+  tProblem->constrainFieldsAtBoundary(tDisplacement,tVelocity,tAcceleration,tTime);
 
   auto tVelocity_Host = Kokkos::create_mirror_view( tVelocity );
   Kokkos::deep_copy( tVelocity_Host, tVelocity );
@@ -1363,7 +1598,7 @@ TEUCHOS_UNIT_TEST( TimeDependentBCsTests, EssentialBoundaryDofValuesMatchFunctio
   // fill in function values at t=1.5e-6
   //
   tTime = 1.5e-6;
-  tHyperbolicProblem->constrainFieldsAtBoundary(tDisplacement,tVelocity,tAcceleration,tTime);
+  tProblem->constrainFieldsAtBoundary(tDisplacement,tVelocity,tAcceleration,tTime);
 
   Kokkos::deep_copy( tVelocity_Host, tVelocity );
 
@@ -1381,7 +1616,7 @@ TEUCHOS_UNIT_TEST( TimeDependentBCsTests, EssentialBoundaryDofValuesMatchFunctio
 
 }
 
-TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithConstantNaturalBCs )
+TEUCHOS_UNIT_TEST( TransientMechanicsFormulationTests, UFormAndAFormEquivalenceWithConstantNaturalBCs )
 {
   // create comm
   //
@@ -1392,7 +1627,6 @@ TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithCo
   // create test mesh
   //
   constexpr int cMeshWidth=2;
-  constexpr int cSpaceDim=3;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
 
   // create input for u-form problem
@@ -1506,20 +1740,20 @@ TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithCo
 
   // create u-form problem
   //
-  auto tHyperbolicProblemUForm = 
-    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+  auto tProblemUForm = 
+    std::make_unique<Plato::Hyperbolic::Problem<Plato::Hyperbolic::Mechanics<Plato::Tet4>>>
     (tMesh, *tInputParamsUForm, tMachine);
 
   // create a-form problem
   //
-  auto tHyperbolicProblemAForm = 
-    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+  auto tProblemAForm = 
+    std::make_unique<Plato::Hyperbolic::Problem<Plato::Hyperbolic::Mechanics<Plato::Tet4>>>
     (tMesh, *tInputParamsAForm, tMachine);
 
   // create control
   //
-  int tNumDofs = cSpaceDim*tMesh->NumNodes();
-  Plato::ScalarVector tControl("control", tNumDofs);
+  auto tNumVerts = tMesh->NumNodes();
+  Plato::ScalarVector tControl("Control", tNumVerts);
   Plato::blas1::fill(1.0, tControl);
 
   /*****************************************************
@@ -1528,14 +1762,14 @@ TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithCo
 
   // displacements
   //
-  auto tSolutionUForm = tHyperbolicProblemUForm->solution(tControl);
+  auto tSolutionUForm = tProblemUForm->solution(tControl);
   auto tDisplacementsUForm = tSolutionUForm.get("State");
   auto tDisplacementUForm = Kokkos::subview(tDisplacementsUForm, /*tStepIndex*/1, Kokkos::ALL());
 
   auto tDisplacementUForm_Host = Kokkos::create_mirror_view( tDisplacementUForm );
   Kokkos::deep_copy( tDisplacementUForm_Host, tDisplacementUForm );
 
-  auto tSolutionAForm = tHyperbolicProblemAForm->solution(tControl);
+  auto tSolutionAForm = tProblemAForm->solution(tControl);
   auto tDisplacementsAForm = tSolutionAForm.get("State");
   auto tDisplacementAForm = Kokkos::subview(tDisplacementsAForm, /*tStepIndex*/1, Kokkos::ALL());
 
@@ -1596,7 +1830,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithCo
 
 }
 
-TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithInitialConditions )
+TEUCHOS_UNIT_TEST( TransientMechanicsFormulationTests, UFormAndAFormEquivalenceWithInitialConditions )
 {
   // create comm
   //
@@ -1650,10 +1884,10 @@ TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithIn
     "  </ParameterList>                                                        \n"
     "  <ParameterList  name='Computed Fields'>                     \n"
     "    <ParameterList  name='Initial X Displacement'>            \n"
-    "      <Parameter name='Function' type='string' value='w=2e-6; p=0.01; pi=3.14159264; p*sin(pi*x/w)'/> \n"
+    "      <Parameter name='Function' type='string' value='0.01*sin(3.14159264*x/2e-6)'/> \n"
     "    </ParameterList>                                                      \n"
     "    <ParameterList  name='Initial X Velocity'>            \n"
-    "      <Parameter name='Function' type='string' value='w=2e-6; p=0.01; pi=3.14159264; p*(pi/w)*cos(pi*x/w)'/> \n"
+    "      <Parameter name='Function' type='string' value='0.01*(3.14159264/2e-6)*cos(3.14159264*x/2e-6)'/> \n"
     "    </ParameterList>                                                      \n"
     "  </ParameterList>                                                        \n"
     "  <ParameterList  name='Initial State'>                     \n"
@@ -1714,10 +1948,10 @@ TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithIn
     "  </ParameterList>                                                        \n"
     "  <ParameterList  name='Computed Fields'>                     \n"
     "    <ParameterList  name='Initial X Displacement'>            \n"
-    "      <Parameter name='Function' type='string' value='w=2e-6; p=0.01; pi=3.14159264; p*sin(pi*x/w)'/> \n"
+    "      <Parameter name='Function' type='string' value='0.01*sin(3.14159264*x/2e-6)'/> \n"
     "    </ParameterList>                                                      \n"
     "    <ParameterList  name='Initial X Velocity'>            \n"
-    "      <Parameter name='Function' type='string' value='w=2e-6; p=0.01; pi=3.14159264; p*(pi/w)*cos(pi*x/w)'/> \n"
+    "      <Parameter name='Function' type='string' value='0.01*(3.14159264/2e-6)*cos(3.14159264*x/2e-6)'/> \n"
     "    </ParameterList>                                                      \n"
     "  </ParameterList>                                                        \n"
     "  <ParameterList  name='Initial State'>                     \n"
@@ -1739,20 +1973,20 @@ TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithIn
 
   // create u-form problem
   //
-  auto tHyperbolicProblemUForm = 
-    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+  auto tProblemUForm = 
+    std::make_unique<Plato::Hyperbolic::Problem<Plato::Hyperbolic::Mechanics<Plato::Tet4>>>
     (tMesh, *tInputParamsUForm, tMachine);
 
   // create a-form problem
   //
-  auto tHyperbolicProblemAForm = 
-    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+  auto tProblemAForm = 
+    std::make_unique<Plato::Hyperbolic::Problem<Plato::Hyperbolic::Mechanics<Plato::Tet4>>>
     (tMesh, *tInputParamsAForm, tMachine);
 
   // create control
   //
-  int tNumDofs = cSpaceDim*tMesh->NumNodes();
-  Plato::ScalarVector tControl("control", tNumDofs);
+  auto tNumVerts = tMesh->NumNodes();
+  Plato::ScalarVector tControl("Control", tNumVerts);
   Plato::blas1::fill(1.0, tControl);
 
   /*****************************************************
@@ -1761,14 +1995,14 @@ TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithIn
 
   // displacements
   //
-  auto tSolutionUForm = tHyperbolicProblemUForm->solution(tControl);
+  auto tSolutionUForm = tProblemUForm->solution(tControl);
   auto tDisplacementsUForm = tSolutionUForm.get("State");
   auto tDisplacementUForm = Kokkos::subview(tDisplacementsUForm, /*tStepIndex*/9, Kokkos::ALL());
 
   auto tDisplacementUForm_Host = Kokkos::create_mirror_view( tDisplacementUForm );
   Kokkos::deep_copy( tDisplacementUForm_Host, tDisplacementUForm );
 
-  auto tSolutionAForm = tHyperbolicProblemAForm->solution(tControl);
+  auto tSolutionAForm = tProblemAForm->solution(tControl);
   auto tDisplacementsAForm = tSolutionAForm.get("State");
   auto tDisplacementAForm = Kokkos::subview(tDisplacementsAForm, /*tStepIndex*/9, Kokkos::ALL());
 
@@ -1829,7 +2063,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithIn
 
 }
 
-TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithTimeDependentNaturalBCs )
+TEUCHOS_UNIT_TEST( TransientMechanicsFormulationTests, UFormAndAFormEquivalenceWithTimeDependentNaturalBCs )
 {
   // create comm
   //
@@ -1988,20 +2222,20 @@ TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithTi
 
   // create u-form problem
   //
-  auto tHyperbolicProblemUForm = 
-    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+  auto tProblemUForm = 
+    std::make_unique<Plato::Hyperbolic::Problem<Plato::Hyperbolic::Mechanics<Plato::Tet4>>>
     (tMesh, *tInputParamsUForm, tMachine);
 
   // create a-form problem
   //
-  auto tHyperbolicProblemAForm = 
-    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+  auto tProblemAForm = 
+    std::make_unique<Plato::Hyperbolic::Problem<Plato::Hyperbolic::Mechanics<Plato::Tet4>>>
     (tMesh, *tInputParamsAForm, tMachine);
 
   // create control
   //
-  int tNumDofs = cSpaceDim*tMesh->NumNodes();
-  Plato::ScalarVector tControl("control", tNumDofs);
+  auto tNumVerts = tMesh->NumNodes();
+  Plato::ScalarVector tControl("Control", tNumVerts);
   Plato::blas1::fill(1.0, tControl);
 
   /*****************************************************
@@ -2010,14 +2244,14 @@ TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithTi
 
   // displacements
   //
-  auto tSolutionUForm = tHyperbolicProblemUForm->solution(tControl);
+  auto tSolutionUForm = tProblemUForm->solution(tControl);
   auto tDisplacementsUForm = tSolutionUForm.get("State");
   auto tDisplacementUForm = Kokkos::subview(tDisplacementsUForm, /*tStepIndex*/9, Kokkos::ALL());
 
   auto tDisplacementUForm_Host = Kokkos::create_mirror_view( tDisplacementUForm );
   Kokkos::deep_copy( tDisplacementUForm_Host, tDisplacementUForm );
 
-  auto tSolutionAForm = tHyperbolicProblemAForm->solution(tControl);
+  auto tSolutionAForm = tProblemAForm->solution(tControl);
   auto tDisplacementsAForm = tSolutionAForm.get("State");
   auto tDisplacementAForm = Kokkos::subview(tDisplacementsAForm, /*tStepIndex*/9, Kokkos::ALL());
 
@@ -2078,7 +2312,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithTi
 
 }
 
-TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithTimeDependentEssentialBCs )
+TEUCHOS_UNIT_TEST( TransientMechanicsFormulationTests, UFormAndAFormEquivalenceWithTimeDependentEssentialBCs )
 {
   // create comm
   //
@@ -2237,20 +2471,20 @@ TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithTi
 
   // create u-form problem
   //
-  auto tHyperbolicProblemUForm = 
-    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+  auto tProblemUForm = 
+    std::make_unique<Plato::Hyperbolic::Problem<Plato::Hyperbolic::Mechanics<Plato::Tet4>>>
     (tMesh, *tInputParamsUForm, tMachine);
 
   // create a-form problem
   //
-  auto tHyperbolicProblemAForm = 
-    std::make_unique<Plato::HyperbolicProblem<Plato::Hyperbolic::Mechanics<cSpaceDim>>>
+  auto tProblemAForm = 
+    std::make_unique<Plato::Hyperbolic::Problem<Plato::Hyperbolic::Mechanics<Plato::Tet4>>>
     (tMesh, *tInputParamsAForm, tMachine);
 
   // create control
   //
-  int tNumDofs = cSpaceDim*tMesh->NumNodes();
-  Plato::ScalarVector tControl("control", tNumDofs);
+  auto tNumVerts = tMesh->NumNodes();
+  Plato::ScalarVector tControl("Control", tNumVerts);
   Plato::blas1::fill(1.0, tControl);
 
   /*****************************************************
@@ -2259,14 +2493,14 @@ TEUCHOS_UNIT_TEST( TransientMechanicsSolverTests, UFormAndAFormEquivalenceWithTi
 
   // displacements
   //
-  auto tSolutionUForm = tHyperbolicProblemUForm->solution(tControl);
+  auto tSolutionUForm = tProblemUForm->solution(tControl);
   auto tDisplacementsUForm = tSolutionUForm.get("State");
   auto tDisplacementUForm = Kokkos::subview(tDisplacementsUForm, /*tStepIndex*/9, Kokkos::ALL());
 
   auto tDisplacementUForm_Host = Kokkos::create_mirror_view( tDisplacementUForm );
   Kokkos::deep_copy( tDisplacementUForm_Host, tDisplacementUForm );
 
-  auto tSolutionAForm = tHyperbolicProblemAForm->solution(tControl);
+  auto tSolutionAForm = tProblemAForm->solution(tControl);
   auto tDisplacementsAForm = tSolutionAForm.get("State");
   auto tDisplacementAForm = Kokkos::subview(tDisplacementsAForm, /*tStepIndex*/9, Kokkos::ALL());
 

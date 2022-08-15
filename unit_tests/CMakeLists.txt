@@ -17,7 +17,6 @@ Plato_add_test(TwoField TwoFieldTests.cpp)
 #TODO: update StructuralDynamics to new element
 #Plato_add_test(PlatoFunctors PlatoFunctorsTest.cpp)
 
-Plato_add_test(EllipticHatching EllipticHatchingTests.cpp)
 Plato_add_test(MassProperties MassPropertiesTests.cpp)
 Plato_add_test(VolumeAverageCriterion VolumeAverageCriterionTests.cpp SKIP_MATH)
 Plato_add_test(GeometryMisfit GeometryMisfitTests.cpp)
@@ -36,6 +35,9 @@ Plato_add_test(PlatoMathTypes PlatoMathTypesTests.cpp)
 Plato_add_test(MultipointConstraint PlatoMultipointConstraintTests.cpp)
 Plato_add_test(AugLagStress PlatoAugLagStressTest.cpp)
 
+if(HATCHING)
+  Plato_add_test(EllipticHatching EllipticHatchingTests.cpp)
+endif()
 
 if(STABILIZED)
   Plato_add_test(StabilizedMechanics StabilizedMechanicsTests.cpp)
@@ -54,8 +56,12 @@ endif()
 
 if(HYPERBOLIC)
   Plato_add_test(TransientDynamics TransientDynamicsTests.cpp)
-  Plato_add_test(RelaxedMicromorphic RelaxedMicromorphicTests.cpp)
-  Plato_add_test(ComputationalFluidDynamics ComputationalFluidDynamicsTests.cpp SKIP_MATH)
+  if(FLUIDS)
+    Plato_add_test(ComputationalFluidDynamics ComputationalFluidDynamicsTests.cpp SKIP_MATH)
+  endif()
+  if(MICROMORPHIC)
+    Plato_add_test(RelaxedMicromorphic RelaxedMicromorphicTests.cpp)
+  endif()
 endif()
 
 if(HELMHOLTZ)

@@ -23,12 +23,14 @@ option(PLATOANALYZE_ENABLE_PYTHON     "Enable the Python interface" OFF)
 
 option(ELLIPTIC        "Compile with Elliptic physics"       ON )
 option(PARABOLIC       "Compile with Parabolic physics"      ON )
-option(HYPERBOLIC      "Compile with Hyperbolic physics"     OFF) # TODO
+option(HYPERBOLIC      "Compile with Hyperbolic physics"     ON )
 option(STABILIZED      "Compile with Stabilized VMS physics" ON )
 option(PLASTICITY      "Compile with Plasticity physics"     OFF) # TODO
 option(HELMHOLTZ       "Compile with Helmholtz filter"       ON )
 option(EXPRESSION      "Compile with Expression evaluator"   OFF) # TODO: fix this.  expression evaluator is on regardless.
 option(HATCHING        "Compile with hatching algorithm"     ON )
+option(FLUIDS          "Compile with Fluids physics"         OFF) # TODO
+option(MICROMORPHIC    "Compile with Micromorphic physics"   OFF) # TODO
 
 option(PLATOANALYZE_UNIT_TEST   "Flag to enable unit tests"  ON)
 option(PLATOANALYZE_SMOKE_TESTS "Flag to enable smoke tests" ON)
@@ -242,6 +244,14 @@ endif()
 if(PLASTICITY)
   message("-- Plato: Plasticity physics added")
   ADD_DEFINITIONS(-DPLATO_PLASTICITY)
+endif()
+if(FLUIDS)
+  message("-- Plato: Fluids physics added")
+  ADD_DEFINITIONS(-DPLATO_FLUIDS)
+endif()
+if(MICROMORPHIC)
+  message("-- Plato: Micromorphic physics added")
+  ADD_DEFINITIONS(-DPLATO_MICROMORPHIC)
 endif()
 if(HELMHOLTZ)
   message("-- Plato: Helmholtz filter added")

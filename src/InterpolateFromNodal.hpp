@@ -69,6 +69,7 @@ public:
         }
         return tStateValue;
     }
+
     template<typename InStateType, typename OutStateType>
     DEVICE_TYPE inline void
     operator()(

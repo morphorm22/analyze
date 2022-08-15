@@ -44,8 +44,14 @@
 #endif
 
 #ifdef PLATO_HYPERBOLIC
-#include "hyperbolic/HyperbolicProblem.hpp"
-#include "hyperbolic/FluidsQuasiImplicit.hpp"
+#include "hyperbolic/Problem.hpp"
+#include "hyperbolic/Mechanics.hpp"
+  #ifdef PLATO_FLUIDS
+  #include "hyperbolic/fluids/FluidsQuasiImplicit.hpp"
+  #endif
+  #ifdef PLATO_MICROMORPHIC
+  #include "hyperbolic/micromorphic/MicromorphicMechanics.hpp"
+  #endif
 #endif
 
 #ifdef PLATO_STABILIZED
@@ -142,7 +148,6 @@ makeProblem(
     }
 }
 
-
 /******************************************************************************//**
 * \brief Create mechanical problem.
 * \param [in] aMesh        plato abstract mesh
@@ -164,8 +169,8 @@ create_mechanical_problem
     {
         return makeProblem<Plato::Elliptic::Problem, Plato::Mechanics>(aMesh, aPlatoProb, aMachine);
     }
-    else
   #ifdef PLATO_HATCHING
+    else
     if(tLowerPDE == "elliptic hatching")
     {
         return makeProblem<Plato::Elliptic::Hatching::Problem, Plato::Elliptic::Hatching::Mechanics>(aMesh, aPlatoProb, aMachine);
@@ -176,10 +181,10 @@ create_mechanical_problem
     else
     if (tLowerPDE == "hyperbolic")
     {
-        return std::make_shared<HyperbolicProblem<::Plato::Hyperbolic::Mechanics<SpatialDim>>>(aMesh, aPlatoProb, aMachine);
+        return makeProblem<Plato::Hyperbolic::Problem, Plato::Hyperbolic::Mechanics>(aMesh, aPlatoProb, aMachine);
     }
-    else
 #endif
+    else
     {
         ANALYZE_THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
     }
@@ -421,7 +426,6 @@ create_thermomechanical_problem
 * \param [in] aMachine     mpi communicator interface
 * \returns shared pointer to abstract problem of type incompressible fluid
 **********************************************************************************/
-template<Plato::OrdinalType SpatialDim>
 inline
 std::shared_ptr<Plato::AbstractProblem>
 create_incompressible_fluid_problem
@@ -432,11 +436,13 @@ create_incompressible_fluid_problem
     auto tLowerPDE = Plato::is_pde_constraint_supported(aPlatoProb);
 
 #ifdef PLATO_HYPERBOLIC
+#ifdef PLATO_FLUIDS
     if (tLowerPDE == "hyperbolic")
     {
-        return std::make_shared<Plato::Fluids::QuasiImplicit<::Plato::IncompressibleFluids<SpatialDim>>>(aMesh, aPlatoProb, aMachine);
+        return makeProblem<Plato::Fluids::QuasiImplicit, Plato::IncompressibleFluids>(aMesh, aPlatoProb, aMachine);
     }
     else
+#endif
 #endif
     {
         ANALYZE_THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
@@ -451,7 +457,6 @@ create_incompressible_fluid_problem
 * \param [in] aMachine     mpi communicator interface
 * \returns shared pointer to abstract problem of type micromorphic mechanics
 **********************************************************************************/
-template<Plato::OrdinalType SpatialDim>
 inline
 std::shared_ptr<Plato::AbstractProblem>
 create_micromorphic_mechanics_problem
@@ -462,17 +467,19 @@ create_micromorphic_mechanics_problem
     auto tLowerPDE = Plato::is_pde_constraint_supported(aPlatoProb);
 
 #ifdef PLATO_HYPERBOLIC
+#ifdef PLATO_MICROMORPHIC
     if (tLowerPDE == "hyperbolic")
     {
-        return std::make_shared<HyperbolicProblem<::Plato::Hyperbolic::MicromorphicMechanics<SpatialDim>>>(aMesh, aPlatoProb, aMachine);
+        return makeProblem<Plato::Hyperbolic::Problem, Plato::Hyperbolic::MicromorphicMechanics>(aMesh, aPlatoProb, aMachine);
     }
     else
+#endif
 #endif
     {
         ANALYZE_THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
     }
  }
- // function create_incompressible_fluid_problem
+ // function create_micromorphic_mechanics_problem
 
 /******************************************************************************//**
  * \brief This class is responsible for the creation of a Plato problem, which enables
@@ -537,18 +544,16 @@ public:
         {
             return ( Plato::create_thermomechanical_problem(aMesh, tInputData, aMachine) );
         }
-#ifdef PLATO_HYPERBOLIC
         else
         if(tLowerPhysics == "incompressible fluids")
         {
-            return ( Plato::create_incompressible_fluid_problem<SpatialDim>(aMesh, tInputData, aMachine) );
+            return ( Plato::create_incompressible_fluid_problem(aMesh, tInputData, aMachine) );
         }
         else
         if(tLowerPhysics == "micromorphic mechanical")
         {
-            return ( Plato::create_micromorphic_mechanics_problem<SpatialDim>(aMesh, tInputData, aMachine) );
+            return ( Plato::create_micromorphic_mechanics_problem(aMesh, tInputData, aMachine) );
         }
-#endif
 #ifdef PLATO_HELMHOLTZ
         else
         if(tLowerPhysics == "helmholtz filter")
