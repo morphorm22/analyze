@@ -75,6 +75,7 @@ if(STABILIZED)
     stabilized/Problem.cpp
     stabilized/ElastostaticEnergy.cpp
     stabilized/ElastostaticResidual.cpp
+    stabilized/ThermoelastostaticResidual.cpp
     stabilized/PressureGradientProjectionResidual.cpp
   )
 endif()

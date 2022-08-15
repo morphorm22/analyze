@@ -7,43 +7,30 @@
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
-#include "ImplicitFunctors.hpp"
-#include "LinearThermoelasticMaterial.hpp"
-
-#ifdef HAVE_AMGX
-#include "alg/AmgXSparseLinearProblem.hpp"
-#endif
-
-#include <sstream>
-#include <iostream>
-#include <fstream>
-#include <type_traits>
+#include <Sacado.hpp>
 
 #include "Tet4.hpp"
-#include "GradientMatrix.hpp"
-#include <Sacado.hpp>
-#include "alg/CrsLinearProblem.hpp"
-#include "alg/ParallelComm.hpp"
 #include "BLAS1.hpp"
-#include "ApplyWeighting.hpp"
 #include "WorksetBase.hpp"
-#include "parabolic/AbstractVectorFunction.hpp"
-#include "stabilized/VectorFunction.hpp"
-#include "stabilized/Projection.hpp"
-#include "stabilized/ThermomechanicsElement.hpp"
 #include "StateValues.hpp"
-#include "Plato_Solve.hpp"
 #include "SpatialModel.hpp"
-#include "ApplyConstraints.hpp"
-#include "PressureDivergence.hpp"
-#include "stabilized/Thermomechanics.hpp"
-#include "stabilized/Thermomechanics.hpp"
-#include "ThermalContent.hpp"
 #include "ComputedField.hpp"
-#include "PlatoMathHelpers.hpp"
+#include "ProjectToNode.hpp"
+#include "GradientMatrix.hpp"
+#include "ThermalContent.hpp"
+#include "PressureDivergence.hpp"
+#include "InterpolateFromNodal.hpp"
+#include "GeneralFluxDivergence.hpp"
+#include "GeneralStressDivergence.hpp"
 
-#include <fenv.h>
+#include "parabolic/AbstractVectorFunction.hpp"
 
+#include "stabilized/Projection.hpp"
+#include "stabilized/TMKinetics.hpp"
+#include "stabilized/TMKinematics.hpp"
+#include "stabilized/VectorFunction.hpp"
+#include "stabilized/Thermomechanics.hpp"
+#include "stabilized/ThermomechanicsElement.hpp"
 
 TEUCHOS_UNIT_TEST( StabilizedThermomechTests, 3D )
 { 
