@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "TachoLinearSolver.hpp"
+#include "PlatoMathHelpers.hpp"
 
 namespace tacho {
 
@@ -65,6 +66,12 @@ void tachoSolver<SX>::refactorMatrix(const int numTerms, SX *values) {
 }
 
 template <typename SX>
+void tachoSolver<SX>::refactorMatrix(value_type_array ax) {
+  m_Solver.factorize(ax);
+  Kokkos::fence();
+}
+
+template <typename SX>
 void tachoSolver<SX>::Initialize(
     int numRows,
     /// with TACHO_ENABLE_INT_INT, size_type is "int"
@@ -102,12 +109,10 @@ void tachoSolver<SX>::Initialize(int numRows, size_type_array rowBegin,
   if (m_numRows == 0)
     return;
 
-  const int numTerms = rowBegin(numRows);
-
 #if defined(KOKKOS_ENABLE_CUDA)
   /// transfer A to host
-  size_type_array_host ap_host("ap_host", numRows + 1);
-  ordinal_type_array_host aj_host("aj_host", numTerms);
+  auto ap_host = Kokkos::create_mirror_view(rowBegin);
+  auto aj_host = Kokkos::create_mirror_view(columns);
   Kokkos::deep_copy(ap_host, rowBegin);
   Kokkos::deep_copy(aj_host, columns);
 #else
@@ -217,8 +222,27 @@ template class tachoSolver<double>;
 
 tachoSolver<Plato::Scalar> constructSolverFromParameterList(const Teuchos::ParameterList &aSolverParams)
 {
-  // to do: set solutionMethod from aSolverParams
-  constexpr int solutionMethod = 1;
+  std::string factorizationType("Cholesky");
+  if(aSolverParams.isType<std::string>("Factorization Type"))
+    factorizationType = aSolverParams.get<std::string>("Factorization Type");
+
+  int solutionMethod = 0;
+  if (factorizationType == "Cholesky")
+  {
+    solutionMethod = 1;
+  }
+  else if (factorizationType == "LDLT")
+  {
+    solutionMethod = 2;
+  }
+  else if (factorizationType == "SymLU")
+  {
+    solutionMethod = 3;
+  }
+  else {
+    ANALYZE_THROWERR("Unknown factorization type " + factorizationType + "for Tacho solver." +
+                     "Supported types are: Cholesky (symmetric positive definite), LDLD (symmetric indefinite), and SymLU (symmetric sparsity pattern but non-symmetric entries).");
+  }
 
   std::vector<int> tachoParams;
   tacho::getTachoParams(tachoParams, solutionMethod);
@@ -238,7 +262,29 @@ void TachoLinearSolver::innerSolve(Plato::CrsMatrix<int> aA,
                                    Plato::ScalarVector aX,
                                    Plato::ScalarVector aB)
 {
-    mSolver.Initialize(aA.numRows(), aA.rowMap(), aA.columnIndices(), aA.entries());
+    Plato::CrsMatrix<int>::RowMapVectorT rowBegin;
+    Plato::CrsMatrix<int>::OrdinalVectorT columns;
+    Plato::CrsMatrix<int>::ScalarVectorT values;
+
+    if (aA.isBlockMatrix()) {
+        // if there were a version of this function that only fills values, could avoid copies of indices on subsequent calls
+        auto aAptr = Teuchos::rcp(&aA, false);
+        Plato::getDataAsNonBlock(aAptr, rowBegin, columns, values);
+    }
+    else {
+        rowBegin = aA.rowMap();
+        columns = aA.columnIndices();
+        values = aA.entries();
+    }
+
+    if (firstSolve) {
+        mSolver.Initialize(aA.numRows(), rowBegin, columns, values);
+        firstSolve = false;
+    }
+    else {
+        mSolver.refactorMatrix(values);
+    }
+
     tachoSolver<double>::value_type_matrix x(aX.data(), aA.numRows(), 1);
     tachoSolver<double>::value_type_matrix b(aB.data(), aA.numRows(), 1);
     mSolver.MySolve(1, b, x);

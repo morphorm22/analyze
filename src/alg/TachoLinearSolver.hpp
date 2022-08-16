@@ -68,6 +68,7 @@ public:
   ~tachoSolver();
 
   void refactorMatrix(const int numTerms, SX *values);
+  void refactorMatrix(value_type_array ax);
 
   /// with TACHO_ENABLE_INT_INT, size_type is "int"
   void Initialize(int numRows,
@@ -106,6 +107,7 @@ public:
     ) override;
 private:
     tachoSolver<Plato::Scalar> mSolver;
+    bool firstSolve = true;
 };
 
 } // namespace tacho
