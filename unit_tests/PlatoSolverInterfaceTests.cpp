@@ -986,6 +986,32 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
   Kokkos::deep_copy(stateTpetraWithMueLuPreconditioner_host, stateTpetraWithMueLuPreconditioner);
 #endif
 
+#ifdef PLATO_TACHO
+  // *** use Tacho solver interface *** //
+  //
+  Kokkos::deep_copy(state, 0.0);
+  {
+    Teuchos::RCP<Teuchos::ParameterList> tSolverParams =
+      Teuchos::getParametersFromXmlString(
+      "<ParameterList name='Linear Solver'>                                       \n"
+      "  <Parameter name='Solver Stack' type='string' value='Tacho'/>            \n"
+      "</ParameterList>                                                           \n"
+    );
+
+    Plato::SolverFactory tSolverFactory(*tSolverParams);
+
+    auto tSolver = tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
+
+    tSolver->solve(*jacobian, state, residual);
+  }
+  Plato::ScalarVector stateTacho("state", tNumDofs);
+  Kokkos::deep_copy(stateTacho, state);
+
+  auto stateTacho_host = Kokkos::create_mirror_view(stateTacho);
+  Kokkos::deep_copy(stateTacho_host, stateTacho);
+
+#endif
+
   // compare solutions
   int tLength = stateEpetra_host.size();
 
@@ -996,6 +1022,16 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
       {
           TEST_FLOATING_EQUALITY(stateTpetra_host(i), stateEpetra_host(i), 1.0e-12);
           TEST_FLOATING_EQUALITY(stateTpetra_host(i), stateTpetraWithMueLuPreconditioner_host(i), 1.0e-11);
+      }
+  }
+#endif
+
+#ifdef PLATO_TACHO
+  for(int i=0; i<tLength; i++)
+  {
+      if( stateEpetra_host(i) > 1e-18 || stateTacho_host(i) > 1e-18)
+      {
+          TEST_FLOATING_EQUALITY(stateTacho_host(i), stateEpetra_host(i), 1.0e-12);
       }
   }
 #endif
