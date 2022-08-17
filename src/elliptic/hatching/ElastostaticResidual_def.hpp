@@ -6,7 +6,6 @@
 #include "CellForcing.hpp"
 #include "GradientMatrix.hpp"
 #include "ApplyWeighting.hpp"
-#include "StressDivergence.hpp"
 #include "ElasticModelFactory.hpp"
 #include "VonMisesYieldFunction.hpp"
 #include "GeneralStressDivergence.hpp"
