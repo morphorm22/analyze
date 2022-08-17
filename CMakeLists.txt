@@ -25,12 +25,16 @@ option(ELLIPTIC        "Compile with Elliptic physics"       ON )
 option(PARABOLIC       "Compile with Parabolic physics"      ON )
 option(HYPERBOLIC      "Compile with Hyperbolic physics"     ON )
 option(STABILIZED      "Compile with Stabilized VMS physics" ON )
-option(PLASTICITY      "Compile with Plasticity physics"     OFF) # TODO
 option(HELMHOLTZ       "Compile with Helmholtz filter"       ON )
-option(EXPRESSION      "Compile with Expression evaluator"   OFF) # TODO: fix this.  expression evaluator is on regardless.
+option(CUSTOMMATERIALS "Compile with custom materials"       OFF)
 option(HATCHING        "Compile with hatching algorithm"     ON )
+option(MICROMORPHIC    "Compile with Micromorphic physics"   ON )
+
+option(HEX_ELEMENTS    "Compile with hex*, quad* elements"   OFF )
+option(ALL_PENALTY     "Compile with Ramp and Heaviside"     OFF )
+
 option(FLUIDS          "Compile with Fluids physics"         OFF) # TODO
-option(MICROMORPHIC    "Compile with Micromorphic physics"   OFF) # TODO
+option(PLASTICITY      "Compile with Plasticity physics"     OFF) # TODO
 
 option(PLATOANALYZE_UNIT_TEST   "Flag to enable unit tests"  ON)
 option(PLATOANALYZE_SMOKE_TESTS "Flag to enable smoke tests" ON)
@@ -158,7 +162,6 @@ ELSE()
 ENDIF()
 
 add_definitions(-DPLATOANALYZE_USE_EXPLICIT_INSTANTIATION)
-add_definitions(-DPLATO_HEX_ELEMENTS)
 
 if ( PLATOANALYZE_CHECK_FPE)
   add_definitions(-DPLATOANALYZE_CHECK_FPE)
@@ -258,9 +261,19 @@ if(HELMHOLTZ)
   ADD_DEFINITIONS(-DPLATO_HELMHOLTZ)
 endif()
 
-if(EXPRESSION)
-  message("-- Plato: Expression evaluator added")
-  ADD_DEFINITIONS(-DPLATO_EXPRESSION)
+if(CUSTOMMATERIALS)
+  message("-- Plato: Custom materials added")
+  ADD_DEFINITIONS(-DPLATO_CUSTOM_MATERIALS)
+endif()
+
+if(HEX_ELEMENTS)
+  message("-- Plato: Hex and quad elements added")
+  ADD_DEFINITIONS(-DPLATO_HEX_ELEMENTS)
+endif()
+
+if(ALL_PENALTY)
+  message("-- Plato: Ramp and Heaviside penalty added")
+  ADD_DEFINITIONS(-DPLATO_ALL_PENALTY)
 endif()
 
 if (PLATOANALYZE_ENABLE_MESHMAP)

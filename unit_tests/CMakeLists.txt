@@ -12,34 +12,37 @@ include (${CMAKE_CURRENT_SOURCE_DIR}/add_test.cmake)
 
 #TODO: update stablized formulations to new element
 #Plato_add_test(PlatoMathHelpers PlatoMathHelpersTest.cpp)
-Plato_add_test(TwoField TwoFieldTests.cpp)
 
 #TODO: update StructuralDynamics to new element
 #Plato_add_test(PlatoFunctors PlatoFunctorsTest.cpp)
 
 Plato_add_test(MassProperties MassPropertiesTests.cpp)
-Plato_add_test(VolumeAverageCriterion VolumeAverageCriterionTests.cpp SKIP_MATH)
 Plato_add_test(GeometryMisfit GeometryMisfitTests.cpp)
 Plato_add_test(LinearMaterialModel LinearMaterialModelTests.cpp)
 Plato_add_test(PlatoMaterialModel PlatoMaterialModelTest.cpp)
 Plato_add_test(PlatoSpatialModel PlatoSpatialModelTests.cpp)
-Plato_add_test(Electroelastic ElectroelasticTests.cpp)
-Plato_add_test(Thermoelastic ThermoelasticTests.cpp)
+Plato_add_test(Element ElementTests.cpp)
+Plato_add_test(PlatoMathTypes PlatoMathTypesTests.cpp)
+
+if(ELLIPTIC)
+Plato_add_test(MultipointConstraint PlatoMultipointConstraintTests.cpp)
+Plato_add_test(SolverInterface PlatoSolverInterfaceTests.cpp)
 Plato_add_test(SolutionFunction SolutionFunctionTests.cpp)
+Plato_add_test(VolumeAverageCriterion VolumeAverageCriterionTests.cpp SKIP_MATH)
+Plato_add_test(AugLagStress PlatoAugLagStressTest.cpp)
+Plato_add_test(Elastic_Tet10 ElasticTests_Tet10.cpp)
 Plato_add_test(Thermostatic ThermostaticTests.cpp)
 Plato_add_test(Elastostatic ElastostaticTests.cpp)
-Plato_add_test(Element ElementTests.cpp)
-Plato_add_test(Elastic_Tet10 ElasticTests_Tet10.cpp)
-Plato_add_test(SolverInterface PlatoSolverInterfaceTests.cpp)
-Plato_add_test(PlatoMathTypes PlatoMathTypesTests.cpp)
-Plato_add_test(MultipointConstraint PlatoMultipointConstraintTests.cpp)
-Plato_add_test(AugLagStress PlatoAugLagStressTest.cpp)
+Plato_add_test(Electroelastic ElectroelasticTests.cpp)
+Plato_add_test(Thermoelastic ThermoelasticTests.cpp)
+endif()
 
 if(HATCHING)
   Plato_add_test(EllipticHatching EllipticHatchingTests.cpp)
 endif()
 
 if(STABILIZED)
+  Plato_add_test(TwoField TwoFieldTests.cpp)
   Plato_add_test(StabilizedMechanics StabilizedMechanicsTests.cpp)
 endif()
 

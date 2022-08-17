@@ -104,14 +104,12 @@ makeProblem(
     {
         return std::make_shared<ProblemT<PhysicsT<Plato::Tet10>>>(aMesh, aPlatoProb, aMachine);
     }
-    else
     if( Plato::tolower(tElementType) == "tetra"  ||
         Plato::tolower(tElementType) == "tetra4" ||
         Plato::tolower(tElementType) == "tet4" )
     {
         return std::make_shared<ProblemT<PhysicsT<Plato::Tet4>>>(aMesh, aPlatoProb, aMachine);
     }
-    else
     if( Plato::tolower(tElementType) == "hex8" ||
         Plato::tolower(tElementType) == "hexa8" )
     {
@@ -121,7 +119,6 @@ makeProblem(
         ANALYZE_THROWERR("Not compiled with hex8 elements");
 #endif
     }
-    else
     if( Plato::tolower(tElementType) == "hex27" ||
         Plato::tolower(tElementType) == "hexa27" )
     {
@@ -131,7 +128,6 @@ makeProblem(
         ANALYZE_THROWERR("Not compiled with hex27 elements");
 #endif
     }
-    else
     if( Plato::tolower(tElementType) == "quad4" )
     {
 #ifdef PLATO_HEX_ELEMENTS
@@ -140,7 +136,6 @@ makeProblem(
         ANALYZE_THROWERR("Not compiled with quad4 elements");
 #endif
     }
-    else
     {
         std::stringstream ss;
         ss << "Unknown mesh type: " << tElementType;
@@ -170,7 +165,6 @@ create_mechanical_problem
         return makeProblem<Plato::Elliptic::Problem, Plato::Mechanics>(aMesh, aPlatoProb, aMachine);
     }
   #ifdef PLATO_HATCHING
-    else
     if(tLowerPDE == "elliptic hatching")
     {
         return makeProblem<Plato::Elliptic::Hatching::Problem, Plato::Elliptic::Hatching::Mechanics>(aMesh, aPlatoProb, aMachine);
@@ -178,13 +172,11 @@ create_mechanical_problem
   #endif
 #endif
 #ifdef PLATO_HYPERBOLIC
-    else
     if (tLowerPDE == "hyperbolic")
     {
         return makeProblem<Plato::Hyperbolic::Problem, Plato::Hyperbolic::Mechanics>(aMesh, aPlatoProb, aMachine);
     }
 #endif
-    else
     {
         ANALYZE_THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
     }
@@ -215,7 +207,6 @@ create_plasticity_problem
         tOutput->readEssentialBoundaryConditions(aPlatoProb);
         return tOutput;
     }
-    else
 #endif
 #endif
     {
@@ -248,7 +239,6 @@ create_thermoplasticity_problem
         tOutput->readEssentialBoundaryConditions(aPlatoProb);
         return tOutput;
     }
-    else
 #endif
 #endif
     {
@@ -278,7 +268,6 @@ create_stabilized_mechanical_problem
     {
         return makeProblem<Plato::Stabilized::Problem, Plato::Stabilized::Mechanics>(aMesh, aPlatoProb, aMachine);
     }
-    else
 #endif
 #endif
     {
@@ -308,14 +297,12 @@ create_thermal_problem
     {
         return makeProblem<Plato::Parabolic::Problem, Plato::Thermal>(aMesh, aPlatoProb, aMachine);
     }
-    else
 #endif
 #ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
     {
         return makeProblem<Plato::Elliptic::Problem, Plato::Thermal>(aMesh, aPlatoProb, aMachine);
     }
-    else
 #endif
     {
         ANALYZE_THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
@@ -344,7 +331,6 @@ create_electromechanical_problem
     {
         return makeProblem<Plato::Elliptic::Problem, Plato::Electromechanics>(aMesh, aPlatoProb, aMachine);
     }
-    else
 #endif
     {
         ANALYZE_THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
@@ -374,7 +360,6 @@ create_stabilized_thermomechanical_problem
     {
         return makeProblem<Plato::Stabilized::Problem, Plato::Stabilized::Thermomechanics>(aMesh, aPlatoProb, aMachine);
     }
-    else
 #endif
 #endif
     {
@@ -404,14 +389,12 @@ create_thermomechanical_problem
     {
         return makeProblem<Plato::Parabolic::Problem, Plato::Thermomechanics>(aMesh, aPlatoProb, aMachine);
     }
-    else
 #endif
 #ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
     {
         return makeProblem<Plato::Elliptic::Problem, Plato::Thermomechanics>(aMesh, aPlatoProb, aMachine);
     }
-    else
 #endif
     {
         ANALYZE_THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
@@ -441,7 +424,6 @@ create_incompressible_fluid_problem
     {
         return makeProblem<Plato::Fluids::QuasiImplicit, Plato::IncompressibleFluids>(aMesh, aPlatoProb, aMachine);
     }
-    else
 #endif
 #endif
     {
@@ -472,7 +454,6 @@ create_micromorphic_mechanics_problem
     {
         return makeProblem<Plato::Hyperbolic::Problem, Plato::Hyperbolic::MicromorphicMechanics>(aMesh, aPlatoProb, aMachine);
     }
-    else
 #endif
 #endif
     {
@@ -510,58 +491,47 @@ public:
         {
             return ( Plato::create_mechanical_problem(aMesh, tInputData, aMachine) );
         }
-        else
         if(tLowerPhysics == "plasticity")
         {
             return ( Plato::create_plasticity_problem(aMesh, tInputData, aMachine) );
         }
-        else
         if(tLowerPhysics == "thermoplasticity")
         {
             return ( Plato::create_thermoplasticity_problem(aMesh, tInputData, aMachine) );
         }
-        else
         if(tLowerPhysics == "stabilized mechanical")
         {
             return ( Plato::create_stabilized_mechanical_problem(aMesh, tInputData, aMachine) );
         }
-        else if(tLowerPhysics == "thermal")
         {
             return ( Plato::create_thermal_problem(aMesh, tInputData, aMachine) );
         }
-        else
         if(tLowerPhysics == "electromechanical")
         {
             return ( Plato::create_electromechanical_problem(aMesh, tInputData, aMachine) );
         }
-        else
         if(tLowerPhysics == "stabilized thermomechanical")
         {
             return ( Plato::create_stabilized_thermomechanical_problem(aMesh, tInputData, aMachine) );
         }
-        else
         if(tLowerPhysics == "thermomechanical")
         {
             return ( Plato::create_thermomechanical_problem(aMesh, tInputData, aMachine) );
         }
-        else
         if(tLowerPhysics == "incompressible fluids")
         {
             return ( Plato::create_incompressible_fluid_problem(aMesh, tInputData, aMachine) );
         }
-        else
         if(tLowerPhysics == "micromorphic mechanical")
         {
             return ( Plato::create_micromorphic_mechanics_problem(aMesh, tInputData, aMachine) );
         }
 #ifdef PLATO_HELMHOLTZ
-        else
         if(tLowerPhysics == "helmholtz filter")
         {
             return makeProblem<Plato::Helmholtz::Problem, Plato::HelmholtzFilter>(aMesh, tInputData, aMachine);
         }
 #endif
-        else
         {
             ANALYZE_THROWERR(std::string("'Physics' of type ") + tLowerPhysics + "' is not supported.");
         }

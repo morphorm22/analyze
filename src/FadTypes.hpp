@@ -6,6 +6,11 @@
 
 namespace Plato {
 
+  template<typename TopoElementType>
+  struct Config {
+    using FadType = Sacado::Fad::SFad<Plato::Scalar, TopoElementType::mNumSpatialDims* TopoElementType::mNumNodesPerCell>;
+  };
+
   template<typename ElementType>
   struct FadTypes {
 
@@ -16,9 +21,7 @@ namespace Plato {
                                            ElementType::mNumLocalDofsPerCell>;
     using ControlFad   = Sacado::Fad::SFad<Plato::Scalar,
                                            ElementType::mNumNodesPerCell>;
-    using ConfigFad    = Sacado::Fad::SFad<Plato::Scalar,
-                                           ElementType::mNumSpatialDims*
-                                           ElementType::mNumNodesPerCell>;
+    using ConfigFad    = typename Plato::Config<typename ElementType::TopoElementType>::FadType;
     using NodeStateFad = Sacado::Fad::SFad<Plato::Scalar,
                                            ElementType::mNumNodeStatePerNode*
                                            ElementType::mNumNodesPerCell>;

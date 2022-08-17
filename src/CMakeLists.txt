@@ -6,11 +6,10 @@ configure_file(
 ## material model sources
 set(ANALYZE_SOURCES
     ParseTools.cpp
-    CustomMaterial.cpp
+    ExpressionEvaluator.cpp
 ##    ElasticModelFactory.cpp
     LinearElasticMaterial.cpp
     CubicLinearElasticMaterial.cpp
-    CustomLinearElasticMaterial.cpp
     LinearElectroelasticMaterial.cpp
     IsotropicLinearElasticMaterial.cpp
     OrthotropicLinearElasticMaterial.cpp
@@ -22,7 +21,8 @@ set(ANALYZE_SOURCES
 
 if(EXPRESSION)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-      ExpressionEvaluator.cpp
+      CustomMaterial.cpp
+      CustomLinearElasticMaterial.cpp
       LinearStressExpression.cpp
       YieldStressExpression.cpp
   )
@@ -48,8 +48,6 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     EngineMeshIO.cpp
     mesh/ExodusIO.cpp
     alg/ParseInput.cpp
-    alg/Basis.cpp
-    alg/Cubature.cpp
     alg/ParallelComm.cpp
     alg/AmgXConfigs.cpp
     alg/AmgXLinearSolver.cpp

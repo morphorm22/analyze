@@ -713,6 +713,7 @@ namespace Stabilized
                 mEta = Plato::ScalarVector("Eta", tLength);
             }
         }
+        this->readEssentialBoundaryConditions(aProblemParams);
     }
     /******************************************************************************/ /**
     * \brief Return solution database.

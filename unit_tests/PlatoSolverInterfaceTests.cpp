@@ -968,6 +968,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
       "  <ParameterList name='Preconditioner Options'>                                \n"
       /***MueLu intput parameter list goes here*****************************************/
       "    <Parameter name='verbosity' type='string' value='low'/>                    \n"
+      "    <Parameter name='tentative: calculate qr' type='bool' value='false'/>      \n"
       /*********************************************************************************/
       "  </ParameterList>                                                             \n"
       "</ParameterList>                                                               \n"

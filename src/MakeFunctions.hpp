@@ -1,11 +1,14 @@
 #pragma once
 
 #include "Simp.hpp"
-#include "Ramp.hpp"
-#include "Heaviside.hpp"
 #include "NoPenalty.hpp"
 #include "SpatialModel.hpp"
 #include "PlatoUtilities.hpp"
+
+#ifdef PLATO_ALL_PENALTY
+#include "Ramp.hpp"
+#include "Heaviside.hpp"
+#endif
 
 namespace Plato
 {
@@ -30,12 +33,20 @@ makeVectorFunction(
     else
     if(tLowerPenaltyT == "ramp")
     {
+#ifdef PLATO_ALL_PENALTY
         return std::make_shared<FunctionT<EvaluationT, Plato::RAMP>> (aSpatialDomain, aDataMap, aProblemParams, tPenaltyParams);
+#else
+        ANALYZE_THROWERR("Plato Analyze was not compiled with the 'Ramp' penalty function");
+#endif
     }
     else
     if(tLowerPenaltyT == "heaviside")
     {
+#ifdef PLATO_ALL_PENALTY
         return std::make_shared<FunctionT<EvaluationT, Plato::Heaviside>> (aSpatialDomain, aDataMap, aProblemParams, tPenaltyParams);
+#else
+        ANALYZE_THROWERR("Plato Analyze was not compiled with the 'Heaviside' penalty function");
+#endif
     }
     else
     if(tLowerPenaltyT == "nopenalty")
@@ -66,12 +77,20 @@ makeScalarFunction(
     else
     if(tLowerPenaltyT == "ramp")
     {
+#ifdef PLATO_ALL_PENALTY
         return std::make_shared<FunctionT<EvaluationT, Plato::RAMP>> (aSpatialDomain, aDataMap, aProblemParams, tPenaltyParams, aFuncName);
+#else
+        ANALYZE_THROWERR("Plato Analyze was not compiled with the 'Ramp' penalty function");
+#endif
     }
     else
     if(tLowerPenaltyT == "heaviside")
     {
+#ifdef PLATO_ALL_PENALTY
         return std::make_shared<FunctionT<EvaluationT, Plato::Heaviside>> (aSpatialDomain, aDataMap, aProblemParams, tPenaltyParams, aFuncName);
+#else
+        ANALYZE_THROWERR("Plato Analyze was not compiled with the 'Heaviside' penalty function");
+#endif
     }
     else
     if(tLowerPenaltyT == "nopenalty")
