@@ -177,7 +177,7 @@ bool testTachoSolver(int numRows,
 TEUCHOS_UNIT_TEST(tachoSolver, Test1)
 {
   int numRows = 4;
-  int rowBegin[] = {0, 2, 5, 8, 11}; 
+  int rowBegin[] = {0, 2, 5, 8, 10}; 
   int columns[] = {0, 1, 0, 1, 2, 1, 2, 3, 2, 3};
   double values[] = {2.0, -1.0, -1.0, 2.0, -1.0, -1.0, 2.0, -1.0, -1.0, 2.0};
 

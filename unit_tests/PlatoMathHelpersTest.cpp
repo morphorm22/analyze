@@ -2415,7 +2415,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, TachoSolver_NonBlockMatrix)
 {
   const unsigned numRows = 4;
   auto tMatrixA = Teuchos::rcp( new Plato::CrsMatrixType(numRows, numRows, 1, 1) );
-  std::vector<Plato::OrdinalType> tRowMapA = {0, 2, 5, 8, 11};
+  std::vector<Plato::OrdinalType> tRowMapA = {0, 2, 5, 8, 10};
   std::vector<Plato::OrdinalType> tColMapA = {0, 1, 0, 1, 2, 1, 2, 3, 2, 3};
   std::vector<Plato::Scalar>      tValuesA = {2.0, -1.0, -1.0, 2.0, -1.0, -1.0, 2.0, -1.0, -1.0, 2.0};
   PlatoDevel::setMatrixData(tMatrixA, tRowMapA, tColMapA, tValuesA);
