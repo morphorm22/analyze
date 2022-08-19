@@ -65,6 +65,7 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     OmegaHMeshIO.cpp
     EngineMesh.cpp
     EngineMeshIO.cpp
+    PlatoMathHelpers.cpp
     alg/ParseInput.cpp
     alg/Basis.cpp
     alg/Cubature.cpp
