@@ -125,6 +125,8 @@ class TpetraLinearSolver : public AbstractSolver
         std::shared_ptr<Plato::MultipointConstraints>   aMPCs
     );
 
+    void initialize();
+
     /******************************************************************************//**
      * @brief Solve the linear system
     **********************************************************************************/
@@ -144,22 +146,16 @@ class TpetraLinearSolver : public AbstractSolver
     belosSolve (Teuchos::RCP<const OP> A, Teuchos::RCP<MV> X, Teuchos::RCP<const MV> B, Teuchos::RCP<const OP> M);
 
     /******************************************************************************//**
-     * @brief Setup the Amesos2 solver and solve
-    ********************************************************************* ************/
-    void
-    amesos2Solve (Teuchos::RCP<Tpetra_Matrix> A, Teuchos::RCP<Tpetra_MultiVector> X, Teuchos::RCP<Tpetra_MultiVector> B);
-
-    /******************************************************************************//**
      * @brief Setup the solver options
     ********************************************************************* ************/
     void
-    setupSolverOptions (const Teuchos::ParameterList &aSolverParams);
+    setupSolverOptions();
 
     /******************************************************************************//**
      * @brief Setup the preconditioner options
     ********************************************************************* ************/
     void
-    setupPreconditionerOptions (const Teuchos::ParameterList &aSolverParams);
+    setupPreconditionerOptions();
 
     /******************************************************************************//**
      * @brief Add to parameter list if not set by user

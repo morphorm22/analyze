@@ -3,14 +3,10 @@ if(    EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/regression/CMakeLists.txt
   ADD_SUBDIRECTORY(regression)
   message("-- Added plato regression tests")
 
-  FIND_PROGRAM( PARAVIEW NAMES paraview )
-  IF(PARAVIEW)
-    FIND_PROGRAM( DOXYGEN NAMES doxygen )
-    ADD_SUBDIRECTORY(verification)
-    message("-- Added plato verification tests")
-  else()
-    message("-- Paraview was not found but is required for post-processing.  Verification tests not added.")
-  endif()
+# Paraview is added as a dependency via spack
+  FIND_PROGRAM( DOXYGEN NAMES doxygen )
+  ADD_SUBDIRECTORY(verification)
+  message("-- Added plato verification tests")
 else()
   message("-- Plato tests not added. skipping.")
   message("--   To include plato tests:")
