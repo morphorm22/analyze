@@ -51,7 +51,7 @@ SolverFactory::create(
 
   if(tLowerSolverStack == "epetra")
   {
-      Plato::OrdinalType tNumCondensedNodes = aMPCs->getNumCondensedNodes();
+      const Plato::OrdinalType tNumCondensedNodes = (aMPCs == nullptr) ? aNumNodes : aMPCs->getNumCondensedNodes();
       return std::make_shared<Plato::EpetraLinearSolver>(mSolverParams, tNumCondensedNodes, aMachine, aDofsPerNode, aMPCs);
   }
   else if(tLowerSolverStack == "tpetra")
