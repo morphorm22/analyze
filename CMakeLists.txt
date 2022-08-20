@@ -28,7 +28,7 @@ option(STABILIZED      "Compile with Stabilized VMS physics" ON )
 option(HELMHOLTZ       "Compile with Helmholtz filter"       ON )
 option(CUSTOMMATERIALS "Compile with custom materials"       OFF)
 option(HATCHING        "Compile with hatching algorithm"     ON )
-option(MICROMORPHIC    "Compile with Micromorphic physics"   ON )
+option(MICROMORPHIC    "Compile with Micromorphic physics"   OFF)
 
 option(HEX_ELEMENTS    "Compile with hex*, quad* elements"   OFF )
 option(ALL_PENALTY     "Compile with Ramp and Heaviside"     OFF )
