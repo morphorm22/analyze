@@ -25,11 +25,11 @@ RandomStep(Plato::Scalar aLowerBound, Plato::Scalar aUpperBound, Plato::ScalarAr
 
     unsigned int tRANDOM_SEED = 1;
     std::srand(tRANDOM_SEED);
-    for(decltype(tSize0) iDim0; iDim0<tSize0; iDim0)
+    for(decltype(tSize0) iDim0=0; iDim0<tSize0; iDim0++)
     {
-      for(decltype(tSize1) iDim1; iDim1<tSize1; iDim1)
+      for(decltype(tSize1) iDim1=0; iDim1<tSize1; iDim1++)
       {
-        for(decltype(tSize2) iDim2; iDim2<tSize2; iDim2)
+        for(decltype(tSize2) iDim2=0; iDim2<tSize2; iDim2++)
         {
           const Plato::Scalar tRandNum = static_cast<Plato::Scalar>(std::rand()) / static_cast<Plato::Scalar>(RAND_MAX);
           tHostStep(iDim0, iDim1, iDim2) = aLowerBound + ( (aUpperBound - aLowerBound) * tRandNum);
@@ -591,8 +591,6 @@ TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D )
   Plato::Comm::Machine tMachine(myComm);
 
   using PhysicsType = Plato::Elliptic::Hatching::Mechanics<Plato::Tet4>;
-
-  constexpr int cSpaceDim = Plato::Tet4::mNumSpatialDims;
 
   int tNumNodes = tMesh->NumNodes();
   Plato::ScalarVector tControl("control", tNumNodes);

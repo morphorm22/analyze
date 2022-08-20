@@ -427,11 +427,12 @@ class MeshMap
         decltype(d_x) d_r("radii", d_x.layout());
         Kokkos::deep_copy(d_r, aRadius);
 
-        ArborX::BVH<DeviceType>
-          bvh{Points{d_x.data(), d_y.data(), d_z.data(), (int)d_x.size()}};
+        Plato::ExecSpace tExecSpace;
+        ArborX::BVH<Plato::MemSpace>
+          bvh{tExecSpace, Points{d_x.data(), d_y.data(), d_z.data(), (int)d_x.size()}};
 
-        Kokkos::View<int*, DeviceType> tIndices("indices", 0), tOffset("offset", 0);
-        bvh.query(Spheres{d_x.data(), d_y.data(), d_z.data(), d_r.data(), (int)d_x.size()}, tIndices, tOffset);
+        Kokkos::View<int*, Plato::MemSpace> tIndices("indices", 0), tOffset("offset", 0);
+        ArborX::query(bvh, tExecSpace, Spheres{d_x.data(), d_y.data(), d_z.data(), d_r.data(), (int)d_x.size()}, tIndices, tOffset);
 
         // create matrix entries
         //

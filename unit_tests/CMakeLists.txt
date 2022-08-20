@@ -23,6 +23,7 @@ Plato_add_test(PlatoMaterialModel PlatoMaterialModelTest.cpp)
 Plato_add_test(PlatoSpatialModel PlatoSpatialModelTests.cpp)
 Plato_add_test(Element ElementTests.cpp)
 Plato_add_test(PlatoMathTypes PlatoMathTypesTests.cpp)
+Plato_add_test(TensorNorm TensorNormTests.cpp)
 
 if(ELLIPTIC)
 Plato_add_test(MultipointConstraint PlatoMultipointConstraintTests.cpp)

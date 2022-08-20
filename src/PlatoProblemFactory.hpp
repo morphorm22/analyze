@@ -503,6 +503,7 @@ public:
         {
             return ( Plato::create_stabilized_mechanical_problem(aMesh, tInputData, aMachine) );
         }
+        if(tLowerPhysics == "thermal")
         {
             return ( Plato::create_thermal_problem(aMesh, tInputData, aMachine) );
         }

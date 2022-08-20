@@ -1508,7 +1508,6 @@ TEUCHOS_UNIT_TEST( RelaxedMicromorphicResidualTests, 3D_NoInertia )
     // create test mesh
     //
     constexpr int cMeshWidth=2;
-    constexpr int cSpaceDim=3;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
     using ElementType = typename Plato::Hyperbolic::MicromorphicMechanicsElement<Plato::Tet4>;
     constexpr int tNumDofsPerNode  = ElementType::mNumDofsPerNode;

@@ -41,14 +41,15 @@ getFunctionValues(
 
     tExpEval.parse_expression(aFuncString.c_str());
     tExpEval.setup_storage(tNumCells*tNumPoints, /*num vals to eval =*/ 1);
-    Kokkos::parallel_for("", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-    LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+
+    tExpEval.set_variable("x", x_coords);
+    tExpEval.set_variable("y", y_coords);
+    tExpEval.set_variable("z", z_coords);
+
+    auto tNumTotalPoints = tNumCells*tNumPoints;
+    Kokkos::parallel_for("", Kokkos::RangePolicy<>(0, tNumTotalPoints), LAMBDA_EXPRESSION(const Plato::OrdinalType iEntryOrdinal)
     {
-        Plato::OrdinalType tEntryOrdinal = iCellOrdinal * tNumPoints + iGpOrdinal;
-        tExpEval.set_variable("x", x_coords, tEntryOrdinal);
-        tExpEval.set_variable("y", y_coords, tEntryOrdinal);
-        tExpEval.set_variable("z", z_coords, tEntryOrdinal);
-        tExpEval.evaluate_expression( tEntryOrdinal, aFxnValues );
+        tExpEval.evaluate_expression( iEntryOrdinal, aFxnValues );
     });
     Kokkos::fence();
     tExpEval.clear_storage();

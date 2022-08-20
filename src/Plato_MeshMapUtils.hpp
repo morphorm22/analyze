@@ -21,7 +21,6 @@ namespace Geometry {
 
 using ExecSpace = Kokkos::DefaultExecutionSpace;
 using MemSpace = typename ExecSpace::memory_space;
-using DeviceType = Kokkos::Device<ExecSpace, MemSpace>;
 
 struct BoundingBoxes
 {
@@ -57,54 +56,51 @@ struct Points
 
 namespace ArborX
 {
-namespace Traits
-{
 template <>
-struct Access<Plato::Geometry::BoundingBoxes, PrimitivesTag>
+struct AccessTraits<Plato::Geometry::BoundingBoxes, PrimitivesTag>
 {
   inline static std::size_t size(Plato::Geometry::BoundingBoxes const &boxes) { return boxes.N; }
   KOKKOS_INLINE_FUNCTION static Box get(Plato::Geometry::BoundingBoxes const &boxes, std::size_t i)
   {
-    return {{boxes.d_x0[i], boxes.d_y0[i], boxes.d_z0[i]},
-            {boxes.d_x1[i], boxes.d_y1[i], boxes.d_z1[i]}};
+    return {{(float)boxes.d_x0[i], (float)boxes.d_y0[i], (float)boxes.d_z0[i]},
+            {(float)boxes.d_x1[i], (float)boxes.d_y1[i], (float)boxes.d_z1[i]}};
   }
   using memory_space = Plato::Geometry::MemSpace;
 };
 
 template <>
-struct Access<Plato::Geometry::Points, PrimitivesTag>
+struct AccessTraits<Plato::Geometry::Points, PrimitivesTag>
 {
   inline static std::size_t size(Plato::Geometry::Points const &points) { return points.N; }
   KOKKOS_INLINE_FUNCTION static Point get(Plato::Geometry::Points const &points, std::size_t i)
   {
-    return {{points.d_x[i], points.d_y[i], points.d_z[i]}};
+    return {{(float)points.d_x[i], (float)points.d_y[i], (float)points.d_z[i]}};
   }
   using memory_space = Plato::Geometry::MemSpace;
 };
 
 template <>
-struct Access<Plato::Geometry::Spheres, PredicatesTag>
+struct AccessTraits<Plato::Geometry::Spheres, PredicatesTag>
 {
   inline static std::size_t size(Plato::Geometry::Spheres const &d) { return d.N; }
   KOKKOS_INLINE_FUNCTION static auto get(Plato::Geometry::Spheres const &d, std::size_t i)
   {
-    return intersects(Sphere{{{d.d_x[i], d.d_y[i], d.d_z[i]}}, d.d_r[i]});
+    return intersects(Sphere{{{(float)d.d_x[i], (float)d.d_y[i], (float)d.d_z[i]}}, (float)d.d_r[i]});
   }
   using memory_space = Plato::Geometry::MemSpace;
 };
 
 template <>
-struct Access<Plato::Geometry::Points, PredicatesTag>
+struct AccessTraits<Plato::Geometry::Points, PredicatesTag>
 {
   inline static std::size_t size(Plato::Geometry::Points const &d) { return d.N; }
   KOKKOS_INLINE_FUNCTION static auto get(Plato::Geometry::Points const &d, std::size_t i)
   {
-    return intersects(Point{d.d_x[i], d.d_y[i], d.d_z[i]});
+    return intersects(Point{(float)d.d_x[i], (float)d.d_y[i], (float)d.d_z[i]});
   }
   using memory_space = Plato::Geometry::MemSpace;
 };
 
-} // namespace Traits
 } // namespace ArborX
 
 
@@ -302,45 +298,6 @@ struct GetBasis
         }
     }
 
-#ifdef NOPE // delete this
-    /******************************************************************************//**
-     * @brief Find local coordinates from global coordinates and compute basis values
-     * @param [in]  aLocations view of points (D, N)
-     * @param [in]  aNodeOrdinal index of point for which to determine local coords
-     * @param [in]  aElemOrdinal index of element whose bases will be used for interpolation
-     * @param [out] aBases basis values
-    **********************************************************************************/
-    DEVICE_TYPE inline void
-    operator()(
-      VectorArrayT  aLocations,
-      OrdinalT      aNodeOrdinal,
-      int           aElemOrdinal,
-      ScalarT       aBases[cNVertsPerElem]) const
-    {
-        // get input point values
-        ScalarT Xh=aLocations(Dim::X,aNodeOrdinal),
-                Yh=aLocations(Dim::Y,aNodeOrdinal),
-                Zh=aLocations(Dim::Z,aNodeOrdinal);
-
-        // get vertex indices
-        OrdinalT i0 = mCells2Nodes[aElemOrdinal*cNVertsPerElem  ];
-        OrdinalT i1 = mCells2Nodes[aElemOrdinal*cNVertsPerElem+1];
-        OrdinalT i2 = mCells2Nodes[aElemOrdinal*cNVertsPerElem+2];
-        OrdinalT i3 = mCells2Nodes[aElemOrdinal*cNVertsPerElem+3];
-
-        ScalarT b0, b1, b2, b3;
-
-        basis(Xh, Yh, Zh,
-              i0, i1, i2, i3,
-              b0, b1, b2, b3);
-
-        aBases[0] = b0;
-        aBases[1] = b1;
-        aBases[2] = b2;
-        aBases[3] = b3;
-    }
-#endif
-
     /******************************************************************************//**
      * @brief Find local coordinates from global coordinates and compute basis values
      * @param [in]  aElemOrdinal index of element whose bases will be used for interpolation
@@ -364,83 +321,6 @@ struct GetBasis
         basis(aPhysicalLocation, tNodeOrdinals, aBases);
     }
 };
-
-template<Plato::OrdinalType NumSpatialDims>
-void inline
-search(
-    Plato::ScalarMultiVector         aMin,
-    Plato::ScalarMultiVector         aMax,
-    Plato::ScalarMultiVector         aMappedLocations,
-    Kokkos::View<int*, DeviceType> & aIndices,
-    Kokkos::View<int*, DeviceType> & aOffset
-);
-
-template<>
-void inline
-search<2>(
-    Plato::ScalarMultiVector         aMin,
-    Plato::ScalarMultiVector         aMax,
-    Plato::ScalarMultiVector         aMappedLocations,
-    Kokkos::View<int*, DeviceType> & aIndices,
-    Kokkos::View<int*, DeviceType> & aOffset
-) {
-    Plato::OrdinalType tNumElements = aMin.extent(1);
-    Plato::OrdinalType tNumLocations = aMappedLocations.extent(1);
-
-    auto d_x0 = Kokkos::subview(aMin, (size_t)Dim::X, Kokkos::ALL());
-    auto d_y0 = Kokkos::subview(aMin, (size_t)Dim::Y, Kokkos::ALL());
-    Plato::ScalarVector d_z0("zeros", tNumElements);
-
-    auto d_x1 = Kokkos::subview(aMax, (size_t)Dim::X, Kokkos::ALL());
-    auto d_y1 = Kokkos::subview(aMax, (size_t)Dim::Y, Kokkos::ALL());
-    Plato::ScalarVector d_z1("zeros", tNumElements);
-
-    // construct search tree
-    ArborX::BVH<DeviceType>
-      bvh{BoundingBoxes{d_x0.data(), d_y0.data(), d_z0.data(),
-                        d_x1.data(), d_y1.data(), d_z1.data(), tNumElements}};
-
-    // conduct search for bounding box elements
-    auto d_x = Kokkos::subview(aMappedLocations, (size_t)Dim::X, Kokkos::ALL());
-    auto d_y = Kokkos::subview(aMappedLocations, (size_t)Dim::Y, Kokkos::ALL());
-    Plato::ScalarVector d_z("zeros", tNumLocations);
-
-    bvh.query(Points{d_x.data(), d_y.data(), d_z.data(), static_cast<int>(tNumLocations)}, aIndices, aOffset);
-}
-
-
-template<>
-void inline
-search<3>(
-    Plato::ScalarMultiVector         aMin,
-    Plato::ScalarMultiVector         aMax,
-    Plato::ScalarMultiVector         aMappedLocations,
-    Kokkos::View<int*, DeviceType> & aIndices,
-    Kokkos::View<int*, DeviceType> & aOffset
-) {
-    Plato::OrdinalType tNumElements = aMin.extent(1);
-    Plato::OrdinalType tNumLocations = aMappedLocations.extent(1);
-
-    auto d_x0 = Kokkos::subview(aMin, (size_t)Dim::X, Kokkos::ALL());
-    auto d_y0 = Kokkos::subview(aMin, (size_t)Dim::Y, Kokkos::ALL());
-    auto d_z0 = Kokkos::subview(aMin, (size_t)Dim::Z, Kokkos::ALL());
-
-    auto d_x1 = Kokkos::subview(aMax, (size_t)Dim::X, Kokkos::ALL());
-    auto d_y1 = Kokkos::subview(aMax, (size_t)Dim::Y, Kokkos::ALL());
-    auto d_z1 = Kokkos::subview(aMax, (size_t)Dim::Z, Kokkos::ALL());
-
-    // construct search tree
-    ArborX::BVH<DeviceType>
-      bvh{BoundingBoxes{d_x0.data(), d_y0.data(), d_z0.data(),
-                        d_x1.data(), d_y1.data(), d_z1.data(), tNumElements}};
-
-    // conduct search for bounding box elements
-    auto d_x = Kokkos::subview(aMappedLocations, (size_t)Dim::X, Kokkos::ALL());
-    auto d_y = Kokkos::subview(aMappedLocations, (size_t)Dim::Y, Kokkos::ALL());
-    auto d_z = Kokkos::subview(aMappedLocations, (size_t)Dim::Z, Kokkos::ALL());
-
-    bvh.query(Points{d_x.data(), d_y.data(), d_z.data(), static_cast<int>(tNumLocations)}, aIndices, aOffset);
-}
 
 
 /***************************************************************************//**
@@ -508,12 +388,31 @@ findParentElements(
         }
     }, "element bounding boxes");
 
-    Kokkos::View<int*, DeviceType> tIndices("indices", 0), tOffset("offset", 0);
-    search<ElementT::mNumSpatialDims>(tMin, tMax, aMappedLocations, tIndices, tOffset);
+    auto d_x0 = Kokkos::subview(tMin, (size_t)Dim::X, Kokkos::ALL());
+    auto d_y0 = Kokkos::subview(tMin, (size_t)Dim::Y, Kokkos::ALL());
+    auto d_z0 = Kokkos::subview(tMin, (size_t)Dim::Z, Kokkos::ALL());
+    auto d_x1 = Kokkos::subview(tMax, (size_t)Dim::X, Kokkos::ALL());
+    auto d_y1 = Kokkos::subview(tMax, (size_t)Dim::Y, Kokkos::ALL());
+    auto d_z1 = Kokkos::subview(tMax, (size_t)Dim::Z, Kokkos::ALL());
+
+    ExecSpace tExecSpace;
+
+    // construct search tree
+    ArborX::BVH<MemSpace>
+      bvh{tExecSpace, BoundingBoxes{d_x0.data(), d_y0.data(), d_z0.data(),
+                        d_x1.data(), d_y1.data(), d_z1.data(), tNElems}};
+
+    // conduct search for bounding box elements
+    auto d_x = Kokkos::subview(aMappedLocations, (size_t)Dim::X, Kokkos::ALL());
+    auto d_y = Kokkos::subview(aMappedLocations, (size_t)Dim::Y, Kokkos::ALL());
+    auto d_z = Kokkos::subview(aMappedLocations, (size_t)Dim::Z, Kokkos::ALL());
+
+    auto tNumLocations = aParentElements.size();
+    Kokkos::View<int*, MemSpace> tIndices("indices", 0), tOffset("offset", 0);
+    ArborX::query(bvh, tExecSpace, Points{d_x.data(), d_y.data(), d_z.data(), static_cast<int>(tNumLocations)}, tIndices, tOffset);
 
     // loop over indices and find containing element
     GetBasis<ElementT, ScalarT> tGetBasis(aMesh);
-    auto tNumLocations = aParentElements.size();
     Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalT>(0, tNumLocations), KOKKOS_LAMBDA(OrdinalT iNodeOrdinal)
     {
         Plato::Array<ElementT::mNumNodesPerCell, Plato::Scalar> tBasis(0.0);
@@ -655,12 +554,31 @@ findParentElements(
         }
     }, "element bounding boxes");
 
-    Kokkos::View<int*, DeviceType> tIndices("indices", 0), tOffset("offset", 0);
-    search<ElementT::mNumSpatialDims>(tMin, tMax, aMappedLocations, tIndices, tOffset);
+    auto d_x0 = Kokkos::subview(tMin, (size_t)Dim::X, Kokkos::ALL());
+    auto d_y0 = Kokkos::subview(tMin, (size_t)Dim::Y, Kokkos::ALL());
+    auto d_z0 = Kokkos::subview(tMin, (size_t)Dim::Z, Kokkos::ALL());
+    auto d_x1 = Kokkos::subview(tMax, (size_t)Dim::X, Kokkos::ALL());
+    auto d_y1 = Kokkos::subview(tMax, (size_t)Dim::Y, Kokkos::ALL());
+    auto d_z1 = Kokkos::subview(tMax, (size_t)Dim::Z, Kokkos::ALL());
+
+    ExecSpace tExecSpace;
+
+    // construct search tree
+    ArborX::BVH<MemSpace>
+      bvh{tExecSpace, BoundingBoxes{d_x0.data(), d_y0.data(), d_z0.data(),
+                        d_x1.data(), d_y1.data(), d_z1.data(), (int) tNElems}};
+
+    // conduct search for bounding box elements
+    auto d_x = Kokkos::subview(aMappedLocations, (size_t)Dim::X, Kokkos::ALL());
+    auto d_y = Kokkos::subview(aMappedLocations, (size_t)Dim::Y, Kokkos::ALL());
+    auto d_z = Kokkos::subview(aMappedLocations, (size_t)Dim::Z, Kokkos::ALL());
+
+    auto tNumLocations = aParentElements.size();
+    Kokkos::View<int*, MemSpace> tIndices("indices", 0), tOffset("offset", 0);
+    ArborX::query(bvh, tExecSpace, Points{d_x.data(), d_y.data(), d_z.data(), static_cast<int>(tNumLocations)}, tIndices, tOffset);
 
     // loop over indices and find containing element
     GetBasis<ElementT, ScalarT> tGetBasis(aMesh);
-    auto tNumLocations = aParentElements.size();
     Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalT>(0, tNumLocations), KOKKOS_LAMBDA(OrdinalT iNodeOrdinal)
     {
         Plato::Array<ElementT::mNumNodesPerCell, Plato::Scalar> tBasis(0.0);

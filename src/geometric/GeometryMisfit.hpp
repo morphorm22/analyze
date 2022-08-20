@@ -33,39 +33,32 @@ namespace Geometric
 {
 enum Dim { X=0, Y, Z };
 
-//using ExecSpace = Kokkos::DefaultExecutionSpace;
-//using MemSpace = typename ExecSpace::memory_space;
-//using DeviceType = Kokkos::Device<ExecSpace, MemSpace>;
-
 } // end namespace Geometric
 } // end namespace Plato
 
 
 namespace ArborX
 {
-namespace Traits
-{
 template <>
-struct Access<Plato::GMF::Points, PrimitivesTag>
+struct AccessTraits<Plato::GMF::Points, PrimitivesTag>
 {
   inline static std::size_t size(Plato::GMF::Points const &points) { return points.N; }
   KOKKOS_INLINE_FUNCTION static Point get(Plato::GMF::Points const &points, std::size_t i)
   {
-    return {{points.d_x[i], points.d_y[i], points.d_z[i]}};
+    return {{(float)points.d_x[i], (float)points.d_y[i], (float)points.d_z[i]}};
   }
   using memory_space = Plato::MemSpace;
 };
 template <>
-struct Access<Plato::GMF::Points, PredicatesTag>
+struct AccessTraits<Plato::GMF::Points, PredicatesTag>
 {
   inline static std::size_t size(Plato::GMF::Points const &d) { return d.N; }
   KOKKOS_INLINE_FUNCTION static auto get(Plato::GMF::Points const &d, std::size_t i)
   {
-    return nearest(Point{d.d_x[i], d.d_y[i], d.d_z[i]}, 1);
+    return nearest(Point{(float)d.d_x[i], (float)d.d_y[i], (float)d.d_z[i]}, 1);
   }
   using memory_space = Plato::MemSpace;
 };
-} // end namespace Traits
 } // end namespace ArborX
 
 namespace Plato
@@ -330,7 +323,9 @@ class GeometryMisfit :
             Plato::ScalarVector prim_y = Kokkos::subview(tCentroids, 1, Kokkos::ALL());
             Plato::ScalarVector prim_z = Kokkos::subview(tCentroids, 2, Kokkos::ALL());
             Plato::OrdinalType tNumPrimitives = prim_x.extent(0);
-            ArborX::BVH<Plato::DeviceType> bvh{Plato::GMF::Points{prim_x.data(), prim_y.data(), prim_z.data(), tNumPrimitives}};
+            Plato::ExecSpace tExecSpace;
+            ArborX::BVH<Plato::MemSpace>
+            bvh{tExecSpace, Plato::GMF::Points{prim_x.data(), prim_y.data(), prim_z.data(), tNumPrimitives}};
 
             auto tPoints = mDataMap.scalarMultiVectors[mPointCloudName];
             Plato::ScalarVector pred_x = Kokkos::subview(tPoints, 0, Kokkos::ALL());
@@ -338,10 +333,10 @@ class GeometryMisfit :
             Plato::ScalarVector pred_z = Kokkos::subview(tPoints, 2, Kokkos::ALL());
             Plato::OrdinalType tNumPredicates = pred_x.extent(0);
 
-            Kokkos::View<int*, Plato::DeviceType> tIndices("indices", 0);
-            Kokkos::View<int*, Plato::DeviceType> tOffsets("offsets", 0);
+            Kokkos::View<int*, Plato::MemSpace> tIndices("indices", 0);
+            Kokkos::View<int*, Plato::MemSpace> tOffsets("offsets", 0);
 
-            bvh.query(Plato::GMF::Points{pred_x.data(), pred_y.data(), pred_z.data(), tNumPredicates}, tIndices, tOffsets);
+            ArborX::query(bvh, tExecSpace, Plato::GMF::Points{pred_x.data(), pred_y.data(), pred_z.data(), tNumPredicates}, tIndices, tOffsets);
 
             mDataMap.ordinalVectors[mPointCloudRowMapName] = tOffsets;
             mDataMap.ordinalVectors[mPointCloudColMapName] = tIndices;

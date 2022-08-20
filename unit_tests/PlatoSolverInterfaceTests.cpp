@@ -537,9 +537,8 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-
   constexpr int tBogusMeshWidth=3;
-  auto tBogusMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tBogusMeshWidth);
+  auto tBogusMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tBogusMeshWidth, "BogusMesh.exo");
 
   Plato::TpetraSystem tSystem(tBogusMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
@@ -929,13 +928,13 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
   {
     Teuchos::RCP<Teuchos::ParameterList> tSolverParams =
       Teuchos::getParametersFromXmlString(
-      "<ParameterList name='Linear Solver'>                              \n"
-      "  <Parameter name='Solver Stack' type='string' value='Tpetra'/>   \n"
-      "  <Parameter name='Solver Package' type='string' value='Belos'/>  \n"
-      "  <Parameter name='Display Iterations' type='int' value='0'/>     \n"
-      "  <Parameter name='Iterations' type='int' value='50'/>            \n"
-      "  <Parameter name='Tolerance' type='double' value='1e-14'/>       \n"
-      "</ParameterList>                                                  \n"
+      "<ParameterList name='Linear Solver'>                                       \n"
+      "  <Parameter name='Solver Stack' type='string' value='Tpetra'/>            \n"
+      "  <Parameter name='Preconditioner Package' type='string' value='ifpack2'/> \n"
+      "  <Parameter name='Display Iterations' type='int' value='0'/>              \n"
+      "  <Parameter name='Iterations' type='int' value='50'/>                     \n"
+      "  <Parameter name='Tolerance' type='double' value='1e-14'/>                \n"
+      "</ParameterList>                                                           \n"
     );
 
     Plato::SolverFactory tSolverFactory(*tSolverParams);
@@ -985,31 +984,6 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
 
   auto stateTpetraWithMueLuPreconditioner_host = Kokkos::create_mirror_view(stateTpetraWithMueLuPreconditioner);
   Kokkos::deep_copy(stateTpetraWithMueLuPreconditioner_host, stateTpetraWithMueLuPreconditioner);
-
-  // *** use Tpetra solver interface with Amesos2 Direct Solver*** //
-  //
-  Kokkos::deep_copy(state, 0.0);
-  {
-    Teuchos::RCP<Teuchos::ParameterList> tSolverParams =
-      Teuchos::getParametersFromXmlString(
-      "<ParameterList name='Linear Solver'>                               \n"
-      "  <Parameter name='Solver Stack' type='string' value='Tpetra'/>    \n"
-      "  <Parameter name='Solver Package' type='string' value='Amesos2'/> \n"
-      "  <Parameter name='Solver' type='string' value='Superlu'/>         \n"
-      "</ParameterList>                                                   \n"
-    );
-
-    Plato::SolverFactory tSolverFactory(*tSolverParams);
-
-    auto tSolver = tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
-
-    tSolver->solve(*jacobian, state, residual);
-  }
-  Plato::ScalarVector stateTpetraWithAmesos2DirectSolver("state", tNumDofs);
-  Kokkos::deep_copy(stateTpetraWithAmesos2DirectSolver, state);
-
-  auto stateTpetraWithAmesos2DirectSolver_host = Kokkos::create_mirror_view(stateTpetraWithAmesos2DirectSolver);
-  Kokkos::deep_copy(stateTpetraWithAmesos2DirectSolver_host, stateTpetraWithAmesos2DirectSolver);
 #endif
 
   // compare solutions
@@ -1022,7 +996,6 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
       {
           TEST_FLOATING_EQUALITY(stateTpetra_host(i), stateEpetra_host(i), 1.0e-12);
           TEST_FLOATING_EQUALITY(stateTpetra_host(i), stateTpetraWithMueLuPreconditioner_host(i), 1.0e-11);
-          TEST_FLOATING_EQUALITY(stateTpetra_host(i), stateTpetraWithAmesos2DirectSolver_host(i), 1.0e-11);
       }
   }
 #endif
@@ -1175,7 +1148,6 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
       Teuchos::getParametersFromXmlString(
       "<ParameterList name='Linear Solver'>                                           \n"
       "  <Parameter name='Solver Stack' type='string' value='Tpetra' />               \n"
-      "  <Parameter name='Solver Package' type='string' value='Belos'/>               \n"
       "  <Parameter name='Solver' type='string' value='Pseudoblock CG'/>              \n"
       "  <ParameterList name='Solver Options'>                                        \n"
       "    <Parameter name='Maximum Iterations' type='int' value='500'/>              \n"
@@ -1215,7 +1187,6 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
       Teuchos::getParametersFromXmlString(
       "<ParameterList name='Linear Solver'>                              \n"
       "  <Parameter name='Solver Stack' type='string' value='Tpetra' />  \n"
-      "  <Parameter name='Solver Package' type='string' value='Belos'/>  \n"
       "  <Parameter name='Display Iterations' type='int' value='0'/>     \n"
       "  <Parameter name='Iterations' type='int' value='50'/>            \n"
       "  <Parameter name='Tolerance' type='double' value='1e-14'/>       \n"
@@ -1270,7 +1241,6 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_valid_input )
     Teuchos::getParametersFromXmlString(
     "<ParameterList name='Linear Solver'>                                           \n"
     "  <Parameter name='Solver Stack' type='string' value='Tpetra' />               \n"
-    "  <Parameter name='Solver Package' type='string' value='Belos'/>               \n"
     "  <Parameter name='Solver' type='string' value='Pseudoblock CG'/>              \n"
     "  <ParameterList name='Solver Options'>                                        \n"
     "    <Parameter name='Maximum Iterations' type='int' value='50'/>               \n"
@@ -1296,7 +1266,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_valid_input )
   \brief Test invalid input parameterlist
 */
 /******************************************************************************/
-TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_invalid_solver_package )
+TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_invalid_solver_stack )
 {
   constexpr int meshWidth=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
@@ -1311,14 +1281,11 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_invalid_solver_package )
 
   Teuchos::RCP<Teuchos::ParameterList> tSolverParams =
     Teuchos::getParametersFromXmlString(
-    "<ParameterList name='Linear Solver'>                                           \n"
-    "  <Parameter name='Solver Stack' type='string' value='Tpetra' />               \n"
-    "  <Parameter name='Solver Package' type='string' value='Muelu'/>               \n"
-    "  <ParameterList name='Solver Options'>                                        \n"
-    "    <Parameter name='Maximum Iterations' type='int' value='50'/>               \n"
-    "    <Parameter name='Convergence Tolerance' type='double' value='1e-14'/>      \n"
-    "  </ParameterList>                                                             \n"
-    "</ParameterList>                                                               \n"
+    "<ParameterList name='Linear Solver'>                          \n"
+    "  <Parameter name='Solver Stack' type='string' value='Null'/> \n"
+    "  <Parameter name='Iterations' type='int' value='50'/>        \n"
+    "  <Parameter name='Tolerance' type='double' value='1e-14'/>   \n"
+    "</ParameterList>                                              \n"
   );
 
   Plato::SolverFactory tSolverFactory(*tSolverParams);
