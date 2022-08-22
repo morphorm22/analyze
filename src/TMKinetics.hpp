@@ -73,7 +73,7 @@ class TMKinetics : public Plato::SimplexThermomechanics<SpaceDim>
      * \param [out] aFlux thermal flux vector
      **********************************************************************************/
     template<typename KineticsScalarType, typename KinematicsScalarType, typename StateScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()( int cellOrdinal,
                 Kokkos::View<KineticsScalarType**,   Plato::Layout, Plato::MemSpace> const& aStress,
                 Kokkos::View<KineticsScalarType**,   Plato::Layout, Plato::MemSpace> const& aFlux,
@@ -219,7 +219,7 @@ class StabilizedTMKinetics : public Plato::SimplexStabilizedThermomechanics<Spac
       typename StateScalarType,
       typename NodeStateScalarType,
       typename VolumeScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()( int cellOrdinal,
                 Plato::ScalarVectorT      <VolumeScalarType>     const& aCellVolume,
                 Plato::ScalarMultiVectorT <NodeStateScalarType>  const& aProjectedPGrad,

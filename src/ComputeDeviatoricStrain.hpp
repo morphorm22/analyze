@@ -36,7 +36,7 @@ public:
      * \param [in\out] aDeviatoricStrain  deviatoric strain tensor
     **********************************************************************************/
     template<typename ElasticStrainT, typename DeviatoricStrainT>
-    DEVICE_TYPE inline void operator()(const Plato::OrdinalType & aCellOrdinal,
+    KOKKOS_FUNCTION inline void operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarMultiVectorT<ElasticStrainT> & aElasticStrain,
                                        const Plato::ScalarMultiVectorT<DeviatoricStrainT> & aDeviatoricStrain) const;
 };
@@ -44,7 +44,7 @@ public:
 
 template<>
 template<typename ElasticStrainT, typename DeviatoricStrainT>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 ComputeDeviatoricStrain<3>::operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarMultiVectorT<ElasticStrainT> & aElasticStrain,
                                        const Plato::ScalarMultiVectorT<DeviatoricStrainT> & aDeviatoricStrain) const
@@ -62,7 +62,7 @@ ComputeDeviatoricStrain<3>::operator()(const Plato::OrdinalType & aCellOrdinal,
 
 template<>
 template<typename ElasticStrainT, typename DeviatoricStrainT>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 ComputeDeviatoricStrain<2>::operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarMultiVectorT<ElasticStrainT> & aElasticStrain,
                                        const Plato::ScalarMultiVectorT<DeviatoricStrainT> & aDeviatoricStrain) const
@@ -78,7 +78,7 @@ ComputeDeviatoricStrain<2>::operator()(const Plato::OrdinalType & aCellOrdinal,
 
 template<>
 template<typename ElasticStrainT, typename DeviatoricStrainT>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 ComputeDeviatoricStrain<1>::operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarMultiVectorT<ElasticStrainT> & aElasticStrain,
                                        const Plato::ScalarMultiVectorT<DeviatoricStrainT> & aDeviatoricStrain) const

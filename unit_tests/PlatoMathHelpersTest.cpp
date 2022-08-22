@@ -97,7 +97,7 @@ void sortColumnEntries(
             Plato::ScalarVectorT<Plato::Scalar>      & aMatrixValues)
 {
     auto tNumMatrixRows = aMatrixRowMap.extent(0) - 1;
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & tMatrixRowIndex) {
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows), KOKKOS_LAMBDA(const Plato::OrdinalType & tMatrixRowIndex) {
         auto tFrom = aMatrixRowMap(tMatrixRowIndex);
         auto tTo   = aMatrixRowMap(tMatrixRowIndex+1);
         for( auto tColMapEntryIndex_I=tFrom; tColMapEntryIndex_I<tTo; ++tColMapEntryIndex_I )
@@ -173,7 +173,7 @@ void RowSum(
     auto tNumBlockRows = aInMatrix->rowMap().size()-1;
     auto tNumRows = aInMatrix->numRows();
     Plato::RowSum tRowSumFunctor(aInMatrix);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumBlockRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & tBlockRowOrdinal) {
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumBlockRows), KOKKOS_LAMBDA(const Plato::OrdinalType & tBlockRowOrdinal) {
       tRowSumFunctor(tBlockRowOrdinal, aOutRowSum);
     });
 }
@@ -184,7 +184,7 @@ void InverseMultiply(
 {
     auto tNumBlockRows = aInMatrix->rowMap().size()-1;
     Plato::DiagonalInverseMultiply tDiagInverseMultiplyFunctor(aInMatrix);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumBlockRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & tBlockRowOrdinal) {
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumBlockRows), KOKKOS_LAMBDA(const Plato::OrdinalType & tBlockRowOrdinal) {
       tDiagInverseMultiplyFunctor(tBlockRowOrdinal, aInDiagonal);
     });
 }
@@ -227,7 +227,7 @@ void MatrixMinusEqualsMatrix(
     auto tEntriesOne = aInMatrixOne->entries();
     auto tEntriesTwo = aInMatrixTwo->entries();
     auto tNumEntries = tEntriesOne.extent(0);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumEntries), LAMBDA_EXPRESSION(const Plato::OrdinalType & tEntryOrdinal) {
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumEntries), KOKKOS_LAMBDA(const Plato::OrdinalType & tEntryOrdinal) {
       tEntriesOne(tEntryOrdinal) -= tEntriesTwo(tEntryOrdinal);
     });
 }
@@ -248,7 +248,7 @@ void MatrixMinusEqualsMatrix(
 
     auto tEntriesOne = aInMatrixOne->entries();
     auto tEntriesTwo = aInMatrixTwo->entries();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumBlockRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & tBlockRowOrdinal) {
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumBlockRows), KOKKOS_LAMBDA(const Plato::OrdinalType & tBlockRowOrdinal) {
       
         auto tFrom = tRowMap(tBlockRowOrdinal);
         auto tTo   = tRowMap(tBlockRowOrdinal+1);
@@ -1516,7 +1516,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_InvertLocalMatrices)
     /// int SerialTrsm<SideType,UploType,TransType,DiagType,AlgoType>
     ///    ::invoke(const ScalarType alpha, const AViewType &A, const BViewType &B);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,N), LAMBDA_EXPRESSION(const Plato::OrdinalType & n) {
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,N), KOKKOS_LAMBDA(const Plato::OrdinalType & n) {
       auto A    = Kokkos::subview(tMatrix  , n, Kokkos::ALL(), Kokkos::ALL());
       auto Ainv = Kokkos::subview(tAInverse, n, Kokkos::ALL(), Kokkos::ALL());
 
@@ -1550,7 +1550,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, HyperbolicTangentProjection)
     Plato::ScalarVectorT<Plato::Scalar> tOutputVal("OutputVal", tNumCells);
     Plato::ScalarVectorT<Plato::Scalar> tOutputGrad("OutputGrad", tNumNodesPerCell);
     Plato::ScalarMultiVectorT<FadType> tControl("Control", tNumCells, tNumNodesPerCell);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tControl(aCellOrdinal, 0) = FadType(tNumNodesPerCell, 0, 1.0);
         tControl(aCellOrdinal, 1) = FadType(tNumNodesPerCell, 1, 1.0);
@@ -1559,7 +1559,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, HyperbolicTangentProjection)
     // SET EVALUATION TYPES FOR UNIT TEST
     Plato::HyperbolicTangentProjection tProjection;
     Plato::ApplyProjection<Plato::HyperbolicTangentProjection> tApplyProjection(tProjection);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         FadType tValue = tApplyProjection(aCellOrdinal, tControl);
         tOutputVal(aCellOrdinal) = tValue.val();
@@ -1585,7 +1585,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_ConditionalExpression)
 {
     const Plato::OrdinalType tRange = 1;
     Plato::ScalarVector tOuput("Output", 2 /* number of outputs */);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tRange), LAMBDA_EXPRESSION(Plato::OrdinalType tOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tRange), KOKKOS_LAMBDA(Plato::OrdinalType tOrdinal)
     {
         Plato::Scalar tConditionalValOne = 5;
         Plato::Scalar tConditionalValTwo = 4;

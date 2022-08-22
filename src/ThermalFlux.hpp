@@ -40,7 +40,7 @@ class ThermalFlux
 
 
     template<typename TScalarType, typename TGradScalarType, typename TFluxScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()( Plato::OrdinalType cellOrdinal,
                 Plato::ScalarMultiVectorT<TFluxScalarType> tflux,
                 Plato::ScalarMultiVectorT<TGradScalarType> tgrad,
@@ -70,7 +70,7 @@ class ThermalFlux
     }
 
     template<typename TGradScalarType, typename TFluxScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()( Plato::OrdinalType cellOrdinal,
                 Plato::ScalarMultiVectorT<TFluxScalarType> tflux,
                 Plato::ScalarMultiVectorT<TGradScalarType> tgrad) const {

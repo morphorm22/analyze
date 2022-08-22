@@ -144,7 +144,7 @@ class HelmholtzResidual :
       auto tQuadratureWeight = mCubatureRule.getCubWeight();
       auto tBasisFunctions   = mCubatureRule.getBasisFunctions();
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(Plato::OrdinalType aCellOrdinal)
       {
         tComputeGradient(aCellOrdinal, tGradient, aConfig, tCellVolume);
         tCellVolume(aCellOrdinal) *= tQuadratureWeight;
@@ -208,7 +208,7 @@ class HelmholtzResidual :
       auto tSurfaceLengthScale = mSurfaceLengthScale;
       auto tSurfaceCubatureWeight = mSurfaceCubatureRule.getCubWeight();
       auto tSurfaceBasisFunctions = mSurfaceCubatureRule.getBasisFunctions();
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aSideOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal)
       {
           auto tElementOrdinal = tElementOrds(aSideOrdinal);
 

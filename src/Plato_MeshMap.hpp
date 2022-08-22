@@ -53,7 +53,6 @@
 #include <ArborX.hpp>
 #include <Kokkos_Core.hpp>
 
-#include "alg/PlatoLambda.hpp"
 #include "Plato_MeshMapUtils.hpp"
 
 namespace Plato {
@@ -79,7 +78,7 @@ struct Full : public MathMapBase<ScalarT>
 
     Full(const Plato::InputData & aInput){}
 
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()( OrdinalT aOrdinal, VectorArrayT aInValue, VectorArrayT aOutValue ) const
     {
         aOutValue(Dim::X, aOrdinal) = aInValue(Dim::X, aOrdinal);
@@ -130,7 +129,7 @@ struct SymmetryPlane : public MathMapBase<ScalarT>
         mNormal[Dim::Y] /= tLength;
         mNormal[Dim::Z] /= tLength;
     }
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()( OrdinalT aOrdinal, VectorArrayT aInValue, VectorArrayT aOutValue ) const
     {
         ScalarT tProjVal = 0.0;
@@ -182,7 +181,7 @@ struct Translation : public MathMapBase<ScalarT>
         }
     }
 
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()( OrdinalT aOrdinal, VectorArrayT aInValue, VectorArrayT aOutValue ) const
     {
         aOutValue(Dim::X, aOrdinal) = aInValue(Dim::X, aOrdinal) + mTranslation[Dim::X];
@@ -248,7 +247,7 @@ class MeshMap
         // check for missing parent elements
         OrdinalT tNumMissingParent(0);
         Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNVerts),
-        LAMBDA_EXPRESSION(const OrdinalT& aElemOrdinal, OrdinalT & aUpdate)
+        KOKKOS_LAMBDA(const OrdinalT& aElemOrdinal, OrdinalT & aUpdate)
         {
             if ( aParentElements(aElemOrdinal) == -2 ) 
             {  

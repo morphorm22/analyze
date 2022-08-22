@@ -181,7 +181,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToEpetraVector )
 
   Plato::ScalarVector tTestVector("test vector", tNumDofs);
 
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), LAMBDA_EXPRESSION(int vectorIndex)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), KOKKOS_LAMBDA(int vectorIndex)
   {
     tTestVector(vectorIndex) = (double) vectorIndex;
   }, "fill vector");
@@ -226,7 +226,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToEpetraVector_invalidI
 
   Plato::ScalarVector tTestVector("test vector", tNumDofs+1);
 
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), LAMBDA_EXPRESSION(int vectorIndex)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), KOKKOS_LAMBDA(int vectorIndex)
   {
     tTestVector(vectorIndex) = (double) vectorIndex;
   }, "fill vector");
@@ -573,7 +573,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToTpetraVector )
 
   Plato::ScalarVector tTestVector("test vector", tNumDofs);
 
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), LAMBDA_EXPRESSION(int vectorIndex)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), KOKKOS_LAMBDA(int vectorIndex)
   {
     tTestVector(vectorIndex) = (double) vectorIndex;
   }, "fill vector");
@@ -622,7 +622,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToTpetraVector_invalidI
 
   Plato::ScalarVector tTestVector("test vector", tNumDofs+1);
 
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), LAMBDA_EXPRESSION(int vectorIndex)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), KOKKOS_LAMBDA(int vectorIndex)
   {
     tTestVector(vectorIndex) = (double) vectorIndex;
   }, "fill vector");

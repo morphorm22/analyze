@@ -21,7 +21,7 @@ namespace Plato
  * \return cell/element penalized mass
  **********************************************************************************/
 template<Plato::OrdinalType CellNumNodes, typename ControlType>
-DEVICE_TYPE inline ControlType
+KOKKOS_FUNCTION inline ControlType
 cell_mass(const Plato::OrdinalType & aCellOrdinal,
           const Plato::ScalarVectorT<Plato::Scalar> & aBasisFunc,
           const Plato::ScalarMultiVectorT<ControlType> & aCellControls)
@@ -48,7 +48,7 @@ cell_mass(const Plato::OrdinalType & aCellOrdinal,
  * \return average density for this cell/element
  **********************************************************************************/
 template<Plato::OrdinalType NumControls, typename ControlType>
-DEVICE_TYPE inline ControlType
+KOKKOS_FUNCTION inline ControlType
 cell_density(const Plato::OrdinalType & aCellOrdinal,
              const Plato::ScalarMultiVectorT<ControlType> & aCellControls)
 {
@@ -74,7 +74,7 @@ cell_density(const Plato::OrdinalType & aCellOrdinal,
  * \param [in/out] aOutput      physical quantity to be penalized
 *******************************************************************************/
 template<Plato::OrdinalType Length, typename ControlType, typename ResultType>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 apply_penalty(const Plato::OrdinalType aCellOrdinal, const ControlType & aPenalty, const Plato::ScalarMultiVectorT<ResultType> & aOutput)
 {
     for(Plato::OrdinalType tIndex = 0; tIndex < Length; tIndex++)

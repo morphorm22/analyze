@@ -630,7 +630,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
     int tNumDofs = tNumNodes*tNumDofsPerNode;
     Plato::ScalarVector tState("state", tNumDofs);
     Plato::ScalarVector tStateDotDot("state dot dot", tNumDofs);
-    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), LAMBDA_EXPRESSION(const int & aNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), KOKKOS_LAMBDA(const int & aNodeOrdinal)
   {
       for (int tDofOrdinal=0; tDofOrdinal<tNumDofsPerNode; tDofOrdinal++)
       {
@@ -699,7 +699,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicTest, Residual3D)
 
     // compute on device
     //
-    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), LAMBDA_EXPRESSION(int aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), KOKKOS_LAMBDA(int aCellOrdinal)
     {
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
         tCellVolume(aCellOrdinal) *= tQuadratureWeight;

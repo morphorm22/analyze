@@ -37,7 +37,7 @@ inline void copy(const Plato::OrdinalType & aOffset,
                  const Plato::ScalarVector & aInput,
                        Plato::ScalarVector & aOutput)
 {
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumVertices), LAMBDA_EXPRESSION(const Plato::OrdinalType & aIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumVertices), KOKKOS_LAMBDA(const Plato::OrdinalType & aIndex)
     {
         for(Plato::OrdinalType tIndex = 0; tIndex < NumDofsPerNodeInOutputArray; tIndex++)
         {
@@ -58,7 +58,7 @@ inline void copy_2Dview_to_write(const Plato::ScalarMultiVector & aInput, Omega_
 {
     auto tNumMajorEntries      = aInput.extent(0);
     auto tNumDofsPerMajorEntry = aInput.extent(1);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumMajorEntries), LAMBDA_EXPRESSION(const Plato::OrdinalType & tMajorIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumMajorEntries), KOKKOS_LAMBDA(const Plato::OrdinalType & tMajorIndex)
     {
         for(Plato::OrdinalType tMinorIndex = 0; tMinorIndex < tNumDofsPerMajorEntry; tMinorIndex++)
         {
@@ -76,7 +76,7 @@ inline void copy_2Dview_to_write(const Plato::ScalarMultiVector & aInput, Omega_
 inline void copy_1Dview_to_write(const Plato::ScalarVector & aInput, Omega_h::Write<Omega_h::Real> & aOutput)
 {
     auto tNumEntries      = aInput.extent(0);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumEntries), LAMBDA_EXPRESSION(const Plato::OrdinalType & tIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumEntries), KOKKOS_LAMBDA(const Plato::OrdinalType & tIndex)
     {
         aOutput[tIndex] = aInput(tIndex);
     },"PlatoDriver::compress_copy_1Dview_to_write");
@@ -102,7 +102,7 @@ inline Omega_h::LOs copy(const ScalarVectorT<ViewType> & aInput)
 {
     auto tLength = aInput.size();
     Omega_h::Write<ViewType> tWrite(tLength);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
     {
         tWrite[aOrdinal] = aInput(aOrdinal);
     }, "copy");
@@ -123,7 +123,7 @@ inline ScalarVectorT<ViewType> copy(const Omega_h::LOs & aInput)
 {
   auto tLength = aInput.size();
   Plato::ScalarVectorT<ViewType> tOutput("kokkos-view-copy", tLength);
-  Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+  Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
   {
       tOutput(aOrdinal) = aInput[aOrdinal];
   }, "copy");
@@ -147,7 +147,7 @@ void print
 {
     std::cout << "Start Printing Array with Name '" << aName << "'\n";
     auto tLength = aInput.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
     {
         printf("Array(%d)=%d\n",aOrdinal,aInput[aOrdinal]);
     }, "print");
@@ -209,7 +209,7 @@ read_metadata_from_mesh
     }
     const Plato::OrdinalType tSize = tData.size();
     Plato::ScalarVector tOutput(aTagName, tSize);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tSize), LAMBDA_EXPRESSION(const Plato::OrdinalType& tIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tSize), KOKKOS_LAMBDA(const Plato::OrdinalType& tIndex)
     {
         tOutput(tIndex) = tData[tIndex];
     }, "copy read array into output array");
@@ -598,7 +598,7 @@ inline void add_state_tags(Omega_h::Mesh& aMesh, const Plato::DataMap& aStateDat
  *
 *******************************************************************************/
 template<Plato::OrdinalType SpatialDim, Plato::OrdinalType NodesPerCell = SpatialDim + 1>
-DEVICE_TYPE inline Omega_h::Few< Omega_h::Vector<SpatialDim>, NodesPerCell > local_element_coords
+KOKKOS_FUNCTION inline Omega_h::Few< Omega_h::Vector<SpatialDim>, NodesPerCell > local_element_coords
 (const Plato::OrdinalType & aCellOrdinal, const Plato::NodeCoordinate<SpatialDim> & aCoords)
 {
     Omega_h::Few<Omega_h::Vector<SpatialDim>, NodesPerCell> tCellCoords;
@@ -622,7 +622,7 @@ DEVICE_TYPE inline Omega_h::Few< Omega_h::Vector<SpatialDim>, NodesPerCell > loc
 * \return normalized vector
 *
 **********************************************************************************/
-DEVICE_TYPE inline void normalize(Omega_h::Vector<1> & aVector) { return; }
+KOKKOS_FUNCTION inline void normalize(Omega_h::Vector<1> & aVector) { return; }
 // function normalize - 1D
 
 /******************************************************************************//**
@@ -633,7 +633,7 @@ DEVICE_TYPE inline void normalize(Omega_h::Vector<1> & aVector) { return; }
 * \return normalized vector
 *
 **********************************************************************************/
-DEVICE_TYPE inline void normalize(Omega_h::Vector<2> & aVector)
+KOKKOS_FUNCTION inline void normalize(Omega_h::Vector<2> & aVector)
 {
     auto tMagnitude = sqrt(aVector[0]*aVector[0] + aVector[1]*aVector[1]);
     aVector[0] = aVector[0] / tMagnitude;
@@ -649,7 +649,7 @@ DEVICE_TYPE inline void normalize(Omega_h::Vector<2> & aVector)
 * \return normalized vector
 *
 **********************************************************************************/
-DEVICE_TYPE inline void normalize(Omega_h::Vector<3> & aVector)
+KOKKOS_FUNCTION inline void normalize(Omega_h::Vector<3> & aVector)
 {
     auto tMagnitude = sqrt( aVector[0]*aVector[0] + aVector[1]*aVector[1] + aVector[2]*aVector[2] );
     aVector[0] = aVector[0] / tMagnitude;
@@ -668,7 +668,7 @@ DEVICE_TYPE inline void normalize(Omega_h::Vector<3> & aVector)
 * \return unit normal vector
 *
 **********************************************************************************/
-DEVICE_TYPE inline Omega_h::Vector<1> unit_normal_vector
+KOKKOS_FUNCTION inline Omega_h::Vector<1> unit_normal_vector
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::OrdinalType & aFaceOrdinal,
  const Plato::NodeCoordinate<1> & aCoords)
@@ -690,7 +690,7 @@ DEVICE_TYPE inline Omega_h::Vector<1> unit_normal_vector
 * \return unit normal vector
 *
 **********************************************************************************/
-DEVICE_TYPE inline Omega_h::Vector<2> unit_normal_vector
+KOKKOS_FUNCTION inline Omega_h::Vector<2> unit_normal_vector
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::OrdinalType & aFaceOrdinal,
  const Plato::NodeCoordinate<2> & aCoords)
@@ -712,7 +712,7 @@ DEVICE_TYPE inline Omega_h::Vector<2> unit_normal_vector
 * \return unit normal vector
 *
 **********************************************************************************/
-DEVICE_TYPE inline Omega_h::Vector<3> unit_normal_vector
+KOKKOS_FUNCTION inline Omega_h::Vector<3> unit_normal_vector
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::OrdinalType & aFaceOrdinal,
  const Plato::NodeCoordinate<3> & aCoords)

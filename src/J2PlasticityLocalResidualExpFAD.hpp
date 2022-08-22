@@ -367,7 +367,7 @@ public:
           Plato::ScalarMultiVectorT<StressT>        tDeviatoricStress("deviatoric stress", tNumCells, mNumStressTerms);
 
           // First parallel_for loop.
-          Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+          Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
           {
             tComputeGradient(aCellOrdinal, tGradient, aConfig, tCellVolume);
 
@@ -412,7 +412,7 @@ public:
       }
 
       // Third parallel_for loop.
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
       {
         // ### ELASTIC STEP ###
         // Residual: Accumulated Plastic Strain, DOF: Accumulated Plastic Strain
@@ -537,7 +537,7 @@ public:
           Plato::ScalarMultiVector tElasticStrain("elastic strain", tNumCells, mNumStressTerms);
 
           // First parallel_for loop.
-          Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+          Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
           {
             tComputeGradient(aCellOrdinal, tGradient, aConfig, tCellVolume);
 
@@ -589,7 +589,7 @@ public:
       }  // second scoping brace
 
       // Third parallel_for loop.
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
       {
         // compute the yield function at the trial state
         Plato::Scalar tTrialStateYieldFunction = tSqrt3Over2 * tDevStressMinusBackstressNorm(aCellOrdinal) - tYieldStress(aCellOrdinal, 0);

@@ -310,7 +310,7 @@ class NewmarkIntegratorUForm : public NewmarkIntegrator<EvaluationType>
 
         auto tGamma = mGamma;
         auto tBeta = mBeta;
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumData), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumData), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
         {
             Plato::Scalar tPredV = aV_prev(aOrdinal) + (1.0-tGamma)*dt*aA_prev(aOrdinal);
             Plato::Scalar tPredU = aU_prev(aOrdinal) + dt*aV_prev(aOrdinal) + dt*dt/2.0*(1.0-2.0*tBeta)* aA_prev(aOrdinal);
@@ -335,7 +335,7 @@ class NewmarkIntegratorUForm : public NewmarkIntegrator<EvaluationType>
         Plato::ScalarVector tReturnValue("velocity residual", tNumData);
 
         auto tBeta = mBeta;
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumData), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumData), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
         {
             Plato::Scalar tPredU = aU_prev(aOrdinal) + dt*aV_prev(aOrdinal) + dt*dt/2.0*(1.0-2.0*tBeta)* aA_prev(aOrdinal);
             tReturnValue(aOrdinal) = aA(aOrdinal) - 1.0/(tBeta*dt*dt)*(aU(aOrdinal) - tPredU);
@@ -413,7 +413,7 @@ class NewmarkIntegratorAForm : public NewmarkIntegrator<EvaluationType>
 
         auto tGamma = mGamma;
         auto tBeta = mBeta;
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumData), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumData), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
         {
             Plato::Scalar tPredV = aV_prev(aOrdinal) + (1.0-tGamma)*dt*aA_prev(aOrdinal);
             Plato::Scalar tPredU = aU_prev(aOrdinal) + dt*aV_prev(aOrdinal) + dt*dt/2.0*(1.0-2.0*tBeta)* aA_prev(aOrdinal);
@@ -438,7 +438,7 @@ class NewmarkIntegratorAForm : public NewmarkIntegrator<EvaluationType>
         Plato::ScalarVector tReturnValue("velocity residual", tNumData);
 
         auto tBeta = mBeta;
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumData), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumData), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
         {
             Plato::Scalar tPredU = aU_prev(aOrdinal) + dt*aV_prev(aOrdinal) + dt*dt/2.0*(1.0-2.0*tBeta)* aA_prev(aOrdinal);
             tReturnValue(aOrdinal) = aU(aOrdinal) - tPredU - tBeta*dt*dt*aA(aOrdinal);

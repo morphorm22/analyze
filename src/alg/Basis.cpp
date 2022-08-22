@@ -20,7 +20,7 @@ void Basis::getRefCoords(PointsView coords) {
      aesthetically a little nicer.
      */
   Kokkos::deep_copy(coords, Scalar(0.0));  // initialize to 0
-  Kokkos::parallel_for(_spaceDim, LAMBDA_EXPRESSION(int basisOrdinal) {
+  Kokkos::parallel_for(_spaceDim, KOKKOS_LAMBDA(int basisOrdinal) {
     coords(basisOrdinal, basisOrdinal) = 1.0;
   });
 }
@@ -28,7 +28,7 @@ void Basis::getRefCoords(PointsView coords) {
 void Basis::getValues(PointsView refCoords, ValuesView values) {
   int numPoints = refCoords.extent(0);
   int spaceDim = refCoords.extent(1);
-  Kokkos::parallel_for(numPoints, LAMBDA_EXPRESSION(int ptOrdinal) {
+  Kokkos::parallel_for(numPoints, KOKKOS_LAMBDA(int ptOrdinal) {
     // at point (x,y,z), field 0 = x
     //                   field 1 = y
     //                   field 2 = z
@@ -46,7 +46,7 @@ void Basis::getGradientValues(PointsView refCoords, GradientView gradientValues)
   // derivative values are constant
   int numPoints = refCoords.extent(0);
   Kokkos::deep_copy(gradientValues, Scalar(0.0));  // initialize to 0
-  Kokkos::parallel_for(numPoints, LAMBDA_EXPRESSION(int ptOrdinal) {
+  Kokkos::parallel_for(numPoints, KOKKOS_LAMBDA(int ptOrdinal) {
     // in 3D, gradient field 0 = ( 1 ,0, 0)
     //                 field 1 = ( 0, 1, 0)
     //                 field 2 = ( 0, 0, 1)

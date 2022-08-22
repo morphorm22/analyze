@@ -587,7 +587,7 @@ TEUCHOS_UNIT_TEST(EngineWriterIntxTests, WriteTet4ScalarField)
 
     // compute distance of each node from origin
     auto tCoordinates = tMesh.Coordinates();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), LAMBDA_EXPRESSION(Plato::OrdinalType tNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), KOKKOS_LAMBDA(Plato::OrdinalType tNodeOrdinal)
     {
         Plato::Scalar tDistance = 0.0;
         for(Plato::OrdinalType tDim=0; tDim<cSpaceDim; tDim++)
@@ -623,7 +623,7 @@ TEUCHOS_UNIT_TEST(EngineWriterIntxTests, WriteTet10ScalarField)
 
     // compute distance of each node from origin
     auto tCoordinates = tMesh.Coordinates();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), LAMBDA_EXPRESSION(Plato::OrdinalType tNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), KOKKOS_LAMBDA(Plato::OrdinalType tNodeOrdinal)
     {
         Plato::Scalar tDistance = 0.0;
         for(Plato::OrdinalType tDim=0; tDim<cSpaceDim; tDim++)
@@ -659,7 +659,7 @@ TEUCHOS_UNIT_TEST(EngineWriterIntxTests, WriteHex8ScalarField)
 
     // compute distance of each node from origin
     auto tCoordinates = tMesh.Coordinates();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), LAMBDA_EXPRESSION(Plato::OrdinalType tNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), KOKKOS_LAMBDA(Plato::OrdinalType tNodeOrdinal)
     {
         Plato::Scalar tDistance = 0.0;
         for(Plato::OrdinalType tDim=0; tDim<cSpaceDim; tDim++)
@@ -695,7 +695,7 @@ TEUCHOS_UNIT_TEST(EngineWriterIntxTests, WriteHex20ScalarField)
 
     // compute distance of each node from origin
     auto tCoordinates = tMesh.Coordinates();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), LAMBDA_EXPRESSION(Plato::OrdinalType tNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), KOKKOS_LAMBDA(Plato::OrdinalType tNodeOrdinal)
     {
         Plato::Scalar tDistance = 0.0;
         for(Plato::OrdinalType tDim=0; tDim<cSpaceDim; tDim++)

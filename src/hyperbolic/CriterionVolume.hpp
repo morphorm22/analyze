@@ -118,7 +118,7 @@ public:
             auto tBasisFunctions = mCubatureRule.getBasisFunctions();
 
             auto tNumCells = mSpatialDomain.numCells();
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
             {
                 ConfigT tCellVolume;
                 tComputeCellVolume(aCellOrdinal, tConfigWS, tCellVolume);

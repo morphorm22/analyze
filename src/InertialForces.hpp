@@ -30,7 +30,7 @@ public:
 
     /******************************************************************************/
     template<typename DispScalarType, typename ForceScalarType, typename VolumeScalarType>
-    DEVICE_TYPE inline void operator()(const Plato::OrdinalType & aCellOrdinal,
+    KOKKOS_FUNCTION inline void operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarVectorT<VolumeScalarType> & aCellVolume,
                                        const Plato::ScalarVectorT<Plato::Scalar> & tBasisFunctions,
                                        const Plato::ScalarMultiVectorT<DispScalarType> & aStateValues,

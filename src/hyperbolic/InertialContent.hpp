@@ -31,7 +31,7 @@ class InertialContent
             mRayleighA   (aMaterialModel->getRayleighA()) {}
 
     template<typename TScalarType, typename TContentScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()( Plato::OrdinalType aCellOrdinal,
                 Plato::ScalarMultiVectorT<TContentScalarType> aContent,
                 Plato::ScalarMultiVectorT<TScalarType> aAcceleration) const {
@@ -45,7 +45,7 @@ class InertialContent
     }
 
     template<typename TVelocityType, typename TAccelerationType, typename TContentScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()( Plato::OrdinalType aCellOrdinal,
                 Plato::ScalarMultiVectorT<TContentScalarType> aContent,
                 Plato::ScalarMultiVectorT<TVelocityType>      aVelocity,

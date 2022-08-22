@@ -365,7 +365,7 @@ public:
         CubatureType tCubatureRule;
         auto tCubWeight = tCubatureRule.getCubWeight();
         auto tBasisFunc = tCubatureRule.getBasisFunctions();
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
         {
             tComputeGradient(aCellOrdinal, tGradient, aConfigWS, tCellVolume);
             tCellVolume(aCellOrdinal) *= tCubWeight;
@@ -453,7 +453,7 @@ public:
         // ****** COMPUTE AUGMENTED LAGRANGIAN FUNCTION ******
         CubatureType tCubatureRule;
         auto tCubWeight = tCubatureRule.getCubWeight();
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
         {
             // Compute 3D Cauchy Stress
             tComputeGradient(aCellOrdinal, tGradient, aConfigWS, tCellVolume);
@@ -517,7 +517,7 @@ public:
         auto tCellMaterialDensity = mCellMaterialDensity;
         auto tCubWeight = tCubatureRule.getCubWeight();
         auto tBasisFunc = tCubatureRule.getBasisFunctions();
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
         {
             Plato::Scalar tCellVolume = 0;
             tComputeCellVolume(aCellOrdinal, tConfig, tCellVolume);

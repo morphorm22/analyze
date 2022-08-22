@@ -128,7 +128,7 @@ void SurfacePressureIntegral<SpatialDim,NumDofs,DofsPerNode,DofOffset>::operator
 
     // pressure forces should act towards the surface; thus, -1.0 is used to invert the outward facing normal inwards.
     Plato::Scalar tNormalMultiplier(-1.0);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aSideOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumFaces), KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal)
     {
         auto tElementOrdinal = tElementOrds(aSideOrdinal);
         auto tElemFaceOrdinal = tFaceOrds(aSideOrdinal);

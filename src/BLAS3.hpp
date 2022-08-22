@@ -48,7 +48,7 @@ template<Plato::OrdinalType LengthI,
          typename ScalarT,
          typename AViewTypeT,
          typename BViewTypeT>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 scale(const Plato::OrdinalType & aCellOrdinal,
       const ScalarT & aScalar,
       const Plato::ScalarArray3DT<AViewTypeT> & aInputWS,
@@ -85,7 +85,7 @@ template<Plato::OrdinalType LengthI,
          typename AViewType,
          typename BViewType,
          typename CViewType>
-DEVICE_TYPE inline void
+KOKKOS_FUNCTION inline void
 dot(const Plato::OrdinalType & aCellOrdinal,
     const Plato::ScalarArray3DT<AViewType> & aTensorA,
     const Plato::ScalarArray3DT<BViewType> & aTensorB,
@@ -124,7 +124,7 @@ inline void identity(const Plato::OrdinalType& aNumCells, Plato::ScalarArray3D& 
         ANALYZE_THROWERR("\nNumber of cell mismatch. Input array has different number of cells than input number of cell argument.\n")
     }
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tRowIndex = 0; tRowIndex < NumRowsPerCell; tRowIndex++)
         {
@@ -170,7 +170,7 @@ inline void inverse(const Plato::OrdinalType& aNumCells, AViewType& aA, BViewTyp
     Plato::blas3::identity<NumRowsPerCell, NumColumnsPerCell>(aNumCells, aInverse);
 
     using namespace KokkosBatched;
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tA = Kokkos::subview(aA, aCellOrdinal, Kokkos::ALL(), Kokkos::ALL());
         auto tAinv = Kokkos::subview(aInverse, aCellOrdinal, Kokkos::ALL(), Kokkos::ALL());
@@ -208,7 +208,7 @@ inline void fill(const Plato::OrdinalType& aNumCells,
         ANALYZE_THROWERR("\nInvalid number of input cells, i.e. elements. Value is <= 0.\n")
     }
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tRowIndex = 0; tRowIndex < NumRowsPerCell; tRowIndex++)
         {
@@ -263,7 +263,7 @@ inline void update(const Plato::OrdinalType& aNumCells,
 
     const auto tNumRows = aA.extent(1);
     const auto tNumCols = aA.extent(2);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tRowIndex = 0; tRowIndex < tNumRows; tRowIndex++)
         {
@@ -360,7 +360,7 @@ inline void multiply(const Plato::OrdinalType& aNumCells,
     const auto tNumOutRows = aC.extent(1);
     const auto tNumOutCols = aC.extent(2);
     const auto tNumInnerCols = aA.extent(2);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tRowIndex = 0; tRowIndex < tNumOutRows; tRowIndex++)
         {

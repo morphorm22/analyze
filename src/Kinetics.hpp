@@ -69,7 +69,7 @@ public:
      **********************************************************************************/
     template<typename KineticsScalarType, typename KinematicsScalarType, typename NodeStateScalarType,
             typename VolumeScalarType>
-    DEVICE_TYPE inline void operator()(Plato::OrdinalType aCellOrdinal,
+    KOKKOS_FUNCTION inline void operator()(Plato::OrdinalType aCellOrdinal,
                                        Plato::ScalarVectorT<VolumeScalarType> const& aCellVolume,
                                        Plato::ScalarMultiVectorT<NodeStateScalarType> const& aProjectedPGrad,
                                        Plato::ScalarVectorT<KineticsScalarType> const& aPressure,

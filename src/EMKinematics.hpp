@@ -26,7 +26,7 @@ class EMKinematics : public Plato::SimplexElectromechanics<SpaceDim>
   public:
 
     template<typename StrainScalarType, typename StateScalarType, typename GradientScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()( Plato::OrdinalType cellOrdinal,
                 Plato::ScalarMultiVectorT< StrainScalarType   > const& strain,
                 Plato::ScalarMultiVectorT< StrainScalarType   > const& efield,

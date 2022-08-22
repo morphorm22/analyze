@@ -113,7 +113,7 @@ class Volume : public Plato::Geometric::AbstractScalarFunction<EvaluationType>
         auto tQuadratureWeight = mQuadratureWeight;
         auto tApplyWeighting = mApplyWeighting;
         Kokkos::parallel_for(
-            Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType &aCellOrdinal)
+            Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType &aCellOrdinal)
             {
               ConfigScalarType tCellVolume;
               tComputeCellVolume(aCellOrdinal, aConfig, tCellVolume);

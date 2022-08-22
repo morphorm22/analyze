@@ -3,8 +3,6 @@
 
 #include "PlatoTypes.hpp"
 
-#include "alg/PlatoLambda.hpp"
-
 #include <Teuchos_ParameterList.hpp>
 
 #include "ExpressionEvaluator.hpp"
@@ -124,7 +122,7 @@ public:
 #ifdef DO_KOKKOS
           // Device - GPU
           Kokkos::parallel_for(Kokkos::RangePolicy<>(0, nThreads),
-                               LAMBDA_EXPRESSION(const Plato::OrdinalType & tCellOrdinal)
+                               KOKKOS_LAMBDA(const Plato::OrdinalType & tCellOrdinal)
                                {
                                  expEval.evaluate_expression( tCellOrdinal, results );
                                }, "Compute");

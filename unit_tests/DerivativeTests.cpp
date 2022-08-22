@@ -134,7 +134,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, 3D )
   Plato::Scalar quadratureWeight = 1.0/6.0;
 
   Plato::ScalarVectorT<Plato::Scalar> cellVolume("cell volume",numCells);
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), LAMBDA_EXPRESSION(int cellOrdinal)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), KOKKOS_LAMBDA(int cellOrdinal)
   {
     computeGradient(cellOrdinal, gradient, configWS, cellVolume);
     cellVolume(cellOrdinal) *= quadratureWeight;
@@ -659,7 +659,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D )
   //
   auto tCoords = tMesh->Coordinates();
   Plato::ScalarMultiVector U("states", /*numSteps=*/1, tNumVerts*spaceDim);
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNumVerts), LAMBDA_EXPRESSION(int aNodeOrdinal)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNumVerts), KOKKOS_LAMBDA(int aNodeOrdinal)
   {
     U(0, aNodeOrdinal*spaceDim + 0) = tCoords[aNodeOrdinal*spaceDim + 0];
     U(0, aNodeOrdinal*spaceDim + 1) = tCoords[aNodeOrdinal*spaceDim + 1];
@@ -790,7 +790,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D_Mag )
   //
   auto tCoords = tMesh->Coordinates();
   Plato::ScalarMultiVector U("states", /*numSteps=*/1, tNumVerts*spaceDim);
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNumVerts), LAMBDA_EXPRESSION(int aNodeOrdinal)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0, tNumVerts), KOKKOS_LAMBDA(int aNodeOrdinal)
   {
     U(0, aNodeOrdinal*spaceDim + 0) = tCoords[aNodeOrdinal*spaceDim + 0];
     U(0, aNodeOrdinal*spaceDim + 1) = tCoords[aNodeOrdinal*spaceDim + 1];
@@ -2311,7 +2311,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, referenceStrain3D )
                       SimplexPhysics> voigtStress(materialModel);
 
   Plato::ScalarVectorT<Plato::Scalar> cellVolume("cell volume",numCells);
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), LAMBDA_EXPRESSION(int cellOrdinal)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), KOKKOS_LAMBDA(int cellOrdinal)
   {
     voigtStress(cellOrdinal, stress, elasticStrain);
   }, "referenceStrain");
@@ -2402,14 +2402,14 @@ TEUCHOS_UNIT_TEST( DerivativeTests, ElastostaticResidual2D_InhomogeneousEssentia
     auto tNumDirichletDofs = tDirichletIndicesBoundaryX0.size() + tDirichletIndicesBoundaryY0.size() + tDirichletIndicesBoundaryX1.size();
     Plato::ScalarVector tDirichletValues("Dirichlet Values", tNumDirichletDofs);
     Plato::OrdinalVector tDirichletDofs("Dirichlet Dofs", tNumDirichletDofs);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tDirichletIndicesBoundaryX0.size()), LAMBDA_EXPRESSION(const Plato::OrdinalType & aIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tDirichletIndicesBoundaryX0.size()), KOKKOS_LAMBDA(const Plato::OrdinalType & aIndex)
     {
         tDirichletValues(aIndex) = tValueToSet;
         tDirichletDofs(aIndex) = tDirichletIndicesBoundaryX0(aIndex);
     }, "set dirichlet values and indices");
 
     auto tOffset = tDirichletIndicesBoundaryX0.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tDirichletIndicesBoundaryY0.size()), LAMBDA_EXPRESSION(const Plato::OrdinalType & aIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tDirichletIndicesBoundaryY0.size()), KOKKOS_LAMBDA(const Plato::OrdinalType & aIndex)
     {
         auto tIndex = tOffset + aIndex;
         tDirichletValues(tIndex) = tValueToSet;
@@ -2418,7 +2418,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, ElastostaticResidual2D_InhomogeneousEssentia
 
     tValueToSet = 6e-4;
     tOffset += tDirichletIndicesBoundaryY0.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tDirichletIndicesBoundaryX1.size()), LAMBDA_EXPRESSION(const Plato::OrdinalType & aIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tDirichletIndicesBoundaryX1.size()), KOKKOS_LAMBDA(const Plato::OrdinalType & aIndex)
     {
         auto tIndex = tOffset + aIndex;
         tDirichletValues(tIndex) = tValueToSet;

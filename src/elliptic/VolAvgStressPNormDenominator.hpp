@@ -163,7 +163,7 @@ class VolAvgStressPNormDenominator :
       auto quadratureWeight = mQuadratureWeight;
       auto applyWeighting   = mApplyWeighting;
       auto tFxnValues       = mFxnValues;
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType cellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(Plato::OrdinalType cellOrdinal)
       {
         tComputeGradient(cellOrdinal, tGradient, aConfig, tCellVolume);
         tCellVolume(cellOrdinal) *= quadratureWeight * tFxnValues[cellOrdinal];

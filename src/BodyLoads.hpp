@@ -100,7 +100,7 @@ public:
         auto tCellOrdinals = aSpatialDomain.cellOrdinals();
         Plato::JacobianDet<mSpaceDim> tJacobianDet(aSpatialDomain.Mesh);
         Plato::VectorEntryOrdinal<mSpaceDim, mSpaceDim> tVectorEntryOrdinal(aSpatialDomain.Mesh);
-        Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType &aCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType &aCellOrdinal)
         {
             auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
             auto tDetElemJacobian = fabs(tJacobianDet(tCellOrdinal));

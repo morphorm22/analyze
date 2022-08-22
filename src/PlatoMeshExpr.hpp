@@ -27,7 +27,7 @@ getFunctionValues(
     auto y_coords = Plato::omega_h::create_omega_h_write_array<Plato::Scalar>("forcing function y coords", numCells * numPoints);
     auto z_coords = Plato::omega_h::create_omega_h_write_array<Plato::Scalar>("forcing function z coords", numCells * numPoints);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, numCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, numCells), KOKKOS_LAMBDA(Plato::OrdinalType aCellOrdinal)
     {
         Plato::OrdinalType entryOffset = aCellOrdinal * numPoints;
         for (Plato::OrdinalType ptOrdinal=0; ptOrdinal<numPoints; ptOrdinal++)
@@ -70,7 +70,7 @@ mapPoints(
     Plato::NodeCoordinate<SpaceDim> tNodeCoordinate(aSpatialDomain.Mesh);
 
     auto tCellOrdinals = aSpatialDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(Plato::OrdinalType aCellOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
         for (Plato::OrdinalType ptOrdinal=0; ptOrdinal<tNumPoints; ptOrdinal++)
@@ -112,7 +112,7 @@ mapPoints(
 
     Plato::NodeCoordinate<SpaceDim> tNodeCoordinate(&(aSpatialModel.Mesh));
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(Plato::OrdinalType aCellOrdinal)
     {
         for (Plato::OrdinalType ptOrdinal=0; ptOrdinal<tNumPoints; ptOrdinal++)
         {

@@ -138,7 +138,7 @@ class StabilizedElastostaticEnergy :
 
       auto& applyTensorWeighting = mApplyTensorWeighting;
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), LAMBDA_EXPRESSION(int cellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), KOKKOS_LAMBDA(int cellOrdinal)
       {
         // compute gradient operator and cell volume
         //

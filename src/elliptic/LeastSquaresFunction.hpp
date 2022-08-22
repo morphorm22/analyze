@@ -258,7 +258,7 @@ public:
             const Plato::Scalar tFunctionScale = mFunctionNormalization[tFunctionIndex];
             Plato::Scalar tFunctionValue = mScalarFunctionBaseContainer[tFunctionIndex]->value(aSolution, aControl, aTimeStep);
             Plato::ScalarVector tFunctionGradX = mScalarFunctionBaseContainer[tFunctionIndex]->gradient_x(aSolution, aControl, aTimeStep);
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), LAMBDA_EXPRESSION(const Plato::OrdinalType & tDof)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & tDof)
             {
                 tGradientX(tDof) += 2.0 * tFunctionWeight * (tFunctionValue - tFunctionGoldValue) 
                                         * tFunctionGradX(tDof) / (tFunctionScale * tFunctionScale);
@@ -294,7 +294,7 @@ public:
                 const Plato::Scalar tFunctionScale = mFunctionNormalization[tFunctionIndex];
                 Plato::Scalar tFunctionValue = mScalarFunctionBaseContainer[tFunctionIndex]->value(aSolution, aControl, aTimeStep);
                 Plato::ScalarVector tFunctionGradU = mScalarFunctionBaseContainer[tFunctionIndex]->gradient_u(aSolution, aControl, aTimeStep);
-                Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), LAMBDA_EXPRESSION(const Plato::OrdinalType & tDof)
+                Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & tDof)
                 {
                     tGradientU(tDof) += 2.0 * tFunctionWeight * (tFunctionValue - tFunctionGoldValue) 
                                             * tFunctionGradU(tDof) / (tFunctionScale * tFunctionScale);
@@ -324,7 +324,7 @@ public:
             const Plato::Scalar tFunctionScale = mFunctionNormalization[tFunctionIndex];
             Plato::Scalar tFunctionValue = mScalarFunctionBaseContainer[tFunctionIndex]->value(aSolution, aControl, aTimeStep);
             Plato::ScalarVector tFunctionGradZ = mScalarFunctionBaseContainer[tFunctionIndex]->gradient_z(aSolution, aControl, aTimeStep);
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), LAMBDA_EXPRESSION(const Plato::OrdinalType & tDof)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & tDof)
             {
                 tGradientZ(tDof) += 2.0 * tFunctionWeight * (tFunctionValue - tFunctionGoldValue) 
                                         * tFunctionGradZ(tDof) / (tFunctionScale * tFunctionScale);

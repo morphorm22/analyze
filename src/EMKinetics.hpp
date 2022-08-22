@@ -66,7 +66,7 @@ class EMKinetics : public Plato::SimplexElectromechanics<SpaceDim>
             mAlpha2(mAlpha*mAlpha) { }
 
     template<typename KineticsScalarType, typename KinematicsScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()( int cellOrdinal,
                 Kokkos::View<KineticsScalarType**,   Plato::Layout, Plato::MemSpace> const& stress,
                 Kokkos::View<KineticsScalarType**,   Plato::Layout, Plato::MemSpace> const& edisp,

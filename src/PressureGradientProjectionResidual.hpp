@@ -133,7 +133,7 @@ public:
         auto& tApplyVectorWeighting = mApplyVectorWeighting;
         Plato::ProjectToNode<mSpaceDim> tProjectPressGradToNodal;
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(Plato::OrdinalType aCellOrdinal)
         {
             // compute gradient operator and cell volume
             //

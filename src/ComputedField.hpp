@@ -52,7 +52,7 @@ class ComputedField
   
     auto coords = aMesh->Coordinates();
     auto values = mValues;
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,numPoints), LAMBDA_EXPRESSION(Plato::OrdinalType aPointOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,numPoints), KOKKOS_LAMBDA(Plato::OrdinalType aPointOrdinal)
     {
       if (SpaceDim > 0) x_coords[aPointOrdinal] = coords[aPointOrdinal*SpaceDim + 0];
       if (SpaceDim > 1) y_coords[aPointOrdinal] = coords[aPointOrdinal*SpaceDim + 1];
@@ -68,7 +68,7 @@ class ComputedField
     reader.repeat(result);
     Omega_h::Reals fxnValues = Omega_h::any_cast<Omega_h::Reals>(result);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,numPoints), LAMBDA_EXPRESSION(Plato::OrdinalType aPointOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,numPoints), KOKKOS_LAMBDA(Plato::OrdinalType aPointOrdinal)
     {
       values(aPointOrdinal) = fxnValues[aPointOrdinal];
     },"copy result");
@@ -93,7 +93,7 @@ class ComputedField
       "Size mismatch in field initialization:  Mod(view, stride) != 0");
     auto tFromValues = mValues;
     auto tToValues = aValues;
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tFromValues.extent(0)), LAMBDA_EXPRESSION(Plato::OrdinalType aPointOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tFromValues.extent(0)), KOKKOS_LAMBDA(Plato::OrdinalType aPointOrdinal)
     {
         tToValues(aStride*aPointOrdinal+aOffset) = tFromValues(aPointOrdinal);
     }, "copy");

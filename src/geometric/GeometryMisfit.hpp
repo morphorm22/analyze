@@ -150,7 +150,7 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
 
         // for each point in the cloud, compute the square of the average normal distance to the nearest face
         auto tNumPoints = tOffsets.extent(0) - 1;
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumPoints), LAMBDA_EXPRESSION(const Plato::OrdinalType & aPointOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumPoints), KOKKOS_LAMBDA(const Plato::OrdinalType & aPointOrdinal)
         {
             // get face index
             auto tLocalFaceOrdinal = tIndices(tOffsets(aPointOrdinal));
@@ -226,7 +226,7 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
         Plato::Scalar tMultiplier = 1.0/2.0;
 
         Plato::ScalarArray3DT<ConfigScalarType> tJacobian("jacobian", tNumFaces, SpaceDim-1, SpaceDim);
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aFaceOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumFaces), KOKKOS_LAMBDA(const Plato::OrdinalType & aFaceOrdinal)
         {
             auto tElementOrdinal = tElementOrds(aFaceOrdinal);
 
@@ -268,7 +268,7 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
         const auto cNodesPerElement = aMesh->NumNodesPerElement();
 
         auto tNumFaces = tElementOrds.size();
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aFaceOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumFaces), KOKKOS_LAMBDA(const Plato::OrdinalType & aFaceOrdinal)
         {
             for (Plato::OrdinalType tNodeI=0; tNodeI<cNodesPerFace; tNodeI++)
             {
@@ -349,7 +349,7 @@ class GeometryMisfit : public Plato::Geometric::AbstractScalarFunction<Evaluatio
         auto tNumDims = aPoints.extent(0);
         Plato::ScalarMultiVector tVectors("vectors", tNumDims, tNumPoints);
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumPoints), LAMBDA_EXPRESSION(const Plato::OrdinalType & aPointOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumPoints), KOKKOS_LAMBDA(const Plato::OrdinalType & aPointOrdinal)
         {
             // TODO index directly into aIndices?
             auto tCentroidOrd = aIndices(aOffsets(aPointOrdinal));

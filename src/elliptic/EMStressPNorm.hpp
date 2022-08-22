@@ -111,7 +111,7 @@ class EMStressPNorm :
 
       auto quadratureWeight = mCubatureRule->getCubWeight();
       auto applyWeighting   = mApplyWeighting;
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,numCells), LAMBDA_EXPRESSION(Plato::OrdinalType cellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,numCells), KOKKOS_LAMBDA(Plato::OrdinalType cellOrdinal)
       {
         computeGradient(cellOrdinal, gradient, aConfig, cellVolume);
         cellVolume(cellOrdinal) *= quadratureWeight;

@@ -157,7 +157,7 @@ class InternalThermoelasticEnergy :
 
       auto& applyStressWeighting = mApplyStressWeighting;
       auto& applyFluxWeighting   = mApplyFluxWeighting;
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
       {
         computeGradient(aCellOrdinal, gradient, aConfig, cellVolume);
         cellVolume(aCellOrdinal) *= quadratureWeight;

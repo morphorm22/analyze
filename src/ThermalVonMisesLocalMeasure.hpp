@@ -107,7 +107,7 @@ public:
         auto tBasisFunctions = mCubatureRule->getBasisFunctions();
 
         Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumCells), 
-            LAMBDA_EXPRESSION(const Plato::OrdinalType &tCellOrdinal)
+            KOKKOS_LAMBDA(const Plato::OrdinalType &tCellOrdinal)
         {
             tComputeGradient(tCellOrdinal, tGradient, aConfigWS, tCellVolume);
             tKinematics(tCellOrdinal, tStrain, tGrad, aStateWS, tGradient);

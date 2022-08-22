@@ -61,7 +61,7 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
   int tNumDofs = tNumNodes*tNumDofsPerNode;
   Plato::ScalarVector state("state", tNumDofs);
   Plato::ScalarVector z("control", tNumDofs);
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), LAMBDA_EXPRESSION(const int & aNodeOrdinal)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), KOKKOS_LAMBDA(const int & aNodeOrdinal)
   {
      z(aNodeOrdinal) = 1.0;
 
@@ -142,7 +142,7 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
   Plato::Scalar tTimeStep = 1.0;
 
   Plato::ScalarVectorT<Plato::Scalar> cellVolume("cell volume",numCells);
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), LAMBDA_EXPRESSION(int cellOrdinal)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), KOKKOS_LAMBDA(int cellOrdinal)
   {
     computeGradient(cellOrdinal, gradient, configWS, cellVolume);
     cellVolume(cellOrdinal) *= quadratureWeight;
@@ -323,7 +323,7 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, TransientThermomechResidual3D )
   Plato::ScalarVector state("state", tNumDofs);
   Plato::ScalarVector stateDot("state dot", tNumDofs);
   Plato::ScalarVector z("control", tNumDofs);
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), LAMBDA_EXPRESSION(const int & aNodeOrdinal)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), KOKKOS_LAMBDA(const int & aNodeOrdinal)
   {
      z(aNodeOrdinal) = 1.0;
 

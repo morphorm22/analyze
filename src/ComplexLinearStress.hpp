@@ -38,7 +38,7 @@ public:
 
     /******************************************************************************/
     template<typename StressScalarType, typename StrainScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()(const Plato::OrdinalType & aCellOrdinal,
                const Plato::ScalarArray3DT<StrainScalarType> & aStrain,
                const Plato::ScalarArray3DT<StressScalarType> & aStress) const

@@ -161,7 +161,7 @@ class MassMoment : public Plato::Simplex<EvaluationType::SpatialDim>,
       auto tCubWeight = tCubatureRule.getCubWeight();
       auto tBasisFunc = tCubatureRule.getBasisFunctions();
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
       {
         ConfigScalarType tCellVolume;
         tComputeCellVolume(aCellOrdinal, aConfig, tCellVolume);
@@ -207,7 +207,7 @@ class MassMoment : public Plato::Simplex<EvaluationType::SpatialDim>,
       Plato::ScalarMultiVectorT<ConfigScalarType> tMappedPoints("mapped quad points", tNumCells, mSpaceDim);
       mapQuadraturePoint(tCubPoint, aConfig, tMappedPoints);
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & tCellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & tCellOrdinal)
       {
         ConfigScalarType tCellVolume;
         tComputeCellVolume(tCellOrdinal, aConfig, tCellVolume);
@@ -259,7 +259,7 @@ class MassMoment : public Plato::Simplex<EvaluationType::SpatialDim>,
       Plato::ScalarMultiVectorT<ConfigScalarType> tMappedPoints("mapped quad points", tNumCells, mSpaceDim);
       mapQuadraturePoint(tCubPoint, aConfig, tMappedPoints);
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & tCellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & tCellOrdinal)
       {
         ConfigScalarType tCellVolume;
         tComputeCellVolume(tCellOrdinal, aConfig, tCellVolume);
@@ -294,7 +294,7 @@ class MassMoment : public Plato::Simplex<EvaluationType::SpatialDim>,
 
       Kokkos::deep_copy(aMappedPoints, static_cast<ConfigScalarType>(0.0));
 
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType tCellOrdinal) {
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(Plato::OrdinalType tCellOrdinal) {
         Plato::OrdinalType tNodeOrdinal;
         Plato::Scalar tFinalNodeValue = 1.0;
         for (tNodeOrdinal = 0; tNodeOrdinal < mSpaceDim; ++tNodeOrdinal)

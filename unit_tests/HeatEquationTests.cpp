@@ -132,7 +132,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, 3D )
   Plato::Scalar quadratureWeight = cubatureRule.getCubWeight();
 
   Plato::ScalarVectorT<Plato::Scalar> cellVolume("cell volume",numCells);
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), LAMBDA_EXPRESSION(int cellOrdinal)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), KOKKOS_LAMBDA(int cellOrdinal)
   {
     computeGradient(cellOrdinal, gradient, configWS, cellVolume);
     cellVolume(cellOrdinal) *= quadratureWeight;
@@ -162,7 +162,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, 3D )
 
   auto basisFunctions = cubatureRule.getBasisFunctions();
 
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), LAMBDA_EXPRESSION(int cellOrdinal)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), KOKKOS_LAMBDA(int cellOrdinal)
   {
     interpolateFromNodal(cellOrdinal, basisFunctions, stateWS, tTemperature);
     computeThermalContent(cellOrdinal, thermalContent, tTemperature);
@@ -632,7 +632,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, InternalThermalEnergy3D )
   Plato::ScalarMultiVector T("temperature history", tNumSteps, tNumNodes);
   Plato::ScalarMultiVector Tdot("temperature rate history", tNumSteps, tNumNodes);
   Plato::ScalarVector z("density", tNumNodes);
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), LAMBDA_EXPRESSION(const int & aNodeOrdinal)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), KOKKOS_LAMBDA(const int & aNodeOrdinal)
   {
      z(aNodeOrdinal) = 1.0;
 
@@ -802,7 +802,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, ComputedField_UniformScalar )
   Plato::ScalarVector ycoords("y", tNumNodes);
   Plato::ScalarVector zcoords("z", tNumNodes);
   auto coords = tMesh->Coordinates();
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), LAMBDA_EXPRESSION(int nodeOrdinal)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), KOKKOS_LAMBDA(int nodeOrdinal)
   {
     xcoords(nodeOrdinal) = coords[nodeOrdinal*spaceDim+0];
     ycoords(nodeOrdinal) = coords[nodeOrdinal*spaceDim+1];

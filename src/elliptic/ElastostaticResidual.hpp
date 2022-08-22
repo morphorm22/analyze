@@ -196,7 +196,7 @@ public:
         tStress("stress",tNumCells,mNumVoigtTerms);
     
       auto tQuadratureWeight = mCubatureRule->getCubWeight();
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
       {
         tComputeGradient(aCellOrdinal, tGradient, aConfig, tCellVolume);
         tCellVolume(aCellOrdinal) *= tQuadratureWeight;
@@ -214,7 +214,7 @@ public:
       }
 
       auto& tApplyWeighting = mApplyWeighting;
-      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
       {
         // apply weighting
         tApplyWeighting(aCellOrdinal, tStress, aControl);
@@ -275,7 +275,7 @@ public:
             auto tNumCells = aSpatialDomain.numCells();
             Plato::VonMisesYieldFunction<mSpaceDim> tComputeVonMises;
             Plato::ScalarVectorT<ResultScalarType> tVonMises("Von Mises", tNumCells);
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
             {
                 tComputeVonMises(aCellOrdinal, aCauchyStress, tVonMises);
             }, "Compute VonMises Stress");

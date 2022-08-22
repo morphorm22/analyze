@@ -59,7 +59,7 @@ public:
      * \param [in]  aVelGrad Velocity gradient tensor
     **********************************************************************************/
     template<typename StressScalarType, typename StrainScalarType, typename VelGradScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()( int cellOrdinal,
                 Kokkos::View<StressScalarType**, Kokkos::LayoutRight, Plato::MemSpace> const& aCauchyStress,
                 Kokkos::View<StrainScalarType**, Kokkos::LayoutRight, Plato::MemSpace> const& aSmallStrain,

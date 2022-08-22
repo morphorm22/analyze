@@ -163,7 +163,7 @@ struct GetBasis
      * @param [in]  i0, i1, i2, i3 global indices of nodes comprised by the element
      * @param [out] b0, b1, b2, b3 basis values
     **********************************************************************************/
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     basis(
       ScalarT  Xh, ScalarT  Yh, ScalarT  Zh,
       OrdinalT i0, OrdinalT i1, OrdinalT i2, OrdinalT i3,
@@ -204,7 +204,7 @@ struct GetBasis
      * @param [out] aColumnMap of the sparse matrix
      * @param [out] aEntries of the sparse matrix
     **********************************************************************************/
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()(
       VectorArrayT  aLocations,
       OrdinalT      aNodeOrdinal,
@@ -248,7 +248,7 @@ struct GetBasis
      * @param [in]  aElemOrdinal index of element whose bases will be used for interpolation
      * @param [out] aBases basis values
     **********************************************************************************/
-    DEVICE_TYPE inline void
+    KOKKOS_FUNCTION inline void
     operator()(
       VectorArrayT  aLocations,
       OrdinalT      aNodeOrdinal,
