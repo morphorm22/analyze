@@ -61,9 +61,9 @@ public:
     template<typename StressScalarType, typename StrainScalarType, typename VelGradScalarType>
     KOKKOS_FUNCTION inline void
     operator()( int cellOrdinal,
-                Kokkos::View<StressScalarType**, Kokkos::LayoutRight, Plato::MemSpace> const& aCauchyStress,
-                Kokkos::View<StrainScalarType**, Kokkos::LayoutRight, Plato::MemSpace> const& aSmallStrain,
-                Kokkos::View<VelGradScalarType**, Kokkos::LayoutRight, Plato::MemSpace> const& aVelGrad) const {
+                Kokkos::View<StressScalarType** , Plato::Layout, Plato::MemSpace> const& aCauchyStress,
+                Kokkos::View<StrainScalarType** , Plato::Layout, Plato::MemSpace> const& aSmallStrain,
+                Kokkos::View<VelGradScalarType**, Plato::Layout, Plato::MemSpace> const& aVelGrad) const {
 
       // compute stress
       //
