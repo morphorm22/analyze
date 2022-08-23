@@ -110,6 +110,11 @@ makeProblem(
     {
         return std::make_shared<ProblemT<PhysicsT<Plato::Tet4>>>(aMesh, aPlatoProb, aMachine);
     }
+    if( Plato::tolower(tElementType) == "tri"  ||
+        Plato::tolower(tElementType) == "tri3" )
+    {
+        return std::make_shared<ProblemT<PhysicsT<Plato::Tri3>>>(aMesh, aPlatoProb, aMachine);
+    }
     if( Plato::tolower(tElementType) == "hex8" ||
         Plato::tolower(tElementType) == "hexa8" )
     {

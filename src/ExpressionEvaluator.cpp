@@ -1,46 +1,14 @@
-#include "ExpressionEvaluator_decl.hpp"
+/*
+  Original code provided by Rhyscitlema
+  https://www.rhyscitlema.com/algorithms/expression-parsing-algorithm
 
-#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
+  Modified to accept additional operations such log, pow, sqrt, abs
+  etc. Also added the abilitiy to parse variables which are all
+  currently defaulted to sqrt(2).
+*/
 
-#include "FadTypes.hpp"
-#include "ExpressionEvaluator_def.hpp"
+#include "ExpressionEvaluator.hpp"
 
-template class Plato::ExpressionEvaluator<
-    Plato::ScalarMultiVectorT<Plato::Scalar>, 
-    Plato::ScalarMultiVectorT<Plato::Scalar>, 
-    Plato::ScalarVectorT<Plato::Scalar>, Plato::Scalar>;
-
-template class Plato::ExpressionEvaluator<
-    Plato::HostScalarMultiVectorT<Plato::Scalar>, 
-    Plato::HostScalarMultiVectorT<Plato::Scalar>, 
-    Plato::HostScalarVectorT<Plato::Scalar>, Plato::Scalar>;
-
-#define PLATO_CONFIG_DEF_(C) Plato::Config<C>::FadType
-
-#define PLATO_EVALUATOR_DEF(C) \
-template class Plato::ExpressionEvaluator< \
-    Plato::ScalarMultiVectorT<PLATO_CONFIG_DEF_(C)>, \
-    Plato::ScalarMultiVectorT<PLATO_CONFIG_DEF_(C)>, \
-    Plato::ScalarVectorT<PLATO_CONFIG_DEF_(C)>, Plato::Scalar>;
-
-#include "Tri3.hpp"
-#include "Tet10.hpp"
-#include "Tet4.hpp"
-
-PLATO_EVALUATOR_DEF(Plato::Tri3)
-PLATO_EVALUATOR_DEF(Plato::Tet10)
-PLATO_EVALUATOR_DEF(Plato::Tet4)
-
-#ifdef PLATO_HEX_ELEMENTS
-
-#include "Hex8.hpp"
-#include "Quad4.hpp"
-#include "Hex27.hpp"
-
-PLATO_EVALUATOR_DEF(Plato::Hex8)
-PLATO_EVALUATOR_DEF(Plato::Quad4)
-PLATO_EVALUATOR_DEF(Plato::Hex27)
-
-#endif
-
-#endif
+namespace Plato
+{
+} // namespace Plato

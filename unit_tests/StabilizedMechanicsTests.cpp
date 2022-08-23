@@ -34,7 +34,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Kinematics3D)
     constexpr int tNumVoigtTerms   = ElementType::mNumVoigtTerms;
     constexpr int tNumDofsPerNode  = ElementType::mNumDofsPerNode;
     constexpr int tNumDofsPerCell  = ElementType::mNumDofsPerCell;
-    constexpr int tNumNodesPerCell = ElementType::mNumNodesPerCell;
 
     // Set configuration workset
     auto tNumCells = tMesh->NumElements();
@@ -153,6 +152,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Solution3D)
               "<Parameter  name='Youngs Modulus' type='double' value='1.0e11'/>           \n"
             "</ParameterList>                                                             \n"
           "</ParameterList>                                                               \n"
+        "</ParameterList>                                                                 \n"
+        "<ParameterList name='Essential Boundary Conditions'>                             \n"
         "</ParameterList>                                                                 \n"
     "</ParameterList>                                                                     \n"
     );

@@ -68,8 +68,8 @@ class Bar2
         const Plato::Matrix<mNumSpatialDims, mNumSpatialDims+1, ScalarType> & aJacobian
     )
     {
-        ScalarType ax = aJacobian(0,0)*aJacobian(0,0);
-        ScalarType ay = aJacobian(0,1)*aJacobian(0,1);
+        ScalarType ax = aJacobian(0,0);
+        ScalarType ay = aJacobian(0,1);
 
         return sqrt(ax*ax+ay*ay);
     }
@@ -82,8 +82,8 @@ class Bar2
     )
     {
         Plato::Array<mNumSpatialDims+1, ScalarType> tReturnVec;
-        tReturnVec(0) = aJacobian(0,0)*aJacobian(0,0);
-        tReturnVec(1) = aJacobian(0,1)*aJacobian(0,1);
+        tReturnVec(0) = aJacobian(0,0);
+        tReturnVec(1) = aJacobian(0,1);
 
         return tReturnVec;
     }
