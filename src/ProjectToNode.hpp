@@ -29,7 +29,7 @@ public:
      * \param [in] aScale scale parameter (default = 1.0)
     **********************************************************************************/
     template<typename GaussPointScalarType, typename ProjectedScalarType, typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void operator()(const Plato::OrdinalType & aCellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarVectorT<VolumeScalarType> & aCellVolume,
                                        const Plato::ScalarVectorT<Plato::Scalar> & aBasisFunctions,
                                        const Plato::ScalarMultiVectorT<GaussPointScalarType> & aStateValues,
@@ -58,7 +58,7 @@ public:
      * \param [in] aScale scale parameter (default = 1.0)
     **********************************************************************************/
     template<typename GaussPointScalarType, typename ProjectedScalarType, typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void operator()(const Plato::OrdinalType & aCellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarVectorT<VolumeScalarType> & aCellVolume,
                                        const Plato::ScalarVectorT<Plato::Scalar> & aBasisFunctions,
                                        const Plato::ScalarVectorT<GaussPointScalarType> & aStateValues,

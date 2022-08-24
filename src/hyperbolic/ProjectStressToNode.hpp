@@ -46,7 +46,7 @@ public:
     template<typename ForcingScalarType,
              typename StressScalarType,
              typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void 
+    KOKKOS_INLINE_FUNCTION void 
     operator()(const Plato::OrdinalType & aCellOrdinal,
                const Plato::ScalarMultiVectorT<ForcingScalarType> & aOutput,
                const Plato::ScalarMultiVectorT<StressScalarType> & aSymmetricMesoStress,
@@ -68,7 +68,7 @@ public:
     template<typename ForcingScalarType,
              typename StressScalarType,
              typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void 
+    KOKKOS_INLINE_FUNCTION void 
     operator()(const Plato::OrdinalType & aCellOrdinal,
                const Plato::ScalarMultiVectorT<ForcingScalarType> & aOutput,
                const Plato::ScalarMultiVectorT<StressScalarType> & aSymmetricMicroStress,
@@ -117,7 +117,7 @@ private:
     template<typename ForcingScalarType,
              typename StressScalarType,
              typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void 
+    KOKKOS_INLINE_FUNCTION void 
     addSymmetricStressAtNodes(const Plato::OrdinalType & aCellOrdinal,
                               const Plato::ScalarMultiVectorT<ForcingScalarType> & aOutput,
                               const Plato::ScalarMultiVectorT<StressScalarType> & aStress,
@@ -139,7 +139,7 @@ private:
     template<typename ForcingScalarType,
              typename StressScalarType,
              typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void 
+    KOKKOS_INLINE_FUNCTION void 
     addSkewStressAtNodes(const Plato::OrdinalType & aCellOrdinal,
                          const Plato::ScalarMultiVectorT<ForcingScalarType> & aOutput,
                          const Plato::ScalarMultiVectorT<StressScalarType> & aStress,

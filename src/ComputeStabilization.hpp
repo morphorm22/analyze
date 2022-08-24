@@ -62,7 +62,7 @@ public:
      *
     *******************************************************************************/
     template<typename ConfigT, typename PressGradT, typename ProjPressGradT, typename ResultT>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(const Plato::OrdinalType &aCellOrdinal,
                const Plato::ScalarVectorT<ConfigT> & aCellVolume,
                const Plato::ScalarMultiVectorT<PressGradT> &aPressureGrad,
@@ -89,7 +89,7 @@ public:
 *******************************************************************************/
 template<>
 template<typename ConfigT, typename PressGradT, typename ProjPressGradT, typename ResultT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 ComputeStabilization<3>::operator()(const Plato::OrdinalType & aCellOrdinal,
                                     const Plato::ScalarVectorT<ConfigT> & aCellVolume,
                                     const Plato::ScalarMultiVectorT<PressGradT> & aPressureGrad,
@@ -125,7 +125,7 @@ ComputeStabilization<3>::operator()(const Plato::OrdinalType & aCellOrdinal,
 *******************************************************************************/
 template<>
 template<typename ConfigT, typename PressGradT, typename ProjPressGradT, typename ResultT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 ComputeStabilization<2>::operator()(const Plato::OrdinalType & aCellOrdinal,
                                     const Plato::ScalarVectorT<ConfigT> & aCellVolume,
                                     const Plato::ScalarMultiVectorT<PressGradT> & aPressureGrad,
@@ -158,7 +158,7 @@ ComputeStabilization<2>::operator()(const Plato::OrdinalType & aCellOrdinal,
 *******************************************************************************/
 template<>
 template<typename ConfigT, typename PressGradT, typename ProjPressGradT, typename ResultT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 ComputeStabilization<1>::operator()(const Plato::OrdinalType & aCellOrdinal,
                                     const Plato::ScalarVectorT<ConfigT> & aCellVolume,
                                     const Plato::ScalarMultiVectorT<PressGradT> & aPressureGrad,

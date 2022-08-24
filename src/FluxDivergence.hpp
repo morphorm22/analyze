@@ -29,7 +29,7 @@ public:
      * \param [in] aScale scale parameter (default = 1.0)
     **********************************************************************************/
     template<typename ForcingScalarType, typename FluxScalarType, typename GradientScalarType, typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void operator()(Plato::OrdinalType aCellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType aCellOrdinal,
                                        Plato::ScalarMultiVectorT<ForcingScalarType> aOutput,
                                        Plato::ScalarMultiVectorT<FluxScalarType> aFlux,
                                        Plato::ScalarArray3DT<GradientScalarType> aGradient,

@@ -22,7 +22,7 @@ namespace Fluids
  * \tparam PrevTempT previous temperatue FAD type
  * \tparam ResultT   result/output FAD type
  *
- * \fn KOKKOS_FUNCTION inline void calculate_convective_forces
+ * \fn KOKKOS_INLINE_FUNCTION void calculate_convective_forces
  *
  * \brief Calculate convective forces.
  *
@@ -40,7 +40,7 @@ template<Plato::OrdinalType NumNodes,
          typename PrevVelT,
          typename PrevTempT,
          typename ResultT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 calculate_convective_forces
 (const Plato::OrdinalType & aCellOrdinals,
  const Plato::ScalarArray3DT<ConfigT> & aGradient,
@@ -69,7 +69,7 @@ calculate_convective_forces
  * \tparam PrevTempT previous temperature FAD type
  * \tparam ResultT   result/output FAD type
  *
- * \fn KOKKOS_FUNCTION inline void integrate_scalar_field
+ * \fn KOKKOS_INLINE_FUNCTION void integrate_scalar_field
  *
  * \brief Integrate scalar field, defined as
  *
@@ -91,7 +91,7 @@ template
  typename SourceT,
  typename ResultT,
  typename ScalarT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 integrate_scalar_field
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::ScalarVector & aBasisFunctions,
@@ -116,7 +116,7 @@ integrate_scalar_field
  * \tparam ScalarT   scalar multiplier FAD type
  * \tparam ResultT   result/output FAD type
  *
- * \fn KOKKOS_FUNCTION inline void calculate_flux_divergence
+ * \fn KOKKOS_INLINE_FUNCTION void calculate_flux_divergence
  *
  * \brief Calculate flux divergence, defined as
  *
@@ -139,7 +139,7 @@ template
  typename FluxT,
  typename ResultT,
  typename ScalarT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 calculate_flux_divergence
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::ScalarArray3DT<ConfigT> & aGradient,
@@ -167,7 +167,7 @@ calculate_flux_divergence
  * \tparam ConfigT  configuration Forward Automatic Differentiation (FAD) type
  * \tparam StateT   state FAD type
  *
- * \fn KOKKOS_FUNCTION inline void calculate_flux
+ * \fn KOKKOS_INLINE_FUNCTION void calculate_flux
  *
  * \brief Calculate flux divergence, defined as
  *
@@ -187,7 +187,7 @@ template
  typename FluxT,
  typename ConfigT,
  typename StateT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 calculate_flux
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::ScalarArray3DT<ConfigT> & aGradient,
@@ -209,7 +209,7 @@ calculate_flux
  * \tparam NumNodesPerCell number of nodes per cell/element (integer)
  * \tparam ControlT control Forward Automatic Differentiation (FAD) evaluation type
  *
- * \fn KOKKOS_FUNCTION inline ControlT penalized_effective_thermal_property
+ * \fn KOKKOS_INLINE_FUNCTION ControlT penalized_effective_thermal_property
  *
  * \brief Penalize effective thermal properties. The penalization model is given by
  * \f$ \pi^{\alpha}(\theta) = \frac{\alpha*(1-\theta) + \theta}{\alpha}\f$, where
@@ -226,7 +226,7 @@ calculate_flux
 template
 <Plato::OrdinalType NumNodesPerCell,
  typename ControlT>
-KOKKOS_FUNCTION inline ControlT
+KOKKOS_INLINE_FUNCTION ControlT
 penalized_effective_thermal_property
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::Scalar & aEffectiveThermalProperty,
@@ -246,7 +246,7 @@ penalized_effective_thermal_property
  * \tparam NumNodesPerCell number of nodes per cell/element (integer)
  * \tparam ControlT control Forward Automatic Differentiation (FAD) evaluation type
  *
- * \fn KOKKOS_FUNCTION inline ControlT penalize_heat_source_constant
+ * \fn KOKKOS_INLINE_FUNCTION ControlT penalize_heat_source_constant
  *
  * \brief Penalize heat source constant. This function is only needed for
  *   density-based topology optimization problems.
@@ -261,7 +261,7 @@ penalized_effective_thermal_property
 template
 <Plato::OrdinalType NumNodesPerCell,
  typename ControlT>
-KOKKOS_FUNCTION inline ControlT
+KOKKOS_INLINE_FUNCTION ControlT
 penalize_heat_source_constant
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::Scalar & aConstant,
@@ -284,7 +284,7 @@ penalize_heat_source_constant
  * \tparam StabT    stabilization FAD evaluation type
  * \tparam ScalarT  scalar multiplier FAD evaluation type
  *
- * \fn KOKKOS_FUNCTION inline void integrate_stabilizing_scalar_forces
+ * \fn KOKKOS_INLINE_FUNCTION void integrate_stabilizing_scalar_forces
  *
  * \brief Integrate stabilizing scalar field.
  *
@@ -305,7 +305,7 @@ template
  typename PrevVelT,
  typename StabT,
  typename ScalarT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 integrate_stabilizing_scalar_forces
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::ScalarVectorT<ConfigT> & aCellVolume,

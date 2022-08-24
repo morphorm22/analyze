@@ -46,7 +46,7 @@ class MicromorphicKinetics : public Plato::SimplexMicromorphicMechanics<SpaceDim
 
     // overloaded for cauchy and micro stresses
     template<typename KineticsScalarType, typename KinematicsScalarType, typename StateScalarType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( Plato::OrdinalType aCellOrdinal,
                 Plato::ScalarMultiVectorT<KineticsScalarType> const& aSymmetricMesoStress,
                 Plato::ScalarMultiVectorT<KineticsScalarType> const& aSkewMesoStress,
@@ -66,7 +66,7 @@ class MicromorphicKinetics : public Plato::SimplexMicromorphicMechanics<SpaceDim
     
     // overloaded for inertia stresses
     template<typename KineticsScalarType, typename KinematicsScalarType, typename StateScalarType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( Plato::OrdinalType aCellOrdinal,
                 Plato::ScalarMultiVectorT<KineticsScalarType> const& aSymmetricMesoStress,
                 Plato::ScalarMultiVectorT<KineticsScalarType> const& aSkewMesoStress,
@@ -88,7 +88,7 @@ class MicromorphicKinetics : public Plato::SimplexMicromorphicMechanics<SpaceDim
 
     // overloaded for cauchy and micro stresses
     template<typename KineticsScalarType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     initializeStressesWithZeros( Plato::OrdinalType aCellOrdinal,
                                  Plato::ScalarMultiVectorT<KineticsScalarType> const& aSymmetricMesoStress,
                                  Plato::ScalarMultiVectorT<KineticsScalarType> const& aSkewMesoStress,
@@ -104,7 +104,7 @@ class MicromorphicKinetics : public Plato::SimplexMicromorphicMechanics<SpaceDim
     
     // overloaded for inertia stresses
     template<typename KineticsScalarType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     initializeStressesWithZeros( Plato::OrdinalType aCellOrdinal,
                                  Plato::ScalarMultiVectorT<KineticsScalarType> const& aSymmetricMesoStress,
                                  Plato::ScalarMultiVectorT<KineticsScalarType> const& aSkewMesoStress,
@@ -121,7 +121,7 @@ class MicromorphicKinetics : public Plato::SimplexMicromorphicMechanics<SpaceDim
     }
 
     template<typename StressScalarType, typename StrainScalarType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     addSymmetricMesoStressTerm( Plato::OrdinalType aCellOrdinal,
                                   Plato::ScalarMultiVectorT<StressScalarType> const& aStress,
                                   Plato::ScalarMultiVectorT<StrainScalarType> const& aStrain,
@@ -136,7 +136,7 @@ class MicromorphicKinetics : public Plato::SimplexMicromorphicMechanics<SpaceDim
     }
 
     template<typename StressScalarType, typename StrainScalarType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     addSkewMesoStressTerm( Plato::OrdinalType aCellOrdinal,
                              Plato::ScalarMultiVectorT<StressScalarType> const& aStress,
                              Plato::ScalarMultiVectorT<StrainScalarType> const& aStrain,
@@ -152,7 +152,7 @@ class MicromorphicKinetics : public Plato::SimplexMicromorphicMechanics<SpaceDim
     }
 
     template<typename StressScalarType, typename StrainScalarType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     addSymmetricMicroStressTerm( Plato::OrdinalType aCellOrdinal,
                                                 Plato::ScalarMultiVectorT<StressScalarType> const& aStress,
                                                 Plato::ScalarMultiVectorT<StrainScalarType> const& aStrain) const
@@ -166,7 +166,7 @@ class MicromorphicKinetics : public Plato::SimplexMicromorphicMechanics<SpaceDim
     }
 
     template<typename StressScalarType, typename StrainScalarType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     addSkewMicroStressTerm( Plato::OrdinalType aCellOrdinal,
                                                 Plato::ScalarMultiVectorT<StressScalarType> const& aStress,
                                                 Plato::ScalarMultiVectorT<StrainScalarType> const& aStrain) const

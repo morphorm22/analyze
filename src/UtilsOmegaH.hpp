@@ -598,7 +598,7 @@ inline void add_state_tags(Omega_h::Mesh& aMesh, const Plato::DataMap& aStateDat
  *
 *******************************************************************************/
 template<Plato::OrdinalType SpatialDim, Plato::OrdinalType NodesPerCell = SpatialDim + 1>
-KOKKOS_FUNCTION inline Omega_h::Few< Omega_h::Vector<SpatialDim>, NodesPerCell > local_element_coords
+KOKKOS_INLINE_FUNCTION Omega_h::Few< Omega_h::Vector<SpatialDim>, NodesPerCell > local_element_coords
 (const Plato::OrdinalType & aCellOrdinal, const Plato::NodeCoordinate<SpatialDim> & aCoords)
 {
     Omega_h::Few<Omega_h::Vector<SpatialDim>, NodesPerCell> tCellCoords;
@@ -622,7 +622,7 @@ KOKKOS_FUNCTION inline Omega_h::Few< Omega_h::Vector<SpatialDim>, NodesPerCell >
 * \return normalized vector
 *
 **********************************************************************************/
-KOKKOS_FUNCTION inline void normalize(Omega_h::Vector<1> & aVector) { return; }
+KOKKOS_INLINE_FUNCTION void normalize(Omega_h::Vector<1> & aVector) { return; }
 // function normalize - 1D
 
 /******************************************************************************//**
@@ -633,7 +633,7 @@ KOKKOS_FUNCTION inline void normalize(Omega_h::Vector<1> & aVector) { return; }
 * \return normalized vector
 *
 **********************************************************************************/
-KOKKOS_FUNCTION inline void normalize(Omega_h::Vector<2> & aVector)
+KOKKOS_INLINE_FUNCTION void normalize(Omega_h::Vector<2> & aVector)
 {
     auto tMagnitude = sqrt(aVector[0]*aVector[0] + aVector[1]*aVector[1]);
     aVector[0] = aVector[0] / tMagnitude;
@@ -649,7 +649,7 @@ KOKKOS_FUNCTION inline void normalize(Omega_h::Vector<2> & aVector)
 * \return normalized vector
 *
 **********************************************************************************/
-KOKKOS_FUNCTION inline void normalize(Omega_h::Vector<3> & aVector)
+KOKKOS_INLINE_FUNCTION void normalize(Omega_h::Vector<3> & aVector)
 {
     auto tMagnitude = sqrt( aVector[0]*aVector[0] + aVector[1]*aVector[1] + aVector[2]*aVector[2] );
     aVector[0] = aVector[0] / tMagnitude;
@@ -668,7 +668,7 @@ KOKKOS_FUNCTION inline void normalize(Omega_h::Vector<3> & aVector)
 * \return unit normal vector
 *
 **********************************************************************************/
-KOKKOS_FUNCTION inline Omega_h::Vector<1> unit_normal_vector
+KOKKOS_INLINE_FUNCTION Omega_h::Vector<1> unit_normal_vector
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::OrdinalType & aFaceOrdinal,
  const Plato::NodeCoordinate<1> & aCoords)
@@ -690,7 +690,7 @@ KOKKOS_FUNCTION inline Omega_h::Vector<1> unit_normal_vector
 * \return unit normal vector
 *
 **********************************************************************************/
-KOKKOS_FUNCTION inline Omega_h::Vector<2> unit_normal_vector
+KOKKOS_INLINE_FUNCTION Omega_h::Vector<2> unit_normal_vector
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::OrdinalType & aFaceOrdinal,
  const Plato::NodeCoordinate<2> & aCoords)
@@ -712,7 +712,7 @@ KOKKOS_FUNCTION inline Omega_h::Vector<2> unit_normal_vector
 * \return unit normal vector
 *
 **********************************************************************************/
-KOKKOS_FUNCTION inline Omega_h::Vector<3> unit_normal_vector
+KOKKOS_INLINE_FUNCTION Omega_h::Vector<3> unit_normal_vector
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::OrdinalType & aFaceOrdinal,
  const Plato::NodeCoordinate<3> & aCoords)

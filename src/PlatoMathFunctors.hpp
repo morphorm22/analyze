@@ -36,8 +36,8 @@ public:
      * \param [in]  blockRowOrdinal Ordinal for the row for which the sum is to be computed
      * \param [out] aRowSum Row sum vector (assumed initialized to zero)
      **************************************************************************/
-    KOKKOS_FUNCTION
-    inline void operator()(Plato::OrdinalType aBlockRowOrdinal, Plato::ScalarVector aRowSum) const
+    KOKKOS_INLINE_FUNCTION
+    void operator()(Plato::OrdinalType aBlockRowOrdinal, Plato::ScalarVector aRowSum) const
     {
         using Plato::OrdinalType;
 
@@ -85,12 +85,12 @@ public:
      *  x[i] = b[i] / R[i]
      *
      **************************************************************************/
-    KOKKOS_FUNCTION
-    inline void operator()(Plato::OrdinalType aBlockRowOrdinal,
-                           Plato::ScalarVector aRowSum,
-                           Plato::ScalarVector aRHS,
-                           Plato::ScalarVector aLHS,
-                           Plato::Scalar aScale = 1.0) const
+    KOKKOS_INLINE_FUNCTION
+    void operator()(Plato::OrdinalType aBlockRowOrdinal,
+		    Plato::ScalarVector aRowSum,
+		    Plato::ScalarVector aRHS,
+		    Plato::ScalarVector aLHS,
+		    Plato::Scalar aScale = 1.0) const
     {
         // for each row in this block
         for(Plato::OrdinalType tIdim = 0; tIdim < NumDofsPerNode_I; tIdim++)
@@ -131,8 +131,8 @@ public:
      * \param [in]  blockRowOrdinal Ordinal for the block row to which the inverse diagonal multiply is applied
      * \param [out] aDiagonals Vector of diagonal entries
      **************************************************************************/
-    KOKKOS_FUNCTION
-    inline void operator()(Plato::OrdinalType aBlockRowOrdinal, Plato::ScalarVector aDiagonals) const
+    KOKKOS_INLINE_FUNCTION
+    void operator()(Plato::OrdinalType aBlockRowOrdinal, Plato::ScalarVector aDiagonals) const
     {
         // for each entry in this block row
         Plato::OrdinalType tRowStart = mRowMap(aBlockRowOrdinal);

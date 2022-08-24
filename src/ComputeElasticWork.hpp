@@ -42,7 +42,7 @@ public:
      * \param [in\out] aDeviatoricStrain  deviatoric strain tensor
     **********************************************************************************/
     template<typename OutputT, typename ElasticStrainT, typename DeviatoricStrainT, typename ShearModulusT, typename BulkModulusT>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(const Plato::OrdinalType &aCellOrdinal,
                const ShearModulusT &aShearModulus,
                const BulkModulusT &aBulkModulus,
@@ -53,7 +53,7 @@ public:
 
 template<>
 template<typename OutputT, typename ElasticStrainT, typename DeviatoricStrainT, typename ShearModulusT, typename BulkModulusT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 ComputeElasticWork<3>::operator()(const Plato::OrdinalType &aCellOrdinal,
                                   const ShearModulusT &aShearModulus,
                                   const BulkModulusT &aBulkModulus,
@@ -80,7 +80,7 @@ ComputeElasticWork<3>::operator()(const Plato::OrdinalType &aCellOrdinal,
 
 template<>
 template<typename OutputT, typename ElasticStrainT, typename DeviatoricStrainT, typename ShearModulusT, typename BulkModulusT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 ComputeElasticWork<2>::operator()(const Plato::OrdinalType &aCellOrdinal,
                                   const ShearModulusT &aShearModulus,
                                   const BulkModulusT &aBulkModulus,
@@ -105,7 +105,7 @@ ComputeElasticWork<2>::operator()(const Plato::OrdinalType &aCellOrdinal,
 
 template<>
 template<typename OutputT, typename ElasticStrainT, typename DeviatoricStrainT, typename ShearModulusT, typename BulkModulusT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 ComputeElasticWork<1>::operator()(const Plato::OrdinalType &aCellOrdinal,
                                   const ShearModulusT &aShearModulus,
                                   const BulkModulusT &aBulkModulus,

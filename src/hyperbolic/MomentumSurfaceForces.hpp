@@ -45,7 +45,7 @@ template<Plato::OrdinalType SpaceDims,
          Plato::OrdinalType NumNodes,
          typename InStateType,
          typename OutStateType>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 project_vector_field_onto_surface
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::ScalarVector & aBasisFunctions,

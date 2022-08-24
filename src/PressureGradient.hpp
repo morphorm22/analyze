@@ -45,7 +45,7 @@ public:
      * \param [in] aGradient       configuration gradient workset
     **********************************************************************************/
     template<typename ResultScalarType, typename StateScalarType, typename GradientScalarType>
-    KOKKOS_FUNCTION inline void operator()(Plato::OrdinalType aCellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType aCellOrdinal,
                                        Plato::ScalarMultiVectorT<ResultScalarType> const& aPressureGrad,
                                        Plato::ScalarMultiVectorT<StateScalarType> const& aPressure,
                                        Plato::ScalarArray3DT<GradientScalarType> const& aGradient) const

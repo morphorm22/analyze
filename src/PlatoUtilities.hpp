@@ -50,7 +50,7 @@ readNodeFields(
 **********************************************************************************/
 template<Plato::OrdinalType NumSpatialDims,
          Plato::OrdinalType NumNodesPerCell>
-KOKKOS_FUNCTION inline
+KOKKOS_INLINE_FUNCTION
 Plato::Scalar
 calculate_element_size
 (const Plato::OrdinalType & aCellOrdinal,
@@ -119,7 +119,7 @@ inline void print_standard_vector_1D
  * \param [in] aName  container name (default = "")
 **********************************************************************************/
 template<typename ArrayT>
-KOKKOS_FUNCTION inline void print_array_1D_device
+KOKKOS_INLINE_FUNCTION void print_array_1D_device
 (const ArrayT & aInput, const char* aName)
 {
     printf("BEGIN PRINT: %s\n", aName);
@@ -143,7 +143,7 @@ KOKKOS_FUNCTION inline void print_array_1D_device
  * \param [in] aName        container name (default = "")
 **********************************************************************************/
 template<typename ArrayT>
-KOKKOS_FUNCTION inline void print_array_2D_device
+KOKKOS_INLINE_FUNCTION void print_array_2D_device
 (const Plato::OrdinalType & aLeadOrdinal, const ArrayT & aInput, const char* aName)
 {
     Plato::OrdinalType tSize = aInput.extent(1);
@@ -167,7 +167,7 @@ KOKKOS_FUNCTION inline void print_array_2D_device
  * \param [in] aName        container name (default = "")
 **********************************************************************************/
 template<typename ArrayT>
-KOKKOS_FUNCTION inline void print_array_3D_device
+KOKKOS_INLINE_FUNCTION void print_array_3D_device
 (const Plato::OrdinalType & aLeadOrdinal, const ArrayT & aInput, const char* aName)
 {
     Plato::OrdinalType tDimOneLength = aInput.extent(1);
@@ -374,7 +374,7 @@ inline void print_array_3D(const ArrayT & aInput, const std::string & aName)
 /******************************************************************************//**
  * \tparam ViewType view type
  *
- * \fn KOKKOS_FUNCTION inline void print_fad_val_values
+ * \fn KOKKOS_INLINE_FUNCTION void print_fad_val_values
  *
  * \brief Print 2D view of type forward automatic differentiation (FAD).
  * \param [in] aOrdinal lead ordinal

@@ -32,7 +32,7 @@ public:
     }
 
     template<typename OutputScalarType, typename StateScalarType, typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void operator()(const Plato::OrdinalType & aCellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarVectorT<VolumeScalarType> & aCellVolume,
                                        const Plato::ScalarMultiVectorT<StateScalarType> & aStateValues,
                                        const Plato::ScalarVectorT<OutputScalarType> & aInertialEnergy) const

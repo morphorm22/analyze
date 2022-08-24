@@ -19,7 +19,7 @@ class TensileEnergyDensity : public Plato::SimplexMechanics<SpaceDim>
   public:
 
     template<typename StrainType, typename ResultType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( Plato::OrdinalType aCellOrdinal,
                 const Plato::ScalarMultiVectorT<StrainType> & aPrincipalStrains,
                 const Plato::Scalar & aLameLambda,
