@@ -35,7 +35,7 @@ public:
      * \param [in]  aPenalizedInitialYieldStress,
      * \param [in]  aPenalizedHardeningModulusIsotropic
     **********************************************************************************/
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(Plato::OrdinalType const & aCellOrdinal,
                ResultT & aYieldStress,
                Plato::ScalarMultiVectorT< LocalStateT > const& aLocalState,
@@ -63,7 +63,7 @@ public:
      * \param [in]  aPenalizedInitialYieldStress,
      * \param [in]  aPenalizedHardeningModulusIsotropic
     **********************************************************************************/
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(Plato::OrdinalType const & aCellOrdinal,
                Plato::ScalarMultiVectorT< ResultT     > const& aYieldStress,
                Plato::ScalarMultiVectorT< LocalStateT > const& aLocalState,

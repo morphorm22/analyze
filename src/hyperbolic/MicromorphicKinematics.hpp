@@ -30,7 +30,7 @@ private:
 public:
 
     template<typename KinematicsScalarType, typename StateScalarType, typename GradientScalarType>
-    KOKKOS_FUNCTION inline void operator()(Plato::OrdinalType aCellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType aCellOrdinal,
                                        Plato::ScalarMultiVectorT<KinematicsScalarType> const& aSymmetricGradientStrain,
                                        Plato::ScalarMultiVectorT<KinematicsScalarType> const& aSkewGradientStrain,
                                        Plato::ScalarMultiVectorT<StateScalarType> const& aSymmetricMicroStrain,
@@ -48,7 +48,7 @@ public:
 private:
 
     template<typename KinematicsScalarType, typename StateScalarType, typename GradientScalarType>
-    KOKKOS_FUNCTION inline void computeSymmetricGradientStrain(Plato::OrdinalType aCellOrdinal,
+    KOKKOS_INLINE_FUNCTION void computeSymmetricGradientStrain(Plato::OrdinalType aCellOrdinal,
                                        Plato::ScalarMultiVectorT<KinematicsScalarType> const& aSymmetricGradientStrain,
                                        Plato::ScalarMultiVectorT<StateScalarType> const& aState,
                                        Plato::ScalarArray3DT<GradientScalarType> const& aGradient) const
@@ -83,7 +83,7 @@ private:
     }
 
     template<typename KinematicsScalarType, typename StateScalarType, typename GradientScalarType>
-    KOKKOS_FUNCTION inline void computeSkewGradientStrain(Plato::OrdinalType aCellOrdinal,
+    KOKKOS_INLINE_FUNCTION void computeSkewGradientStrain(Plato::OrdinalType aCellOrdinal,
                                        Plato::ScalarMultiVectorT<KinematicsScalarType> const& aSkewGradientStrain,
                                        Plato::ScalarMultiVectorT<StateScalarType> const& aState,
                                        Plato::ScalarArray3DT<GradientScalarType> const& aGradient) const
@@ -108,7 +108,7 @@ private:
     }
 
     template<typename StateScalarType>
-    KOKKOS_FUNCTION inline void computeSymmetricMicroStrain(Plato::OrdinalType aCellOrdinal,
+    KOKKOS_INLINE_FUNCTION void computeSymmetricMicroStrain(Plato::OrdinalType aCellOrdinal,
                                        Plato::ScalarMultiVectorT<StateScalarType> const& aSymmetricMicroStrain,
                                        Plato::ScalarMultiVectorT<StateScalarType> const& aState,
                                        Plato::ScalarVectorT<Plato::Scalar> const& aBasisFunctions) const
@@ -143,7 +143,7 @@ private:
     }
 
     template<typename StateScalarType>
-    KOKKOS_FUNCTION inline void computeSkewMicroStrain(Plato::OrdinalType aCellOrdinal,
+    KOKKOS_INLINE_FUNCTION void computeSkewMicroStrain(Plato::OrdinalType aCellOrdinal,
                                        Plato::ScalarMultiVectorT<StateScalarType> const& aSkewMicroStrain,
                                        Plato::ScalarMultiVectorT<StateScalarType> const& aState,
                                        Plato::ScalarVectorT<Plato::Scalar> const& aBasisFunctions) const

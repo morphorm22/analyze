@@ -52,7 +52,7 @@ public:
     *
     *******************************************************************************/
     template<typename GradientType, typename InStateType, typename OutStateType>
-    KOKKOS_FUNCTION inline void operator()(const Plato::OrdinalType & aCellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarMultiVectorT<GradientType> & aGradient,
                                        const Plato::ScalarMultiVectorT<InStateType>  & aNodalCellStates,
                                        const Plato::ScalarMultiVectorT<OutStateType> & aStateGradients) const

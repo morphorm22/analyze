@@ -26,7 +26,7 @@ public:
     }
 
     template<typename ResultScalarType, typename TensorScalarType, typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void operator()(Plato::OrdinalType cellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType cellOrdinal,
                                        Plato::ScalarVectorT<ResultScalarType> pnorm,
                                        Plato::ScalarMultiVectorT<TensorScalarType> voigtTensor,
                                        Plato::OrdinalType p,
@@ -78,7 +78,7 @@ public:
     }
 
     template<typename ResultScalarType, typename TensorScalarType, typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void operator()(Plato::OrdinalType cellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType cellOrdinal,
                                        Plato::ScalarVectorT<ResultScalarType> pnorm,
                                        Plato::ScalarMultiVectorT<TensorScalarType> voigtTensor,
                                        Plato::OrdinalType p,
@@ -179,7 +179,7 @@ public:
     }
 
     template<typename ResultScalarType, typename TensorScalarType, typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void operator()(Plato::OrdinalType cellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType cellOrdinal,
                                        Plato::ScalarVectorT<ResultScalarType> pnorm,
                                        Plato::ScalarMultiVectorT<TensorScalarType> voigtTensor,
                                        Plato::OrdinalType p,
@@ -291,7 +291,7 @@ public:
     }
 
     template<typename ResultScalarType, typename TensorScalarType, typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void operator()(Plato::OrdinalType cellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType cellOrdinal,
                                        Plato::ScalarVectorT<ResultScalarType> pnorm,
                                        Plato::ScalarMultiVectorT<TensorScalarType> voigtTensor,
                                        Plato::OrdinalType p,

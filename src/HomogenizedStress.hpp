@@ -33,7 +33,7 @@ class HomogenizedStress : public Plato::SimplexMechanics<SpaceDim>
             mColumnIndex(aColumnIndex) {}
 
     template<typename StressScalarType, typename StrainScalarType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( int cellOrdinal,
                 Kokkos::View<StressScalarType**, Plato::Layout, Plato::MemSpace> const& stress,
                 Kokkos::View<StrainScalarType**, Plato::Layout, Plato::MemSpace> const& strain) const {

@@ -41,7 +41,7 @@ public:
      * \param [out] aEigenvalues cell/element tensor eigenvalues
     **********************************************************************************/
     template<typename ResultType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(const Plato::OrdinalType & aCellOrdinal,
                const Plato::ScalarMultiVectorT<ResultType> & aVoigtTensor,
                const Plato::ScalarMultiVectorT<ResultType> & aEigenvalues,
@@ -59,7 +59,7 @@ public:
 **********************************************************************************/
 template<>
 template<typename ResultType>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 Eigenvalues<3>::operator()(const Plato::OrdinalType & aCellOrdinal,
                            const Plato::ScalarMultiVectorT<ResultType> & aVoigtTensor,
                            const Plato::ScalarMultiVectorT<ResultType> & aEigenvalues,
@@ -176,7 +176,7 @@ Eigenvalues<3>::operator()(const Plato::OrdinalType & aCellOrdinal,
 **********************************************************************************/
 template<>
 template<typename ResultType>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 Eigenvalues<2>::operator()(const Plato::OrdinalType & aCellOrdinal,
                            const Plato::ScalarMultiVectorT<ResultType> & aVoigtTensor,
                            const Plato::ScalarMultiVectorT<ResultType> & aEigenvalues,
@@ -224,7 +224,7 @@ Eigenvalues<2>::operator()(const Plato::OrdinalType & aCellOrdinal,
 **********************************************************************************/
 template<>
 template<typename ResultType>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 Eigenvalues<1>::operator()(const Plato::OrdinalType & aCellOrdinal,
                            const Plato::ScalarMultiVectorT<ResultType> & aVoigtTensor,
                            const Plato::ScalarMultiVectorT<ResultType> & aEigenvalues,

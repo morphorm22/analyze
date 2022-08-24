@@ -23,7 +23,7 @@ class ScalarProduct
              typename Tensor1ScalarType, 
              typename Tensor2ScalarType,
              typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( Plato::OrdinalType cellOrdinal,
                 Plato::ScalarVectorT<ProductScalarType> scalarProduct,
                 Plato::ScalarMultiVectorT<Tensor1ScalarType> voigtTensor1,
@@ -43,7 +43,7 @@ class ScalarProduct
     template<typename ProductScalarType, 
              typename Tensor1ScalarType, 
              typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( Plato::OrdinalType cellOrdinal,
                 Plato::ScalarVectorT<ProductScalarType> scalarProduct,
                 Plato::ScalarMultiVectorT<Tensor1ScalarType> voigtTensor1,

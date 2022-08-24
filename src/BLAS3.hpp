@@ -48,7 +48,7 @@ template<Plato::OrdinalType LengthI,
          typename ScalarT,
          typename AViewTypeT,
          typename BViewTypeT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 scale(const Plato::OrdinalType & aCellOrdinal,
       const ScalarT & aScalar,
       const Plato::ScalarArray3DT<AViewTypeT> & aInputWS,
@@ -85,7 +85,7 @@ template<Plato::OrdinalType LengthI,
          typename AViewType,
          typename BViewType,
          typename CViewType>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 dot(const Plato::OrdinalType & aCellOrdinal,
     const Plato::ScalarArray3DT<AViewType> & aTensorA,
     const Plato::ScalarArray3DT<BViewType> & aTensorB,

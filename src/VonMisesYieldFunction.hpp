@@ -30,7 +30,7 @@ public:
      * \param [out] aVonMisesStress 1D container of cell Von Mises yield stresses
     **********************************************************************************/
     template<typename Inputype, typename ResultType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(const Plato::OrdinalType & aCellOrdinal,
                const Plato::ScalarMultiVectorT<Inputype> & aCauchyStress,
                const Plato::ScalarVectorT<ResultType> & aVonMisesStress) const;
@@ -49,7 +49,7 @@ public:
 **********************************************************************************/
 template<>
 template<typename Inputype, typename ResultType>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 VonMisesYieldFunction<3>::operator()(const Plato::OrdinalType & aCellOrdinal,
         const Plato::ScalarMultiVectorT<Inputype> & aCauchyStress,
         const Plato::ScalarVectorT<ResultType> & aVonMisesStress) const
@@ -84,7 +84,7 @@ VonMisesYieldFunction<3>::operator()(const Plato::OrdinalType & aCellOrdinal,
 **********************************************************************************/
 template<>
 template<typename Inputype, typename ResultType>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 VonMisesYieldFunction<2>::operator()(const Plato::OrdinalType & aCellOrdinal,
         const Plato::ScalarMultiVectorT<Inputype> & aCauchyStress,
         const Plato::ScalarVectorT<ResultType> & aVonMisesStress) const
@@ -111,7 +111,7 @@ VonMisesYieldFunction<2>::operator()(const Plato::OrdinalType & aCellOrdinal,
 **********************************************************************************/
 template<>
 template<typename Inputype, typename ResultType>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 VonMisesYieldFunction<1>::operator()(const Plato::OrdinalType & aCellOrdinal,
         const Plato::ScalarMultiVectorT<Inputype> & aCauchyStress,
         const Plato::ScalarVectorT<ResultType> & aVonMisesStress) const

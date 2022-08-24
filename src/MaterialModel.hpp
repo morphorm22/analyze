@@ -68,7 +68,7 @@ namespace Plato {
        * unit test: PlatoMaterialModel_ScalarFunctor
       **********************************************************************************/
       template<typename TScalarType>
-      KOKKOS_FUNCTION inline TScalarType
+      KOKKOS_INLINE_FUNCTION TScalarType
       operator()( TScalarType aInput ) const {
           TScalarType tRetVal(aInput);
           tRetVal *= c1;
@@ -129,7 +129,7 @@ namespace Plato {
        * unit test: PlatoMaterialModel_TensorFunctor
       **********************************************************************************/
       template<typename TScalarType>
-      KOKKOS_FUNCTION inline TScalarType
+      KOKKOS_INLINE_FUNCTION TScalarType
       operator()( TScalarType aInput, Plato::OrdinalType i, Plato::OrdinalType j ) const {
           TScalarType tRetVal(aInput);
           tRetVal *= c1[i][j];
@@ -186,7 +186,7 @@ namespace Plato {
        * \param [in] j \f$ j \f$ value in expression.
        * unit test: PlatoMaterialModel_TensorFunctor
       **********************************************************************************/
-      KOKKOS_FUNCTION inline Plato::Scalar
+      KOKKOS_INLINE_FUNCTION Plato::Scalar
       operator()(Plato::OrdinalType i, Plato::OrdinalType j ) const {
           return c0[i][j];
       }
@@ -235,7 +235,7 @@ namespace Plato {
        * unit test: PlatoMaterialModel_Rank4VoigtConstantFunctor
       **********************************************************************************/
       template<typename TScalarType>
-      KOKKOS_FUNCTION inline TScalarType
+      KOKKOS_INLINE_FUNCTION TScalarType
       operator()( TScalarType aInput, Plato::OrdinalType i, Plato::OrdinalType j ) const {
           TScalarType tRetVal(aInput);
           tRetVal *= c1[i][j];
@@ -284,7 +284,7 @@ namespace Plato {
        * \param [in] j \f$ j \f$ value in expression.
        * unit test: PlatoMaterialModel_Rank4VoigtConstant
       **********************************************************************************/
-      KOKKOS_FUNCTION inline Plato::Scalar
+      KOKKOS_INLINE_FUNCTION Plato::Scalar
       operator()(Plato::OrdinalType i, Plato::OrdinalType j ) const {
           return c0[i][j];
       }

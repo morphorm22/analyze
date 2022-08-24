@@ -46,7 +46,7 @@ template<Plato::OrdinalType NumNodes,
          typename ConfigT,
          typename PrevVelT,
          typename ResultT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 integrate_divergence_operator
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::ScalarVector & aBasisFunctions,
@@ -99,7 +99,7 @@ template<Plato::OrdinalType NumNodes,
          typename ConfigT,
          typename FieldT,
          typename ResultT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 integrate_laplacian_operator
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::ScalarArray3DT<ConfigT> & aGradient,
@@ -154,7 +154,7 @@ template<Plato::OrdinalType NumNodes,
          typename CurPressT,
          typename PrevPressT,
          typename PressGradT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 calculate_pressure_gradient
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::Scalar & aTheta,
@@ -201,7 +201,7 @@ template<Plato::OrdinalType NumNodes,
          typename ConfigT,
          typename FieldT,
          typename FieldGradT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 calculate_scalar_field_gradient
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::ScalarArray3DT<ConfigT> & aGradient,

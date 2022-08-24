@@ -78,7 +78,7 @@ struct Full : public MathMapBase<ScalarT>
 
     Full(const Plato::InputData & aInput){}
 
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( OrdinalT aOrdinal, VectorArrayT aInValue, VectorArrayT aOutValue ) const
     {
         aOutValue(Dim::X, aOrdinal) = aInValue(Dim::X, aOrdinal);
@@ -129,7 +129,7 @@ struct SymmetryPlane : public MathMapBase<ScalarT>
         mNormal[Dim::Y] /= tLength;
         mNormal[Dim::Z] /= tLength;
     }
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( OrdinalT aOrdinal, VectorArrayT aInValue, VectorArrayT aOutValue ) const
     {
         ScalarT tProjVal = 0.0;
@@ -181,7 +181,7 @@ struct Translation : public MathMapBase<ScalarT>
         }
     }
 
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( OrdinalT aOrdinal, VectorArrayT aInValue, VectorArrayT aOutValue ) const
     {
         aOutValue(Dim::X, aOrdinal) = aInValue(Dim::X, aOrdinal) + mTranslation[Dim::X];

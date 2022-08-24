@@ -127,7 +127,7 @@ public:
      * \return penalized ersatz material
     **********************************************************************************/
     template<typename ScalarType>
-    KOKKOS_FUNCTION inline ScalarType operator()( const ScalarType & aInput ) const
+    KOKKOS_INLINE_FUNCTION ScalarType operator()( const ScalarType & aInput ) const
     {
         auto tOutput = mMinValue + ( (static_cast<ScalarType>(1.0) - mMinValue) * pow(aInput, mPenaltyParam) );
         return tOutput;

@@ -91,7 +91,7 @@ public:
      * \param [in] aInput material density
     **********************************************************************************/
     template<typename ScalarType>
-    KOKKOS_FUNCTION inline ScalarType operator()(ScalarType aInput) const
+    KOKKOS_INLINE_FUNCTION ScalarType operator()(ScalarType aInput) const
     {
         ScalarType tOutput = mMinValue
                 + (static_cast<ScalarType>(1.0) - mMinValue) * aInput / (static_cast<ScalarType>(1.0)

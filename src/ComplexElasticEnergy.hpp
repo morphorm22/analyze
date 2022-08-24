@@ -28,7 +28,7 @@ public:
     ComplexElasticEnergy(){}
 
     template<typename OutputScalarType, typename Tensor1ScalarType, typename Tensor2ScalarType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( const Plato::OrdinalType & aCellOrdinal,
                 const Plato::ScalarArray3DT<Tensor1ScalarType> & aStress,
                 const Plato::ScalarArray3DT<Tensor2ScalarType> & aStrain,
