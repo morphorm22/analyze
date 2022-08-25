@@ -76,7 +76,6 @@ class EpetraLinearSolver : public AbstractSolver
 
     int mIterations = 1000; /*!< maximum linear solver iterations */
     int mDisplayIterations = 0; /*!< display solver iterations history to console */
-    bool mDisplayDiagnostics = true; /*!< display solver warnings/diagnostics to console */
     Plato::Scalar mTolerance = 1e-14; /*!< linear solver tolerance */
 
   public:

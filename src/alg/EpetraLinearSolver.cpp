@@ -147,9 +147,6 @@ EpetraLinearSolver::EpetraLinearSolver(
     
     if(mSolverParams.isType<int>("Display Iterations"))
         mDisplayIterations = mSolverParams.get<int>("Display Iterations");
-    
-    if(mSolverParams.isParameter("Display Diagnostics"))
-        mDisplayDiagnostics = mSolverParams.get<bool>("Display Diagnostics");
 }
 
 /******************************************************************************//**
@@ -176,35 +173,8 @@ EpetraLinearSolver::innerSolve(
     mLinearSolverTimer->stop(); mLinearSolverTimer->incrementNumCalls();
     
     const double* tSolverStatus = tSolver.GetAztecStatus();
-    if (tSolverStatus[AZ_why] == AZ_normal)
-    {
-        // Do nothing
-    }
-    else if (tSolverStatus[AZ_why] == AZ_loss)
-    {
-        if(mDisplayDiagnostics)
-            printf("Epetra Warning: Loss of numerical precision occured during linear solve.\n");
-    }
-    else if (tSolverStatus[AZ_why] == AZ_ill_cond)
-    {
-        if(mDisplayDiagnostics)
-            printf("Epetra Warning: Hessenberg matrix in GMRES is ill-conditioned.\n");
-    }
-    else if (tSolverStatus[AZ_why] == AZ_maxits)
-    {
-        const std::string tWarningMessage = std::string("Epetra Warning: Specified maximum iterations (")
-              + std::to_string(mIterations) + ") reached without convergence to requested tolerance ("
-              + std::to_string(mTolerance) + ").";
-        if(mDisplayDiagnostics)
-            std::cout << tWarningMessage << std::endl;
-    }
-    else if (tSolverStatus[AZ_why] == AZ_param)
-    {
-        ANALYZE_THROWERR("Epetra Error: User requested option not available.")
-    }
-    else if (tSolverStatus[AZ_why] == AZ_breakdown)
-    {
-        ANALYZE_THROWERR("Epetra Error: Numerical breakdown occured during linear solve.")
+    if (tSolverStatus[AZ_why] != AZ_normal) {
+        ANALYZE_THROWERR("Epetra solve failed. Epetra is deprecated anyway - please use Tacho or one of the other solvers.");
     }
 
     if (mDisplayIterations > 0)

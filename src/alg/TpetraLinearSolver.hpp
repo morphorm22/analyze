@@ -91,7 +91,6 @@ class TpetraLinearSolver : public AbstractSolver
 
     int    mDisplayIterations;
     int    mDofsPerNode;
-    bool   mDisplayDiagnostics = true; /*!< display solver warnings/diagnostics to console */
     double mAchievedTolerance;
 
     Teuchos::ParameterList mSolverParams;

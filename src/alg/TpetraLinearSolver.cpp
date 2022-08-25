@@ -5,6 +5,7 @@
 #include <MueLu.hpp>
 #include <MueLu_CreateTpetraPreconditioner.hpp>
 #include "PlatoUtilities.hpp"
+#include <ios>
 #include <limits>
 
 namespace Plato {
@@ -274,9 +275,6 @@ TpetraLinearSolver::setupSolverOptions ()
   if(mSolverParams.isType<Teuchos::ParameterList>("Solver Options"))
     mSolverOptions = mSolverParams.get<Teuchos::ParameterList>("Solver Options");
 
-  if(mSolverParams.isParameter("Display Diagnostics"))
-    mDisplayDiagnostics = mSolverParams.get<bool>("Display Diagnostics");
-  
   this->addDefaultToParameterList(mSolverOptions, "Maximum Iterations",    tMaxIterations);
   this->addDefaultToParameterList(mSolverOptions, "Convergence Tolerance", tTolerance);
   this->addDefaultToParameterList(mSolverOptions, "Block Size",            mDofsPerNode);
@@ -379,9 +377,13 @@ TpetraLinearSolver::belosSolve (Teuchos::RCP<const OP> A, Teuchos::RCP<MV> X, Te
 
   if (result == Belos::Unconverged) {
     Plato::Scalar tTolerance = static_cast<Plato::Scalar>(100.0) * std::numeric_limits<Plato::Scalar>::epsilon();
-    if (mAchievedTolerance > tTolerance && mDisplayDiagnostics)
-    printf("Tpetra Warning: Belos solver did not achieve desired tolerance. Completed %d iterations, achieved absolute tolerance of %7.1e (not relative)\n",
-            mNumIterations, mAchievedTolerance);
+    if (mAchievedTolerance > tTolerance) {
+        std::stringstream errorMessage;
+        errorMessage << "Tpetra Warning: Belos solver did not achieve desired tolerance." <<
+                        "Completed " << mNumIterations << " iterations, achieved absolute tolerance of " <<
+                        std::scientific << mAchievedTolerance << " (not relative)" << std::endl;
+        ANALYZE_THROWERR(errorMessage.str());
+    }
   }
 }
 
