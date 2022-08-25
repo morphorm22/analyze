@@ -122,8 +122,8 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressAxial_
 
     auto tCriterionGrad = tProblem.criterionGradient(tControls, tSolution, tCriterionName);
     std::vector<Plato::Scalar> tGold = {
-      7.50000e+02, 2.50000e+02, 2.50000e+02, 2.50000e+02,
-      2.50000e+02, 2.50000e+02, 2.50000e+02, 7.50000e+02};
+      7.50000e+02, 1.87500e+02, 1.87500e+02, 1.25000e+02,
+      3.75000e+02, 3.12500e+02, 3.12500e+02, 7.50000e+02};
     auto tHostGrad = Kokkos::create_mirror(tCriterionGrad);
     Kokkos::deep_copy(tHostGrad, tCriterionGrad);
     TEST_ASSERT( tHostGrad.size() == static_cast<Plato::OrdinalType>(tGold.size() ));
@@ -256,8 +256,8 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressShear_
 
     auto tCriterionGrad = tProblem.criterionGradient(tControls, tSolution, tCriterionName);
     std::vector<Plato::Scalar> tGold = {
-      8.76851e+02, 2.92284e+02, 2.92284e+02, 2.92284e+02,
-      2.92284e+02, 2.92284e+02, 2.92284e+02, 8.76851e+02};
+      8.76851e+02, 2.19213e+02, 2.19213e+02, 1.46142e+02,
+      4.38425e+02, 3.65354e+02, 3.65354e+02, 8.76851e+02};
     auto tHostGrad = Kokkos::create_mirror(tCriterionGrad);
     Kokkos::deep_copy(tHostGrad, tCriterionGrad);
     TEST_ASSERT( tHostGrad.size() == static_cast<Plato::OrdinalType>(tGold.size() ));
@@ -479,8 +479,8 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyAxial_3
 
     auto tCriterionGrad = tProblem.criterionGradient(tControls, tSolution, tCriterionName);
     std::vector<Plato::Scalar> tGold = {
-      3.50000e+01, 1.16667e+01, 1.16667e+01, 1.16667e+01,
-      1.16667e+01, 1.16667e+01, 1.16667e+01, 3.50000e+01};
+      3.50000e+01, 8.75000e+00, 8.75000e+00, 5.83333e+00,
+      1.75000e+01, 1.45833e+01, 1.45833e+01, 3.50000e+01};
     auto tHostGrad = Kokkos::create_mirror(tCriterionGrad);
     Kokkos::deep_copy(tHostGrad, tCriterionGrad);
     TEST_ASSERT( tHostGrad.size() == static_cast<Plato::OrdinalType>(tGold.size() ));
@@ -613,8 +613,8 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyShear_3
 
     auto tCriterionGrad = tProblem.criterionGradient(tControls, tSolution, tCriterionName);
     std::vector<Plato::Scalar> tGold = {
-      2.53125e+01, 8.43750e+00, 8.43750e+00, 8.43750e+00,
-      8.43750e+00, 8.43750e+00, 8.43750e+00, 2.53125e+01};
+      2.53125e+01, 6.32812e+00, 6.32812e+00, 4.21875e+00,
+      1.26562e+01, 1.05469e+01, 1.05469e+01, 2.53125e+01};
     auto tHostGrad = Kokkos::create_mirror(tCriterionGrad);
     Kokkos::deep_copy(tHostGrad, tCriterionGrad);
     TEST_ASSERT( tHostGrad.size() == static_cast<Plato::OrdinalType>(tGold.size() ));

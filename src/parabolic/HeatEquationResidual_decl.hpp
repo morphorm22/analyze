@@ -45,7 +45,7 @@ class HeatEquationResidual :
     Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyFluxWeighting;
     Plato::ApplyWeighting<mNumNodesPerCell, mNumDofsPerNode, IndicatorFunctionType> mApplyMassWeighting;
 
-    std::shared_ptr<Plato::NaturalBCs<ElementType>> mBoundaryLoads;
+    std::shared_ptr<Plato::NaturalBCs<ElementType, mNumDofsPerNode>> mBoundaryLoads;
 
     Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mThermalMassMaterialModel;
     Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mThermalConductivityMaterialModel;
