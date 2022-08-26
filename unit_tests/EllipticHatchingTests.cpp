@@ -46,7 +46,7 @@ void axpy(const Plato::Scalar & aAlpha, Plato::ScalarArray3D aInput, Plato::Scal
     auto tSize1 = aInput.extent(1);
     auto tSize2 = aInput.extent(2);
     Kokkos::parallel_for("axpy", Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0, 0, 0}, {tSize0, tSize1, tSize2}),
-    LAMBDA_EXPRESSION(const Plato::OrdinalType iDim0, const Plato::OrdinalType iDim1, const Plato::OrdinalType iDim2)
+    KOKKOS_LAMBDA(const Plato::OrdinalType iDim0, const Plato::OrdinalType iDim1, const Plato::OrdinalType iDim2)
     {
         aOutput(iDim0, iDim1, iDim2) += aAlpha * aInput(iDim0, iDim1, iDim2);
     });
@@ -61,7 +61,7 @@ Flatten(Plato::ScalarArray3D aArray3D, Plato::ScalarVector & aVector)
     auto tSize = tSize0*tSize1*tSize2;
     Kokkos::resize(aVector, tSize);
     Kokkos::parallel_for("flatten", Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0, 0, 0}, {tSize0, tSize1, tSize2}),
-    LAMBDA_EXPRESSION(const Plato::OrdinalType iDim0, const Plato::OrdinalType iDim1, const Plato::OrdinalType iDim2)
+    KOKKOS_LAMBDA(const Plato::OrdinalType iDim0, const Plato::OrdinalType iDim1, const Plato::OrdinalType iDim2)
     {
         aVector(iDim0*tSize1*tSize2+iDim1*tSize2+iDim2) = aArray3D(iDim0, iDim1, iDim2);
     });
@@ -76,7 +76,7 @@ Unflatten(Plato::ScalarArray3D aArray3D, Plato::ScalarVector & aVector)
     auto tSize = tSize0*tSize1*tSize2;
     Kokkos::resize(aVector, tSize);
     Kokkos::parallel_for("flatten", Kokkos::MDRangePolicy<Kokkos::Rank<3>>({0, 0, 0}, {tSize0, tSize1, tSize2}),
-    LAMBDA_EXPRESSION(const Plato::OrdinalType iDim0, const Plato::OrdinalType iDim1, const Plato::OrdinalType iDim2)
+    KOKKOS_LAMBDA(const Plato::OrdinalType iDim0, const Plato::OrdinalType iDim1, const Plato::OrdinalType iDim2)
     {
         aArray3D(iDim0, iDim1, iDim2) = aVector(iDim0*tSize1*tSize2+iDim1*tSize2+iDim2);
     });
@@ -174,7 +174,7 @@ void perturbMesh(MeshT& aMesh, VectorT aPerturb)
     auto tNumDims = aMesh->NumDimensions();
     auto tNumDofs = tNumDims*aMesh->NumNodes();
     Plato::ScalarVector tCoordsCopy("coordinates", tNumDofs);
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumDofs), LAMBDA_EXPRESSION(const Plato::OrdinalType &aDofOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType &aDofOrdinal)
     {
         tCoordsCopy(aDofOrdinal) = tCoords[aDofOrdinal] + aPerturb(aDofOrdinal);
     }, "tweak mesh");
@@ -1253,7 +1253,7 @@ TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D_StateUpdate )
   auto tNumNodes = tMesh->NumNodes();
   auto tCoords = tMesh->Coordinates();
   Plato::ScalarVector tU("displacement", tNumNodes * cNumDm);
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), LAMBDA_EXPRESSION(int aNodeOrdinal)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), KOKKOS_LAMBDA(int aNodeOrdinal)
   {
     tU(aNodeOrdinal * cNumDm + 0) = tCoords[aNodeOrdinal * cNumDm + 0];
     tU(aNodeOrdinal * cNumDm + 1) = 0.0;

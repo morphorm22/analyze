@@ -23,7 +23,7 @@ class ScalarProduct
              typename Array1ScalarType, 
              typename Array2ScalarType,
              typename VolumeScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( Plato::OrdinalType                          aCellOrdinal,
                 Plato::ScalarVectorT<ProductScalarType>     aScalarProduct,
                 Plato::ScalarMultiVectorT<Array1ScalarType> aArray1,
@@ -44,7 +44,7 @@ class ScalarProduct
              typename Array1ScalarType, 
              typename Array2ScalarType,
              typename VolumeScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( Plato::OrdinalType                         aCellOrdinal,
                 Plato::ScalarVectorT<ProductScalarType>    aScalarProduct,
           const Plato::Array<NumTerms, Array1ScalarType> & aArray1,
@@ -66,7 +66,7 @@ class ScalarProduct
     template<typename ProductScalarType, 
              typename Array1ScalarType, 
              typename VolumeScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( Plato::OrdinalType aCellOrdinal,
                 Plato::ScalarVectorT<ProductScalarType>     aScalarProduct,
                 Plato::ScalarMultiVectorT<Array1ScalarType> aArray1,

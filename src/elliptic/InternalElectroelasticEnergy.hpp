@@ -2,4 +2,3 @@
 #ifndef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 #include "elliptic/InternalElectroelasticEnergy_def.hpp"
 #endif
-

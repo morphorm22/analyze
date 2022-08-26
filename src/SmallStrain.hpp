@@ -29,7 +29,7 @@ private:
 public:
 
     template<typename StrainScalarType, typename DispScalarType, typename GradientScalarType>
-    DEVICE_TYPE inline void operator()(
+    KOKKOS_INLINE_FUNCTION void operator()(
               Plato::OrdinalType                                                     aCellOrdinal,
               Plato::Array<mNumVoigtTerms, StrainScalarType>                       & aStrain,
         const Plato::ScalarMultiVectorT<DispScalarType>                            & aState,

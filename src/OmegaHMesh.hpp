@@ -125,7 +125,7 @@ namespace Plato
                 auto tElem2Faces = mMesh.ask_down(cSpaceDims, cNumSpaceDimsOnFace).ab2b;
 
                 auto tNumFaces = aFaceLids.size();
-                Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aFaceI)
+                Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumFaces), KOKKOS_LAMBDA(const Plato::OrdinalType & aFaceI)
                 {
                     auto tFaceOrdinal = aFaceLids[aFaceI];
                     for( Plato::OrdinalType tElem = tFace2Elems_map[tFaceOrdinal]; tElem < tFace2Elems_map[tFaceOrdinal+1]; ++tElem )

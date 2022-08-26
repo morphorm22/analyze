@@ -52,7 +52,7 @@ readNodeFields(
 **********************************************************************************/
 template<Plato::OrdinalType NumSpatialDims,
          Plato::OrdinalType NumNodesPerCell>
-DEVICE_TYPE inline
+KOKKOS_INLINE_FUNCTION
 Plato::Scalar
 calculate_element_size
 (const Plato::OrdinalType & aCellOrdinal,
@@ -125,7 +125,7 @@ inline void print_standard_vector_1D
  * \param [in] aName  container name (default = "")
 **********************************************************************************/
 template<typename ArrayT>
-DEVICE_TYPE inline void print_array_1D_device
+KOKKOS_INLINE_FUNCTION void print_array_1D_device
 (const ArrayT & aInput, const char* aName)
 {
     printf("BEGIN PRINT: %s\n", aName);
@@ -149,7 +149,7 @@ DEVICE_TYPE inline void print_array_1D_device
  * \param [in] aName        container name (default = "")
 **********************************************************************************/
 template<typename ArrayT>
-DEVICE_TYPE inline void print_array_2D_device
+KOKKOS_INLINE_FUNCTION void print_array_2D_device
 (const Plato::OrdinalType & aLeadOrdinal, const ArrayT & aInput, const char* aName)
 {
     Plato::OrdinalType tSize = aInput.extent(1);
@@ -173,7 +173,7 @@ DEVICE_TYPE inline void print_array_2D_device
  * \param [in] aName        container name (default = "")
 **********************************************************************************/
 template<typename ArrayT>
-DEVICE_TYPE inline void print_array_3D_device
+KOKKOS_INLINE_FUNCTION void print_array_3D_device
 (const Plato::OrdinalType & aLeadOrdinal, const ArrayT & aInput, const char* aName)
 {
     Plato::OrdinalType tDimOneLength = aInput.extent(1);
@@ -203,7 +203,7 @@ inline void print_array_ordinals_1D(const Plato::OrdinalVector & aInput, std::st
 {
     printf("\nBEGIN PRINT: %s\n", aName.c_str());
     Plato::OrdinalType tSize = aInput.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tSize), LAMBDA_EXPRESSION(const Plato::OrdinalType & aIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tSize), KOKKOS_LAMBDA(const Plato::OrdinalType & aIndex)
     {
 #ifdef PLATOANALYZE_LONG_LONG_ORDINALTYPE
         printf("X[%lld] = %lld\n", aIndex, aInput(aIndex));
@@ -286,7 +286,7 @@ inline void print(const ArrayT & aInput, std::string aName = "")
 {
     printf("\nBEGIN PRINT: %s\n", aName.c_str());
     Plato::OrdinalType tSize = aInput.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tSize), LAMBDA_EXPRESSION(const Plato::OrdinalType & aIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tSize), KOKKOS_LAMBDA(const Plato::OrdinalType & aIndex)
     {
 #ifdef PLATOANALYZE_LONG_LONG_ORDINALTYPE
         printf("X[%lld] = %e\n", aIndex, aInput(aIndex));
@@ -310,7 +310,7 @@ inline void print_array_2D(const ArrayT & aInput, const std::string & aName)
     printf("\nBEGIN PRINT: %s\n", aName.c_str());
     const Plato::OrdinalType tNumRows = aInput.extent(0);
     const Plato::OrdinalType tNumCols = aInput.extent(1);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & aRow)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumRows), KOKKOS_LAMBDA(const Plato::OrdinalType & aRow)
     {
         for(Plato::OrdinalType tCol = 0; tCol < tNumCols; tCol++)
         {
@@ -332,7 +332,7 @@ inline void print_array_2D_Fad(Plato::OrdinalType aNumCells,
                                std::string aName = "")
 {
     printf("\nBEGIN PRINT: %s\n", aName.c_str());
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCell)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCell)
     {
         for(Plato::OrdinalType tDof = 0; tDof < aNumDofsPerCell; tDof++)
         {
@@ -359,7 +359,7 @@ inline void print_array_3D(const ArrayT & aInput, const std::string & aName)
     const Plato::OrdinalType tNumRows = aInput.extent(1);
     const Plato::OrdinalType tNumCols = aInput.extent(2);
     const Plato::OrdinalType tNumMatrices = aInput.extent(0);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumMatrices), LAMBDA_EXPRESSION(const Plato::OrdinalType & aIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumMatrices), KOKKOS_LAMBDA(const Plato::OrdinalType & aIndex)
     {
         for(Plato::OrdinalType tRow = 0; tRow < tNumRows; tRow++)
         {
@@ -380,7 +380,7 @@ inline void print_array_3D(const ArrayT & aInput, const std::string & aName)
 /******************************************************************************//**
  * \tparam ViewType view type
  *
- * \fn DEVICE_TYPE inline void print_fad_val_values
+ * \fn KOKKOS_INLINE_FUNCTION void print_fad_val_values
  *
  * \brief Print 2D view of type forward automatic differentiation (FAD).
  * \param [in] aOrdinal lead ordinal
@@ -395,7 +395,7 @@ inline void print_fad_val_values
     std::cout << "\nSTART: Print ScalarMultiVectorT '" << aName << "'.\n";
     const auto tLenghtDim1 = aInput.extent(0);
     const auto tLenghtDim2 = aInput.extent(1);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLenghtDim1), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLenghtDim1), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
     {
         for(Plato::OrdinalType tIndex = 0; tIndex < tLenghtDim2; tIndex++)
         {
@@ -423,7 +423,7 @@ inline void print_fad_val_values
 {
     std::cout << "\nStart: Print ScalarVector '" << aName << "'.\n";
     const auto tLength = aInput.extent(0);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
     {
         printf("Input(%d) = %f\n", aOrdinal, aInput(aOrdinal).val());
     }, "print_fad_val_values");
@@ -452,7 +452,7 @@ inline void print_fad_dx_values
 {
     std::cout << "\nStart: Print ScalarVector '" << aName << "'.\n";
     const auto tLength = aInput.extent(0);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
     {
         for(Plato::OrdinalType tNode=0; tNode < NumNodesPerCell; tNode++)
         {

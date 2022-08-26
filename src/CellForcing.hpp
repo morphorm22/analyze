@@ -32,7 +32,7 @@ class CellForcing : public ElementType
     void setColumnIndex(int aColumnIndex) {mColumnIndex = aColumnIndex;}
 
     template<typename StressScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
         Plato::Array<mNumVoigtTerms, StressScalarType> & aTensor
     ) const

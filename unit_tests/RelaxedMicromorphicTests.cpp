@@ -645,7 +645,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicElementTests, ElementFunctors3D)
     int tNumDofs = tNumNodes*tNumDofsPerNode;
     Plato::ScalarVector tState("state", tNumDofs);
     Plato::ScalarVector tStateDotDot("state dot dot", tNumDofs);
-    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), LAMBDA_EXPRESSION(const int & aNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), KOKKOS_LAMBDA(const int & aNodeOrdinal)
     {
       for (int tDofOrdinal=0; tDofOrdinal<tNumDofsPerNode; tDofOrdinal++)
       {
@@ -709,7 +709,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicElementTests, ElementFunctors3D)
     // compute on device
     //
     Kokkos::parallel_for("gradients", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-    LAMBDA_EXPRESSION(const int cellOrdinal, const int gpOrdinal)
+    KOKKOS_LAMBDA(const int cellOrdinal, const int gpOrdinal)
     {
         Plato::Scalar tVolume(0.0);
 
@@ -1533,7 +1533,7 @@ TEUCHOS_UNIT_TEST( RelaxedMicromorphicResidualTests, 3D_NoInertia )
     Plato::ScalarVector tState("state", tNumDofs);
     Plato::ScalarVector tStateDot("state dot", tNumDofs);
     Plato::ScalarVector tStateDotDot("state dot dot", tNumDofs);
-    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), LAMBDA_EXPRESSION(const int & aNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), KOKKOS_LAMBDA(const int & aNodeOrdinal)
     {
       for (int tDofOrdinal=0; tDofOrdinal<tNumDofsPerNode; tDofOrdinal++)
       {
@@ -1734,7 +1734,7 @@ TEUCHOS_UNIT_TEST( RelaxedMicromorphicResidualTests, 3D_WithInertia )
     Plato::ScalarVector tState("state", tNumDofs);
     Plato::ScalarVector tStateDot("state dot", tNumDofs);
     Plato::ScalarVector tStateDotDot("state dot dot", tNumDofs);
-    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), LAMBDA_EXPRESSION(const int & aNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), KOKKOS_LAMBDA(const int & aNodeOrdinal)
     {
       for (int tDofOrdinal=0; tDofOrdinal<tNumDofsPerNode; tDofOrdinal++)
       {

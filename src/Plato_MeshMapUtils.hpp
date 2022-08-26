@@ -160,7 +160,7 @@ struct GetBasis
      * @param [in]  indices of nodes comprised by the element
      * @param [out] node locations
     **********************************************************************************/
-    DEVICE_TYPE inline
+    KOKKOS_INLINE_FUNCTION
     Plato::Matrix<ElementT::mNumNodesPerCell, ElementT::mNumSpatialDims>
     getNodeLocations(
       const Plato::Array<ElementT::mNumNodesPerCell, Plato::OrdinalType> & aNodeOrdinals
@@ -183,7 +183,7 @@ struct GetBasis
      * @param [in]  indices of nodes comprised by the element
      * @param [out] basis values
     **********************************************************************************/
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     basis(
       const Plato::Array<ElementT::mNumSpatialDims, ScalarT>             & aPhysicalLocation,
       const Plato::Array<ElementT::mNumNodesPerCell, Plato::OrdinalType> & aNodeOrdinals,
@@ -264,7 +264,7 @@ struct GetBasis
      * @param [out] aColumnMap of the sparse matrix
      * @param [out] aEntries of the sparse matrix
     **********************************************************************************/
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
       VectorArrayT  aLocations,
       OrdinalT      aNodeOrdinal,
@@ -304,7 +304,7 @@ struct GetBasis
      * @param [in]  aLocation of point (D)
      * @param [out] aBases basis values
     **********************************************************************************/
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
       Plato::OrdinalType                                  aElemOrdinal,
       Plato::Array<ElementT::mNumSpatialDims, ScalarT>    aPhysicalLocation,

@@ -182,7 +182,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToEpetraVector )
 
   Plato::ScalarVector tTestVector("test vector", tNumDofs);
 
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), LAMBDA_EXPRESSION(int vectorIndex)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), KOKKOS_LAMBDA(int vectorIndex)
   {
     tTestVector(vectorIndex) = (double) vectorIndex;
   }, "fill vector");
@@ -227,7 +227,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToEpetraVector_invalidI
 
   Plato::ScalarVector tTestVector("test vector", tNumDofs+1);
 
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), LAMBDA_EXPRESSION(int vectorIndex)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), KOKKOS_LAMBDA(int vectorIndex)
   {
     tTestVector(vectorIndex) = (double) vectorIndex;
   }, "fill vector");
@@ -573,7 +573,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToTpetraVector )
 
   Plato::ScalarVector tTestVector("test vector", tNumDofs);
 
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), LAMBDA_EXPRESSION(int vectorIndex)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), KOKKOS_LAMBDA(int vectorIndex)
   {
     tTestVector(vectorIndex) = (double) vectorIndex;
   }, "fill vector");
@@ -621,7 +621,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToTpetraVector_invalidI
 
   Plato::ScalarVector tTestVector("test vector", tNumDofs+1);
 
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), LAMBDA_EXPRESSION(int vectorIndex)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), KOKKOS_LAMBDA(int vectorIndex)
   {
     tTestVector(vectorIndex) = (double) vectorIndex;
   }, "fill vector");
@@ -955,22 +955,17 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
   {
     Teuchos::RCP<Teuchos::ParameterList> tSolverParams =
       Teuchos::getParametersFromXmlString(
-      "<ParameterList name='Linear Solver'>                              \n"
-      "  <Parameter name='Solver Stack' type='string' value='Tpetra'/>   \n"
-      "  <Parameter name='Solver Package' type='string' value='Belos'/>  \n"
-      "  <Parameter name='Solver' type='string' value='GMRES'/>                       \n"
-      "  <ParameterList name='Solver Options'>                                        \n"
-      "    <Parameter name='Maximum Iterations' type='int' value='500'/>              \n"
-      "    <Parameter name='Convergence Tolerance' type='double' value='1e-14'/>      \n"
-      "  </ParameterList>                                                             \n"
-      "  <Parameter name='Preconditioner Package' type='string' value='MueLu'/>       \n"
-      "  <ParameterList name='Preconditioner Options'>                                \n"
-      /***MueLu intput parameter list goes here*****************************************/
-      "    <Parameter name='verbosity' type='string' value='low'/>                    \n"
-      "    <Parameter name='tentative: calculate qr' type='bool' value='false'/>      \n"
-      /*********************************************************************************/
-      "  </ParameterList>                                                             \n"
-      "</ParameterList>                                                               \n"
+      "<ParameterList name='Linear Solver'>                                       \n"
+      "  <Parameter name='Solver Stack' type='string' value='Tpetra'/>            \n"
+      "  <Parameter name='Iterations' type='int' value='500'/>                    \n"
+      "  <Parameter name='Tolerance' type='double' value='1e-14'/>                \n"
+      "  <Parameter name='Preconditioner Package' type='string' value='MueLu'/>   \n"
+      "  <ParameterList name='Preconditioner Options'>                            \n"
+      /***MueLu intput parameter list goes here***********************************/
+      "     <Parameter name='tentative: calculate qr' type='bool' value='false'/> \n"
+      /***************************************************************************/
+      "  </ParameterList>                                                         \n"
+      "</ParameterList>                                                           \n"
     );
 
     Plato::SolverFactory tSolverFactory(*tSolverParams);

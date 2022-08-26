@@ -120,7 +120,7 @@ namespace Hyperbolic
         auto tNumPoints = tCubWeights.size();
 
         Kokkos::parallel_for("compute cell volume", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-        LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
             Plato::Scalar tVolume;
             auto tCubPoint = tCubPoints(iGpOrdinal);
@@ -220,7 +220,7 @@ namespace Hyperbolic
       auto& applyMassWeighting = mApplyMassWeighting;
 
       Kokkos::parallel_for("compute residual", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
           ConfigScalarType tVolume(0.0);
           Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, ConfigScalarType> tGradient;
@@ -289,7 +289,7 @@ namespace Hyperbolic
       });
 
       Kokkos::parallel_for("compute cell quantities", Kokkos::RangePolicy<>(0, tNumCells),
-      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal)
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal)
       {
           for(int i=0; i<ElementType::mNumVoigtTerms; i++)
           {

@@ -54,7 +54,7 @@ KOKKOS_INLINE_FUNCTION T min2(T aA, T aB)
  * \param [in] aConsequentValTwo consequent value given by B
  * \return result/decision
 **********************************************************************************/
-DEVICE_TYPE inline Plato::Scalar
+KOKKOS_INLINE_FUNCTION Plato::Scalar
 conditional_expression(const Plato::Scalar & aX,
                        const Plato::Scalar & aY,
                        const Plato::Scalar & aA,
@@ -107,7 +107,7 @@ void MatrixTimesVectorPlusVector(const Teuchos::RCP<Plato::CrsMatrixType> & aMat
         auto tEntries = aMatrix->entries();
         auto tNumNodeRows = tNodeRowMap.size() - 1;
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumNodeRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & aNodeRowOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumNodeRows), KOKKOS_LAMBDA(const Plato::OrdinalType & aNodeRowOrdinal)
         {
             auto tRowStartIndex = tNodeRowMap(aNodeRowOrdinal);
             auto tRowEndIndex = tNodeRowMap(aNodeRowOrdinal + 1);
@@ -142,7 +142,7 @@ void MatrixTimesVectorPlusVector(const Teuchos::RCP<Plato::CrsMatrixType> & aMat
         auto tEntries = aMatrix->entries();
         auto tNumRows = tRowMap.size() - 1;
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & aRowOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumRows), KOKKOS_LAMBDA(const Plato::OrdinalType & aRowOrdinal)
         {
             auto tRowStart = tRowMap(aRowOrdinal);
             auto tRowEnd = tRowMap(aRowOrdinal + 1);
@@ -197,7 +197,7 @@ void VectorTimesMatrixPlusVector(
         auto tEntries = aMatrix->entries();
         auto tNumNodeRows = tNodeRowMap.size() - 1;
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumNodeRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & aNodeRowOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumNodeRows), KOKKOS_LAMBDA(const Plato::OrdinalType & aNodeRowOrdinal)
         {
             auto tRowStartIndex = tNodeRowMap(aNodeRowOrdinal);
             auto tRowEndIndex = tNodeRowMap(aNodeRowOrdinal + 1);
@@ -230,7 +230,7 @@ void VectorTimesMatrixPlusVector(
         auto tEntries = aMatrix->entries();
         auto tNumRows = tRowMap.size() - 1;
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & aRowOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumRows), KOKKOS_LAMBDA(const Plato::OrdinalType & aRowOrdinal)
         {
             auto tRowStart = tRowMap(aRowOrdinal);
             auto tRowEnd = tRowMap(aRowOrdinal + 1);
@@ -260,7 +260,7 @@ RowSummedInverseMultiply( const Teuchos::RCP<Plato::CrsMatrixType> & aInMatrixOn
     Plato::RowSum tRowSumFunctor(aInMatrixOne);
     Plato::DiagonalInverseMultiply tDiagInverseMultiplyFunctor(aInMatrixTwo);
     Plato::ScalarVector tRowSum("row sum", tNumRows);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumBlockRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & tBlockRowOrdinal) {
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumBlockRows), KOKKOS_LAMBDA(const Plato::OrdinalType & tBlockRowOrdinal) {
       tRowSumFunctor(tBlockRowOrdinal, tRowSum);
       tDiagInverseMultiplyFunctor(tBlockRowOrdinal, tRowSum);
     });
@@ -313,7 +313,7 @@ getDataAsNonBlock( const Teuchos::RCP<Plato::CrsMatrixType>       & aMatrix,
 
     if (aRowStride == 1)
     {
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & tMatrixRowIndex) {
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows), KOKKOS_LAMBDA(const Plato::OrdinalType & tMatrixRowIndex) {
             auto tBlockRowIndex = tMatrixRowIndex / tNumRowsPerBlock;
             auto tLocalRowIndex = tMatrixRowIndex % tNumRowsPerBlock;
             auto tFrom = tRowMap(tBlockRowIndex);
@@ -325,7 +325,7 @@ getDataAsNonBlock( const Teuchos::RCP<Plato::CrsMatrixType>       & aMatrix,
     }
     else 
     {
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & tMatrixRowIndex) {
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows), KOKKOS_LAMBDA(const Plato::OrdinalType & tMatrixRowIndex) {
             auto tBlockRowIndex = tMatrixRowIndex / aRowStride;
             auto tLocalRowIndex = tMatrixRowIndex % aRowStride;
             auto tFrom = tRowMap(tBlockRowIndex);
@@ -344,7 +344,7 @@ getDataAsNonBlock( const Teuchos::RCP<Plato::CrsMatrixType>       & aMatrix,
 
     if (aRowStride == 1)
     {
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & tMatrixRowIndex) {
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows), KOKKOS_LAMBDA(const Plato::OrdinalType & tMatrixRowIndex) {
             auto tBlockRowIndex = tMatrixRowIndex / tNumRowsPerBlock;
             auto tLocalRowIndex = tMatrixRowIndex % tNumRowsPerBlock;
             auto tFrom = tRowMap(tBlockRowIndex);
@@ -365,7 +365,7 @@ getDataAsNonBlock( const Teuchos::RCP<Plato::CrsMatrixType>       & aMatrix,
     }
     else
     {
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & tMatrixRowIndex) {
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows), KOKKOS_LAMBDA(const Plato::OrdinalType & tMatrixRowIndex) {
             auto tBlockRowIndex = tMatrixRowIndex / aRowStride;
             auto tLocalRowIndex = tMatrixRowIndex % aRowStride;
             auto tFrom = tRowMap(tBlockRowIndex);
@@ -400,7 +400,7 @@ sortColumnEntries( const Plato::ScalarVectorT<Plato::OrdinalType> & aMatrixRowMa
                          Plato::ScalarVectorT<Plato::Scalar>      & aMatrixValues)
 {
     auto tNumMatrixRows = aMatrixRowMap.extent(0) - 1;
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & tMatrixRowIndex) {
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows), KOKKOS_LAMBDA(const Plato::OrdinalType & tMatrixRowIndex) {
         auto tFrom = aMatrixRowMap(tMatrixRowIndex);
         auto tTo   = aMatrixRowMap(tMatrixRowIndex+1);
         for( auto tColMapEntryIndex_I=tFrom; tColMapEntryIndex_I<tTo; ++tColMapEntryIndex_I )
@@ -448,7 +448,7 @@ setDataFromNonBlock(      Teuchos::RCP<Plato::CrsMatrixType>       & aMatrix,
     auto tNumNodeRows = tNumMatrixRows/tNumRowsPerBlock;
     Plato::ScalarVectorT<Plato::OrdinalType> tRowMap("block row map", tNumNodeRows+1);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows+1), LAMBDA_EXPRESSION(const Plato::OrdinalType & tMatrixRowIndex) {
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows+1), KOKKOS_LAMBDA(const Plato::OrdinalType & tMatrixRowIndex) {
         auto tBlockRowIndex = tMatrixRowIndex / tNumRowsPerBlock;
         auto tLocalRowIndex = tMatrixRowIndex % tNumRowsPerBlock;
         if(tLocalRowIndex == 0)
@@ -463,7 +463,7 @@ setDataFromNonBlock(      Teuchos::RCP<Plato::CrsMatrixType>       & aMatrix,
     Plato::ScalarVectorT<Plato::OrdinalType> tColMap("block col map", tNumBlockColEntries);
     Plato::ScalarVectorT<Plato::Scalar>      tValues("block values",  tNumBlockMatEntries);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & tMatrixRowIndex) {
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumMatrixRows), KOKKOS_LAMBDA(const Plato::OrdinalType & tMatrixRowIndex) {
         auto tBlockRowIndex = tMatrixRowIndex / tNumRowsPerBlock;
         auto tLocalRowIndex = tMatrixRowIndex % tNumRowsPerBlock;
         auto tFrom = tRowMap(tBlockRowIndex);
@@ -750,7 +750,7 @@ MatrixTranspose( const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
 
     // determine rowmap
     OrdinalType tNumRows = tRowMap.size() - 1;
-    Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalType>(0, tNumRows), LAMBDA_EXPRESSION(OrdinalType iRowOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalType>(0, tNumRows), KOKKOS_LAMBDA(OrdinalType iRowOrdinal)
     {
         auto tRowStart = tRowMap(iRowOrdinal);
         auto tRowEnd = tRowMap(iRowOrdinal + 1);
@@ -775,7 +775,7 @@ MatrixTranspose( const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
 
     // determine column map and entries
     OrdinalView tOffsetT("offsets", tNumRowsT);
-    Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalType>(0, tNumRows), LAMBDA_EXPRESSION(OrdinalType iRowOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalType>(0, tNumRows), KOKKOS_LAMBDA(OrdinalType iRowOrdinal)
     {
         auto tRowStart = tRowMap(iRowOrdinal);
         auto tRowEnd = tRowMap(iRowOrdinal + 1);

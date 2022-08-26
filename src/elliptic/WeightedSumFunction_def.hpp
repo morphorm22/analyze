@@ -176,7 +176,7 @@ namespace Elliptic
         {
             const Plato::Scalar tFunctionWeight = mFunctionWeights[tFunctionIndex];
             Plato::ScalarVector tFunctionGradX = mScalarFunctionBaseContainer[tFunctionIndex]->gradient_x(aSolution, aControl, aTimeStep);
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), LAMBDA_EXPRESSION(const Plato::OrdinalType & tDof)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & tDof)
             {
                 tGradientX(tDof) += tFunctionWeight * tFunctionGradX(tDof);
             },"Weighted Sum Function Summation Grad X");
@@ -204,7 +204,7 @@ namespace Elliptic
         {
             const Plato::Scalar tFunctionWeight = mFunctionWeights[tFunctionIndex];
             Plato::ScalarVector tFunctionGradU = mScalarFunctionBaseContainer[tFunctionIndex]->gradient_u(aSolution, aControl, aTimeStep);
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), LAMBDA_EXPRESSION(const Plato::OrdinalType & tDof)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & tDof)
             {
                 tGradientU(tDof) += tFunctionWeight * tFunctionGradU(tDof);
             },"Weighted Sum Function Summation Grad U");
@@ -231,7 +231,7 @@ namespace Elliptic
         {
             const Plato::Scalar tFunctionWeight = mFunctionWeights[tFunctionIndex];
             Plato::ScalarVector tFunctionGradZ = mScalarFunctionBaseContainer[tFunctionIndex]->gradient_z(aSolution, aControl, aTimeStep);
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), LAMBDA_EXPRESSION(const Plato::OrdinalType & tDof)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & tDof)
             {
                 tGradientZ(tDof) += tFunctionWeight * tFunctionGradZ(tDof);
             },"Weighted Sum Function Summation Grad Z");

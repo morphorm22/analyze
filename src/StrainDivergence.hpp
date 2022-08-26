@@ -43,7 +43,7 @@ public:
      *
     *******************************************************************************/
     template<typename StrainType, typename ResultType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(const Plato::OrdinalType & aCellOrdinal,
                const Plato::ScalarMultiVectorT<StrainType> & aStrain,
                const Plato::ScalarVectorT<ResultType> & aOutput) const;
@@ -52,7 +52,7 @@ public:
 
 template<>
 template<typename StrainType, typename ResultType>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 StrainDivergence <3>::operator()(const Plato::OrdinalType & aCellOrdinal,
                                  const Plato::ScalarMultiVectorT<StrainType> & aStrain,
                                  const Plato::ScalarVectorT<ResultType> & aOutput) const
@@ -75,7 +75,7 @@ StrainDivergence <3>::operator()(const Plato::OrdinalType & aCellOrdinal,
 *******************************************************************************/
 template<>
 template<typename StrainType, typename ResultType>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 StrainDivergence <2>::operator()(const Plato::OrdinalType & aCellOrdinal,
                                  const Plato::ScalarMultiVectorT<StrainType> & aStrain,
                                  const Plato::ScalarVectorT<ResultType> & aOutput) const
@@ -98,7 +98,7 @@ StrainDivergence <2>::operator()(const Plato::OrdinalType & aCellOrdinal,
 *******************************************************************************/
 template<>
 template<typename StrainType, typename ResultType>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 StrainDivergence <1>::operator()(const Plato::OrdinalType & aCellOrdinal,
                                  const Plato::ScalarMultiVectorT<StrainType> & aStrain,
                                  const Plato::ScalarVectorT<ResultType> & aOutput) const

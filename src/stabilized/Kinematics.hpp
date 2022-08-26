@@ -35,7 +35,7 @@ public:
      * \param [in] aGradient configuration gradient workset
      **********************************************************************************/
     template<typename StrainScalarType, typename StateScalarType, typename GradientScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
         Plato::OrdinalType                                      aCellOrdinal,
         Plato::Array<mNumVoigtTerms, StrainScalarType>        & aStrain,

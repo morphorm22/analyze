@@ -30,7 +30,7 @@ public:
      * \param [in] aScale scale parameter (default = 1.0)
     **********************************************************************************/
     template<typename GaussPointScalarType, typename ProjectedScalarType, typename VolumeScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
       const Plato::OrdinalType                             & aCellOrdinal,
       const VolumeScalarType                               & aVolume,
@@ -61,7 +61,7 @@ public:
      * \param [in] aScale scale parameter (default = 1.0)
     **********************************************************************************/
     template<typename GaussPointScalarType, typename ProjectedScalarType, typename VolumeScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
       const Plato::OrdinalType                             & aCellOrdinal,
       const VolumeScalarType                               & aVolume,

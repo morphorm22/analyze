@@ -67,7 +67,7 @@ namespace Plato
       auto tNumPoints = tCubWeights.size();
 
       Kokkos::parallel_for("density penalty", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
         auto tCubPoint = tCubPoints(iGpOrdinal);
 

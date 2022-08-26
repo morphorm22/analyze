@@ -66,7 +66,7 @@ namespace Elliptic
       auto& tApplyWeighting = mApplyWeighting;
       auto tExponent        = mExponent;
       Kokkos::parallel_for("thermal energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
           ConfigScalarType tVolume(0.0);
 
@@ -112,7 +112,7 @@ namespace Elliptic
     {
       auto scale = pow(resultScalar,(1.0-mExponent)/mExponent)/mExponent;
       auto numEntries = resultVector.size();
-      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numEntries), LAMBDA_EXPRESSION(int entryOrdinal)
+      Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numEntries), KOKKOS_LAMBDA(int entryOrdinal)
       {
         resultVector(entryOrdinal) *= scale;
       },"scale vector");

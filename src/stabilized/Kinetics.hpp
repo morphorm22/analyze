@@ -72,7 +72,7 @@ public:
              typename KinematicsScalarType,
              typename NodeStateScalarType,
              typename VolumeScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
         VolumeScalarType                                    const & aVolume,
         Plato::Array<mNumSpatialDims, NodeStateScalarType>  const & aProjectedPGrad,

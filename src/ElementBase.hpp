@@ -18,7 +18,7 @@ class ElementBase
     static constexpr Plato::OrdinalType mNumNodesPerCell = ElementType::mNumNodesPerCell;
 
     template<typename ScalarType>
-    DEVICE_TYPE static inline Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ScalarType>
+    KOKKOS_INLINE_FUNCTION static Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ScalarType>
     jacobian(
         const Plato::Array<mNumSpatialDims>&    aCubPoint,
               Plato::ScalarArray3DT<ScalarType> aConfig,
@@ -41,7 +41,7 @@ class ElementBase
         return tJacobian;
     }
     template<typename ScalarType>
-    DEVICE_TYPE static inline Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ScalarType>
+    KOKKOS_INLINE_FUNCTION static Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ScalarType>
     jacobian(
       const Plato::Array<mNumSpatialDims>   & aCubPoint,
             Plato::Matrix<mNumNodesPerCell,
@@ -66,7 +66,7 @@ class ElementBase
     }
 
     template<typename ScalarType>
-    DEVICE_TYPE static inline void
+    KOKKOS_INLINE_FUNCTION static void
     computeGradientMatrix(
         const Plato::Array<mNumSpatialDims>                                & aCubPoint,
         const Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ScalarType>  & aJacInv,

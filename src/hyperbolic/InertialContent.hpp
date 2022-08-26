@@ -37,7 +37,7 @@ class InertialContent : public ElementType
     #endif
 
     template<typename TScalarType, typename TContentScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( Plato::Array<mNumSpatialDims, TContentScalarType> & aContent,
                 const Plato::Array<mNumSpatialDims, TScalarType>  & aAcceleration) const {
 
@@ -50,7 +50,7 @@ class InertialContent : public ElementType
     }
 
     template<typename TVelocityType, typename TAccelerationType, typename TContentScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( Plato::Array<mNumSpatialDims, TContentScalarType>      & aContent,
                 const Plato::Array<mNumSpatialDims, TVelocityType>     & aVelocity,
                 const Plato::Array<mNumSpatialDims, TAccelerationType> & aAcceleration) const {

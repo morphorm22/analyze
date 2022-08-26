@@ -196,7 +196,7 @@ public:
         // how many non-zeros in the mask?
         Plato::OrdinalType tSum(0);
         Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0,tNumEntries), 
-        LAMBDA_EXPRESSION(const Plato::OrdinalType& aOrdinal, Plato::OrdinalType & aUpdate)
+        KOKKOS_LAMBDA(const Plato::OrdinalType& aOrdinal, Plato::OrdinalType & aUpdate)
         {
             auto tElemOrdinal = tTotalElemLids(aOrdinal);
             aUpdate += tMask(tElemOrdinal); 
@@ -237,7 +237,7 @@ public:
         mMaskedElemLids = Plato::OrdinalVector("masked element list", tNumElems);
 
         auto tTotalElemLids = mTotalElemLids;
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumElems), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumElems), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
         {
             tTotalElemLids(aCellOrdinal) = tElemLids[aCellOrdinal];
         }, "get element ids");

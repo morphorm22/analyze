@@ -30,14 +30,14 @@ public:
      * \param [out] aVonMisesStress 1D container of cell Von Mises yield stresses
     **********************************************************************************/
     template<typename InputType, typename ResultType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
         const Plato::OrdinalType                   & aCellOrdinal,
         const Plato::ScalarMultiVectorT<InputType> & aCauchyStress,
               ResultType                           & aVonMisesStress) const;
 
     template<typename InputType, typename ResultType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
         const Plato::OrdinalType                     & aCellOrdinal,
         const Plato::Array<NumVoigtTerms, InputType> & aCauchyStress,
@@ -57,7 +57,7 @@ public:
 **********************************************************************************/
 template<>
 template<typename InputType, typename ResultType>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 VonMisesYieldFunction<3,6>::operator()(
     const Plato::OrdinalType                   & aCellOrdinal,
     const Plato::ScalarMultiVectorT<InputType> & aCauchyStress,
@@ -83,7 +83,7 @@ VonMisesYieldFunction<3,6>::operator()(
 }
 template<>
 template<typename InputType, typename ResultType>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 VonMisesYieldFunction<3,6>::operator()(
     const Plato::OrdinalType         & aCellOrdinal,
     const Plato::Array<6, InputType> & aCauchyStress,
@@ -119,7 +119,7 @@ VonMisesYieldFunction<3,6>::operator()(
 **********************************************************************************/
 template<>
 template<typename InputType, typename ResultType>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 VonMisesYieldFunction<2,3>::operator()(
     const Plato::OrdinalType                   & aCellOrdinal,
     const Plato::ScalarMultiVectorT<InputType> & aCauchyStress,
@@ -138,7 +138,7 @@ VonMisesYieldFunction<2,3>::operator()(
 
 template<>
 template<typename InputType, typename ResultType>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 VonMisesYieldFunction<2,3>::operator()(
     const Plato::OrdinalType         & aCellOrdinal,
     const Plato::Array<3, InputType> & aCauchyStress,
@@ -166,7 +166,7 @@ VonMisesYieldFunction<2,3>::operator()(
 **********************************************************************************/
 template<>
 template<typename InputType, typename ResultType>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 VonMisesYieldFunction<1,1>::operator()(
     const Plato::OrdinalType                   & aCellOrdinal,
     const Plato::ScalarMultiVectorT<InputType> & aCauchyStress,
@@ -177,7 +177,7 @@ VonMisesYieldFunction<1,1>::operator()(
 }
 template<>
 template<typename InputType, typename ResultType>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 VonMisesYieldFunction<1,1>::operator()(
     const Plato::OrdinalType         & aCellOrdinal,
     const Plato::Array<1, InputType> & aCauchyStress,

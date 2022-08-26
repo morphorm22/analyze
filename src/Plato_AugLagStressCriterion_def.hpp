@@ -359,7 +359,7 @@ namespace Plato
         auto tNumPoints = tCubWeights.size();
 
         Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-        LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
             ConfigT tVolume(0.0);
             ResultT tVonMises(0.0);
@@ -457,7 +457,7 @@ namespace Plato
         auto tNumPoints = tCubWeights.size();
 
         Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-        LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
             Plato::Scalar tVolume(0.0), tVonMises(0.0), tMassMultiplierMeasure(0.0);
 
@@ -535,7 +535,7 @@ namespace Plato
 
         auto tCellMaterialDensity = mCellMaterialDensity;
         Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-        LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
             auto tCubPoint  = tCubPoints(iGpOrdinal);
             auto tCubWeight = tCubWeights(iGpOrdinal);

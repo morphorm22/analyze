@@ -1678,7 +1678,7 @@ Plato::ScalarMultiVector MPMD_App::getCoords()
     auto tNumVerts = mMesh->NumNodes();
     auto tNumDims = mMesh->NumDimensions();
     Plato::ScalarMultiVector retval("coords", tNumVerts, tNumDims);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumVerts), LAMBDA_EXPRESSION(const Plato::OrdinalType & tVertOrdinal){
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumVerts), KOKKOS_LAMBDA(const Plato::OrdinalType & tVertOrdinal){
         for (int iDim=0; iDim<tNumDims; iDim++){
             retval(tVertOrdinal,iDim) = tCoords[tVertOrdinal*tNumDims+iDim];
         }

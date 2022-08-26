@@ -127,7 +127,7 @@ public:
         mThermalSources.evaluate(aWorkSets, tThermalSource);
 
         // calculate inner product between current temperature and thermal source worksets    
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
         {               
             for(Plato::OrdinalType tDof = 0; tDof < mNumTempDofsPerCell; tDof++)
             {
@@ -162,7 +162,7 @@ public:
             mHeatFlux->get( aSpatialModel, tCurTempWS, tControlWS, tConfigWS, tHeatFluxWS );
 
             // inner product
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
             {
                 for(Plato::OrdinalType tDof = 0; tDof < mNumTempDofsPerCell; tDof++)
                 {

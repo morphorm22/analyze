@@ -27,7 +27,7 @@ class HelmholtzFlux
       mLengthScale(aLengthScale) {}
 
     template<typename HGradScalarType, typename HFluxScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
             Plato::OrdinalType                                            aCellOrdinal,
             Plato::Array<ElementType::mNumSpatialDims, HFluxScalarType> & aFlux,

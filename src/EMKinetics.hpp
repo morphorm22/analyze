@@ -66,7 +66,7 @@ class EMKinetics : public ElementType
             mAlpha2(mAlpha*mAlpha) { }
 
     template<typename KineticsScalarType, typename KinematicsScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
         Plato::Array<mNumVoigtTerms,  KineticsScalarType>         & aStress,
         Plato::Array<mNumSpatialDims, KineticsScalarType>         & aEDisp,

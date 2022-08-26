@@ -43,7 +43,7 @@ public:
      * \param [out] aStress                deviatoric stress tensor
     **********************************************************************************/
     template<typename StrainT, typename ControlT, typename StressT>
-    DEVICE_TYPE inline void operator()
+    KOKKOS_INLINE_FUNCTION void operator()
     (const Plato::OrdinalType & aCellOrdinal,
      const ControlT & aPenalizedShearModulus,
      const Plato::ScalarMultiVectorT<StrainT> & aStrain,
@@ -56,7 +56,7 @@ public:
 **********************************************************************************/
 template<>
 template<typename StrainT, typename ControlT, typename StressT>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 ComputeDeviatoricStress<1>::operator ()
 (const Plato::OrdinalType & aCellOrdinal,
  const ControlT & aPenalizedShearModulus,
@@ -75,7 +75,7 @@ ComputeDeviatoricStress<1>::operator ()
 **********************************************************************************/
 template<>
 template<typename StrainT, typename ControlT, typename StressT>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 ComputeDeviatoricStress<2>::operator ()
 (const Plato::OrdinalType & aCellOrdinal,
  const ControlT & aPenalizedShearModulus,
@@ -106,7 +106,7 @@ ComputeDeviatoricStress<2>::operator ()
 **********************************************************************************/
 template<>
 template<typename StrainT, typename ControlT, typename StressT>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 ComputeDeviatoricStress<3>::operator()
 (const Plato::OrdinalType & aCellOrdinal,
  const ControlT & aPenalizedShearModulus,

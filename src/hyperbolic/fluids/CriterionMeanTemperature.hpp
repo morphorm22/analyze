@@ -91,7 +91,7 @@ public:
         
         // calculate mean temperature criteria    
         auto tNumNodes = mSpatialDomain.numNodes();
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
         {               
             for(Plato::OrdinalType tDof = 0; tDof < mNumTempDofsPerCell; tDof++)
             {

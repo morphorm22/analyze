@@ -141,7 +141,7 @@ namespace Elliptic
       auto tNumPoints = tCubWeights.size();
 
       Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
         auto tCubPoint  = tCubPoints(iGpOrdinal);
         auto tCubWeight = tCubWeights(iGpOrdinal);
@@ -193,7 +193,7 @@ namespace Elliptic
       mapQuadraturePoints(aConfig, tMappedPoints);
 
       Kokkos::parallel_for("first moment calculation", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
         auto tCubPoint  = tCubPoints(iGpOrdinal);
         auto tCubWeight = tCubWeights(iGpOrdinal);
@@ -250,7 +250,7 @@ namespace Elliptic
       mapQuadraturePoints(aConfig, tMappedPoints);
 
       Kokkos::parallel_for("second moment calculation", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
         auto tCubPoint  = tCubPoints(iGpOrdinal);
         auto tCubWeight = tCubWeights(iGpOrdinal);
@@ -295,7 +295,7 @@ namespace Elliptic
         Kokkos::deep_copy(aMappedPoints, static_cast<ConfigScalarType>(0.0));
 
         Kokkos::parallel_for("map points", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-        LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
             auto tCubPoint    = tCubPoints(iGpOrdinal);
             auto tBasisValues = ElementType::basisValues(tCubPoint);

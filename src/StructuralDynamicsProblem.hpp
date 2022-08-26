@@ -224,7 +224,7 @@ public:
     {
         auto tBoundaryLoads = mExternalForce;
         auto tTotalNumDofs = aForce.size();
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tTotalNumDofs), LAMBDA_EXPRESSION(const Plato::OrdinalType & aDofOrdinal){
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tTotalNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & aDofOrdinal){
             aForce(aDofOrdinal) += tBoundaryLoads(aDofOrdinal);
         }, "add boundary loads");
     }

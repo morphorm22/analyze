@@ -64,7 +64,7 @@ public:
     }
 
     template<typename ElasticForceScalarType, typename InertialForceScalarType, typename DampingForceScalarType>
-    DEVICE_TYPE inline void operator()(const Plato::OrdinalType & aCellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarMultiVectorT<ElasticForceScalarType> & aElasticForces,
                                        const Plato::ScalarMultiVectorT<InertialForceScalarType> & aInertialForces,
                                        const Plato::ScalarMultiVectorT<DampingForceScalarType> & aDampingForces) const

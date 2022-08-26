@@ -65,7 +65,7 @@ public:
      * \param [out] aCauchyStress Cauchy stress tensor
      * \param [in]  aSmallStrain Infinitesimal strain tensor
     **********************************************************************************/
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(Plato::OrdinalType aCellOrdinal,
                Plato::ScalarMultiVectorT<ResultT> const& aCauchyStress,
                Plato::ScalarMultiVectorT<StrainT> const& aSmallStrain) const
@@ -94,7 +94,7 @@ public:
      * \param [in]  aPrevStrain Reference strain tensor
     **********************************************************************************/
     template<typename ResultT, typename StrainT, typename LocalStateT>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
       Plato::OrdinalType                            aCellOrdinal,
       Plato::OrdinalType                            aGpOrdinal,

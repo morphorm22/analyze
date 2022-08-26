@@ -32,7 +32,7 @@ class Tri3
         });
     }
 
-    DEVICE_TYPE static inline Plato::Array<mNumNodesPerCell>
+    KOKKOS_INLINE_FUNCTION static Plato::Array<mNumNodesPerCell>
     basisValues( const Plato::Array<mNumSpatialDims>& aCubPoint )
     {
         auto x=aCubPoint(0);
@@ -47,7 +47,7 @@ class Tri3
         return tN;
     }
 
-    DEVICE_TYPE static inline Plato::Matrix<mNumNodesPerCell, mNumSpatialDims>
+    KOKKOS_INLINE_FUNCTION static Plato::Matrix<mNumNodesPerCell, mNumSpatialDims>
     basisGrads( const Plato::Array<mNumSpatialDims>& aCubPoint )
     {
         Plato::Matrix<mNumNodesPerCell, mNumSpatialDims> tG;
@@ -60,7 +60,7 @@ class Tri3
     }
 
     template<typename ScalarType>
-    DEVICE_TYPE static inline
+    KOKKOS_INLINE_FUNCTION static 
     ScalarType
     differentialMeasure(
         const Plato::Matrix<mNumSpatialDims, mNumSpatialDims+1, ScalarType> & aJacobian
@@ -74,7 +74,7 @@ class Tri3
     }
 
     template<typename ScalarType>
-    DEVICE_TYPE static inline
+    KOKKOS_INLINE_FUNCTION static 
     Plato::Array<mNumSpatialDims+1, ScalarType>
     differentialVector(
         const Plato::Matrix<mNumSpatialDims, mNumSpatialDims+1, ScalarType> & aJacobian

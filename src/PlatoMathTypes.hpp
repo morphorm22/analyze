@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "alg/PlatoLambda.hpp"
 #include "PlatoTypes.hpp"
 
 namespace Plato

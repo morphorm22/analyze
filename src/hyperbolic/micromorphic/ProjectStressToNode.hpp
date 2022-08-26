@@ -40,7 +40,7 @@ public:
 
     // overloaded for cauchy and micro stresses
     template<typename ProjectedScalarType, typename StressScalarType, typename VolumeScalarType>
-    DEVICE_TYPE inline void 
+    KOKKOS_INLINE_FUNCTION void 
     operator()(
               Plato::OrdinalType                               aCellOrdinal,
         const Plato::ScalarMultiVectorT<ProjectedScalarType> & aOutput,
@@ -57,7 +57,7 @@ public:
 
     // overloaded for inertia stresses
     template<typename ProjectedScalarType, typename StressScalarType, typename VolumeScalarType>
-    DEVICE_TYPE inline void 
+    KOKKOS_INLINE_FUNCTION void 
     operator()(
               Plato::OrdinalType                               aCellOrdinal,
         const Plato::ScalarMultiVectorT<ProjectedScalarType> & aOutput,
@@ -105,7 +105,7 @@ private:
     }
 
     template<typename ProjectedScalarType, typename StressScalarType, typename VolumeScalarType>
-    DEVICE_TYPE inline void 
+    KOKKOS_INLINE_FUNCTION void 
     addSymmetricStressAtNodes(
               Plato::OrdinalType                               aCellOrdinal,
         const Plato::ScalarMultiVectorT<ProjectedScalarType> & aOutput,
@@ -126,7 +126,7 @@ private:
     }
 
     template<typename ProjectedScalarType, typename StressScalarType, typename VolumeScalarType>
-    DEVICE_TYPE inline void 
+    KOKKOS_INLINE_FUNCTION void 
     addSkewStressAtNodes(
               Plato::OrdinalType                               aCellOrdinal,
         const Plato::ScalarMultiVectorT<ProjectedScalarType> & aOutput,

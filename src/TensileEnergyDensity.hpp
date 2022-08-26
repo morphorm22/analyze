@@ -19,7 +19,7 @@ class TensileEnergyDensity
   public:
 
     template<typename StrainType, typename ResultType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
               Plato::OrdinalType aCellOrdinal,
         const Plato::Array<mNumSpatialDims, StrainType> & aPrincipalStrains,

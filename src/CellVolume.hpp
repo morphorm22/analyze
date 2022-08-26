@@ -8,7 +8,7 @@ class ComputeCellVolume : public ElementType
   public:
 
     template<typename ScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
               Plato::OrdinalType aCellOrdinal,
         const Plato::Array<ElementType::mNumSpatialDims>& aCubPoint,

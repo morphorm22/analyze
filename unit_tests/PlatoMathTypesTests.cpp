@@ -91,7 +91,7 @@ namespace PlatoTestMathTypes
         int tNumData = 10;
         Plato::ScalarArray3D tData("data", tNumData,3,3);
         const Plato::Matrix<3,3> tConstMatrix({3.0, -1.0, 0.0, -1.0, 3.0, -1.0, 0.0, -1.0, 3.0});
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumData), LAMBDA_EXPRESSION(const Plato::OrdinalType & tIndex) {
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumData), KOKKOS_LAMBDA(const Plato::OrdinalType & tIndex) {
           auto tInvMatrix = Plato::invert(tConstMatrix);
           for (int i=0; i<3; i++){
             for (int j=0; j<3; j++){

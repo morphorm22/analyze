@@ -49,7 +49,7 @@ public:
      * \return penalized ersatz material
     **********************************************************************************/
     template<typename ScalarType>
-    DEVICE_TYPE inline ScalarType operator()(ScalarType aInput) const
+    KOKKOS_INLINE_FUNCTION ScalarType operator()(ScalarType aInput) const
     {
         ScalarType tOutput = 1.0;
         return (tOutput);

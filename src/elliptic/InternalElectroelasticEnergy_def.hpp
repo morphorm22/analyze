@@ -74,7 +74,7 @@ namespace Elliptic
       auto& tApplyStressWeighting = mApplyStressWeighting;
       auto& tApplyEDispWeighting  = mApplyEDispWeighting;
       Kokkos::parallel_for("compute internal energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-      LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
           ConfigScalarType tVolume(0.0);
 

@@ -335,7 +335,7 @@ namespace Elliptic
             case solution_type_t::DIFF_BETWEEN_SOLUTION_VECTOR_AND_TARGET_VECTOR:
                 {
                     Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNumNodes), 
-                    LAMBDA_EXPRESSION(const Plato::OrdinalType& aNodeOrdinal, Scalar & aLocalValue)
+                    KOKKOS_LAMBDA(const Plato::OrdinalType& aNodeOrdinal, Scalar & aLocalValue)
                     {
                         auto tIndex = tNodeIds[aNodeOrdinal];
                         Plato::Scalar ds(0.0);
@@ -357,7 +357,7 @@ namespace Elliptic
             case solution_type_t::DIFF_BETWEEN_SOLUTION_MAG_IN_DIRECTION_AND_TARGET:
                 {
                     Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNumNodes), 
-                    LAMBDA_EXPRESSION(const Plato::OrdinalType& aNodeOrdinal, Scalar & aLocalValue)
+                    KOKKOS_LAMBDA(const Plato::OrdinalType& aNodeOrdinal, Scalar & aLocalValue)
                     {
                         auto tIndex = tNodeIds[aNodeOrdinal];
                         Plato::Scalar ds(0.0);
@@ -381,7 +381,7 @@ namespace Elliptic
             case solution_type_t::SOLUTION_MAG_IN_DIRECTION:
                 {
                     Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNumNodes), 
-                    LAMBDA_EXPRESSION(const Plato::OrdinalType& aNodeOrdinal, Scalar & aLocalValue)
+                    KOKKOS_LAMBDA(const Plato::OrdinalType& aNodeOrdinal, Scalar & aLocalValue)
                     {
                         auto tIndex = tNodeIds[aNodeOrdinal];
                         Plato::Scalar ds(0.0);
@@ -404,7 +404,7 @@ namespace Elliptic
             case solution_type_t::SOLUTION_IN_DIRECTION:
                 {
                     Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNumNodes), 
-                    LAMBDA_EXPRESSION(const Plato::OrdinalType& aNodeOrdinal, Scalar & aLocalValue)
+                    KOKKOS_LAMBDA(const Plato::OrdinalType& aNodeOrdinal, Scalar & aLocalValue)
                     {
                         auto tIndex = tNodeIds[aNodeOrdinal];
                         for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
@@ -423,7 +423,7 @@ namespace Elliptic
             case solution_type_t::DIFF_BETWEEN_SOLUTION_IN_DIRECTION_AND_TARGET_SOLUTION_IN_DIRECTION:
                 {
                     Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNumNodes), 
-                    LAMBDA_EXPRESSION(const Plato::OrdinalType& aNodeOrdinal, Scalar & aLocalValue)
+                    KOKKOS_LAMBDA(const Plato::OrdinalType& aNodeOrdinal, Scalar & aLocalValue)
                     {
                         auto tIndex = tNodeIds[aNodeOrdinal];
                         for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
@@ -502,7 +502,7 @@ namespace Elliptic
         {
             case solution_type_t::DIFF_BETWEEN_SOLUTION_VECTOR_AND_TARGET_VECTOR:
                 Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumNodes),
-                LAMBDA_EXPRESSION(Plato::OrdinalType aNodeOrdinal)
+                KOKKOS_LAMBDA(Plato::OrdinalType aNodeOrdinal)
                 {
                     auto tIndex = tNodeIds[aNodeOrdinal];
                     Plato::Scalar ds(0.0);
@@ -530,7 +530,7 @@ namespace Elliptic
 
             case solution_type_t::DIFF_BETWEEN_SOLUTION_MAG_IN_DIRECTION_AND_TARGET:
                 Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumNodes),
-                LAMBDA_EXPRESSION(Plato::OrdinalType aNodeOrdinal)
+                KOKKOS_LAMBDA(Plato::OrdinalType aNodeOrdinal)
                 {
                     auto tIndex = tNodeIds[aNodeOrdinal];
                     Plato::Scalar ds(0.0);
@@ -559,7 +559,7 @@ namespace Elliptic
 
             case solution_type_t::SOLUTION_MAG_IN_DIRECTION:
                 Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumNodes),
-                LAMBDA_EXPRESSION(Plato::OrdinalType aNodeOrdinal)
+                KOKKOS_LAMBDA(Plato::OrdinalType aNodeOrdinal)
                 {
                     auto tIndex = tNodeIds[aNodeOrdinal];
                     Plato::Scalar ds(0.0);
@@ -587,7 +587,7 @@ namespace Elliptic
 
             case solution_type_t::SOLUTION_IN_DIRECTION:
                 Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumNodes),
-                LAMBDA_EXPRESSION(Plato::OrdinalType aNodeOrdinal)
+                KOKKOS_LAMBDA(Plato::OrdinalType aNodeOrdinal)
                 {
                     auto tIndex = tNodeIds[aNodeOrdinal];
                     for(int iDof=0; iDof<tNumDofsPerNode; iDof++)
@@ -599,7 +599,7 @@ namespace Elliptic
 
             case solution_type_t::DIFF_BETWEEN_SOLUTION_IN_DIRECTION_AND_TARGET_SOLUTION_IN_DIRECTION:
                 Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumNodes),
-                LAMBDA_EXPRESSION(Plato::OrdinalType aNodeOrdinal)
+                KOKKOS_LAMBDA(Plato::OrdinalType aNodeOrdinal)
                 {
                     Plato::Scalar tLocalValue(0.0);
                     auto tIndex = tNodeIds[aNodeOrdinal];

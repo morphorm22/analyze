@@ -113,7 +113,7 @@ public:
         auto tNumberConstrainedNodes = aNodeIds.size();
         constexpr Plato::OrdinalType tDofsPerNode = ElementType::mNumDofsPerNode;
         auto tDofIndex = mDofIndex;
-        Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberConstrainedNodes), LAMBDA_EXPRESSION(Plato::OrdinalType aNodeOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberConstrainedNodes), KOKKOS_LAMBDA(Plato::OrdinalType aNodeOrdinal)
         {
             aBcDofs(aOffset+aNodeOrdinal) = tDofsPerNode*aNodeIds[aNodeOrdinal]+tDofIndex;
             aBcValues(aOffset+aNodeOrdinal) = aValue;

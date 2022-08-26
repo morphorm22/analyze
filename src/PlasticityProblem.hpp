@@ -639,7 +639,7 @@ public:
 
         auto tNumNodes = mGlobalEquation->numNodes();
         auto tReactionForce = Kokkos::subview(mReactionForce, aStates.mCurrentStepIndex, Kokkos::ALL());
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumNodes), LAMBDA_EXPRESSION(const Plato::OrdinalType &aOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumNodes), KOKKOS_LAMBDA(const Plato::OrdinalType &aOrdinal)
         {
             for(Plato::OrdinalType tDim = 0; tDim < mSpaceDim; tDim++)
             {
@@ -667,7 +667,7 @@ public:
         if (tTemperatureDofOffset > static_cast<Plato::OrdinalType>(0))
         {
             Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumVerts),
-                                    LAMBDA_EXPRESSION(const Plato::OrdinalType &aVertexOrdinal)
+                                    KOKKOS_LAMBDA(const Plato::OrdinalType &aVertexOrdinal)
             {
                 Plato::OrdinalType tIndex = aVertexOrdinal * tNumGlobalDofsPerNode + tTemperatureDofOffset;
                 aPreviousGlobalState(tIndex) = tReferenceTemperature / tTemperatureScaling;

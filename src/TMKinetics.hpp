@@ -73,7 +73,7 @@ class TMKinetics : public ElementType
      * \param [out] aFlux thermal flux vector
      **********************************************************************************/
     template<typename KineticsScalarType, typename KinematicsScalarType, typename StateScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
         Plato::Array<mNumVoigtTerms,  KineticsScalarType>         & aStress,
         Plato::Array<mNumSpatialDims, KineticsScalarType>         & aFlux,

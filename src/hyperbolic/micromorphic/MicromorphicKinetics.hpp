@@ -43,7 +43,7 @@ class MicromorphicKinetics : public ElementType
 
     // overloaded for cauchy and micro stresses
     template<typename KineticsScalarType, typename KinematicsScalarType, typename StateScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( 
               Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSymmetricMesoStress,
               Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSkewMesoStress,
@@ -63,7 +63,7 @@ class MicromorphicKinetics : public ElementType
     
     // overloaded for inertia stresses
     template<typename KineticsScalarType, typename KinematicsScalarType, typename StateScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( 
               Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSymmetricMesoStress,
               Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSkewMesoStress,
@@ -85,7 +85,7 @@ class MicromorphicKinetics : public ElementType
 
     // overloaded for cauchy and micro stresses
     template<typename KineticsScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     initializeStressesWithZeros( 
               Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSymmetricMesoStress,
               Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSkewMesoStress,
@@ -101,7 +101,7 @@ class MicromorphicKinetics : public ElementType
     
     // overloaded for inertia stresses
     template<typename KineticsScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     initializeStressesWithZeros( 
               Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSymmetricMesoStress,
               Plato::Array<mNumVoigtTerms, KineticsScalarType>   & aSkewMesoStress,
@@ -118,7 +118,7 @@ class MicromorphicKinetics : public ElementType
     }
 
     template<typename StressScalarType, typename StrainScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     addSymmetricMesoStressTerm( 
               Plato::Array<mNumVoigtTerms, StressScalarType> & aStress,
         const Plato::Array<mNumVoigtTerms, StrainScalarType> & aStrain,
@@ -133,7 +133,7 @@ class MicromorphicKinetics : public ElementType
     }
 
     template<typename StressScalarType, typename StrainScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     addSkewMesoStressTerm( 
               Plato::Array<mNumVoigtTerms, StressScalarType> & aStress,
         const Plato::Array<mNumSkwTerms, StrainScalarType>   & aStrain,
@@ -149,7 +149,7 @@ class MicromorphicKinetics : public ElementType
     }
 
     template<typename StressScalarType, typename StrainScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     addSymmetricMicroStressTerm( 
               Plato::Array<mNumVoigtTerms, StressScalarType> & aStress,
         const Plato::Array<mNumVoigtTerms, StrainScalarType> & aStrain) const
@@ -163,7 +163,7 @@ class MicromorphicKinetics : public ElementType
     }
 
     template<typename StressScalarType, typename StrainScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     addSkewMicroStressTerm( 
               Plato::Array<mNumVoigtTerms, StressScalarType> & aStress,
         const Plato::Array<mNumSkwTerms, StrainScalarType>   & aStrain) const

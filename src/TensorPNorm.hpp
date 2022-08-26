@@ -25,7 +25,7 @@ public:
     }
 
     template<typename ResultScalarType, typename TensorScalarType, typename VolumeScalarType>
-    DEVICE_TYPE inline void operator()(Plato::OrdinalType cellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType cellOrdinal,
                                        Plato::ScalarVectorT<ResultScalarType> pnorm,
                                        Plato::ScalarMultiVectorT<TensorScalarType> voigtTensor,
                                        Plato::OrdinalType p,
@@ -77,7 +77,7 @@ public:
     }
 
     template<typename ResultScalarType, typename TensorScalarType, typename VolumeScalarType>
-    DEVICE_TYPE inline void operator()(Plato::OrdinalType cellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType cellOrdinal,
                                        Plato::ScalarVectorT<ResultScalarType> pnorm,
                                        Plato::ScalarMultiVectorT<TensorScalarType> voigtTensor,
                                        Plato::OrdinalType p,
@@ -178,7 +178,7 @@ public:
     }
 
     template<typename ResultScalarType, typename TensorScalarType, typename VolumeScalarType>
-    DEVICE_TYPE inline void operator()(Plato::OrdinalType cellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType cellOrdinal,
                                        Plato::ScalarVectorT<ResultScalarType> pnorm,
                                        Plato::ScalarMultiVectorT<TensorScalarType> voigtTensor,
                                        Plato::OrdinalType p,
@@ -290,7 +290,7 @@ public:
     }
 
     template<typename ResultScalarType, typename TensorScalarType, typename VolumeScalarType>
-    DEVICE_TYPE inline void operator()(Plato::OrdinalType cellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType cellOrdinal,
                                        Plato::ScalarVectorT<ResultScalarType> pnorm,
                                        Plato::ScalarMultiVectorT<TensorScalarType> voigtTensor,
                                        Plato::OrdinalType p,
@@ -347,7 +347,7 @@ public:
         auto scale = pow(resultScalar, (1.0 - mExponent) / mExponent) / mExponent;
         auto numEntries = resultVector.size();
         Kokkos::parallel_for(Kokkos::RangePolicy < Plato::OrdinalType > (0, numEntries),
-                             LAMBDA_EXPRESSION(Plato::OrdinalType entryOrdinal)
+                             KOKKOS_LAMBDA(Plato::OrdinalType entryOrdinal)
                              {
                                  resultVector(entryOrdinal) *= scale;
                              },
@@ -385,7 +385,7 @@ public:
         Plato::OrdinalType numCells = result.extent(0);
         auto exponent = TensorNormBase<VoigtLength, EvalT>::mExponent;
         Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, numCells),
-        LAMBDA_EXPRESSION(Plato::OrdinalType cellOrdinal)
+        KOKKOS_LAMBDA(Plato::OrdinalType cellOrdinal)
         {
             // compute tensor p-norm of tensor
             //
@@ -419,7 +419,7 @@ public:
         auto exponent = TensorNormBase<VoigtLength, EvalT>::mExponent;
         auto barlatNorm = mBarlatNorm;
         Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, numCells),
-                             LAMBDA_EXPRESSION(Plato::OrdinalType cellOrdinal)
+                             KOKKOS_LAMBDA(Plato::OrdinalType cellOrdinal)
                              {
                                  // compute tensor p-norm of tensor
                                  //
@@ -454,7 +454,7 @@ public:
         auto exponent = TensorNormBase<VoigtLength, EvalT>::mExponent;
         auto weightedNorm = mWeightedNorm;
         Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, numCells),
-                             LAMBDA_EXPRESSION(Plato::OrdinalType cellOrdinal)
+                             KOKKOS_LAMBDA(Plato::OrdinalType cellOrdinal)
                              {
                                  // compute tensor p-norm of tensor
                                  //
@@ -485,7 +485,7 @@ public:
         auto exponent = TensorNormBase<VoigtLength, EvalT>::mExponent;
         auto vonMisesPNorm = mVonMisesPNorm;
         Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, numCells),
-                             LAMBDA_EXPRESSION(Plato::OrdinalType cellOrdinal)
+                             KOKKOS_LAMBDA(Plato::OrdinalType cellOrdinal)
                              {
                                  // compute von mises p-norm of tensor
                                  //

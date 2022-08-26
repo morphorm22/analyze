@@ -180,7 +180,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsElementTests, ElementFunctors3D )
   Plato::ProjectToNode<ElementType>         projectInertialContent;
 
   Kokkos::parallel_for("gradients", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-  LAMBDA_EXPRESSION(const int cellOrdinal, const int gpOrdinal)
+  KOKKOS_LAMBDA(const int cellOrdinal, const int gpOrdinal)
   {
     Plato::Scalar tVolume(0.0);
 
@@ -1379,7 +1379,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_ScalarFunction )
   Plato::ScalarMultiVector tU("Displacement", tNumSteps, tNumDofs);
   Plato::ScalarMultiVector tV("Velocity",     tNumSteps, tNumDofs);
   Plato::ScalarMultiVector tA("Acceleration", tNumSteps, tNumDofs);
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), LAMBDA_EXPRESSION(int aDofOrdinal)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumDofs), KOKKOS_LAMBDA(int aDofOrdinal)
   {
     for(int i=0; i<tNumSteps; i++)
     {

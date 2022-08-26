@@ -105,7 +105,7 @@ get(OrdinalVector & aMpcChildNodes,
     // fill in parent nodes
     auto tMpcParentNodes = aMpcParentNodes;
     auto tParentNodes = mParentNodes;
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberParentNodes), LAMBDA_EXPRESSION(Plato::OrdinalType nodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberParentNodes), KOKKOS_LAMBDA(Plato::OrdinalType nodeOrdinal)
     {
         tMpcParentNodes(aOffsetParent+nodeOrdinal) = tParentNodes(nodeOrdinal); // parent node ID
     }, "parent nodes");
@@ -122,7 +122,7 @@ get(OrdinalVector & aMpcChildNodes,
     auto tValues = aMpcValues;
 
     auto tChildNodes = mChildNodes;
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberChildNodes), LAMBDA_EXPRESSION(Plato::OrdinalType nodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberChildNodes), KOKKOS_LAMBDA(Plato::OrdinalType nodeOrdinal)
     {
         tMpcChildNodes(aOffsetChild+nodeOrdinal) = tChildNodes(nodeOrdinal); // child node ID
 
@@ -170,7 +170,7 @@ updateNodesets(const OrdinalType& tNumberChildNodes,
 /****************************************************************************/
 {
     auto tChildNodes = mChildNodes;
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberChildNodes), LAMBDA_EXPRESSION(Plato::OrdinalType nodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberChildNodes), KOKKOS_LAMBDA(Plato::OrdinalType nodeOrdinal)
     {
         tChildNodes(nodeOrdinal) = tChildNodeLids(nodeOrdinal); // child node ID
     }, "Child node IDs");
@@ -191,7 +191,7 @@ mapChildVertexLocations(
     auto tNumberChildNodes = mChildNodes.size();
 
     auto tChildNodes = mChildNodes;
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberChildNodes), LAMBDA_EXPRESSION(Plato::OrdinalType nodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberChildNodes), KOKKOS_LAMBDA(Plato::OrdinalType nodeOrdinal)
     {
         Plato::OrdinalType childNode = tChildNodes(nodeOrdinal);
         for(size_t iDim=0; iDim < ElementT::mNumSpatialDims; ++iDim)
@@ -221,7 +221,7 @@ getUniqueParentNodes(Plato::Mesh           aMesh,
     // check for missing parent elements or parent nodes
     Plato::OrdinalType tNumMissingParent(0);
     Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tNumberParentElements),
-    LAMBDA_EXPRESSION(const Plato::OrdinalType& aElemOrdinal, Plato::OrdinalType & aUpdate)
+    KOKKOS_LAMBDA(const Plato::OrdinalType& aElemOrdinal, Plato::OrdinalType & aUpdate)
     {
         if ( aParentElements(aElemOrdinal) == -2 ) 
         {  
@@ -236,7 +236,7 @@ getUniqueParentNodes(Plato::Mesh           aMesh,
     }
 
     // fill in parent element vertex ordinals
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberParentElements), LAMBDA_EXPRESSION(Plato::OrdinalType iElemOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberParentElements), KOKKOS_LAMBDA(Plato::OrdinalType iElemOrdinal)
     {
         Plato::OrdinalType tElement = aParentElements(iElemOrdinal); 
         for(Plato::OrdinalType iVertOrdinal=0; iVertOrdinal < tNVertsPerElem; ++iVertOrdinal)
@@ -249,7 +249,7 @@ getUniqueParentNodes(Plato::Mesh           aMesh,
     // get number of unique parent nodes
     Plato::OrdinalType tSum(0);
     Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0,tNVerts),
-    LAMBDA_EXPRESSION(const Plato::OrdinalType& aOrdinal, Plato::OrdinalType & aUpdate)
+    KOKKOS_LAMBDA(const Plato::OrdinalType& aOrdinal, Plato::OrdinalType & aUpdate)
     {
         aUpdate += tNodeCounter(aOrdinal);
     }, tSum);
@@ -273,7 +273,7 @@ getUniqueParentNodes(Plato::Mesh           aMesh,
     Kokkos::resize(aParentGlobalLocalMap,tNVerts);
     Plato::blas1::fill(static_cast<Plato::OrdinalType>(-1), aParentGlobalLocalMap);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tSum), LAMBDA_EXPRESSION(Plato::OrdinalType parentOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tSum), KOKKOS_LAMBDA(Plato::OrdinalType parentOrdinal)
     {
         Plato::OrdinalType tGlobalVertId = tParentNodes(parentOrdinal);
         aParentGlobalLocalMap(tGlobalVertId) = parentOrdinal;
@@ -300,7 +300,7 @@ setMatrixValues(
     // build rowmap
     Plato::CrsMatrixType::RowMapVectorT tRowMap("row map", tNumChildNodes+1);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumChildNodes), LAMBDA_EXPRESSION(Plato::OrdinalType iRowOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumChildNodes), KOKKOS_LAMBDA(Plato::OrdinalType iRowOrdinal)
     {
         tRowMap(iRowOrdinal) = ElementT::mNumNodesPerCell;
     }, "nonzeros");
@@ -323,7 +323,7 @@ setMatrixValues(
 
     Plato::Geometry::GetBasis<ElementT, Plato::Scalar> tGetBasis(aMesh);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumChildNodes), LAMBDA_EXPRESSION(Plato::OrdinalType iRowOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumChildNodes), KOKKOS_LAMBDA(Plato::OrdinalType iRowOrdinal)
     {
 
         Plato::Array<ElementT::mNumNodesPerCell, Plato::Scalar> tBasis(0.0);

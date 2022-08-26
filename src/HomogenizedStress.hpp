@@ -32,7 +32,7 @@ class HomogenizedStress : public ElementType
             mColumnIndex(aColumnIndex) {}
 
     template<typename StressScalarType, typename StrainScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( int cellOrdinal,
                 Plato::Array<mNumVoigtTerms, StressScalarType> & tStress,
                 Plato::Array<mNumVoigtTerms, StrainScalarType> & tStrain) const {

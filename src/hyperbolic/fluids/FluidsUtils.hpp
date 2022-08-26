@@ -682,7 +682,7 @@ calculate_characteristic_element_size
     Plato::ScalarVector tElemCharSize("element characteristic size", tNumNodes);
     Plato::blas1::fill(std::numeric_limits<Plato::Scalar>::max(), tElemCharSize);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tElemSize = Plato::calculate_element_size<NumSpatialDims,NumNodesPerCell>(aCellOrdinal, tConnectivity, tCoordinates);
         for(Plato::OrdinalType tNode = 0; tNode < NumNodesPerCell; tNode++)
@@ -721,7 +721,7 @@ calculate_magnitude_convective_velocity
     Plato::OrdinalType tNumNodes = aModel.Mesh->NumNodes();
 
     Plato::ScalarVector tConvectiveVelocity("convective velocity", tNumNodes);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCell)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCell)
     {
         for(Plato::OrdinalType tNode = 0; tNode < NodesPerCell; tNode++)
         {
@@ -764,7 +764,7 @@ calculate_critical_diffusion_time_step
 {
     auto tNumNodes = aCharElemSize.size();
     Plato::ScalarVector tLocalTimeStep("time step", tNumNodes);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumNodes), LAMBDA_EXPRESSION(const Plato::OrdinalType & aNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumNodes), KOKKOS_LAMBDA(const Plato::OrdinalType & aNodeOrdinal)
     {
         auto tKinematicStep = ( aSafetyFactor * aCharElemSize(aNodeOrdinal) * aCharElemSize(aNodeOrdinal) ) /
                 ( static_cast<Plato::Scalar>(2) * aKinematicViscocity );
@@ -830,7 +830,7 @@ calculate_critical_convective_time_step
 
     auto tNumNodes = aModel.Mesh->NumNodes();
     Plato::ScalarVector tLocalTimeStep("time step", tNumNodes);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumNodes), LAMBDA_EXPRESSION(const Plato::OrdinalType & aNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumNodes), KOKKOS_LAMBDA(const Plato::OrdinalType & aNodeOrdinal)
     {
         tLocalTimeStep(aNodeOrdinal) = (aVelocity(aNodeOrdinal) != 0) ? (aSafetyFactor * (aCharElemSize(aNodeOrdinal) / aVelocity(aNodeOrdinal))) : 1.0;
     }, "calculate local critical time step");

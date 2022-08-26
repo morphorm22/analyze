@@ -161,7 +161,7 @@ public:
             Plato::ScalarMultiVectorT<TempGradT> tTempGradGP("temperature gradient", tNumCells, mNumSpatialDims);
             Plato::ScalarArray3DT<ConfigT> tGradient("cell gradient", tNumCells, mNumNodesPerCell, mNumSpatialDims);
 
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aSideOrdinal)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal)
             {
                 auto tElementOrdinal = tElementOrds(aSideOrdinal);
                 auto tElemFaceOrdinal = tFaceOrds(aSideOrdinal);

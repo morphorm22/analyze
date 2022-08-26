@@ -42,7 +42,7 @@ template
  typename ResultT,
  typename ControlT,
  typename PrevVelT>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 calculate_brinkman_forces
 (const Plato::OrdinalType & aCellOrdinal,
  const ControlT & aImpermeability,
@@ -86,7 +86,7 @@ template
  typename ResultT,
  typename ControlT,
  typename PrevTempT>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 calculate_natural_convective_forces
 (const Plato::OrdinalType & aCellOrdinal,
  const ControlT & aPrTimesPr,
@@ -135,7 +135,7 @@ template
  typename ConfigT,
  typename ControlT,
  typename StrainT>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 integrate_viscous_forces
 (const Plato::OrdinalType & aCellOrdinal,
  const ControlT & aPrandtlNumber,
@@ -190,7 +190,7 @@ template
  typename ResultT,
  typename ConfigT,
  typename PrevVelT>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 calculate_advected_momentum_forces
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::ScalarArray3DT<ConfigT> & aGradient,
@@ -218,7 +218,7 @@ calculate_advected_momentum_forces
  * \tparam NumNodesPerCell number of nodes per cell (integer)
  * \tparam ControlT        control work set Forward Automatic Differentiation (FAD) type
  *
- * \fn DEVICE_TYPE inline ControlT brinkman_penalization
+ * \fn KOKKOS_INLINE_FUNCTION ControlT brinkman_penalization
  *
  * \brief Evaluate fictitious material penalty model.
  *
@@ -238,7 +238,7 @@ calculate_advected_momentum_forces
 template
 <Plato::OrdinalType NumNodesPerCell,
 typename ControlT>
-DEVICE_TYPE inline ControlT
+KOKKOS_INLINE_FUNCTION ControlT
 brinkman_penalization
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::Scalar      & aPhysicalParam,
@@ -259,7 +259,7 @@ brinkman_penalization
  * \tparam BViewTypeT      input view FAD type
  * \tparam CViewTypeT      input view FAD type
  *
- * \fn DEVICE_TYPE inline void strain_rate
+ * \fn KOKKOS_INLINE_FUNCTION void strain_rate
  *
  * \brief Evaluate strain rate.
  *
@@ -279,7 +279,7 @@ template
  typename AViewTypeT,
  typename BViewTypeT,
  typename CViewTypeT>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 strain_rate
 (const Plato::OrdinalType & aCellOrdinal,
  const AViewTypeT & aStateWS,
@@ -341,7 +341,7 @@ template
  typename ConfigT,
  typename PrevVelT,
  typename StabilityT>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 integrate_stabilizing_vector_force
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::ScalarVectorT<ConfigT> & aCellVolume,
@@ -396,7 +396,7 @@ template
  typename ResultT,
  typename ConfigT,
  typename FieldT>
-DEVICE_TYPE inline
+KOKKOS_INLINE_FUNCTION
 void integrate_vector_field
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::ScalarVector & aBasisFunctions,

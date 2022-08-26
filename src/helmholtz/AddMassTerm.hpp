@@ -28,7 +28,7 @@ public:
      * \param [in] aCellVolume cell volume
     **********************************************************************************/
     template<typename ResultScalarType, typename StateScalarType, typename ControlScalarType, typename VolumeScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
       const Plato::OrdinalType                          & aCellOrdinal,
       const Plato::ScalarMultiVectorT<ResultScalarType> & aOutput,

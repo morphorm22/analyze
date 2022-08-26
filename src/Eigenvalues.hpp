@@ -40,7 +40,7 @@ public:
      * \param [out] aEigenvalues cell/element tensor eigenvalues
     **********************************************************************************/
     template<typename ResultType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
         const Plato::Array<NumVoigtTerms, ResultType>  & aVoigtTensor,
               Plato::Array<NumSpatialDims, ResultType> & aEigenvalues,
@@ -57,7 +57,7 @@ public:
 **********************************************************************************/
 template<>
 template<typename ResultType>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 Eigenvalues<3,6>::operator()(
     const Plato::Array<6, ResultType> & aVoigtTensor,
           Plato::Array<3, ResultType> & aEigenvalues,
@@ -173,7 +173,7 @@ Eigenvalues<3,6>::operator()(
 **********************************************************************************/
 template<>
 template<typename ResultType>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 Eigenvalues<2,3>::operator()(
     const Plato::Array<3, ResultType> & aVoigtTensor,
           Plato::Array<2, ResultType> & aEigenvalues,
@@ -221,7 +221,7 @@ Eigenvalues<2,3>::operator()(
 **********************************************************************************/
 template<>
 template<typename ResultType>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 Eigenvalues<1,1>::operator()(
     const Plato::Array<1, ResultType> & aVoigtTensor,
           Plato::Array<1, ResultType> & aEigenvalues,

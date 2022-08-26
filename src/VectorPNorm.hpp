@@ -19,7 +19,7 @@ class VectorPNorm
 public:
 
     template<typename ResultScalarType, typename VectorScalarType, typename VolumeScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
       Plato::OrdinalType                          aCellOrdinal,
       Plato::ScalarVectorT<ResultScalarType>      aPnorm,
@@ -40,7 +40,7 @@ public:
     }
 
     template<typename ResultScalarType, typename VectorScalarType, typename VolumeScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
       Plato::OrdinalType                           aCellOrdinal,
       Plato::ScalarVectorT<ResultScalarType>       aPnorm,

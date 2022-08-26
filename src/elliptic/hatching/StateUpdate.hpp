@@ -58,7 +58,7 @@ class StateUpdate : public Plato::WorksetBase<typename PhysicsType::ElementType>
             auto tNumGP = tCubWeights.size();
 
             Kokkos::parallel_for("residual", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumGP}),
-            LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+            KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
             {
                 ConfigScalarType tVolume(0.0);
 
@@ -124,7 +124,7 @@ public:
         Plato::OrdinalType tNumTerms  = tStrainInc.extent(2);
 
         Kokkos::parallel_for("update local state", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumGP}),
-        LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
             for (ordT iTerm=0; iTerm<tNumTerms; iTerm++)
             {
@@ -139,7 +139,7 @@ public:
 
             Plato::OrdinalType tNumCells = tTotalStrain.extent(0);
             Plato::OrdinalType tNumTerms = tTotalStrain.extent(1);
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
             {
                 for (ordT iTerm=0; iTerm<tNumTerms; iTerm++)
                 {

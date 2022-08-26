@@ -128,7 +128,7 @@ TEUCHOS_UNIT_TEST( Tet10, StateWorkset )
     auto tCoords = tMesh->Coordinates();
     Plato::ScalarVector tDisp("displacement", tCoords.size());
     Kokkos::parallel_for("set displacement", Kokkos::RangePolicy<int>(0, tNumNodes),
-    LAMBDA_EXPRESSION(int nodeOrdinal)
+    KOKKOS_LAMBDA(int nodeOrdinal)
     {
       tDisp(tSpaceDims*nodeOrdinal) = 0.001*tCoords(tSpaceDims*nodeOrdinal);
     });
@@ -205,7 +205,7 @@ TEUCHOS_UNIT_TEST( Tet10, ComputeGradientMatrix )
   tGradientsView("all gradients", tNumCells, tNumPoints, tNodesPerCell, tSpaceDims);
 
   Kokkos::parallel_for("gradients", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-  LAMBDA_EXPRESSION(const int cellOrdinal, const int gpOrdinal)
+  KOKKOS_LAMBDA(const int cellOrdinal, const int gpOrdinal)
   {
       Plato::Scalar tVolume(0.0);
 
@@ -307,7 +307,7 @@ TEUCHOS_UNIT_TEST( Tet10, ComputeStresses )
   auto tCoords = tMesh->Coordinates();
   Plato::ScalarVector tDisp("displacement", tCoords.size());
   Kokkos::parallel_for("set displacement", Kokkos::RangePolicy<int>(0, tNumNodes),
-  LAMBDA_EXPRESSION(int nodeOrdinal)
+  KOKKOS_LAMBDA(int nodeOrdinal)
   {
     tDisp(tSpaceDims*nodeOrdinal) = 0.001*tCoords(tSpaceDims*nodeOrdinal);
   });
@@ -340,7 +340,7 @@ TEUCHOS_UNIT_TEST( Tet10, ComputeStresses )
   Plato::ScalarMultiVectorT<Plato::Scalar> tResult("result", tNumCells, tDofsPerCell);
 
   Kokkos::parallel_for("gradients", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-  LAMBDA_EXPRESSION(const int cellOrdinal, const int gpOrdinal)
+  KOKKOS_LAMBDA(const int cellOrdinal, const int gpOrdinal)
   {
       Plato::Scalar tVolume(0.0);
 
@@ -370,7 +370,7 @@ TEUCHOS_UNIT_TEST( Tet10, ComputeStresses )
   });
 
   Kokkos::parallel_for("average", Kokkos::RangePolicy<int>(0, tNumCells),
-  LAMBDA_EXPRESSION(int cellOrdinal)
+  KOKKOS_LAMBDA(int cellOrdinal)
   {
       for(int i=0; i<ElementType::mNumVoigtTerms; i++)
       {
@@ -518,7 +518,7 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D )
   auto tSpaceDims = tMesh->NumDimensions();
   Plato::ScalarVector u("displacement", tCoords.size());
   Kokkos::parallel_for("set displacement", Kokkos::RangePolicy<int>(0, tNumNodes),
-  LAMBDA_EXPRESSION(int nodeOrdinal)
+  KOKKOS_LAMBDA(int nodeOrdinal)
   {
     u(tSpaceDims*nodeOrdinal) = 0.001*tCoords(tSpaceDims*nodeOrdinal);
   });

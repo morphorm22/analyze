@@ -36,7 +36,7 @@ class J2PlasticityUtilities
      * \param [in] aHardeningModulusKinematic penalized kinematic hardening modulus
      * \param [out] aLocalState 2D container of local state variables to update
     **********************************************************************************/
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     updatePlasticStrainAndBackstressPlasticStep( 
                 const Plato::OrdinalType       & aCellOrdinal,
                 const Plato::ScalarMultiVector & aPrevLocalState,
@@ -50,7 +50,7 @@ class J2PlasticityUtilities
      * \param [in] aPrevLocalState 2D container of previous local state variables
      * \param [out] aLocalState 2D container of local state variables to update
     **********************************************************************************/
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     updatePlasticStrainAndBackstressElasticStep( 
                 const Plato::OrdinalType       & aCellOrdinal,
                 const Plato::ScalarMultiVector & aPrevLocalState,
@@ -70,7 +70,7 @@ class J2PlasticityUtilities
      *
     **********************************************************************************/
     template<typename LocalStateT, typename StressT>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     computeDeviatoricStressMinusBackstressNormalized(
                 const Plato::OrdinalType                           & aCellOrdinal,
                 const Plato::ScalarMultiVectorT< StressT >         & aDeviatoricStress,
@@ -92,7 +92,7 @@ class J2PlasticityUtilities
      * \param [out] aOutput        output tensor
     **********************************************************************************/
     template<typename AViewType, typename BViewType, typename ResultType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     computePlasticStrainMisfit(const Plato::OrdinalType & aCellOrdinal,
                                const Plato::ScalarMultiVectorT< AViewType > & aLocalStateOne,
                                const Plato::ScalarMultiVectorT< BViewType > & aLocalStateTwo,
@@ -107,7 +107,7 @@ class J2PlasticityUtilities
      * \param [out] aResult 2D container of local residual equations
     **********************************************************************************/
     template<typename LocalStateT, typename PrevLocalStateT, typename YieldSurfNormalT, typename ResultT>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     fillPlasticStrainTensorResidualPlasticStep( 
                 const Plato::OrdinalType                            & aCellOrdinal,
                 const Plato::ScalarMultiVectorT< LocalStateT >      & aLocalState,
@@ -126,7 +126,7 @@ class J2PlasticityUtilities
     **********************************************************************************/
     template<typename ControlT, typename LocalStateT, typename PrevLocalStateT, 
              typename YieldSurfNormalT, typename ResultT>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     fillBackstressTensorResidualPlasticStep( 
                 const Plato::OrdinalType                            & aCellOrdinal,
                 const ControlT                                      & aHardeningModulusKinematic,
@@ -143,7 +143,7 @@ class J2PlasticityUtilities
      * \param [out] aResult 2D container of local residual equations
     **********************************************************************************/
     template<typename LocalStateT, typename PrevLocalStateT, typename ResultT>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     fillPlasticStrainTensorResidualElasticStep( 
                 const Plato::OrdinalType                            & aCellOrdinal,
                 const Plato::ScalarMultiVectorT< LocalStateT >      & aLocalState,
@@ -158,7 +158,7 @@ class J2PlasticityUtilities
      * \param [out] aResult 2D container of local residual equations
     **********************************************************************************/
     template<typename LocalStateT, typename PrevLocalStateT, typename ResultT>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     fillBackstressTensorResidualElasticStep( 
                 const Plato::OrdinalType                            & aCellOrdinal,
                 const Plato::ScalarMultiVectorT< LocalStateT >      & aLocalState,
@@ -171,7 +171,7 @@ class J2PlasticityUtilities
      * \param [out] aAccumPlasticStrain 2D container of accumulated plastic strains
     **********************************************************************************/
     template<typename LocalStateT>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     getAccumulatedPlasticStrain(const Plato::OrdinalType & aCellOrdinal,
                                 const Plato::ScalarMultiVectorT< LocalStateT > & aLocalStates,
                                 const Plato::ScalarVectorT< LocalStateT > & aAccumPlasticStrain) const;
@@ -182,7 +182,7 @@ class J2PlasticityUtilities
      * \param [out] aPlasticMultiplier 2D container of accumulated plastic strains
     **********************************************************************************/
     template<typename LocalStateT>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     getPlasticMultiplierIncrement(const Plato::OrdinalType & aCellOrdinal,
                                   const Plato::ScalarMultiVectorT< LocalStateT > & aLocalStates,
                                   const Plato::ScalarVectorT< LocalStateT > & aPlasticMultiplier) const;
@@ -193,7 +193,7 @@ class J2PlasticityUtilities
      * \param [out] aPlasticStrains 2D container of plastic strains
     **********************************************************************************/
     template<typename LocalStateT>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     getPlasticStrainTensor(const Plato::OrdinalType & aCellOrdinal,
                            const Plato::ScalarMultiVectorT< LocalStateT > & aLocalStates,
                            const Plato::ScalarMultiVectorT< LocalStateT > & aPlasticStrains) const;
@@ -204,7 +204,7 @@ class J2PlasticityUtilities
      * \param [out] aBackstresses 2D container of back-stresses
     **********************************************************************************/
     template<typename LocalStateT>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     getBackstressTensor(const Plato::OrdinalType & aCellOrdinal,
                         const Plato::ScalarMultiVectorT< LocalStateT > & aLocalStates,
                         const Plato::ScalarMultiVectorT< LocalStateT > & aBackstresses) const;
@@ -219,7 +219,7 @@ class J2PlasticityUtilities
    * \brief Update the plastic strain and backstress for a plastic step in 2D (Plane Strain)
   **********************************************************************************/
   template<>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<2>::updatePlasticStrainAndBackstressPlasticStep( 
               const Plato::OrdinalType       & aCellOrdinal,
               const Plato::ScalarMultiVector & aPrevLocalState,
@@ -246,7 +246,7 @@ class J2PlasticityUtilities
    * \brief Update the plastic strain and backstress for a plastic step in 3D
   **********************************************************************************/
   template<>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<3>::updatePlasticStrainAndBackstressPlasticStep( 
               const Plato::OrdinalType       & aCellOrdinal,
               const Plato::ScalarMultiVector & aPrevLocalState,
@@ -281,7 +281,7 @@ class J2PlasticityUtilities
    * \brief Update the plastic strain and backstress for an elastic step in 2D
   **********************************************************************************/
   template<>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<2>::updatePlasticStrainAndBackstressElasticStep( 
               const Plato::OrdinalType       & aCellOrdinal,
               const Plato::ScalarMultiVector & aPrevLocalState,
@@ -304,7 +304,7 @@ class J2PlasticityUtilities
    * \brief Update the plastic strain and backstress for an elastic step in 3D
   **********************************************************************************/
   template<>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<3>::updatePlasticStrainAndBackstressElasticStep( 
               const Plato::OrdinalType       & aCellOrdinal,
               const Plato::ScalarMultiVector & aPrevLocalState,
@@ -342,7 +342,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename LocalStateT, typename StressT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<2>::computeDeviatoricStressMinusBackstressNormalized(
               const Plato::OrdinalType                           & aCellOrdinal,
               const Plato::ScalarMultiVectorT< StressT >         & aDeviatoricStress,
@@ -374,7 +374,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename LocalStateT, typename StressT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<3>::computeDeviatoricStressMinusBackstressNormalized(
               const Plato::OrdinalType                           & aCellOrdinal,
               const Plato::ScalarMultiVectorT< StressT >         & aDeviatoricStress,
@@ -427,7 +427,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename AViewType, typename BViewType, typename ResultType>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<3>::computePlasticStrainMisfit(const Plato::OrdinalType & aCellOrdinal,
                                                        const Plato::ScalarMultiVectorT< AViewType > & aLocalStateOne,
                                                        const Plato::ScalarMultiVectorT< BViewType > & aLocalStateTwo,
@@ -457,7 +457,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename AViewType, typename BViewType, typename ResultType>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<2>::computePlasticStrainMisfit(const Plato::OrdinalType & aCellOrdinal,
                                                        const Plato::ScalarMultiVectorT< AViewType > & aLocalStateOne,
                                                        const Plato::ScalarMultiVectorT< BViewType > & aLocalStateTwo,
@@ -480,7 +480,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename LocalStateT, typename PrevLocalStateT, typename YieldSurfNormalT, typename ResultT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<2>::fillPlasticStrainTensorResidualPlasticStep( 
               const Plato::OrdinalType                            & aCellOrdinal,
               const Plato::ScalarMultiVectorT< LocalStateT >      & aLocalState,
@@ -510,7 +510,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename LocalStateT, typename PrevLocalStateT, typename YieldSurfNormalT, typename ResultT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<3>::fillPlasticStrainTensorResidualPlasticStep( 
               const Plato::OrdinalType                            & aCellOrdinal,
               const Plato::ScalarMultiVectorT< LocalStateT >      & aLocalState,
@@ -541,7 +541,7 @@ class J2PlasticityUtilities
   template<>
   template<typename ControlT, typename LocalStateT, typename PrevLocalStateT, 
            typename YieldSurfNormalT, typename ResultT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<2>::fillBackstressTensorResidualPlasticStep( 
               const Plato::OrdinalType                            & aCellOrdinal,
               const ControlT                                      & aHardeningModulusKinematic,
@@ -577,7 +577,7 @@ class J2PlasticityUtilities
   template<>
   template<typename ControlT, typename LocalStateT, typename PrevLocalStateT, 
            typename YieldSurfNormalT, typename ResultT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<3>::fillBackstressTensorResidualPlasticStep( 
               const Plato::OrdinalType                            & aCellOrdinal,
               const ControlT                                      & aHardeningModulusKinematic,
@@ -615,7 +615,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename LocalStateT, typename PrevLocalStateT, typename ResultT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<2>::fillPlasticStrainTensorResidualElasticStep( 
               const Plato::OrdinalType                              & aCellOrdinal,
               const Plato::ScalarMultiVectorT< LocalStateT >        & aLocalState,
@@ -633,7 +633,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename LocalStateT, typename PrevLocalStateT, typename ResultT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<3>::fillPlasticStrainTensorResidualElasticStep( 
               const Plato::OrdinalType                              & aCellOrdinal,
               const Plato::ScalarMultiVectorT< LocalStateT >        & aLocalState,
@@ -657,7 +657,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename LocalStateT, typename PrevLocalStateT, typename ResultT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<2>::fillBackstressTensorResidualElasticStep( 
               const Plato::OrdinalType                            & aCellOrdinal,
               const Plato::ScalarMultiVectorT< LocalStateT >      & aLocalState,
@@ -675,7 +675,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename LocalStateT, typename PrevLocalStateT, typename ResultT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<3>::fillBackstressTensorResidualElasticStep( 
               const Plato::OrdinalType                            & aCellOrdinal,
               const Plato::ScalarMultiVectorT< LocalStateT >      & aLocalState,
@@ -698,7 +698,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename LocalStateT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<2>::getAccumulatedPlasticStrain
   (const Plato::OrdinalType & aCellOrdinal,
    const Plato::ScalarMultiVectorT<LocalStateT> & aLocalState,
@@ -712,7 +712,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename LocalStateT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<3>::getAccumulatedPlasticStrain
   (const Plato::OrdinalType & aCellOrdinal,
    const Plato::ScalarMultiVectorT<LocalStateT> & aLocalState,
@@ -729,7 +729,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename LocalStateT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<2>::getPlasticMultiplierIncrement
   (const Plato::OrdinalType & aCellOrdinal,
    const Plato::ScalarMultiVectorT<LocalStateT> & aLocalState,
@@ -743,7 +743,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename LocalStateT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<3>::getPlasticMultiplierIncrement
   (const Plato::OrdinalType & aCellOrdinal,
    const Plato::ScalarMultiVectorT<LocalStateT> & aLocalState,
@@ -760,7 +760,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename LocalStateT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<2>::getPlasticStrainTensor
   (const Plato::OrdinalType & aCellOrdinal,
    const Plato::ScalarMultiVectorT<LocalStateT> & aLocalState,
@@ -777,7 +777,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename LocalStateT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<3>::getPlasticStrainTensor
   (const Plato::OrdinalType & aCellOrdinal,
    const Plato::ScalarMultiVectorT<LocalStateT> & aLocalState,
@@ -799,7 +799,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename LocalStateT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<2>::getBackstressTensor
   (const Plato::OrdinalType & aCellOrdinal,
    const Plato::ScalarMultiVectorT<LocalStateT> & aLocalState,
@@ -816,7 +816,7 @@ class J2PlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename LocalStateT>
-  DEVICE_TYPE inline void
+  KOKKOS_INLINE_FUNCTION void
   J2PlasticityUtilities<3>::getBackstressTensor
   (const Plato::OrdinalType & aCellOrdinal,
    const Plato::ScalarMultiVectorT<LocalStateT> & aLocalState,

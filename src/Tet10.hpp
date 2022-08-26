@@ -42,7 +42,7 @@ class Tet10
         });
     }
 
-    DEVICE_TYPE static inline Plato::Array<mNumNodesPerCell>
+    KOKKOS_INLINE_FUNCTION static Plato::Array<mNumNodesPerCell>
     basisValues( const Plato::Array<mNumSpatialDims>& aCubPoint )
     {
         auto x=aCubPoint(0);
@@ -66,7 +66,7 @@ class Tet10
         return tN;
     }
 
-    DEVICE_TYPE static inline Plato::Matrix<mNumNodesPerCell, mNumSpatialDims>
+    KOKKOS_INLINE_FUNCTION static Plato::Matrix<mNumNodesPerCell, mNumSpatialDims>
     basisGrads( const Plato::Array<mNumSpatialDims>& aCubPoint )
     {
         auto x=aCubPoint(0);

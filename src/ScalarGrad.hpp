@@ -24,7 +24,7 @@ public:
      * \param [in] aGradient configuration gradient workset
      **********************************************************************************/
     template<typename OutputScalarType, typename StateScalarType, typename ConfigScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
       Plato::OrdinalType                                                   aCellOrdinal,
             Plato::Array<ElementType::mNumSpatialDims, OutputScalarType> & aOutput,
@@ -56,7 +56,7 @@ public:
      * \param [in] aGradient configuration gradient workset
      **********************************************************************************/
     template<typename ScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(Plato::OrdinalType aCellOrdinal,
                Kokkos::View<ScalarType**, Plato::Layout, Plato::MemSpace> aOutput,
                Kokkos::View<ScalarType**, Plato::Layout, Plato::MemSpace> aScalarField,
@@ -83,7 +83,7 @@ public:
      * \param [in] aGradient configuration gradient workset
      **********************************************************************************/
     template<typename ScalarGradType, typename ScalarType, typename GradientScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(Plato::OrdinalType aCellOrdinal,
                Plato::ScalarMultiVectorT<ScalarGradType> aOutput,
                Plato::ScalarMultiVectorT<ScalarType> aScalarField,
@@ -116,7 +116,7 @@ public:
      *
      **********************************************************************************/
     template<typename ScalarGradType, typename ScalarType, typename GradientScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(const Plato::OrdinalType & aCellOrdinal,
                const Plato::OrdinalType & aNumDofsPerNode,
                const Plato::OrdinalType & aScalarOffset,

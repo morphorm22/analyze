@@ -43,7 +43,7 @@ public:
              typename StressScalarType,
              typename GradientScalarType,
              typename VolumeScalarType>
-    DEVICE_TYPE inline void 
+    KOKKOS_INLINE_FUNCTION void 
     operator()(
               Plato::OrdinalType                                                     aCellOrdinal,
         const Plato::ScalarMultiVectorT<ForcingScalarType>                         & aOutput,
@@ -98,7 +98,7 @@ private:
              typename StressScalarType,
              typename GradientScalarType,
              typename VolumeScalarType>
-    DEVICE_TYPE inline void 
+    KOKKOS_INLINE_FUNCTION void 
     addSymmetricStressDivergence(
               Plato::OrdinalType                                                     aCellOrdinal,
         const Plato::ScalarMultiVectorT<ForcingScalarType>                         & aOutput,
@@ -125,7 +125,7 @@ private:
              typename StressScalarType,
              typename GradientScalarType,
              typename VolumeScalarType>
-    DEVICE_TYPE inline void 
+    KOKKOS_INLINE_FUNCTION void 
     addSkewStressDivergence(
               Plato::OrdinalType                                                     aCellOrdinal,
         const Plato::ScalarMultiVectorT<ForcingScalarType>                         & aOutput,

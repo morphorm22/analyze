@@ -257,7 +257,7 @@ namespace Plato
         // ****** COMPUTE AUGMENTED LAGRANGIAN FUNCTION ******
         Plato::Scalar tLagrangianMultiplier = static_cast<Plato::Scalar>(1.0 / tNumCells);
         Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-        LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
             const ResultT tLocalMeasureValueOverLimit = tLocalMeasureValue(iCellOrdinal) / tLocalMeasureValueLimit;
             const ResultT tLocalMeasureValueOverLimitMinusOne = tLocalMeasureValueOverLimit - static_cast<Plato::Scalar>(1.0);
@@ -319,7 +319,7 @@ namespace Plato
         auto tNumPoints = tCubWeights.size();
 
         Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-        LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
             // Compute local constraint residual
             const Plato::Scalar tLocalMeasureValueOverLimit = tLocalMeasureValue(iCellOrdinal) / tLocalMeasureValueLimit;

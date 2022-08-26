@@ -124,7 +124,7 @@ TEUCHOS_UNIT_TEST( ElastostaticTests, 3D )
   Plato::GeneralStressDivergence<ElementType>  tStressDivergence;
 
   Kokkos::parallel_for("gradients", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-  LAMBDA_EXPRESSION(const int cellOrdinal, const int gpOrdinal)
+  KOKKOS_LAMBDA(const int cellOrdinal, const int gpOrdinal)
   {
     Plato::Scalar tVolume(0.0);
 
@@ -1327,14 +1327,14 @@ TEUCHOS_UNIT_TEST( DerivativeTests, ElastostaticResidual2D_InhomogeneousEssentia
     auto tNumDirichletDofs = tDirichletIndicesBoundaryX0.size() + tDirichletIndicesBoundaryY0.size() + tDirichletIndicesBoundaryX1.size();
     Plato::ScalarVector tDirichletValues("Dirichlet Values", tNumDirichletDofs);
     Plato::OrdinalVector tDirichletDofs("Dirichlet Dofs", tNumDirichletDofs);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tDirichletIndicesBoundaryX0.size()), LAMBDA_EXPRESSION(const Plato::OrdinalType & aIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tDirichletIndicesBoundaryX0.size()), KOKKOS_LAMBDA(const Plato::OrdinalType & aIndex)
     {
         tDirichletValues(aIndex) = tValueToSet;
         tDirichletDofs(aIndex) = tDirichletIndicesBoundaryX0(aIndex);
     }, "set dirichlet values and indices");
 
     auto tOffset = tDirichletIndicesBoundaryX0.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tDirichletIndicesBoundaryY0.size()), LAMBDA_EXPRESSION(const Plato::OrdinalType & aIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tDirichletIndicesBoundaryY0.size()), KOKKOS_LAMBDA(const Plato::OrdinalType & aIndex)
     {
         auto tIndex = tOffset + aIndex;
         tDirichletValues(tIndex) = tValueToSet;
@@ -1343,7 +1343,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, ElastostaticResidual2D_InhomogeneousEssentia
 
     tValueToSet = 6e-4;
     tOffset += tDirichletIndicesBoundaryY0.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tDirichletIndicesBoundaryX1.size()), LAMBDA_EXPRESSION(const Plato::OrdinalType & aIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tDirichletIndicesBoundaryX1.size()), KOKKOS_LAMBDA(const Plato::OrdinalType & aIndex)
     {
         auto tIndex = tOffset + aIndex;
         tDirichletValues(tIndex) = tValueToSet;
@@ -1463,7 +1463,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, referenceStrain3D )
   Plato::LinearStress<Plato::Elliptic::ResidualTypes<ElementType>, ElementType> voigtStress(materialModel);
 
   Plato::ScalarVectorT<Plato::Scalar> cellVolume("cell volume",numCells);
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), LAMBDA_EXPRESSION(int cellOrdinal)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,numCells), KOKKOS_LAMBDA(int cellOrdinal)
   {
     voigtStress(cellOrdinal, stress, elasticStrain);
   }, "referenceStrain");

@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "alg/PlatoLambda.hpp"
 #include "PlatoStaticsTypes.hpp"
 
 namespace Plato
@@ -44,7 +43,7 @@ public:
      *
     *******************************************************************************/
     template<typename ConfigScalarType, typename ResultScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
         const Plato::OrdinalType                         & aCellOrdinal,
         const Plato::Array<Face::mNumNodesPerCell,

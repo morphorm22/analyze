@@ -2,4 +2,3 @@
 #ifndef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 #include "Plato_AugLagStressCriterion_def.hpp"
 #endif
-

@@ -45,7 +45,7 @@ template<Plato::OrdinalType SpaceDims,
          Plato::OrdinalType NumNodes,
          typename InStateType,
          typename OutStateType>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 project_vector_field_onto_surface
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::ScalarVector & aBasisFunctions,
@@ -154,7 +154,7 @@ public:
         // evaluate integral
         auto tSurfaceCubatureWeight = mSurfaceCubatureRule.getCubWeight();
         auto tSurfaceBasisFunctions = mSurfaceCubatureRule.getBasisFunctions();
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aSideOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumFaces), KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal)
         {
             auto tElementOrdinal = tElementOrds(aSideOrdinal);
             auto tElemFaceOrdinal = tFaceOrds(aSideOrdinal);

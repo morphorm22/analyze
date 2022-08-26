@@ -45,7 +45,7 @@ public:
      * \param [in] aControl     control, i.e. design, variables
     **********************************************************************************/
     template<typename InputScalarType, typename WeightScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
               Plato::OrdinalType                            aCellOrdinal,
         const Plato::ScalarMultiVectorT<WeightScalarType> & aControl,
@@ -73,7 +73,7 @@ public:
      * \param [in] aControl     control, i.e. design, variables
     **********************************************************************************/
     template<typename InputScalarType, typename WeightScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
               Plato::OrdinalType                            aCellOrdinal,
         const Plato::ScalarMultiVectorT<WeightScalarType> & aControl,
@@ -98,7 +98,7 @@ public:
      * \param [in] aControl     control, i.e. design, variables
     **********************************************************************************/
     template<typename InputScalarType, typename WeightScalarType>
-    DEVICE_TYPE inline void operator()(Plato::OrdinalType aCellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType aCellOrdinal,
                                        Kokkos::View<InputScalarType**, Plato::Layout, Plato::MemSpace> const & aInputOutput,
                                        Kokkos::View<WeightScalarType**, Plato::Layout, Plato::MemSpace> const & aControl) const
     {
@@ -124,7 +124,7 @@ public:
      * \param [in] aControl     control, i.e. design, variables
     **********************************************************************************/
     template<typename InputScalarType, typename OutputScalarType, typename WeightScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(Plato::OrdinalType aCellOrdinal,
                Plato::ScalarMultiVectorT<InputScalarType> const &aInput,
                Plato::ScalarMultiVectorT<OutputScalarType> const &aOutput,
@@ -151,7 +151,7 @@ public:
      * \param [in] aControl     control, i.e. design, variables
     **********************************************************************************/
     template<typename ResultScalarType, typename WeightScalarType>
-    DEVICE_TYPE inline
+    KOKKOS_INLINE_FUNCTION
     void operator()(Plato::OrdinalType aCellOrdinal,
                     Plato::ScalarVectorT<ResultScalarType> const &aResult,
                     Plato::ScalarMultiVectorT<WeightScalarType> const &aControl) const
@@ -175,7 +175,7 @@ public:
      * \param [in] aControl     control, i.e. design, variables
     **********************************************************************************/
     template<typename InputScalarType, typename OutputScalarType, typename WeightScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(Plato::OrdinalType aCellOrdinal,
                Plato::ScalarVectorT<InputScalarType> const &aInput,
                Plato::ScalarVectorT<OutputScalarType> &aOutput,

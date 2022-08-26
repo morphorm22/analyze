@@ -25,7 +25,7 @@ local_result_sum(
 )
 {
     Scalar tReturnVal(0.0);
-    Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0,aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal, Scalar& aLocalResult)
+    Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0,aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal, Scalar& aLocalResult)
     {
         aLocalResult += aResult(aCellOrdinal);
     }, tReturnVal);
@@ -62,7 +62,7 @@ inline void flatten_vector_workset(const Plato::OrdinalType& aNumCells,
         ANALYZE_THROWERR("\nNumber of cells, i.e. elements, argument is <= zero.\n");
     }
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells),LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells),KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         const auto tDofOffset = aCellOrdinal * NumDofsPerCell;
         for (Plato::OrdinalType tDofIndex = 0; tDofIndex < NumDofsPerCell; tDofIndex++)
@@ -108,7 +108,7 @@ flatten_vector_workset(
         ANALYZE_THROWERR("\nNumber of cells, i.e. elements, argument is <= zero.\n");
     }
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells),LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells),KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
         const auto tDofOffset = tCellOrdinal * NumDofsPerCell;
@@ -155,7 +155,7 @@ assemble_vector_workset(
         ANALYZE_THROWERR("\nNumber of cells, i.e. elements, argument is <= zero.\n");
     }
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells),LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells),KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
         for (Plato::OrdinalType tDofIndex = 0; tDofIndex < NumDofsPerCell; tDofIndex++)
@@ -187,7 +187,7 @@ transform_ad_type_to_pod_1Dview(
 {
     auto tNumCells = aDomain.numCells();
     auto tCellOrdinals = aDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
         for(Plato::OrdinalType tDimIndex=0; tDimIndex < NumDofsPerCell; tDimIndex++)
@@ -224,7 +224,7 @@ inline void transform_ad_type_to_pod_2Dview(const Plato::ScalarVectorT<ADType>& 
     }
 
     Plato::OrdinalType tNumCells = aOutput.extent(0);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tDimIndex=0; tDimIndex < NumDofsPerCell; tDimIndex++)
         {
@@ -264,7 +264,7 @@ transform_ad_type_to_pod_2Dview(
 
     auto tNumCells = aDomain.numCells();
     auto tCellOrdinals = aDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
         for(Plato::OrdinalType tDimIndex=0; tDimIndex < NumDofsPerCell; tDimIndex++)
@@ -311,7 +311,7 @@ transform_ad_type_to_pod_3Dview(
 
     auto tNumCells = aDomain.numCells();
     auto tCellOrdinals = aDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
         for(Plato::OrdinalType tRowIndex = 0; tRowIndex < NumRowsPerCell; tRowIndex++)
@@ -355,7 +355,7 @@ inline void transform_ad_type_to_pod_3Dview(const Plato::OrdinalType& aNumCells,
         ANALYZE_THROWERR("\nOutput 3D array size is zero.\n");
     }
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
       for(Plato::OrdinalType tRowIndex = 0; tRowIndex < NumRowsPerCell; tRowIndex++)
       {
@@ -388,7 +388,7 @@ template <class Scalar, class Result>
 inline Scalar assemble_scalar_func_value(const Plato::OrdinalType& aNumCells, const Result& aResult)
 {
   Scalar tReturnValue(0.0);
-  Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType& aCellOrdinal, Scalar & aLocalValue)
+  Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType& aCellOrdinal, Scalar & aLocalValue)
   {
     aLocalValue += aResult(aCellOrdinal).val();
   }, tReturnValue);
@@ -418,7 +418,7 @@ inline void assemble_vector_gradient(const Plato::OrdinalType& aNumCells,
                                      const Gradient& aGradient,
                                      ReturnVal& aOutput)
 {
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tNodeIndex=0; tNodeIndex < NumNodesPerCell; tNodeIndex++)
         {
@@ -454,7 +454,7 @@ inline void assemble_vector_gradient_fad(const Plato::OrdinalType& aNumCells,
                                          const Gradient& aGradient,
                                          ReturnVal& aOutput)
 {
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tNodeIndex=0; tNodeIndex < NumNodesPerCell; tNodeIndex++)
         {
@@ -495,7 +495,7 @@ assemble_vector_gradient_fad(
 {
     auto tNumCells = aDomain.numCells();
     auto tCellOrdinals = aDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
         for(Plato::OrdinalType tNodeIndex=0; tNodeIndex < NumNodesPerCell; tNodeIndex++)
@@ -531,7 +531,7 @@ inline void assemble_scalar_gradient(const Plato::OrdinalType& aNumCells,
                                      const Gradient& aGradient,
                                      ReturnVal& aOutput)
 {
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
       for(Plato::OrdinalType tNodeIndex=0; tNodeIndex < NumNodesPerCell; tNodeIndex++)
       {
@@ -563,7 +563,7 @@ inline void assemble_scalar_gradient_fad(const Plato::OrdinalType& aNumCells,
                                          const Gradient& aGradient,
                                          ReturnVal& aOutput)
 {
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
       for(Plato::OrdinalType tNodeIndex=0; tNodeIndex < NumNodesPerCell; tNodeIndex++)
       {
@@ -600,7 +600,7 @@ assemble_scalar_gradient_fad(
 {
     auto tNumCells = aDomain.numCells();
     auto tCellOrdinals = aDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
         for(Plato::OrdinalType tNodeIndex=0; tNodeIndex < NumNodesPerCell; tNodeIndex++)
@@ -638,7 +638,7 @@ workset_control_scalar_scalar(
 {
     auto tNumCells = aDomain.numCells();
     auto tCellOrdinals = aDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
         for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < NumNodesPerCell; tNodeIndex++)
@@ -674,7 +674,7 @@ workset_control_scalar_scalar(
           ControlWS           & aControlWS
 )
 {
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < NumNodesPerCell; tNodeIndex++)
         {
@@ -710,7 +710,7 @@ workset_control_scalar_fad(
 {
     auto tNumCells = aDomain.numCells();
     auto tCellOrdinals = aDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
         for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < NumNodesPerCell; tNodeIndex++)
@@ -745,7 +745,7 @@ workset_control_scalar_fad(
     const Control             & aControl,
           FadControlWS        & aFadControlWS)
 {
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < NumNodesPerCell; tNodeIndex++)
         {
@@ -783,7 +783,7 @@ workset_state_scalar_scalar(
 {
     auto tNumCells = aDomain.numCells();
     auto tCellOrdinals = aDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
         for(Plato::OrdinalType tDofIndex = 0; tDofIndex < NumDofsPerNode; tDofIndex++)
@@ -823,7 +823,7 @@ workset_state_scalar_scalar(
           StateWS            & aStateWS
 )
 {
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tDofIndex = 0; tDofIndex < NumDofsPerNode; tDofIndex++)
         {
@@ -866,7 +866,7 @@ workset_state_scalar_fad(
 {
     auto tNumCells = aDomain.numCells();
     auto tCellOrdinals = aDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
         for(Plato::OrdinalType tDofIndex = 0; tDofIndex < NumDofsPerNode; tDofIndex++)
@@ -908,7 +908,7 @@ workset_state_scalar_fad(
           FadStateWS         & aFadStateWS
 )
 {
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tDofIndex = 0; tDofIndex < NumDofsPerNode; tDofIndex++)
         {
@@ -946,7 +946,7 @@ workset_local_state_scalar_scalar(
 {
     Plato::OrdinalType tNumPoints = aState.extent(1);
     Kokkos::parallel_for("workset_local_state_scalar_fad", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {aNumCells, tNumPoints}),
-    LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+    KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
     {
         for(Plato::OrdinalType tDofIndex = 0; tDofIndex < NumLocalStatesPerGP; tDofIndex++)
         {
@@ -979,7 +979,7 @@ workset_local_state_scalar_fad(
 {
     Plato::OrdinalType tNumPoints = aState.extent(1);
     Kokkos::parallel_for("workset_local_state_scalar_fad", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {aNumCells, tNumPoints}),
-    LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+    KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
     {
         for(Plato::OrdinalType tDofIndex = 0; tDofIndex < NumLocalStatesPerGP; tDofIndex++)
         {
@@ -1014,7 +1014,7 @@ workset_local_state_scalar_scalar(
     auto tNumCells = aDomain.numCells();
     auto tCellOrdinals = aDomain.cellOrdinals();
     Kokkos::parallel_for("workset_local_state_scalar_fad", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-    LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+    KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[iCellOrdinal];
         for(Plato::OrdinalType tDofIndex = 0; tDofIndex < NumLocalStatesPerGP; tDofIndex++)
@@ -1051,7 +1051,7 @@ workset_local_state_scalar_fad(
     auto tNumCells = aDomain.numCells();
     auto tCellOrdinals = aDomain.cellOrdinals();
     Kokkos::parallel_for("workset_local_state_scalar_fad", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-    LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+    KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[iCellOrdinal];
         for(Plato::OrdinalType tDofIndex = 0; tDofIndex < NumLocalStatesPerGP; tDofIndex++)
@@ -1087,7 +1087,7 @@ workset_config_scalar(
 {
     auto tNumCells = aDomain.numCells();
     auto tCellOrdinals = aDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
         for(Plato::OrdinalType tDimIndex = 0; tDimIndex < SpaceDim; tDimIndex++)
@@ -1122,7 +1122,7 @@ workset_config_scalar(
           ConfigWS           & aConfigWS
 )
 {
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tDimIndex = 0; tDimIndex < SpaceDim; tDimIndex++)
         {
@@ -1161,7 +1161,7 @@ workset_config_fad(
 {
     auto tNumCells = aDomain.numCells();
     auto tCellOrdinals = aDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
         for(Plato::OrdinalType tDimIndex = 0; tDimIndex < SpaceDim; tDimIndex++)
@@ -1200,7 +1200,7 @@ workset_config_fad(
           FadConfigWS        & aFadConfigWS
 )
 {
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tDimIndex = 0; tDimIndex < SpaceDim; tDimIndex++)
         {
@@ -1241,7 +1241,7 @@ assemble_residual(
 {
     auto tNumCells = aDomain.numCells();
     auto tCellOrdinals = aDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
         for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < NumNodesPerCell; tNodeIndex++)
@@ -1279,7 +1279,7 @@ assemble_residual(
     const Residual           & aResidual,
           ReturnVal          & aReturnValue)
 {
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < NumNodesPerCell; tNodeIndex++)
         {
@@ -1316,7 +1316,7 @@ inline void assemble_jacobian(Plato::OrdinalType aNumCells,
                               const Plato::ScalarArray3D &aJacobianWorkset,
                               ReturnVal &aReturnValue)
 {
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType &aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType &aCellOrdinal)
     {
         for(Plato::OrdinalType tRowIndex = 0; tRowIndex < aNumRowsPerCell; tRowIndex++)
         {
@@ -1353,7 +1353,7 @@ inline void assemble_jacobian_transpose_pod(Plato::OrdinalType aNumCells,
                               const Plato::ScalarArray3D &aJacobianWorkset,
                               ReturnVal &aReturnValue)
 {
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType &aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType &aCellOrdinal)
     {
         for(Plato::OrdinalType tRowIndex = 0; tRowIndex < aNumRowsPerCell; tRowIndex++)
         {
@@ -1395,7 +1395,7 @@ assemble_jacobian_fad(
 {
     auto tNumCells = aDomain.numCells();
     auto tCellOrdinals = aDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
         for(Plato::OrdinalType tRowIndex = 0; tRowIndex < aNumRowsPerCell; tRowIndex++)
@@ -1435,7 +1435,7 @@ assemble_jacobian_fad(
     const Jacobian             & aJacobianWorkset,
           ReturnVal            & aReturnValue)
 {
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tRowIndex = 0; tRowIndex < aNumRowsPerCell; tRowIndex++)
         {
@@ -1477,7 +1477,7 @@ assemble_transpose_jacobian(
 {
     auto tNumCells = aDomain.numCells();
     auto tCellOrdinals = aDomain.cellOrdinals();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tCellOrdinal = tCellOrdinals[aCellOrdinal];
         for(Plato::OrdinalType tRowIndex = 0; tRowIndex < aNumRowsPerCell; tRowIndex++)
@@ -1522,7 +1522,7 @@ assemble_state_jacobian_transpose(
     auto tCellOrdinals = aDomain.cellOrdinals();
     Plato::OrdinalType tNumPoints = aJacobianWorkset.extent(1);
     Kokkos::parallel_for("assemble state jacobian transpose", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-    LAMBDA_EXPRESSION(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+    KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
     {
 
         auto tCellOrdinal = tCellOrdinals[iCellOrdinal];
@@ -1563,7 +1563,7 @@ assemble_transpose_jacobian(
           ReturnVal            & aReturnValue
 )
 {
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tRowIndex = 0; tRowIndex < aNumRowsPerCell; tRowIndex++)
         {

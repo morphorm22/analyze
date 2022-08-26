@@ -92,7 +92,7 @@ namespace Plato {
             auto tNodeMask = mNodeMask;
 
             auto tNumCells = mCellMask.extent(0);
-            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+            Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
             {
                 if (tCellMask(aCellOrdinal) == 1)
                 {
@@ -118,7 +118,7 @@ namespace Plato {
             Plato::ScalarMultiVector tCellCenters("cell centers", tNumCells, mSpaceDim);
 
             Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells),
-            LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+            KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
             {
                 for (Plato::OrdinalType tNode=0; tNode<mSpaceDim+1; tNode++)
                 {
@@ -161,7 +161,7 @@ namespace Plato {
             Plato::OrdinalType tSum(0);
             auto tNodeMask = mNodeMask;
             Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0,tNumEntries),
-            LAMBDA_EXPRESSION(const Plato::OrdinalType& aOrdinal, Plato::OrdinalType & aUpdate)
+            KOKKOS_LAMBDA(const Plato::OrdinalType& aOrdinal, Plato::OrdinalType & aUpdate)
             {
               aUpdate += tNodeMask(aOrdinal);
             }, tSum);
@@ -221,7 +221,7 @@ namespace Plato {
             auto tCellMask = mCellMask;
             auto tLimits = mLimits;
             auto tNumCells = tCellCenters.extent(0);
-            Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+            Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
             {
                 tCellMask(aCellOrdinal) = 1;
 

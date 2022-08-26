@@ -54,7 +54,7 @@ public:
     *
     *******************************************************************************/
     template<typename StateType>
-    DEVICE_TYPE inline StateType
+    KOKKOS_INLINE_FUNCTION StateType
     operator()(
         const Plato::OrdinalType                   & aCellOrdinal,
         const Plato::Array<mNumNodesPerCell>       & aBasisFunctions,
@@ -71,7 +71,7 @@ public:
     }
 
     template<typename InStateType, typename OutStateType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
         const Plato::OrdinalType                     & aCellOrdinal,
         const Plato::Array<mNumNodesPerCell>         & aBasisFunctions,
@@ -104,7 +104,7 @@ public:
     *
     *******************************************************************************/
     template<typename InStateType, typename OutStateType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
         const Plato::OrdinalType                     & aCellOrdinal,
         const Plato::Array<mNumNodesPerCell>         & aBasisFunctions,
