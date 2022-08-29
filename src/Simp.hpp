@@ -129,7 +129,7 @@ public:
     template<typename ScalarType>
     KOKKOS_INLINE_FUNCTION ScalarType operator()( const ScalarType & aInput ) const
     {
-        auto tOutput = mMinValue + ( (static_cast<ScalarType>(1.0) - mMinValue) * pow(aInput, mPenaltyParam) );
+        ScalarType tOutput = mMinValue + ( (static_cast<ScalarType>(1.0) - mMinValue) * pow(aInput, mPenaltyParam) );
         return tOutput;
     }
 };
