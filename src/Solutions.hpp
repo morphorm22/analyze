@@ -28,6 +28,9 @@ private:
     std::unordered_map<std::string, Plato::OrdinalType> mSolutionNameToNumDofsMap; /*!< map from state solution name to number of dofs */
     std::unordered_map<std::string, std::vector<std::string>> mSolutionNameToDofNamesMap; /*!< map from state solution name to dof names */
 
+    std::unordered_map<std::string, Plato::ScalarArray3D> mSolutionArray3D; /*!< map from state solution name to 3D POD array */
+    std::unordered_map<std::string, Plato::ScalarArray4D> mSolutionArray4D; /*!< map from state solution name to 4D POD array */
+
 public:
     /***************************************************************************//**
      * \fn Solutions
@@ -84,6 +87,24 @@ public:
      *
      * \brief Set value of an element in the solution map.
      * \param aTag  data tag
+     * \param aData 3D POD array
+     ******************************************************************************/
+    void set(const std::string& aTag, const Plato::ScalarArray3D& aData);
+
+    /***************************************************************************//**
+     * \fn void set
+     *
+     * \brief Set value of an element in the solution map.
+     * \param aTag  data tag
+     * \param aData 4D POD array
+     ******************************************************************************/
+    void set(const std::string& aTag, const Plato::ScalarArray4D& aData);
+
+    /***************************************************************************//**
+     * \fn void set
+     *
+     * \brief Set value of an element in the solution map.
+     * \param aTag  data tag
      * \param aData 2D POD array
      * \param aDofNames list of dof names
      ******************************************************************************/
@@ -99,6 +120,24 @@ public:
      * \param aTag data tag
      ******************************************************************************/
     Plato::ScalarMultiVector get(const std::string& aTag) const;
+
+    /***************************************************************************//**
+     * \fn void get
+     *
+     * \brief Return 3D POD array.
+     * \param aTag data tag
+     * \param aData data
+     ******************************************************************************/
+    void get(const std::string& aTag, Plato::ScalarArray3D & aData) const;
+
+    /***************************************************************************//**
+     * \fn void get
+     *
+     * \brief Return 4D POD array.
+     * \param aTag data tag
+     * \param aData data
+     ******************************************************************************/
+    void get(const std::string& aTag, Plato::ScalarArray4D & aData) const;
 
     /***************************************************************************//**
      * \fn void set number of degrees of freedom (dofs) per node in map

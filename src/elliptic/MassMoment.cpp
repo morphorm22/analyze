@@ -1,23 +1,25 @@
+#include "elliptic/MassMoment_decl.hpp"
 
-#include "elliptic/MassMoment.hpp"
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#ifdef PLATOANALYZE_1D
-template class Plato::Elliptic::MassMoment<Plato::ResidualTypes<Plato::SimplexMechanics<1>>>;
-template class Plato::Elliptic::MassMoment<Plato::JacobianTypes<Plato::SimplexMechanics<1>>>;
-template class Plato::Elliptic::MassMoment<Plato::GradientXTypes<Plato::SimplexMechanics<1>>>;
-template class Plato::Elliptic::MassMoment<Plato::GradientZTypes<Plato::SimplexMechanics<1>>>;
+#include "elliptic/MassMoment_def.hpp"
+
+#include "ThermalElement.hpp"
+#include "MechanicsElement.hpp"
+#include "ThermomechanicsElement.hpp"
+#include "ElectromechanicsElement.hpp"
+#include "elliptic/ExpInstMacros.hpp"
+
+PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::MassMoment, Plato::ThermalElement)
+PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::MassMoment, Plato::MechanicsElement)
+PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::MassMoment, Plato::ThermomechanicsElement)
+PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::MassMoment, Plato::ElectromechanicsElement)
+
+#ifdef PLATO_STABILIZED
+  #include "stabilized/MechanicsElement.hpp"
+  #include "stabilized/ThermomechanicsElement.hpp"
+  PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::MassMoment, Plato::Stabilized::MechanicsElement)
+  PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::MassMoment, Plato::Stabilized::ThermomechanicsElement)
 #endif
 
-#ifdef PLATOANALYZE_2D
-template class Plato::Elliptic::MassMoment<Plato::ResidualTypes<Plato::SimplexMechanics<2>>>;
-template class Plato::Elliptic::MassMoment<Plato::JacobianTypes<Plato::SimplexMechanics<2>>>;
-template class Plato::Elliptic::MassMoment<Plato::GradientXTypes<Plato::SimplexMechanics<2>>>;
-template class Plato::Elliptic::MassMoment<Plato::GradientZTypes<Plato::SimplexMechanics<2>>>;
-#endif
-
-#ifdef PLATOANALYZE_3D
-template class Plato::Elliptic::MassMoment<Plato::ResidualTypes<Plato::SimplexMechanics<3>>>;
-template class Plato::Elliptic::MassMoment<Plato::JacobianTypes<Plato::SimplexMechanics<3>>>;
-template class Plato::Elliptic::MassMoment<Plato::GradientXTypes<Plato::SimplexMechanics<3>>>;
-template class Plato::Elliptic::MassMoment<Plato::GradientZTypes<Plato::SimplexMechanics<3>>>;
 #endif

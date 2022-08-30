@@ -25,7 +25,8 @@ namespace Plato
  * \brief Derived class for PBC multipoint constraint
  *
 **********************************************************************************/
-class PbcMultipointConstraint : public Plato::MultipointConstraint
+template<typename ElementT>
+class PbcMultipointConstraint : public MultipointConstraint
 {
 
 public:
@@ -64,12 +65,12 @@ public:
                         const Plato::OrdinalVectorT<const Plato::OrdinalType>& tChildNodeLids);
 
     // ! Perform translation mapping from child nodes to parent locations
-    void mapChildVertexLocations(Plato::Mesh         aMesh,
-                                 const Plato::Scalar aTranslationX,
-                                 const Plato::Scalar aTranslationY,
-                                 const Plato::Scalar aTranslationZ,
-                                 Plato::ScalarMultiVector & aLocations,
-                                 Plato::ScalarMultiVector & aMappedLocations);
+    void
+    mapChildVertexLocations(
+            Plato::Mesh                               aMesh,
+      const Plato::Array<ElementT::mNumSpatialDims>   aTranslation,
+            Plato::ScalarMultiVector                & aLocations,
+            Plato::ScalarMultiVector                & aMappedLocations);
     
     // ! Use mapped parent elements to find global IDs of unique parent nodes
     void getUniqueParentNodes(Plato::Mesh     aMesh,

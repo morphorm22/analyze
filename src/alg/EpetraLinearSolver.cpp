@@ -258,7 +258,7 @@ EpetraLinearSolver::setupSolver(AztecOO& aSolver)
         tSolverType = mSolverParams.get<std::string>("Solver");
     std::string tLowerSolverType = Plato::tolower(tSolverType);
 
-    aSolver.SetAztecOption(AZ_output, 0); // Previously used tDisplayIterations here but now perform our own output.
+    aSolver.SetAztecOption(AZ_output, 1); // Previously used tDisplayIterations here but now perform our own output.
     aSolver.SetAztecOption(AZ_subdomain_solve, AZ_ilu);
     aSolver.SetAztecOption(AZ_precond, AZ_dom_decomp);
     if (tLowerSolverType == "gmres")

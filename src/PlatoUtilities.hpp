@@ -13,7 +13,9 @@
 #include "Variables.hpp"
 #include <typeinfo>
 
+#ifdef USE_OMEGAH_MESH
 #include <Omega_h_shape.hpp>
+#endif
 
 namespace Plato
 {
@@ -57,6 +59,7 @@ calculate_element_size
  const Plato::OrdinalVectorT<const Plato::OrdinalType> & aConnectivity,
  const Plato::OrdinalVectorT<const Plato::Scalar> & aCoordinates)
 {
+#ifdef USE_OMEGAH_MESH
     Omega_h::Few<Omega_h::Vector<NumSpatialDims>, NumNodesPerCell> tElemCoords;
     for(Plato::OrdinalType tNode = 0; tNode < NumNodesPerCell; tNode++)
     {
@@ -69,6 +72,9 @@ calculate_element_size
     auto tSphere = Omega_h::get_inball(tElemCoords);
 
     return (static_cast<Plato::Scalar>(2.0) * tSphere.r);
+#else
+    ANALYZE_THROWERR("Omega-h is disabled. calculate_element_size() is not available");
+#endif
 }
 // function calculate_element_size
 

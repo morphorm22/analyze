@@ -1,20 +1,25 @@
-#include "elliptic/DivisionFunction.hpp"
+#include "elliptic/DivisionFunction_decl.hpp"
 
-#ifdef PLATOANALYZE_1D
-template class Plato::Elliptic::DivisionFunction<::Plato::Thermal<1>>;
-template class Plato::Elliptic::DivisionFunction<::Plato::Mechanics<1>>;
-template class Plato::Elliptic::DivisionFunction<::Plato::Electromechanics<1>>;
-template class Plato::Elliptic::DivisionFunction<::Plato::Thermomechanics<1>>;
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
+
+#include "elliptic/DivisionFunction_def.hpp"
+
+#include "Thermal.hpp"
+#include "Mechanics.hpp"
+#include "Thermomechanics.hpp"
+#include "Electromechanics.hpp"
+#include "BaseExpInstMacros.hpp"
+
+PLATO_ELEMENT_DEF(Plato::Elliptic::DivisionFunction, Plato::Thermal)
+PLATO_ELEMENT_DEF(Plato::Elliptic::DivisionFunction, Plato::Mechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::DivisionFunction, Plato::Thermomechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::DivisionFunction, Plato::Electromechanics)
+
+#ifdef PLATO_STABILIZED
+  #include "stabilized/Mechanics.hpp"
+  #include "stabilized/Thermomechanics.hpp"
+  PLATO_ELEMENT_DEF(Plato::Elliptic::DivisionFunction, Plato::Stabilized::Mechanics)
+  PLATO_ELEMENT_DEF(Plato::Elliptic::DivisionFunction, Plato::Stabilized::Thermomechanics)
 #endif
-#ifdef PLATOANALYZE_2D
-template class Plato::Elliptic::DivisionFunction<::Plato::Thermal<2>>;
-template class Plato::Elliptic::DivisionFunction<::Plato::Mechanics<2>>;
-template class Plato::Elliptic::DivisionFunction<::Plato::Electromechanics<2>>;
-template class Plato::Elliptic::DivisionFunction<::Plato::Thermomechanics<2>>;
-#endif
-#ifdef PLATOANALYZE_3D
-template class Plato::Elliptic::DivisionFunction<::Plato::Thermal<3>>;
-template class Plato::Elliptic::DivisionFunction<::Plato::Mechanics<3>>;
-template class Plato::Elliptic::DivisionFunction<::Plato::Electromechanics<3>>;
-template class Plato::Elliptic::DivisionFunction<::Plato::Thermomechanics<3>>;
+
 #endif

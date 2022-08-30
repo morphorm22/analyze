@@ -6,13 +6,10 @@
 
 #include "Teuchos_UnitTestHarness.hpp"
 #include "PlatoTestHelpers.hpp"
-#include "Solutions.hpp"
 #include "Analyze_Diagnostics.hpp"
 #include "elliptic/Problem.hpp"
-#include "elliptic/WeightedSumFunction.hpp"
-#include "elliptic/PhysicsScalarFunction.hpp"
-#include "elliptic/VolumeAverageCriterion.hpp"
 
+#include "Mechanics.hpp"
 
 namespace VolumeAverageCriterionTests
 {
@@ -20,7 +17,6 @@ namespace VolumeAverageCriterionTests
 TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressAxial_3D)
 {
     const bool tOutputData = false;
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     const Plato::Scalar tBoxWidth = 2.0;
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
@@ -55,6 +51,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressAxial_
       "    </ParameterList>                                                                     \n"
       "  </ParameterList>                                                                       \n"
       "  <ParameterList name='Elliptic'>                                                        \n"
+      "    <Parameter name='Plottable' type='Array(string)' value='{Vonmises}'/>                \n"
       "    <ParameterList name='Penalty Function'>                                              \n"
       "      <Parameter name='Type' type='string' value='SIMP'/>                                \n"
       "      <Parameter name='Exponent' type='double' value='3.0'/>                             \n"
@@ -106,7 +103,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressAxial_
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    using PhysicsT = Plato::Mechanics<tSpaceDim>;
+    using PhysicsT = Plato::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);
@@ -146,7 +143,6 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressAxial_
 TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressShear_3D)
 {
     const bool tOutputData = false;
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     const Plato::Scalar tBoxWidth = 2.0;
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
@@ -238,7 +234,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressShear_
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    using PhysicsT = Plato::Mechanics<tSpaceDim>;
+    using PhysicsT = Plato::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);
@@ -280,7 +276,6 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressShear_
 
 TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressGradientZ_3D)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     const Plato::Scalar tBoxWidth = 2.0;
     const Plato::OrdinalType tNumElemX = 5;
     const Plato::OrdinalType tNumElemY = 1;
@@ -366,7 +361,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressGradie
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    using PhysicsT = Plato::Mechanics<tSpaceDim>;
+    using PhysicsT = Plato::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);
@@ -380,7 +375,6 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressGradie
 TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyAxial_3D)
 {
     const bool tOutputData = false;
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     const Plato::Scalar tBoxWidth = 2.0;
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
@@ -466,7 +460,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyAxial_3
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    using PhysicsT = Plato::Mechanics<tSpaceDim>;
+    using PhysicsT = Plato::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);
@@ -506,7 +500,6 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyAxial_3
 TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyShear_3D)
 {
     const bool tOutputData = false;
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     const Plato::Scalar tBoxWidth = 2.0;
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
@@ -598,7 +591,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyShear_3
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    using PhysicsT = Plato::Mechanics<tSpaceDim>;
+    using PhysicsT = Plato::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);
@@ -640,7 +633,6 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyShear_3
 
 TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyGradientZ_3D)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     const Plato::Scalar tBoxWidth = 2.0;
     const Plato::OrdinalType tNumElemX = 5;
     const Plato::OrdinalType tNumElemY = 1;
@@ -726,7 +718,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyGradien
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    using PhysicsT = Plato::Mechanics<tSpaceDim>;
+    using PhysicsT = Plato::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);

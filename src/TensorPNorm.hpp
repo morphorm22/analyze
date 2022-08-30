@@ -4,7 +4,6 @@
 #include <Teuchos_ParameterList.hpp>
 
 #include "PlatoStaticsTypes.hpp"
-#include "SimplexFadTypes.hpp"
 
 namespace Plato
 {
@@ -382,18 +381,17 @@ public:
                   Plato::ScalarMultiVectorT<typename EvalT::ControlScalarType> control,
                   Plato::ScalarVectorT<typename EvalT::ConfigScalarType> cellVolume) const
     {
+        auto& tTensorPNorm = mTensorPNorm;
         Plato::OrdinalType numCells = result.extent(0);
         auto exponent = TensorNormBase<VoigtLength, EvalT>::mExponent;
-        auto& tTensorPNorm = mTensorPNorm;
         Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, numCells),
-                             KOKKOS_LAMBDA(Plato::OrdinalType cellOrdinal)
-                             {
-                                 // compute tensor p-norm of tensor
-                                 //
-                                 tTensorPNorm(cellOrdinal, result, tensor, exponent, cellVolume);
+        KOKKOS_LAMBDA(Plato::OrdinalType cellOrdinal)
+        {
+            // compute tensor p-norm of tensor
+            //
+            tTensorPNorm(cellOrdinal, result, tensor, exponent, cellVolume);
 
-                             },
-                             "Compute PNorm");
+        }, "Compute PNorm");
     }
 };
 // class TensorPNorm

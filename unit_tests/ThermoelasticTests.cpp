@@ -20,19 +20,16 @@
 #include <alg/CrsLinearProblem.hpp>
 #include <alg/ParallelComm.hpp>
 
-#include "Simp.hpp"
+#include "Mechanics.hpp"
 #include "Solutions.hpp"
 #include "ScalarProduct.hpp"
-#include "SimplexFadTypes.hpp"
 #include "WorksetBase.hpp"
 #include "elliptic/VectorFunction.hpp"
 #include "elliptic/PhysicsScalarFunction.hpp"
 #include "elliptic/Problem.hpp"
 #include "StateValues.hpp"
 #include "ApplyConstraints.hpp"
-#include "SimplexThermomechanics.hpp"
 #include "Thermomechanics.hpp"
-#include "ComputedField.hpp"
 #include "ImplicitFunctors.hpp"
 #include "LinearThermoelasticMaterial.hpp"
 
@@ -124,7 +121,7 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
 
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *params);
-  Plato::Elliptic::VectorFunction<::Plato::Thermomechanics<spaceDim>>
+  Plato::Elliptic::VectorFunction<::Plato::Thermomechanics<Plato::Tet4>>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
 
 
@@ -254,7 +251,7 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   // create objective
   //
   std::string tMyFunction("Internal Thermoelastic Energy");
-  Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermomechanics<spaceDim>>
+  Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermomechanics<Plato::Tet4>>
     scalarFunction(tSpatialModel, tDataMap, *params, tMyFunction);
 
   // compute and test objective value
@@ -359,7 +356,6 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormAxial_3D)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
@@ -460,7 +456,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormAxial_3D)
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Add sidesets
-    using PhysicsT = Plato::Mechanics<tSpaceDim>;
+    using PhysicsT = Plato::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tEllipticProblem(tMesh, *tParamList, tMachine);
     tEllipticProblem.readEssentialBoundaryConditions(*tParamList);
@@ -520,7 +516,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormAxial_3D)
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormShear_3D)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
@@ -627,7 +622,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormShear_3D)
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    using PhysicsT = Plato::Mechanics<tSpaceDim>;
+    using PhysicsT = Plato::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tEllipticProblem(tMesh, *tParamList, tMachine);
     tEllipticProblem.readEssentialBoundaryConditions(*tParamList);

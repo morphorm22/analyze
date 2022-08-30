@@ -3,9 +3,7 @@
 #include <memory>
 
 #include "AbstractPlatoMesh.hpp"
-
-#include <data_mesh.hpp>
-#include <data_container.hpp>
+#include "mesh/ExodusIO.hpp"
 
 namespace Plato
 {
@@ -15,8 +13,8 @@ namespace Plato
         friend EngineMeshIO;
 
         std::string mFileName;
-        std::shared_ptr<DataMesh> mMesh;
-        std::shared_ptr<DataContainer> mDataContainer;
+        std::string mElementType;
+        std::shared_ptr<ExodusIO> mMeshIO;
 
         Plato::OrdinalType mNumNodes;
         Plato::OrdinalType mNumElements;
@@ -64,6 +62,7 @@ namespace Plato
             ~EngineMesh();
 
             std::string FileName() const override;
+            std::string ElementType() const override;
             Plato::OrdinalType NumNodes() const override;
             Plato::OrdinalType NumElements() const override;
             Plato::OrdinalType NumNodesPerElement() const override;

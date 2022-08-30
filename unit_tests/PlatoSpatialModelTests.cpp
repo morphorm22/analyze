@@ -10,7 +10,9 @@
 #include "PlatoTestHelpers.hpp"
 #include "Teuchos_UnitTestHarness.hpp"
 
+#include "Tet4.hpp"
 #include "PlatoMask.hpp"
+#include "MechanicsElement.hpp"
 #include "SpatialModel.hpp"
 #include "BLAS1.hpp"
 #include "WorksetBase.hpp"
@@ -249,6 +251,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, DefaultBlockWorksetControlUnchanged)
   constexpr int spaceDim=3;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
+  using ElementType = Plato::MechanicsElement<Plato::Tet4>;
+
   // create spatial model
   //
   Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
@@ -262,9 +266,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, DefaultBlockWorksetControlUnchanged)
   // workset control
   //
   auto tNumCells = tMesh->NumElements();
-  constexpr int tNumNodesPerCell = Plato::SimplexMechanics<spaceDim>::mNumNodesPerCell;
+  constexpr int tNumNodesPerCell = ElementType::mNumNodesPerCell;
 
-  Plato::WorksetBase<Plato::SimplexMechanics<spaceDim>> tWorksetBase(tMesh);
+  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
   Plato::ScalarMultiVectorT<Plato::Scalar> tControlWS("control workset", tNumCells, tNumNodesPerCell);
   tWorksetBase.worksetControl(tControl, tControlWS, tSpatialModel.Domains[0]);
 
@@ -315,6 +319,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, FixedBlockWorksetControlGivesOnes)
   constexpr int spaceDim=3;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
+  using ElementType = Plato::MechanicsElement<Plato::Tet4>;
+
   // create spatial model
   //
   Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
@@ -328,9 +334,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, FixedBlockWorksetControlGivesOnes)
   // workset control
   //
   auto tNumCells = tMesh->NumElements();
-  constexpr int tNumNodesPerCell = Plato::SimplexMechanics<spaceDim>::mNumNodesPerCell;
+  constexpr int tNumNodesPerCell = ElementType::mNumNodesPerCell;
 
-  Plato::WorksetBase<Plato::SimplexMechanics<spaceDim>> tWorksetBase(tMesh);
+  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
   Plato::ScalarMultiVectorT<Plato::Scalar> tControlWS("control workset", tNumCells, tNumNodesPerCell);
   tWorksetBase.worksetControl(tControl, tControlWS, tSpatialModel.Domains[0]);
 

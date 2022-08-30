@@ -9,6 +9,7 @@
 
 #include "PlatoTestHelpers.hpp"
 
+#include "Tet4.hpp"
 #include "Geometrical.hpp"
 
 #include <iostream>
@@ -60,8 +61,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Misfit)
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
-    using GeometryT = typename Plato::Geometrical<tSpaceDim>;
-    using ResidualT = typename Plato::Geometric::Evaluation<typename GeometryT::SimplexT>::Residual;
+    using ElementType = typename Plato::GeometricalElement<Plato::Tet4>;
+    using ResidualT = typename Plato::Geometric::Evaluation<ElementType>::Residual;
 
     Plato::DataMap tDataMap;
     std::string tFunctionName("Geometry Misfit");
@@ -99,16 +100,16 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Misfit)
     }
 
     const Plato::OrdinalType tNumCells = tMesh->NumElements();
-    Plato::ScalarMultiVectorT<ResidualT::ControlScalarType> tControlWS("design variables", tNumCells, GeometryT::mNumNodesPerCell);
+    Plato::ScalarMultiVectorT<ResidualT::ControlScalarType> tControlWS("design variables", tNumCells, ElementType::mNumNodesPerCell);
     Kokkos::deep_copy(tControlWS, 1.0);
 
     // evaluate the function
     //
-    using WorksetBaseT = typename Plato::Geometric::WorksetBase<GeometryT>;
+    using WorksetBaseT = typename Plato::Geometric::WorksetBase<ElementType>;
     WorksetBaseT tWorksetBase(tMesh);
 
     {
-        Plato::ScalarArray3DT<ResidualT::ConfigScalarType> tConfigWS("configuration", tNumCells, GeometryT::mNumNodesPerCell, tSpaceDim);
+        Plato::ScalarArray3DT<ResidualT::ConfigScalarType> tConfigWS("configuration", tNumCells, ElementType::mNumNodesPerCell, tSpaceDim);
         tWorksetBase.worksetConfig(tConfigWS, tOnlyDomain);
 
         Plato::ScalarVectorT<ResidualT::ResultScalarType> tResultWS("result", tNumCells);
@@ -128,10 +129,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Misfit)
 
 
     {
-        using GradientX = typename Plato::Geometric::Evaluation<typename GeometryT::SimplexT>::GradientX;
+        using GradientX = typename Plato::Geometric::Evaluation<ElementType>::GradientX;
         auto tGeometryMisfit_GradientX = Plato::Geometric::GeometryMisfit<GradientX>(tOnlyDomain, tDataMap, *tParamList, tFunctionName);
 
-        Plato::ScalarArray3DT<GradientX::ConfigScalarType> tConfigWS("configuration", tNumCells, GeometryT::mNumNodesPerCell, tSpaceDim);
+        Plato::ScalarArray3DT<GradientX::ConfigScalarType> tConfigWS("configuration", tNumCells, ElementType::mNumNodesPerCell, tSpaceDim);
         tWorksetBase.worksetConfig(tConfigWS, tOnlyDomain);
 
         Plato::ScalarVectorT<GradientX::ResultScalarType> tResultWS("result", tNumCells);

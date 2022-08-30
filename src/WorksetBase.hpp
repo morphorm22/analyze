@@ -4,8 +4,8 @@
 #include <cassert>
 
 #include "ImplicitFunctors.hpp"
-#include "SimplexFadTypes.hpp"
 #include "AnalyzeMacros.hpp"
+#include "FadTypes.hpp"
 #include "BLAS1.hpp"
 
 #include "Assembly.hpp"
@@ -18,36 +18,35 @@ namespace Plato
 /*! Base class for workset functionality.
 */
 /******************************************************************************/
-template<typename SimplexPhysics>
-class WorksetBase : public SimplexPhysics
+template<typename ElementType>
+class WorksetBase : public ElementType
 {
 protected:
     Plato::OrdinalType mNumCells; /*!< local number of elements */
     Plato::OrdinalType mNumNodes; /*!< local number of nodes */
 
-    using SimplexPhysics::mNumDofsPerNode;      /*!< number of degrees of freedom per node */
-    using SimplexPhysics::mNumControl;          /*!< number of control vectors, i.e. materials */
-    using SimplexPhysics::mNumNodesPerCell;     /*!< number of nodes per element */
-    using SimplexPhysics::mNumDofsPerCell;      /*!< number of global degrees of freedom, e.g. displacements, per element  */
-    using SimplexPhysics::mNumLocalDofsPerCell; /*!< number of local degrees of freedom, e.g. plasticity variables, per element  */
-    using SimplexPhysics::mNumNodeStatePerNode; /*!< number of pressure states per node  */
+    using ElementType::mNumDofsPerNode;      /*!< number of degrees of freedom per node */
+    using ElementType::mNumControl;          /*!< number of control vectors, i.e. materials */
+    using ElementType::mNumNodesPerCell;     /*!< number of nodes per element */
+    using ElementType::mNumDofsPerCell;      /*!< number of global degrees of freedom, e.g. displacements, per element  */
+    using ElementType::mNumLocalDofsPerCell; /*!< number of local degrees of freedom, e.g. plasticity variables, per element  */
+    using ElementType::mNumNodeStatePerNode; /*!< number of pressure states per node  */
 
-    using StateFad      = typename Plato::SimplexFadTypes<SimplexPhysics>::StateFad;          /*!< global state AD type */
-    using LocalStateFad = typename Plato::SimplexFadTypes<SimplexPhysics>::LocalStateFad;     /*!< local state AD type */
-    using NodeStateFad  = typename Plato::SimplexFadTypes<SimplexPhysics>::NodeStateFad;      /*!< node state AD type */
-    using ControlFad    = typename Plato::SimplexFadTypes<SimplexPhysics>::ControlFad;        /*!< control AD type */
-    using ConfigFad     = typename Plato::SimplexFadTypes<SimplexPhysics>::ConfigFad;         /*!< configuration AD type */
+    using StateFad      = typename Plato::FadTypes<ElementType>::StateFad;          /*!< global state AD type */
+    using LocalStateFad = typename Plato::FadTypes<ElementType>::LocalStateFad;     /*!< local state AD type */
+    using NodeStateFad  = typename Plato::FadTypes<ElementType>::NodeStateFad;      /*!< node state AD type */
+    using ControlFad    = typename Plato::FadTypes<ElementType>::ControlFad;        /*!< control AD type */
+    using ConfigFad     = typename Plato::FadTypes<ElementType>::ConfigFad;         /*!< configuration AD type */
 
-    static constexpr Plato::OrdinalType mSpaceDim = SimplexPhysics::mNumSpatialDims;          /*!< number of spatial dimensions */
+    static constexpr Plato::OrdinalType mSpaceDim = ElementType::mNumSpatialDims;          /*!< number of spatial dimensions */
     static constexpr Plato::OrdinalType mNumConfigDofsPerCell = mSpaceDim * mNumNodesPerCell; /*!< number of configuration degrees of freedom per element  */
 
-    Plato::VectorEntryOrdinal<mSpaceDim,mNumDofsPerNode>      mGlobalStateEntryOrdinal; /*!< local-to-global ID map for global state */
-    Plato::VectorEntryOrdinal<mSpaceDim,mNumLocalDofsPerCell> mLocalStateEntryOrdinal;  /*!< local-to-global ID map for local state */
-    Plato::VectorEntryOrdinal<mSpaceDim,mNumNodeStatePerNode> mNodeStateEntryOrdinal;   /*!< local-to-global ID map for node state */
-    Plato::VectorEntryOrdinal<mSpaceDim,mNumControl>          mControlEntryOrdinal;     /*!< local-to-global ID map for control */
-    Plato::VectorEntryOrdinal<mSpaceDim,mSpaceDim>            mConfigEntryOrdinal;      /*!< local-to-global ID map for configuration */
+    Plato::VectorEntryOrdinal<mSpaceDim, mNumDofsPerNode,      mNumNodesPerCell> mGlobalStateEntryOrdinal; /*!< local-to-global ID map for global state */
+    Plato::VectorEntryOrdinal<mSpaceDim, mNumNodeStatePerNode, mNumNodesPerCell> mNodeStateEntryOrdinal;   /*!< local-to-global ID map for node state */
+    Plato::VectorEntryOrdinal<mSpaceDim, mNumControl,          mNumNodesPerCell> mControlEntryOrdinal;     /*!< local-to-global ID map for control */
+    Plato::VectorEntryOrdinal<mSpaceDim, mSpaceDim,            mNumNodesPerCell> mConfigEntryOrdinal;      /*!< local-to-global ID map for configuration */
 
-    Plato::NodeCoordinate<mSpaceDim> mNodeCoordinate; /*!< node coordinates database */
+    Plato::NodeCoordinate<mSpaceDim, mNumNodesPerCell> mNodeCoordinate; /*!< node coordinates database */
 
 public:
     /******************************************************************************//**
@@ -75,12 +74,11 @@ public:
     WorksetBase(Plato::Mesh aMesh) :
             mNumCells(aMesh->NumElements()),
             mNumNodes(aMesh->NumNodes()),
-            mGlobalStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumDofsPerNode>(aMesh)),
-            mLocalStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumLocalDofsPerCell>(aMesh)),
-            mNodeStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumNodeStatePerNode>(aMesh)),
-            mControlEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumControl>(aMesh)),
-            mConfigEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mSpaceDim>(aMesh)),
-            mNodeCoordinate(Plato::NodeCoordinate<mSpaceDim>(aMesh))
+            mGlobalStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumDofsPerNode, mNumNodesPerCell>(aMesh)),
+            mNodeStateEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumNodeStatePerNode, mNumNodesPerCell>(aMesh)),
+            mControlEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mNumControl, mNumNodesPerCell>(aMesh)),
+            mConfigEntryOrdinal(Plato::VectorEntryOrdinal<mSpaceDim, mSpaceDim, mNumNodesPerCell>(aMesh)),
+            mNodeCoordinate(Plato::NodeCoordinate<mSpaceDim, mNumNodesPerCell>(aMesh))
     {
     }
 
@@ -238,8 +236,11 @@ public:
      * \param [in] aLocalState local state (scalar type), as a 1-D Kokkos::View
      * \param [in/out] aLocalStateWS local state workset (scalar type), as a 2-D Kokkos::View
     **********************************************************************************/
-    void worksetLocalState( const Plato::ScalarVectorT<Plato::Scalar> & aLocalState,
-                                  Plato::ScalarMultiVectorT<Plato::Scalar> & aLocalStateWS ) const
+    void
+    worksetLocalState(
+        const Plato::ScalarArray3DT<Plato::Scalar> & aLocalState,
+              Plato::ScalarArray3DT<Plato::Scalar> & aLocalStateWS
+    ) const
     {
       Plato::workset_local_state_scalar_scalar<mNumLocalDofsPerCell>(
               mNumCells, aLocalState, aLocalStateWS);
@@ -252,9 +253,9 @@ public:
     **********************************************************************************/
     void
     worksetLocalState(
-        const Plato::ScalarVectorT<Plato::Scalar>      & aLocalState,
-              Plato::ScalarMultiVectorT<Plato::Scalar> & aLocalStateWS,
-        const Plato::SpatialDomain                     & aDomain
+        const Plato::ScalarArray3DT<Plato::Scalar> & aLocalState,
+              Plato::ScalarArray3DT<Plato::Scalar> & aLocalStateWS,
+        const Plato::SpatialDomain                 & aDomain
     ) const
     {
       Plato::workset_local_state_scalar_scalar<mNumLocalDofsPerCell>(
@@ -266,8 +267,11 @@ public:
      * \param [in] aLocalState local state (scalar type), as a 1-D Kokkos::View
      * \param [in/out] aFadLocalStateWS local state workset (AD type), as a 2-D Kokkos::View
     **********************************************************************************/
-    void worksetLocalState( const Plato::ScalarVectorT<Plato::Scalar> & aLocalState,
-                            Plato::ScalarMultiVectorT<LocalStateFad>  & aFadLocalStateWS ) const
+    void
+    worksetLocalState(
+        const Plato::ScalarArray3DT<Plato::Scalar> & aLocalState,
+              Plato::ScalarArray3DT<LocalStateFad> & aFadLocalStateWS
+    ) const
     {
       Plato::workset_local_state_scalar_fad<mNumLocalDofsPerCell, LocalStateFad>(
               mNumCells, aLocalState, aFadLocalStateWS);
@@ -280,9 +284,9 @@ public:
     **********************************************************************************/
     void
     worksetLocalState(
-        const Plato::ScalarVectorT<Plato::Scalar>      & aLocalState,
-              Plato::ScalarMultiVectorT<LocalStateFad> & aFadLocalStateWS,
-        const Plato::SpatialDomain                     & aDomain
+        const Plato::ScalarArray3DT<Plato::Scalar> & aLocalState,
+              Plato::ScalarArray3DT<LocalStateFad> & aFadLocalStateWS,
+        const Plato::SpatialDomain                 & aDomain
     ) const
     {
       Plato::workset_local_state_scalar_fad<mNumLocalDofsPerCell, LocalStateFad>(
@@ -422,7 +426,7 @@ public:
     ) const
     {
         Plato::assemble_residual<mNumNodesPerCell, mNumDofsPerNode>
-            (aDomain, WorksetBase<SimplexPhysics>::mGlobalStateEntryOrdinal, aResidualWorkset, aReturnValue);
+            (aDomain, WorksetBase<ElementType>::mGlobalStateEntryOrdinal, aResidualWorkset, aReturnValue);
     }
 
     /******************************************************************************//**
@@ -441,7 +445,7 @@ public:
     ) const
     {
         Plato::assemble_residual<mNumNodesPerCell, mNumDofsPerNode>
-            (mNumCells, WorksetBase<SimplexPhysics>::mGlobalStateEntryOrdinal, aResidualWorkset, aReturnValue);
+            (mNumCells, WorksetBase<ElementType>::mGlobalStateEntryOrdinal, aResidualWorkset, aReturnValue);
     }
 
     /******************************************************************************//**
@@ -684,6 +688,61 @@ public:
     ) const
     {
         Plato::assemble_transpose_jacobian
+            (mNumCells, aNumRowsPerCell, aNumColumnsPerCell, aMatrixEntryOrdinal, aJacobianWorkset, aReturnValue);
+    }
+
+    /******************************************************************************//**
+     * \brief Assemble transpose Jacobian
+     *
+     * \tparam MatrixEntriesOrdinalType Input container of matrix ordinal
+     * \tparam JacobianWorksetType Input container, as a 2-D Kokkos::View
+     * \tparam AssembledJacobianType Output container, as a 1-D Kokkos::View
+     *
+     * \param [in] aNumRowsPerCell     number of rows per matrix - (use row count from untransposed matrix)
+     * \param [in] aNumColumnsPerCell  number of columns per matrix - (use column count from untransposed matrix)
+     * \param [in] aMatrixEntryOrdinal Jacobian entry ordinal (i.e. local-to-global ID map)
+     * \param [in] aJacobianWorkset    workset of cell Jacobians
+     * \param [in/out] aReturnValue    assembled transposed Jacobian
+    **********************************************************************************/
+    template<class MatrixEntriesOrdinalType, class JacobianWorksetType, class AssembledJacobianType>
+    void
+    assembleStateJacobianTranspose(
+              Plato::OrdinalType         aNumRowsPerCell,
+              Plato::OrdinalType         aNumColumnsPerCell,
+        const MatrixEntriesOrdinalType & aMatrixEntryOrdinal,
+        const JacobianWorksetType      & aJacobianWorkset,
+              AssembledJacobianType    & aReturnValue,
+        const Plato::SpatialDomain     & aDomain
+    ) const
+    {
+        Plato::assemble_state_jacobian_transpose
+            (aDomain, aNumRowsPerCell, aNumColumnsPerCell, aMatrixEntryOrdinal, aJacobianWorkset, aReturnValue);
+    }
+
+    /******************************************************************************//**
+     * \brief Assemble transpose Jacobian
+     *
+     * \tparam MatrixEntriesOrdinalType Input container of matrix ordinal
+     * \tparam JacobianWorksetType Input container, as a 2-D Kokkos::View
+     * \tparam AssembledJacobianType Output container, as a 1-D Kokkos::View
+     *
+     * \param [in] aNumRowsPerCell     number of rows per matrix - (use row count from untransposed matrix)
+     * \param [in] aNumColumnsPerCell  number of columns per matrix - (use column count from untransposed matrix)
+     * \param [in] aMatrixEntryOrdinal Jacobian entry ordinal (i.e. local-to-global ID map)
+     * \param [in] aJacobianWorkset    workset of cell Jacobians
+     * \param [in/out] aReturnValue    assembled transposed Jacobian
+    **********************************************************************************/
+    template<class MatrixEntriesOrdinalType, class JacobianWorksetType, class AssembledJacobianType>
+    void
+    assembleStateJacobianTranspose(
+              Plato::OrdinalType         aNumRowsPerCell,
+              Plato::OrdinalType         aNumColumnsPerCell,
+        const MatrixEntriesOrdinalType & aMatrixEntryOrdinal,
+        const JacobianWorksetType      & aJacobianWorkset,
+              AssembledJacobianType    & aReturnValue
+    ) const
+    {
+        Plato::assemble_state_jacobian_transpose
             (mNumCells, aNumRowsPerCell, aNumColumnsPerCell, aMatrixEntryOrdinal, aJacobianWorkset, aReturnValue);
     }
 

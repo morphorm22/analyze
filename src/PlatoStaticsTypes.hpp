@@ -48,12 +48,16 @@ using ScalarMultiVectorT = typename Kokkos::View<ScalarType**, Plato::Layout, Pl
 using ScalarMultiVector  = ScalarMultiVectorT<Plato::Scalar>;
 
 template <typename ScalarType>
-using HostMultiScalarVectorT = typename Kokkos::View<ScalarType**, Kokkos::HostSpace>;
-using HostMultiScalarVector  = HostMultiScalarVectorT<Plato::Scalar>;
+using HostScalarMultiVectorT = typename Kokkos::View<ScalarType**, Kokkos::HostSpace>;
+using HostScalarMultiVector  = HostScalarMultiVectorT<Plato::Scalar>;
 
 template <typename ScalarType>
 using ScalarArray3DT = typename Kokkos::View<ScalarType***, Plato::Layout, Plato::MemSpace>;
 using ScalarArray3D  = ScalarArray3DT<Plato::Scalar>;
+
+template <typename ScalarType>
+using ScalarArray4DT = typename Kokkos::View<ScalarType****, Plato::Layout, Plato::MemSpace>;
+using ScalarArray4D  = ScalarArray4DT<Plato::Scalar>;
 
 template <typename ScalarType>
 using HostScalarArray3DT = typename Kokkos::View<ScalarType***, Kokkos::HostSpace>;

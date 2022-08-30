@@ -10,9 +10,12 @@
 
 #include "ElasticModelFactory.hpp"
 #include "CubicLinearElasticMaterial.hpp"
-#include "CustomLinearElasticMaterial.hpp"
 #include "IsotropicLinearElasticMaterial.hpp"
 #include "OrthotropicLinearElasticMaterial.hpp"
+
+#ifdef PLATO_CUSTOM_MATERIALS
+#include "CustomLinearElasticMaterial.hpp"
+#endif
 
 namespace Plato
 {
@@ -69,7 +72,11 @@ public:
             }
             else if(tModelParamList.isSublist("Custom Linear Elastic"))
             {
+#ifdef PLATO_CUSTOM_MATERIALS
                 return Teuchos::rcp(new Plato::CustomLinearElasticMaterial<SpatialDim>(tModelParamList.sublist("Custom Linear Elastic")));
+#else
+                ANALYZE_THROWERR("Plato Analyze was compiled without 'Custom Linear Elastic'");
+#endif
             }
             else if(tModelParamList.isSublist("Orthotropic Linear Elastic"))
             {

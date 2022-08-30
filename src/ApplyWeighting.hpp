@@ -1,7 +1,7 @@
 #ifndef APPLY_WEIGHTING_HPP
 #define APPLY_WEIGHTING_HPP
 
-#include "Simplex.hpp"
+#include "PlatoMathTypes.hpp"
 #include "PlatoStaticsTypes.hpp"
 
 namespace Plato
@@ -14,11 +14,10 @@ namespace Plato
  Assumes single point integration.
  */
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType NumTerms, typename PenaltyFunction>
-class ApplyWeighting: public Plato::Simplex<SpaceDim>
+template<Plato::OrdinalType NumNodes, Plato::OrdinalType NumTerms, typename PenaltyFunction>
+class ApplyWeighting
 {
 private:
-    using Plato::Simplex<SpaceDim>::mNumNodesPerCell; /*!< number of nodes per cell */
     PenaltyFunction mPenaltyFunction; /*!< penalty model used for topology optimization - density discretization */
 
 public:
@@ -46,6 +45,59 @@ public:
      * \param [in] aControl     control, i.e. design, variables
     **********************************************************************************/
     template<typename InputScalarType, typename WeightScalarType>
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+              Plato::OrdinalType                            aCellOrdinal,
+        const Plato::ScalarMultiVectorT<WeightScalarType> & aControl,
+        const Plato::Array<NumNodes>                      & aBasisValues,
+              Plato::Array<NumTerms, InputScalarType>     & aInputOutput
+    ) const
+    {
+        // apply weighting
+        //
+        WeightScalarType tCellDensity = 0.0;
+        for (Plato::OrdinalType tNode = 0; tNode < NumNodes; tNode++)
+        {
+            tCellDensity += aControl(aCellOrdinal, tNode)*aBasisValues(tNode);
+        }
+        for (Plato::OrdinalType tTerm = 0; tTerm < NumTerms; tTerm++)
+        {
+            aInputOutput(tTerm) *= mPenaltyFunction(tCellDensity);
+        }
+    }
+
+    /******************************************************************************//**
+     * \brief Evaluate penalty model
+     * \param [in] aCellOrdinal cell/element ordinal
+     * \param [in] aInputOutput penalized 2D view
+     * \param [in] aControl     control, i.e. design, variables
+    **********************************************************************************/
+    template<typename InputScalarType, typename WeightScalarType>
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+              Plato::OrdinalType                            aCellOrdinal,
+        const Plato::ScalarMultiVectorT<WeightScalarType> & aControl,
+        const Plato::Array<NumNodes>                      & aBasisValues,
+              InputScalarType                             & aInputOutput
+    ) const
+    {
+        // apply weighting
+        //
+        WeightScalarType tCellDensity = 0.0;
+        for (Plato::OrdinalType tNode = 0; tNode < NumNodes; tNode++)
+        {
+            tCellDensity += aControl(aCellOrdinal, tNode)*aBasisValues(tNode);
+        }
+        aInputOutput *= mPenaltyFunction(tCellDensity);
+    }
+
+    /******************************************************************************//**
+     * \brief Evaluate penalty model
+     * \param [in] aCellOrdinal cell/element ordinal
+     * \param [in] aInputOutput penalized 2D view
+     * \param [in] aControl     control, i.e. design, variables
+    **********************************************************************************/
+    template<typename InputScalarType, typename WeightScalarType>
     KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType aCellOrdinal,
                                        Kokkos::View<InputScalarType**, Plato::Layout, Plato::MemSpace> const & aInputOutput,
                                        Kokkos::View<WeightScalarType**, Plato::Layout, Plato::MemSpace> const & aControl) const
@@ -53,11 +105,11 @@ public:
         // apply weighting
         //
         WeightScalarType tCellDensity = 0.0;
-        for (Plato::OrdinalType tNode = 0; tNode < mNumNodesPerCell; tNode++)
+        for (Plato::OrdinalType tNode = 0; tNode < NumNodes; tNode++)
         {
             tCellDensity += aControl(aCellOrdinal, tNode);
         }
-        tCellDensity = (tCellDensity / mNumNodesPerCell);
+        tCellDensity = (tCellDensity / NumNodes);
         for (Plato::OrdinalType tTerm = 0; tTerm < NumTerms; tTerm++)
         {
             aInputOutput(aCellOrdinal, tTerm) *= mPenaltyFunction(tCellDensity);
@@ -81,11 +133,11 @@ public:
         // apply weighting
         //
         WeightScalarType tCellDensity = 0.0;
-        for (Plato::OrdinalType tNode = 0; tNode < mNumNodesPerCell; tNode++)
+        for (Plato::OrdinalType tNode = 0; tNode < NumNodes; tNode++)
         {
             tCellDensity += aControl(aCellOrdinal, tNode);
         }
-        tCellDensity = (tCellDensity / mNumNodesPerCell);
+        tCellDensity = (tCellDensity / NumNodes);
         for (Plato::OrdinalType tTerm = 0; tTerm < NumTerms; tTerm++)
         {
             aOutput(aCellOrdinal, tTerm) = mPenaltyFunction(tCellDensity) * aInput(aCellOrdinal, tTerm);
@@ -107,11 +159,11 @@ public:
         // apply weighting
         //
         WeightScalarType tCellDensity = 0.0;
-        for (Plato::OrdinalType tNode = 0; tNode < mNumNodesPerCell; tNode++)
+        for (Plato::OrdinalType tNode = 0; tNode < NumNodes; tNode++)
         {
             tCellDensity += aControl(aCellOrdinal, tNode);
         }
-        tCellDensity = (tCellDensity / mNumNodesPerCell);
+        tCellDensity = (tCellDensity / NumNodes);
         aResult(aCellOrdinal) *= mPenaltyFunction(tCellDensity);
     }
 
@@ -132,11 +184,11 @@ public:
         // apply weighting
         //
         WeightScalarType tCellDensity = 0.0;
-        for (Plato::OrdinalType tNode = 0; tNode < mNumNodesPerCell; tNode++)
+        for (Plato::OrdinalType tNode = 0; tNode < NumNodes; tNode++)
         {
             tCellDensity += aControl(aCellOrdinal, tNode);
         }
-        tCellDensity = (tCellDensity / mNumNodesPerCell);
+        tCellDensity = (tCellDensity / NumNodes);
         aOutput(aCellOrdinal) = mPenaltyFunction(tCellDensity) * aInput(aCellOrdinal);
     }
 };

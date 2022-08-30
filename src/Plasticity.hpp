@@ -7,7 +7,7 @@
 #include "SimplexPlasticity.hpp"
 #include "J2PlasticityLocalResidual.hpp"
 
-#ifdef PLATO_EXPRESSION
+#ifdef PLATO_CUSTOM_MATERIALS
   #include "J2PlasticityLocalResidualExpFAD.hpp"
 #else
   #include "J2PlasticityLocalResidual.hpp"

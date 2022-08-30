@@ -1,19 +1,12 @@
-#include "geometric/MassMoment.hpp"
+#include "geometric/MassMoment_decl.hpp"
 
-#ifdef PLATOANALYZE_1D
-template class Plato::Geometric::MassMoment<Plato::Geometric::ResidualTypes<Plato::Simplex<1>>>;
-template class Plato::Geometric::MassMoment<Plato::Geometric::GradientXTypes<Plato::Simplex<1>>>;
-template class Plato::Geometric::MassMoment<Plato::Geometric::GradientZTypes<Plato::Simplex<1>>>;
-#endif
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#ifdef PLATOANALYZE_2D
-template class Plato::Geometric::MassMoment<Plato::Geometric::ResidualTypes<Plato::Simplex<2>>>;
-template class Plato::Geometric::MassMoment<Plato::Geometric::GradientXTypes<Plato::Simplex<2>>>;
-template class Plato::Geometric::MassMoment<Plato::Geometric::GradientZTypes<Plato::Simplex<2>>>;
-#endif
+#include "geometric/MassMoment_def.hpp"
 
-#ifdef PLATOANALYZE_3D
-template class Plato::Geometric::MassMoment<Plato::Geometric::ResidualTypes<Plato::Simplex<3>>>;
-template class Plato::Geometric::MassMoment<Plato::Geometric::GradientXTypes<Plato::Simplex<3>>>;
-template class Plato::Geometric::MassMoment<Plato::Geometric::GradientZTypes<Plato::Simplex<3>>>;
+#include "GeometricalElement.hpp"
+#include "geometric/ExpInstMacros.hpp"
+
+PLATO_GEOMETRIC_EXP_INST_2(Plato::Geometric::MassMoment, Plato::GeometricalElement)
+
 #endif

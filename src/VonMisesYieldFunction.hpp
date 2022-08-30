@@ -14,7 +14,7 @@ namespace Plato
 /******************************************************************************//**
  * \brief Von Mises yield criterion class
 **********************************************************************************/
-template<Plato::OrdinalType SpatialDim>
+template<Plato::OrdinalType NumSpatialDims, Plato::OrdinalType NumVoigtTerms>
 class VonMisesYieldFunction
 {
 public:
@@ -29,11 +29,19 @@ public:
      * \param [in] aCauchyStress 2D container of cell Cauchy stresses
      * \param [out] aVonMisesStress 1D container of cell Von Mises yield stresses
     **********************************************************************************/
-    template<typename Inputype, typename ResultType>
+    template<typename InputType, typename ResultType>
     KOKKOS_INLINE_FUNCTION void
-    operator()(const Plato::OrdinalType & aCellOrdinal,
-               const Plato::ScalarMultiVectorT<Inputype> & aCauchyStress,
-               const Plato::ScalarVectorT<ResultType> & aVonMisesStress) const;
+    operator()(
+        const Plato::OrdinalType                   & aCellOrdinal,
+        const Plato::ScalarMultiVectorT<InputType> & aCauchyStress,
+              ResultType                           & aVonMisesStress) const;
+
+    template<typename InputType, typename ResultType>
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+        const Plato::OrdinalType                     & aCellOrdinal,
+        const Plato::Array<NumVoigtTerms, InputType> & aCauchyStress,
+              ResultType                             & aVonMisesStress) const;
 };
 // class VonMisesYieldFunction
 
@@ -48,11 +56,13 @@ public:
  * \param [out] aVonMisesStress cell/element Von Mises stresses
 **********************************************************************************/
 template<>
-template<typename Inputype, typename ResultType>
+template<typename InputType, typename ResultType>
 KOKKOS_INLINE_FUNCTION void
-VonMisesYieldFunction<3>::operator()(const Plato::OrdinalType & aCellOrdinal,
-        const Plato::ScalarMultiVectorT<Inputype> & aCauchyStress,
-        const Plato::ScalarVectorT<ResultType> & aVonMisesStress) const
+VonMisesYieldFunction<3,6>::operator()(
+    const Plato::OrdinalType                   & aCellOrdinal,
+    const Plato::ScalarMultiVectorT<InputType> & aCauchyStress,
+          ResultType                           & aVonMisesStress
+) const
 {
     ResultType tSigma11MinusSigma22 = aCauchyStress(aCellOrdinal, 0) - aCauchyStress(aCellOrdinal, 1);
     ResultType tSigma22MinusSigma33 = aCauchyStress(aCellOrdinal, 1) - aCauchyStress(aCellOrdinal, 2);
@@ -69,8 +79,33 @@ VonMisesYieldFunction<3>::operator()(const Plato::OrdinalType & aCellOrdinal,
             * (tSigma33TimesSigma33 + tSigma44TimesSigma44 + tSigma55TimesSigma55);
 
     ResultType tVonMises = (static_cast<Plato::Scalar>(0.5) * tPrincipalStressContribution) + tShearStressContribution;
-    ResultType tOutput = sqrt(tVonMises);
-    aVonMisesStress(aCellOrdinal) = tOutput;
+    aVonMisesStress = sqrt(tVonMises);
+}
+template<>
+template<typename InputType, typename ResultType>
+KOKKOS_INLINE_FUNCTION void
+VonMisesYieldFunction<3,6>::operator()(
+    const Plato::OrdinalType         & aCellOrdinal,
+    const Plato::Array<6, InputType> & aCauchyStress,
+          ResultType                 & aVonMisesStress
+) const
+{
+    ResultType tSigma11MinusSigma22 = aCauchyStress(0) - aCauchyStress(1);
+    ResultType tSigma22MinusSigma33 = aCauchyStress(1) - aCauchyStress(2);
+    ResultType tSigma33MinusSigma11 = aCauchyStress(2) - aCauchyStress(0);
+    ResultType tSigma11MinusSigma22Squared = tSigma11MinusSigma22 * tSigma11MinusSigma22;
+    ResultType tSigma22MinusSigma33Squared = tSigma22MinusSigma33 * tSigma22MinusSigma33;
+    ResultType tSigma33MinusSigma11Squared = tSigma33MinusSigma11 * tSigma33MinusSigma11;
+    ResultType tPrincipalStressContribution = tSigma11MinusSigma22Squared + tSigma22MinusSigma33Squared + tSigma33MinusSigma11Squared;
+
+    ResultType tSigma33TimesSigma33 = aCauchyStress(3) * aCauchyStress(3);
+    ResultType tSigma44TimesSigma44 = aCauchyStress(4) * aCauchyStress(4);
+    ResultType tSigma55TimesSigma55 = aCauchyStress(5) * aCauchyStress(5);
+    ResultType tShearStressContribution = static_cast<Plato::Scalar>(3)
+            * (tSigma33TimesSigma33 + tSigma44TimesSigma44 + tSigma55TimesSigma55);
+
+    ResultType tVonMises = (static_cast<Plato::Scalar>(0.5) * tPrincipalStressContribution) + tShearStressContribution;
+    aVonMisesStress = sqrt(tVonMises);
 }
 
 /******************************************************************************//**
@@ -83,11 +118,13 @@ VonMisesYieldFunction<3>::operator()(const Plato::OrdinalType & aCellOrdinal,
  * \param [out] aVonMisesStress cell/element Von Mises stresses
 **********************************************************************************/
 template<>
-template<typename Inputype, typename ResultType>
+template<typename InputType, typename ResultType>
 KOKKOS_INLINE_FUNCTION void
-VonMisesYieldFunction<2>::operator()(const Plato::OrdinalType & aCellOrdinal,
-        const Plato::ScalarMultiVectorT<Inputype> & aCauchyStress,
-        const Plato::ScalarVectorT<ResultType> & aVonMisesStress) const
+VonMisesYieldFunction<2,3>::operator()(
+    const Plato::OrdinalType                   & aCellOrdinal,
+    const Plato::ScalarMultiVectorT<InputType> & aCauchyStress,
+          ResultType                           & aVonMisesStress
+) const
 {
     ResultType tSigma11TimesSigma11 = aCauchyStress(aCellOrdinal, 0) * aCauchyStress(aCellOrdinal, 0);
     ResultType tSigma11TimesSigma22 = aCauchyStress(aCellOrdinal, 0) * aCauchyStress(aCellOrdinal, 1);
@@ -96,8 +133,26 @@ VonMisesYieldFunction<2>::operator()(const Plato::OrdinalType & aCellOrdinal,
 
     ResultType tVonMises = tSigma11TimesSigma11 - tSigma11TimesSigma22 + tSigma22TimesSigma22
                            + (static_cast<Plato::Scalar>(3) * tSigma12TimesSigma12);
-    ResultType tOutput = sqrt(tVonMises);
-    aVonMisesStress(aCellOrdinal) = tOutput;
+    aVonMisesStress = sqrt(tVonMises);
+}
+
+template<>
+template<typename InputType, typename ResultType>
+KOKKOS_INLINE_FUNCTION void
+VonMisesYieldFunction<2,3>::operator()(
+    const Plato::OrdinalType         & aCellOrdinal,
+    const Plato::Array<3, InputType> & aCauchyStress,
+          ResultType                 & aVonMisesStress
+) const
+{
+    ResultType tSigma11TimesSigma11 = aCauchyStress(0) * aCauchyStress(0);
+    ResultType tSigma11TimesSigma22 = aCauchyStress(0) * aCauchyStress(1);
+    ResultType tSigma22TimesSigma22 = aCauchyStress(1) * aCauchyStress(1);
+    ResultType tSigma12TimesSigma12 = aCauchyStress(2) * aCauchyStress(2);
+
+    ResultType tVonMises = tSigma11TimesSigma11 - tSigma11TimesSigma22 + tSigma22TimesSigma22
+                           + (static_cast<Plato::Scalar>(3) * tSigma12TimesSigma12);
+    aVonMisesStress = sqrt(tVonMises);
 }
 
 /******************************************************************************//**
@@ -110,14 +165,27 @@ VonMisesYieldFunction<2>::operator()(const Plato::OrdinalType & aCellOrdinal,
  * \param [out] aVonMisesStress cell/element Von Mises stresses
 **********************************************************************************/
 template<>
-template<typename Inputype, typename ResultType>
+template<typename InputType, typename ResultType>
 KOKKOS_INLINE_FUNCTION void
-VonMisesYieldFunction<1>::operator()(const Plato::OrdinalType & aCellOrdinal,
-        const Plato::ScalarMultiVectorT<Inputype> & aCauchyStress,
-        const Plato::ScalarVectorT<ResultType> & aVonMisesStress) const
+VonMisesYieldFunction<1,1>::operator()(
+    const Plato::OrdinalType                   & aCellOrdinal,
+    const Plato::ScalarMultiVectorT<InputType> & aCauchyStress,
+          ResultType                           & aVonMisesStress
+) const
 {
-    ResultType tOutput = aCauchyStress(aCellOrdinal, 0);
-    aVonMisesStress(aCellOrdinal) = tOutput;
+    aVonMisesStress = aCauchyStress(aCellOrdinal, 0);
 }
+template<>
+template<typename InputType, typename ResultType>
+KOKKOS_INLINE_FUNCTION void
+VonMisesYieldFunction<1,1>::operator()(
+    const Plato::OrdinalType         & aCellOrdinal,
+    const Plato::Array<1, InputType> & aCauchyStress,
+          ResultType                 & aVonMisesStress
+) const
+{
+    aVonMisesStress = aCauchyStress(0);
+}
+
 
 } // namespace Plato

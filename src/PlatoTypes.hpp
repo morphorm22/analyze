@@ -30,7 +30,6 @@ using DeviceType = Kokkos::Device<ExecSpace, MemSpace>;
 
 #define MAX_ARRAY_LENGTH 128
 
-// using Layout = ExecSpace::array_layout;
 using Layout = typename Kokkos::LayoutRight;
 
 // Map structure - used with Kokkos so char strings so to be compatable.

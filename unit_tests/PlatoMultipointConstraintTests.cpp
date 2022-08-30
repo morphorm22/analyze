@@ -7,7 +7,6 @@
 #include "EssentialBCs.hpp"
 #include "elliptic/VectorFunction.hpp"
 #include "ApplyConstraints.hpp"
-#include "SimplexMechanics.hpp"
 #include "LinearElasticMaterial.hpp"
 #include "alg/PlatoSolverFactory.hpp"
 #include "MultipointConstraints.hpp"
@@ -16,6 +15,9 @@
 #include "PlatoMathHelpers.hpp"
 
 #include "SpatialModel.hpp"
+
+#include "Tri3.hpp"
+#include "Tet4.hpp"
 
 #ifdef HAVE_AMGX
 #include <alg/AmgXSparseLinearProblem.hpp>
@@ -352,12 +354,12 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, BuildCondensedSystem )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using ElementType = typename PhysicsType::ElementType;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -375,7 +377,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, BuildCondensedSystem )
   //
   Plato::OrdinalVector mBcDofs;
   Plato::ScalarVector mBcValues;
-  Plato::EssentialBCs<SimplexPhysics>
+  Plato::EssentialBCs<ElementType>
       tEssentialBoundaryConditions(params->sublist("Essential Boundary Conditions",false), tMesh);
   tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
 
@@ -383,7 +385,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, BuildCondensedSystem )
   //
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *params);
-  Plato::Elliptic::VectorFunction<SimplexPhysics>
+  Plato::Elliptic::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
 
   // compute residual
@@ -402,7 +404,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, BuildCondensedSystem )
 
   // apply essential BCs
   //
-  Plato::applyBlockConstraints<SimplexPhysics::mNumDofsPerNode>(jacobian, residual, mBcDofs, mBcValues);
+  Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(jacobian, residual, mBcDofs, mBcValues);
 
   // setup transformation
   //
@@ -516,12 +518,12 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic2DTieMPC )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using ElementType = typename PhysicsType::ElementType;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -539,7 +541,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic2DTieMPC )
   //
   Plato::OrdinalVector mBcDofs;
   Plato::ScalarVector mBcValues;
-  Plato::EssentialBCs<SimplexPhysics>
+  Plato::EssentialBCs<ElementType>
       tEssentialBoundaryConditions(params->sublist("Essential Boundary Conditions",false), tMesh);
   tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
 
@@ -547,7 +549,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic2DTieMPC )
   //
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *params);
-  Plato::Elliptic::VectorFunction<SimplexPhysics>
+  Plato::Elliptic::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
 
   // compute residual
@@ -585,7 +587,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic2DTieMPC )
 
   // apply essential BCs
   //
-  Plato::applyBlockConstraints<SimplexPhysics::mNumDofsPerNode>(jacobian, residual, mBcDofs, mBcValues);
+  Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(jacobian, residual, mBcDofs, mBcValues);
 
   // solve linear system
   //
@@ -632,12 +634,12 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  constexpr int spaceDim=3;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using PhysicsType = ::Plato::Mechanics<Plato::Tet4>;
+  using ElementType = typename PhysicsType::ElementType;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -720,7 +722,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
   //
   Plato::OrdinalVector mBcDofs;
   Plato::ScalarVector mBcValues;
-  Plato::EssentialBCs<SimplexPhysics>
+  Plato::EssentialBCs<ElementType>
       tEssentialBoundaryConditions(params->sublist("Essential Boundary Conditions",false), tMesh);
   tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
 
@@ -728,7 +730,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
   //
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *params);
-  Plato::Elliptic::VectorFunction<SimplexPhysics>
+  Plato::Elliptic::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
 
   // compute residual
@@ -766,7 +768,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
 
   // apply essential BCs
   //
-  Plato::applyBlockConstraints<SimplexPhysics::mNumDofsPerNode>(jacobian, residual, mBcDofs, mBcValues);
+  Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(jacobian, residual, mBcDofs, mBcValues);
 
   // solve linear system
   //

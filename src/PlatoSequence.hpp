@@ -14,12 +14,12 @@ namespace Plato {
     /*!
       \brief class for sequence entries
     */
-    template <int mSpatialDim>
+    template <typename ElementType>
     class SequenceStep
     /******************************************************************************/
     {
         std::string mName;
-        std::shared_ptr<Plato::Mask<mSpatialDim>> mMask;
+        std::shared_ptr<Plato::Mask<ElementType::mNumSpatialDims>> mMask;
 
       public:
         decltype(mMask) getMask() const {return mMask;}
@@ -56,7 +56,7 @@ namespace Plato {
         ) :
             mName(aName)
         {
-            Plato::MaskFactory<mSpatialDim> tMaskFactory;
+            Plato::MaskFactory<ElementType::mNumSpatialDims> tMaskFactory;
             mMask = tMaskFactory.create(aSpatialModel.Mesh, aInputParams);
         }
     };
@@ -66,11 +66,11 @@ namespace Plato {
     /*!
       \brief class for sequence entries
     */
-    template <int mSpatialDim>
+    template <typename ElementType>
     class Sequence
     /******************************************************************************/
     {
-        std::vector<Plato::SequenceStep<mSpatialDim>> mSteps;
+        std::vector<Plato::SequenceStep<ElementType>> mSteps;
 
       public:
         const decltype(mSteps) & getSteps() const { return mSteps; }

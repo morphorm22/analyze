@@ -2,8 +2,10 @@
 
 #include <memory>
 
+#ifdef USE_OMEGAH_MESH
 #include "OmegaHMesh.hpp"
 #include "OmegaHMeshIO.hpp"
+#endif
 
 #include "EngineMesh.hpp"
 #include "EngineMeshIO.hpp"
@@ -23,7 +25,9 @@ namespace Plato {
     {
         inline void initialize(int& aArgc, char**& aArgv)
         {
+#ifdef USE_OMEGAH_MESH
             Plato::OmegaH::Library = new Omega_h::Library(&aArgc, &aArgv);
+#endif
         }
         inline Plato::Mesh create(std::string aFilePath)
         {
@@ -31,7 +35,9 @@ namespace Plato {
         }
         inline void finalize()
         {
+#ifdef USE_OMEGAH_MESH
             if(Plato::OmegaH::Library) delete Plato::OmegaH::Library;
+#endif
         }
     }
     // end namespace MeshFactory

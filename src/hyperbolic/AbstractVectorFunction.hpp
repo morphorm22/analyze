@@ -1,101 +1,96 @@
-/*
- * AbstractVectorFunction.hpp
- *
- *  Created on: Apr 6, 2021
- */
-
 #pragma once
 
-#include "WorkSets.hpp"
-#include "SpatialModel.hpp"
-#include "ExpInstMacros.hpp"
-
-#include "hyperbolic/SimplexFluids.hpp"
-#include "hyperbolic/SimplexFluidsFadTypes.hpp"
+#include "Solutions.hpp"
 
 namespace Plato
 {
 
-namespace Fluids
+namespace Hyperbolic
 {
 
-/***************************************************************************//**
- * \tparam PhysicsT    Physics type
- * \tparam EvaluationT Forward Automatic Differentiation (FAD) evaluation type
- *
- * \class AbstractVectorFunction
- *
- * \brief Pure virtual base class for vector functions.
- ******************************************************************************/
-template<typename PhysicsT, typename EvaluationT>
+template<typename EvaluationType>
 class AbstractVectorFunction
 {
-private:
-    using ResultT = typename EvaluationT::ResultScalarType;
+protected:
+    const Plato::SpatialDomain & mSpatialDomain;
+
+    Plato::DataMap& mDataMap;
+    std::vector<std::string> mDofNames;
+    std::vector<std::string> mDofDotNames;
+    std::vector<std::string> mDofDotDotNames;
 
 public:
-    AbstractVectorFunction(){}
-    virtual ~AbstractVectorFunction(){}
 
-    /***************************************************************************//**
-     * \fn void evaluate
-     * \brief Evaluate vector function within the domain.
-     * \param [in] aWorkSets holds state and control worksets
-     * \param [in/out] aResult   result workset
-     ******************************************************************************/
-    virtual void evaluate
-    (const Plato::WorkSets & aWorkSets,
-     Plato::ScalarMultiVectorT<ResultT> & aResult) const = 0;
+    using AbstractType = typename Plato::Hyperbolic::AbstractVectorFunction<EvaluationType>;
 
-    /***************************************************************************//**
-     * \fn void evaluateBoundary
-     * \brief Evaluate boundary forces, not related to any prescribed boundary force, 
-     *        resulting from applying integration by part to the residual equation.
-     * \param [in]  aSpatialModel holds mesh and entity sets (e.g. node and side sets) metadata
-     * \param [in]  aWorkSets     holds input worksets (e.g. states, control, etc)
-     * \param [out] aResultWS     result/output workset
-     ******************************************************************************/
-    virtual void evaluateBoundary
-    (const Plato::SpatialModel & aSpatialModel,
-     const Plato::WorkSets & aWorkSets,
-     Plato::ScalarMultiVectorT<ResultT> & aResult) const = 0;
+    explicit 
+    AbstractVectorFunction(
+        const Plato::SpatialDomain     & aSpatialDomain,
+              Plato::DataMap           & aDataMap,
+              std::vector<std::string>   aStateNames,
+              std::vector<std::string>   aStateDotNames,
+              std::vector<std::string>   aStateDotDotNames
+    ) :
+        mSpatialDomain  (aSpatialDomain),
+        mDataMap        (aDataMap),
+        mDofNames       (aStateNames),
+        mDofDotNames    (aStateDotNames),
+        mDofDotDotNames (aStateDotDotNames)
+    {
+    }
+    virtual ~AbstractVectorFunction()
+    {
+    }
 
-    /***************************************************************************//**
-     * \fn void evaluatePrescribed
-     * \brief Evaluate vector function on prescribed boundaries.
-     * \param [in]  aSpatialModel holds mesh and entity sets (e.g. node and side sets) metadata
-     * \param [in]  aWorkSets     holds input worksets (e.g. states, control, etc)
-     * \param [out] aResultWS     result/output workset
-     ******************************************************************************/
-    virtual void evaluatePrescribed
-    (const Plato::SpatialModel & aSpatialModel,
-     const Plato::WorkSets & aWorkSets,
-     Plato::ScalarMultiVectorT<ResultT> & aResult) const = 0;
+    decltype(mSpatialDomain.Mesh) getMesh() const
+    {
+        return (mSpatialDomain.Mesh);
+    }
+
+    const decltype(mDofNames)& getDofNames() const
+    {
+        return (mDofNames);
+    }
+
+    const decltype(mDofDotNames)& getDofDotNames() const
+    {
+        return (mDofDotNames);
+    }
+
+    const decltype(mDofDotDotNames)& getDofDotDotNames() const
+    {
+        return (mDofDotDotNames);
+    }
+
+    virtual Plato::Scalar getMaxEigenvalue(const Plato::ScalarArray3D & aConfig) const = 0;
+
+    virtual Plato::Solutions 
+    getSolutionStateOutputData(const Plato::Solutions &aSolutions) const = 0;
+
+    virtual void
+    evaluate(
+        const Plato::ScalarMultiVectorT< typename EvaluationType::StateScalarType       > & aState,
+        const Plato::ScalarMultiVectorT< typename EvaluationType::StateDotScalarType    > & aStateDot,
+        const Plato::ScalarMultiVectorT< typename EvaluationType::StateDotDotScalarType > & aStateDotDot,
+        const Plato::ScalarMultiVectorT< typename EvaluationType::ControlScalarType     > & aControl,
+        const Plato::ScalarArray3DT    < typename EvaluationType::ConfigScalarType      > & aConfig,
+              Plato::ScalarMultiVectorT< typename EvaluationType::ResultScalarType      > & aResult,
+              Plato::Scalar aTimeStep = 0.0, 
+              Plato::Scalar aCurrentTime = 0.0) const = 0;
+
+    virtual void
+    evaluate_boundary(
+        const Plato::SpatialModel                                                         & aSpatialModel,
+        const Plato::ScalarMultiVectorT< typename EvaluationType::StateScalarType       > & aState,
+        const Plato::ScalarMultiVectorT< typename EvaluationType::StateDotScalarType    > & aStateDot,
+        const Plato::ScalarMultiVectorT< typename EvaluationType::StateDotDotScalarType > & aStateDotDot,
+        const Plato::ScalarMultiVectorT< typename EvaluationType::ControlScalarType     > & aControl,
+        const Plato::ScalarArray3DT    < typename EvaluationType::ConfigScalarType      > & aConfig,
+              Plato::ScalarMultiVectorT< typename EvaluationType::ResultScalarType      > & aResult,
+              Plato::Scalar aTimeStep = 0.0, 
+              Plato::Scalar aCurrentTime = 0.0) const = 0;
 };
-// class AbstractVectorFunction
 
-}
-// namespace Fluids
+} // namespace Hyperbolic
 
-}
-// namespace Plato
-
-#include "hyperbolic/IncompressibleFluids.hpp"
-
-#ifdef PLATOANALYZE_1D
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractVectorFunction, Plato::MassConservation, Plato::SimplexFluids, 1, 1)
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractVectorFunction, Plato::EnergyConservation, Plato::SimplexFluids, 1, 1)
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractVectorFunction, Plato::MomentumConservation, Plato::SimplexFluids, 1, 1)
-#endif
-
-#ifdef PLATOANALYZE_2D
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractVectorFunction, Plato::MassConservation, Plato::SimplexFluids, 2, 1)
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractVectorFunction, Plato::EnergyConservation, Plato::SimplexFluids, 2, 1)
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractVectorFunction, Plato::MomentumConservation, Plato::SimplexFluids, 2, 1)
-#endif
-
-#ifdef PLATOANALYZE_3D
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractVectorFunction, Plato::MassConservation, Plato::SimplexFluids, 3, 1)
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractVectorFunction, Plato::EnergyConservation, Plato::SimplexFluids, 3, 1)
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractVectorFunction, Plato::MomentumConservation, Plato::SimplexFluids, 3, 1)
-#endif
+} // namespace Plato

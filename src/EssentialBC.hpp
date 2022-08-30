@@ -15,7 +15,7 @@ namespace Plato
 /*!
  \brief Class for essential boundary conditions.
  */
-template<typename SimplexPhysicsType>
+template<typename ElementType>
 class EssentialBC
 /******************************************************************************/
 {
@@ -111,7 +111,7 @@ public:
         const Plato::Scalar                                     aValue)
     {
         auto tNumberConstrainedNodes = aNodeIds.size();
-        constexpr Plato::OrdinalType tDofsPerNode = SimplexPhysicsType::mNumDofsPerNode;
+        constexpr Plato::OrdinalType tDofsPerNode = ElementType::mNumDofsPerNode;
         auto tDofIndex = mDofIndex;
         Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, tNumberConstrainedNodes), KOKKOS_LAMBDA(Plato::OrdinalType aNodeOrdinal)
         {

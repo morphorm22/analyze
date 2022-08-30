@@ -19,10 +19,12 @@ namespace Plato
 template<Plato::OrdinalType SpatialDim>
 class LinearElasticMaterial
 {
-protected:
+public:
     static constexpr auto mNumVoigtTerms = (SpatialDim == 3) ? 6 :
                                            ((SpatialDim == 2) ? 3 :
                                           (((SpatialDim == 1) ? 1 : 0)));
+
+protected:
     static_assert(mNumVoigtTerms, "SpatialDim must be 1, 2, or 3."); /*!< number of stress-strain terms */
 
     Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffness;   /*!< cell stiffness matrix, i.e. fourth-order material tensor */
