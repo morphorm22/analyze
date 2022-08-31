@@ -7,7 +7,6 @@ configure_file(
 set(ANALYZE_SOURCES
     ParseTools.cpp
     ExpressionEvaluator.cpp
-##    ElasticModelFactory.cpp
     LinearElasticMaterial.cpp
     CubicLinearElasticMaterial.cpp
     LinearElectroelasticMaterial.cpp
@@ -17,6 +16,9 @@ set(ANALYZE_SOURCES
     MaterialModel.cpp
     Rank4Voigt.cpp
     IsotropicStiffness.cpp
+    AbstractTMKinetics.cpp
+    LinearTMKinetics.cpp
+    NonLinearTMKinetics.cpp
 )
 
 if(EXPRESSION)
@@ -25,6 +27,7 @@ if(EXPRESSION)
       CustomLinearElasticMaterial.cpp
       LinearStressExpression.cpp
       YieldStressExpression.cpp
+      ExpressionTMKinetics.cpp
   )
 endif()
 

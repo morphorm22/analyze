@@ -102,6 +102,7 @@ namespace Plato
     /******************************************************************************//**
      * \brief Evaluate tensile energy density local measure
      * \param [in] aState 2D container of state variables
+     * \param [in] aControl 2D container of control variables
      * \param [in] aConfig 3D container of configuration/coordinates
      * \param [in] aDataMap map to stored data
      * \param [out] aResult 1D container of cell local measure values
@@ -110,9 +111,10 @@ namespace Plato
     void
     TensileEnergyDensityLocalMeasure<EvaluationType>::
     operator()(
-        const Plato::ScalarMultiVectorT <StateT>  & aStateWS,
-        const Plato::ScalarArray3DT     <ConfigT> & aConfigWS,
-              Plato::ScalarVectorT      <ResultT> & aResultWS
+        const Plato::ScalarMultiVectorT <StateT>   & aStateWS,
+        const Plato::ScalarMultiVectorT <ControlT> & aControlWS,
+        const Plato::ScalarArray3DT     <ConfigT>  & aConfigWS,
+              Plato::ScalarVectorT      <ResultT>  & aResultWS
     )
     {
         const Plato::OrdinalType tNumCells = aResultWS.size();

@@ -3,8 +3,6 @@
 
 #include <Teuchos_ParameterList.hpp>
 
-#include "alg/Basis.hpp"
-#include "alg/Cubature.hpp"
 #include "PlatoTypes.hpp"
 #include "SpatialModel.hpp"
 #include "ImplicitFunctors.hpp"

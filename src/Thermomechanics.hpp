@@ -4,8 +4,8 @@
 #include <memory>
 
 #ifdef PLATO_PARABOLIC
-#include "parabolic/TransientThermomechResidual.hpp"
 #include "parabolic/AbstractScalarFunction.hpp"
+#include "parabolic/TransientThermomechResidual.hpp"
 #include "parabolic/InternalThermoelasticEnergy.hpp"
 #endif
 

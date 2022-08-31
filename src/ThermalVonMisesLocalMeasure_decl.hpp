@@ -23,9 +23,10 @@ private:
     using AbstractLocalMeasure<EvaluationType>::mNumNodesPerCell;
     using AbstractLocalMeasure<EvaluationType>::mSpatialDomain; 
 
-    using StateT = typename EvaluationType::StateScalarType;
-    using ConfigT = typename EvaluationType::ConfigScalarType;
-    using ResultT = typename EvaluationType::ResultScalarType;
+    using StateT   = typename EvaluationType::StateScalarType;
+    using ConfigT  = typename EvaluationType::ConfigScalarType;
+    using ControlT = typename EvaluationType::ControlScalarType;
+    using ResultT  = typename EvaluationType::ResultScalarType;
 
     Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mMaterialModel;
 
@@ -59,9 +60,10 @@ public:
     **********************************************************************************/
     virtual void
     operator()(
-        const Plato::ScalarMultiVectorT <StateT>  & aStateWS,
-        const Plato::ScalarArray3DT     <ConfigT> & aConfigWS,
-              Plato::ScalarVectorT      <ResultT> & aResultWS
+        const Plato::ScalarMultiVectorT <StateT>   & aStateWS,
+        const Plato::ScalarMultiVectorT <ControlT> & aControlWS,
+        const Plato::ScalarArray3DT     <ConfigT>  & aConfigWS,
+              Plato::ScalarVectorT      <ResultT>  & aResultWS
     ) override;
 };
 // class ThermalVonMisesLocalMeasure
