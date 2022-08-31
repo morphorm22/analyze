@@ -16,19 +16,17 @@
 #include "elliptic/PhysicsScalarFunction.hpp"
 #include "elliptic/VectorFunction.hpp"
 
-#include "KokkosBatched_LU_Decl.hpp"
-#include "KokkosBatched_LU_Serial_Impl.hpp"
-#include "KokkosBatched_Trsm_Decl.hpp"
-#include "KokkosBatched_Trsm_Serial_Impl.hpp"
+#include <KokkosBatched_LU_Decl.hpp>
+#include <KokkosBatched_LU_Serial_Impl.hpp>
+#include <KokkosBatched_Trsm_Decl.hpp>
+#include <KokkosBatched_Trsm_Serial_Impl.hpp>
 
-#include "KokkosKernels_SparseUtils.hpp"
-#include "KokkosSparse_CrsMatrix.hpp"
-#include "KokkosSparse_spadd.hpp"
-#include "KokkosSparse_spgemm.hpp"
+#include <KokkosKernels_SparseUtils.hpp>
+#include <KokkosSparse_CrsMatrix.hpp>
+#include <KokkosSparse_spadd.hpp>
+#include <KokkosSparse_spgemm.hpp>
 #include <KokkosKernels_IOUtils.hpp>
 #include <Kokkos_Concepts.hpp>
-
-#include <Teuchos_XMLParameterListCoreHelpers.hpp>
 
 #include <assert.h>
 #include <vector>

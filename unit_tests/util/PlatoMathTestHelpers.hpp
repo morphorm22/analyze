@@ -1,39 +1,14 @@
 #ifndef PLATOMATHTESTHELPERS_HPP_
 #define PLATOMATHTESTHELPERS_HPP_
 
+#include "PlatoStaticsTypes.hpp"
+
+#include <Teuchos_RCPDecl.hpp>
+
+#include <Kokkos_View.hpp>
+#include <Kokkos_CopyViews.hpp>
+
 #include <vector>
-
-#include <assert.h>
-
-#include "PlatoTestHelpers.hpp"
-#include "Teuchos_UnitTestHarness.hpp"
-
-#include "AnalyzeMacros.hpp"
-#include "ApplyProjection.hpp"
-#include "BLAS1.hpp"
-#include "HyperbolicTangentProjection.hpp"
-#include "Mechanics.hpp"
-#include "PlatoMathFunctors.hpp"
-#include "PlatoMathHelpers.hpp"
-#include "Solutions.hpp"
-#include "StabilizedMechanics.hpp"
-#include "VectorFunctionVMS.hpp"
-#include "alg/CrsMatrix.hpp"
-#include "alg/PlatoSolverFactory.hpp"
-#include "elliptic/PhysicsScalarFunction.hpp"
-#include "elliptic/VectorFunction.hpp"
-
-#include "KokkosBatched_LU_Decl.hpp"
-#include "KokkosBatched_LU_Serial_Impl.hpp"
-#include "KokkosBatched_Trsm_Decl.hpp"
-#include "KokkosBatched_Trsm_Serial_Impl.hpp"
-
-#include "KokkosKernels_SparseUtils.hpp"
-#include "KokkosSparse_CrsMatrix.hpp"
-#include "KokkosSparse_spadd.hpp"
-#include "KokkosSparse_spgemm.hpp"
-#include <KokkosKernels_IOUtils.hpp>
-#include <Kokkos_Concepts.hpp>
 
 namespace Plato{
 namespace TestHelpers {
