@@ -1,5 +1,5 @@
-#ifndef PLATOMATHHELPERS_HPP_
-#define PLATOMATHHELPERS_HPP_
+#ifndef PLATOMATHTESTHELPERS_HPP_
+#define PLATOMATHTESTHELPERS_HPP_
 
 #include <vector>
 
@@ -39,65 +39,78 @@ namespace Plato{
 namespace TestHelpers {
 
 template <typename DataType>
-void setViewFromVector(Plato::ScalarVectorT<DataType> aView,
-                       const std::vector<DataType> &aVector) {
-  Kokkos::View<const DataType *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>
-      tHostView(aVector.data(), aVector.size());
-  Kokkos::deep_copy(aView, tHostView);
-}
+void set_view_from_vector(Plato::ScalarVectorT<DataType> aView,
+                          const std::vector<DataType> &aVector);
 
-void setMatrixData(Teuchos::RCP<Plato::CrsMatrixType> aMatrix,
-                   const std::vector<Plato::OrdinalType> &aRowMap,
-                   const std::vector<Plato::OrdinalType> &aColMap,
-                   const std::vector<Plato::Scalar> &aValues);
+void set_matrix_data(Teuchos::RCP<Plato::CrsMatrixType> aMatrix,
+                     const std::vector<Plato::OrdinalType> &aRowMap,
+                     const std::vector<Plato::OrdinalType> &aColMap,
+                     const std::vector<Plato::Scalar> &aValues);
 
-void sortColumnEntries(
-    const Plato::ScalarVectorT<Plato::OrdinalType> &aMatrixRowMap,
-    Plato::ScalarVectorT<Plato::OrdinalType> &aMatrixColMap,
-    Plato::ScalarVectorT<Plato::Scalar> &aMatrixValues);
+void from_full(Teuchos::RCP<Plato::CrsMatrixType> aOutMatrix,
+               const std::vector<std::vector<Plato::Scalar>>& aInMatrix);
 
-void fromFull(Teuchos::RCP<Plato::CrsMatrixType> aOutMatrix,
-              const std::vector<std::vector<Plato::Scalar>>& aInMatrix);
+void row_sum(const Teuchos::RCP<Plato::CrsMatrixType> &aInMatrix,
+             Plato::ScalarVector &aOutRowSum);
 
-void RowSum(const Teuchos::RCP<Plato::CrsMatrixType> &aInMatrix,
-            Plato::ScalarVector &aOutRowSum);
+void inverse_multiply(const Teuchos::RCP<Plato::CrsMatrixType> &aInMatrix,
+                      Plato::ScalarVector &aInDiagonal);
 
-void InverseMultiply(const Teuchos::RCP<Plato::CrsMatrixType> &aInMatrix,
-                     Plato::ScalarVector &aInDiagonal);
-
-void SlowDumbRowSummedInverseMultiply(
+void slow_dumb_row_summed_inverse_multiply(
     const Teuchos::RCP<Plato::CrsMatrixType> &aInMatrixOne,
     Teuchos::RCP<Plato::CrsMatrixType> &aInMatrixTwo);
 
-void MatrixMinusEqualsMatrix(
+void matrix_minus_equals_matrix(
     Teuchos::RCP<Plato::CrsMatrixType> &aInMatrixOne,
     const Teuchos::RCP<Plato::CrsMatrixType> &aInMatrixTwo);
 
-void MatrixMinusEqualsMatrix(
+void matrix_minus_equals_matrix(
     Teuchos::RCP<Plato::CrsMatrixType> &aInMatrixOne,
     const Teuchos::RCP<Plato::CrsMatrixType> &aInMatrixTwo,
     Plato::OrdinalType aOffset);
 
-void SlowDumbMatrixMinusMatrix(
+void slow_dumb_matrix_minus_matrix(
     const Teuchos::RCP<Plato::CrsMatrixType> &aInMatrixOne,
     const Teuchos::RCP<Plato::CrsMatrixType> &aInMatrixTwo, int aOffset = -1);
 
-void SlowDumbMatrixMatrixMultiply(
+void slow_dumb_matrix_matrix_multiply(
     const Teuchos::RCP<Plato::CrsMatrixType> &aInMatrixOne,
     const Teuchos::RCP<Plato::CrsMatrixType> &aInMatrixTwo,
     Teuchos::RCP<Plato::CrsMatrixType> &aOutMatrix);
 
 template <typename DataType>
 bool is_same(const Plato::ScalarVectorT<DataType> &aView,
-             const std::vector<DataType> &aVec) {
-  auto tView_host = Kokkos::create_mirror(aView);
-  Kokkos::deep_copy(tView_host, aView);
-  for (unsigned int i = 0; i < aVec.size(); ++i) {
-    if (tView_host(i) != aVec[i]) {
-      return false;
-    }
-  }
-  return true;
+             const std::vector<DataType> &aVec);
+
+template <typename DataType>
+bool is_same(const Plato::ScalarVectorT<DataType> &aViewA,
+             const Plato::ScalarVectorT<DataType> &aViewB);
+
+bool is_sequential(const Plato::ScalarVectorT<Plato::OrdinalType> &aRowMap,
+                   const Plato::ScalarVectorT<Plato::OrdinalType> &aColMap);
+
+bool is_equivalent(const Plato::ScalarVectorT<Plato::OrdinalType> &aRowMap,
+                   const Plato::ScalarVectorT<Plato::OrdinalType> &aColMapA,
+                   const Plato::ScalarVectorT<Plato::Scalar> &aValuesA,
+                   const Plato::ScalarVectorT<Plato::OrdinalType> &aColMapB,
+                   const Plato::ScalarVectorT<Plato::Scalar> &aValuesB,
+                   Plato::Scalar tolerance = 1.0e-14);
+
+bool is_zero(const Teuchos::RCP<Plato::CrsMatrixType> &aInMatrix);
+
+bool is_same(const Teuchos::RCP<Plato::CrsMatrixType> &aInMatrixA,
+             const Teuchos::RCP<Plato::CrsMatrixType> &aInMatrixB);
+
+template <typename DataType>
+void print_view(const Plato::ScalarVectorT<DataType> &aView);
+
+// Implementations
+template <typename DataType>
+void set_view_from_vector(Plato::ScalarVectorT<DataType> aView,
+                       const std::vector<DataType> &aVector) {
+  Kokkos::View<const DataType *, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>
+      tHostView(aVector.data(), aVector.size());
+  Kokkos::deep_copy(aView, tHostView);
 }
 
 template <typename DataType>
@@ -117,42 +130,17 @@ bool is_same(const Plato::ScalarVectorT<DataType> &aViewA,
   return true;
 }
 
-bool is_sequential(const Plato::ScalarVectorT<Plato::OrdinalType> &aRowMap,
-                   const Plato::ScalarVectorT<Plato::OrdinalType> &aColMap);
-
-bool is_equivalent(const Plato::ScalarVectorT<Plato::OrdinalType> &aRowMap,
-                   const Plato::ScalarVectorT<Plato::OrdinalType> &aColMapA,
-                   const Plato::ScalarVectorT<Plato::Scalar> &aValuesA,
-                   const Plato::ScalarVectorT<Plato::OrdinalType> &aColMapB,
-                   const Plato::ScalarVectorT<Plato::Scalar> &aValuesB,
-                   Plato::Scalar tolerance = 1.0e-14);
-
-bool is_zero(const Teuchos::RCP<Plato::CrsMatrixType> &aInMatrix);
-
-bool is_same(const Teuchos::RCP<Plato::CrsMatrixType> &aInMatrixA,
-             const Teuchos::RCP<Plato::CrsMatrixType> &aInMatrixB);
-
-Teuchos::RCP<Plato::CrsMatrixType> createSquareMatrix();
-
-const Teuchos::ParameterList& test_elastostatics_params();
-
-template <typename PhysicsT>
-Teuchos::RCP<Plato::VectorFunctionVMS<PhysicsT>>
-createStabilizedResidual(const Plato::SpatialModel &aSpatialModel) {
-  Plato::DataMap tDataMap;
-  return Teuchos::rcp(new Plato::VectorFunctionVMS<PhysicsT>(
-      aSpatialModel, tDataMap, test_elastostatics_params(),
-      test_elastostatics_params().get<std::string>("PDE Constraint")));
-}
-
-template <typename PhysicsT>
-Teuchos::RCP<Plato::VectorFunctionVMS<typename PhysicsT::ProjectorT>>
-createStabilizedProjector(const Plato::SpatialModel &aSpatialModel) {
-  Plato::DataMap tDataMap;
-  return Teuchos::rcp(
-      new Plato::VectorFunctionVMS<typename PhysicsT::ProjectorT>(
-          aSpatialModel, tDataMap, test_elastostatics_params(),
-          std::string("State Gradient Projection")));
+template <typename DataType>
+bool is_same(const Plato::ScalarVectorT<DataType> &aView,
+             const std::vector<DataType> &aVec) {
+  auto tView_host = Kokkos::create_mirror(aView);
+  Kokkos::deep_copy(tView_host, aView);
+  for (unsigned int i = 0; i < aVec.size(); ++i) {
+    if (tView_host(i) != aVec[i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 template <typename DataType>
@@ -164,7 +152,6 @@ void print_view(const Plato::ScalarVectorT<DataType> &aView) {
     std::cout << tView_host(i) << '\n';
   }
 }
-
 } // namespace TestHelpers
 } // namespace Plato
 

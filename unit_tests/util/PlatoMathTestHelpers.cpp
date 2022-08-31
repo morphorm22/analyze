@@ -9,6 +9,7 @@
 #include "PlatoMathFunctors.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "Solutions.hpp"
+#include "StabilizedMechanics.hpp"
 #include "VectorFunctionVMS.hpp"
 #include "alg/CrsMatrix.hpp"
 #include "alg/PlatoSolverFactory.hpp"

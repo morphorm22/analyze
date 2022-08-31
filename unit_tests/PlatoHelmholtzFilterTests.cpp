@@ -23,38 +23,6 @@
 
 #include <memory>
 
-template <typename DataType>
-void print_view(const Plato::ScalarVectorT<DataType> & aView)
-{
-    auto tView_host = Kokkos::create_mirror(aView);
-    Kokkos::deep_copy(tView_host, aView);
-    std::cout << '\n';
-    for (unsigned int i = 0; i < aView.extent(0); ++i)
-    {
-        std::cout << tView_host(i) << '\n';
-    }
-}
-
-// print full matrix entries
-void PrintFullMatrix(const Teuchos::RCP<Plato::CrsMatrixType> & aInMatrix)
-{
-    auto tNumRows = aInMatrix->numRows();
-    auto tNumCols = aInMatrix->numCols();
-
-    auto tFullMat = Plato::TestHelpers::to_full(aInMatrix);
-
-    printf("\n Full matrix entries: \n");
-    for (auto iRow = 0; iRow < tNumRows; iRow++)
-    {
-        for (auto iCol = 0; iCol < tNumCols; iCol++)
-        {
-            printf("%f ",tFullMat[iRow][iCol]);
-        }
-        printf("\n");
-    
-    }
-}
-
 /******************************************************************************/
 /*!
   \brief test parsing of length scale parameter
