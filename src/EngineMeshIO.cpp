@@ -13,15 +13,6 @@ namespace Plato
         return ss.str();
     }
 
-    void checkAddExtension(std::string & aName, std::string aExt)
-    {
-        auto found = aName.find(aExt);
-        if( found != (aName.size() - aExt.size()) )
-        {
-            aName += aExt;
-        }
-    }
-
     EngineMeshIO::EngineMeshIO(
         std::string         aName,
         Plato::EngineMesh & aMesh,
@@ -31,30 +22,14 @@ namespace Plato
         mVariablesAreSet(false),
         mPlotIndex(0)
     {
-        mMeshIO = std::make_shared<ExodusIO>();
+        mMeshIO = mMesh.mMeshIO;
         
-        ::MeshIO::Type tMode;
-        auto tModeLower = Plato::tolower(aMode);
-        if( tModeLower == "write"  || tModeLower == "w") { tMode = ::MeshIO::CLOBBER; }
-        else
-        if( tModeLower == "read"   || tModeLower == "r") { tMode = ::MeshIO::READ; }
-        else
-        if( tModeLower == "append" || tModeLower == "a") { tMode = ::MeshIO::WRITE; }
-
-        checkAddExtension(aName, ".exo");
-
-        mMeshIO->initMeshIO( mMesh.mMesh.get(), mMesh.mDataContainer.get(), aName.c_str(), tMode );
-
-        mMeshIO->openMeshIO();
+        mMeshIO->openMesh(aName, aMode);
 
         setVariableTypeSuffixes();
 
-        if( tMode == ::MeshIO::CLOBBER || tMode == ::MeshIO::WRITE )
-        {
-            mMeshIO->writePrologue();
-        }
-
-        if( tMode == ::MeshIO::READ )
+        auto tMode = Plato::tolower(aMode);
+        if( tMode == "read" || tMode == "r")
         {
             parseNodeVarNames();
         }
@@ -357,7 +332,7 @@ namespace Plato
             }
             if (tNodeVarNames.size() > 0)
             {
-                mMeshIO->initVars(NODE, tNodeVarNames.size(), tNodeVarNames);
+                mMeshIO->initVars("node", tNodeVarNames.size(), tNodeVarNames);
             }
 
             StrList tElementVarNames;
@@ -373,7 +348,7 @@ namespace Plato
             }
             if (tElementVarNames.size() > 0)
             {
-                mMeshIO->initVars(ELEM, tElementVarNames.size(), tElementVarNames);
+                mMeshIO->initVars("element", tElementVarNames.size(), tElementVarNames);
             }
 
             mVariablesAreSet = true;
@@ -443,11 +418,7 @@ namespace Plato
     )
     {
         auto tHostMirror = Kokkos::create_mirror_view(aNodeScalar);
-        auto tSuccess = mMeshIO->readNodePlot(tHostMirror.data(), aVariableName, aStepIndex);
-        if( !tSuccess )
-        {
-            ANALYZE_PRINTERR("Reading from mesh failed.");
-        }
+        mMeshIO->readNodePlot(tHostMirror.data(), aVariableName, aStepIndex);
         Kokkos::deep_copy(aNodeScalar, tHostMirror);
     }
 

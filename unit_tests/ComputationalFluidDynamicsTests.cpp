@@ -10,7 +10,7 @@
 #include "BLAS3.hpp"
 #include "Analyze_Diagnostics.hpp"
 
-#include "hyperbolic/FluidsQuasiImplicit.hpp"
+#include "hyperbolic/fluids/FluidsQuasiImplicit.hpp"
 
 #include "PlatoTestHelpers.hpp"
 

@@ -4,7 +4,6 @@
 #include <Teuchos_ParameterList.hpp>
 
 #include "PlatoStaticsTypes.hpp"
-#include "SimplexFadTypes.hpp"
 
 namespace Plato
 {
@@ -26,7 +25,7 @@ public:
     }
 
     template<typename ResultScalarType, typename TensorScalarType, typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void operator()(Plato::OrdinalType cellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType cellOrdinal,
                                        Plato::ScalarVectorT<ResultScalarType> pnorm,
                                        Plato::ScalarMultiVectorT<TensorScalarType> voigtTensor,
                                        Plato::OrdinalType p,
@@ -78,7 +77,7 @@ public:
     }
 
     template<typename ResultScalarType, typename TensorScalarType, typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void operator()(Plato::OrdinalType cellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType cellOrdinal,
                                        Plato::ScalarVectorT<ResultScalarType> pnorm,
                                        Plato::ScalarMultiVectorT<TensorScalarType> voigtTensor,
                                        Plato::OrdinalType p,
@@ -179,7 +178,7 @@ public:
     }
 
     template<typename ResultScalarType, typename TensorScalarType, typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void operator()(Plato::OrdinalType cellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType cellOrdinal,
                                        Plato::ScalarVectorT<ResultScalarType> pnorm,
                                        Plato::ScalarMultiVectorT<TensorScalarType> voigtTensor,
                                        Plato::OrdinalType p,
@@ -291,7 +290,7 @@ public:
     }
 
     template<typename ResultScalarType, typename TensorScalarType, typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void operator()(Plato::OrdinalType cellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType cellOrdinal,
                                        Plato::ScalarVectorT<ResultScalarType> pnorm,
                                        Plato::ScalarMultiVectorT<TensorScalarType> voigtTensor,
                                        Plato::OrdinalType p,
@@ -382,18 +381,17 @@ public:
                   Plato::ScalarMultiVectorT<typename EvalT::ControlScalarType> control,
                   Plato::ScalarVectorT<typename EvalT::ConfigScalarType> cellVolume) const
     {
+        auto& tTensorPNorm = mTensorPNorm;
         Plato::OrdinalType numCells = result.extent(0);
         auto exponent = TensorNormBase<VoigtLength, EvalT>::mExponent;
-        auto& tTensorPNorm = mTensorPNorm;
         Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0, numCells),
-                             KOKKOS_LAMBDA(Plato::OrdinalType cellOrdinal)
-                             {
-                                 // compute tensor p-norm of tensor
-                                 //
-                                 tTensorPNorm(cellOrdinal, result, tensor, exponent, cellVolume);
+        KOKKOS_LAMBDA(Plato::OrdinalType cellOrdinal)
+        {
+            // compute tensor p-norm of tensor
+            //
+            tTensorPNorm(cellOrdinal, result, tensor, exponent, cellVolume);
 
-                             },
-                             "Compute PNorm");
+        }, "Compute PNorm");
     }
 };
 // class TensorPNorm

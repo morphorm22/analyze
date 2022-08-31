@@ -1,14 +1,12 @@
-#include "parabolic/InternalThermoelasticEnergy.hpp"
+#include "parabolic/InternalThermoelasticEnergy_decl.hpp"
+
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
+
+#include "parabolic/InternalThermoelasticEnergy_def.hpp"
+
+#include "ThermomechanicsElement.hpp"
 #include "parabolic/ExpInstMacros.hpp"
 
-#ifdef PLATOANALYZE_1D
-PLATO_PARABOLIC_EXPL_DEF(Plato::Parabolic::InternalThermoelasticEnergy, Plato::SimplexThermomechanics, 1)
-#endif
+PLATO_PARABOLIC_EXP_INST(Plato::Parabolic::InternalThermoelasticEnergy, Plato::ThermomechanicsElement)
 
-#ifdef PLATOANALYZE_2D
-PLATO_PARABOLIC_EXPL_DEF(Plato::Parabolic::InternalThermoelasticEnergy, Plato::SimplexThermomechanics, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-PLATO_PARABOLIC_EXPL_DEF(Plato::Parabolic::InternalThermoelasticEnergy, Plato::SimplexThermomechanics, 3)
 #endif

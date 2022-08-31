@@ -53,6 +53,13 @@
 #include <ArborX.hpp>
 #include <Kokkos_Core.hpp>
 
+#include "Tet4.hpp"
+#include "Tet10.hpp"
+#include "Hex8.hpp"
+#include "Hex27.hpp"
+#include "Quad4.hpp"
+#include "PlatoUtilities.hpp"
+#include "PlatoMathTypes.hpp"
 #include "Plato_MeshMapUtils.hpp"
 
 namespace Plato {
@@ -67,23 +74,21 @@ struct MathMapBase
 /***************************************************************************//**
 * \brief Functor for no prescribed symmetry
 *******************************************************************************/
-template <typename ScalarT>
+template <Plato::OrdinalType SpaceDims, typename ScalarT>
 struct Full : public MathMapBase<ScalarT>
 {
     using VectorArrayT = typename Plato::ScalarMultiVectorT<ScalarT>;
     using OrdinalT     = typename VectorArrayT::size_type;
 
-    ScalarT mOrigin[cSpaceDim];
-    ScalarT mNormal[cSpaceDim];
-
     Full(const Plato::InputData & aInput){}
 
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( OrdinalT aOrdinal, VectorArrayT aInValue, VectorArrayT aOutValue ) const
     {
-        aOutValue(Dim::X, aOrdinal) = aInValue(Dim::X, aOrdinal);
-        aOutValue(Dim::Y, aOrdinal) = aInValue(Dim::Y, aOrdinal);
-        aOutValue(Dim::Z, aOrdinal) = aInValue(Dim::Z, aOrdinal);
+        for(Plato::OrdinalType iDim=0; iDim<SpaceDims; iDim++)
+        {
+            aOutValue(iDim, aOrdinal) = aInValue(iDim, aOrdinal);
+        }
     }
 };
 
@@ -95,57 +100,57 @@ struct Full : public MathMapBase<ScalarT>
   projection onto the plane are reflected, that is, the positive side
   is the parent side and the negative side is the child side.
 *******************************************************************************/
-template <typename ScalarT>
+template <Plato::OrdinalType SpaceDims, typename ScalarT>
 struct SymmetryPlane : public MathMapBase<ScalarT>
 {
     using VectorArrayT = typename Plato::ScalarMultiVectorT<ScalarT>;
     using OrdinalT     = typename VectorArrayT::size_type;
 
-    ScalarT mOrigin[cSpaceDim];
-    ScalarT mNormal[cSpaceDim];
+    Plato::Array<SpaceDims, ScalarT> mOrigin;
+    Plato::Array<SpaceDims, ScalarT> mNormal;
 
     SymmetryPlane(const Plato::InputData & aInput)
     {
         auto tOriginInput = aInput.get<Plato::InputData>("Origin");
-        mOrigin[Dim::X] = Plato::Get::Double(tOriginInput, "X");
-        mOrigin[Dim::Y] = Plato::Get::Double(tOriginInput, "Y");
-        mOrigin[Dim::Z] = Plato::Get::Double(tOriginInput, "Z");
+        mOrigin(Dim::X) = Plato::Get::Double(tOriginInput, "X");
+        if(SpaceDims > 1) mOrigin(Dim::Y) = Plato::Get::Double(tOriginInput, "Y");
+        if(SpaceDims > 2) mOrigin(Dim::Z) = Plato::Get::Double(tOriginInput, "Z");
 
         auto tNormalInput = aInput.get<Plato::InputData>("Normal");
-        mNormal[Dim::X] = Plato::Get::Double(tNormalInput, "X");
-        mNormal[Dim::Y] = Plato::Get::Double(tNormalInput, "Y");
-        mNormal[Dim::Z] = Plato::Get::Double(tNormalInput, "Z");
+        mNormal(Dim::X) = Plato::Get::Double(tNormalInput, "X");
+        if(SpaceDims > 1) mNormal(Dim::Y) = Plato::Get::Double(tNormalInput, "Y");
+        if(SpaceDims > 2) mNormal(Dim::Z) = Plato::Get::Double(tNormalInput, "Z");
 
-        auto tLength = mNormal[Dim::X] * mNormal[Dim::X]
-                     + mNormal[Dim::Y] * mNormal[Dim::Y]
-                     + mNormal[Dim::Z] * mNormal[Dim::Z];
+        auto tLength = mNormal(Dim::X) * mNormal(Dim::X);
+        if(SpaceDims > 1) tLength += mNormal(Dim::Y) * mNormal(Dim::Y);
+        if(SpaceDims > 2) tLength += mNormal(Dim::Z) * mNormal(Dim::Z);
 
         if( tLength == 0.0 )
         {
             throw Plato::ParsingException("SymmetryPlane: Normal vector has zero length.");
         }
         tLength = sqrt(tLength);
-        mNormal[Dim::X] /= tLength;
-        mNormal[Dim::Y] /= tLength;
-        mNormal[Dim::Z] /= tLength;
+        for(Plato::OrdinalType iDim=0; iDim<SpaceDims; iDim++)
+        {
+            mNormal(iDim) /= tLength;
+        }
     }
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( OrdinalT aOrdinal, VectorArrayT aInValue, VectorArrayT aOutValue ) const
     {
         ScalarT tProjVal = 0.0;
-        tProjVal += (aInValue(Dim::X, aOrdinal) - mOrigin[Dim::X]) * mNormal[Dim::X];
-        tProjVal += (aInValue(Dim::Y, aOrdinal) - mOrigin[Dim::Y]) * mNormal[Dim::Y];
-        tProjVal += (aInValue(Dim::Z, aOrdinal) - mOrigin[Dim::Z]) * mNormal[Dim::Z];
-
-        aOutValue(Dim::X, aOrdinal) = aInValue(Dim::X, aOrdinal);
-        aOutValue(Dim::Y, aOrdinal) = aInValue(Dim::Y, aOrdinal);
-        aOutValue(Dim::Z, aOrdinal) = aInValue(Dim::Z, aOrdinal);
+        for(Plato::OrdinalType iDim=0; iDim<SpaceDims; iDim++)
+        {
+            tProjVal += (aInValue(iDim, aOrdinal) - mOrigin(iDim)) * mNormal(iDim);
+            aOutValue(iDim, aOrdinal) = aInValue(iDim, aOrdinal);
+        }
 
         if( tProjVal < 0.0 )
         {
-            aOutValue(Dim::X, aOrdinal) -= 2.0*tProjVal*mNormal[Dim::X];
-            aOutValue(Dim::Y, aOrdinal) -= 2.0*tProjVal*mNormal[Dim::Y];
-            aOutValue(Dim::Z, aOrdinal) -= 2.0*tProjVal*mNormal[Dim::Z];
+            for(Plato::OrdinalType iDim=0; iDim<SpaceDims; iDim++)
+            {
+                aOutValue(iDim, aOrdinal) -= 2.0*tProjVal*mNormal(iDim);
+            }
         }
     }
 };
@@ -156,24 +161,24 @@ struct SymmetryPlane : public MathMapBase<ScalarT>
   Given a point and translation vector, the corresponding translated
   point is found.
 *******************************************************************************/
-template <typename ScalarT>
+template <Plato::OrdinalType SpaceDims, typename ScalarT>
 struct Translation : public MathMapBase<ScalarT>
 {
     using VectorArrayT = typename Plato::ScalarMultiVectorT<ScalarT>;
     using OrdinalT     = typename VectorArrayT::size_type;
 
-    ScalarT mTranslation[cSpaceDim];
+    Plato::Array<SpaceDims, ScalarT> mTranslation;
 
     Translation(const Plato::InputData & aInput)
     {
         auto tTranslationInput = aInput.get<Plato::InputData>("Vector");
-        mTranslation[Dim::X] = Plato::Get::Double(tTranslationInput, "X");
-        mTranslation[Dim::Y] = Plato::Get::Double(tTranslationInput, "Y");
-        mTranslation[Dim::Z] = Plato::Get::Double(tTranslationInput, "Z");
+        mTranslation(Dim::X) = Plato::Get::Double(tTranslationInput, "X");
+        if(SpaceDims > 1) mTranslation(Dim::Y) = Plato::Get::Double(tTranslationInput, "Y");
+        if(SpaceDims > 2) mTranslation(Dim::Z) = Plato::Get::Double(tTranslationInput, "Z");
 
-        auto tLength = mTranslation[Dim::X] * mTranslation[Dim::X]
-                     + mTranslation[Dim::Y] * mTranslation[Dim::Y]
-                     + mTranslation[Dim::Z] * mTranslation[Dim::Z];
+        auto tLength = mTranslation(Dim::X) * mTranslation(Dim::X);
+        if(SpaceDims > 1) tLength += mTranslation(Dim::Y) * mTranslation(Dim::Y);
+        if(SpaceDims > 2) tLength += mTranslation(Dim::Z) * mTranslation(Dim::Z);
 
         if( tLength == 0.0 )
         {
@@ -181,12 +186,13 @@ struct Translation : public MathMapBase<ScalarT>
         }
     }
 
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( OrdinalT aOrdinal, VectorArrayT aInValue, VectorArrayT aOutValue ) const
     {
-        aOutValue(Dim::X, aOrdinal) = aInValue(Dim::X, aOrdinal) + mTranslation[Dim::X];
-        aOutValue(Dim::Y, aOrdinal) = aInValue(Dim::Y, aOrdinal) + mTranslation[Dim::Y];
-        aOutValue(Dim::Z, aOrdinal) = aInValue(Dim::Z, aOrdinal) + mTranslation[Dim::Z];
+        for(Plato::OrdinalType iDim=0; iDim<SpaceDims; iDim++)
+        {
+        aOutValue(iDim, aOrdinal) = aInValue(iDim, aOrdinal) + mTranslation(iDim);
+        }
     }
 };
 
@@ -238,6 +244,7 @@ class MeshMap
     /***************************************************************************//**
     * @brief Set map matrix values from parent element
     *******************************************************************************/
+    template<typename ElementT>
     void setMatrixValues(Plato::Mesh aMesh, IntegerArrayT aParentElements, VectorArrayT aLocation, SparseMatrix& aMatrix)
     {
         auto tNVerts = aMesh->NumNodes();
@@ -277,7 +284,7 @@ class MeshMap
             }
             else
             {
-                tRowMap(iRowOrdinal) = cNVertsPerElem; // mapped
+                tRowMap(iRowOrdinal) = ElementT::mNumNodesPerCell; // mapped
             }
         }, "nonzeros");
 
@@ -297,7 +304,7 @@ class MeshMap
         // determine column map and entries
         OrdinalArrayT tColMap("row map", tNumEntries);
         ScalarArrayT tEntries("entries", tNumEntries);
-        GetBasis<ScalarT> tGetBasis(aMesh);
+        GetBasis<ElementT, ScalarT> tGetBasis(aMesh);
         Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalT>(0, tNumRows), KOKKOS_LAMBDA(OrdinalT iRowOrdinal)
         {
             auto iEntryOrdinal = tRowMap(iRowOrdinal);
@@ -614,12 +621,12 @@ class MeshMap
 /***************************************************************************//**
 * \brief Derived class template that adds MathMap functionality.
 *******************************************************************************/
-template <typename MathMapType>
-class MeshMapDerived : public Plato::Geometry::MeshMap<typename MathMapType::ScalarT>
+template <typename ElementT, typename MathMapT>
+class MeshMapDerived : public Plato::Geometry::MeshMap<typename MathMapT::ScalarT>
 {
-    MathMapType mMathMap;
+    MathMapT mMathMap;
 
-    using ScalarT       = typename MathMapType::ScalarT;
+    using ScalarT       = typename MathMapT::ScalarT;
     using ScalarArrayT  = typename Plato::ScalarVectorT<ScalarT>;
     using IntegerArrayT = typename Plato::ScalarVectorT<int>;
     using VectorArrayT  = typename Plato::ScalarMultiVectorT<ScalarT>;
@@ -637,14 +644,14 @@ class MeshMapDerived : public Plato::Geometry::MeshMap<typename MathMapType::Sca
   public:
 
     MeshMapDerived(Plato::Mesh aMesh, Plato::InputData& aInput) :
-      MeshMap<typename MathMapType::ScalarT>(aMesh, aInput),
+      MeshMap<typename MathMapT::ScalarT>(aMesh, aInput),
       mMathMap(aInput.get<Plato::InputData>("LinearMap"))
     {
         // compute mapped values
         //
         auto tNVerts = aMesh->NumNodes();
-        VectorArrayT tVertexLocations       ("mesh node locations",        cSpaceDim, tNVerts);
-        VectorArrayT tMappedVertexLocations ("mapped mesh node locations", cSpaceDim, tNVerts);
+        VectorArrayT tVertexLocations       ("mesh node locations",        ElementT::mNumSpatialDims, tNVerts);
+        VectorArrayT tMappedVertexLocations ("mapped mesh node locations", ElementT::mNumSpatialDims, tNVerts);
         mapVertexLocations(aMesh, tVertexLocations, tMappedVertexLocations);
 
         // set search tolerance for finding parent elements
@@ -656,11 +663,11 @@ class MeshMapDerived : public Plato::Geometry::MeshMap<typename MathMapType::Sca
         // find elements that contain mapped locations
         //
         IntegerArrayT tParentElements("mapped mask", tNVerts);
-        findParentElements<ScalarT>(aMesh, tVertexLocations, tMappedVertexLocations, tParentElements, mSearchTolerance);
+        findParentElements<ElementT, ScalarT>(aMesh, tVertexLocations, tMappedVertexLocations, tParentElements, mSearchTolerance);
 
         // populate crs matrix
         //
-        MapBase::setMatrixValues(aMesh, tParentElements, tMappedVertexLocations, mMatrix);
+        MapBase::template setMatrixValues<ElementT>(aMesh, tParentElements, tMappedVertexLocations, mMatrix);
         mMatrixT = MapBase::createTranspose(mMatrix);
 
         // build filter if requested
@@ -677,9 +684,9 @@ class MeshMapDerived : public Plato::Geometry::MeshMap<typename MathMapType::Sca
         auto tMathMap = mMathMap;
         Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalT>(0, tNVerts), KOKKOS_LAMBDA(OrdinalT iOrdinal)
         {
-            for(size_t iDim=0; iDim<cSpaceDim; ++iDim)
+            for(size_t iDim=0; iDim<ElementT::mNumSpatialDims; ++iDim)
             {
-                aLocations(iDim, iOrdinal) = tCoords(iOrdinal*cSpaceDim+iDim);
+                aLocations(iDim, iOrdinal) = tCoords(iOrdinal*ElementT::mNumSpatialDims+iDim);
             }
             tMathMap(iOrdinal, aLocations, aMappedLocations);
         }, "get verts and apply map");
@@ -690,6 +697,47 @@ class MeshMapDerived : public Plato::Geometry::MeshMap<typename MathMapType::Sca
     }
 }; // end class MeshMapDerived
 
+template<template <Plato::OrdinalType, typename> typename MathMapT, typename ScalarT>
+inline
+std::shared_ptr<Plato::Geometry::MeshMap<ScalarT>>
+makeMeshMap(
+    Plato::Mesh      aMesh,
+    Plato::InputData aInput
+)
+{
+    auto tElementType = aMesh->ElementType();
+    if( Plato::tolower(tElementType) == "tet10" ||
+        Plato::tolower(tElementType) == "tetra10" )
+    {
+        return std::make_shared<Plato::Geometry::MeshMapDerived<Plato::Tet10, MathMapT<Plato::Tet10::mNumSpatialDims, ScalarT>>>(aMesh, aInput);
+    }
+    if( Plato::tolower(tElementType) == "tetra"  ||
+        Plato::tolower(tElementType) == "tetra4" ||
+        Plato::tolower(tElementType) == "tet4" )
+    {
+        return std::make_shared<Plato::Geometry::MeshMapDerived<Plato::Tet4, MathMapT<Plato::Tet4::mNumSpatialDims, ScalarT>>>(aMesh, aInput);
+    }
+    if( Plato::tolower(tElementType) == "hex8" ||
+        Plato::tolower(tElementType) == "hexa8" )
+    {
+        return std::make_shared<Plato::Geometry::MeshMapDerived<Plato::Hex8, MathMapT<Plato::Hex8::mNumSpatialDims, ScalarT>>>(aMesh, aInput);
+    }
+    if( Plato::tolower(tElementType) == "hex27" ||
+        Plato::tolower(tElementType) == "hexa27" )
+    {
+        return std::make_shared<Plato::Geometry::MeshMapDerived<Plato::Hex27, MathMapT<Plato::Hex27::mNumSpatialDims, ScalarT>>>(aMesh, aInput);
+    }
+    if( Plato::tolower(tElementType) == "quad4" )
+    {
+        return std::make_shared<Plato::Geometry::MeshMapDerived<Plato::Quad4, MathMapT<Plato::Quad4::mNumSpatialDims, ScalarT>>>(aMesh, aInput);
+    }
+    else
+    {
+        std::stringstream ss;
+        ss << "Unknown mesh type: " << tElementType;
+        ANALYZE_THROWERR(ss.str());
+    }
+}
 
 
 template <typename ScalarT = double>
@@ -726,15 +774,15 @@ struct MeshMapFactory
 
         if(tLinearMapType == "SymmetryPlane")
         {
-            return std::make_shared<Plato::Geometry::MeshMapDerived<SymmetryPlane<ScalarT>>>(aMesh, aInput);
+            return makeMeshMap<SymmetryPlane, ScalarT>(aMesh, aInput);
         } else
         if(tLinearMapType == "Translation")
         {
-            return std::make_shared<Plato::Geometry::MeshMapDerived<Translation<ScalarT>>>(aMesh, aInput);
+            return makeMeshMap<Translation, ScalarT>(aMesh, aInput);
         } else
         if(tLinearMapType == "")
         {
-            return std::make_shared<Plato::Geometry::MeshMapDerived<Full<ScalarT>>>(aMesh, aInput);
+            return makeMeshMap<Full, ScalarT>(aMesh, aInput);
         }
         else
         {

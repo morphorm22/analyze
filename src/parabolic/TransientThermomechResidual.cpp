@@ -1,12 +1,12 @@
-#include "parabolic/TransientThermomechResidual.hpp"
+#include "parabolic/TransientThermomechResidual_decl.hpp"
+
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
+
+#include "parabolic/TransientThermomechResidual_def.hpp"
+
+#include "ThermomechanicsElement.hpp"
 #include "parabolic/ExpInstMacros.hpp"
 
-#ifdef PLATOANALYZE_1D
-PLATO_PARABOLIC_EXPL_DEF(Plato::Parabolic::TransientThermomechResidual, Plato::SimplexThermomechanics, 1)
-#endif
-#ifdef PLATOANALYZE_2D
-PLATO_PARABOLIC_EXPL_DEF(Plato::Parabolic::TransientThermomechResidual, Plato::SimplexThermomechanics, 2)
-#endif
-#ifdef PLATOANALYZE_3D
-PLATO_PARABOLIC_EXPL_DEF(Plato::Parabolic::TransientThermomechResidual, Plato::SimplexThermomechanics, 3)
+PLATO_PARABOLIC_EXP_INST(Plato::Parabolic::TransientThermomechResidual, Plato::ThermomechanicsElement)
+
 #endif

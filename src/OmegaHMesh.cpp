@@ -32,16 +32,19 @@ namespace Plato
        if (mMesh.dim() == 3)
        {
            this->InvertSideSets<3>();
+           mElementType = "TET4";
        }
        else
        if (mMesh.dim() == 2)
        {
            this->InvertSideSets<2>();
+           mElementType = "TRI3";
        }
        else
        if (mMesh.dim() == 1)
        {
            this->InvertSideSets<1>();
+           mElementType = "BAR2";
        }
        else
        {
@@ -101,6 +104,9 @@ namespace Plato
 
     std::string
     OmegaHMesh::FileName() const { return mFileName; }
+
+    std::string
+    OmegaHMesh::ElementType() const { return mElementType; }
 
     Plato::OrdinalType
     OmegaHMesh::NumNodes() const { return mMesh.nverts(); }

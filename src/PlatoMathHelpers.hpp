@@ -48,7 +48,7 @@ KOKKOS_INLINE_FUNCTION T min2(T aA, T aB)
  * \param [in] aConsequentValTwo consequent value given by B
  * \return result/decision
 **********************************************************************************/
-KOKKOS_FUNCTION inline Plato::Scalar
+KOKKOS_INLINE_FUNCTION Plato::Scalar
 conditional_expression(const Plato::Scalar & aX,
                        const Plato::Scalar & aY,
                        const Plato::Scalar & aA,

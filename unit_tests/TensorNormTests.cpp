@@ -1,7 +1,11 @@
 #include "PlatoTestHelpers.hpp"
 #include "PlatoStaticsTypes.hpp"
+
+#include "Tet4.hpp"
 #include "Mechanics.hpp"
 #include "TensorPNorm.hpp"
+
+#include "elliptic/EvaluationTypes.hpp"
 
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
@@ -16,11 +20,12 @@ namespace TensorNormTests
 /******************************************************************************/
 TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormDefaultVolumeScaling)
 {
-    constexpr int spaceDim=3;
-    constexpr int numVoigt=6;
-    constexpr int tNumNodesPerCell=4;
-    using PhysicsT = Plato::Mechanics<spaceDim>;
-    using ResidualEvalT = Plato::Evaluation<PhysicsT::SimplexT>::Residual;
+    using PhysicsType = Plato::Mechanics<Plato::Tet4>;
+    using ElementType = typename PhysicsType::ElementType;
+    using ResidualEvalT = Plato::Elliptic::Evaluation<ElementType>::Residual;
+
+    constexpr int numVoigt = ElementType::mNumVoigtTerms;
+    constexpr int tNumNodesPerCell = ElementType::mNumNodesPerCell;
 
     // set parameters
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
@@ -74,11 +79,12 @@ TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormDefaultVolumeScaling)
 /******************************************************************************/
 TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormSpecifiedVolumeScaling)
 {
-    constexpr int spaceDim=3;
-    constexpr int numVoigt=6;
-    constexpr int tNumNodesPerCell=4;
-    using PhysicsT = Plato::Mechanics<spaceDim>;
-    using ResidualEvalT = Plato::Evaluation<PhysicsT::SimplexT>::Residual;
+    using PhysicsType = Plato::Mechanics<Plato::Tet4>;
+    using ElementType = typename PhysicsType::ElementType;
+    using ResidualEvalT = Plato::Elliptic::Evaluation<ElementType>::Residual;
+
+    constexpr int numVoigt = ElementType::mNumVoigtTerms;
+    constexpr int tNumNodesPerCell = ElementType::mNumNodesPerCell;
 
     // set parameters
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
@@ -133,11 +139,12 @@ TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormSpecifiedVolumeScaling)
 /******************************************************************************/
 TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormNoVolumeScaling)
 {
-    constexpr int spaceDim=3;
-    constexpr int numVoigt=6;
-    constexpr int tNumNodesPerCell=4;
-    using PhysicsT = Plato::Mechanics<spaceDim>;
-    using ResidualEvalT = Plato::Evaluation<PhysicsT::SimplexT>::Residual;
+    using PhysicsType = Plato::Mechanics<Plato::Tet4>;
+    using ElementType = typename PhysicsType::ElementType;
+    using ResidualEvalT = Plato::Elliptic::Evaluation<ElementType>::Residual;
+
+    constexpr int numVoigt = ElementType::mNumVoigtTerms;
+    constexpr int tNumNodesPerCell = ElementType::mNumNodesPerCell;
 
     // set parameters
     Teuchos::RCP<Teuchos::ParameterList> tParamList =

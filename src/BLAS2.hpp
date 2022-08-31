@@ -32,7 +32,7 @@ template<Plato::OrdinalType Length,
          typename ScalarT,
          typename AViewTypeT,
          typename BViewTypeT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 update
 (const Plato::OrdinalType & aCellOrdinal,
  const ScalarT & aAlpha,
@@ -64,7 +64,7 @@ update
 template<Plato::OrdinalType Length,
          typename ScalarT,
          typename ResultT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 scale
 (const Plato::OrdinalType & aCellOrdinal,
  const ScalarT & aScalar,
@@ -95,7 +95,7 @@ template<Plato::OrdinalType Length,
          typename ScalarT,
          typename AViewTypeT,
          typename BViewTypeT>
-KOKKOS_FUNCTION inline void
+KOKKOS_INLINE_FUNCTION void
 scale
 (const Plato::OrdinalType & aCellOrdinal,
  const ScalarT & aScalar,
@@ -128,7 +128,7 @@ template<Plato::OrdinalType Length,
          typename AViewType,
          typename BViewType,
          typename CViewType>
-KOKKOS_FUNCTION inline void dot
+KOKKOS_INLINE_FUNCTION void dot
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::ScalarMultiVectorT<AViewType> & aViewA,
  const Plato::ScalarMultiVectorT<BViewType> & aViewB,

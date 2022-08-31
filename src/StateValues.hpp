@@ -49,7 +49,7 @@ public:
     *
     *******************************************************************************/
     template<typename StateType>
-    KOKKOS_FUNCTION inline void operator()(const Plato::OrdinalType & aCellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarVector & aBasisFunctions,
                                        const Plato::ScalarMultiVectorT<StateType> & aNodalCellStates,
                                        const Plato::ScalarMultiVectorT<StateType> & aStateValues) const

@@ -1,36 +1,26 @@
-#include "elliptic/ScalarFunctionBaseFactory.hpp"
+#include "elliptic/ScalarFunctionBaseFactory_decl.hpp"
+
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
+
 #include "elliptic/ScalarFunctionBaseFactory_def.hpp"
 
+#include "BaseExpInstMacros.hpp"
+#include "Thermal.hpp"
+#include "Mechanics.hpp"
+#include "Thermomechanics.hpp"
+#include "Electromechanics.hpp"
 
-#ifdef PLATOANALYZE_1D
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Thermal<1>>;
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Mechanics<1>>;
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Electromechanics<1>>;
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Thermomechanics<1>>;
-#ifdef PLATO_STABILIZED
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::StabilizedMechanics<1>>;
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::StabilizedThermomechanics<1>>;
-#endif
-#endif
+PLATO_ELEMENT_DEF(Plato::Elliptic::ScalarFunctionBaseFactory, Plato::Thermal)
+PLATO_ELEMENT_DEF(Plato::Elliptic::ScalarFunctionBaseFactory, Plato::Mechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::ScalarFunctionBaseFactory, Plato::Thermomechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::ScalarFunctionBaseFactory, Plato::Electromechanics)
 
-#ifdef PLATOANALYZE_2D
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Thermal<2>>;
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Mechanics<2>>;
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Electromechanics<2>>;
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Thermomechanics<2>>;
 #ifdef PLATO_STABILIZED
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::StabilizedMechanics<2>>;
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::StabilizedThermomechanics<2>>;
-#endif
+  #include "stabilized/Mechanics.hpp"
+  #include "stabilized/Thermomechanics.hpp"
+  PLATO_ELEMENT_DEF(Plato::Elliptic::ScalarFunctionBaseFactory, Plato::Stabilized::Mechanics)
+  PLATO_ELEMENT_DEF(Plato::Elliptic::ScalarFunctionBaseFactory, Plato::Stabilized::Thermomechanics)
 #endif
 
-#ifdef PLATOANALYZE_3D
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Thermal<3>>;
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Mechanics<3>>;
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Electromechanics<3>>;
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::Thermomechanics<3>>;
-#ifdef PLATO_STABILIZED
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::StabilizedMechanics<3>>;
-template class Plato::Elliptic::ScalarFunctionBaseFactory<::Plato::StabilizedThermomechanics<3>>;
-#endif
+
 #endif

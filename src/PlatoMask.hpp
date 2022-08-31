@@ -6,6 +6,8 @@
 #include "ImplicitFunctors.hpp"
 #include "PlatoStaticsTypes.hpp"
 
+// TODO: this file is still simplex specific
+
 namespace Plato {
 
     template <int mSpaceDim>
@@ -110,7 +112,7 @@ namespace Plato {
         Plato::ScalarMultiVector
         getCellCenters(Plato::Mesh aMesh)
         {
-            Plato::NodeCoordinate<mSpaceDim> tNodeCoordsFunctor(aMesh);
+            Plato::NodeCoordinate<mSpaceDim, mSpaceDim+1> tNodeCoordsFunctor(aMesh);
 
             auto tNumCells = aMesh->NumElements();
             Plato::ScalarMultiVector tCellCenters("cell centers", tNumCells, mSpaceDim);

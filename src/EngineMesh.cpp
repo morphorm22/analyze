@@ -29,7 +29,7 @@ namespace Plato
     {
         openMesh();
 
-        auto tFaceGraph = mMesh->getFaceGraph(/*block id=*/ 0);  // EngineMesh requires all element blocks to have same element type
+        auto tFaceGraph = mMeshIO->getFaceGraph(/*block id=*/ 0);  // EngineMesh requires all element blocks to have same element type
         auto tNumFacesPerElem = tFaceGraph.size();
         auto tNumNodesPerFace = tFaceGraph[0].size();
         Kokkos::resize(mFaceGraph, tNumFacesPerElem, tNumNodesPerFace);
@@ -57,65 +57,60 @@ namespace Plato
     void
     EngineMesh::closeMesh()
     {
-        mMesh = nullptr;
-        mDataContainer = nullptr;
+        mMeshIO = nullptr;
     }
 
     void
     EngineMesh::openMesh()
     {
-        mDataContainer = std::make_shared<DataContainer>();
-        mMesh = std::make_shared<UnsMesh>(mDataContainer.get());
-        //mMesh->createMesh("exodus", mFileName, /*ignoreNodeMaps=*/true, /*ignoreElemMaps=*/true);
-        mMesh->createMesh("exodus", mFileName, /*ignoreNodeMaps=*/false, /*ignoreElemMaps=*/false);
+        mMeshIO = std::make_shared<ExodusIO>();
+        mMeshIO->readMesh(mFileName, /*ignoreNodeMaps=*/false, /*ignoreElemMaps=*/false);
 
-        mDataContainer->setNumNodes(mMesh->getNumNodes());
-        mDataContainer->setNumElems(mMesh->getNumElems());
-
-        auto tNumBlocks = mMesh->getNumElemBlks();
-        mNumNodesPerElement = mMesh->getNnpeInBlk(/*blockIndex=*/0);
+        auto tNumBlocks = mMeshIO->getNumElemBlks();
+        mNumNodesPerElement = mMeshIO->getNnpeInBlk(/*blockIndex=*/0);
         for( decltype(tNumBlocks) tBlockIndex=1; tBlockIndex<tNumBlocks; tBlockIndex++ )
         {
-            auto tNnpe = mMesh->getNnpeInBlk(tBlockIndex);
+            auto tNnpe = mMeshIO->getNnpeInBlk(tBlockIndex);
             if(tNnpe != mNumNodesPerElement)
             {
                 throw std::runtime_error("Fatal Error: Encountered a mesh with multiple element types.");
             }
         }
-        mNumNodes = mMesh->getNumNodes();
-        mNumElements = mMesh->getNumElems();
-        mNumDimensions = mMesh->getDimensions();
+        mElementType = mMeshIO->getElemTypeInBlk(/*blockIndex=*/0);
+        mNumNodes = mMeshIO->getNumNodes();
+        mNumElements = mMeshIO->getNumElems();
+        mNumDimensions = mMeshIO->getDimensions();
     }
 
     void
     EngineMesh::loadConnectivity()
     {
         // determine length of connectivity array and resize mConnectivity
-        auto tNumBlocks = mMesh->getNumElemBlks();
+        auto tNumBlocks = mMeshIO->getNumElemBlks();
         Plato::OrdinalType tTotalNumConnect = 0;
         Plato::OrdinalType tTotalNumElements = 0;
         for( decltype(tNumBlocks) tBlockIndex=0; tBlockIndex<tNumBlocks; tBlockIndex++ )
         {
-            auto tNnpe = mMesh->getNnpeInBlk(tBlockIndex);
-            auto tNumElems = mMesh->getNumElemInBlk(tBlockIndex);
+            auto tNnpe = mMeshIO->getNnpeInBlk(tBlockIndex);
+            auto tNumElems = mMeshIO->getNumElemInBlk(tBlockIndex);
             tTotalNumConnect += tNnpe*tNumElems;
             tTotalNumElements += tNumElems;
         }
         Kokkos::resize(mConnectivity, tTotalNumConnect);
 
-        // get connectivity from mMesh and write into mConnectivity;
+        // get connectivity from mMeshIO and write into mConnectivity;
         auto tHostConnectivity = Kokkos::create_mirror_view(mConnectivity);
         Plato::OrdinalType tStartingOrd = 0;
         for( decltype(tNumBlocks) tBlockIndex=0; tBlockIndex<tNumBlocks; tBlockIndex++ )
         {
-            auto tNnpe = mMesh->getNnpeInBlk(tBlockIndex);
-            auto tNumElems = mMesh->getNumElemInBlk(tBlockIndex);
+            auto tNnpe = mMeshIO->getNnpeInBlk(tBlockIndex);
+            auto tNumElems = mMeshIO->getNumElemInBlk(tBlockIndex);
             auto tNumConnect = tNnpe*tNumElems;
     
-            auto tBlockConnect = mMesh->getElemToNodeConnInBlk(tBlockIndex);
+            auto tBlockConnect = mMeshIO->getElemToNodeConnInBlk(tBlockIndex);
 
             auto tTo = tHostConnectivity.data() + tStartingOrd;
-            std::memcpy(tTo, tBlockConnect, tNumConnect*sizeof(int));
+            std::memcpy(tTo, tBlockConnect.data(), tNumConnect*sizeof(int));
 
             tStartingOrd += tNumConnect;
         }
@@ -127,13 +122,12 @@ namespace Plato
     void
     EngineMesh::loadCoordinates()
     {
-        auto tMeshDim = mMesh->getDimensions();
-        auto tNumNodes = mMesh->getNumNodes();
+        auto tMeshDim = mMeshIO->getDimensions();
+        auto tNumNodes = mMeshIO->getNumNodes();
         Kokkos::resize(mCoordinates, tMeshDim*tNumNodes);
         auto tHostCoordinates = Kokkos::create_mirror_view(mCoordinates);
 
-        auto tCoords = new Plato::Scalar*[tMeshDim];
-        mMesh->getCoords(tCoords);
+        auto tCoords = mMeshIO->getCoords();
         for( decltype(tNumNodes) tNodeIndex=0; tNodeIndex<tNumNodes; tNodeIndex++)
         {
             for( decltype(tMeshDim) tDimIndex=0; tDimIndex<tMeshDim; tDimIndex++)
@@ -142,14 +136,13 @@ namespace Plato
             }
         }
         Kokkos::deep_copy(mCoordinates, tHostCoordinates);
-        delete [] tCoords;
     }
 
     void
     EngineMesh::createNodeElementGraph()
     {
-        auto tNumNodes = mMesh->getNumNodes();
-        auto tNumElems = mMesh->getNumElems();
+        auto tNumNodes = mMeshIO->getNumNodes();
+        auto tNumElems = mMeshIO->getNumElems();
 
         auto tConnectivity = mConnectivity;
         auto tNumNodesPerElement = mNumNodesPerElement;
@@ -228,7 +221,7 @@ namespace Plato
         auto& tConnectivity = mConnectivity;
         auto tNumNodesPerElement = mNumNodesPerElement;
 
-        auto tNumNodes = mMesh->getNumNodes();
+        auto tNumNodes = mMeshIO->getNumNodes();
         Kokkos::resize(mNodeNodeGraph_offsets, tNumNodes+1);
         auto tNumOrdinals = mNumNodesPerElement*tNodeElementGraph_ordinals.size();
         Plato::OrdinalVector tFatGraph_ordinals("node ordinals", tNumOrdinals);
@@ -323,16 +316,16 @@ namespace Plato
     void
     EngineMesh::createElementBlocks()
     {
-        auto tNumBlocks = mMesh->getNumElemBlks();
-        auto tNumElems = mMesh->getNumElems();
+        auto tNumBlocks = mMeshIO->getNumElemBlks();
+        auto tNumElems = mMeshIO->getNumElems();
 
         auto& tBlockElementOrdinals = mBlockElementOrdinals;
 
         Plato::OrdinalType tElementOrdinalOffset(0);
         for( int tBlockIndex=0; tBlockIndex<tNumBlocks; tBlockIndex++ )
         {
-            auto tBlockName = mMesh->getBlockName(tBlockIndex);
-            auto tNumElemInBlk = mMesh->getNumElemInBlk(tBlockIndex);
+            auto tBlockName = mMeshIO->getBlockName(tBlockIndex);
+            auto tNumElemInBlk = mMeshIO->getNumElemInBlk(tBlockIndex);
             Plato::OrdinalVector tElementOrdinals("element ordinals", tNumElemInBlk);
             Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumElemInBlk), KOKKOS_LAMBDA(Plato::OrdinalType aElemOrdinal)
             {
@@ -346,62 +339,58 @@ namespace Plato
     void
     EngineMesh::loadNodeSets()
     {
-        auto tNumNodeSets = mMesh->getNumNodeSets();
+        auto tNumNodeSets = mMeshIO->getNumNodeSets();
         for( decltype(tNumNodeSets) tNodeSetIndex=0; tNodeSetIndex<tNumNodeSets; tNodeSetIndex++ )
         {
-            auto tNodeSet = mMesh->getNodeSet(tNodeSetIndex);
-            int* tNodeOrdinals;
-            mMesh->getDataContainer()->getVariable(tNodeSet->NODE_LIST, tNodeOrdinals);
-            auto tNumNodesThisSet = tNodeSet->numNodes;
+            auto tNodeOrdinals = mMeshIO->getNodeSetNodes(tNodeSetIndex);
+            auto tNumNodesThisSet = tNodeOrdinals.size();
 
             Plato::OrdinalVector tDeviceData("node ordinals", tNumNodesThisSet);
-            Kokkos::View<Plato::OrdinalType*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged> tHostView(tNodeOrdinals, tNumNodesThisSet);
+            Kokkos::View<Plato::OrdinalType*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged> tHostView(tNodeOrdinals.data(), tNumNodesThisSet);
             auto tDeviceView = Kokkos::create_mirror_view(tDeviceData);
             Kokkos::deep_copy(tDeviceView, tHostView);
             Kokkos::deep_copy(tDeviceData, tDeviceView);
 
-            mNodeSetOrdinals[tNodeSet->setName] = tDeviceData;
+            auto tName = mMeshIO->getNodeSetName(tNodeSetIndex);
+            mNodeSetOrdinals[tName] = tDeviceData;
         }
     }
 
     void
     EngineMesh::loadSideSets()
     {
-        auto tNumSideSets = mMesh->getNumSideSets();
+        auto tNumSideSets = mMeshIO->getNumSideSets();
         for( decltype(tNumSideSets) tSideSetIndex=0; tSideSetIndex<tNumSideSets; tSideSetIndex++ )
         {
-            auto tSideSet = mMesh->getSideSet(tSideSetIndex);
-            auto tNumSidesThisSet = tSideSet->numSides;
-            auto tNumNodesPerFace = tSideSet->nodesPerFace;
+            auto tNumNodesPerFace = mMeshIO->getSideSetNodesPerFace(tSideSetIndex);
 
-            int* tElementOrdinals;
-            mMesh->getDataContainer()->getVariable(tSideSet->ELEM_ID_LIST, tElementOrdinals);
+            auto tElementOrdinals = mMeshIO->getSideSetElems(tSideSetIndex);
+            auto tNumSidesThisSet = tElementOrdinals.size();
 
             Plato::OrdinalVector tElementOrds("element ordinals", tNumSidesThisSet);
             {
-                Kokkos::View<Plato::OrdinalType*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged> tHostView(tElementOrdinals, tNumSidesThisSet);
+                Kokkos::View<Plato::OrdinalType*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged> tHostView(tElementOrdinals.data(), tNumSidesThisSet);
                 auto tDeviceView = Kokkos::create_mirror_view(tElementOrds);
                 Kokkos::deep_copy(tDeviceView, tHostView);
                 Kokkos::deep_copy(tElementOrds, tDeviceView);
             }
 
-            mSideSetElementOrdinals[tSideSet->setName] = tElementOrds;
+            auto tName = mMeshIO->getSideSetName(tSideSetIndex);
+            mSideSetElementOrdinals[tName] = tElementOrds;
 
-            int* tFaceOrdinals;
-            mMesh->getDataContainer()->getVariable(tSideSet->FACE_ID_LIST, tFaceOrdinals);
+            auto tFaceOrdinals = mMeshIO->getSideSetFaces(tSideSetIndex);
 
             Plato::OrdinalVector tFaceOrds("face ordinals", tNumSidesThisSet);
             {
-                Kokkos::View<Plato::OrdinalType*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged> tHostView(tFaceOrdinals, tNumSidesThisSet);
+                Kokkos::View<Plato::OrdinalType*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged> tHostView(tFaceOrdinals.data(), tNumSidesThisSet);
                 auto tDeviceView = Kokkos::create_mirror_view(tFaceOrds);
                 Kokkos::deep_copy(tDeviceView, tHostView);
                 Kokkos::deep_copy(tFaceOrds, tDeviceView);
             }
 
-            mSideSetFaceOrdinals[tSideSet->setName] = tFaceOrds;
+            mSideSetFaceOrdinals[tName] = tFaceOrds;
 
-            int* tFaceNodeOrdinals;
-            mMesh->getDataContainer()->getVariable(tSideSet->FACE_NODE_LIST, tFaceNodeOrdinals);
+            auto tFaceNodeOrdinals = mMeshIO->getSideSetNodes(tSideSetIndex);
 
             auto tNumFaceNodes =  tNumSidesThisSet*tNumNodesPerFace;
 
@@ -424,12 +413,12 @@ namespace Plato
                 Kokkos::deep_copy(tDeviceView, tHostView);
                 Kokkos::deep_copy(tUniqueNodeOrds, tDeviceView);
             }
-            mNodeSetOrdinals[tSideSet->setName] = tUniqueNodeOrds;
+            mNodeSetOrdinals[tName] = tUniqueNodeOrds;
 
 
             Plato::OrdinalVector tNodeOrds("node ordinals", tNumFaceNodes);
             {
-                Kokkos::View<Plato::OrdinalType*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged> tHostView(tFaceNodeOrdinals, tNumFaceNodes);
+                Kokkos::View<Plato::OrdinalType*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged> tHostView(tFaceNodeOrdinals.data(), tNumFaceNodes);
                 auto tDeviceView = Kokkos::create_mirror_view(tNodeOrds);
                 Kokkos::deep_copy(tDeviceView, tHostView);
                 Kokkos::deep_copy(tNodeOrds, tDeviceView);
@@ -453,7 +442,7 @@ namespace Plato
                 }
             }, "local node numbers");
 
-            mSideSetLocalNodeOrdinals[tSideSet->setName] = tLocalNodeOrds;
+            mSideSetLocalNodeOrdinals[tName] = tLocalNodeOrds;
         }
     }
 
@@ -500,6 +489,9 @@ namespace Plato
 
     std::string
     EngineMesh::FileName() const { return mFileName; }
+
+    std::string
+    EngineMesh::ElementType() const { return mElementType; }
 
     Plato::OrdinalType
     EngineMesh::NumNodes() const { return mNumNodes; }

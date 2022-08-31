@@ -3,17 +3,15 @@
  *
  */
 
-#include "ThermalVonMisesLocalMeasure.hpp"
+#include "ThermalVonMisesLocalMeasure_decl.hpp"
 
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#ifdef PLATOANALYZE_1D
-PLATO_EXPL_DEF2(Plato::ThermalVonMisesLocalMeasure, Plato::SimplexThermomechanics, 1)
-#endif
+#include "ThermalVonMisesLocalMeasure_def.hpp"
 
-#ifdef PLATOANALYZE_2D
-PLATO_EXPL_DEF2(Plato::ThermalVonMisesLocalMeasure, Plato::SimplexThermomechanics, 2)
-#endif
+#include "ThermomechanicsElement.hpp"
+#include "elliptic/ExpInstMacros.hpp"
 
-#ifdef PLATOANALYZE_3D
-PLATO_EXPL_DEF2(Plato::ThermalVonMisesLocalMeasure, Plato::SimplexThermomechanics, 3)
+PLATO_ELLIPTIC_EXP_INST_2(Plato::ThermalVonMisesLocalMeasure, Plato::ThermomechanicsElement)
+
 #endif

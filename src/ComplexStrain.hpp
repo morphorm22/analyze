@@ -30,7 +30,7 @@ public:
 
     /******************************************************************************/
     template<typename StrainScalarType, typename DispScalarType, typename GradientScalarType>
-    KOKKOS_FUNCTION inline void operator()(const Plato::OrdinalType & aCellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarMultiVectorT<DispScalarType> & aState,
                                        const Plato::ScalarArray3DT<GradientScalarType> & aGradient,
                                        const Plato::ScalarArray3DT<StrainScalarType> & aStrain) const

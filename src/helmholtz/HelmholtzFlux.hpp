@@ -15,30 +15,29 @@ namespace Helmholtz
     given a filtered density gradient, scale by length scale squared
 */
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
+template<typename ElementType>
 class HelmholtzFlux
 {
   private:
-    Plato::Scalar mLengthScale;
+    Plato::Array<ElementType::mNumSpatialDims> mLengthScale;
 
   public:
 
-    HelmholtzFlux(const Plato::Scalar aLengthScale) {
-      mLengthScale = aLengthScale;
-    }
+    HelmholtzFlux(const Plato::Array<ElementType::mNumSpatialDims> & aLengthScale) :
+      mLengthScale(aLengthScale) {}
 
     template<typename HGradScalarType, typename HFluxScalarType>
-    KOKKOS_FUNCTION inline void
-    operator()( Plato::OrdinalType cellOrdinal,
-                Plato::ScalarMultiVectorT<HFluxScalarType> tflux,
-                Plato::ScalarMultiVectorT<HGradScalarType> tgrad) const {
-
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+            Plato::OrdinalType                                            aCellOrdinal,
+            Plato::Array<ElementType::mNumSpatialDims, HFluxScalarType> & aFlux,
+      const Plato::Array<ElementType::mNumSpatialDims, HGradScalarType> & aGrad
+    ) const
+    {
       // scale filtered density gradient
       //
-      Plato::Scalar tLengthScaleSquared = mLengthScale*mLengthScale;
-
-      for( Plato::OrdinalType iDim=0; iDim<SpaceDim; iDim++){
-        tflux(cellOrdinal,iDim) = tLengthScaleSquared*tgrad(cellOrdinal,iDim);
+      for( Plato::OrdinalType iDim=0; iDim<ElementType::mNumSpatialDims; iDim++){
+        aFlux(iDim) = mLengthScale(iDim)*mLengthScale(iDim)*aGrad(iDim);
       }
     }
 };

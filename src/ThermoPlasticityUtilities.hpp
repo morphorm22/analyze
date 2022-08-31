@@ -56,7 +56,7 @@ class ThermoPlasticityUtilities
      * \param [out] aElasticStrain 2D container of elastic strain tensor components
     **********************************************************************************/
     template<typename GlobalStateT, typename LocalStateT, typename TotalStrainT, typename ElasticStrainT>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     computeElasticStrain( 
                 const Plato::OrdinalType                           & aCellOrdinal,
                 const Plato::ScalarMultiVectorT< GlobalStateT >    & aGlobalState,
@@ -78,7 +78,7 @@ class ThermoPlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename GlobalStateT, typename LocalStateT, typename TotalStrainT, typename ElasticStrainT>
-  KOKKOS_FUNCTION inline void
+  KOKKOS_INLINE_FUNCTION void
   ThermoPlasticityUtilities<2, Plato::SimplexPlasticity<2>>::computeElasticStrain( 
                 const Plato::OrdinalType                           & aCellOrdinal,
                 const Plato::ScalarMultiVectorT< GlobalStateT >    & aGlobalState,
@@ -100,7 +100,7 @@ class ThermoPlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename GlobalStateT, typename LocalStateT, typename TotalStrainT, typename ElasticStrainT>
-  KOKKOS_FUNCTION inline void
+  KOKKOS_INLINE_FUNCTION void
   ThermoPlasticityUtilities<3, Plato::SimplexPlasticity<3>>::computeElasticStrain( 
                 const Plato::OrdinalType                           & aCellOrdinal,
                 const Plato::ScalarMultiVectorT< GlobalStateT >    & aGlobalState,
@@ -129,7 +129,7 @@ class ThermoPlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename GlobalStateT, typename LocalStateT, typename TotalStrainT, typename ElasticStrainT>
-  KOKKOS_FUNCTION inline void
+  KOKKOS_INLINE_FUNCTION void
   ThermoPlasticityUtilities<2, Plato::SimplexThermoPlasticity<2>>::computeElasticStrain( 
                 const Plato::OrdinalType                           & aCellOrdinal,
                 const Plato::ScalarMultiVectorT< GlobalStateT >    & aGlobalState,
@@ -166,7 +166,7 @@ class ThermoPlasticityUtilities
   **********************************************************************************/
   template<>
   template<typename GlobalStateT, typename LocalStateT, typename TotalStrainT, typename ElasticStrainT>
-  KOKKOS_FUNCTION inline void
+  KOKKOS_INLINE_FUNCTION void
   ThermoPlasticityUtilities<3, Plato::SimplexThermoPlasticity<3>>::computeElasticStrain( 
                 const Plato::OrdinalType                           & aCellOrdinal,
                 const Plato::ScalarMultiVectorT< GlobalStateT >    & aGlobalState,

@@ -1,14 +1,12 @@
-#include "parabolic/InternalThermalEnergy.hpp"
+#include "parabolic/InternalThermalEnergy_decl.hpp"
+
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
+
+#include "parabolic/InternalThermalEnergy_def.hpp"
+
+#include "ThermalElement.hpp"
 #include "parabolic/ExpInstMacros.hpp"
 
-#ifdef PLATOANALYZE_1D
-PLATO_PARABOLIC_EXPL_DEF(Plato::Parabolic::InternalThermalEnergy, Plato::SimplexThermal, 1)
-#endif
+PLATO_PARABOLIC_EXP_INST(Plato::Parabolic::InternalThermalEnergy, Plato::ThermalElement)
 
-#ifdef PLATOANALYZE_2D
-PLATO_PARABOLIC_EXPL_DEF(Plato::Parabolic::InternalThermalEnergy, Plato::SimplexThermal, 2)
-#endif
-
-#ifdef PLATOANALYZE_3D
-PLATO_PARABOLIC_EXPL_DEF(Plato::Parabolic::InternalThermalEnergy, Plato::SimplexThermal, 3)
 #endif

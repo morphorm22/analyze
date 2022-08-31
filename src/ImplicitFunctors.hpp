@@ -5,7 +5,6 @@
 #include "PlatoMathTypes.hpp"
 
 #include <Teuchos_RCPDecl.hpp>
-#include "SimplexMechanics.hpp"
 
 namespace Plato
 {
@@ -14,7 +13,7 @@ namespace Plato
 * \brief functor that provides mesh-local node ordinal
 * \param [in] aMesh Plato abstract mesh
 **********************************************************************************/
-template<Plato::OrdinalType SpaceDim>
+template<Plato::OrdinalType SpaceDim, Plato::OrdinalType NodesPerCell=SpaceDim+1>
 class NodeOrdinal
 {
   public:
@@ -30,21 +29,21 @@ class NodeOrdinal
     * \param [in] aCellOrdinal mesh-local element ordinal
     * \param [in] aNodeOrdinal elem-local node ordinal
     **********************************************************************************/
-    KOKKOS_FUNCTION inline
+    KOKKOS_INLINE_FUNCTION
     Plato::OrdinalType
     operator()(
         Plato::OrdinalType aCellOrdinal,
         Plato::OrdinalType aNodeOrdinal
     ) const
     {
-        return mCells2nodes(aCellOrdinal*(SpaceDim+1) + aNodeOrdinal);
+        return mCells2nodes(aCellOrdinal*NodesPerCell + aNodeOrdinal);
     }
 };
 /******************************************************************************/
 
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode=1>
+template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode, Plato::OrdinalType NodesPerCell=SpaceDim+1>
 class VectorEntryOrdinal
 {
   public:
@@ -55,17 +54,17 @@ class VectorEntryOrdinal
       Plato::Mesh mesh ) :
       mCells2nodes(mesh->Connectivity()) {}
 
-    KOKKOS_FUNCTION inline Plato::OrdinalType
+    KOKKOS_INLINE_FUNCTION Plato::OrdinalType
     operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType nodeOrdinal, Plato::OrdinalType dofOrdinal=0) const
     {
-        Plato::OrdinalType vertexNumber = mCells2nodes(cellOrdinal*(SpaceDim+1) + nodeOrdinal);
+        Plato::OrdinalType vertexNumber = mCells2nodes(cellOrdinal*NodesPerCell + nodeOrdinal);
         return vertexNumber * DofsPerNode + dofOrdinal;
     }
 };
 /******************************************************************************/
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
+template<Plato::OrdinalType SpaceDim, Plato::OrdinalType NodesPerCell>
 class NodeCoordinate
 {
   private:
@@ -75,20 +74,27 @@ class NodeCoordinate
   public:
     NodeCoordinate(Plato::Mesh aMesh) :
       mCells2nodes(aMesh->Connectivity()),
-      mCoords(aMesh->Coordinates()) { }
+      mCoords(aMesh->Coordinates())
+      {
+        if (aMesh->NumDimensions() != SpaceDim || aMesh->NumNodesPerElement() != NodesPerCell)
+        {
+            throw std::runtime_error("Input mesh doesn't match physics spatial dimension and/or nodes per cell.");
+        }
+      }
 
-    KOKKOS_FUNCTION
-    inline
+    KOKKOS_INLINE_FUNCTION
     Plato::Scalar
     operator()(Plato::OrdinalType aCellOrdinal, Plato::OrdinalType aNodeOrdinal, Plato::OrdinalType aDimOrdinal) const
     {
-        const Plato::OrdinalType tVertexNumber = mCells2nodes(aCellOrdinal*(SpaceDim+1) + aNodeOrdinal);
+        const Plato::OrdinalType tVertexNumber = mCells2nodes(aCellOrdinal*NodesPerCell + aNodeOrdinal);
         const Plato::Scalar tCoord = mCoords(tVertexNumber * SpaceDim + aDimOrdinal);
         return tCoord;
     }
 };
 /******************************************************************************/
 
+// TODO delete. code below is tet4 specific
+#ifdef COMPILE_DEAD_CODE
 /******************************************************************************/
 template<Plato::OrdinalType SpaceDim>
 class JacobianDet
@@ -100,8 +106,7 @@ class JacobianDet
     JacobianDet( Plato::Mesh mesh ) :
       mNodeCoordinate(mesh) {}
 
-    KOKKOS_FUNCTION
-    inline
+    KOKKOS_INLINE_FUNCTION
     Plato::Scalar
     operator()(Plato::OrdinalType cellOrdinal) const {
       Plato::Matrix<SpaceDim, SpaceDim> jacobian;
@@ -115,6 +120,7 @@ class JacobianDet
     }
 };
 /******************************************************************************/
+#endif
 
 /******************************************************************************/
 /*! InertialForces Functor.
@@ -127,7 +133,7 @@ class ComputeProjectionWorkset
 public:
     /******************************************************************************/
     template<typename GaussPointScalarType, typename ProjectedScalarType, typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void operator()(const Plato::OrdinalType & aCellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarVectorT<VolumeScalarType> & aCellVolume,
                                        const Plato::ScalarVectorT<Plato::Scalar> & tBasisFunctions,
                                        const Plato::ScalarMultiVectorT<GaussPointScalarType> & aStateValues,
@@ -150,6 +156,8 @@ public:
 };
 /******************************************************************************/
 
+// TODO delete. code below is tet4 specific
+#ifdef COMPILE_DEAD_CODE
 /******************************************************************************/
 template<Plato::OrdinalType SpaceDim>
 class ComputeGradientWorkset
@@ -159,7 +167,7 @@ class ComputeGradientWorkset
 
   public:
     template<typename ScalarType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(Plato::OrdinalType aCellOrdinal,
                Plato::ScalarArray3DT<ScalarType> aGradients,
                Plato::ScalarArray3DT<ScalarType> aConfig,
@@ -168,7 +176,7 @@ class ComputeGradientWorkset
 
   template<>
   template<typename ScalarType>
-  KOKKOS_FUNCTION inline void
+  KOKKOS_INLINE_FUNCTION void
   ComputeGradientWorkset<3>::operator()(Plato::OrdinalType aCellOrdinal,
                                         Plato::ScalarArray3DT<ScalarType> aGradients,
                                         Plato::ScalarArray3DT<ScalarType> aConfig,
@@ -222,7 +230,7 @@ class ComputeGradientWorkset
 
   template<>
   template<typename ScalarType>
-  KOKKOS_FUNCTION inline void
+  KOKKOS_INLINE_FUNCTION void
   ComputeGradientWorkset<2>::operator()(Plato::OrdinalType cellOrdinal,
                                         Plato::ScalarArray3DT<ScalarType> gradients,
                                         Plato::ScalarArray3DT<ScalarType> config,
@@ -256,7 +264,7 @@ class ComputeGradientWorkset
 
   template<>
   template<typename ScalarType>
-  KOKKOS_FUNCTION inline void
+  KOKKOS_INLINE_FUNCTION void
   ComputeGradientWorkset<1>::operator()(Plato::OrdinalType cellOrdinal,
                                         Plato::ScalarArray3DT<ScalarType> gradients,
                                         Plato::ScalarArray3DT<ScalarType> config,
@@ -283,7 +291,7 @@ class ComputeCellVolume
 
   public:
     template<typename ScalarType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(Plato::OrdinalType cellOrdinal,
                Plato::ScalarArray3DT<ScalarType> config,
                ScalarType& cellVolume) const;
@@ -291,7 +299,7 @@ class ComputeCellVolume
 
   template<>
   template<typename ScalarType>
-  KOKKOS_FUNCTION inline void
+  KOKKOS_INLINE_FUNCTION void
   ComputeCellVolume<3>::operator()(Plato::OrdinalType cellOrdinal,
                                    Plato::ScalarArray3DT<ScalarType> config,
                                    ScalarType& cellVolume) const
@@ -316,7 +324,7 @@ class ComputeCellVolume
 
   template<>
   template<typename ScalarType>
-  KOKKOS_FUNCTION inline void
+  KOKKOS_INLINE_FUNCTION void
   ComputeCellVolume<2>::operator()(Plato::OrdinalType cellOrdinal,
                                    Plato::ScalarArray3DT<ScalarType> config,
                                    ScalarType& cellVolume) const
@@ -334,7 +342,7 @@ class ComputeCellVolume
 
   template<>
   template<typename ScalarType>
-  KOKKOS_FUNCTION inline void
+  KOKKOS_INLINE_FUNCTION void
   ComputeCellVolume<1>::operator()(Plato::OrdinalType cellOrdinal,
                                    Plato::ScalarArray3DT<ScalarType> config,
                                    ScalarType& cellVolume) const
@@ -359,7 +367,7 @@ class ComputeCellVolume
 
 
       template<typename ScalarType>
-      KOKKOS_FUNCTION inline void
+      KOKKOS_INLINE_FUNCTION void
       operator()(Plato::OrdinalType aCellOrdinal,
                  int*               aCellLocalNodeOrdinals,
                  Plato::ScalarArray3DT<ScalarType> config,
@@ -369,7 +377,7 @@ class ComputeCellVolume
 
     template<>
     template<typename ScalarType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     ComputeSurfaceArea<3>::operator()(Plato::OrdinalType aCellOrdinal,
                                       int*                aCellLocalNodeOrdinals,
                                       Plato::ScalarArray3DT<ScalarType> config,
@@ -394,7 +402,7 @@ class ComputeCellVolume
 
     template<>
     template<typename ScalarType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     ComputeSurfaceArea<2>::operator()(Plato::OrdinalType aCellOrdinal,
                                       int*                aCellLocalNodeOrdinals,
                                       Plato::ScalarArray3DT<ScalarType> config,
@@ -404,7 +412,7 @@ class ComputeCellVolume
 
     template<>
     template<typename ScalarType>
-    KOKKOS_FUNCTION inline void
+    KOKKOS_INLINE_FUNCTION void
     ComputeSurfaceArea<1>::operator()(Plato::OrdinalType aCellOrdinal,
                                       int*                aCellLocalNodeOrdinals,
                                       Plato::ScalarArray3DT<ScalarType> config,
@@ -425,8 +433,7 @@ class ComputeGradient
       NodeCoordinate<SpaceDim> nodeCoordinate) :
       mNodeCoordinate(nodeCoordinate) {}
 
-    KOKKOS_FUNCTION
-    inline
+    KOKKOS_INLINE_FUNCTION
     void
     operator()(Plato::OrdinalType cellOrdinal,
                Plato::Array<SpaceDim>* gradients,
@@ -488,9 +495,8 @@ class ComputeVolume
       NodeCoordinate<SpaceDim> nodeCoordinate) :
       mNodeCoordinate(nodeCoordinate) {}
 
-    KOKKOS_FUNCTION
-    inline
-	Scalar
+    KOKKOS_INLINE_FUNCTION
+    Scalar
     operator()(Plato::OrdinalType cellOrdinal) const
     {
       // compute jacobian/Det for cell:
@@ -509,52 +515,6 @@ class ComputeVolume
     }
 };
 /******************************************************************************/
-
-
-/******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-class ComputeGradientMatrix : public Plato::SimplexMechanics<SpaceDim>
-{
-  private:
-
-    using Plato::SimplexMechanics<SpaceDim>::mNumVoigtTerms;
-    using Plato::SimplexMechanics<SpaceDim>::mNumNodesPerCell;
-    using Plato::SimplexMechanics<SpaceDim>::mNumDofsPerCell;
-    static constexpr auto mNumSpaceDim = SpaceDim;
-
-  public:
-
-    KOKKOS_FUNCTION
-    void
-    operator()( const Plato::Array<mNumSpaceDim>* gradients,
-                      Plato::Array<mNumVoigtTerms>* gradientMatrix) const
-    {
-      for (Plato::OrdinalType iDof=0; iDof<mNumDofsPerCell; iDof++){
-        for (Plato::OrdinalType iVoigt=0; iVoigt<mNumVoigtTerms; iVoigt++){
-          gradientMatrix[iDof][iVoigt] = 0.0;
-        }
-      }
-
-      for (Plato::OrdinalType iNode=0; iNode<mNumNodesPerCell; iNode++)
-      {
-        Plato::OrdinalType voigtTerm=0;
-        for (Plato::OrdinalType iDof=0; iDof<mNumSpaceDim; iDof++){
-          gradientMatrix[mNumSpaceDim*iNode+iDof][voigtTerm] = gradients[iNode][iDof];
-          voigtTerm++;
-        }
-
-        for (Plato::OrdinalType jDof=mNumSpaceDim-1; jDof>=1; jDof--){
-          for (Plato::OrdinalType iDof=jDof-1; iDof>=0; iDof--){
-            gradientMatrix[mNumSpaceDim*iNode+iDof][voigtTerm] = gradients[iNode][jDof];
-            gradientMatrix[mNumSpaceDim*iNode+jDof][voigtTerm] = gradients[iNode][iDof];
-            voigtTerm++;
-          }
-        }
-      }
-    }
-};
-/******************************************************************************/
-
 
 /******************************************************************************/
 template<Plato::OrdinalType SpaceDim, typename OrdinalLookupType>
@@ -581,8 +541,7 @@ class Assemble
         mEntryOrdinalLookup(aEntryOrdinalLookup),
         mEntriesLength(mMatrixEntries.size()) {}
 
-    KOKKOS_FUNCTION
-    inline
+    KOKKOS_INLINE_FUNCTION
     void
     operator()(Plato::OrdinalType cellOrdinal,
                const Plato::Array<mNumVoigtTerms>* gradientMatrix,
@@ -604,10 +563,13 @@ class Assemble
     }
 };
 /******************************************************************************/
+#endif
 
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode>
+template<Plato::OrdinalType SpaceDim,
+         Plato::OrdinalType DofsPerNode,
+         Plato::OrdinalType NodesPerCell=SpaceDim+1>
 class BlockMatrixTransposeEntryOrdinal
 {
   private:
@@ -621,8 +583,7 @@ class BlockMatrixTransposeEntryOrdinal
       mColumnIndices(matrix->columnIndices()),
       mCells2nodes(mesh->Connectivity()) { }
 
-    KOKKOS_FUNCTION
-    inline
+    KOKKOS_INLINE_FUNCTION
     Plato::OrdinalType
     operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType icellDof, Plato::OrdinalType jcellDof) const
     {
@@ -630,8 +591,8 @@ class BlockMatrixTransposeEntryOrdinal
         auto iDof  = icellDof % DofsPerNode;
         auto jNode = jcellDof / DofsPerNode;
         auto jDof  = jcellDof % DofsPerNode;
-        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * (SpaceDim+1) + iNode);
-        Plato::OrdinalType jLocalOrdinal = mCells2nodes(cellOrdinal * (SpaceDim+1) + jNode);
+        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * NodesPerCell + iNode);
+        Plato::OrdinalType jLocalOrdinal = mCells2nodes(cellOrdinal * NodesPerCell + jNode);
         Plato::OrdinalType rowStart = mRowMap(jLocalOrdinal);
         Plato::OrdinalType rowEnd   = mRowMap(jLocalOrdinal+1);
         for (Plato::OrdinalType entryOrdinal=rowStart; entryOrdinal<rowEnd; entryOrdinal++)
@@ -666,8 +627,7 @@ class LocalByGlobalEntryFunctor
       mColumnIndices (tMatrix->columnIndices()),
       mCells2nodes   (tMesh->Connectivity()) { }
 
-    KOKKOS_FUNCTION
-    inline
+    KOKKOS_INLINE_FUNCTION
     Plato::OrdinalType
     operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType icellDof, Plato::OrdinalType jcellDof) const
     {
@@ -686,13 +646,12 @@ class LocalByGlobalEntryFunctor
         return Plato::OrdinalType(-1);
     }
 };
-/******************************************************************************/
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode_I, Plato::OrdinalType DofsPerElem_J>
+//template<Plato::OrdinalType mNumNodesPerCell, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofsPerGP>
+template<typename ElementType>
 class GlobalByLocalEntryFunctor
 {
-  private:
     const typename CrsMatrixType::RowMapVectorT mRowMap;
     const typename CrsMatrixType::OrdinalVectorT mColumnIndices;
     const Plato::OrdinalVectorT<const Plato::OrdinalType> mCells2nodes;
@@ -703,31 +662,37 @@ class GlobalByLocalEntryFunctor
       mColumnIndices(matrix->columnIndices()),
       mCells2nodes(mesh->Connectivity()) { }
 
-    KOKKOS_FUNCTION
-    inline
+    KOKKOS_INLINE_FUNCTION
     Plato::OrdinalType
-    operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType icellDof, Plato::OrdinalType jcellDof) const
+    operator()(
+        Plato::OrdinalType cellOrdinal,
+        Plato::OrdinalType gpOrdinal,
+        Plato::OrdinalType icellDof,
+        Plato::OrdinalType jcellDof
+    ) const
     {
-        auto iNode = icellDof / DofsPerNode_I;
-        auto iDof  = icellDof % DofsPerNode_I;
-        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * (SpaceDim+1) + iNode);
-        Plato::OrdinalType jLocalOrdinal = cellOrdinal;
+        auto iNode = icellDof / ElementType::mNumDofsPerNode;
+        auto iDof  = icellDof % ElementType::mNumDofsPerNode;
+        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * ElementType::mNumNodesPerCell + iNode);
+        Plato::OrdinalType jLocalOrdinal = cellOrdinal*ElementType::mNumGaussPoints + gpOrdinal;
         Plato::OrdinalType rowStart = mRowMap(iLocalOrdinal);
         Plato::OrdinalType rowEnd   = mRowMap(iLocalOrdinal+1);
         for (Plato::OrdinalType entryOrdinal=rowStart; entryOrdinal<rowEnd; entryOrdinal++)
         {
           if (mColumnIndices(entryOrdinal) == jLocalOrdinal)
           {
-            return entryOrdinal*DofsPerNode_I*DofsPerElem_J+iDof*DofsPerElem_J+jcellDof;
+            return entryOrdinal*ElementType::mNumDofsPerNode*ElementType::mNumLocalStatesPerGP+iDof*ElementType::mNumLocalStatesPerGP+jcellDof;
           }
         }
         return Plato::OrdinalType(-1);
     }
 };
-/******************************************************************************/
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode_I, Plato::OrdinalType DofsPerNode_J=DofsPerNode_I>
+template<Plato::OrdinalType SpaceDim,
+         Plato::OrdinalType DofsPerNode_I,
+         Plato::OrdinalType DofsPerNode_J=DofsPerNode_I,
+         Plato::OrdinalType NodesPerCell=SpaceDim+1>
 class BlockMatrixEntryOrdinal
 {
   private:
@@ -741,8 +706,7 @@ class BlockMatrixEntryOrdinal
       mColumnIndices(matrix->columnIndices()),
       mCells2nodes(mesh->Connectivity()) { }
 
-    KOKKOS_FUNCTION
-    inline
+    KOKKOS_INLINE_FUNCTION
     Plato::OrdinalType
     operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType icellDof, Plato::OrdinalType jcellDof) const
     {
@@ -750,8 +714,8 @@ class BlockMatrixEntryOrdinal
         auto iDof  = icellDof % DofsPerNode_I;
         auto jNode = jcellDof / DofsPerNode_J;
         auto jDof  = jcellDof % DofsPerNode_J;
-        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * (SpaceDim+1) + iNode);
-        Plato::OrdinalType jLocalOrdinal = mCells2nodes(cellOrdinal * (SpaceDim+1) + jNode);
+        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * NodesPerCell + iNode);
+        Plato::OrdinalType jLocalOrdinal = mCells2nodes(cellOrdinal * NodesPerCell + jNode);
         Plato::OrdinalType rowStart = mRowMap(iLocalOrdinal);
         Plato::OrdinalType rowEnd   = mRowMap(iLocalOrdinal+1);
         for (Plato::OrdinalType entryOrdinal=rowStart; entryOrdinal<rowEnd; entryOrdinal++)
@@ -766,6 +730,8 @@ class BlockMatrixEntryOrdinal
 };
 /******************************************************************************/
 
+// TODO delete. code below is tet4 specific
+#ifdef COMPILE_DEAD_CODE
 /******************************************************************************/
 template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofsPerNode_J=DofsPerNode>
 class MatrixEntryOrdinal
@@ -782,8 +748,7 @@ class MatrixEntryOrdinal
       mColumnIndices(aMatrix->columnIndices()),
       mCells2nodes(aMesh->Connectivity()) { }
 
-    KOKKOS_FUNCTION
-    inline
+    KOKKOS_INLINE_FUNCTION
     Plato::OrdinalType
     operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType icellDof, Plato::OrdinalType jcellDof) const
     {
@@ -806,6 +771,7 @@ class MatrixEntryOrdinal
     }
 };
 /******************************************************************************/
+#endif
 
 /******************************************************************************/
 /*!
@@ -821,9 +787,7 @@ class MatrixEntryOrdinal
   number of non-zero block entries (NNodesPerCell)
 */
 template <typename MatrixType,
-          Plato::OrdinalType NodesPerElem,
-          Plato::OrdinalType DofsPerNode_I,
-          Plato::OrdinalType DofsPerElem_J>
+          typename ElementType>
 Teuchos::RCP<MatrixType>
 CreateGlobalByLocalBlockMatrix( Plato::Mesh aMesh )
 /******************************************************************************/
@@ -834,9 +798,9 @@ CreateGlobalByLocalBlockMatrix( Plato::Mesh aMesh )
 
     auto tNumElems = aMesh->NumElements();
     auto tNumNodes = aMesh->NumNodes();
-    auto tNumNonZeros = tNumElems*NodesPerElem;
+    auto tNumNonZeros = tNumElems*ElementType::mNumGaussPoints*ElementType::mNumNodesPerCell;
 
-    constexpr Plato::OrdinalType numBlockDofs = DofsPerNode_I*DofsPerElem_J;
+    constexpr Plato::OrdinalType numBlockDofs = ElementType::mNumDofsPerNode*ElementType::mNumLocalStatesPerGP;
 
     typename MatrixType::RowMapVectorT  rowMap        ("row map",        tNumNodes+1);
     typename MatrixType::ScalarVectorT  entries       ("matrix entries", tNumNonZeros*numBlockDofs);
@@ -846,21 +810,25 @@ CreateGlobalByLocalBlockMatrix( Plato::Mesh aMesh )
     {
       auto tFrom = tOffsetMap(aNodeOrdinal);
       auto tTo   = tOffsetMap(aNodeOrdinal+1);
-      rowMap(aNodeOrdinal)   = tFrom;
-      rowMap(aNodeOrdinal+1) = tTo;
+      rowMap(aNodeOrdinal)   = ElementType::mNumGaussPoints*tFrom;
+      rowMap(aNodeOrdinal+1) = ElementType::mNumGaussPoints*tTo;
 
-      for( decltype(tFrom) tColumnEntry = tFrom; tColumnEntry < tTo; tColumnEntry++ )
+      for( decltype(tFrom) tOffset = tFrom; tOffset < tTo; tOffset++ )
       {
-          columnIndices(tColumnEntry) = tElementOrds(tColumnEntry);
+          for( decltype(tFrom) tGPOrd = 0; tGPOrd < ElementType::mNumGaussPoints; tGPOrd++ )
+          {
+              auto tColumnEntry = ElementType::mNumGaussPoints * tOffset + tGPOrd;
+              columnIndices(tColumnEntry) = ElementType::mNumGaussPoints*tElementOrds(tOffset) + tGPOrd;
+          }
       }
     });
 
     auto retMatrix = Teuchos::rcp(
      new MatrixType( rowMap, columnIndices, entries,
-                     tNumNodes*DofsPerNode_I,
-                     tNumElems*DofsPerElem_J,
-                     DofsPerNode_I,
-                     DofsPerElem_J )
+                     tNumNodes*ElementType::mNumDofsPerNode,
+                     tNumElems*ElementType::mNumGaussPoints*ElementType::mNumLocalStatesPerGP,
+                     ElementType::mNumDofsPerNode,
+                     ElementType::mNumLocalStatesPerGP )
     );
     return retMatrix;
 }

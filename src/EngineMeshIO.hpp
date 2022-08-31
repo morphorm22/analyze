@@ -6,7 +6,7 @@
 #include "EngineMesh.hpp"
 #include "AbstractPlatoMeshIO.hpp"
 
-#include <mesh_io.hpp>
+#include "mesh/ExodusIO.hpp"
 
 namespace Plato
 {
@@ -17,7 +17,7 @@ namespace Plato
     class EngineMeshIO : public AbstractMeshIO
     {
         Plato::EngineMesh & mMesh;
-        std::shared_ptr<MeshIO> mMeshIO;
+        std::shared_ptr<ExodusIO> mMeshIO;
 
         PairList mScalarSuffixes;
         PairList mVectorSuffixes;

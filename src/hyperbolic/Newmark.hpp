@@ -1,15 +1,11 @@
-#ifndef NEWMARK_HPP
-#define NEWMARK_HPP
+#pragma once
 
 #include "PlatoStaticsTypes.hpp"
 
 namespace Plato
 {
 
-/******************************************************************************/
-template<typename EvaluationType>
 class NewmarkIntegrator
-/******************************************************************************/
 {
   protected:
     Plato::Scalar mGamma;
@@ -20,7 +16,6 @@ class NewmarkIntegrator
     unsigned int mNumSteps;
 
   public:
-    /******************************************************************************/
     explicit 
     NewmarkIntegrator(
         const Teuchos::ParameterList & aParams,
@@ -32,7 +27,6 @@ class NewmarkIntegrator
         mTimeStepScale   (1.0),
         mTerminationTime (0.0),
         mNumSteps        (0)
-    /******************************************************************************/
     {
         bool tTimeStepGiven        = aParams.isType<Plato::Scalar>("Time Step");
         bool tTimeStepScaleGiven   = aParams.isType<Plato::Scalar>("Time Step Scale");
@@ -105,46 +99,31 @@ class NewmarkIntegrator
     }
 
 
-    /******************************************************************************/
     ~NewmarkIntegrator() {}
-    /******************************************************************************/
 
-    /******************************************************************************//**
-     * \brief Compute the critical sampling frequency.
-    **********************************************************************************/
     Plato::Scalar
     getOmega() const
     {
         return pow(mGamma/2.0 - mBeta, -1.0/2.0);
     }
 
-    /******************************************************************************//**
-     * \brief Return true if integrator is conditionally stable.
-    **********************************************************************************/
     bool
     isConditionallyStable() const
     {
         return mBeta < mGamma/2.0;
     }
 
-    /******************************************************************************//**
-     * \brief Return number of time steps
-    **********************************************************************************/
     decltype(mNumSteps)
     getNumSteps() const
     {
         return mNumSteps;
     }
 
-    /******************************************************************************//**
-     * \brief Return time step
-    **********************************************************************************/
     decltype(mTimeStep)
     getTimeStep() const
     {
         return mTimeStep * mTimeStepScale;
     }
-
 
     virtual Plato::Scalar v_grad_a      ( Plato::Scalar aTimeStep ) = 0;
     virtual Plato::Scalar u_grad_a      ( Plato::Scalar aTimeStep ) = 0;
@@ -158,7 +137,6 @@ class NewmarkIntegrator
     virtual Plato::Scalar a_grad_v_prev ( Plato::Scalar aTimeStep ) = 0;
     virtual Plato::Scalar a_grad_a_prev ( Plato::Scalar aTimeStep ) = 0;
 
-    /******************************************************************************/
     virtual Plato::ScalarVector 
     u_value(const Plato::ScalarVector & aU,
             const Plato::ScalarVector & aU_prev,
@@ -168,7 +146,6 @@ class NewmarkIntegrator
             const Plato::ScalarVector & aA_prev,
                   Plato::Scalar dt) = 0;
 
-    /******************************************************************************/
     virtual Plato::ScalarVector 
     v_value(const Plato::ScalarVector & aU,
             const Plato::ScalarVector & aU_prev,
@@ -178,7 +155,6 @@ class NewmarkIntegrator
             const Plato::ScalarVector & aA_prev,
                   Plato::Scalar dt) = 0;
 
-    /******************************************************************************/
     virtual Plato::ScalarVector 
     a_value(const Plato::ScalarVector & aU,
             const Plato::ScalarVector & aU_prev,
@@ -190,100 +166,76 @@ class NewmarkIntegrator
 
 };
 
-/******************************************************************************/
-template<typename EvaluationType>
-class NewmarkIntegratorUForm : public NewmarkIntegrator<EvaluationType>
-/******************************************************************************/
+class NewmarkIntegratorUForm : public NewmarkIntegrator
 {
-    using NewmarkIntegrator<EvaluationType>::mGamma;
-    using NewmarkIntegrator<EvaluationType>::mBeta;
+    using NewmarkIntegrator::mGamma;
+    using NewmarkIntegrator::mBeta;
 
   public:
-    /******************************************************************************/
     explicit 
     NewmarkIntegratorUForm(
         const Teuchos::ParameterList & aParams,
               Plato::Scalar            aMaxEigenvalue
     ) :
-        NewmarkIntegrator<EvaluationType>(aParams, aMaxEigenvalue)
-    /******************************************************************************/
+        NewmarkIntegrator(aParams, aMaxEigenvalue)
     {
     }
 
-    /******************************************************************************/
     ~NewmarkIntegratorUForm()
-    /******************************************************************************/
     {
     }
 
     Plato::Scalar v_grad_a ( Plato::Scalar aTimeStep ) override { return 0; }
     Plato::Scalar u_grad_a ( Plato::Scalar aTimeStep ) override { return 0; }
 
-    /******************************************************************************/
     Plato::Scalar
     v_grad_u( Plato::Scalar aTimeStep ) override
-    /******************************************************************************/
     {
         return -mGamma/(mBeta*aTimeStep);
     }
 
-    /******************************************************************************/
     Plato::Scalar
     v_grad_u_prev( Plato::Scalar aTimeStep ) override
-    /******************************************************************************/
     {
         return mGamma/(mBeta*aTimeStep);
     }
 
-    /******************************************************************************/
     Plato::Scalar
     v_grad_v_prev( Plato::Scalar aTimeStep ) override
-    /******************************************************************************/
     {
         return mGamma/mBeta - 1.0;
     }
 
-    /******************************************************************************/
     Plato::Scalar
     v_grad_a_prev( Plato::Scalar aTimeStep ) override
-    /******************************************************************************/
     {
         return (mGamma/(2.0*mBeta) - 1.0) * aTimeStep;
     }
 
-    /******************************************************************************/
     Plato::Scalar
     a_grad_u( Plato::Scalar aTimeStep ) override
-    /******************************************************************************/
     {
         return -1.0/(mBeta*aTimeStep*aTimeStep);
     }
 
-    /******************************************************************************/
     Plato::Scalar
     a_grad_u_prev( Plato::Scalar aTimeStep ) override
-    /******************************************************************************/
     {
         return 1.0/(mBeta*aTimeStep*aTimeStep);
     }
 
-    /******************************************************************************/
     Plato::Scalar
     a_grad_v_prev( Plato::Scalar aTimeStep ) override
-    /******************************************************************************/
     {
         return 1.0/(mBeta*aTimeStep);
     }
 
-    /******************************************************************************/
     Plato::Scalar
     a_grad_a_prev( Plato::Scalar aTimeStep ) override
-    /******************************************************************************/
     {
         return 1.0/(2.0*mBeta) - 1.0;
     }
 
-    /******************************************************************************/
     Plato::ScalarVector 
     u_value(const Plato::ScalarVector & aU,
             const Plato::ScalarVector & aU_prev,
@@ -293,8 +245,6 @@ class NewmarkIntegratorUForm : public NewmarkIntegrator<EvaluationType>
             const Plato::ScalarVector & aA_prev,
                   Plato::Scalar dt) override { return Plato::ScalarVector(); }
 
-
-    /******************************************************************************/
     Plato::ScalarVector 
     v_value(const Plato::ScalarVector & aU,
             const Plato::ScalarVector & aU_prev,
@@ -303,7 +253,6 @@ class NewmarkIntegratorUForm : public NewmarkIntegrator<EvaluationType>
             const Plato::ScalarVector & aA,
             const Plato::ScalarVector & aA_prev,
                   Plato::Scalar dt) override
-    /******************************************************************************/
     {
         auto tNumData = aU.extent(0);
         Plato::ScalarVector tReturnValue("velocity residual", tNumData);
@@ -320,7 +269,6 @@ class NewmarkIntegratorUForm : public NewmarkIntegrator<EvaluationType>
         return tReturnValue;
     }
 
-    /******************************************************************************/
     Plato::ScalarVector 
     a_value(const Plato::ScalarVector & aU,
             const Plato::ScalarVector & aU_prev,
@@ -329,7 +277,6 @@ class NewmarkIntegratorUForm : public NewmarkIntegrator<EvaluationType>
             const Plato::ScalarVector & aA,
             const Plato::ScalarVector & aA_prev,
                   Plato::Scalar dt) override
-    /******************************************************************************/
     {
         auto tNumData = aU.extent(0);
         Plato::ScalarVector tReturnValue("velocity residual", tNumData);
@@ -345,29 +292,22 @@ class NewmarkIntegratorUForm : public NewmarkIntegrator<EvaluationType>
     }
 };
 
-/******************************************************************************/
-template<typename EvaluationType>
-class NewmarkIntegratorAForm : public NewmarkIntegrator<EvaluationType>
-/******************************************************************************/
+class NewmarkIntegratorAForm : public NewmarkIntegrator
 {
-    using NewmarkIntegrator<EvaluationType>::mGamma;
-    using NewmarkIntegrator<EvaluationType>::mBeta;
+    using NewmarkIntegrator::mGamma;
+    using NewmarkIntegrator::mBeta;
 
   public:
-    /******************************************************************************/
     explicit 
     NewmarkIntegratorAForm(
         const Teuchos::ParameterList & aParams,
               Plato::Scalar            aMaxEigenvalue
     ) :
-        NewmarkIntegrator<EvaluationType>(aParams, aMaxEigenvalue)
-    /******************************************************************************/
+        NewmarkIntegrator(aParams, aMaxEigenvalue)
     {
     }
 
-    /******************************************************************************/
     ~NewmarkIntegratorAForm()
-    /******************************************************************************/
     {
     }
 
@@ -380,24 +320,18 @@ class NewmarkIntegratorAForm : public NewmarkIntegrator<EvaluationType>
     Plato::Scalar a_grad_v_prev ( Plato::Scalar aTimeStep ) override { return 0; }
     Plato::Scalar a_grad_a_prev ( Plato::Scalar aTimeStep ) override { return 0; }
 
-
-    /******************************************************************************/
     Plato::Scalar
     v_grad_a( Plato::Scalar aTimeStep ) override
-    /******************************************************************************/
     {
         return -mGamma*aTimeStep;
     }
 
-    /******************************************************************************/
     Plato::Scalar
     u_grad_a( Plato::Scalar aTimeStep ) override
-    /******************************************************************************/
     {
         return -mBeta*aTimeStep*aTimeStep;
     }
 
-    /******************************************************************************/
     Plato::ScalarVector 
     v_value(const Plato::ScalarVector & aU,
             const Plato::ScalarVector & aU_prev,
@@ -406,7 +340,6 @@ class NewmarkIntegratorAForm : public NewmarkIntegrator<EvaluationType>
             const Plato::ScalarVector & aA,
             const Plato::ScalarVector & aA_prev,
                   Plato::Scalar dt) override
-    /******************************************************************************/
     {
         auto tNumData = aU.extent(0);
         Plato::ScalarVector tReturnValue("velocity residual", tNumData);
@@ -423,7 +356,6 @@ class NewmarkIntegratorAForm : public NewmarkIntegrator<EvaluationType>
         return tReturnValue;
     }
 
-    /******************************************************************************/
     Plato::ScalarVector 
     u_value(const Plato::ScalarVector & aU,
             const Plato::ScalarVector & aU_prev,
@@ -432,7 +364,6 @@ class NewmarkIntegratorAForm : public NewmarkIntegrator<EvaluationType>
             const Plato::ScalarVector & aA,
             const Plato::ScalarVector & aA_prev,
                   Plato::Scalar dt) override
-    /******************************************************************************/
     {
         auto tNumData = aU.extent(0);
         Plato::ScalarVector tReturnValue("velocity residual", tNumData);
@@ -447,7 +378,6 @@ class NewmarkIntegratorAForm : public NewmarkIntegrator<EvaluationType>
         return tReturnValue;
     }
 
-    /******************************************************************************/
     Plato::ScalarVector 
     a_value(const Plato::ScalarVector & aU,
             const Plato::ScalarVector & aU_prev,
@@ -460,5 +390,3 @@ class NewmarkIntegratorAForm : public NewmarkIntegrator<EvaluationType>
 };
 
 } // namespace Plato
-
-#endif

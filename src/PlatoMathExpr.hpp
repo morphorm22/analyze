@@ -49,6 +49,8 @@
 #pragma once
 #include <Teuchos_MathExpr.hpp>
 
+#include "PlatoTypes.hpp"
+
 namespace Plato
 {
 

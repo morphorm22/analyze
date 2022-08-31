@@ -22,8 +22,9 @@ function( Plato_add_test TEST_BASENAME CPP_FILE)
   set(Test_NAME "${TEST_BASENAME}UnitTests")
   add_executable(${Test_NAME} ${Test_SOURCES} ${Test_HEADERS})
 
-  target_link_libraries(${Test_NAME} analyzelib ${PLATO_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES})
-  target_include_directories(${Test_NAME} PRIVATE "${PLATOENGINE_PREFIX}/include")
+  target_link_libraries(${Test_NAME} analyzelib BamGlib ${PLATO_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES})
+  target_include_directories(${Test_NAME} PRIVATE "${PLATOENGINE_PREFIX}/include" ${Trilinos_INCLUDE_DIRS} ${Trilinos_TPL_INCLUDE_DIRS})
+  target_include_directories(${Test_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/BamG")
 
   if(NOT EXTRA_ARG STREQUAL "SKIP_MATH")
     target_compile_definitions(${Test_NAME} PRIVATE WATCH_ARITHMETIC)

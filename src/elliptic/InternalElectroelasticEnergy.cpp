@@ -1,14 +1,12 @@
-#include "elliptic/InternalElectroelasticEnergy.hpp"
-#include "ExpInstMacros.hpp"
+#include "elliptic/InternalElectroelasticEnergy_decl.hpp"
 
-#ifdef PLATOANALYZE_1D
-PLATO_EXPL_DEF(Plato::Elliptic::InternalElectroelasticEnergy, Plato::SimplexElectromechanics, 1)
-#endif
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#ifdef PLATOANALYZE_2D
-PLATO_EXPL_DEF(Plato::Elliptic::InternalElectroelasticEnergy, Plato::SimplexElectromechanics, 2)
-#endif
+#include "elliptic/InternalElectroelasticEnergy_def.hpp"
 
-#ifdef PLATOANALYZE_3D
-PLATO_EXPL_DEF(Plato::Elliptic::InternalElectroelasticEnergy, Plato::SimplexElectromechanics, 3)
+#include "ElectromechanicsElement.hpp"
+#include "elliptic/ExpInstMacros.hpp"
+
+PLATO_ELLIPTIC_EXP_INST(Plato::Elliptic::InternalElectroelasticEnergy, Plato::ElectromechanicsElement)
+
 #endif

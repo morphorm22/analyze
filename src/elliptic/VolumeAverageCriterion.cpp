@@ -1,23 +1,25 @@
-#include <elliptic/VolumeAverageCriterion.hpp>
+#include "elliptic/VolumeAverageCriterion_decl.hpp"
 
-#ifdef PLATOANALYZE_2D
-template class Plato::Elliptic::VolumeAverageCriterion<::Plato::Thermal<2>>;
-template class Plato::Elliptic::VolumeAverageCriterion<::Plato::Mechanics<2>>;
-template class Plato::Elliptic::VolumeAverageCriterion<::Plato::Electromechanics<2>>;
-template class Plato::Elliptic::VolumeAverageCriterion<::Plato::Thermomechanics<2>>;
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
+
+#include "elliptic/VolumeAverageCriterion_def.hpp"
+
+#include "Thermal.hpp"
+#include "Mechanics.hpp"
+#include "Thermomechanics.hpp"
+#include "Electromechanics.hpp"
+#include "BaseExpInstMacros.hpp"
+
+PLATO_ELEMENT_DEF(Plato::Elliptic::VolumeAverageCriterion, Plato::Thermal)
+PLATO_ELEMENT_DEF(Plato::Elliptic::VolumeAverageCriterion, Plato::Mechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::VolumeAverageCriterion, Plato::Thermomechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::VolumeAverageCriterion, Plato::Electromechanics)
+
 #ifdef PLATO_STABILIZED
-template class Plato::Elliptic::VolumeAverageCriterion<::Plato::StabilizedMechanics<2>>;
-template class Plato::Elliptic::VolumeAverageCriterion<::Plato::StabilizedThermomechanics<2>>;
-#endif
+  #include "stabilized/Mechanics.hpp"
+  #include "stabilized/Thermomechanics.hpp"
+  PLATO_ELEMENT_DEF(Plato::Elliptic::VolumeAverageCriterion, Plato::Stabilized::Mechanics)
+  PLATO_ELEMENT_DEF(Plato::Elliptic::VolumeAverageCriterion, Plato::Stabilized::Thermomechanics)
 #endif
 
-#ifdef PLATOANALYZE_3D
-template class Plato::Elliptic::VolumeAverageCriterion<::Plato::Thermal<3>>;
-template class Plato::Elliptic::VolumeAverageCriterion<::Plato::Mechanics<3>>;
-template class Plato::Elliptic::VolumeAverageCriterion<::Plato::Electromechanics<3>>;
-template class Plato::Elliptic::VolumeAverageCriterion<::Plato::Thermomechanics<3>>;
-#ifdef PLATO_STABILIZED
-template class Plato::Elliptic::VolumeAverageCriterion<::Plato::StabilizedMechanics<3>>;
-template class Plato::Elliptic::VolumeAverageCriterion<::Plato::StabilizedThermomechanics<3>>;
-#endif
 #endif

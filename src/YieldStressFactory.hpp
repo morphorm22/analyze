@@ -3,7 +3,7 @@
 
 #include "YieldStress.hpp"
 
-#ifdef PLATO_EXPRESSION
+#ifdef PLATO_CUSTOM_MATERIALS
   #include "YieldStressExpression.hpp"
 #endif
 
@@ -35,7 +35,7 @@ public:
       // Look for a yield stress block.
       if( mParamList.isSublist("Custom Plasticity Model") )
       {
-#ifdef PLATO_EXPRESSION
+#ifdef PLATO_CUSTOM_MATERIALS
         return Teuchos::rcp( new Plato::YieldStressExpression<EvaluationType>
                              (mParamList) );
 #else

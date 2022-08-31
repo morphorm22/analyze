@@ -1,0 +1,102 @@
+#pragma once
+
+#include <memory>
+
+#include "BodyLoads.hpp"
+#include "NaturalBCs.hpp"
+#include "ApplyWeighting.hpp"
+#include "ThermoelasticMaterial.hpp"
+#include "elliptic/AbstractVectorFunction.hpp"
+
+namespace Plato
+{
+
+namespace Elliptic
+{
+
+/******************************************************************************/
+template<typename EvaluationType, typename IndicatorFunctionType>
+class ThermoelastostaticResidual :
+        public EvaluationType::ElementType,
+        public Plato::Elliptic::AbstractVectorFunction<EvaluationType>
+/******************************************************************************/
+{
+private:
+    using ElementType = typename EvaluationType::ElementType;
+
+    using ElementType::mNumVoigtTerms;
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumDofsPerNode;
+    using ElementType::mNumDofsPerCell;
+    using ElementType::mNumSpatialDims;
+
+    using FunctionBaseType = Plato::Elliptic::AbstractVectorFunction<EvaluationType>;
+
+    using FunctionBaseType::mSpatialDomain;
+    using FunctionBaseType::mDataMap;
+    using FunctionBaseType::mDofNames;
+
+    static constexpr int NThrmDims = 1;
+    static constexpr int NMechDims = mNumSpatialDims;
+
+    static constexpr int TDofOffset = mNumSpatialDims;
+    static constexpr int MDofOffset = 0;
+
+    using StateScalarType   = typename EvaluationType::StateScalarType;
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
+    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+
+    IndicatorFunctionType mIndicatorFunction;
+    Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyFluxWeighting;
+    Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms,  IndicatorFunctionType> mApplyStressWeighting;
+
+    std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
+
+    std::shared_ptr<Plato::NaturalBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>> mBoundaryLoads;
+    std::shared_ptr<Plato::NaturalBCs<ElementType, NThrmDims, mNumDofsPerNode, TDofOffset>> mBoundaryFluxes;
+
+    Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mMaterialModel;
+
+    std::vector<std::string> mPlottable;
+
+public:
+    /**************************************************************************/
+    ThermoelastostaticResidual(
+        const Plato::SpatialDomain   & aSpatialDomain,
+              Plato::DataMap         & aDataMap,
+              Teuchos::ParameterList & aProblemParams,
+              Teuchos::ParameterList & aPenaltyParams
+    );
+
+    /****************************************************************************//**
+    * \brief Pure virtual function to get output solution data
+    * \param [in] state solution database
+    * \return output state solution database
+    ********************************************************************************/
+    Plato::Solutions getSolutionStateOutputData(const Plato::Solutions &aSolutions) const override;
+
+    /**************************************************************************/
+    void evaluate(
+        const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
+        const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
+        const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
+              Plato::ScalarMultiVectorT <ResultScalarType>  & aResult,
+              Plato::Scalar aTimeStep = 0.0
+    ) const override;
+
+    /**************************************************************************/
+    void evaluate_boundary(
+        const Plato::SpatialModel                           & aSpatialModel,
+        const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
+        const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
+        const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
+              Plato::ScalarMultiVectorT <ResultScalarType>  & aResult,
+              Plato::Scalar aTimeStep = 0.0
+    ) const override;
+};
+// class ThermoelastostaticResidual
+
+} // namespace Elliptic
+
+} // namespace Plato

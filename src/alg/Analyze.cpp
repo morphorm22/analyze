@@ -51,9 +51,6 @@
 
 #include "PlatoMesh.hpp"
 
-// TODO ifdef this eventually
-#include "OmegaHMesh.hpp"
-
 void printTimingResults()
 {
   const std::string tTimerFilter = ""; //"Analyze:"; // Only timers beginning with this string get summarized.

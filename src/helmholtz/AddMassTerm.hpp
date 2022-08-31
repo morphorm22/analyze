@@ -1,7 +1,6 @@
 #pragma once
 
 #include "PlatoStaticsTypes.hpp"
-#include "Simplex.hpp"
 
 namespace Plato
 {
@@ -15,12 +14,9 @@ namespace Helmholtz
  Given filtered density field, compute the "mass" term.
  */
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType NumDofsPerNode = 1, Plato::OrdinalType DofOffset = 0>
-class AddMassTerm : public Plato::Simplex<SpaceDim>
+template<typename ElementType, Plato::OrdinalType NumDofsPerNode = 1, Plato::OrdinalType DofOffset = 0>
+class AddMassTerm
 {
-private:
-    using Plato::Simplex<SpaceDim>::mNumNodesPerCell; /*!< number of nodes per cell */
-
 public:
     /******************************************************************************//**
      * \brief Add mass term
@@ -32,17 +28,20 @@ public:
      * \param [in] aCellVolume cell volume
     **********************************************************************************/
     template<typename ResultScalarType, typename StateScalarType, typename ControlScalarType, typename VolumeScalarType>
-    KOKKOS_FUNCTION inline void operator()(const Plato::OrdinalType & aCellOrdinal,
-                                       const Plato::ScalarMultiVectorT<ResultScalarType> & aOutput,
-                                       const Plato::ScalarVectorT<StateScalarType> & aFilteredDensity,
-                                       const Plato::ScalarVectorT<ControlScalarType> & aUnfilteredDensity,
-                                       const Plato::ScalarVectorT<Plato::Scalar> & aBasisFunctions,
-                                       const Plato::ScalarVectorT<VolumeScalarType> & aCellVolume) const
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+      const Plato::OrdinalType                          & aCellOrdinal,
+      const Plato::ScalarMultiVectorT<ResultScalarType> & aOutput,
+      const StateScalarType                             & aFilteredDensity,
+      const ControlScalarType                           & aUnfilteredDensity,
+      const Plato::Array<ElementType::mNumNodesPerCell> & aBasisFunctions,
+      const VolumeScalarType                            & aCellVolume
+    ) const
     {
-        for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
+        for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < ElementType::mNumNodesPerCell; tNodeIndex++)
         {
-            Plato::OrdinalType tLocalOrdinal = tNodeIndex * NumDofsPerNode + DofOffset;
-            aOutput(aCellOrdinal, tLocalOrdinal) += aBasisFunctions(tNodeIndex) * ( aFilteredDensity(aCellOrdinal) - aUnfilteredDensity(aCellOrdinal) ) * aCellVolume(aCellOrdinal);
+            Plato::OrdinalType tLocalOrdinal = tNodeIndex * ElementType::mNumDofsPerNode + DofOffset;
+            Kokkos::atomic_add(&aOutput(aCellOrdinal, tLocalOrdinal), aBasisFunctions(tNodeIndex) * ( aFilteredDensity - aUnfilteredDensity ) * aCellVolume);
         }
     }
 };

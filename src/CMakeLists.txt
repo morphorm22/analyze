@@ -6,17 +6,10 @@ configure_file(
 ## material model sources
 set(ANALYZE_SOURCES
     ParseTools.cpp
-    CustomMaterial.cpp
-    AbstractLinearStress.cpp
-    LinearStress.cpp
-    LinearStressFactory.cpp
-    AbstractYieldStress.cpp
-    YieldStress.cpp
-    YieldStressFactory.cpp
+    ExpressionEvaluator.cpp
 ##    ElasticModelFactory.cpp
     LinearElasticMaterial.cpp
     CubicLinearElasticMaterial.cpp
-    CustomLinearElasticMaterial.cpp
     LinearElectroelasticMaterial.cpp
     IsotropicLinearElasticMaterial.cpp
     OrthotropicLinearElasticMaterial.cpp
@@ -28,30 +21,20 @@ set(ANALYZE_SOURCES
 
 if(EXPRESSION)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-      ExpressionEvaluator.cpp
+      CustomMaterial.cpp
+      CustomLinearElasticMaterial.cpp
       LinearStressExpression.cpp
       YieldStressExpression.cpp
   )
 endif()
 
-## Augmented Lagrangian sources
 set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     TensileEnergyDensityLocalMeasure.cpp
-    TensileEnergyDensity.cpp
     Plato_AugLagStressCriterionQuadratic.cpp
     Plato_AugLagStressCriterionGeneral.cpp
     Plato_AugLagStressCriterion.cpp
-    Plato_StructuralMass.cpp
     VonMisesLocalMeasure.cpp
     ThermalVonMisesLocalMeasure.cpp
-)
-
-## Mesh constraint sources
-set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    MultipointConstraints.cpp
-    MultipointConstraintFactory.cpp
-    TieMultipointConstraint.cpp
-    PbcMultipointConstraint.cpp
 )
 
 ## core sources
@@ -61,33 +44,48 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     Solutions.cpp
     AnalyzeAppUtils.cpp
     PlatoMask.cpp
-    OmegaHMesh.cpp
-    OmegaHMeshIO.cpp
     EngineMesh.cpp
     EngineMeshIO.cpp
     PlatoMathHelpers.cpp
+    mesh/ExodusIO.cpp
     alg/ParseInput.cpp
-    alg/Basis.cpp
-    alg/Cubature.cpp
     alg/ParallelComm.cpp
     alg/AmgXConfigs.cpp
-    alg/EpetraLinearSolver.cpp
     alg/AmgXLinearSolver.cpp
     alg/PlatoSolverFactory.cpp
     alg/PlatoAbstractSolver.cpp
 )
 
+if (PLATOANALYZE_ENABLE_EPETRA)
+set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+    alg/EpetraLinearSolver.cpp
+)
+endif()
+
+IF(OMEGA_H_PREFIX)
+  set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+    OmegaHMesh.cpp
+    OmegaHMeshIO.cpp
+  )
+ENDIF()
+
 ## Stabilized VMS sources
 if(STABILIZED)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    EllipticVMSProblem.cpp
-    StabilizedElastostaticEnergy.cpp
+    stabilized/Problem.cpp
+    stabilized/ElastostaticEnergy.cpp
+    stabilized/ElastostaticResidual.cpp
+    stabilized/ThermoelastostaticResidual.cpp
+    stabilized/PressureGradientProjectionResidual.cpp
   )
 endif()
 
 ## plasticity sources
 if(PLASTICITY)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+    AbstractYieldStress.cpp
+    YieldStress.cpp
+    YieldStressFactory.cpp
     J2PlasticityLocalResidual.cpp
     NewtonRaphsonSolver.cpp
     PathDependentAdjointSolver.cpp
@@ -108,6 +106,11 @@ endif()
 
 ## geometric sources
 if(PLATOANALYZE_ENABLE_MESHMAP)
+  ## Mesh constraint sources
+  set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+      MultipointConstraints.cpp
+  )
+
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     geometric/DivisionFunction.cpp
     geometric/GeometryScalarFunction.cpp
@@ -131,10 +134,12 @@ if(ELLIPTIC)
     elliptic/PhysicsScalarFunction.cpp
     elliptic/MassMoment.cpp
     elliptic/MassPropertiesFunction.cpp
+    elliptic/VolAvgStressPNormDenominator.cpp
+    elliptic/VolumeIntegralCriterion.cpp
+    elliptic/Volume.cpp
     elliptic/FluxPNorm.cpp
     elliptic/StressPNorm.cpp
     elliptic/TMStressPNorm.cpp
-    elliptic/VolAvgStressPNormDenominator.cpp
     elliptic/EMStressPNorm.cpp
     elliptic/EffectiveEnergy.cpp
     elliptic/InternalThermalEnergy.cpp
@@ -143,21 +148,20 @@ if(ELLIPTIC)
     elliptic/InternalElasticEnergy.cpp
     elliptic/ElastostaticResidual.cpp
     elliptic/ThermostaticResidual.cpp
+    elliptic/ElectroelastostaticResidual.cpp
+    elliptic/ThermoelastostaticResidual.cpp
     elliptic/VolumeAverageCriterion.cpp
+    elliptic/VolumeAverageCriterionDenominator.cpp
     IntermediateDensityPenalty.cpp
-    elliptic/updated_lagrangian/Problem.cpp
-    elliptic/updated_lagrangian/ElastostaticResidual.cpp
-    elliptic/updated_lagrangian/ScalarFunctionBaseFactory.cpp
-    elliptic/updated_lagrangian/PhysicsScalarFunction.cpp
-    elliptic/updated_lagrangian/InternalElasticEnergy.cpp
-    elliptic/updated_lagrangian/AbstractEllipticUpLagLinearStress.cpp
-    elliptic/updated_lagrangian/EllipticUpLagLinearStress.cpp
-    elliptic/updated_lagrangian/EllipticUpLagLinearStressFactory.cpp
   )
 
-  if(EXPRESSION)
+  if(HATCHING)
     set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-      elliptic/updated_lagrangian/EllipticUpLagLinearStressExpression.cpp
+      elliptic/hatching/Problem.cpp
+      elliptic/hatching/ElastostaticResidual.cpp
+      elliptic/hatching/ScalarFunctionBaseFactory.cpp
+      elliptic/hatching/PhysicsScalarFunction.cpp
+      elliptic/hatching/InternalElasticEnergy.cpp
     )
   endif()
 endif()
@@ -179,47 +183,53 @@ endif()
 ## hyperbolic sources
 if(HYPERBOLIC)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    AbstractVolumetricSource.cpp
-    hyperbolic/BrinkmanForces.cpp
-    hyperbolic/CriterionVolume.cpp
-    hyperbolic/ThermalBuoyancy.cpp
-    hyperbolic/PressureResidual.cpp
-    hyperbolic/CriterionFlowRate.cpp
-    hyperbolic/TemperatureResidual.cpp
-    hyperbolic/FluidsQuasiImplicit.cpp
-    hyperbolic/FluidsScalarFunction.cpp
-    hyperbolic/FluidsVectorFunction.cpp
-    hyperbolic/FluidsThermalSources.cpp
-    hyperbolic/FluidsWorkSetBuilders.cpp
-    hyperbolic/InternalThermalForces.cpp
-    hyperbolic/MomentumSurfaceForces.cpp
-    hyperbolic/FluidsCriterionFactory.cpp
-    hyperbolic/AbstractHyperbolicLinearStress.cpp
-    hyperbolic/AbstractScalarFunction.cpp
-    hyperbolic/AbstractVectorFunction.cpp
-    hyperbolic/VelocityCorrectorResidual.cpp
-    hyperbolic/VelocityPredictorResidual.cpp
-    hyperbolic/CriterionThermalCompliance.cpp
-    hyperbolic/FluidsUniformThermalSource.cpp
-    hyperbolic/CriterionSurfaceThermalFlux.cpp
-    hyperbolic/FluidsWeightedScalarFunction.cpp
-    hyperbolic/HyperbolicLinearStress.cpp
-    hyperbolic/HyperbolicLinearStressFactory.cpp
-    hyperbolic/HyperbolicScalarFunctionFactory.cpp
-    hyperbolic/HyperbolicPhysicsScalarFunction.cpp
-    hyperbolic/CriterionMeanSurfacePressure.cpp
-    hyperbolic/FluidsLeastSquaresScalarFunction.cpp
-    hyperbolic/CriterionMeanSurfaceTemperature.cpp
-    hyperbolic/FluidsStabilizedUniformThermalSource.cpp
-    hyperbolic/MicromorphicLinearElasticMaterial.cpp
-    hyperbolic/CubicMicromorphicLinearElasticMaterial.cpp
-    hyperbolic/MicromorphicInertiaMaterial.cpp
-    hyperbolic/CubicMicromorphicInertiaMaterial.cpp
+    hyperbolic/ElastomechanicsResidual.cpp
+    hyperbolic/InternalElasticEnergy.cpp
+    hyperbolic/PhysicsScalarFunction.cpp
+    hyperbolic/Problem.cpp
+    hyperbolic/ScalarFunctionFactory.cpp
+    hyperbolic/StressPNorm.cpp
   )
 
-  if(EXPRESSION)
+  if(FLUIDS)
     set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-      hyperbolic/HyperbolicLinearStressExpression.cpp
+      hyperbolic/fluids/AbstractScalarFunction.cpp
+      hyperbolic/fluids/AbstractVectorFunction.cpp
+      hyperbolic/fluids/AbstractVolumetricSource.cpp
+      hyperbolic/fluids/BrinkmanForces.cpp
+      hyperbolic/fluids/FluidsQuasiImplicit.cpp
+      hyperbolic/fluids/FluidsScalarFunction.cpp
+      hyperbolic/fluids/FluidsVectorFunction.cpp
+      hyperbolic/fluids/FluidsThermalSources.cpp
+      hyperbolic/fluids/FluidsWorkSetBuilders.cpp
+      hyperbolic/fluids/FluidsCriterionFactory.cpp
+      hyperbolic/fluids/FluidsUniformThermalSource.cpp
+      hyperbolic/fluids/FluidsWeightedScalarFunction.cpp
+      hyperbolic/fluids/FluidsLeastSquaresScalarFunction.cpp
+      hyperbolic/fluids/FluidsStabilizedUniformThermalSource.cpp
+      hyperbolic/fluids/CriterionVolume.cpp
+      hyperbolic/fluids/ThermalBuoyancy.cpp
+      hyperbolic/fluids/PressureResidual.cpp
+      hyperbolic/fluids/CriterionFlowRate.cpp
+      hyperbolic/fluids/TemperatureResidual.cpp
+      hyperbolic/fluids/InternalThermalForces.cpp
+      hyperbolic/fluids/MomentumSurfaceForces.cpp
+      hyperbolic/fluids/VelocityCorrectorResidual.cpp
+      hyperbolic/fluids/VelocityPredictorResidual.cpp
+      hyperbolic/fluids/CriterionThermalCompliance.cpp
+      hyperbolic/fluids/CriterionSurfaceThermalFlux.cpp
+      hyperbolic/fluids/CriterionMeanSurfacePressure.cpp
+      hyperbolic/fluids/CriterionMeanSurfaceTemperature.cpp
+    )
+  endif()
+
+  if(MICROMORPHIC)
+    set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
+      hyperbolic/micromorphic/MicromorphicLinearElasticMaterial.cpp
+      hyperbolic/micromorphic/CubicMicromorphicLinearElasticMaterial.cpp
+      hyperbolic/micromorphic/MicromorphicInertiaMaterial.cpp
+      hyperbolic/micromorphic/CubicMicromorphicInertiaMaterial.cpp
+      hyperbolic/micromorphic/RelaxedMicromorphicResidual.cpp
     )
   endif()
 endif()
@@ -241,6 +251,7 @@ if (PLATOANALYZE_ENABLE_TACHO)
 endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
+include_directories(${PROJECT_SOURCE_DIR}/src/mesh)
 include_directories(${Trilinos_INCLUDE_DIRS} ${Trilinos_TPL_INCLUDE_DIRS})
 
 add_library( analyzelib ${ANALYZE_SOURCES})
@@ -255,11 +266,14 @@ target_include_directories(analyzelib PRIVATE "${PLATOENGINE_PREFIX}/include")
 set(LINK_LIBS
     ${PLATO_LIBS}
     ${Trilinos_LIBRARIES}
-    Omega_h::omega_h
     ${Trilinos_TPL_LIBRARIES}
     ${Trilinos_EXTRA_LD_FLAGS}
     ${SOLVER_INTERFACE_LIBRARIES}
     )
+
+IF(OMEGA_H_PREFIX)
+  set(LINK_LIBS Omega_h::omega_h ${LINK_LIBS})
+ENDIF()
 
 if (PLATOANALYZE_ENABLE_MESHMAP)
   set(LINK_LIBS ArborX::ArborX ${LINK_LIBS})

@@ -7,7 +7,6 @@
 #include "EssentialBCs.hpp"
 #include "elliptic/VectorFunction.hpp"
 #include "ApplyConstraints.hpp"
-#include "SimplexMechanics.hpp"
 #include "LinearElasticMaterial.hpp"
 #include "alg/PlatoSolverFactory.hpp"
 #include "alg/EpetraLinearSolver.hpp"
@@ -16,8 +15,11 @@
 #include <alg/AmgXSparseLinearProblem.hpp>
 #endif
 
+#include "Tri3.hpp"
+
 #include <memory>
 
+#ifdef PLATO_EPETRA
 namespace Plato {
 namespace Devel {
 
@@ -29,7 +31,6 @@ namespace Devel {
 **********************************************************************************/
 template <typename ClassT>
 using rcp = std::shared_ptr<ClassT>;
-
 
 std::vector<std::vector<Plato::Scalar>>
 toFull(rcp<Epetra_VbrMatrix> aInMatrix)
@@ -71,12 +72,12 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionEpetra )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using ElementType = typename PhysicsType::ElementType;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -126,7 +127,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionEpetra )
 
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
-  Plato::Elliptic::VectorFunction<SimplexPhysics>
+  Plato::Elliptic::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
   // compute and test constraint value
@@ -165,12 +166,12 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToEpetraVector )
 {
   // create test mesh
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using ElementType = typename PhysicsType::ElementType;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -210,12 +211,12 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToEpetraVector_invalidI
 {
   // create test mesh
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using ElementType = typename PhysicsType::ElementType;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -247,12 +248,12 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector )
 {
   // create test mesh
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using ElementType = typename PhysicsType::ElementType;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -291,12 +292,12 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector_invali
 {
   // create test mesh
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using ElementType = typename PhysicsType::ElementType;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -325,12 +326,12 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector_invali
 {
   // create test mesh
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using ElementType = typename PhysicsType::ElementType;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -346,6 +347,8 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector_invali
 
   TEST_THROW(tSystem.toVector(tConvertedVector,tTestVector),std::range_error);
 }
+
+#endif
 
 
 #ifdef PLATO_TPETRA
@@ -364,12 +367,11 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -419,7 +421,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra )
 
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
-  Plato::Elliptic::VectorFunction<SimplexPhysics>
+  Plato::Elliptic::VectorFunction<::Plato::Mechanics<Plato::Tri3>>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
   // compute and test constraint value
@@ -471,12 +473,11 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -526,7 +527,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
 
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
-  Plato::Elliptic::VectorFunction<SimplexPhysics>
+  Plato::Elliptic::VectorFunction<::Plato::Mechanics<Plato::Tri3>>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
   // compute and test constraint value
@@ -557,12 +558,11 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToTpetraVector )
 {
   // create test mesh
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -606,12 +606,11 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToTpetraVector_invalidI
 {
   // create test mesh
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -643,12 +642,11 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector )
 {
   // create test mesh
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -691,12 +689,11 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector_invali
 {
   // create test mesh
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -728,12 +725,11 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector_invali
 {
   // create test mesh
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -769,12 +765,12 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
   // create test mesh
   //
   constexpr int meshWidth=8;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using ElementType = typename PhysicsType::ElementType;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -851,7 +847,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
 
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
-  Plato::Elliptic::VectorFunction<SimplexPhysics>
+  Plato::Elliptic::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
   // compute and test constraint value
@@ -866,10 +862,10 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
   //
   Plato::OrdinalVector mBcDofs;
   Plato::ScalarVector mBcValues;
-  Plato::EssentialBCs<SimplexPhysics>
+  Plato::EssentialBCs<ElementType>
       tEssentialBoundaryConditions(tParamList->sublist("Essential Boundary Conditions",false), tMesh);
   tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
-  Plato::applyBlockConstraints<SimplexPhysics::mNumDofsPerNode>(jacobian, residual, mBcDofs, mBcValues);
+  Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(jacobian, residual, mBcDofs, mBcValues);
 
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -1070,12 +1066,12 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
   // create test mesh
   //
   constexpr int meshWidth=8;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using ElementType = typename PhysicsType::ElementType;
 
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
   int tNumNodes = tMesh->NumNodes();
   int tNumDofs = tNumNodes*tNumDofsPerNode;
 
@@ -1152,7 +1148,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
 
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
-  Plato::Elliptic::VectorFunction<SimplexPhysics>
+  Plato::Elliptic::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
   // compute and test constraint value
@@ -1167,10 +1163,10 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
   //
   Plato::OrdinalVector mBcDofs;
   Plato::ScalarVector mBcValues;
-  Plato::EssentialBCs<SimplexPhysics>
+  Plato::EssentialBCs<ElementType>
       tEssentialBoundaryConditions(tParamList->sublist("Essential Boundary Conditions",false), tMesh);
   tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
-  Plato::applyBlockConstraints<SimplexPhysics::mNumDofsPerNode>(jacobian, residual, mBcDofs, mBcValues);
+  Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(jacobian, residual, mBcDofs, mBcValues);
 
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -1264,10 +1260,10 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_valid_input )
 {
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
+  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using ElementType = typename PhysicsType::ElementType;
 
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -1305,11 +1301,11 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_valid_input )
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_invalid_solver_stack )
 {
   constexpr int meshWidth=2;
-  constexpr int spaceDim=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
 
-  using SimplexPhysics = ::Plato::Mechanics<spaceDim>;
-  int tNumDofsPerNode = SimplexPhysics::mNumDofsPerNode;
+  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using ElementType = typename PhysicsType::ElementType;
+  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
 
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
