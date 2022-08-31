@@ -19,6 +19,8 @@
 #include "ImplicitFunctors.hpp"
 #include "TimeData.hpp"
 
+#include <Teuchos_XMLParameterListCoreHelpers.hpp>
+
 namespace Plato
 {
 
