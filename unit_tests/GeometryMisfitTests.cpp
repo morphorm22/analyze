@@ -6,8 +6,9 @@
 
 
 #include "Teuchos_UnitTestHarness.hpp"
+#include <Teuchos_XMLParameterListHelpers.hpp>
 
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 
 #include "Tet4.hpp"
 #include "Geometrical.hpp"
@@ -55,7 +56,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Misfit)
 
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
 
     Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 

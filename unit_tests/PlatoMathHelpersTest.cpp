@@ -14,8 +14,9 @@
 
 #include <assert.h>
 
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 #include "Teuchos_UnitTestHarness.hpp"
+#include <Teuchos_XMLParameterListHelpers.hpp>
 
 #include "BLAS1.hpp"
 #include "Solutions.hpp"
@@ -194,8 +195,8 @@ void SlowDumbRowSummedInverseMultiply(
       const Teuchos::RCP<Plato::CrsMatrixType> & aInMatrixOne,
             Teuchos::RCP<Plato::CrsMatrixType> & aInMatrixTwo)
 {
-    auto F1 = ::PlatoUtestHelpers::toFull(aInMatrixOne);
-    auto F2 = ::PlatoUtestHelpers::toFull(aInMatrixTwo);
+    auto F1 = Plato::TestHelpers::to_full(aInMatrixOne);
+    auto F2 = Plato::TestHelpers::to_full(aInMatrixTwo);
 
     auto tNumM1Rows = aInMatrixOne->numRows();
     auto tNumM1Cols = aInMatrixOne->numCols();
@@ -291,8 +292,8 @@ void SlowDumbMatrixMinusMatrix(
     using Plato::Scalar;
     std::vector<std::vector<Scalar>> tFullMatrix(tNumM1Rows,std::vector<Scalar>(tNumM1Cols, 0.0));
 
-    auto F1 = ::PlatoUtestHelpers::toFull(aInMatrixOne);
-    auto F2 = ::PlatoUtestHelpers::toFull(aInMatrixTwo);
+    auto F1 = Plato::TestHelpers::to_full(aInMatrixOne);
+    auto F2 = Plato::TestHelpers::to_full(aInMatrixTwo);
 
     if( aOffset == -1 )
     {
@@ -341,8 +342,8 @@ void SlowDumbMatrixMatrixMultiply(
     using Plato::Scalar;
     std::vector<std::vector<Scalar>> tFullMatrix(tNumOutMatrixRows,std::vector<Scalar>(tNumOutMatrixCols, 0.0));
 
-    auto F1 = ::PlatoUtestHelpers::toFull(aInMatrixOne);
-    auto F2 = ::PlatoUtestHelpers::toFull(aInMatrixTwo);
+    auto F1 = Plato::TestHelpers::to_full(aInMatrixOne);
+    auto F2 = Plato::TestHelpers::to_full(aInMatrixTwo);
 
     for (auto iRow=0; iRow<tNumOutMatrixRows; iRow++)
     {
@@ -432,8 +433,8 @@ bool is_sequential(
       const Plato::ScalarVectorT<Plato::OrdinalType> & aRowMap,
       const Plato::ScalarVectorT<Plato::OrdinalType> & aColMap)
  {
-    auto tRowMap = PlatoUtestHelpers::get(aRowMap);
-    auto tColMap = PlatoUtestHelpers::get(aColMap);
+    auto tRowMap = Plato::TestHelpers::get(aRowMap);
+    auto tColMap = Plato::TestHelpers::get(aColMap);
 
     auto tNumRows = tRowMap.extent(0)-1;
 
@@ -462,11 +463,11 @@ bool is_equivalent(
     if( aColMapA.extent(0) != aColMapB.extent(0) ) return false;
     if( aValuesA.extent(0) != aValuesB.extent(0) ) return false;
 
-    auto tRowMap  = PlatoUtestHelpers::get(aRowMap);
-    auto tColMapA = PlatoUtestHelpers::get(aColMapA);
-    auto tValuesA = PlatoUtestHelpers::get(aValuesA);
-    auto tColMapB = PlatoUtestHelpers::get(aColMapB);
-    auto tValuesB = PlatoUtestHelpers::get(aValuesB);
+    auto tRowMap  = Plato::TestHelpers::get(aRowMap);
+    auto tColMapA = Plato::TestHelpers::get(aColMapA);
+    auto tValuesA = Plato::TestHelpers::get(aValuesA);
+    auto tColMapB = Plato::TestHelpers::get(aColMapB);
+    auto tValuesB = Plato::TestHelpers::get(aValuesB);
 
     Plato::OrdinalType tANumEntriesPerBlock = aValuesA.extent(0) / aColMapA.extent(0);
     Plato::OrdinalType tBNumEntriesPerBlock = aValuesB.extent(0) / aColMapB.extent(0);
@@ -541,7 +542,7 @@ Teuchos::RCP<Plato::CrsMatrixType> createSquareMatrix()
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
   auto nverts = tMesh->NumNodes();
 
   // create vector data
@@ -851,7 +852,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_SortColumnEntries)
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_ToFromFull)
 {
   auto tMatrix = createSquareMatrix();
-  auto tFullMatrix = ::PlatoUtestHelpers::toFull(tMatrix);
+  auto tFullMatrix = Plato::TestHelpers::to_full(tMatrix);
   auto tSparseMatrix = Teuchos::rcp( new Plato::CrsMatrixType( tMatrix->numRows(), tMatrix->numCols(), 
                                      tMatrix->numRowsPerBlock(), tMatrix->numRowsPerBlock()));
   PlatoDevel::fromFull(tSparseMatrix, tFullMatrix);
@@ -1246,7 +1247,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_CondenseMatrix_2)
 {
   constexpr int cSpaceDim  = 3;
   constexpr int cMeshWidth = 2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
+  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
 
   Plato::SpatialModel tSpatialModel(tMesh, *gElastostaticsParams);
 
@@ -1399,7 +1400,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_VectorTimesMatrixPlusV
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
   PlatoDevel::setMatrixData(tMatrixA, tRowMapA, tColMapA, tValuesA);
 
-  auto tMatrixA_full = ::PlatoUtestHelpers::toFull(tMatrixA);
+  auto tMatrixA_full = Plato::TestHelpers::to_full(tMatrixA);
 
   Plato::ScalarVector tVector_a("a", 3);
   std::vector<Plato::Scalar> tVector_a_full({12,11,10});
@@ -1648,7 +1649,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_fill)
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
 
   int numVerts = tMesh->NumNodes();
   
@@ -1666,7 +1667,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_copy)
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
 
   int numVerts = tMesh->NumNodes();
   
@@ -1689,7 +1690,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_scale)
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
 
   int numVerts = tMesh->NumNodes();
   
@@ -1708,7 +1709,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_update)
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
 
   int numVerts = tMesh->NumNodes();
   
@@ -1730,7 +1731,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_MatrixTimesVectorPlusV
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
 
   // create mesh based density from host data
   //

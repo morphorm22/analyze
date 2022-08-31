@@ -1,4 +1,4 @@
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
@@ -41,7 +41,7 @@ void PrintFullMatrix(const Teuchos::RCP<Plato::CrsMatrixType> & aInMatrix)
     auto tNumRows = aInMatrix->numRows();
     auto tNumCols = aInMatrix->numCols();
 
-    auto tFullMat = ::PlatoUtestHelpers::toFull(aInMatrix);
+    auto tFullMat = Plato::TestHelpers::to_full(aInMatrix);
 
     printf("\n Full matrix entries: \n");
     for (auto iRow = 0; iRow < tNumRows; iRow++)
@@ -66,7 +66,7 @@ TEUCHOS_UNIT_TEST(HelmholtzFilterTests, LengthScaleKeywordError)
   // create test mesh
   //
   constexpr int meshWidth=20;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("tri3", meshWidth);
+  auto tMesh = Plato::TestHelpers::getBoxMesh("tri3", meshWidth);
 
   using PhysicsType = ::Plato::HelmholtzFilter<Plato::Tri3>;
 
@@ -108,7 +108,7 @@ TEUCHOS_UNIT_TEST(HelmholtzFilterTests, HelmholtzProblemError)
   // create test mesh
   //
   constexpr int meshWidth=4;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
   
   // create mesh based density
   //
@@ -175,7 +175,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, Helmholtz2DUniformFieldTest )
   // create test mesh
   //
   constexpr int meshWidth=8;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::HelmholtzFilter<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;

@@ -5,7 +5,7 @@
  */
 
 
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 #include "Teuchos_UnitTestHarness.hpp"
 
 #include "EngineMesh.hpp"
@@ -69,7 +69,7 @@ const Plato::Scalar cTol = 1e-9;
 
 TEUCHOS_UNIT_TEST(EngineMeshIntxTests, CreateSurfaceMesh_Tet4)
 {
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", /*tMeshIntervals=*/ 2);
+    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", /*tMeshIntervals=*/ 2);
 
     std::vector<std::string> tExcludeNames;
 
@@ -110,7 +110,7 @@ TEUCHOS_UNIT_TEST(EngineMeshIntxTests, CreateSurfaceMesh_Tet4)
 
 TEUCHOS_UNIT_TEST(EngineMeshIntxTests, CreateSurfaceComplement_Tet4)
 {
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", /*tMeshIntervals=*/ 2);
+    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", /*tMeshIntervals=*/ 2);
 
     std::vector<std::string> tExcludeNames;
     tExcludeNames.push_back("z+");
@@ -152,7 +152,7 @@ TEUCHOS_UNIT_TEST(EngineMeshIntxTests, CreateSurfaceComplement_Tet4)
 
 TEUCHOS_UNIT_TEST(EngineMeshIntxTests, CreateSurfaceComplement_Hex8)
 {
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("HEX8", /*tMeshIntervals=*/ 2);
+    auto tMesh = Plato::TestHelpers::getBoxMesh("HEX8", /*tMeshIntervals=*/ 2);
 
     std::vector<std::string> tExcludeNames;
     tExcludeNames.push_back("z+");
@@ -192,7 +192,7 @@ TEUCHOS_UNIT_TEST(EngineMeshIntxTests, CreateSurfaceComplement_Hex8)
 
 TEUCHOS_UNIT_TEST(EngineMeshIntxTests, CreateSurfaceMesh_Hex8)
 {
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("HEX8", /*tMeshIntervals=*/ 2);
+    auto tMesh = Plato::TestHelpers::getBoxMesh("HEX8", /*tMeshIntervals=*/ 2);
 
     std::vector<std::string> tExcludeNames;
 

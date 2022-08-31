@@ -7,8 +7,9 @@
 #include <iostream>
 #include <fstream>
 
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 #include "Teuchos_UnitTestHarness.hpp"
+#include <Teuchos_XMLParameterListHelpers.hpp>
 
 #include "Tet4.hpp"
 #include "PlatoMask.hpp"
@@ -35,7 +36,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMask)
 
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
 
   Plato::BrickMask<spaceDim> tBrickMask(tMesh, *tMaskParams);
 
@@ -116,7 +117,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoModel)
 
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
 
   Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
 
@@ -171,7 +172,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, DefaultBlockNotMarkedAsFixed)
   );
 
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
 
   Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
 
@@ -209,7 +210,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, FixedBlockIsMarked)
   );
 
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
 
   Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
 
@@ -249,7 +250,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, DefaultBlockWorksetControlUnchanged)
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
 
   using ElementType = Plato::MechanicsElement<Plato::Tet4>;
 
@@ -317,7 +318,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, FixedBlockWorksetControlGivesOnes)
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
 
   using ElementType = Plato::MechanicsElement<Plato::Tet4>;
 

@@ -4,7 +4,7 @@
  *  Created on: Oct 8, 2021
  */
 
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 
 #include <Teuchos_UnitTestHarness.hpp>
 #include <sstream>
