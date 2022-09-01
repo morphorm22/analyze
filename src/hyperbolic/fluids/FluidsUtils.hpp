@@ -26,7 +26,7 @@ namespace Fluids
  * \return lowercase heat transfer mechanism tag
  ******************************************************************************/
 inline std::string heat_transfer_tag
-(Teuchos::ParameterList & aInputs)
+(const Teuchos::ParameterList & aInputs)
 {
     if(aInputs.isSublist("Hyperbolic") == false)
     {
