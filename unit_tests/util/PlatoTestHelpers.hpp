@@ -8,6 +8,12 @@
 
 namespace Plato {
 namespace TestHelpers {
+/******************************************************************************//**
+ * \brief get view from device
+ *
+ * \param[in] aView data on device
+ * @returns Mirror on host
+**********************************************************************************/
 template <typename ViewType> 
 typename ViewType::HostMirror get(ViewType aView) {
   using RetType = typename ViewType::HostMirror;

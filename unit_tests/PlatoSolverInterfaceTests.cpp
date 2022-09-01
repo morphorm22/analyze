@@ -24,12 +24,6 @@
 namespace Plato {
 namespace Devel {
 
-/******************************************************************************//**
- * \brief get view from device
- *
- * \param[in] aView data on device
- * @returns Mirror on host
-**********************************************************************************/
 template <typename ClassT>
 using rcp = std::shared_ptr<ClassT>;
 
