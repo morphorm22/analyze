@@ -49,6 +49,7 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     PlatoMask.cpp
     EngineMesh.cpp
     EngineMeshIO.cpp
+    PlatoMathHelpers.cpp
     mesh/ExodusIO.cpp
     alg/ParseInput.cpp
     alg/ParallelComm.cpp
