@@ -277,6 +277,7 @@ namespace Plato {
       **********************************************************************************/
       Rank4VoigtConstant(Teuchos::ParameterList& aParams);
 
+      KOKKOS_FUNCTION
       Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio) : c0{{0.0}} {}
 
       /******************************************************************************//**
@@ -305,6 +306,7 @@ namespace Plato {
 
       Rank4VoigtConstant() : c0{{0.0}} {}
 
+      KOKKOS_FUNCTION
       Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio) : c0{{0.0}} {}
 
 
@@ -333,6 +335,7 @@ namespace Plato {
 
       Rank4VoigtConstant() : c0{{0.0}} {}
 
+      KOKKOS_FUNCTION
       Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio) : c0{{0.0}} {}
 
       Rank4VoigtConstant(Teuchos::ParameterList& aParams)
@@ -362,6 +365,7 @@ namespace Plato {
 
       Rank4VoigtConstant() : c0{{0.0}} {}
 
+      KOKKOS_FUNCTION
       Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio) : c0{{0.0}} {}
 
       Rank4VoigtConstant(Teuchos::ParameterList& aParams) : c0{{0.0}}
@@ -422,7 +426,8 @@ namespace Plato {
        **********************************************************************************/
        IsotropicStiffnessConstant(const Teuchos::ParameterList& aParams){}
 
-      IsotropicStiffnessConstant(const T& aYoungsModulus, const T& aPoissonsRatio) :
+       KOKKOS_FUNCTION
+       IsotropicStiffnessConstant(const T& aYoungsModulus, const T& aPoissonsRatio) :
             Rank4VoigtConstant<SpatialDim, T>(aYoungsModulus, aPoissonsRatio) {}      
   };
 
@@ -441,6 +446,7 @@ namespace Plato {
           this->c0[0][0] = E*c*(1.0-v);
       }
 
+      KOKKOS_FUNCTION
       IsotropicStiffnessConstant(const T& aYoungsModulus, const T& aPoissonsRatio) :
             Rank4VoigtConstant<1,T>(aYoungsModulus, aPoissonsRatio) 
       {
@@ -469,6 +475,7 @@ namespace Plato {
           this->c0[2][2] = c22;
       }
 
+      KOKKOS_FUNCTION
       IsotropicStiffnessConstant(const T& aYoungsModulus, const T& aPoissonsRatio) :
             Rank4VoigtConstant<2,T>(aYoungsModulus, aPoissonsRatio) 
       {
@@ -505,6 +512,7 @@ namespace Plato {
           this->c0[3][3] = c33; this->c0[4][4] = c33; this->c0[5][5] = c33;
       }
 
+      KOKKOS_FUNCTION
       IsotropicStiffnessConstant(const T& aYoungsModulus, const T& aPoissonsRatio) :
             Rank4VoigtConstant<3,T>(aYoungsModulus, aPoissonsRatio) 
       {

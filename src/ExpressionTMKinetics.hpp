@@ -116,10 +116,10 @@ public:
                             Plato::Scalar > tExpEval;
         
         tExpEval.parse_expression(mExpression.c_str());
-        tExpEval.setup_storage(aNumCells, 1);
+        tExpEval.setup_storage(aNumCells*tNumPoints, 1);
         tExpEval.set_variable("E0", mE0);
 
-        Kokkos::parallel_for("compute element kinematics", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {aNumCells, tNumPoints}),
+        Kokkos::parallel_for("compute element density", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {aNumCells, tNumPoints}),
         KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
             auto tCubPoint = tCubPoints(iGpOrdinal);
@@ -128,8 +128,14 @@ public:
             // Calculate the node-averaged density for the element/cell
             auto tEntryOrdinal = iCellOrdinal*tNumPoints + iGpOrdinal;
             tElementDensity(tEntryOrdinal) = tInterpolateFromNodal(iCellOrdinal, tBasisValues, aLocalControl);
+        });
 
-            tExpEval.set_variable("tElementDensity", tElementDensity, tEntryOrdinal);
+        tExpEval.set_variable("tElementDensity", tElementDensity);
+        Kokkos::parallel_for("compute youngs modulus", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {aNumCells, tNumPoints}),
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        {
+            auto tEntryOrdinal = iCellOrdinal*tNumPoints + iGpOrdinal;
+
             tExpEval.evaluate_expression( tEntryOrdinal, aElementYoungsModulusValues );
         });
         Kokkos::fence();
