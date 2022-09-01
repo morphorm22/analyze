@@ -8,7 +8,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/BamG)
 include (${CMAKE_CURRENT_SOURCE_DIR}/add_test.cmake)
 
 # Build test helper library
-add_subdirectory(util)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/util)
 
 ## if SKIP_MATH is provided as the optional third argument below, unit tests
 ## will be compiled without checking for math exceptions.

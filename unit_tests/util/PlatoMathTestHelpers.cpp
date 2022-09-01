@@ -1,20 +1,7 @@
 #include "PlatoMathTestHelpers.hpp"
 #include "PlatoTestHelpers.hpp"
 
-#include "AnalyzeMacros.hpp"
-#include "ApplyProjection.hpp"
-#include "BLAS1.hpp"
-#include "HyperbolicTangentProjection.hpp"
-#include "Mechanics.hpp"
 #include "PlatoMathFunctors.hpp"
-#include "PlatoMathHelpers.hpp"
-#include "Solutions.hpp"
-#include "StabilizedMechanics.hpp"
-#include "VectorFunctionVMS.hpp"
-#include "alg/CrsMatrix.hpp"
-#include "alg/PlatoSolverFactory.hpp"
-#include "elliptic/PhysicsScalarFunction.hpp"
-#include "elliptic/VectorFunction.hpp"
 
 #include <KokkosBatched_LU_Decl.hpp>
 #include <KokkosBatched_LU_Serial_Impl.hpp>

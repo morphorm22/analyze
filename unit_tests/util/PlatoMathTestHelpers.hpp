@@ -3,7 +3,7 @@
 
 #include "PlatoStaticsTypes.hpp"
 
-#include <Teuchos_RCPDecl.hpp>
+#include <Teuchos_RCP.hpp>
 
 #include <Kokkos_View.hpp>
 #include <Kokkos_CopyViews.hpp>

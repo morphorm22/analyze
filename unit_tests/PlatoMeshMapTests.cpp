@@ -18,6 +18,7 @@
 namespace PlatoTestMeshMap {
 
 namespace {
+namespace pth = Plato::TestHelpers;
 using SparseMatrix = Plato::Geometry::MeshMap<Plato::Scalar>::SparseMatrix;
 
 /***************************************************************************//**
@@ -30,9 +31,9 @@ std::vector<std::vector<Plato::Scalar>> to_full(const SparseMatrix &aInMatrix) {
   std::vector<std::vector<Scalar>> retMatrix(
       aInMatrix.mNumRows, std::vector<Scalar>(aInMatrix.mNumCols, 0.0));
 
-  const auto tRowMap = get(aInMatrix.mRowMap);
-  const auto tColMap = get(aInMatrix.mColMap);
-  const auto tValues = get(aInMatrix.mEntries);
+  const auto tRowMap = pth::get(aInMatrix.mRowMap);
+  const auto tColMap = pth::get(aInMatrix.mColMap);
+  const auto tValues = pth::get(aInMatrix.mEntries);
 
   const auto tNumRows = aInMatrix.mNumRows;
   for (OrdinalType iRowIndex = 0; iRowIndex < tNumRows; iRowIndex++) {
@@ -116,7 +117,7 @@ using MemSpace = typename ExecSpace::memory_space;
     }, "compute");
 
     double tol_double = 1e-14;
-    auto tBases_host = get(tBases);
+    auto tBases_host = pth::get(tBases);
     for(int iElem=0; iElem<tNElems; iElem++)
     {
         for(int iNode=0; iNode<(ElementType::mNumNodesPerCell); iNode++)
@@ -196,7 +197,7 @@ using MemSpace = typename ExecSpace::memory_space;
     std::vector<Plato::Scalar> tBases_gold = {-oe, -oe, -oe, -oe, of, of, of, of, of, of};
 
     double tol_double = 1e-14;
-    auto tBases_host = get(tBases);
+    auto tBases_host = pth::get(tBases);
     for(int iElem=0; iElem<tNElems; iElem++)
     {
         for(int iNode=0; iNode<(ElementType::mNumNodesPerCell); iNode++)
@@ -285,7 +286,7 @@ using MemSpace = typename ExecSpace::memory_space;
     };
 
     double tol_double = 1e-14;
-    auto tBases_host = get(tBases);
+    auto tBases_host = pth::get(tBases);
     for(int iElem=0; iElem<tNElems; iElem++)
     {
         for(int iNode=0; iNode<(ElementType::mNumNodesPerCell); iNode++)
@@ -373,7 +374,7 @@ using MemSpace = typename ExecSpace::memory_space;
     };
 
     double tol_double = 1e-14;
-    auto tBases_host = get(tBases);
+    auto tBases_host = pth::get(tBases);
     for(int iElem=0; iElem<tNElems; iElem++)
     {
         for(int iNode=0; iNode<(ElementType::mNumNodesPerCell); iNode++)
@@ -472,7 +473,7 @@ using MemSpace = typename ExecSpace::memory_space;
     };
 
     double tol_double = 1e-14;
-    auto tBases_host = get(tBases);
+    auto tBases_host = pth::get(tBases);
     for(int iElem=0; iElem<tNElems; iElem++)
     {
         for(int iNode=0; iNode<(ElementType::mNumNodesPerCell); iNode++)

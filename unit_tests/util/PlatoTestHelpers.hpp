@@ -4,7 +4,10 @@
 #include "PlatoMesh.hpp"
 #include "PlatoStaticsTypes.hpp"
 
+#include <Teuchos_RCP.hpp>
+
 #include <string>
+#include <vector>
 
 namespace Plato {
 namespace TestHelpers {

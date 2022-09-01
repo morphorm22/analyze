@@ -1,13 +1,8 @@
 #include <PlatoTestHelpers.hpp>
 
-#include <Teuchos_RCP.hpp>
-#include <Teuchos_XMLParameterListHelpers.hpp>
-
 #include <BamG.hpp>
 
 #include <AnalyzeMacros.hpp>
-
-#include <fstream>
 
 namespace Plato {
 namespace TestHelpers {

@@ -110,7 +110,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsElementTests, ElementFunctors3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tet4>;
 
