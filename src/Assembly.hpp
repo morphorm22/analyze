@@ -385,7 +385,7 @@ inline void transform_ad_type_to_pod_3Dview(const Plato::OrdinalType& aNumCells,
 *
 *****************************************************************************/
 template <class Scalar, class Result>
-inline Scalar assemble_scalar_func_value(const Plato::OrdinalType& aNumCells, const Result& aResult)
+Scalar assemble_scalar_func_value(const Plato::OrdinalType& aNumCells, const Result& aResult)
 {
   Scalar tReturnValue(0.0);
   Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, aNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType& aCellOrdinal, Scalar & aLocalValue)
