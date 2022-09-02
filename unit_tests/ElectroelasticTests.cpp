@@ -28,7 +28,7 @@ TEUCHOS_UNIT_TEST( ElectroelasticTests, InternalElectroelasticEnergy3D )
   constexpr int tMeshWidth=2;
   constexpr int cSpaceDim=3;
   std::string tElementType("TET4");
-  auto tMesh = Plato::TestHelpers::getBoxMesh(tElementType, tMeshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh(tElementType, tMeshWidth);
 
   // create mesh based solution from host data
   //

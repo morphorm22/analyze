@@ -43,7 +43,7 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
   //
   constexpr int meshWidth=2;
 
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   using ElementType = typename Plato::ThermomechanicsElement<Plato::Tet4>;
 
@@ -350,7 +350,7 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, TransientThermomechResidual3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   using ElementType = typename Plato::ThermomechanicsElement<Plato::Tet4>;
 

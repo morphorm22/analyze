@@ -1060,7 +1060,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ThermoPlasticityUtils_ElasticStrainWith
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     using PhysicsT = Plato::SimplexThermoPlasticity<tSpaceDim>;
 
@@ -1174,7 +1174,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ThermoPlasticityUtils_ElasticStrainWith
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     using PhysicsT = Plato::SimplexPlasticity<tSpaceDim>;
 
@@ -1284,7 +1284,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ThermoPlasticityUtils_ElasticStrainWith
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     using PhysicsT = Plato::SimplexThermoPlasticity<tSpaceDim>;
 
@@ -1412,7 +1412,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ThermoPlasticityUtils_ElasticStrainWith
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     using PhysicsT = Plato::SimplexPlasticity<tSpaceDim>;
 
@@ -1536,7 +1536,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, J2Plasticity_GradGlobalState3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // ### NOTICE THAT THIS IS ONLY PLASTICITY (NO TEMPERATURE) ###
     using PhysicsT = Plato::Plasticity<tSpaceDim>;
@@ -1554,7 +1554,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, J2Plasticity_GradGlobalState2D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     // ### NOTICE THAT THIS IS ONLY PLASTICITY (NO TEMPERATURE) ###
     using PhysicsT = Plato::Plasticity<tSpaceDim>;
@@ -1573,7 +1573,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, J2Plasticity_GradPrevGlobalState3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // ### NOTICE THAT THIS IS ONLY PLASTICITY (NO TEMPERATURE) ###
     using PhysicsT = Plato::Plasticity<tSpaceDim>;
@@ -1592,7 +1592,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, J2Plasticity_GradPrevGlobalState2D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     // ### NOTICE THAT THIS IS ONLY PLASTICITY (NO TEMPERATURE) ###
     using PhysicsT = Plato::Plasticity<tSpaceDim>;
@@ -1611,7 +1611,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, J2Plasticity_GradLocalState3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // ### NOTICE THAT THIS IS ONLY PLASTICITY (NO TEMPERATURE) ###
     using PhysicsT = Plato::Plasticity<tSpaceDim>;
@@ -1630,7 +1630,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, J2Plasticity_GradLocalState2D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     // ### NOTICE THAT THIS IS ONLY PLASTICITY (NO TEMPERATURE) ###
     using PhysicsT = Plato::Plasticity<tSpaceDim>;
@@ -1649,7 +1649,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, J2Plasticity_GradPrevLocalState3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // ### NOTICE THAT THIS IS ONLY PLASTICITY (NO TEMPERATURE) ###
     using PhysicsT = Plato::Plasticity<tSpaceDim>;
@@ -1668,7 +1668,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, J2Plasticity_GradPrevLocalState2D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     // ### NOTICE THAT THIS IS ONLY PLASTICITY (NO TEMPERATURE) ###
     using PhysicsT = Plato::Plasticity<tSpaceDim>;
@@ -1687,7 +1687,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, J2Plasticity_GradControl3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // ### NOTICE THAT THIS IS ONLY PLASTICITY (NO TEMPERATURE) ###
     using PhysicsT = Plato::Plasticity<tSpaceDim>;
@@ -1706,7 +1706,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, J2Plasticity_GradControl2D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     // ### NOTICE THAT THIS IS ONLY PLASTICITY (NO TEMPERATURE) ###
     using PhysicsT = Plato::Plasticity<tSpaceDim>;
@@ -1725,7 +1725,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, J2Plasticity_Evaluate3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // ### NOTICE THAT THIS IS ONLY PLASTICITY (NO TEMPERATURE) ###
     using PhysicsT = Plato::Plasticity<tSpaceDim>;
@@ -1843,7 +1843,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, J2Plasticity_Evaluate2D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     // ### NOTICE THAT THIS IS ONLY PLASTICITY (NO TEMPERATURE) ###
     using PhysicsT = Plato::Plasticity<tSpaceDim>;
@@ -1944,7 +1944,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, J2Plasticity_UpdateLocalState3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // ### NOTICE THAT THIS IS ONLY PLASTICITY (NO TEMPERATURE) ###
     using PhysicsT = Plato::Plasticity<tSpaceDim>;
@@ -2048,7 +2048,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, J2Plasticity_UpdateLocalState2D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     // ### NOTICE THAT THIS IS ONLY PLASTICITY (NO TEMPERATURE) ###
     using PhysicsT = Plato::Plasticity<tSpaceDim>;

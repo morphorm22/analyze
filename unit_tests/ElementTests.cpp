@@ -1254,7 +1254,7 @@ TEUCHOS_UNIT_TEST( Tet10, BasisFunctionGradients )
 TEUCHOS_UNIT_TEST( Tet10, IntegrateExpression )
 { 
   constexpr int meshWidth=1;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET10", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tet10>;
 

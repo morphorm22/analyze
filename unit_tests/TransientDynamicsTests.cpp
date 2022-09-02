@@ -110,7 +110,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsElementTests, ElementFunctors3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tet4>;
 
@@ -347,7 +347,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsProblemTests, 3D )
   // create test mesh
   //
   constexpr int cMeshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
 
   // create input for transient mechanics problem
   //
@@ -570,7 +570,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_NoMass )
   //
   constexpr int cMeshWidth=2;
   constexpr int cSpaceDim=3;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
 
   Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
 
@@ -818,7 +818,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_WithMass )
   //
   constexpr int cMeshWidth=2;
   constexpr int cSpaceDim=3;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
 
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
@@ -1034,7 +1034,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsIntegratorTests, NewmarkUForm )
   //
   constexpr int cMeshWidth=2;
   constexpr int cSpaceDim=3;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
   int tNumDofs = cSpaceDim*tMesh->NumNodes();
 
   auto tIntegratorParams = tInputParams->sublist("Time Integration");
@@ -1214,7 +1214,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsIntegratorTests, NewmarkAForm )
   //
   constexpr int cMeshWidth=2;
   constexpr int cSpaceDim=3;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
   int tNumDofs = cSpaceDim*tMesh->NumNodes();
 
   auto tIntegratorParams = tInputParams->sublist("Time Integration");
@@ -1360,7 +1360,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_ScalarFunction )
   //
   constexpr int cMeshWidth=2;
   constexpr int cSpaceDim=3;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
   int tNumDofs = cSpaceDim*tMesh->NumNodes();
 
   Plato::DataMap tDataMap;
@@ -1481,7 +1481,7 @@ TEUCHOS_UNIT_TEST( TimeDependentBCsTests, EssentialBoundaryDofValuesMatchFunctio
   //
   constexpr int cMeshWidth=2;
   constexpr int cSpaceDim=3;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
 
   // create input for problem
   //
@@ -1627,7 +1627,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsFormulationTests, UFormAndAFormEquivalenceW
   // create test mesh
   //
   constexpr int cMeshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
 
   // create input for u-form problem
   //
@@ -1842,7 +1842,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsFormulationTests, UFormAndAFormEquivalenceW
   //
   constexpr int cMeshWidth=2;
   constexpr int cSpaceDim=3;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
 
   // create input for u-form problem
   //
@@ -2075,7 +2075,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsFormulationTests, UFormAndAFormEquivalenceW
   //
   constexpr int cMeshWidth=2;
   constexpr int cSpaceDim=3;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
 
   // create input for u-form problem
   //
@@ -2324,7 +2324,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsFormulationTests, UFormAndAFormEquivalenceW
   //
   constexpr int cMeshWidth=2;
   constexpr int cSpaceDim=3;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
 
   // create input for u-form problem
   //

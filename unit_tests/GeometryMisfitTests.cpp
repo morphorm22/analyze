@@ -56,7 +56,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Misfit)
 
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 

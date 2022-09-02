@@ -35,7 +35,7 @@ typename ViewType::HostMirror get(ViewType aView) {
  * and 'x-y+z-' for the negative x positive y negative z vertex, etc.
  */
 Plato::Mesh
- getBoxMesh(
+ get_box_mesh(
     std::string        aMeshType,
     Plato::OrdinalType aMeshIntervals,
     std::string        aFileName = "BamG_unit_test_mesh.exo");
@@ -51,7 +51,7 @@ Plato::Mesh
  * and 'x-y+z-' for the negative x positive y negative z vertex, etc.
  */
 Plato::Mesh
- getBoxMesh(
+ get_box_mesh(
     std::string        aMeshType,
     Plato::Scalar      aMeshWidthX,
     Plato::OrdinalType aMeshIntervalsX,

@@ -67,7 +67,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionEpetra )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -161,7 +161,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToEpetraVector )
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -206,7 +206,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToEpetraVector_invalidI
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -243,7 +243,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector )
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -287,7 +287,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector_invali
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -321,7 +321,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector_invali
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -362,7 +362,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
@@ -468,7 +468,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
@@ -534,7 +534,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
   Plato::Comm::Machine tMachine(myComm);
 
   constexpr int tBogusMeshWidth=3;
-  auto tBogusMesh = Plato::TestHelpers::getBoxMesh("TRI3", tBogusMeshWidth, "BogusMesh.exo");
+  auto tBogusMesh = Plato::TestHelpers::get_box_mesh("TRI3", tBogusMeshWidth, "BogusMesh.exo");
 
   Plato::TpetraSystem tSystem(tBogusMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
@@ -553,7 +553,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToTpetraVector )
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
@@ -601,7 +601,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToTpetraVector_invalidI
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
@@ -637,7 +637,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector )
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
@@ -684,7 +684,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector_invali
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
@@ -720,7 +720,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector_invali
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
@@ -760,7 +760,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
   // create test mesh
   //
   constexpr int meshWidth=8;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -1061,7 +1061,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
   // create test mesh
   //
   constexpr int meshWidth=8;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -1255,7 +1255,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_valid_input )
 {
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -1296,7 +1296,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_valid_input )
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_invalid_solver_stack )
 {
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;

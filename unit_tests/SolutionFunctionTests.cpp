@@ -20,7 +20,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D )
   //
   constexpr int meshWidth=4;
   constexpr int spaceDim=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1.0, meshWidth, 1.0, meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1.0, meshWidth, 1.0, meshWidth);
 
 
   // create mesh based density from host data
@@ -151,7 +151,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D_Mag )
   //
   constexpr int meshWidth=4;
   constexpr int spaceDim=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1.0, meshWidth, 1.0, meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1.0, meshWidth, 1.0, meshWidth);
 
 
   // create mesh based density from host data

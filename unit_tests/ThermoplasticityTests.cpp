@@ -24,7 +24,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_SimplySupportedBeamTra
 {
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 2;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3",10.0, 10, 1.0, 2);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3",10.0, 10, 1.0, 2);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -214,7 +214,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_CantileverBeamTraction
     constexpr Plato::OrdinalType tSpaceDim = 2;
     const Plato::OrdinalType tNumElemX = 10;
     const Plato::OrdinalType tNumElemY = 2;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -413,7 +413,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_CantileverBeamTraction
     const Plato::OrdinalType tNumElemX = 10;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", 10.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", 10.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -637,7 +637,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_PlasticWork_2D)
     constexpr Plato::OrdinalType tSpaceDim = 2;
     const Plato::OrdinalType tNumElemX = 10;
     const Plato::OrdinalType tNumElemY = 2;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -803,7 +803,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_PlasticWork_3D)
     const Plato::OrdinalType tNumElemX = 10;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", 10.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", 10.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -975,7 +975,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_PlasticWorkGradientZ_2
     constexpr Plato::OrdinalType tSpaceDim = 2;
     const Plato::OrdinalType tNumElemX = 10;
     const Plato::OrdinalType tNumElemY = 2;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -1104,7 +1104,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_PlasticWorkGradientZ_3
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", 1.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", 1.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -1246,7 +1246,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_ElasticWork_2D)
     constexpr Plato::OrdinalType tSpaceDim = 2;
     const Plato::OrdinalType tNumElemX = 10;
     const Plato::OrdinalType tNumElemY = 2;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -1412,7 +1412,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_ElasticWork_3D)
     const Plato::OrdinalType tNumElemX = 10;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", 10.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", 10.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -1583,7 +1583,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_ElasticWorkGradientZ_2
     constexpr Plato::OrdinalType tSpaceDim = 2;
     const Plato::OrdinalType tNumElemX = 10;
     const Plato::OrdinalType tNumElemY = 2;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -1711,7 +1711,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_ElasticWorkGradientZ_3
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", 1.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", 1.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -1853,7 +1853,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_CriterionTest_2D_Gradi
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -2060,7 +2060,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_RodElasticSolution2D)
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     MPI_Comm myComm;
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -2229,7 +2229,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_RodElasticSolution3D)
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     MPI_Comm myComm;
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -2393,7 +2393,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_ElasticSolution3D)
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     MPI_Comm myComm;
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -2467,7 +2467,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_TotalWork_2D)
     constexpr Plato::OrdinalType tSpaceDim = 2;
     const Plato::OrdinalType tNumElemX = 10;
     const Plato::OrdinalType tNumElemY = 2;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -2631,7 +2631,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_TotalWork_3D)
     const Plato::OrdinalType tNumElemX = 10;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", 10.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", 10.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -2802,7 +2802,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_TotalWork_2D_GradientZ
     constexpr Plato::OrdinalType tSpaceDim = 2;
     const Plato::OrdinalType tNumElemX = 10;
     const Plato::OrdinalType tNumElemY = 2;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -2930,7 +2930,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_TotalWork_3D_GradientZ
     const Plato::OrdinalType tNumElemX = 10;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", 10.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", 10.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -3067,7 +3067,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_ThermalEnergy_2D)
     constexpr Plato::OrdinalType tSpaceDim = 2;
     const Plato::OrdinalType tNumElemX = 10;
     const Plato::OrdinalType tNumElemY = 2;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -3231,7 +3231,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_ThermalEnergy_3D)
     const Plato::OrdinalType tNumElemX = 10;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", 10.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", 10.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -3402,7 +3402,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_ThermalEnergy_2D_Gradi
     constexpr Plato::OrdinalType tSpaceDim = 2;
     const Plato::OrdinalType tNumElemX = 10;
     const Plato::OrdinalType tNumElemY = 2;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10.0, tNumElemX, 1.0, tNumElemY);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -3530,7 +3530,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Thermoplasticity_ThermalEnergy_3D_Gradi
     const Plato::OrdinalType tNumElemX = 10;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", 10.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", 10.0, tNumElemX, 1.0, tNumElemY, 1.0, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(

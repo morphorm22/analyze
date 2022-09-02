@@ -7,7 +7,7 @@
 namespace Plato {
 namespace TestHelpers {
 
-Plato::Mesh getBoxMesh(std::string aMeshType, Plato::OrdinalType aMeshIntervals,
+Plato::Mesh get_box_mesh(std::string aMeshType, Plato::OrdinalType aMeshIntervals,
                        std::string aFileName) {
   BamG::MeshSpec tSpec;
   tSpec.meshType = aMeshType;
@@ -21,7 +21,7 @@ Plato::Mesh getBoxMesh(std::string aMeshType, Plato::OrdinalType aMeshIntervals,
   return Plato::MeshFactory::create(tSpec.fileName);
 }
 
-Plato::Mesh getBoxMesh(std::string aMeshType, Plato::Scalar aMeshWidthX,
+Plato::Mesh get_box_mesh(std::string aMeshType, Plato::Scalar aMeshWidthX,
                        Plato::OrdinalType aMeshIntervalsX,
                        Plato::Scalar aMeshWidthY,
                        Plato::OrdinalType aMeshIntervalsY,

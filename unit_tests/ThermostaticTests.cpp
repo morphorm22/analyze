@@ -80,7 +80,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, ThermostaticResidual3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   // create mesh based density from host data
   //
@@ -261,7 +261,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalThermalEnergy3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
 
   // create mesh based density from host data
@@ -434,7 +434,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, FluxPNorm3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
 
   // create mesh based density from host data

@@ -28,7 +28,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassInsteadOfVolume2D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     using ElementType = typename Plato::GeometricalElement<Plato::Tri3>;
 
@@ -107,7 +107,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassInsteadOfVolume3D)
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     using ElementType = typename Plato::GeometricalElement<Plato::Tet4>;
 
@@ -185,7 +185,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassInsteadOfVolume3D)
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3D)
 {
     constexpr Plato::OrdinalType tMeshWidth = 15; // Need high mesh density in order to get correct inertias
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     using ElementType = typename Plato::GeometricalElement<Plato::Tet4>;
 
@@ -250,7 +250,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3D)
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3DNormalized)
 {
     constexpr Plato::OrdinalType tMeshWidth = 15; // Need high mesh density in order to get correct inertias
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // Create control workset
     const Plato::Scalar tPseudoDensity = 0.8;
@@ -312,7 +312,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3DNormalized)
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesGradZ_3D)
 {
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     using ElementType = typename Plato::GeometricalElement<Plato::Tet4>;
 

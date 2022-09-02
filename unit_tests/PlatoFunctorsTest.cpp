@@ -64,7 +64,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ComputeStateWorkset)
     // ****** TEST STATE WORKSET TOOLS ****** //
     const Plato::OrdinalType tSpaceDim = 3;
     const Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // ******************** SET ELASTOSTATICS' EVALUATION TYPES FOR UNIT TEST ********************
     using ResidualT = typename Plato::Evaluation<typename Plato::Mechanics<tSpaceDim>::SimplexT>::Residual;
@@ -187,7 +187,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearStrainsToComplexStrains)
     // BUILD OMEGA_H MESH
     const Plato::OrdinalType tSpaceDim = 3;
     const Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // ******************** SET ELASTOSTATICS' EVALUATION TYPES FOR UNIT TEST ********************
     using ResidualT = typename Plato::Evaluation<typename Plato::Mechanics<tSpaceDim>::SimplexT>::Residual;
@@ -347,7 +347,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearStressToComplexStress)
 
     using SimplexPhysics = typename Plato::SimplexMechanics<tSpaceDim>;
 
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // ******************** SET ELASTOSTATICS' EVALUATION TYPES FOR UNIT TEST ********************
     using ResidualT = typename Plato::Evaluation<typename Plato::Mechanics<tSpaceDim>::SimplexT>::Residual;
@@ -527,7 +527,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearElasticForcesToComplexElas
 
     using SimplexPhysics = typename Plato::SimplexMechanics<tSpaceDim>;
 
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // ******************** SET ELASTOSTATICS' EVALUATION TYPES FOR UNIT TEST ********************
     using ResidualT = typename Plato::Evaluation<typename Plato::Mechanics<tSpaceDim>::SimplexT>::Residual;

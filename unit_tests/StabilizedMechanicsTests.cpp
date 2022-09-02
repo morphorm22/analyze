@@ -20,7 +20,7 @@ namespace StabilizedMechanicsTests
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Kinematics3D)
 {
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     using ElementType = Plato::Stabilized::MechanicsElement<Plato::Tet4>;
 
@@ -108,7 +108,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Solution3D)
     // 1. DEFINE PROBLEM
     const bool tOutputData = false; // for debugging purpose, set true to enable the Paraview output file
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     using ElementType = Plato::Stabilized::MechanicsElement<Plato::Tet4>;
 
@@ -261,7 +261,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Residual3D)
     // 1. PREPARE PROBLEM INPUS FOR TEST
     Plato::DataMap tDataMap;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tPDEInputs =
         Teuchos::getParametersFromXmlString(

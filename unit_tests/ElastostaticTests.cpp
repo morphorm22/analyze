@@ -70,7 +70,7 @@ TEUCHOS_UNIT_TEST( ElastostaticTests, 3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tet4>;
 
@@ -266,7 +266,7 @@ TEUCHOS_UNIT_TEST( ElastostaticTests, Residual3D )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim = Plato::Tet4::mNumSpatialDims;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   // create mesh based density from host data
   //
@@ -509,7 +509,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=Plato::Tet4::mNumSpatialDims;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   // create mesh based density from host data
   //
@@ -688,7 +688,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, StressPNorm3D )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=Plato::Tet4::mNumSpatialDims;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   // create mesh based density from host data
   //
@@ -871,7 +871,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, EffectiveEnergy3D_ShearCellProblem )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   auto numVerts = tMesh->NumNodes();
 
@@ -1079,7 +1079,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, EffectiveEnergy3D_NormalCellProblem )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   auto numVerts = tMesh->NumNodes();
 
@@ -1304,7 +1304,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, ElastostaticResidual2D_InhomogeneousEssentia
 
     // SETUP INPUT PARAMETERS
     constexpr Plato::OrdinalType tMeshWidth = 3;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     MPI_Comm myComm;
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -1429,7 +1429,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, referenceStrain3D )
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tet4>;
 
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   int numCells = tMesh->NumElements();
   int numVoigtTerms = ElementType::mNumVoigtTerms;
@@ -1538,7 +1538,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Volume3D )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
 
   // create mesh based density from host data

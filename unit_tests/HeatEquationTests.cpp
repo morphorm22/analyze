@@ -67,7 +67,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, 3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   using ElementType = typename Plato::ThermalElement<Plato::Tet4>;
 
@@ -422,7 +422,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, HeatEquationResidual3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   // create mesh based density from host data
   //
@@ -638,7 +638,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, InternalThermalEnergy3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   // create mesh based temperature from host data
   //
@@ -769,7 +769,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, ComputedField_UniformScalar )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   // compute fields
   //

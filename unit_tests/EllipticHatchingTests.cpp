@@ -488,7 +488,7 @@ TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D )
   // create test mesh
   //
   constexpr int cMeshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
 
   // create input
   //
@@ -868,7 +868,7 @@ TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D_full )
   // create test mesh
   //
   constexpr int cMeshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
 
   // create input
   //
@@ -1196,7 +1196,7 @@ TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D_StateUpdate )
   // create test mesh
   //
   constexpr int cMeshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth, "omfg.exo");
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth, "omfg.exo");
 
   Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
 
@@ -1371,7 +1371,7 @@ TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D_StateUpdate_2layer )
   // create test mesh
   //
   constexpr int cMeshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
 
   using PhysicsType = Plato::Elliptic::Hatching::Mechanics<Plato::Tet4>;
 

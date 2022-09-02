@@ -115,7 +115,7 @@ Teuchos::RCP<Plato::CrsMatrixType> createSquareMatrix()
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = pth::getBoxMesh("TET4", meshWidth);
+  auto tMesh = pth::get_box_mesh("TET4", meshWidth);
   auto nverts = tMesh->NumNodes();
 
   // create vector data
@@ -812,7 +812,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_CondenseMatrix_2)
 {
   constexpr int cSpaceDim  = 3;
   constexpr int cMeshWidth = 2;
-  auto tMesh = pth::getBoxMesh("TET4", cMeshWidth);
+  auto tMesh = pth::get_box_mesh("TET4", cMeshWidth);
   
   const Teuchos::RCP<Teuchos::ParameterList> elastostaticsParams = test_elastostatics_params();
   Plato::SpatialModel tSpatialModel(tMesh, *elastostaticsParams);
@@ -1215,7 +1215,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_fill)
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = pth::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = pth::get_box_mesh("TRI3", meshWidth);
 
   int numVerts = tMesh->NumNodes();
   
@@ -1233,7 +1233,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_copy)
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = pth::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = pth::get_box_mesh("TRI3", meshWidth);
 
   int numVerts = tMesh->NumNodes();
   
@@ -1256,7 +1256,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_scale)
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = pth::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = pth::get_box_mesh("TRI3", meshWidth);
 
   int numVerts = tMesh->NumNodes();
   
@@ -1275,7 +1275,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_update)
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = pth::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = pth::get_box_mesh("TRI3", meshWidth);
 
   int numVerts = tMesh->NumNodes();
   
@@ -1297,7 +1297,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_MatrixTimesVectorPlusV
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = pth::getBoxMesh("TET4", meshWidth);
+  auto tMesh = pth::get_box_mesh("TET4", meshWidth);
 
   // create mesh based density from host data
   //

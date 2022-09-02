@@ -112,7 +112,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, setState)
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 10);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -270,7 +270,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ReadFields)
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 10);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -417,7 +417,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Test_Read)
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 10);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -560,7 +560,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ReadSteps)
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 10);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -675,7 +675,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_CheckCrit
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 10);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -782,7 +782,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_CheckCrit
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 10);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -889,7 +889,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_TestCrite
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 10);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -1014,7 +1014,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 50);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 50);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -1155,7 +1155,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 50);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 50);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -1305,7 +1305,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 50);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 50);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -1453,7 +1453,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 40);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 40);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -1501,7 +1501,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateMisfitInfNorm)
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateConvectiveVelocityMagnitude)
 {
     // build mesh and spatial model
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::SpatialModel tSpatialModel(tMesh);
 
     // set velocity field
@@ -1539,7 +1539,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateConvectiveVelocityMagnitude)
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateElementCharacteristicSizes)
 {
     // build mesh and spatial model
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::SpatialModel tSpatialModel(tMesh);
 
     constexpr auto tNumSpaceDims = 2;
@@ -1591,7 +1591,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PressureIncrementResidual_EvaluateBound
     using EvaluationT = Plato::Fluids::Evaluation<PhysicsT::SimplexT>::Residual;
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     auto tSpatialDomainName = std::string("my box");
     Plato::SpatialDomain tDomain(tMesh, tSpatialDomainName);
     auto tElementBlockName = std::string("body");
@@ -1659,7 +1659,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PressureResidual)
     using EvaluationT = Plato::Fluids::Evaluation<PhysicsT::SimplexT>::Residual;
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     auto tSpatialDomainName = std::string("my box");
     Plato::SpatialDomain tDomain(tMesh, tSpatialDomainName);
     auto tElementBlockName = std::string("body");
@@ -1957,7 +1957,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateFluxDivergence)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
 
     // set input data for unit test
     auto tNumCells = tMesh->NumElements();
@@ -2044,7 +2044,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateConvectiveForces)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
 
     // set input data for unit test
     auto tNumCells = tMesh->NumElements();
@@ -2108,7 +2108,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VelocityCorrectorResidual)
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
     Plato::SpatialModel tModel(tMesh);
@@ -2183,7 +2183,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculatePressureGradient)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
 
     // set input data for unit test
     auto tNumCells = tMesh->NumElements();
@@ -2271,7 +2271,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IntegrateStabilizingForces)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
 
     // set input data for unit test
     auto tNumCells = tMesh->NumElements();
@@ -2374,7 +2374,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateAdvectedInternalForces)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
 
     // set input data for unit test
     auto tNumCells = tMesh->NumElements();
@@ -2470,7 +2470,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IntegrateViscousForces)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
 
     // set input data for unit test
     auto tNumCells = tMesh->NumElements();
@@ -2555,7 +2555,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BLAS2_update)
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, EntityFaceOrdinals)
 {
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
 
     // test: node sets
     auto tMyNodeSetOrdinals = tMesh->GetNodeSetNodes("x+");
@@ -2620,7 +2620,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionBrinkman)
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
     tDomain.setMaterialName("water");
@@ -2691,7 +2691,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrainRate)
 {
     constexpr Plato::OrdinalType tNumSpaceDims = 2;
     constexpr Plato::OrdinalType tNumNodesPerCell = 3;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     TEST_EQUALITY(2, tMesh->NumElements());
 
     auto const tNumCells = tMesh->NumElements();
@@ -2890,7 +2890,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BrinkmanPenalization)
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets_SpatialDomain)
 {
     // build mesh and spatial domain
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -3015,7 +3015,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets_SpatialDoma
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets_SpatialDomain)
 {
     // build mesh and spatial domain
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -3237,7 +3237,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets)
     tPrimal.vector("critical time step", tTimeSteps);
 
     // set ordinal maps;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::LocalOrdinalMaps<PhysicsT> tOrdinalMaps(tMesh);
 
     // call build_vector_function_worksets
@@ -3420,7 +3420,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksetsTwo)
     tPrimal.vector("critical time step", tTimeSteps);
 
     // set ordinal maps;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::LocalOrdinalMaps<PhysicsT> tOrdinalMaps(tMesh);
 
     // call build_vector_function_worksets
@@ -3458,7 +3458,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets)
     tPrimal.vector("critical time step", tCriticalTimeStep);
     
     // set ordinal maps;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::LocalOrdinalMaps<PhysicsT> tOrdinalMaps(tMesh);
 
     // call build_scalar_function_worksets
@@ -3651,7 +3651,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, LocalOrdinalMaps)
 {
     constexpr Plato::OrdinalType tNumSpaceDim = 3;
     using PhysicsT = Plato::MomentumConservation<tNumSpaceDim>;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", 1.0, 1, 1.0, 1, 1.0, 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", 1.0, 1, 1.0, 1, 1.0, 1);
     Plato::LocalOrdinalMaps<PhysicsT> tLocalOrdinalMaps(tMesh);
 
     auto tNumCells = tMesh->NumElements();

@@ -100,7 +100,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, BuildCondensedSystem )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -264,7 +264,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic2DTieMPC )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -380,7 +380,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tet4>;
   using ElementType = typename PhysicsType::ElementType;

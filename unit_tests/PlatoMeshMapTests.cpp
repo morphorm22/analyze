@@ -77,7 +77,7 @@ using MemSpace = typename ExecSpace::memory_space;
     // create mesh
     //
     constexpr int cMeshWidth=5;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
 
     // create GetBasis functor
     //
@@ -153,7 +153,7 @@ using MemSpace = typename ExecSpace::memory_space;
     // create mesh
     //
     constexpr int cMeshWidth=3;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET10", cMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", cMeshWidth);
 
     // create GetBasis functor
     //
@@ -234,7 +234,7 @@ using MemSpace = typename ExecSpace::memory_space;
     // create mesh
     //
     constexpr int cMeshWidth=3;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("HEX8", cMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("HEX8", cMeshWidth);
 
     // create GetBasis functor
     //
@@ -323,7 +323,7 @@ using MemSpace = typename ExecSpace::memory_space;
     // create mesh
     //
     constexpr int cMeshWidth=3;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("QUAD4", cMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("QUAD4", cMeshWidth);
 
     // create GetBasis functor
     //
@@ -414,7 +414,7 @@ using MemSpace = typename ExecSpace::memory_space;
     // create mesh
     //
     constexpr int cMeshWidth=3;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("HEX27", cMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("HEX27", cMeshWidth);
 
     // create GetBasis functor
     //
@@ -681,7 +681,7 @@ using MemSpace = typename ExecSpace::memory_space;
     auto tMeshMapParams = tInputData.get<Plato::InputData>("MeshMap");
 
     constexpr int cMeshWidth=5;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
 
     Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
     auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
@@ -780,7 +780,7 @@ using MemSpace = typename ExecSpace::memory_space;
     auto tMeshMapParams = tInputData.get<Plato::InputData>("MeshMap");
 
     constexpr int cMeshWidth=5;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
 
     Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
     auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
@@ -880,7 +880,7 @@ using MemSpace = typename ExecSpace::memory_space;
     auto tMeshMapParams = tInputData.get<Plato::InputData>("MeshMap");
 
     constexpr int cMeshWidth=5;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("HEX8", cMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("HEX8", cMeshWidth);
 
     Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
     auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
@@ -978,7 +978,7 @@ using MemSpace = typename ExecSpace::memory_space;
     auto tMeshMapParams = tInputData.get<Plato::InputData>("MeshMap");
 
     constexpr int cMeshWidth=5;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("QUAD4", cMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("QUAD4", cMeshWidth);
 
     Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
     auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
@@ -1080,7 +1080,7 @@ using MemSpace = typename ExecSpace::memory_space;
     auto tMeshMapParams = tInputData.get<Plato::InputData>("MeshMap");
 
     constexpr int cMeshWidth=5;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
 
     Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
     auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
@@ -1167,7 +1167,7 @@ using MemSpace = typename ExecSpace::memory_space;
     auto tMeshMapParams = tInputData.get<Plato::InputData>("MeshMap");
 
     constexpr int cMeshWidth=5;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("HEX8", cMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("HEX8", cMeshWidth);
 
     Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
     auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
@@ -1270,7 +1270,7 @@ using MemSpace = typename ExecSpace::memory_space;
     auto tMeshMapParams = tInputData.get<Plato::InputData>("MeshMap");
 
     constexpr int cMeshWidth=5;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("QUAD4", cMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("QUAD4", cMeshWidth);
 
     Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
     auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
@@ -1374,7 +1374,7 @@ using MemSpace = typename ExecSpace::memory_space;
     auto tMeshMapParams = tInputData.get<Plato::InputData>("MeshMap");
 
     constexpr int cMeshWidth=5;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
 
     Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
     auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
@@ -1477,7 +1477,7 @@ using MemSpace = typename ExecSpace::memory_space;
     auto tMeshMapParams = tInputData.get<Plato::InputData>("MeshMap");
 
     constexpr int cMeshWidth=5;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET4", cMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
 
     Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
     auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
@@ -1580,7 +1580,7 @@ using MemSpace = typename ExecSpace::memory_space;
     auto tMeshMapParams = tInputData.get<Plato::InputData>("MeshMap");
 
     constexpr int cMeshWidth=5;
-    auto tMesh = Plato::TestHelpers::getBoxMesh("TET10", cMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", cMeshWidth);
 
     Plato::Geometry::MeshMapFactory<double> tMeshMapFactory;
     auto tMeshMap = tMeshMapFactory.create(tMesh, tMeshMapParams);
