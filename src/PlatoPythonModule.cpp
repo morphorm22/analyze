@@ -7,6 +7,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <stdexcept>
 #include <Analyze_App.hpp>
 
 std::vector<Plato::Scalar> double_vector_from_list(PyObject* list);
@@ -182,8 +183,21 @@ Analyze_compute(Analyze *self, PyObject *args, PyObject *kwds)
     std::cout << "Computing " << operationName << std::endl;
 
     std::string opName(operationName);
-    self->mMPMDApp->compute(opName);
-
+    try
+    {
+        self->mMPMDApp->compute(opName);
+    } 
+    catch(const std::runtime_error& err) 
+    {
+        // Expected exception type from ANALYZE_THROWERR
+        PyErr_SetString(PyExc_RuntimeError, err.what());
+        return NULL;
+    }
+    catch(...)
+    {
+        PyErr_SetString(PyExc_RuntimeError, "Unexpected C++ exception.");
+        return NULL;
+    }
     return Py_BuildValue("i", 1);
 }
 
