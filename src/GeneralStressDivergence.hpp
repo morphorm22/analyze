@@ -66,12 +66,14 @@ public:
              typename StressScalarType,
              typename GradientScalarType,
              typename VolumeScalarType>
-    KOKKOS_INLINE_FUNCTION void operator()(const Plato::OrdinalType & aCellOrdinal,
-                                       const Plato::ScalarMultiVectorT<ForcingScalarType> & aOutput,
-                                       const Plato::Array<mNumVoigtTerms, StressScalarType> & aStress,
-                                       const Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, GradientScalarType> & aGradient,
-                                       const VolumeScalarType & aCellVolume,
-                                       const Plato::Scalar aScale = 1.0) const
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+        const Plato::OrdinalType & aCellOrdinal,
+        const Plato::ScalarMultiVectorT<ForcingScalarType> & aOutput,
+        const Plato::Array<mNumVoigtTerms, StressScalarType> & aStress,
+        const Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, GradientScalarType> & aGradient,
+        const VolumeScalarType & aCellVolume,
+        const Plato::Scalar aScale = 1.0) const
     {
 
         for(Plato::OrdinalType tDimIndexI = 0; tDimIndexI < mNumSpatialDims; tDimIndexI++)
@@ -83,6 +85,54 @@ public:
                 {
                     Kokkos::atomic_add(&aOutput(aCellOrdinal, tLocalOrdinal),
                         aScale * aCellVolume * aStress(mVoigt[tDimIndexI][tDimIndexJ]) * aGradient(tNodeIndex, tDimIndexJ));
+                }
+            }
+        }
+    }
+
+    /***************************************************************************//**
+     * \brief Apply stress divergence operator to stress tensor
+     *
+     * \tparam ForcingScalarType   Kokkos::View POD type
+     * \tparam StressScalarType    Kokkos::View POD type
+     * \tparam GradientScalarType  Kokkos::View POD type
+     * \tparam VolumeScalarType    Kokkos::View POD type
+     *
+     * \param aCellOrdinal cell index
+     * \param aOutput      stress divergence
+     * \param aStress      stress tensor
+     * \param aGradient    spatial gradient tensor
+     * \param aCellVolume  cell volume
+     * \param aScale       multiplier (default = 1.0)
+     *
+    *******************************************************************************/
+    template<typename ForcingScalarType,
+             typename StressScalarType,
+             typename GradientScalarType,
+             typename VolumeScalarType>
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+        const Plato::OrdinalType                           & aCellOrdinal,
+        const Plato::OrdinalType                           & aGpOrdinal,
+        const Plato::ScalarMultiVectorT<ForcingScalarType> & aOutput,
+        const Plato::ScalarArray3DT<StressScalarType>      & aStress,
+        const Plato::ScalarArray4DT<GradientScalarType>    & aGradient,
+        const Plato::ScalarMultiVectorT<VolumeScalarType>  & aCellVolume,
+        const Plato::Scalar aScale = 1.0
+    ) const
+    {
+
+        for(Plato::OrdinalType tDimIndexI = 0; tDimIndexI < mNumSpatialDims; tDimIndexI++)
+        {
+            for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
+            {
+                Plato::OrdinalType tLocalOrdinal = tNodeIndex * NumDofsPerNode + tDimIndexI + DofOffset;
+                for(Plato::OrdinalType tDimIndexJ = 0; tDimIndexJ < mNumSpatialDims; tDimIndexJ++)
+                {
+                    Kokkos::atomic_add(&aOutput(aCellOrdinal, tLocalOrdinal),
+                        aScale * aCellVolume(aCellOrdinal, aGpOrdinal)
+                               * aStress(aCellOrdinal, aGpOrdinal, mVoigt[tDimIndexI][tDimIndexJ])
+                               * aGradient(aCellOrdinal, aGpOrdinal, tNodeIndex, tDimIndexJ));
                 }
             }
         }

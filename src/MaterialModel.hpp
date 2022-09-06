@@ -6,7 +6,7 @@
 
 namespace Plato {
 
-  enum class MaterialModelType { Linear, Nonlinear };
+  enum class MaterialModelType { Linear, Nonlinear, Expression };
 
   /******************************************************************************/
   /*!
@@ -249,17 +249,17 @@ namespace Plato {
   /*!
     \brief class for tensor constant
   */
-  template<int SpatialDim>
+  template<int SpatialDim, typename T = Plato::Scalar>
   class Rank4VoigtConstant
-  /******************************************************************************/
   {
     protected:
-      static constexpr Plato::OrdinalType NumVoigtTerms = (SpatialDim == 3) ? 6 :
+
+        static constexpr Plato::OrdinalType NumVoigtTerms = (SpatialDim == 3) ? 6 :
                                            ((SpatialDim == 2) ? 3 :
                                           (((SpatialDim == 1) ? 1 : 0)));
 
-      Plato::Scalar c0[NumVoigtTerms][NumVoigtTerms];
-
+        T c0[NumVoigtTerms][NumVoigtTerms];
+    
     public:
 
       /******************************************************************************//**
@@ -277,6 +277,9 @@ namespace Plato {
       **********************************************************************************/
       Rank4VoigtConstant(Teuchos::ParameterList& aParams);
 
+      KOKKOS_FUNCTION
+      Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio) : c0{{0.0}} {}
+
       /******************************************************************************//**
        * \brief Functor for 4th rank tensor constant
        * \return \f$ y(i, j) = c0(i,j) \f$
@@ -284,7 +287,102 @@ namespace Plato {
        * \param [in] j \f$ j \f$ value in expression.
        * unit test: PlatoMaterialModel_Rank4VoigtConstant
       **********************************************************************************/
-      KOKKOS_INLINE_FUNCTION Plato::Scalar
+      KOKKOS_INLINE_FUNCTION T
+      operator()(Plato::OrdinalType i, Plato::OrdinalType j ) const {
+       return c0[i][j];
+      }
+  };
+
+  template<typename T>
+  class Rank4VoigtConstant<1,T>
+  /******************************************************************************/
+  {
+    protected:
+      static constexpr Plato::OrdinalType NumVoigtTerms = 1;
+
+      T c0[NumVoigtTerms][NumVoigtTerms];
+
+    public:
+
+      Rank4VoigtConstant() : c0{{0.0}} {}
+
+      KOKKOS_FUNCTION
+      Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio) : c0{{0.0}} {}
+
+
+      Rank4VoigtConstant(Teuchos::ParameterList& aParams)
+      {
+          typedef Plato::Scalar RealT;
+          c0[0][0] = Plato::ParseTools::getParam<RealT>(aParams, "c11" /*throw if not found*/);
+      }
+
+      KOKKOS_INLINE_FUNCTION T
+      operator()(Plato::OrdinalType i, Plato::OrdinalType j ) const {
+          return c0[i][j];
+      }
+  };
+
+  template<typename T>
+  class Rank4VoigtConstant<2,T>
+  /******************************************************************************/
+  {
+    protected:
+      static constexpr Plato::OrdinalType NumVoigtTerms = 3;
+
+      T c0[NumVoigtTerms][NumVoigtTerms];
+
+    public:
+
+      Rank4VoigtConstant() : c0{{0.0}} {}
+
+      KOKKOS_FUNCTION
+      Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio) : c0{{0.0}} {}
+
+      Rank4VoigtConstant(Teuchos::ParameterList& aParams)
+      {
+          typedef Plato::Scalar RealT;
+          c0[0][0] = Plato::ParseTools::getParam<RealT>(aParams, "c11" /*throw if not found*/);
+          c0[1][1] = Plato::ParseTools::getParam<RealT>(aParams, "c22", /*default=*/ c0[0][0]);
+          c0[0][1] = Plato::ParseTools::getParam<RealT>(aParams, "c12", /*default=*/ 0.0); c0[1][0] = c0[0][1];
+          c0[2][2] = Plato::ParseTools::getParam<RealT>(aParams, "c33" /*throw if not found*/);
+      }
+  
+      KOKKOS_INLINE_FUNCTION T
+      operator()(Plato::OrdinalType i, Plato::OrdinalType j ) const {
+          return c0[i][j];
+      }
+  };
+  template<typename T>
+  class Rank4VoigtConstant<3,T>
+  /******************************************************************************/
+  {
+    protected:
+      static constexpr Plato::OrdinalType NumVoigtTerms = 6;
+
+      T c0[NumVoigtTerms][NumVoigtTerms];
+
+    public:
+
+      Rank4VoigtConstant() : c0{{0.0}} {}
+
+      KOKKOS_FUNCTION
+      Rank4VoigtConstant(const T& aYoungsModulus, const T& aPoissonsRatio) : c0{{0.0}} {}
+
+      Rank4VoigtConstant(Teuchos::ParameterList& aParams) : c0{{0.0}}
+      {
+          typedef Plato::Scalar RealT;
+          c0[0][0] = Plato::ParseTools::getParam<RealT>(aParams, "c11" /*throw if not found*/);
+          c0[1][1] = Plato::ParseTools::getParam<RealT>(aParams, "c22", /*default=*/ c0[0][0]);
+          c0[2][2] = Plato::ParseTools::getParam<RealT>(aParams, "c33", /*default=*/ c0[0][0]);
+          c0[0][1] = Plato::ParseTools::getParam<RealT>(aParams, "c12", /*default=*/ 0.0); c0[1][0] = c0[0][1];
+          c0[0][2] = Plato::ParseTools::getParam<RealT>(aParams, "c13", /*default=*/ c0[0][1]); c0[2][0] = c0[0][2];
+          c0[1][2] = Plato::ParseTools::getParam<RealT>(aParams, "c23", /*default=*/ c0[0][1]); c0[2][1] = c0[1][2];
+          c0[3][3] = Plato::ParseTools::getParam<RealT>(aParams, "c44" /*throw if not found*/);
+          c0[4][4] = Plato::ParseTools::getParam<RealT>(aParams, "c55", c0[3][3]);
+          c0[5][5] = Plato::ParseTools::getParam<RealT>(aParams, "c66", c0[3][3]);
+      }
+
+      KOKKOS_INLINE_FUNCTION T
       operator()(Plato::OrdinalType i, Plato::OrdinalType j ) const {
           return c0[i][j];
       }
@@ -310,12 +408,13 @@ namespace Plato {
       IsotropicStiffnessFunctor(const Teuchos::ParameterList& aParams);
   };
 
+
   /******************************************************************************/
   /*!
     \brief class for tensor constant
   */
-  template<int SpatialDim>
-  class IsotropicStiffnessConstant : public Rank4VoigtConstant<SpatialDim>
+  template<int SpatialDim, typename T = Plato::Scalar>
+  class IsotropicStiffnessConstant : public Rank4VoigtConstant<SpatialDim, T>
   /******************************************************************************/
   {
     public:
@@ -324,10 +423,111 @@ namespace Plato {
        *   Functor returns \f$ y(i, j) = c0(i,j) \f$
        * \param [in] ParameterList with "c0ij" Parameters
        * unit test: PlatoMaterialModel_IsotropicStiffnessConstant
-      **********************************************************************************/
-      IsotropicStiffnessConstant(const Teuchos::ParameterList& aParams);
+       **********************************************************************************/
+       IsotropicStiffnessConstant(const Teuchos::ParameterList& aParams){}
+
+       KOKKOS_FUNCTION
+       IsotropicStiffnessConstant(const T& aYoungsModulus, const T& aPoissonsRatio) :
+            Rank4VoigtConstant<SpatialDim, T>(aYoungsModulus, aPoissonsRatio) {}      
   };
 
+  template<typename T>
+  class IsotropicStiffnessConstant<1,T> : public Rank4VoigtConstant<1,T>
+  /******************************************************************************/
+  {
+    public:
+      IsotropicStiffnessConstant(const Teuchos::ParameterList& aParams)
+      {
+          typedef Plato::Scalar RealT;
+          T E = Plato::ParseTools::getParam<RealT>(aParams, "Youngs Modulus"); /*throw if not found*/
+          T v = Plato::ParseTools::getParam<RealT>(aParams, "Poissons Ratio"); /*throw if not found*/
+          T c = 1.0/((1.0+v)*(1.0-2.0*v));
+
+          this->c0[0][0] = E*c*(1.0-v);
+      }
+
+      KOKKOS_FUNCTION
+      IsotropicStiffnessConstant(const T& aYoungsModulus, const T& aPoissonsRatio) :
+            Rank4VoigtConstant<1,T>(aYoungsModulus, aPoissonsRatio) 
+      {
+          T c = 1.0/((1.0+aPoissonsRatio)*(1.0-2.0*aPoissonsRatio));
+          this->c0[0][0] = aYoungsModulus*c*(1.0-aPoissonsRatio);
+      }
+  };
+
+  template<typename T>
+  class IsotropicStiffnessConstant<2,T> : public Rank4VoigtConstant<2,T>
+  /******************************************************************************/
+  {
+    public:
+      IsotropicStiffnessConstant(const Teuchos::ParameterList& aParams)
+      {
+          typedef Plato::Scalar RealT;
+          T E = Plato::ParseTools::getParam<RealT>(aParams, "Youngs Modulus"); /*throw if not found*/
+          T v = Plato::ParseTools::getParam<RealT>(aParams, "Poissons Ratio"); /*throw if not found*/
+
+          T c = 1.0/((1.0+v)*(1.0-2.0*v));
+
+          T c00 = E*c*(1.0-v), c01 = E*c*v, c22 = 1.0/2.0*E*c*(1.0-2.0*v);
+
+          this->c0[0][0] = c00; this->c0[0][1] = c01;
+          this->c0[1][0] = c01; this->c0[1][1] = c00;
+          this->c0[2][2] = c22;
+      }
+
+      KOKKOS_FUNCTION
+      IsotropicStiffnessConstant(const T& aYoungsModulus, const T& aPoissonsRatio) :
+            Rank4VoigtConstant<2,T>(aYoungsModulus, aPoissonsRatio) 
+      {
+          T c = 1.0/((1.0+aPoissonsRatio)*(1.0-2.0*aPoissonsRatio));
+
+          T c00 = aYoungsModulus*c*(1.0-aPoissonsRatio);
+          T c01 = aYoungsModulus*c*aPoissonsRatio;
+          T c22 = 1.0/2.0*aYoungsModulus*c*(1.0-2.0*aPoissonsRatio);
+
+          this->c0[0][0] = c00; this->c0[0][1] = c01;
+          this->c0[1][0] = c01; this->c0[1][1] = c00;
+          this->c0[2][2] = c22;
+      }
+  };
+
+  template<typename T>
+  class IsotropicStiffnessConstant<3,T> : public Rank4VoigtConstant<3,T>
+  /******************************************************************************/
+  {
+    public:
+      IsotropicStiffnessConstant(const Teuchos::ParameterList& aParams)
+      {
+          typedef Plato::Scalar RealT;
+          T E = Plato::ParseTools::getParam<RealT>(aParams, "Youngs Modulus"); /*throw if not found*/
+          T v = Plato::ParseTools::getParam<RealT>(aParams, "Poissons Ratio"); /*throw if not found*/
+
+          T c = 1.0/((1.0+v)*(1.0-2.0*v));
+
+          T c00 = E*c*(1.0-v), c01 = E*c*v, c33 = 1.0/2.0*E*c*(1.0-2.0*v);
+
+          this->c0[0][0] = c00; this->c0[0][1] = c01; this->c0[0][2] = c01;
+          this->c0[1][0] = c01; this->c0[1][1] = c00; this->c0[1][2] = c01;
+          this->c0[2][0] = c01; this->c0[2][1] = c01; this->c0[2][2] = c00;
+          this->c0[3][3] = c33; this->c0[4][4] = c33; this->c0[5][5] = c33;
+      }
+
+      KOKKOS_FUNCTION
+      IsotropicStiffnessConstant(const T& aYoungsModulus, const T& aPoissonsRatio) :
+            Rank4VoigtConstant<3,T>(aYoungsModulus, aPoissonsRatio) 
+      {
+          T c = 1.0/((1.0+aPoissonsRatio)*(1.0-2.0*aPoissonsRatio));
+
+          T c00 = aYoungsModulus*c*(1.0-aPoissonsRatio);
+          T c01 = aYoungsModulus*c*aPoissonsRatio;
+          T c33 = 1.0/2.0*aYoungsModulus*c*(1.0-2.0*aPoissonsRatio);
+
+          this->c0[0][0] = c00; this->c0[0][1] = c01; this->c0[0][2] = c01;
+          this->c0[1][0] = c01; this->c0[1][1] = c00; this->c0[1][2] = c01;
+          this->c0[2][0] = c01; this->c0[2][1] = c01; this->c0[2][2] = c00;
+          this->c0[3][3] = c33; this->c0[4][4] = c33; this->c0[5][5] = c33;
+      }
+  };
 
   /******************************************************************************/
   /*!
@@ -346,6 +546,7 @@ namespace Plato {
       std::map<std::string, Plato::Rank4VoigtFunctor<SpatialDim>> mRank4VoigtFunctorsMap;
 
       Plato::MaterialModelType mType;
+      std::string mExpression;
 
     public:
 
@@ -359,7 +560,8 @@ namespace Plato {
        * \param [in] ParameterList with optional "Temperature Dependent" bool Parameter
        * unit test: PlatoMaterialModel_MaterialModel
       **********************************************************************************/
-      MaterialModel(const Teuchos::ParameterList& paramList) {
+      MaterialModel(const Teuchos::ParameterList& paramList) 
+      {
           this->mType = Plato::MaterialModelType::Linear;
           if (paramList.isType<bool>("Temperature Dependent"))
           {
@@ -367,14 +569,40 @@ namespace Plato {
                   this->mType = Plato::MaterialModelType::Nonlinear;
               }
           }
+          if (paramList.isSublist("Elastic Stiffness Expression")) 
+          {
+              this->mType = Plato::MaterialModelType::Expression;
+              auto tCustomElasticSubList = paramList.sublist("Elastic Stiffness Expression");
+              if(tCustomElasticSubList.isType<double>("E0"))
+              {          
+                  this->setScalarConstant("E0", tCustomElasticSubList.get<double>("E0"));
+              }
+              if(tCustomElasticSubList.isType<std::string>("Expression"))
+              {          
+                  this->expression(tCustomElasticSubList.get<std::string>("Expression"));
+              }
+              if(tCustomElasticSubList.isType<double>("Poissons Ratio"))
+              {          
+                  this->setScalarConstant("Poissons Ratio", tCustomElasticSubList.get<double>("Poissons Ratio"));
+              }
+              if(tCustomElasticSubList.isType<double>("Density"))
+              {          
+                  this->setScalarConstant("Density", tCustomElasticSubList.get<double>("Density"));
+              }
+          }
       }
 
       Plato::MaterialModelType type() const { return this->mType; }
+      std::string expression() const { return this->mExpression; }
+      void expression(const std::string aString) { this->mExpression = aString; }
 
       // getters
       //
 
       // scalar constant
+      bool scalarConstantExists(std::string aConstantName)
+      { return mScalarConstantsMap.count(aConstantName) == 1 ? true : false; }
+
       Plato::Scalar getScalarConstant(std::string aConstantName)
       { return mScalarConstantsMap[aConstantName]; }
 
@@ -397,6 +625,7 @@ namespace Plato {
       // Rank4Voigt functor
       Plato::Rank4VoigtFunctor<SpatialDim> getRank4VoigtFunctor(std::string aFunctorName)
       { return mRank4VoigtFunctorsMap[aFunctorName]; }
+
 
 
       // setters

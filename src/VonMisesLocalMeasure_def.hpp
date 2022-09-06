@@ -55,9 +55,10 @@ namespace Plato
     void
     VonMisesLocalMeasure<EvaluationType>::
     operator()(
-        const Plato::ScalarMultiVectorT<StateT> & aStateWS,
-        const Plato::ScalarArray3DT<ConfigT>    & aConfigWS,
-              Plato::ScalarVectorT<ResultT>     & aResultWS
+        const Plato::ScalarMultiVectorT<StateT>   & aStateWS,
+        const Plato::ScalarMultiVectorT<ControlT> & aControlWS,
+        const Plato::ScalarArray3DT<ConfigT>      & aConfigWS,
+              Plato::ScalarVectorT<ResultT>       & aResultWS
     )
     {
         using StrainT = typename Plato::fad_type_t<ElementType, StateT, ConfigT>;
