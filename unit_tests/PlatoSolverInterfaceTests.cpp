@@ -195,8 +195,8 @@ test_elastic_problem_solution(const Plato::Mesh& aMesh, const std::string& aSolv
     return tStateSolutionHost;
 }
 
-/// Exact solution for the problem defined in solve test_elastic_problem_solution.
-/// The problem has a solution that is given by:
+/// Exact solution for the problem defined in test_elastic_problem_solution.
+/// The solution is given by:
 /// \f$u = \frac{(\nu^2 - 1)}{E} P x \f$
 /// \f$v = \frac{\nu (1 + \nu)}{E} P y \f$
 Plato::Scalar analytic_elastic_2d_solution(const ElasticProblemParameters& aElasticParams, 
