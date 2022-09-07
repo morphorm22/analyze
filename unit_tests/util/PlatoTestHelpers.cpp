@@ -1,14 +1,15 @@
 #include <PlatoTestHelpers.hpp>
 
-#include <BamG.hpp>
 
 #include <AnalyzeMacros.hpp>
 
 namespace Plato {
 namespace TestHelpers {
 
-Plato::Mesh get_box_mesh(std::string aMeshType, Plato::OrdinalType aMeshIntervals,
-                       std::string aFileName) {
+auto get_box_mesh_with_spec(
+    const std::string& aMeshType, 
+    Plato::OrdinalType aMeshIntervals,
+    const std::string& aFileName) -> std::tuple<Plato::Mesh, BamG::MeshSpec>{
   BamG::MeshSpec tSpec;
   tSpec.meshType = aMeshType;
   tSpec.fileName = aFileName;
@@ -18,15 +19,20 @@ Plato::Mesh get_box_mesh(std::string aMeshType, Plato::OrdinalType aMeshInterval
 
   BamG::generate(tSpec);
 
-  return Plato::MeshFactory::create(tSpec.fileName);
+  return {Plato::MeshFactory::create(tSpec.fileName), tSpec};
+}
+
+Plato::Mesh get_box_mesh(std::string aMeshType, Plato::OrdinalType aMeshIntervals,
+                         std::string aFileName) {
+    return std::get<0>(get_box_mesh_with_spec(aMeshType, aMeshIntervals, aFileName));
 }
 
 Plato::Mesh get_box_mesh(std::string aMeshType, Plato::Scalar aMeshWidthX,
-                       Plato::OrdinalType aMeshIntervalsX,
-                       Plato::Scalar aMeshWidthY,
-                       Plato::OrdinalType aMeshIntervalsY,
-                       Plato::Scalar aMeshWidthZ,
-                       Plato::OrdinalType aMeshIntervalsZ) {
+                         Plato::OrdinalType aMeshIntervalsX,
+                         Plato::Scalar aMeshWidthY,
+                         Plato::OrdinalType aMeshIntervalsY,
+                         Plato::Scalar aMeshWidthZ,
+                         Plato::OrdinalType aMeshIntervalsZ) {
   BamG::MeshSpec tSpec;
   tSpec.meshType = aMeshType;
   tSpec.fileName = "BamG_unit_test_mesh.exo";

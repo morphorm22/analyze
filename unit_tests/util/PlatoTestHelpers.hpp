@@ -4,6 +4,8 @@
 #include "PlatoMesh.hpp"
 #include "PlatoStaticsTypes.hpp"
 
+#include <BamG.hpp>
+
 #include <Teuchos_RCP.hpp>
 
 #include <string>
@@ -24,6 +26,16 @@ typename ViewType::HostMirror get(ViewType aView) {
   Kokkos::deep_copy(tView, aView);
   return tView;
 }
+
+/******************************************************************************/
+/*! Return a box (cube) along with the spec used to generate it.
+/*! @sa get_box_mesh
+*/
+auto get_box_mesh_with_spec(
+    const std::string& aMeshType, 
+    Plato::OrdinalType aMeshIntervals,
+    const std::string& aFileName = "BamG_unit_test_mesh.exo") 
+    -> std::tuple<Plato::Mesh, BamG::MeshSpec>;
 
 /******************************************************************************/
 /*! Return a box (cube) mesh.
