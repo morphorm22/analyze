@@ -40,7 +40,7 @@ Plato::Array<2,ScalarType> argMaxOffDiag(
     {
         for(Plato::OrdinalType i=0; i<N; i++)
         {
-            ScalarType s2 = abs(aMatrix(i,j));
+            ScalarType s2 = std::abs(aMatrix(i,j));
             if(i != j && s2 > s)
             {
                 p = i;
