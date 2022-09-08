@@ -220,28 +220,39 @@ void tachoSolver<SX>::setSolverParameters(const int *solverParams) {
 
 template class tachoSolver<double>;
 
-tachoSolver<Plato::Scalar> constructSolverFromParameterList(const Teuchos::ParameterList &aSolverParams)
+tachoSolver<Plato::Scalar> constructSolverFromParameterList(const Teuchos::ParameterList &aSolverParams, Plato::LinearSystemType aType)
 {
-  std::string factorizationType("Cholesky");
-  if(aSolverParams.isType<std::string>("Factorization Type"))
-    factorizationType = aSolverParams.get<std::string>("Factorization Type");
-
   int solutionMethod = 0;
-  if (factorizationType == "Cholesky")
-  {
-    solutionMethod = 1;
+
+  switch (aType) {
+    case Plato::LinearSystemType::SYMMETRIC_POSITIVE_DEFINITE:
+        solutionMethod = 1;
+        break;
+    case Plato::LinearSystemType::SYMMETRIC_INDEFINITE:
+    case Plato::LinearSystemType::SYMMETRIC_PATTERN:
+        solutionMethod = 3;
+        break;
   }
-  else if (factorizationType == "LDLT")
-  {
-    solutionMethod = 2;
-  }
-  else if (factorizationType == "SymLU")
-  {
-    solutionMethod = 3;
-  }
-  else {
-    ANALYZE_THROWERR("Unknown factorization type " + factorizationType + "for Tacho solver." +
-                     "Supported types are: Cholesky (symmetric positive definite), LDLD (symmetric indefinite), and SymLU (symmetric sparsity pattern but non-symmetric entries).");
+
+  if(aSolverParams.isType<std::string>("Factorization Type")) {
+    std::string factorizationType = aSolverParams.get<std::string>("Factorization Type");
+
+    if (factorizationType == "Cholesky")
+    {
+        solutionMethod = 1;
+    }
+    else if (factorizationType == "LDLT")
+    {
+        solutionMethod = 2;
+    }
+    else if (factorizationType == "SymLU")
+    {
+        solutionMethod = 3;
+    }
+    else {
+        ANALYZE_THROWERR("Unknown factorization type " + factorizationType + "for Tacho solver." +
+                        "Supported types are: 'Cholesky' (symmetric positive definite), 'LDLT' (symmetric indefinite), and 'SymLU' (symmetric sparsity pattern but non-symmetric entries).");
+    }
   }
 
   std::vector<int> tachoParams;
@@ -252,9 +263,10 @@ tachoSolver<Plato::Scalar> constructSolverFromParameterList(const Teuchos::Param
 }
 
 TachoLinearSolver::TachoLinearSolver(const Teuchos::ParameterList &aSolverParams,
+                                     Plato::LinearSystemType aType,
                                      std::shared_ptr<Plato::MultipointConstraints> aMPCs) :
                                      Plato::AbstractSolver(aMPCs),
-                                     mSolver(constructSolverFromParameterList(aSolverParams))
+                                     mSolver(constructSolverFromParameterList(aSolverParams, aType))
 {
 }
 

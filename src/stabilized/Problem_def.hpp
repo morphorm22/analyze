@@ -12,6 +12,7 @@
 
 #include "Solutions.hpp"
 #include "AnalyzeOutput.hpp"
+#include "alg/PlatoAbstractSolver.hpp"
 #include "stabilized/VectorFunction.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "PlatoStaticsTypes.hpp"
@@ -67,7 +68,7 @@ namespace Stabilized
     {
         this->initialize(aInputParams);
 
-        Plato::SolverFactory tSolverFactory(aInputParams.sublist("Linear Solver"));
+        Plato::SolverFactory tSolverFactory(aInputParams.sublist("Linear Solver"), LinearSystemType::SYMMETRIC_INDEFINITE);
         mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode);
     }
 

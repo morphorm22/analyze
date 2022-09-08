@@ -11,12 +11,11 @@ namespace Plato {
 **********************************************************************************/
 class SolverFactory
 {
-    const Teuchos::ParameterList& mSolverParams;
-
   public:
     SolverFactory(
-        Teuchos::ParameterList& aSolverParams
-    ) : mSolverParams(aSolverParams) { }
+        Teuchos::ParameterList& aSolverParams,
+        LinearSystemType type = LinearSystemType::SYMMETRIC_POSITIVE_DEFINITE
+    ) : mSolverParams(aSolverParams), mType(type) { }
 
     rcp<AbstractSolver>
     create(
@@ -25,6 +24,9 @@ class SolverFactory
         Plato::OrdinalType                              aDofsPerNode,
         std::shared_ptr<Plato::MultipointConstraints>   aMPCs = nullptr
     );
+private:
+    const Teuchos::ParameterList& mSolverParams;
+    const LinearSystemType mType;
 };
 
 } // end Plato namespace

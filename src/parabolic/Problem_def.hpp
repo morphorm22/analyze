@@ -9,6 +9,7 @@
 #include "AnalyzeOutput.hpp"
 #include "AnalyzeMacros.hpp"
 #include "ApplyConstraints.hpp"
+#include "alg/PlatoAbstractSolver.hpp"
 #include "elliptic/ScalarFunctionBaseFactory.hpp"
 #include "parabolic/ScalarFunctionBaseFactory.hpp"
 #include "geometric/ScalarFunctionBaseFactory.hpp"
@@ -131,7 +132,7 @@ namespace Parabolic
                 }
             }
 
-            Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
+            Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"), LinearSystemType::SYMMETRIC_INDEFINITE);
             mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode);
 
         }

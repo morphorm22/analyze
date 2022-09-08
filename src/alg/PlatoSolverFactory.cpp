@@ -80,7 +80,7 @@ SolverFactory::create(
   else if(tLowerSolverStack == "tacho")
   {
 #ifdef PLATO_TACHO
-      return std::make_shared<tacho::TachoLinearSolver>(mSolverParams, aMPCs);
+      return std::make_shared<tacho::TachoLinearSolver>(mSolverParams, mType, aMPCs);
 #else
       ANALYZE_THROWERR("Not compiled with Tacho");
 #endif

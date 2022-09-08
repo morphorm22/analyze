@@ -9,6 +9,12 @@ namespace Plato {
 template <typename ClassT>
 using rcp = std::shared_ptr<ClassT>;
 
+enum class LinearSystemType {
+    SYMMETRIC_POSITIVE_DEFINITE,
+    SYMMETRIC_INDEFINITE,
+    SYMMETRIC_PATTERN
+};
+
 /******************************************************************************//**
  * \brief Abstract solver interface
 

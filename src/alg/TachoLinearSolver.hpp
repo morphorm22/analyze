@@ -98,6 +98,7 @@ class TachoLinearSolver : public Plato::AbstractSolver
 {
 public:
     TachoLinearSolver(const Teuchos::ParameterList &aSolverParams,
+                      Plato::LinearSystemType aType,
                       std::shared_ptr<Plato::MultipointConstraints> aMPCs = nullptr);
 
     void innerSolve(
