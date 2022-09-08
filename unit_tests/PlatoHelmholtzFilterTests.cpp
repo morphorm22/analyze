@@ -1,4 +1,4 @@
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
@@ -23,38 +23,6 @@
 
 #include <memory>
 
-template <typename DataType>
-void print_view(const Plato::ScalarVectorT<DataType> & aView)
-{
-    auto tView_host = Kokkos::create_mirror(aView);
-    Kokkos::deep_copy(tView_host, aView);
-    std::cout << '\n';
-    for (unsigned int i = 0; i < aView.extent(0); ++i)
-    {
-        std::cout << tView_host(i) << '\n';
-    }
-}
-
-// print full matrix entries
-void PrintFullMatrix(const Teuchos::RCP<Plato::CrsMatrixType> & aInMatrix)
-{
-    auto tNumRows = aInMatrix->numRows();
-    auto tNumCols = aInMatrix->numCols();
-
-    auto tFullMat = ::PlatoUtestHelpers::toFull(aInMatrix);
-
-    printf("\n Full matrix entries: \n");
-    for (auto iRow = 0; iRow < tNumRows; iRow++)
-    {
-        for (auto iCol = 0; iCol < tNumCols; iCol++)
-        {
-            printf("%f ",tFullMat[iRow][iCol]);
-        }
-        printf("\n");
-    
-    }
-}
-
 /******************************************************************************/
 /*!
   \brief test parsing of length scale parameter
@@ -66,7 +34,7 @@ TEUCHOS_UNIT_TEST(HelmholtzFilterTests, LengthScaleKeywordError)
   // create test mesh
   //
   constexpr int meshWidth=20;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("tri3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("tri3", meshWidth);
 
   using PhysicsType = ::Plato::HelmholtzFilter<Plato::Tri3>;
 
@@ -108,7 +76,7 @@ TEUCHOS_UNIT_TEST(HelmholtzFilterTests, HelmholtzProblemError)
   // create test mesh
   //
   constexpr int meshWidth=4;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
   
   // create mesh based density
   //
@@ -175,7 +143,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, Helmholtz2DUniformFieldTest )
   // create test mesh
   //
   constexpr int meshWidth=8;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::HelmholtzFilter<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -286,7 +254,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, HelmholtzUniformFieldTest_Tet4 )
   // create test mesh
   //
   constexpr int meshWidth=4;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("Tet4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("Tet4", meshWidth);
 
   using PhysicsType = ::Plato::HelmholtzFilter<Plato::Tet4>;
   using ElementType = typename PhysicsType::ElementType;
@@ -397,7 +365,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, HelmholtzUniformFieldTest_Hex8 )
   // create test mesh
   //
   constexpr int meshWidth=4;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("Hex8", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("Hex8", meshWidth);
 
   using PhysicsType = ::Plato::HelmholtzFilter<Plato::Hex8>;
   using ElementType = typename PhysicsType::ElementType;
@@ -508,7 +476,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, HelmholtzUniformFieldTest_Tet10 )
   // create test mesh
   //
   constexpr int meshWidth=4;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("Tet10", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("Tet10", meshWidth);
 
   using PhysicsType = ::Plato::HelmholtzFilter<Plato::Tet10>;
   using ElementType = typename PhysicsType::ElementType;
@@ -619,7 +587,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, HelmholtzUniformFieldTest_Hex27 )
   // create test mesh
   //
   constexpr int meshWidth=4;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("Hex27", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("Hex27", meshWidth);
 
   using PhysicsType = ::Plato::HelmholtzFilter<Plato::Hex27>;
   using ElementType = typename PhysicsType::ElementType;

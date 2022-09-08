@@ -1,4 +1,4 @@
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 #include "PlatoStaticsTypes.hpp"
 
 #include "Tet4.hpp"

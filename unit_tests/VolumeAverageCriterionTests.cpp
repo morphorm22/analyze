@@ -1,11 +1,6 @@
-/*
- *  VolumeAverageCriterionTests.cpp
- *
- *  Created on: July 8, 2021
- */
-
+#include "util/PlatoTestHelpers.hpp"
 #include "Teuchos_UnitTestHarness.hpp"
-#include "PlatoTestHelpers.hpp"
+#include <Teuchos_XMLParameterListHelpers.hpp>
 #include "Analyze_Diagnostics.hpp"
 #include "elliptic/Problem.hpp"
 
@@ -21,7 +16,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressAxial_
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -147,7 +142,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressShear_
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -280,7 +275,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressGradie
     const Plato::OrdinalType tNumElemX = 5;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -379,7 +374,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyAxial_3
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -504,7 +499,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyShear_3
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -637,7 +632,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyGradien
     const Plato::OrdinalType tNumElemX = 5;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(

@@ -61,6 +61,7 @@
 #include "PlatoUtilities.hpp"
 #include "PlatoMathTypes.hpp"
 #include "Plato_MeshMapUtils.hpp"
+#include "Plato_Exceptions.hpp"
 
 namespace Plato {
 namespace Geometry {
