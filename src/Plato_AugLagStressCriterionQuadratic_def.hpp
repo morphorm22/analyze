@@ -241,7 +241,7 @@ namespace Plato
 
         // ****** COMPUTE LOCAL MEASURE VALUES AND STORE ON DEVICE ******
         Plato::ScalarVectorT<ResultT> tLocalMeasureValue("local measure value", tNumCells);
-        (*mLocalMeasureEvaluationType)(aStateWS, aConfigWS, tLocalMeasureValue);
+        (*mLocalMeasureEvaluationType)(aStateWS, aControlWS, aConfigWS, tLocalMeasureValue);
         
         Plato::ScalarVectorT<ResultT> tOutputPenalizedLocalMeasure("output penalized local measure", tNumCells);
 
@@ -306,7 +306,7 @@ namespace Plato
 
         // ****** COMPUTE LOCAL MEASURE VALUES AND STORE ON DEVICE ******
         Plato::ScalarVector tLocalMeasureValue("local measure value", tNumCells);
-        (*mLocalMeasurePODType)(aStateWS, aConfigWS, tLocalMeasureValue);
+        (*mLocalMeasurePODType)(aStateWS, aControlWS, aConfigWS, tLocalMeasureValue);
         
         // ****** TRANSFER MEMBER ARRAYS TO DEVICE ******
         auto tLocalMeasureValueLimit = mLocalMeasureLimit;

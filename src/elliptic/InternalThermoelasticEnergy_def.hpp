@@ -8,6 +8,7 @@
 #include "TMKinematics.hpp"
 #include "ScalarProduct.hpp"
 #include "GradientMatrix.hpp"
+#include "TMKineticsFactory.hpp"
 #include "InterpolateFromNodal.hpp"
 
 namespace Plato
@@ -78,7 +79,9 @@ namespace Elliptic
 
       Plato::ComputeGradientMatrix<ElementType> computeGradient;
       Plato::TMKinematics<ElementType>          kinematics;
-      Plato::TMKinetics<ElementType>            kinetics(mMaterialModel);
+
+      Plato::TMKineticsFactory< EvaluationType, ElementType > tTMKineticsFactory;
+      auto tTMKinetics = tTMKineticsFactory.create(mMaterialModel);
 
       Plato::ScalarProduct<mNumVoigtTerms>      mechanicalScalarProduct;
       Plato::ScalarProduct<mNumSpatialDims>     thermalScalarProduct;
@@ -89,45 +92,52 @@ namespace Elliptic
       auto tCubWeights = ElementType::getCubWeights();
       auto tNumPoints = tCubWeights.size();
 
+      Plato::ScalarArray3DT<ResultScalarType> tStress("stress", tNumCells, tNumPoints, mNumVoigtTerms);
+      Plato::ScalarArray3DT<ResultScalarType> tFlux  ("flux",   tNumCells, tNumPoints, mNumSpatialDims);
+      Plato::ScalarArray3DT<GradScalarType>   tStrain("strain", tNumCells, tNumPoints, mNumVoigtTerms);
+      Plato::ScalarArray3DT<GradScalarType>   tTGrad ("tgrad",  tNumCells, tNumPoints, mNumSpatialDims);
+
+      Plato::ScalarArray4DT<ConfigScalarType> tGradient("gradient", tNumCells, tNumPoints, mNumNodesPerCell, mNumSpatialDims);
+
+      Plato::ScalarMultiVectorT<ConfigScalarType> tVolume("volume", tNumCells, tNumPoints);
+      Plato::ScalarMultiVectorT<StateScalarType> tTemperature("temperature", tNumCells, tNumPoints);
+
       auto& applyStressWeighting = mApplyStressWeighting;
       auto& applyFluxWeighting   = mApplyFluxWeighting;
       Kokkos::parallel_for("compute internal energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
       KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-          ConfigScalarType tVolume(0.0);
-
-          Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, ConfigScalarType> tGradient;
-
-          Plato::Array<mNumVoigtTerms,  GradScalarType>   tStrain(0.0);
-          Plato::Array<mNumSpatialDims, GradScalarType>   tTGrad (0.0);
-          Plato::Array<mNumVoigtTerms,  ResultScalarType> tStress(0.0);
-          Plato::Array<mNumSpatialDims, ResultScalarType> tFlux  (0.0);
-
           auto tCubPoint = tCubPoints(iGpOrdinal);
 
-          computeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
+          computeGradient(iCellOrdinal, iGpOrdinal, tCubPoint, aConfig, tGradient, tVolume);
 
-          tVolume *= tCubWeights(iGpOrdinal);
+          tVolume(iCellOrdinal, iGpOrdinal) *= tCubWeights(iGpOrdinal);
 
           // compute strain and temperature gradient
           //
-          kinematics(iCellOrdinal, tStrain, tTGrad, aState, tGradient);
+          kinematics(iCellOrdinal, iGpOrdinal, tStrain, tTGrad, aState, tGradient);
 
-          // compute stress and thermal flux
-          //
           auto tBasisValues = ElementType::basisValues(tCubPoint);
-          StateScalarType tTemperature = interpolateFromNodal(iCellOrdinal, tBasisValues, aState);
-          kinetics(tStress, tFlux, tStrain, tTGrad, tTemperature);
+          tTemperature(iCellOrdinal, iGpOrdinal) = interpolateFromNodal(iCellOrdinal, tBasisValues, aState);
+      });
 
+      // compute element state
+      (*tTMKinetics)(tStress, tFlux, tStrain, tTGrad, tTemperature, aControl);
+
+      Kokkos::parallel_for("compute product", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      {
           // apply weighting
           //
-          applyStressWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
-          applyFluxWeighting  (iCellOrdinal, aControl, tBasisValues, tFlux);
+          auto tCubPoint = tCubPoints(iGpOrdinal);
+          auto tBasisValues = ElementType::basisValues(tCubPoint);
+          applyStressWeighting(iCellOrdinal, iGpOrdinal, aControl, tBasisValues, tStress);
+          applyFluxWeighting  (iCellOrdinal, iGpOrdinal, aControl, tBasisValues, tFlux);
 
           // compute element internal energy
           //
-          mechanicalScalarProduct(iCellOrdinal, aResult, tStress, tStrain, tVolume);
-          thermalScalarProduct   (iCellOrdinal, aResult, tFlux,   tTGrad,  tVolume);
+          mechanicalScalarProduct(iCellOrdinal, iGpOrdinal, aResult, tStress, tStrain, tVolume);
+          thermalScalarProduct   (iCellOrdinal, iGpOrdinal, aResult, tFlux,   tTGrad,  tVolume);
 
         });
     }

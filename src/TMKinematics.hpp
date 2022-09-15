@@ -78,6 +78,63 @@ public:
             }
         }
     }
+
+    template<typename StrainScalarType, typename StateScalarType, typename GradientScalarType>
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+        Plato::OrdinalType                         aCellOrdinal,
+        Plato::OrdinalType                         aGpOrdinal,
+        Plato::ScalarArray3DT<StrainScalarType>    aStrain,
+        Plato::ScalarArray3DT<StrainScalarType>    aTempGrad,
+        Plato::ScalarMultiVectorT<StateScalarType> aState,
+        Plato::ScalarArray4DT<GradientScalarType>  aGradient
+    ) const
+    {
+
+        // compute strain
+        //
+        Plato::OrdinalType tVoigtTerm = 0;
+        for(Plato::OrdinalType tDofIndex = 0; tDofIndex < mNumSpatialDims; tDofIndex++)
+        {
+            aStrain(aCellOrdinal, aGpOrdinal, tVoigtTerm) = 0.0;
+            for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
+            {
+                Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumDofsPerNode + tDofIndex;
+                aStrain(aCellOrdinal, aGpOrdinal, tVoigtTerm) +=
+                    aState(aCellOrdinal, tLocalOrdinal) * aGradient(aCellOrdinal, aGpOrdinal, tNodeIndex, tDofIndex);
+            }
+            tVoigtTerm++;
+        }
+        for(Plato::OrdinalType tDofIndexJ = mNumSpatialDims - 1; tDofIndexJ >= 1; tDofIndexJ--)
+        {
+            for(Plato::OrdinalType tDofIndexI = tDofIndexJ - 1; tDofIndexI >= 0; tDofIndexI--)
+            {
+                for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
+                {
+                    Plato::OrdinalType tLocalOrdinalI = tNodeIndex * mNumDofsPerNode + tDofIndexI;
+                    Plato::OrdinalType tLocalOrdinalJ = tNodeIndex * mNumDofsPerNode + tDofIndexJ;
+                    aStrain(aCellOrdinal, aGpOrdinal, tVoigtTerm) +=
+                        (aState(aCellOrdinal, tLocalOrdinalJ) * aGradient(aCellOrdinal, aGpOrdinal, tNodeIndex, tDofIndexI)
+                       + aState(aCellOrdinal, tLocalOrdinalI) * aGradient(aCellOrdinal, aGpOrdinal, tNodeIndex, tDofIndexJ));
+                }
+                tVoigtTerm++;
+            }
+        }
+
+        // compute tgrad
+        //
+        Plato::OrdinalType tDofOffset = mNumSpatialDims;
+        for(Plato::OrdinalType tDofIndex = 0; tDofIndex < mNumSpatialDims; tDofIndex++)
+        {
+            aTempGrad(aCellOrdinal, aGpOrdinal, tDofIndex) = 0.0;
+            for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
+            {
+                Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumDofsPerNode + tDofOffset;
+                aTempGrad(aCellOrdinal, aGpOrdinal, tDofIndex) +=
+                    aState(aCellOrdinal, tLocalOrdinal) * aGradient(aCellOrdinal, aGpOrdinal, tNodeIndex, tDofIndex);
+            }
+        }
+    }
 }; // class TMKinematics
 } // namespace Plato
 

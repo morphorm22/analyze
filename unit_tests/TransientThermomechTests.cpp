@@ -33,6 +33,8 @@
 #include "ApplyConstraints.hpp"
 #include "Thermomechanics.hpp"
 #include "ComputedField.hpp"
+#include "TMKineticsFactory.hpp"
+#include "Mechanics.hpp"
 
 #include <fenv.h>
 
@@ -62,11 +64,8 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
   //
   int tNumDofs = tNumNodes*dofsPerNode;
   Plato::ScalarVector state("state", tNumDofs);
-  Plato::ScalarVector z("control", tNumDofs);
   Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), KOKKOS_LAMBDA(const int & aNodeOrdinal)
   {
-     z(aNodeOrdinal) = 1.0;
-
      state(aNodeOrdinal*dofsPerNode+0) = (1e-7)*aNodeOrdinal;
      state(aNodeOrdinal*dofsPerNode+1) = (2e-7)*aNodeOrdinal;
      state(aNodeOrdinal*dofsPerNode+2) = (3e-7)*aNodeOrdinal;
@@ -76,17 +75,12 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
 
   Plato::WorksetBase<ElementType> worksetBase(tMesh);
 
-  Plato::ScalarArray3DT<Plato::Scalar>     gradient("gradient",numCells, nodesPerCell, numSpaceDims);
-  Plato::ScalarMultiVectorT<Plato::Scalar> tStrain("strain", numCells, numVoigtTerms);
-  Plato::ScalarMultiVectorT<Plato::Scalar> tCellGrad("temperature gradient", numCells, numSpaceDims);
-  Plato::ScalarMultiVectorT<Plato::Scalar> tStress("stress", numCells, numVoigtTerms);
-  Plato::ScalarMultiVectorT<Plato::Scalar> tCellFlux("thermal flux", numCells, numSpaceDims);
   Plato::ScalarMultiVectorT<Plato::Scalar> result("result", numCells, dofsPerCell);
-  Plato::ScalarArray3DT<Plato::Scalar>     configWS("config workset",numCells, nodesPerCell, numSpaceDims);
-  Plato::ScalarVectorT<Plato::Scalar>      tCellTemperature("Gauss point temperature", numCells);
-  Plato::ScalarVectorT<Plato::Scalar>      tCellThermalContent("Gauss point heat content at step k", numCells);
   Plato::ScalarMultiVectorT<Plato::Scalar> massResult("mass", numCells, dofsPerCell);
+  Plato::ScalarArray3DT<Plato::Scalar>     configWS("config workset",numCells, nodesPerCell, numSpaceDims);
   Plato::ScalarMultiVectorT<Plato::Scalar> stateWS("state workset",numCells, dofsPerCell);
+  Plato::ScalarMultiVectorT<Plato::Scalar> controlWS("control", numCells, nodesPerCell);
+  Kokkos::deep_copy(controlWS, 1.0);
 
   worksetBase.worksetConfig(configWS);
 
@@ -124,9 +118,12 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
   Plato::ThermoelasticModelFactory<numSpaceDims> mmfactory(*params);
   auto materialModel = mmfactory.create("Cookie Dough");
 
-  Plato::ComputeGradientMatrix<ElementType> computeGradient;
-  Plato::TMKinematics<ElementType>          kinematics;
-  Plato::TMKinetics<ElementType>            kinetics(materialModel);
+  Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
+  Plato::TMKinematics<ElementType>          tKinematics;
+  using Residual = typename Plato::Elliptic::Evaluation<Plato::ThermomechanicsElement<Plato::Tet4>>::Residual;
+  Plato::TMKineticsFactory< Residual, ElementType > tTMKineticsFactory;
+  auto pkinetics = tTMKineticsFactory.create(materialModel);
+  auto & kinetics = *pkinetics;
 
   Plato::InterpolateFromNodal<ElementType, dofsPerNode, TDofOffset> interpolateFromNodal;
 
@@ -138,75 +135,61 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
 
   Plato::Scalar tTimeStep = 1.0;
 
-  Plato::ScalarVectorT<Plato::Scalar> cellVolume("cell volume",numCells);
-
   auto tCubPoints = ElementType::getCubPoints();
   auto tCubWeights = ElementType::getCubWeights();
   auto numPoints = tCubWeights.size();
 
+  Plato::ScalarArray3DT<Plato::Scalar> tStress("stress", numCells, numPoints, numVoigtTerms);
+  Plato::ScalarArray3DT<Plato::Scalar> tFlux  ("flux",   numCells, numPoints, numSpaceDims);
+  Plato::ScalarArray3DT<Plato::Scalar> tStrain("strain", numCells, numPoints, numVoigtTerms);
+  Plato::ScalarArray3DT<Plato::Scalar> tTGrad ("tgrad",  numCells, numPoints, numSpaceDims);
+
+  Plato::ScalarArray4DT<Plato::Scalar> tGradient("gradient", numCells, numPoints, nodesPerCell, numSpaceDims);
+
+  Plato::ScalarMultiVectorT<Plato::Scalar> tVolume("volume", numCells, numPoints);
+  Plato::ScalarMultiVectorT<Plato::Scalar> tTemperature("temperature", numCells, numPoints);
+  Plato::ScalarMultiVectorT<Plato::Scalar> tThermalContent("thermal content", numCells, numPoints);
+
   Kokkos::parallel_for("flux divergence", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {numCells, numPoints}),
   KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
   {
-    Plato::Scalar tVolume(0.0);
-
-    Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, Plato::Scalar> tGradient;
-
-    Plato::Array<ElementType::mNumVoigtTerms,  Plato::Scalar> tStrain(0.0);
-    Plato::Array<ElementType::mNumSpatialDims, Plato::Scalar> tTGrad (0.0);
-    Plato::Array<ElementType::mNumVoigtTerms,  Plato::Scalar> tStress(0.0);
-    Plato::Array<ElementType::mNumSpatialDims, Plato::Scalar> tFlux  (0.0);
-
     auto tCubPoint = tCubPoints(iGpOrdinal);
     auto basisValues = ElementType::basisValues(tCubPoint);
 
-    computeGradient(iCellOrdinal, tCubPoint, configWS, tGradient, tVolume);
-    tVolume *= tCubWeights(iGpOrdinal);
+    tComputeGradient(iCellOrdinal, iGpOrdinal, tCubPoint, configWS, tGradient, tVolume);
+    tVolume(iCellOrdinal, iGpOrdinal) *= tCubWeights(iGpOrdinal);
 
-    cellVolume(iCellOrdinal) = tVolume;
+    // compute strain and temperature gradient
+    //
+    tKinematics(iCellOrdinal, iGpOrdinal, tStrain, tTGrad, stateWS, tGradient);
 
-    for(Plato::OrdinalType iNode=0; iNode<nodesPerCell; iNode++)
-    {
-      for(Plato::OrdinalType iDim=0; iDim<numSpaceDims; iDim++)
-      {
-        gradient(iCellOrdinal, iNode, iDim) = tGradient(iNode, iDim);
-      }
-    }
+    tTemperature(iCellOrdinal, iGpOrdinal) = interpolateFromNodal(iCellOrdinal, basisValues, stateWS);
+  });
 
-    kinematics(iCellOrdinal, tStrain, tTGrad, stateWS, tGradient);
+  kinetics(tStress, tFlux, tStrain, tTGrad, tTemperature, controlWS);
 
-    for(Plato::OrdinalType iDim=0; iDim<numSpaceDims; iDim++)
-    {
-      tCellGrad(iCellOrdinal, iDim) = tTGrad(iDim);
-    }
+  Kokkos::parallel_for("flux divergence", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {numCells, numPoints}),
+  KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+  {
+    auto tCubPoint = tCubPoints(iGpOrdinal);
+    auto basisValues = ElementType::basisValues(tCubPoint);
+    stressDivergence(iCellOrdinal, iGpOrdinal, result, tStress, tGradient, tVolume, tTimeStep/2.0);
+    fluxDivergence  (iCellOrdinal, iGpOrdinal, result, tFlux,   tGradient, tVolume, tTimeStep/2.0);
 
+    Plato::Scalar tLocalThermalContent(0.0);
+    computeThermalContent(tLocalThermalContent, tTemperature(iCellOrdinal, iGpOrdinal), tTemperature(iCellOrdinal, iGpOrdinal));
+    tThermalContent(iCellOrdinal, iGpOrdinal) = tLocalThermalContent;
 
-    Plato::Scalar tTemperature(0.0);
-    interpolateFromNodal(iCellOrdinal, basisValues, stateWS, tTemperature);
-    tCellTemperature(iCellOrdinal) = tTemperature;
-    kinetics(tStress, tFlux, tStrain, tTGrad, tTemperature);
-    for(Plato::OrdinalType iDim=0; iDim<numSpaceDims; iDim++)
-    {
-      tCellFlux(iCellOrdinal, iDim) = tFlux(iDim);
-    }
-
-    stressDivergence(iCellOrdinal, result, tStress, tGradient, tVolume, tTimeStep/2.0);
-
-    fluxDivergence(iCellOrdinal, result, tFlux, tGradient, tVolume, tTimeStep/2.0);
-
-    Plato::Scalar tThermalContent(0.0);
-    computeThermalContent(tThermalContent, tTemperature, tTemperature);
-    tCellThermalContent(iCellOrdinal) = tThermalContent;
-
-    projectThermalContent(iCellOrdinal, tVolume, basisValues, tThermalContent, massResult);
+    projectThermalContent(iCellOrdinal, tVolume(iCellOrdinal, iGpOrdinal), basisValues, tLocalThermalContent, massResult);
 
   });
 
   // test cell volume
   //
-  auto cellVolume_Host = Kokkos::create_mirror_view( cellVolume );
-  Kokkos::deep_copy( cellVolume_Host, cellVolume );
+  auto tVolume_Host = Kokkos::create_mirror_view( tVolume );
+  Kokkos::deep_copy( tVolume_Host, tVolume );
 
-  std::vector<Plato::Scalar> cellVolume_gold = { 
+  std::vector<Plato::Scalar> tVolume_gold = { 
   0.02083333333333333, 0.02083333333333333, 0.02083333333333333,
   0.02083333333333333, 0.02083333333333333, 0.02083333333333333,
   0.02083333333333333, 0.02083333333333333, 0.02083333333333333,
@@ -215,19 +198,20 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
   0.02083333333333333, 0.02083333333333333, 0.02083333333333333
   };
 
-  int numGoldCells=cellVolume_gold.size();
+  const int iGP = 0; // only one gauss point in this test
+  int numGoldCells=tVolume_gold.size();
   for(int iCell=0; iCell<numGoldCells; iCell++){
-    if(cellVolume_gold[iCell] == 0.0){
-      TEST_ASSERT(fabs(cellVolume_Host(iCell)) < 1e-12);
+    if(tVolume_gold[iCell] == 0.0){
+      TEST_ASSERT(fabs(tVolume_Host(iCell, iGP)) < 1e-12);
     } else {
-      TEST_FLOATING_EQUALITY(cellVolume_Host(iCell), cellVolume_gold[iCell], 1e-13);
+      TEST_FLOATING_EQUALITY(tVolume_Host(iCell, iGP), tVolume_gold[iCell], 1e-13);
     }
   }
 
   // test state values
   //
-  auto tTemperature_Host = Kokkos::create_mirror_view( tCellTemperature );
-  Kokkos::deep_copy( tTemperature_Host, tCellTemperature );
+  auto tTemperature_Host = Kokkos::create_mirror_view( tTemperature );
+  Kokkos::deep_copy( tTemperature_Host, tTemperature );
 
   std::vector<Plato::Scalar> tTemperature_gold = { 
   2.800000000000000e-6, 2.000000000000000e-6, 1.800000000000000e-6,
@@ -239,16 +223,16 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
   numGoldCells=tTemperature_gold.size();
   for(int iCell=0; iCell<numGoldCells; iCell++){
     if(tTemperature_gold[iCell] == 0.0){
-      TEST_ASSERT(fabs(tTemperature_Host(iCell)) < 1e-12);
+      TEST_ASSERT(fabs(tTemperature_Host(iCell, iGP)) < 1e-12);
     } else {
-      TEST_FLOATING_EQUALITY(tTemperature_Host(iCell), tTemperature_gold[iCell], 1e-13);
+      TEST_FLOATING_EQUALITY(tTemperature_Host(iCell, iGP), tTemperature_gold[iCell], 1e-13);
     }
   }
 
   // test thermal content
   //
-  auto tThermalContent_Host = Kokkos::create_mirror_view( tCellThermalContent );
-  Kokkos::deep_copy( tThermalContent_Host, tCellThermalContent );
+  auto tThermalContent_Host = Kokkos::create_mirror_view( tThermalContent );
+  Kokkos::deep_copy( tThermalContent_Host, tThermalContent );
 
   std::vector<Plato::Scalar> tThermalContent_gold = { 
   0.8400000000000000, 0.6000000000000000, 0.5399999999999999,
@@ -260,19 +244,19 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
   numGoldCells=tThermalContent_gold.size();
   for(int iCell=0; iCell<numGoldCells; iCell++){
     if(tThermalContent_gold[iCell] == 0.0){
-      TEST_ASSERT(fabs(tThermalContent_Host(iCell)) < 1e-12);
+      TEST_ASSERT(fabs(tThermalContent_Host(iCell, iGP)) < 1e-12);
     } else {
-      TEST_FLOATING_EQUALITY(tThermalContent_Host(iCell), tThermalContent_gold[iCell], 1e-13);
+      TEST_FLOATING_EQUALITY(tThermalContent_Host(iCell, iGP), tThermalContent_gold[iCell], 1e-13);
     }
   }
 
 
   // test gradient operator
   //
-  auto gradient_Host = Kokkos::create_mirror_view( gradient );
-  Kokkos::deep_copy( gradient_Host, gradient );
+  auto tGradient_Host = Kokkos::create_mirror_view( tGradient );
+  Kokkos::deep_copy( tGradient_Host, tGradient );
 
-  std::vector<std::vector<std::vector<Plato::Scalar>>> gradient_gold = { 
+  std::vector<std::vector<std::vector<Plato::Scalar>>> tGradient_gold = { 
     {{0, -2.0, 0}, {2.0, 0, -2.0}, {-2.0, 2.0, 0}, {0, 0, 2.0}},
     {{0, -2.0, 0}, {0, 2.0, -2.0}, {-2.0, 0, 2.0}, {2.0, 0, 0}},
     {{0, 0, -2.0}, {-2.0, 2.0, 0}, {0, -2.0, 2.0}, {2.0, 0, 0}},
@@ -281,14 +265,14 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
     {{-2.0, 0, 0}, {2.0, -2.0, 0}, {0, 2.0, -2.0}, {0, 0, 2.0}}
   };
 
-  numGoldCells=gradient_gold.size();
+  numGoldCells=tGradient_gold.size();
   for(int iCell=0; iCell<numGoldCells; iCell++){
     for(int iNode=0; iNode<nodesPerCell; iNode++){
       for(int iDim=0; iDim<numSpaceDims; iDim++){
-        if(gradient_gold[iCell][iNode][iDim] == 0.0){
-          TEST_ASSERT(fabs(gradient_Host(iCell,iNode,iDim)) < 1e-12);
+        if(tGradient_gold[iCell][iNode][iDim] == 0.0){
+          TEST_ASSERT(fabs(tGradient_Host(iCell,iGP,iNode,iDim)) < 1e-12);
         } else {
-          TEST_FLOATING_EQUALITY(gradient_Host(iCell,iNode,iDim), gradient_gold[iCell][iNode][iDim], 1e-13);
+          TEST_FLOATING_EQUALITY(tGradient_Host(iCell,iGP,iNode,iDim), tGradient_gold[iCell][iNode][iDim], 1e-13);
         }
       }
     }
@@ -296,44 +280,44 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
 
   // test temperature gradient
   //
-  auto tgrad_Host = Kokkos::create_mirror_view( tCellGrad );
-  Kokkos::deep_copy( tgrad_Host, tCellGrad );
+  auto tTGrad_Host = Kokkos::create_mirror_view( tTGrad );
+  Kokkos::deep_copy( tTGrad_Host, tTGrad );
 
-  std::vector<std::vector<Plato::Scalar>> tgrad_gold = { 
+  std::vector<std::vector<Plato::Scalar>> tTGrad_gold = { 
     {7.2e-6, 2.4e-6, 8.0e-7},
     {7.2e-6, 2.4e-6, 8.0e-7},
     {7.2e-6, 2.4e-6, 8.0e-7},
     {7.2e-6, 2.4e-6, 8.0e-7}
   };
 
-  for(int iCell=0; iCell<int(tgrad_gold.size()); iCell++){
+  for(int iCell=0; iCell<int(tTGrad_gold.size()); iCell++){
     for(int iDim=0; iDim<numSpaceDims; iDim++){
-      if(tgrad_gold[iCell][iDim] == 0.0){
-        TEST_ASSERT(fabs(tgrad_Host(iCell,iDim)) < 1e-12);
+      if(tTGrad_gold[iCell][iDim] == 0.0){
+        TEST_ASSERT(fabs(tTGrad_Host(iCell,iGP,iDim)) < 1e-12);
       } else {
-        TEST_FLOATING_EQUALITY(tgrad_Host(iCell,iDim), tgrad_gold[iCell][iDim], 1e-13);
+        TEST_FLOATING_EQUALITY(tTGrad_Host(iCell,iGP,iDim), tTGrad_gold[iCell][iDim], 1e-13);
       }
     }
   }
 
   // test thermal flux
   //
-  auto tflux_Host = Kokkos::create_mirror_view( tCellFlux );
-  Kokkos::deep_copy( tflux_Host, tCellFlux );
+  auto tFlux_Host = Kokkos::create_mirror_view( tFlux );
+  Kokkos::deep_copy( tFlux_Host, tFlux );
 
-  std::vector<std::vector<Plato::Scalar>> tflux_gold = { 
+  std::vector<std::vector<Plato::Scalar>> tFlux_gold = { 
     {7.2e-3, 2.4e-3, 8.0e-4},
     {7.2e-3, 2.4e-3, 8.0e-4},
     {7.2e-3, 2.4e-3, 8.0e-4},
     {7.2e-3, 2.4e-3, 8.0e-4}
   };
 
-  for(int iCell=0; iCell<int(tflux_gold.size()); iCell++){
+  for(int iCell=0; iCell<int(tFlux_gold.size()); iCell++){
     for(int iDim=0; iDim<numSpaceDims; iDim++){
-      if(tflux_gold[iCell][iDim] == 0.0){
-        TEST_ASSERT(fabs(tflux_Host(iCell,iDim)) < 1e-12);
+      if(tFlux_gold[iCell][iDim] == 0.0){
+        TEST_ASSERT(fabs(tFlux_Host(iCell,iGP,iDim)) < 1e-12);
       } else {
-        TEST_FLOATING_EQUALITY(tflux_Host(iCell,iDim), tflux_gold[iCell][iDim], 1e-13);
+        TEST_FLOATING_EQUALITY(tFlux_Host(iCell,iGP,iDim), tFlux_gold[iCell][iDim], 1e-13);
       }
     }
   }

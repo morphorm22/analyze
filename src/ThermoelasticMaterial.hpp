@@ -42,19 +42,22 @@ namespace Plato {
   parseElasticStiffness(const Teuchos::ParameterList& paramList)
   /******************************************************************************/
   {
-      auto tParams = paramList.sublist("Elastic Stiffness");
-      if (tParams.isSublist("Youngs Modulus"))
+      if(paramList.isSublist("Elastic Stiffness"))
       {
-          this->setRank4VoigtFunctor("Elastic Stiffness", Plato::IsotropicStiffnessFunctor<SpatialDim>(tParams));
-      }
-      else
-      if (tParams.isType<Plato::Scalar>("Youngs Modulus"))
-      {
-          this->setRank4VoigtConstant("Elastic Stiffness", Plato::IsotropicStiffnessConstant<SpatialDim>(tParams));
-      }
-      else
-      {
-          this->parseRank4Voigt("Elastic Stiffness", tParams);
+          auto tParams = paramList.sublist("Elastic Stiffness");
+          if (tParams.isSublist("Youngs Modulus"))
+          {
+              this->setRank4VoigtFunctor("Elastic Stiffness", Plato::IsotropicStiffnessFunctor<SpatialDim>(tParams));
+          }
+          else
+          if (tParams.isType<Plato::Scalar>("Youngs Modulus"))
+          {
+              this->setRank4VoigtConstant("Elastic Stiffness", Plato::IsotropicStiffnessConstant<SpatialDim>(tParams));
+          }
+          else
+          {
+              this->parseRank4Voigt("Elastic Stiffness", tParams);
+          }
       }
   }
 

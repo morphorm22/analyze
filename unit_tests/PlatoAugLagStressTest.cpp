@@ -503,6 +503,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_CheckThermalVonMises3D)
 
     using StateT = typename Residual::StateScalarType;
     using ConfigT = typename Residual::ConfigScalarType;
+    using ControlT = typename Residual::ControlScalarType;
 
     constexpr Plato::OrdinalType tDofsPerNode = ElementType::mNumDofsPerNode;
     constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
@@ -519,6 +520,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_CheckThermalVonMises3D)
     const Plato::OrdinalType tNumDofs  = tNumVerts * tDofsPerNode;
     Plato::ScalarVector tState("States", tNumDofs);
     Plato::blas1::fill(0.0, tState);
+
+    Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset", tNumCells, tNodesPerCell);
+    Kokkos::deep_copy(tControlWS, 1.0);
+
     Plato::OrdinalType tDofStride = tDofsPerNode;
     Plato::OrdinalType tDofToSet = ElementType::mTDofOffset;
     Plato::Scalar tTemperature = 11.0;
@@ -572,7 +577,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_CheckThermalVonMises3D)
     Plato::ThermalVonMisesLocalMeasure<Residual> tLocalMeasure(tOnlyDomain, *tParamList, tName);
 
     Plato::ScalarVector tResult("ThermalVonMises", tNumCells);
-    tLocalMeasure(tStateWS, tConfigWS, tResult);
+    tLocalMeasure(tStateWS, tControlWS, tConfigWS, tResult);
 
     auto tHostResult = Kokkos::create_mirror(tResult);
     Kokkos::deep_copy(tHostResult, tResult);

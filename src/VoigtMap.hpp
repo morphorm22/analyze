@@ -4,6 +4,11 @@
  *  Created on: Jun 11, 2020
  */
 
+#ifndef VOIGTMAP_HPP
+#define VOIGTMAP_HPP
+
+#include "PlatoTypes.hpp"
+
 namespace Plato {
   template<int SpaceDim> struct VoigtMap {};
   template<>
@@ -25,3 +30,5 @@ namespace Plato {
     VoigtMap() : I{0, 1, 2, 1, 0, 0}, J{0, 1, 2, 2, 2, 1} {}
   };
 }
+
+#endif

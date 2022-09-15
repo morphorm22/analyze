@@ -69,6 +69,37 @@ public:
     /******************************************************************************//**
      * \brief Evaluate penalty model
      * \param [in] aCellOrdinal cell/element ordinal
+     * \param [in] aGpOrdinal gauss point ordinal
+     * \param [in] aInputOutput penalized 2D view
+     * \param [in] aControl     control, i.e. design, variables
+    **********************************************************************************/
+    template<typename InputScalarType, typename WeightScalarType>
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+              Plato::OrdinalType                            aCellOrdinal,
+              Plato::OrdinalType                            aGpOrdinal,
+        const Plato::ScalarMultiVectorT<WeightScalarType> & aControl,
+        const Plato::Array<NumNodes>                      & aBasisValues,
+              Plato::ScalarArray3DT<InputScalarType>        aInputOutput
+    ) const
+    {
+        // apply weighting
+        //
+        WeightScalarType tCellDensity = 0.0;
+        for (Plato::OrdinalType tNode = 0; tNode < NumNodes; tNode++)
+        {
+            tCellDensity += aControl(aCellOrdinal, tNode)*aBasisValues(tNode);
+        }
+        for (Plato::OrdinalType tTerm = 0; tTerm < NumTerms; tTerm++)
+        {
+            aInputOutput(aCellOrdinal, aGpOrdinal, tTerm) *= mPenaltyFunction(tCellDensity);
+        }
+    }
+
+
+    /******************************************************************************//**
+     * \brief Evaluate penalty model
+     * \param [in] aCellOrdinal cell/element ordinal
      * \param [in] aInputOutput penalized 2D view
      * \param [in] aControl     control, i.e. design, variables
     **********************************************************************************/
@@ -98,9 +129,12 @@ public:
      * \param [in] aControl     control, i.e. design, variables
     **********************************************************************************/
     template<typename InputScalarType, typename WeightScalarType>
-    KOKKOS_INLINE_FUNCTION void operator()(Plato::OrdinalType aCellOrdinal,
-                                       Kokkos::View<InputScalarType**, Plato::Layout, Plato::MemSpace> const & aInputOutput,
-                                       Kokkos::View<WeightScalarType**, Plato::Layout, Plato::MemSpace> const & aControl) const
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+        Plato::OrdinalType aCellOrdinal,
+        Plato::ScalarMultiVectorT<InputScalarType>  const & aInputOutput,
+        Plato::ScalarMultiVectorT<WeightScalarType> const & aControl
+    ) const
     {
         // apply weighting
         //
@@ -125,10 +159,12 @@ public:
     **********************************************************************************/
     template<typename InputScalarType, typename OutputScalarType, typename WeightScalarType>
     KOKKOS_INLINE_FUNCTION void
-    operator()(Plato::OrdinalType aCellOrdinal,
-               Plato::ScalarMultiVectorT<InputScalarType> const &aInput,
-               Plato::ScalarMultiVectorT<OutputScalarType> const &aOutput,
-               Plato::ScalarMultiVectorT<WeightScalarType> const &aControl) const
+    operator()(
+        Plato::OrdinalType aCellOrdinal,
+        Plato::ScalarMultiVectorT<InputScalarType>  const & aInput,
+        Plato::ScalarMultiVectorT<OutputScalarType> const & aOutput,
+        Plato::ScalarMultiVectorT<WeightScalarType> const & aControl
+    ) const
     {
         // apply weighting
         //
