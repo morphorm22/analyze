@@ -9,7 +9,6 @@
 #include "Solutions.hpp"
 #include "AnalyzeOutput.hpp"
 #include "ImplicitFunctors.hpp"
-#include "MultipointConstraints.hpp"
 #include "ApplyConstraints.hpp"
 #include "SpatialModel.hpp"
 
@@ -53,8 +52,6 @@ private:
     Plato::ScalarMultiVector mStates; /*!< state variables */
 
     Teuchos::RCP<Plato::CrsMatrixType> mJacobian; /*!< Jacobian matrix */
-
-    std::shared_ptr<Plato::MultipointConstraints> mMPCs; /*!< multipoint constraint interface */
 
     rcp<Plato::AbstractSolver> mSolver;
 
