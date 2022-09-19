@@ -2,6 +2,7 @@
 
 #include "TachoLinearSolver.hpp"
 #include "PlatoMathHelpers.hpp"
+#include "CrsMatrixUtils.hpp"
 
 namespace tacho {
 
@@ -73,10 +74,9 @@ void tachoSolver<SX>::refactorMatrix(value_type_array ax) {
 
 template <typename SX>
 void tachoSolver<SX>::Initialize(
-    int numRows,
+    const int numRows,
     /// with TACHO_ENABLE_INT_INT, size_type is "int"
-    int *rowBegin, int *columns, SX *values, const bool printTimings)
-
+    int* const rowBegin, int* const columns, SX* const values, const bool printTimings)
 {
   m_numRows = numRows;
   if (m_numRows == 0)
@@ -274,9 +274,10 @@ void TachoLinearSolver::innerSolve(Plato::CrsMatrix<int> aA,
                                    Plato::ScalarVector aX,
                                    Plato::ScalarVector aB)
 {
-    Plato::CrsMatrix<int>::RowMapVectorT rowBegin;
-    Plato::CrsMatrix<int>::OrdinalVectorT columns;
-    Plato::CrsMatrix<int>::ScalarVectorT values;
+    using CrsOrdinal = int;
+    Plato::CrsMatrix<CrsOrdinal>::RowMapVectorT rowBegin;
+    Plato::CrsMatrix<CrsOrdinal>::OrdinalVectorT columns;
+    Plato::CrsMatrix<CrsOrdinal>::ScalarVectorT values;
 
     if (aA.isBlockMatrix()) {
         // if there were a version of this function that only fills values, could avoid copies of indices on subsequent calls
@@ -289,18 +290,33 @@ void TachoLinearSolver::innerSolve(Plato::CrsMatrix<int> aA,
         values = aA.entries();
     }
 
-    if (firstSolve) {
-        mSolver.Initialize(aA.numRows(), rowBegin, columns, values);
-        firstSolve = false;
+    if (!Plato::has_symmetric_sparsity_pattern<CrsOrdinal>(rowBegin, columns))
+    {
+        throw std::runtime_error("Tacho was given a matrix with a non-symmetric sparsity pattern.\n"
+          "Tacho requires matrices with symmetric sparsity patterns.");
     }
-    else {
+
+    constexpr bool tPrintMatrix = false;
+    if (tPrintMatrix) {
+        static int iter = 0;
+        Plato::print_matrix_to_file<CrsOrdinal>(rowBegin, columns, values, "tacho_matrix_" + std::to_string(iter) + ".m");
+        ++iter;
+    }
+    const std::size_t tNewMatrixHash = Plato::crs_matrix_row_column_hash<CrsOrdinal>(rowBegin, columns);
+    if (!mCurrentMatrixHash.has_value() || tNewMatrixHash != mCurrentMatrixHash.get()) {
+        // Initialize on first call or sparsity pattern change
+        mSolver.Initialize(aA.numRows(), rowBegin, columns, values);
+        mCurrentMatrixHash = tNewMatrixHash;
+    } else {
         mSolver.refactorMatrix(values);
     }
 
     tachoSolver<double>::value_type_matrix x(aX.data(), aA.numRows(), 1);
     tachoSolver<double>::value_type_matrix b(aB.data(), aA.numRows(), 1);
     mSolver.MySolve(1, b, x);
+    if (Plato::has_nan<CrsOrdinal>(aX)) {
+        throw std::runtime_error("Tacho solution vector contains nan.");
+    }
 }
-
 
 } // namespace tacho

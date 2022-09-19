@@ -1,13 +1,15 @@
 #pragma once
 
-#include <vector>
-
 #include "Tacho.hpp"
 #include "Tacho_Driver.hpp"
 #include "Teuchos_ScalarTraits.hpp"
 
 #include "PlatoAbstractSolver.hpp"
 #include "PlatoStaticsTypes.hpp"
+
+#include <boost/optional.hpp>
+
+#include <vector>
 
 namespace tacho {
 
@@ -108,7 +110,7 @@ public:
     ) override;
 private:
     tachoSolver<Plato::Scalar> mSolver;
-    bool firstSolve = true;
+    boost::optional<std::size_t> mCurrentMatrixHash;
 };
 
 } // namespace tacho
