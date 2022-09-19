@@ -49,6 +49,7 @@ public:
      **********************************************************************************/
     TensileEnergyDensityLocalMeasure(
         const Plato::SpatialDomain   & aSpatialModel,
+              Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aInputParams,
         const std::string            & aName
     );
@@ -61,6 +62,7 @@ public:
      **********************************************************************************/
     TensileEnergyDensityLocalMeasure(
         const Plato::SpatialDomain & aSpatialModel,
+              Plato::DataMap       & aDataMap,
         const Plato::Scalar        & aYoungsModulus,
         const Plato::Scalar        & aPoissonsRatio,
         const std::string          & aName

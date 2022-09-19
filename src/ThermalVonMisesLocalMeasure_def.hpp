@@ -19,10 +19,11 @@ namespace Plato
     ThermalVonMisesLocalMeasure<EvaluationType>::
     ThermalVonMisesLocalMeasure(
         const Plato::SpatialDomain   & aSpatialDomain,
+              Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aInputParams,
         const std::string            & aName
     ) : 
-        AbstractLocalMeasure<EvaluationType>(aSpatialDomain, aInputParams, aName)
+        AbstractLocalMeasure<EvaluationType>(aSpatialDomain, aDataMap, aInputParams, aName)
     {
         Plato::ThermoelasticModelFactory<mNumSpatialDims> tFactory(aInputParams);
         mMaterialModel = tFactory.create(mSpatialDomain.getMaterialName());
@@ -65,7 +66,7 @@ namespace Plato
         Plato::TMKinematics<ElementType>          tKinematics;
 
         Plato::TMKineticsFactory< EvaluationType, ElementType > tTMKineticsFactory;
-        auto tTMKinetics = tTMKineticsFactory.create(mMaterialModel);
+        auto tTMKinetics = tTMKineticsFactory.create(mMaterialModel, mSpatialDomain, mDataMap);
 
         Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode, TDofOffset> tInterpolateFromNodal;
 

@@ -107,7 +107,7 @@ namespace Elliptic
       Plato::TMKinematics<ElementType>          kinematics;
       
       Plato::TMKineticsFactory< EvaluationType, ElementType > tTMKineticsFactory;
-      auto tTMKinetics = tTMKineticsFactory.create(mMaterialModel);
+      auto tTMKinetics = tTMKineticsFactory.create(mMaterialModel, mSpatialDomain, mDataMap);
 
       Plato::GeneralStressDivergence<ElementType, mNumDofsPerNode, MDofOffset> stressDivergence;
       Plato::GeneralFluxDivergence  <ElementType, mNumDofsPerNode, TDofOffset> fluxDivergence;

@@ -47,11 +47,15 @@ public:
      * \brief Constructor
      * \param [in] aMaterialModel material model
     **********************************************************************************/
-    ExpressionTMKinetics(const Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> aMaterialModel) :
-            AbstractTMKinetics<EvaluationType, ElementType>(aMaterialModel),
-            mRefTemperature(aMaterialModel->getScalarConstant("Reference Temperature")),
-            mScaling(aMaterialModel->getScalarConstant("Temperature Scaling")),
-            mScaling2(mScaling*mScaling)
+    ExpressionTMKinetics(
+      const Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>>   aMaterialModel,
+      const Plato::SpatialDomain                                & aSpatialDomain,
+      const Plato::DataMap                                      & aDataMap
+    ) :
+      AbstractTMKinetics<EvaluationType, ElementType>(aMaterialModel, aSpatialDomain, aDataMap),
+      mRefTemperature(aMaterialModel->getScalarConstant("Reference Temperature")),
+      mScaling(aMaterialModel->getScalarConstant("Temperature Scaling")),
+      mScaling2(mScaling*mScaling)
     {
         mThermalExpansivityConstant = aMaterialModel->getTensorConstant("Thermal Expansivity");
         mThermalConductivityConstant = aMaterialModel->getTensorConstant("Thermal Conductivity");
@@ -209,14 +213,14 @@ public:
      * \param [out] aFlux thermal flux vector
      **********************************************************************************/
     void
-    operator()(
+    compute(
         Plato::ScalarArray3DT<KineticsScalarType>    const & aStress,
         Plato::ScalarArray3DT<KineticsScalarType>    const & aFlux,
         Plato::ScalarArray3DT<KinematicsScalarType>  const & aStrain,
         Plato::ScalarArray3DT<KinematicsScalarType>  const & aTGrad,
         Plato::ScalarMultiVectorT<StateT>            const & aTemperature,
         Plato::ScalarMultiVectorT<ControlScalarType> const & aControl
-    ) const override
+    ) const
     {
         const Plato::OrdinalType tNumCells = aStrain.extent(0);
 

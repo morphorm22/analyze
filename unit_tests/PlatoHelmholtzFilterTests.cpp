@@ -92,7 +92,7 @@ TEUCHOS_UNIT_TEST(HelmholtzFilterTests, LengthScaleKeywordError)
 
   // create PDE
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   TEST_THROW(Plato::Helmholtz::VectorFunction<PhysicsType> vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint")), std::runtime_error);
 }
@@ -222,7 +222,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, Helmholtz2DUniformFieldTest )
 
   // create PDE
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
   Plato::Helmholtz::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
@@ -333,7 +333,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, HelmholtzUniformFieldTest_Tet4 )
 
   // create PDE
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
   Plato::Helmholtz::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
@@ -444,7 +444,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, HelmholtzUniformFieldTest_Hex8 )
 
   // create PDE
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
   Plato::Helmholtz::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
@@ -555,7 +555,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, HelmholtzUniformFieldTest_Tet10 )
 
   // create PDE
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
   Plato::Helmholtz::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
@@ -666,7 +666,7 @@ TEUCHOS_UNIT_TEST( HelmholtzFilterTests, HelmholtzUniformFieldTest_Hex27 )
 
   // create PDE
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
   Plato::Helmholtz::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 

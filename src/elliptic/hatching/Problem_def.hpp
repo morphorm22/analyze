@@ -39,7 +39,8 @@ namespace
       Teuchos::ParameterList & aProblemParams,
       Comm::Machine            aMachine
     ) :
-      mSpatialModel  (aMesh, aProblemParams),
+      AbstractProblem(aMesh, aProblemParams),
+      mSpatialModel  (aMesh, aProblemParams, mDataMap),
       mSequence      (mSpatialModel, aProblemParams),
       mPDE(std::make_shared<VectorFunctionType>(mSpatialModel, mDataMap, aProblemParams, aProblemParams.get<std::string>("PDE Constraint"))),
       mNumNewtonSteps(Plato::ParseTools::getSubParam<int>   (aProblemParams, "Newton Iteration", "Maximum Iterations",  1  )),

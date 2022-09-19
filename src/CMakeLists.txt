@@ -6,6 +6,7 @@ configure_file(
 ## material model sources
 set(ANALYZE_SOURCES
     ParseTools.cpp
+    InputDataUtils.cpp
     ExpressionEvaluator.cpp
     LinearElasticMaterial.cpp
     CubicLinearElasticMaterial.cpp

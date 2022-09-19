@@ -79,11 +79,11 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D )
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   // create objective
   //
-  Plato::DataMap tDataMap;
   std::string tMyFunction("Displacement");
   Plato::Elliptic::SolutionFunction<::Plato::Mechanics<Plato::Tri3>>
     scalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
@@ -210,11 +210,11 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D_Mag )
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   // create objective
   //
-  Plato::DataMap tDataMap;
   std::string tMyFunction("Displacement");
   Plato::Elliptic::SolutionFunction<::Plato::Mechanics<Plato::Tri3>>
     scalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);

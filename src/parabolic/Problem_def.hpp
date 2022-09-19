@@ -27,7 +27,8 @@ namespace Parabolic
           Teuchos::ParameterList & aProblemParams,
           Comm::Machine            aMachine
         ) :
-            mSpatialModel  (aMesh, aProblemParams),
+            AbstractProblem(aMesh, aProblemParams),
+            mSpatialModel  (aMesh, aProblemParams, mDataMap),
             mPDEConstraint (mSpatialModel, mDataMap, aProblemParams, aProblemParams.get<std::string>("PDE Constraint")),
             mTrapezoidIntegrator (aProblemParams.sublist("Time Integration")),
             mNumSteps      (Plato::ParseTools::getSubParam<int>   (aProblemParams, "Time Integration", "Number Time Steps",   1  )),

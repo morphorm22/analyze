@@ -29,6 +29,7 @@ protected:
     using ResultT  = typename EvaluationType::ResultScalarType;
 
     const Plato::SpatialDomain & mSpatialDomain;
+          Plato::DataMap       & mDataMap;
 
     const std::string mName; /*!< Local measure name */
 
@@ -40,10 +41,12 @@ public:
      **********************************************************************************/
     AbstractLocalMeasure(
         const Plato::SpatialDomain   & aSpatialDomain,
+              Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aInputParams,
         const std::string            & aName
     ) :
         mSpatialDomain (aSpatialDomain),
+        mDataMap       (aDataMap),
         mName          (aName)
     {
     }
@@ -54,9 +57,11 @@ public:
      **********************************************************************************/
     AbstractLocalMeasure(
         const Plato::SpatialDomain & aSpatialDomain,
+              Plato::DataMap       & aDataMap,
         const std::string          & aName
     ) : 
         mSpatialDomain (aSpatialDomain),
+        mDataMap       (aDataMap),
         mName          (aName)
     {
     }

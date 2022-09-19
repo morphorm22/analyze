@@ -596,9 +596,9 @@ TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D )
   Plato::ScalarVector tControl("control", tNumNodes);
   Plato::blas1::fill(1.0, tControl);
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
-  Plato::Sequence<typename PhysicsType::ElementType> tSequence(tSpatialModel, *tInputParams);
   Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams, tDataMap);
+  Plato::Sequence<typename PhysicsType::ElementType> tSequence(tSpatialModel, *tInputParams);
 
   // create PDE constraint
   //
@@ -964,9 +964,9 @@ TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D_full )
   Plato::ScalarVector tControl("control", tNumNodes);
   Plato::blas1::fill(1.0, tControl);
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
-  Plato::Sequence<typename PhysicsType::ElementType> tSequence(tSpatialModel, *tInputParams);
   Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams, tDataMap);
+  Plato::Sequence<typename PhysicsType::ElementType> tSequence(tSpatialModel, *tInputParams);
 
   auto tSolution = tProblem->solution(tControl);
 
@@ -1197,7 +1197,8 @@ TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D_StateUpdate )
   constexpr int cMeshWidth=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth, "omfg.exo");
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams, tDataMap);
 
   /*****************************************************
    Test Elliptic::StateUpdate(aMesh);
@@ -1210,8 +1211,6 @@ TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D_StateUpdate )
   /*****************************************************
    Call StateUpdate::operator()
    *****************************************************/
-
-   Plato::DataMap tDataMap;
 
    auto tNumEl = tMesh->NumElements();
    constexpr auto cNumGP = PhysicsType::ElementType::mNumGaussPoints;
@@ -1374,7 +1373,8 @@ TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D_StateUpdate_2layer )
 
   using PhysicsType = Plato::Elliptic::Hatching::Mechanics<Plato::Tet4>;
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams, tDataMap);
   Plato::Sequence<typename PhysicsType::ElementType> tSequence(tSpatialModel, *tInputParams);
 
   /*****************************************************
@@ -1394,7 +1394,6 @@ TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D_StateUpdate_2layer )
   constexpr auto cNumDPN = PhysicsType::ElementType::mNumDofsPerNode;
 
   // create solution 
-  Plato::DataMap tDataMap;
   Plato::ScalarMultiVector tGlobalStates("global state", /*numsteps=*/ 2, tMesh->NumNodes() * cNumDPN);
   Plato::ScalarArray4D tLocalStates("local state", /*numsteps=*/ 2, tNumEl, cNumGP, cNumVT);
   {

@@ -42,6 +42,7 @@ namespace MechanicsFactory
   inline std::shared_ptr<Plato::AbstractLocalMeasure<EvaluationType>>
   create_local_measure(
       const Plato::SpatialDomain   & aSpatialDomain,
+            Plato::DataMap         & aDataMap,
             Teuchos::ParameterList & aProblemParams,
       const std::string            & aFuncName
   )
@@ -52,12 +53,12 @@ namespace MechanicsFactory
       if(tLowerLocalMeasT == "vonmises")
       {
           return std::make_shared<VonMisesLocalMeasure<EvaluationType>>
-              (aSpatialDomain, aProblemParams, "VonMises");
+              (aSpatialDomain, aDataMap, aProblemParams, "VonMises");
       }
       else if(tLowerLocalMeasT == "tensileenergydensity")
       {
           return std::make_shared<TensileEnergyDensityLocalMeasure<EvaluationType>>
-              (aSpatialDomain, aProblemParams, "TensileEnergyDensity");
+              (aSpatialDomain, aDataMap, aProblemParams, "TensileEnergyDensity");
       }
       else
       {
@@ -124,9 +125,9 @@ stress_constraint_quadratic(
     const std::string            & aFuncName
 )
 {
-    auto EvalMeasure = Plato::MechanicsFactory::create_local_measure<EvaluationType>(aSpatialDomain, aProblemParams, aFuncName);
+    auto EvalMeasure = Plato::MechanicsFactory::create_local_measure<EvaluationType>(aSpatialDomain, aDataMap, aProblemParams, aFuncName);
     using Residual = typename Plato::Elliptic::ResidualTypes<typename EvaluationType::ElementType>;
-    auto PODMeasure = Plato::MechanicsFactory::create_local_measure<Residual>(aSpatialDomain, aProblemParams, aFuncName);
+    auto PODMeasure = Plato::MechanicsFactory::create_local_measure<Residual>(aSpatialDomain, aDataMap, aProblemParams, aFuncName);
 
     std::shared_ptr<Plato::AugLagStressCriterionQuadratic<EvaluationType>> tOutput;
     tOutput = std::make_shared< Plato::AugLagStressCriterionQuadratic<EvaluationType> >
@@ -151,7 +152,7 @@ volume_integral_criterion_for_volume_average(
     const std::string            & aFuncName
 )
 {
-    auto tLocalMeasure = Plato::MechanicsFactory::create_local_measure<EvaluationType>(aSpatialDomain, aProblemParams, aFuncName);
+    auto tLocalMeasure = Plato::MechanicsFactory::create_local_measure<EvaluationType>(aSpatialDomain, aDataMap, aProblemParams, aFuncName);
 
     std::shared_ptr<Plato::Elliptic::VolumeIntegralCriterion<EvaluationType>> tOutput;
     tOutput = std::make_shared<Plato::Elliptic::VolumeIntegralCriterion<EvaluationType>>

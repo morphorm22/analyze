@@ -4,6 +4,8 @@
 
 #include "PlatoMesh.hpp"
 #include "PlatoMask.hpp"
+#include "ParseTools.hpp"
+#include "PlatoMathTypes.hpp"
 #include "PlatoStaticsTypes.hpp"
 
 namespace Plato
@@ -27,6 +29,17 @@ private:
 
     Plato::OrdinalVector mTotalElemLids;   /*!< List of local elements ids in this domain */
     Plato::OrdinalVector mMaskedElemLids;  /*!< List of local elements ids after application of a masked operation */
+
+    Plato::DataMap mDataMap;
+
+    bool mHasUniformBasis;
+
+    // SpatialDomain isn't templated on SpatialDim, so allocate for 3D
+    Plato::Matrix<3,3> mUniformCartesianBasis;
+
+    bool mHasVaryingBasis;
+
+    Plato::ScalarArray3D mVaryingCartesianBasis;
 
 public:
     /******************************************************************************//**
@@ -147,13 +160,16 @@ public:
 
     /******************************************************************************//**
      * \brief Constructor for Plato::SpatialModel base class
-     * \param [in] aMesh Default mesh
+     * \param [in] aMesh        Default mesh
+     * \param [in] aDataMap     Plato DataMap
      * \param [in] aInputParams Spatial model definition
      **********************************************************************************/
     SpatialDomain
-    (      Plato::Mesh   aMesh,
-     const std::string & aName) :
+    (      Plato::Mesh      aMesh,
+           Plato::DataMap & aDataMap,
+     const std::string    & aName) :
         Mesh(aMesh),
+        mDataMap(aDataMap),
         mSpatialDomainName(aName),
         mIsFixedBlock(false)
     {}
@@ -161,14 +177,17 @@ public:
     /******************************************************************************//**
      * \brief Constructor for Plato::SpatialModel base class
      * \param [in] aMesh        Default mesh
+     * \param [in] aDataMap     Plato DataMap
      * \param [in] aInputParams Spatial model definition
      * \param [in] aName        Spatial model name
      **********************************************************************************/
     SpatialDomain
     (      Plato::Mesh              aMesh,
+           Plato::DataMap         & aDataMap,
      const Teuchos::ParameterList & aInputParams,
      const std::string            & aName) :
         Mesh(aMesh),
+        mDataMap(aDataMap),
         mSpatialDomainName(aName),
         mIsFixedBlock(false)
     {
@@ -272,7 +291,114 @@ public:
         }
 
         this->setMaskLocalElemIDs(mElementBlockName);
+
+        parseUniformCartesianBasis(aInputParams);
+        parseVaryingCartesianBasis(aInputParams);
     }
+
+    void
+    parseUniformCartesianBasis(const Teuchos::ParameterList& aParamList)
+    {
+        if (aParamList.isSublist("Basis"))
+        {
+            if( Mesh->NumDimensions() == 3 )
+            {
+              Plato::ParseTools::getBasis(aParamList, mUniformCartesianBasis);
+            }
+            else
+            if( Mesh->NumDimensions() == 2 )
+            {
+              Plato::Matrix<2,2> tBasis;
+              Plato::ParseTools::getBasis(aParamList, tBasis);
+              setUniformCartesianBasis(tBasis);
+            }
+            else
+            if( Mesh->NumDimensions() == 1 )
+            {
+              Plato::Matrix<1,1> tBasis;
+              Plato::ParseTools::getBasis(aParamList, tBasis);
+              setUniformCartesianBasis(tBasis);
+            }
+            mHasUniformBasis = true;
+        }
+        else
+        {
+            mHasUniformBasis = false;
+        }
+    }
+
+    void
+    parseVaryingCartesianBasis(const Teuchos::ParameterList& aParamList)
+    {
+        if (aParamList.isType<std::string>("Basis Field"))
+        {
+            auto tBasisFieldName = aParamList.get<std::string>("Basis Field");
+            mVaryingCartesianBasis = mDataMap.scalarArray3Ds[tBasisFieldName];
+            mHasVaryingBasis = true;
+        }
+        else
+        {
+            mHasVaryingBasis = false;
+        }
+      
+    }
+
+    // The cartesian basis is stored in the 3D matrix, mUniformCartesianBasis,
+    // regardless of the actual dimension of the problem.  The accessors below
+    // return only the relevant data for the requested dimension.
+    inline void
+    getUniformCartesianBasis(Plato::Matrix<3,3> & tBasis) const
+    {
+      tBasis = mUniformCartesianBasis;
+    }
+
+    inline void
+    getUniformCartesianBasis(Plato::Matrix<2,2> & tBasis) const
+    {
+      for(int i=0; i<2; i++)
+        for(int j=0; j<2; j++)
+          tBasis(i,j) = mUniformCartesianBasis(i,j);
+    }
+
+    inline void
+    getUniformCartesianBasis(Plato::Matrix<1,1> & tBasis) const
+    {
+      tBasis(0,0) = mUniformCartesianBasis(0,0);
+    }
+
+    inline void
+    setUniformCartesianBasis(Plato::Matrix<3,3> const & tBasis)
+    {
+      mUniformCartesianBasis = tBasis;
+    }
+
+    inline void
+    setUniformCartesianBasis(Plato::Matrix<2,2> const & tBasis)
+    {
+      for(int i=0; i<2; i++)
+        for(int j=0; j<2; j++)
+          mUniformCartesianBasis(i,j) = tBasis(i,j);
+    }
+
+    inline void
+    setUniformCartesianBasis(Plato::Matrix<1,1> const & tBasis)
+    {
+      mUniformCartesianBasis(0,0) = tBasis(0,0);
+    }
+
+    bool hasUniformCartesianBasis() const
+    { return mHasUniformBasis; }
+
+    bool hasVaryingCartesianBasis() const
+    { return mHasVaryingBasis; }
+
+    inline
+    Plato::ScalarArray3D
+    getVaryingCartesianBasis() const
+    {
+      return mVaryingCartesianBasis;
+    }
+
 };
 // class SpatialDomain
 
@@ -302,7 +428,8 @@ public:
      **********************************************************************************/
     SpatialModel(
               Plato::Mesh              aMesh,
-        const Teuchos::ParameterList & aInputParams
+        const Teuchos::ParameterList & aInputParams,
+              Plato::DataMap         & aDataMap
     ) :
         Mesh(aMesh)
     {
@@ -326,7 +453,7 @@ public:
                 }
 
                 Teuchos::ParameterList &tDomainParams = tDomainsParams.sublist(tMyName);
-                Domains.push_back( { aMesh, tDomainParams, tMyName });
+                Domains.push_back( { aMesh, aDataMap, tDomainParams, tMyName });
             }
         }
         else

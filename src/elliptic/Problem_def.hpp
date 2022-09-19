@@ -33,7 +33,8 @@ namespace Elliptic
       Teuchos::ParameterList & aProblemParams,
       Comm::Machine            aMachine
     ) :
-      mSpatialModel  (aMesh, aProblemParams),
+      AbstractProblem(aMesh, aProblemParams),
+      mSpatialModel  (aMesh, aProblemParams, mDataMap),
       mPDE(std::make_shared<VectorFunctionType>(mSpatialModel, mDataMap, aProblemParams, aProblemParams.get<std::string>("PDE Constraint"))),
       mNumNewtonSteps(Plato::ParseTools::getSubParam<int>   (aProblemParams, "Newton Iteration", "Maximum Iterations",  1  )),
       mNewtonIncTol  (Plato::ParseTools::getSubParam<double>(aProblemParams, "Newton Iteration", "Increment Tolerance", 0.0)),

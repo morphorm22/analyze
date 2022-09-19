@@ -57,14 +57,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Misfit)
     constexpr Plato::OrdinalType tMeshWidth = 1;
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
 
-    Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+    Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
     using ElementType = typename Plato::GeometricalElement<Plato::Tet4>;
     using ResidualT = typename Plato::Geometric::Evaluation<ElementType>::Residual;
 
-    Plato::DataMap tDataMap;
     std::string tFunctionName("Geometry Misfit");
     auto tGeometryMisfit = Plato::Geometric::GeometryMisfit<ResidualT>(tOnlyDomain, tDataMap, *tParamList, tFunctionName);
 

@@ -74,7 +74,8 @@ TEUCHOS_UNIT_TEST( ElastostaticTests, 3D )
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tet4>;
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -328,9 +329,9 @@ TEUCHOS_UNIT_TEST( ElastostaticTests, Residual3D )
 
   // create constraint evaluator
   //
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
-
   Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
+
   Plato::Elliptic::VectorFunction<::Plato::Mechanics<Plato::Tet4>>
     esVectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
@@ -536,12 +537,12 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
 
   // create objective
   //
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  Plato::DataMap dataMap;
   std::string tMyFunction("Internal Elastic Energy");
   Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<Plato::Tet4>>
-    eeScalarFunction(tSpatialModel, dataMap, *tParamList, tMyFunction);
+    eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
   // compute and test criterion value
@@ -716,12 +717,12 @@ TEUCHOS_UNIT_TEST( DerivativeTests, StressPNorm3D )
 
   // create objective
   //
-  Plato::DataMap dataMap;
+  Plato::DataMap tDataMap;
   std::string tMyFunction("Globalized Stress");
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<Plato::Tet4>>
-    eeScalarFunction(tSpatialModel, dataMap, *tParamList, tMyFunction);
+    eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
   // compute and test criterion value
@@ -908,12 +909,12 @@ TEUCHOS_UNIT_TEST( DerivativeTests, EffectiveEnergy3D_ShearCellProblem )
 
   // create criterion
   //
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  Plato::DataMap dataMap;
   std::string tMyFunction("Effective Energy");
   Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<Plato::Tet4>>
-    eeScalarFunction(tSpatialModel, dataMap, *tParamList, tMyFunction);
+    eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
   // compute and test criterion value
@@ -1136,12 +1137,12 @@ TEUCHOS_UNIT_TEST( DerivativeTests, EffectiveEnergy3D_NormalCellProblem )
 
   // create criterion
   //
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  Plato::DataMap dataMap;
   std::string tMyFunction("Effective Energy");
   Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<Plato::Tet4>>
-    eeScalarFunction(tSpatialModel, dataMap, *tParamList, tMyFunction);
+    eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
   // compute and test criterion value
@@ -1568,12 +1569,12 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Volume3D )
 
   // create objective
   //
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  Plato::DataMap dataMap;
   std::string tMyFunction("Volume");
   Plato::Geometric::GeometryScalarFunction<::Plato::Geometrical<Plato::Tet4>>
-    volScalarFunction(tSpatialModel, dataMap, *tParamList, tMyFunction);
+    volScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
   // compute and test criterion value

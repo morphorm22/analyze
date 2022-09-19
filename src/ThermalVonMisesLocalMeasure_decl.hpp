@@ -1,5 +1,6 @@
 #pragma once
 
+#include "PlatoStaticsTypes.hpp"
 #include "ThermoelasticMaterial.hpp"
 #include "AbstractLocalMeasure.hpp"
 
@@ -22,6 +23,7 @@ private:
     using AbstractLocalMeasure<EvaluationType>::mNumVoigtTerms;
     using AbstractLocalMeasure<EvaluationType>::mNumNodesPerCell;
     using AbstractLocalMeasure<EvaluationType>::mSpatialDomain; 
+    using AbstractLocalMeasure<EvaluationType>::mDataMap;
 
     using StateT   = typename EvaluationType::StateScalarType;
     using ConfigT  = typename EvaluationType::ConfigScalarType;
@@ -42,6 +44,7 @@ public:
      **********************************************************************************/
     ThermalVonMisesLocalMeasure(
         const Plato::SpatialDomain   & aSpatialDomain,
+              Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aInputParams,
         const std::string            & aName
     );

@@ -73,7 +73,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassInsteadOfVolume2D)
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Plato::SpatialModel tSpatialModel(tMesh, *params);
+    Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
     Plato::Geometric::WeightedSumFunction<Plato::Geometrical<Plato::Tri3>> tWeightedSum(tSpatialModel, tDataMap);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
@@ -152,7 +152,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassInsteadOfVolume3D)
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Plato::SpatialModel tSpatialModel(tMesh, *params);
+    Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
     Plato::Geometric::WeightedSumFunction<Plato::Geometrical<Plato::Tet4>> tWeightedSum(tSpatialModel, tDataMap);
 
     auto tOnlyDomain = tSpatialModel.Domains.front();
@@ -226,7 +226,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3D)
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Plato::SpatialModel tSpatialModel(tMesh, *tParams);
+    Plato::SpatialModel tSpatialModel(tMesh, *tParams, tDataMap);
     std::string tFuncName = "Mass Properties";
     Plato::Geometric::MassPropertiesFunction<Plato::Geometrical<Plato::Tet4>>
           tMassProperties(tSpatialModel, tDataMap, *tParams, tFuncName);
@@ -287,7 +287,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesValue3DNormalized)
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Plato::SpatialModel tSpatialModel(tMesh, *tParams);
+    Plato::SpatialModel tSpatialModel(tMesh, *tParams, tDataMap);
     std::string tFuncName = "Mass Properties";
     Plato::Geometric::MassPropertiesFunction<Plato::Geometrical<Plato::Tet4>>
           tMassProperties(tSpatialModel, tDataMap, *tParams, tFuncName);
@@ -346,7 +346,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPropertiesGradZ_3D)
 
     // ALLOCATE PLATO CRITERION
     Plato::DataMap tDataMap;
-    Plato::SpatialModel tSpatialModel(tMesh, *tParams);
+    Plato::SpatialModel tSpatialModel(tMesh, *tParams, tDataMap);
     std::string tFuncName = "Mass Properties";
     Plato::Geometric::MassPropertiesFunction<Plato::Geometrical<Plato::Tet4>>
           tMassProperties(tSpatialModel, tDataMap, *tParams, tFuncName);

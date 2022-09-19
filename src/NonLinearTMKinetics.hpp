@@ -40,11 +40,15 @@ public:
      * \brief Constructor
      * \param [in] aMaterialModel material model
     **********************************************************************************/
-    NonLinearTMKinetics(const Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> aMaterialModel) :
-            AbstractTMKinetics<EvaluationType, ElementType>(aMaterialModel),
-            mRefTemperature(aMaterialModel->getScalarConstant("Reference Temperature")),
-            mScaling(aMaterialModel->getScalarConstant("Temperature Scaling")),
-            mScaling2(mScaling*mScaling)
+    NonLinearTMKinetics(
+      const Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>>   aMaterialModel,
+      const Plato::SpatialDomain                                & aSpatialDomain,
+      const Plato::DataMap                                      & aDataMap
+    ) :
+      AbstractTMKinetics<EvaluationType, ElementType>(aMaterialModel, aSpatialDomain, aDataMap),
+      mRefTemperature(aMaterialModel->getScalarConstant("Reference Temperature")),
+      mScaling(aMaterialModel->getScalarConstant("Temperature Scaling")),
+      mScaling2(mScaling*mScaling)
     {
         mElasticStiffnessFunctor = aMaterialModel->getRank4VoigtFunctor("Elastic Stiffness");
         mThermalExpansivityFunctor = aMaterialModel->getTensorFunctor("Thermal Expansivity");
@@ -60,14 +64,14 @@ public:
      * \param [out] aFlux thermal flux vector
      **********************************************************************************/
     void
-    operator()(
+    compute(
         Plato::ScalarArray3DT<KineticsScalarType>    const & aStress,
         Plato::ScalarArray3DT<KineticsScalarType>    const & aFlux,
         Plato::ScalarArray3DT<KinematicsScalarType>  const & aStrain,
         Plato::ScalarArray3DT<KinematicsScalarType>  const & aTGrad,
         Plato::ScalarMultiVectorT<StateT>            const & aTemperature,
         Plato::ScalarMultiVectorT<ControlScalarType> const & aControl
-    ) const override
+    ) const
     {
         auto tScaling = mScaling;
         auto tScaling2 = mScaling2;

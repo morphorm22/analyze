@@ -118,7 +118,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoModel)
   constexpr int spaceDim=3;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams, tDataMap);
 
   Plato::MaskFactory<spaceDim> tMaskFactory;
   auto tMask = tMaskFactory.create(tSpatialModel.Mesh, *tMaskParams);
@@ -173,7 +174,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, DefaultBlockNotMarkedAsFixed)
   constexpr int meshWidth=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams, tDataMap);
 
   auto tIsFixed = tSpatialModel.Domains[0].isFixedBlock();
 
@@ -211,7 +213,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, FixedBlockIsMarked)
   constexpr int meshWidth=2;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams, tDataMap);
 
   auto tIsFixed = tSpatialModel.Domains[0].isFixedBlock();
 
@@ -255,7 +258,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, DefaultBlockWorksetControlUnchanged)
 
   // create spatial model
   //
-  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams, tDataMap);
 
   // create control
   //
@@ -323,7 +327,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, FixedBlockWorksetControlGivesOnes)
 
   // create spatial model
   //
-  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams, tDataMap);
 
   // create control
   //
