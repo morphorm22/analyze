@@ -27,6 +27,7 @@ Plato_add_test(PlatoSpatialModel PlatoSpatialModelTests.cpp)
 Plato_add_test(Element ElementTests.cpp)
 Plato_add_test(PlatoMathTypes PlatoMathTypesTests.cpp)
 Plato_add_test(TensorNorm TensorNormTests.cpp)
+Plato_add_test(CrsMatrixUtils CrsMatrixUtilsTests.cpp)
 
 if(ELLIPTIC)
 Plato_add_test(MultipointConstraint PlatoMultipointConstraintTests.cpp)

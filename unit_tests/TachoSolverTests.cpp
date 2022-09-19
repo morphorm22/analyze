@@ -1,12 +1,13 @@
-#include <math.h>
 #include <algorithm>
+#include <array>
+#include <math.h>
 
 #include "alg/TachoLinearSolver.hpp"
 
 #include "Teuchos_UnitTestHarness.hpp"
 
 namespace tachoSolverTest {
-
+namespace {
 template <class SX>
 double solutionError(const int numRows,
 		     const SX* rhs, 
@@ -173,6 +174,7 @@ bool testTachoSolver(int numRows,
 
   return success;
 }
+}
 
 TEUCHOS_UNIT_TEST(tachoSolver, Test1)
 {
@@ -190,6 +192,26 @@ TEUCHOS_UNIT_TEST(tachoSolver, Test1)
   std::cout << "testing double type (non-symmetric matrix)--------------\n";
   sym = 1; // nonsymmetric, but structurally symmetric, matrix
   TEST_ASSERT(testTachoSolver<double>(numRows, rowBegin, columns, values, sym));
+}
+
+TEUCHOS_UNIT_TEST(tachoSolver, AsymmetricSparsityPattern)
+{
+  constexpr int numRows = 4;
+  constexpr int numValues = 11;
+  // This can all be constexpr in c++17
+  std::array<int, numRows + 1> rowBegin = {0, 3, 5, 8, numValues}; 
+  std::array<int, numValues> columns = {0, 1, 2, 0, 1, 2, 1, 2, 3, 2, 3};
+  std::array<double, numValues> values = {2.0, -1.0, 1.0, -1.0, 2.0, -1.0, -1.0, 2.0, -1.0, -1.0, 2.0};
+
+  std::cout << "number of rows = " << numRows << std::endl;
+
+  std::cout << "testing double type (non-symmetric matrix and pattern)------------------\n";
+  int sym = 2; // symmetric positive definite matrix
+  TEST_ASSERT(testTachoSolver<double>(numRows, rowBegin.data(), columns.data(), values.data(), sym));
+
+  std::cout << "testing double type (non-symmetric matrix and pattern)--------------\n";
+  sym = 1; // nonsymmetric, but structurally symmetric, matrix
+  TEST_ASSERT(testTachoSolver<double>(numRows, rowBegin.data(), columns.data(), values.data(), sym));
 }
 
 } // end namespace
