@@ -1298,8 +1298,8 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicResidualTests, ErrorAFormNotSpecified)
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
     int tNumCells = tMesh->NumElements();
 
-    Plato::SpatialModel tSpatialModel(tMesh, *tParams);
     Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tParams, tDataMap);
     TEST_THROW(
     Plato::Hyperbolic::VectorFunction<::Plato::Hyperbolic::MicromorphicMechanics<Plato::Tet4>>
       tVectorFunction(tSpatialModel, tDataMap, *tParams, tParams->get<std::string>("PDE Constraint")),
@@ -1369,8 +1369,8 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicResidualTests, ErrorAFormFalse)
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
     int tNumCells = tMesh->NumElements();
 
-    Plato::SpatialModel tSpatialModel(tMesh, *tParams);
     Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tParams, tDataMap);
     TEST_THROW(
     Plato::Hyperbolic::VectorFunction<::Plato::Hyperbolic::MicromorphicMechanics<Plato::Tet4>>
       tVectorFunction(tSpatialModel, tDataMap, *tParams, tParams->get<std::string>("PDE Constraint")),
@@ -1440,8 +1440,8 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicResidualTests, ErrorExplicitNotSpecified)
     auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
     int tNumCells = tMesh->NumElements();
 
-    Plato::SpatialModel tSpatialModel(tMesh, *tParams);
     Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tParams, tDataMap);
     TEST_THROW(
     Plato::Hyperbolic::VectorFunction<::Plato::Hyperbolic::MicromorphicMechanics<Plato::Tet4>>
       tVectorFunction(tSpatialModel, tDataMap, *tParams, tParams->get<std::string>("PDE Constraint")),
@@ -1516,9 +1516,9 @@ TEUCHOS_UNIT_TEST( RelaxedMicromorphicResidualTests, 3D_NoInertia )
 
     // create vector function
     //
-    Plato::SpatialModel tSpatialModel(tMesh, *tParams);
-
     Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tParams, tDataMap);
+
     Plato::Hyperbolic::VectorFunction<::Plato::Hyperbolic::MicromorphicMechanics<Plato::Tet4>>
       tVectorFunction(tSpatialModel, tDataMap, *tParams, tParams->get<std::string>("PDE Constraint"));
 
@@ -1717,9 +1717,9 @@ TEUCHOS_UNIT_TEST( RelaxedMicromorphicResidualTests, 3D_WithInertia )
 
     // create vector function
     //
-    Plato::SpatialModel tSpatialModel(tMesh, *tParams);
-
     Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tParams, tDataMap);
+
     Plato::Hyperbolic::VectorFunction<::Plato::Hyperbolic::MicromorphicMechanics<Plato::Tet4>>
       tVectorFunction(tSpatialModel, tDataMap, *tParams, tParams->get<std::string>("PDE Constraint"));
 

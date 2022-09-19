@@ -548,6 +548,9 @@ namespace Plato {
       Plato::MaterialModelType mType;
       std::string mExpression;
 
+      bool mHasBasis;
+      Plato::Matrix<SpatialDim, SpatialDim> mCartesianBasis;
+
     public:
 
       /******************************************************************************//**
@@ -560,19 +563,19 @@ namespace Plato {
        * \param [in] ParameterList with optional "Temperature Dependent" bool Parameter
        * unit test: PlatoMaterialModel_MaterialModel
       **********************************************************************************/
-      MaterialModel(const Teuchos::ParameterList& paramList) 
+      MaterialModel(const Teuchos::ParameterList& aParamList) 
       {
           this->mType = Plato::MaterialModelType::Linear;
-          if (paramList.isType<bool>("Temperature Dependent"))
+          if (aParamList.isType<bool>("Temperature Dependent"))
           {
-              if (paramList.get<bool>("Temperature Dependent")) {
+              if (aParamList.get<bool>("Temperature Dependent")) {
                   this->mType = Plato::MaterialModelType::Nonlinear;
               }
           }
-          if (paramList.isSublist("Elastic Stiffness Expression")) 
+          if (aParamList.isSublist("Elastic Stiffness Expression")) 
           {
               this->mType = Plato::MaterialModelType::Expression;
-              auto tCustomElasticSubList = paramList.sublist("Elastic Stiffness Expression");
+              auto tCustomElasticSubList = aParamList.sublist("Elastic Stiffness Expression");
               if(tCustomElasticSubList.isType<double>("E0"))
               {          
                   this->setScalarConstant("E0", tCustomElasticSubList.get<double>("E0"));
@@ -590,6 +593,21 @@ namespace Plato {
                   this->setScalarConstant("Density", tCustomElasticSubList.get<double>("Density"));
               }
           }
+
+          parseCartesianBasis(aParamList);
+      }
+
+      void parseCartesianBasis(const Teuchos::ParameterList& aParamList)
+      {
+          if (aParamList.isSublist("Basis")) 
+          {
+              Plato::ParseTools::getBasis(aParamList, mCartesianBasis);
+              mHasBasis = true;
+          }
+          else
+          {
+              mHasBasis = false;
+          }
       }
 
       Plato::MaterialModelType type() const { return this->mType; }
@@ -598,6 +616,11 @@ namespace Plato {
 
       // getters
       //
+
+      Plato::Matrix<SpatialDim, SpatialDim>
+      getCartesianBasis() const { return mCartesianBasis; }
+
+      bool hasCartesianBasis() const { return mHasBasis; }
 
       // scalar constant
       bool scalarConstantExists(std::string aConstantName)

@@ -123,11 +123,15 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
   Plato::ThermoelasticModelFactory<numSpaceDims> mmfactory(*params);
   auto materialModel = mmfactory.create("Cookie Dough");
 
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
+  auto tOnlyDomain = tSpatialModel.Domains.front();
+
   Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
   Plato::TMKinematics<ElementType>          tKinematics;
   using Residual = typename Plato::Elliptic::Evaluation<Plato::ThermomechanicsElement<Plato::Tet4>>::Residual;
   Plato::TMKineticsFactory< Residual, ElementType > tTMKineticsFactory;
-  auto pkinetics = tTMKineticsFactory.create(materialModel);
+  auto pkinetics = tTMKineticsFactory.create(materialModel, tOnlyDomain, tDataMap);
   auto & kinetics = *pkinetics;
 
   Plato::InterpolateFromNodal<ElementType, dofsPerNode, TDofOffset> interpolateFromNodal;
@@ -420,7 +424,7 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, TransientThermomechResidual3D )
   // create constraint evaluator
   //
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(tMesh, *params);
+  Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
   Plato::Parabolic::VectorFunction<::Plato::Thermomechanics<Plato::Tet4>>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
 

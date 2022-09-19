@@ -81,7 +81,7 @@ namespace Elliptic
       Plato::TMKinematics<ElementType>          kinematics;
 
       Plato::TMKineticsFactory< EvaluationType, ElementType > tTMKineticsFactory;
-      auto tTMKinetics = tTMKineticsFactory.create(mMaterialModel);
+      auto tTMKinetics = tTMKineticsFactory.create(mMaterialModel, mSpatialDomain, mDataMap);
 
       Plato::ScalarProduct<mNumVoigtTerms>      mechanicalScalarProduct;
       Plato::ScalarProduct<mNumSpatialDims>     thermalScalarProduct;

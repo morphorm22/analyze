@@ -60,10 +60,11 @@ namespace Plato
     TensileEnergyDensityLocalMeasure<EvaluationType>::
     TensileEnergyDensityLocalMeasure(
         const Plato::SpatialDomain   & aSpatialModel,
+              Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aInputParams,
         const std::string            & aName
     ) : 
-        AbstractLocalMeasure<EvaluationType>(aSpatialModel, aInputParams, aName)
+        AbstractLocalMeasure<EvaluationType>(aSpatialModel, aDataMap, aInputParams, aName)
     {
         getYoungsModulusAndPoissonsRatio(aInputParams);
         computeLameConstants();
@@ -79,11 +80,12 @@ namespace Plato
     TensileEnergyDensityLocalMeasure<EvaluationType>::
     TensileEnergyDensityLocalMeasure(
         const Plato::SpatialDomain & aSpatialModel,
+              Plato::DataMap       & aDataMap,
         const Plato::Scalar        & aYoungsModulus,
         const Plato::Scalar        & aPoissonsRatio,
         const std::string          & aName
     ) :
-        AbstractLocalMeasure<EvaluationType>(aSpatialModel, aName),
+        AbstractLocalMeasure<EvaluationType>(aSpatialModel, aDataMap, aName),
         mYoungsModulus(aYoungsModulus),
         mPoissonsRatio(aPoissonsRatio)
     {

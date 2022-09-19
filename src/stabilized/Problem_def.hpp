@@ -49,7 +49,8 @@ namespace Stabilized
       Teuchos::ParameterList & aInputParams,
       Comm::Machine            aMachine
     ) :
-      mSpatialModel    (aMesh, aInputParams),
+      AbstractProblem  (aMesh, aInputParams),
+      mSpatialModel    (aMesh, aInputParams, mDataMap),
       mPDEConstraint   (mSpatialModel, mDataMap, aInputParams, aInputParams.get<std::string>("PDE Constraint")),
       mStateProjection (mSpatialModel, mDataMap, aInputParams, std::string("State Gradient Projection")),
       mNumSteps        (Plato::ParseTools::getSubParam<int>   (aInputParams, "Time Stepping", "Number Time Steps",    1  )),

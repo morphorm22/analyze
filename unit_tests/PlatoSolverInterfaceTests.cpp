@@ -123,8 +123,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionEpetra )
   );
 
   Plato::DataMap tDataMap;
-
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   Plato::Elliptic::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
@@ -843,8 +842,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
   );
 
   Plato::DataMap tDataMap;
-
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   Plato::Elliptic::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));

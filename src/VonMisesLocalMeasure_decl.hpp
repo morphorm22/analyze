@@ -1,5 +1,6 @@
 #pragma once
 
+#include "PlatoStaticsTypes.hpp"
 #include "ElasticModelFactory.hpp"
 #include "AbstractLocalMeasure.hpp"
 
@@ -31,6 +32,8 @@ private:
     using ConfigT  = typename EvaluationType::ConfigScalarType;
     using ResultT  = typename EvaluationType::ResultScalarType;
 
+    Plato::DataMap mDataMap;
+
 public:
     /******************************************************************************//**
      * \brief Primary constructor
@@ -39,6 +42,7 @@ public:
      **********************************************************************************/
     VonMisesLocalMeasure(
         const Plato::SpatialDomain   & aSpatialDomain,
+              Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aInputParams,
         const std::string            & aName
     );
@@ -50,6 +54,7 @@ public:
      **********************************************************************************/
     VonMisesLocalMeasure(
         const Plato::SpatialDomain & aSpatialDomain,
+              Plato::DataMap       & aDataMap,
         const MatrixType           & aCellStiffMatrix,
         const std::string            aName
     );

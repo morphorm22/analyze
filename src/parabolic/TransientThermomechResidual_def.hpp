@@ -125,7 +125,7 @@ namespace Parabolic
       Plato::TMKinematics<ElementType> tKinematics;
 
       Plato::TMKineticsFactory< EvaluationType, ElementType > tTMKineticsFactory;
-      auto tTMKinetics = tTMKineticsFactory.create(mMaterialModel);
+      auto tTMKinetics = tTMKineticsFactory.create(mMaterialModel, mSpatialDomain, mDataMap);
 
       Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode, TDofOffset> tInterpolateFromNodal;
 

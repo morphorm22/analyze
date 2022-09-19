@@ -27,20 +27,23 @@ public:
     * \return Teuchos reference counter pointer to the linear stress functor
     **********************************************************************************/
     Teuchos::RCP<Plato::AbstractTMKinetics<EvaluationType, ElementType> > create(
-        const Teuchos::RCP<Plato::MaterialModel<ElementType::mNumSpatialDims>> aMaterialModel)
+        const Teuchos::RCP<Plato::MaterialModel<ElementType::mNumSpatialDims>>   aMaterialModel,
+        const Plato::SpatialDomain                                             & aSpatialDomain,
+        const Plato::DataMap                                                   & aDataMap
+    )
     {
         Plato::MaterialModelType tModelType = aMaterialModel->type();
         if (tModelType == Plato::MaterialModelType::Nonlinear)
         {
-            return Teuchos::rcp( new Plato::NonLinearTMKinetics<EvaluationType, ElementType> (aMaterialModel) );
+            return Teuchos::rcp( new Plato::NonLinearTMKinetics<EvaluationType, ElementType> (aMaterialModel, aSpatialDomain, aDataMap) );
         } 
         else if (tModelType == Plato::MaterialModelType::Linear)
         {
-            return Teuchos::rcp( new Plato::LinearTMKinetics<EvaluationType, ElementType>(aMaterialModel) );
+            return Teuchos::rcp( new Plato::LinearTMKinetics<EvaluationType, ElementType>(aMaterialModel, aSpatialDomain, aDataMap) );
         } 
         else if (tModelType == Plato::MaterialModelType::Expression)
         {
-            return Teuchos::rcp( new Plato::ExpressionTMKinetics<EvaluationType, ElementType> (aMaterialModel) );
+            return Teuchos::rcp( new Plato::ExpressionTMKinetics<EvaluationType, ElementType> (aMaterialModel, aSpatialDomain, aDataMap) );
         }
         else
         {

@@ -653,7 +653,7 @@ TEUCHOS_UNIT_TEST( StabilizedThermomechTests, StabilizedThermomechResidual3D )
   // create constraint evaluator
   //
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(tMesh, *params);
+  Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
   Plato::Stabilized::VectorFunction<::Plato::Stabilized::Thermomechanics<Plato::Tet4>>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
 
@@ -827,7 +827,7 @@ TEUCHOS_UNIT_TEST( PlatoMathFunctors, RowSumSolve )
   // create constraint evaluator
   //
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(tMesh, *params);
+  Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
   Plato::Stabilized::VectorFunction<::Plato::Stabilized::Projection<Plato::Tet4, ElementType::mNumDofsPerNode, ElementType::mPressureDofOffset>>
     tVectorFunction(tSpatialModel, tDataMap, *params, "State Gradient Projection");
 

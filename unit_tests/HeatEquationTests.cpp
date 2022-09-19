@@ -454,9 +454,9 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, HeatEquationResidual3D )
   auto Tdot = Kokkos::create_mirror_view_and_copy( Kokkos::DefaultExecutionSpace(), Tdot_host_view);
 
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
-
   Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
+
   Plato::Parabolic::VectorFunction<::Plato::Thermal<Plato::Tet4>>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
@@ -663,12 +663,12 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, InternalThermalEnergy3D )
   }, "temperature history");
 
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  Plato::DataMap dataMap;
   std::string tMyFunction("Internal Energy");
   Plato::Parabolic::PhysicsScalarFunction<::Plato::Thermal<Plato::Tet4>>
-    scalarFunction(tSpatialModel, dataMap, *tParamList, tMyFunction);
+    scalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
   auto timeStep = tParamList->sublist("Time Integration").get<Plato::Scalar>("Time Step");
   int timeIncIndex = 1;

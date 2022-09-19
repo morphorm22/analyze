@@ -108,13 +108,13 @@ TEUCHOS_UNIT_TEST( DerivativeTests, ThermostaticResidual3D )
 
   // create constraint evaluator
   //
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   using PhysicsType = typename Plato::Thermal<Plato::Tet4>;
 
-  Plato::DataMap dataMap;
   Plato::Elliptic::VectorFunction<PhysicsType>
-    tsVectorFunction(tSpatialModel, dataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
+    tsVectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
 
   // compute and test constraint value
@@ -293,12 +293,12 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalThermalEnergy3D )
 
   // create objective
   //
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  Plato::DataMap dataMap;
   std::string tMyFunction("Internal Thermal Energy");
   Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermal<Plato::Tet4>>
-    eeScalarFunction(tSpatialModel, dataMap, *tParamList, tMyFunction);
+    eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
   // compute and test criterion value
@@ -467,12 +467,12 @@ TEUCHOS_UNIT_TEST( DerivativeTests, FluxPNorm3D )
 
   // create objective
   //
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  Plato::DataMap dataMap;
   std::string tMyFunction("Flux P-Norm");
   Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermal<Plato::Tet4>>
-    scalarFunction(tSpatialModel, dataMap, *tParamList, tMyFunction);
+    scalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
   // compute and test criterion value

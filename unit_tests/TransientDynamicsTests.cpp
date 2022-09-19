@@ -114,7 +114,8 @@ TEUCHOS_UNIT_TEST( TransientMechanicsElementTests, ElementFunctors3D )
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tet4>;
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   auto tOnlyDomain = tSpatialModel.Domains.front();
 
@@ -572,9 +573,9 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_NoMass )
   constexpr int cSpaceDim=3;
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
-
   Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams, tDataMap);
+
   Plato::Hyperbolic::VectorFunction<::Plato::Hyperbolic::Mechanics<Plato::Tet4>>
     tVectorFunction(tSpatialModel, tDataMap, *tInputParams, tInputParams->get<std::string>("PDE Constraint"));
 
@@ -821,7 +822,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_WithMass )
   auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
 
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams, tDataMap);
   Plato::Hyperbolic::VectorFunction<::Plato::Hyperbolic::Mechanics<Plato::Tet4>>
     tVectorFunction(tSpatialModel, tDataMap, *tInputParams, tInputParams->get<std::string>("PDE Constraint"));
 
@@ -1365,7 +1366,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsResidualTests, 3D_ScalarFunction )
 
   Plato::DataMap tDataMap;
   std::string tMyFunction("Internal Energy");
-  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams);
+  Plato::SpatialModel tSpatialModel(tMesh, *tInputParams, tDataMap);
   Plato::Hyperbolic::PhysicsScalarFunction<::Plato::Hyperbolic::Mechanics<Plato::Tet4>>
     tScalarFunction(tSpatialModel, tDataMap, *tInputParams, tMyFunction);
 

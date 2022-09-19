@@ -298,7 +298,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Residual3D)
         "</ParameterList>                                                               \n"
       );
 
-    Plato::SpatialModel tSpatialModel(tMesh, *tPDEInputs);
+    Plato::SpatialModel tSpatialModel(tMesh, *tPDEInputs, tDataMap);
 
     // 2. PREPARE FUNCTION INPUTS FOR TEST
     const Plato::OrdinalType tNumNodes = tMesh->NumNodes();
