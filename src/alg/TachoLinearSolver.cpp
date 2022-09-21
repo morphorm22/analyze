@@ -275,22 +275,12 @@ void TachoLinearSolver::innerSolve(Plato::CrsMatrix<int> aA,
                                    Plato::ScalarVector aB)
 {
     using CrsOrdinal = int;
-    Plato::CrsMatrix<CrsOrdinal>::RowMapVectorT rowBegin;
-    Plato::CrsMatrix<CrsOrdinal>::OrdinalVectorT columns;
-    Plato::CrsMatrix<CrsOrdinal>::ScalarVectorT values;
+    Plato::CrsMatrix<CrsOrdinal>::RowMapVectorT tRowBegin;
+    Plato::CrsMatrix<CrsOrdinal>::OrdinalVectorT tColumns;
+    Plato::CrsMatrix<CrsOrdinal>::ScalarVectorT tValues;
+    std::tie(tRowBegin, tColumns, tValues) = Plato::crs_matrix_non_block_form<CrsOrdinal>(aA);
 
-    if (aA.isBlockMatrix()) {
-        // if there were a version of this function that only fills values, could avoid copies of indices on subsequent calls
-        auto aAptr = Teuchos::rcp(&aA, false);
-        Plato::getDataAsNonBlock(aAptr, rowBegin, columns, values);
-    }
-    else {
-        rowBegin = aA.rowMap();
-        columns = aA.columnIndices();
-        values = aA.entries();
-    }
-
-    if (!Plato::has_symmetric_sparsity_pattern<CrsOrdinal>(rowBegin, columns))
+    if (!Plato::has_symmetric_sparsity_pattern<CrsOrdinal>(tRowBegin, tColumns))
     {
         throw std::runtime_error("Tacho was given a matrix with a non-symmetric sparsity pattern.\n"
           "Tacho requires matrices with symmetric sparsity patterns.");
@@ -299,16 +289,16 @@ void TachoLinearSolver::innerSolve(Plato::CrsMatrix<int> aA,
     constexpr bool tPrintMatrix = false;
     if (tPrintMatrix) {
         static int iter = 0;
-        Plato::print_matrix_to_file<CrsOrdinal>(rowBegin, columns, values, "tacho_matrix_" + std::to_string(iter) + ".m");
+        Plato::print_matrix_to_file<CrsOrdinal>(tRowBegin, tColumns, tValues, "tacho_matrix_" + std::to_string(iter) + ".m");
         ++iter;
     }
-    const std::size_t tNewMatrixHash = Plato::crs_matrix_row_column_hash<CrsOrdinal>(rowBegin, columns);
+    const std::size_t tNewMatrixHash = Plato::crs_matrix_row_column_hash<CrsOrdinal>(tRowBegin, tColumns);
     if (!mCurrentMatrixHash.has_value() || tNewMatrixHash != mCurrentMatrixHash.get()) {
         // Initialize on first call or sparsity pattern change
-        mSolver.Initialize(aA.numRows(), rowBegin, columns, values);
+        mSolver.Initialize(aA.numRows(), tRowBegin, tColumns, tValues);
         mCurrentMatrixHash = tNewMatrixHash;
     } else {
-        mSolver.refactorMatrix(values);
+        mSolver.refactorMatrix(tValues);
     }
 
     tachoSolver<double>::value_type_matrix x(aX.data(), aA.numRows(), 1);

@@ -16,6 +16,15 @@
 namespace Plato
 {
 template<typename Ordinal>
+using CrsRowsColumnsValues = std::tuple<
+    typename Plato::CrsMatrix<Ordinal>::RowMapVectorT,
+    typename Plato::CrsMatrix<Ordinal>::OrdinalVectorT,
+    typename Plato::CrsMatrix<Ordinal>::ScalarVectorT>;
+
+template<typename Ordinal>
+CrsRowsColumnsValues<Ordinal> crs_matrix_non_block_form(CrsMatrix<Ordinal>& aMatrix);
+
+template<typename Ordinal>
 std::size_t crs_matrix_row_column_hash(
     typename Plato::CrsMatrix<Ordinal>::RowMapVectorT aRowBegin,
     typename Plato::CrsMatrix<Ordinal>::OrdinalVectorT aColumns);
@@ -141,6 +150,25 @@ bool for_each_row_column(
     }
     return true;
 }
+}
+
+template<typename Ordinal>
+CrsRowsColumnsValues<Ordinal> crs_matrix_non_block_form(CrsMatrix<Ordinal>& aMatrix)
+{
+    typename Plato::CrsMatrix<Ordinal>::RowMapVectorT tRowBegin;
+    typename Plato::CrsMatrix<Ordinal>::OrdinalVectorT tColumns;
+    typename Plato::CrsMatrix<Ordinal>::ScalarVectorT tValues;
+
+    if (aMatrix.isBlockMatrix()) {
+        // if there were a version of this function that only fills values, could avoid copies of indices on subsequent calls
+        auto aAptr = Teuchos::rcp(&aMatrix, false);
+        Plato::getDataAsNonBlock(aAptr, tRowBegin, tColumns, tValues);
+    } else {
+        tRowBegin = aMatrix.rowMap();
+        tColumns = aMatrix.columnIndices();
+        tValues = aMatrix.entries();
+    }
+    return std::make_tuple(tRowBegin, tColumns, tValues);
 }
 
 template<typename Ordinal>
@@ -273,18 +301,9 @@ bool has_symmetric_sparsity_pattern(CrsMatrix<Ordinal>& aMatrix)
     typename Plato::CrsMatrix<Ordinal>::RowMapVectorT tRowBegin;
     typename Plato::CrsMatrix<Ordinal>::OrdinalVectorT tColumns;
     typename Plato::CrsMatrix<Ordinal>::ScalarVectorT tValues;
-    if (aMatrix.isBlockMatrix()) {
-        // if there were a version of this function that only fills values, could avoid copies of indices on subsequent calls
-        auto aAptr = Teuchos::rcp(&aMatrix, false);
-        Plato::getDataAsNonBlock(aAptr, tRowBegin, tColumns, tValues);
-    } else {
-        tRowBegin = aMatrix.rowMap();
-        tColumns = aMatrix.columnIndices();
-    }
+    std::tie(tRowBegin, tColumns, tValues) = crs_matrix_non_block_form(aMatrix);
     return has_symmetric_sparsity_pattern<Ordinal>(tRowBegin, tColumns);
 }
-
-
 }
 
 #endif
