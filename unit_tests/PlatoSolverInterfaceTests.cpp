@@ -25,6 +25,22 @@ namespace
 template <typename ClassT>
 using rcp = std::shared_ptr<ClassT>;
 
+Plato::rcp<Plato::AbstractSolver> solver(
+  const std::string& aSolverParams,
+  const unsigned int aNumRows)
+{
+  namespace pth = Plato::TestHelpers;
+
+  Teuchos::RCP<Teuchos::ParameterList> tParamList = Teuchos::getParametersFromXmlString(aSolverParams);
+  Plato::SolverFactory tSolverFactory(*tParamList);
+  
+  MPI_Comm myComm;
+  MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
+  Plato::Comm::Machine tMachine(myComm);
+
+  return tSolverFactory.create(aNumRows, tMachine, 1);
+}
+
 std::vector<std::vector<Plato::Scalar>>
 to_full(rcp<Epetra_VbrMatrix> aInMatrix)
 {
@@ -1297,24 +1313,15 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, TachoSolver_NonBlockMatrix)
 
   std::vector<Plato::Scalar> rhs = {1.0, -1.0, 1.0, -1.0};
   Plato::ScalarVector b("b", numRows);
-  Plato::ScalarVector x("x", numRows);
   pth::set_view_from_vector(b, rhs);
   
-  Teuchos::RCP<Teuchos::ParameterList> tSolverParams =
-      Teuchos::getParametersFromXmlString(
-      "<ParameterList name='Linear Solver'>                                       \n"
-      "  <Parameter name='Solver Stack' type='string' value='Tacho'/>            \n"
-      "</ParameterList>                                                           \n"
-  );
-  
-  Plato::SolverFactory tSolverFactory(*tSolverParams);
-  
-  MPI_Comm myComm;
-  MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
-  Plato::Comm::Machine tMachine(myComm);
+  const std::string tSolverParams = "<ParameterList name='Linear Solver'>\n"
+                                    "  <Parameter name='Solver Stack' type='string' value='Tacho'/>\n"
+                                    "</ParameterList>\n";
 
-  auto tSolver = tSolverFactory.create(numRows, tMachine, 1);
+  auto tSolver = solver(tSolverParams, numRows);
   
+  Plato::ScalarVector x("x", numRows);
   tSolver->solve(*tMatrixA, x, b);
 
   auto x_host = Kokkos::create_mirror_view(x);
@@ -1326,6 +1333,31 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, TachoSolver_NonBlockMatrix)
   {
     TEST_FLOATING_EQUALITY(x_host(i), x_gold[i], 1.0e-12);
   }
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, TachoSolver_AsymmetricSparsityPatternThrows)
+{
+  namespace pth = Plato::TestHelpers;
+
+  constexpr int tNumRows = 4;
+  constexpr int tNumValues = 11;
+  const std::vector<int> tRowBegin = {0, 3, 5, 8, tNumValues}; 
+  const std::vector<int> tColumns = {0, 1, 2, 0, 1, 2, 1, 2, 3, 2, 3};
+  const std::vector<double> tValues = {2.0, -1.0, 1.0, -1.0, 2.0, -1.0, -1.0, 2.0, -1.0, -1.0, 2.0};
+  auto tMatrixA = Teuchos::rcp( new Plato::CrsMatrixType(tNumRows, tNumRows, 1, 1) );
+  pth::set_matrix_data(tMatrixA, tRowBegin, tColumns, tValues);
+
+  std::vector<Plato::Scalar> tRhs = {1.0, -1.0, 1.0, -1.0};
+  Plato::ScalarVector tB("b", tNumRows);
+  pth::set_view_from_vector(tB, tRhs);
+
+  const std::string tSolverParams = "<ParameterList name='Linear Solver'>\n"
+                                    "  <Parameter name='Solver Stack' type='string' value='Tacho'/>\n"
+                                    "</ParameterList>\n";
+  auto tSolver = solver(tSolverParams, tNumRows);
+
+  Plato::ScalarVector tX("x", tNumRows);
+  TEST_THROW(tSolver->solve(*tMatrixA, tX, tB), std::runtime_error);
 }
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, TachoSolver_BlockMatrix)
