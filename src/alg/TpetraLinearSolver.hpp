@@ -91,7 +91,6 @@ class TpetraLinearSolver : public AbstractSolver
 
     int    mDisplayIterations;
     int    mDofsPerNode;
-    bool   mDisplayDiagnostics = true; /*!< display solver warnings/diagnostics to console */
     double mAchievedTolerance;
 
     Teuchos::ParameterList mSolverParams;
@@ -100,29 +99,12 @@ class TpetraLinearSolver : public AbstractSolver
     Plato::Scalar mTolerance = 1e-14; /*!< linear solver tolerance */
     
   public:
-    /******************************************************************************//**
-     * \brief TpetraLinearSolver constructor
-
-     This constructor creates a new System.
-    **********************************************************************************/
-    TpetraLinearSolver(
-        const Teuchos::ParameterList& aSolverParams,
-        int                     aNumNodes,
-        Comm::Machine           aMachine,
-        int                     aDofsPerNode
-    );
-
-    /******************************************************************************//**
-     * @brief TpetraLinearSolver constructor with MPCs
-
-     This constructor takes a MultipointConstraints and creates a new System.
-    **********************************************************************************/
     TpetraLinearSolver(
         const Teuchos::ParameterList&                   aSolverParams,
         int                                             aNumNodes,
         Comm::Machine                                   aMachine,
         int                                             aDofsPerNode,
-        std::shared_ptr<Plato::MultipointConstraints>   aMPCs
+        std::shared_ptr<Plato::MultipointConstraints>   aMPCs = nullptr
     );
 
     void initialize();

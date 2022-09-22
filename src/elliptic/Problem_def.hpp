@@ -50,11 +50,13 @@ namespace Elliptic
     {
         this->initialize(aProblemParams);
 
-        Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
-        if(mMPCs)
-            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode, mMPCs);
-        else
-            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode);
+        LinearSystemType systemType = LinearSystemType::SYMMETRIC_POSITIVE_DEFINITE;
+        if (mPhysics == "Electromechanical" || mPhysics == "Thermomechanical") {
+            systemType = LinearSystemType::SYMMETRIC_INDEFINITE;
+        }
+
+        Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"), systemType);
+        mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode, mMPCs);
     }
 
     template<typename PhysicsType>

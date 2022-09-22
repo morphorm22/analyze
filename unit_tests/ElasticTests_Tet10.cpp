@@ -1,9 +1,4 @@
-/*!
-  These unit tests are for the Derivative functionality.
- \todo 
-*/
-
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
@@ -57,7 +52,7 @@ using ordType = typename Plato::ScalarMultiVector::size_type;
 TEUCHOS_UNIT_TEST( Tet10, ConfigWorkset )
 { 
     constexpr int meshWidth=1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET10", meshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", meshWidth);
 
     using ElementType = typename Plato::MechanicsElement<Plato::Tet10>;
 
@@ -113,7 +108,7 @@ TEUCHOS_UNIT_TEST( Tet10, ConfigWorkset )
 TEUCHOS_UNIT_TEST( Tet10, StateWorkset )
 { 
     constexpr int meshWidth=1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET10", meshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", meshWidth);
 
     using ElementType = typename Plato::MechanicsElement<Plato::Tet10>;
 
@@ -181,7 +176,7 @@ TEUCHOS_UNIT_TEST( Tet10, StateWorkset )
 TEUCHOS_UNIT_TEST( Tet10, ComputeGradientMatrix )
 { 
   constexpr int meshWidth=1;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET10", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tet10>;
 
@@ -285,7 +280,7 @@ TEUCHOS_UNIT_TEST( Tet10, ComputeStresses )
   );
 
   constexpr int meshWidth=1;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET10", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", meshWidth);
 
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
@@ -504,7 +499,7 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D )
   // create test mesh
   //
   constexpr int meshWidth=1;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET10", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", meshWidth);
 
   // create mesh based density
   //
@@ -709,7 +704,7 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D_NaturalBC )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET10", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", meshWidth);
 
   // create mesh based density
   //
@@ -827,7 +822,7 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D_Solution )
     // create test mesh
     //
     constexpr int meshWidth=2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET10", meshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", meshWidth);
 
     // create input
     //
@@ -977,7 +972,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET10", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", meshWidth);
 
   // create mesh based density from host data
   //
@@ -1151,7 +1146,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, StressPNorm3D )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
 
   // create mesh based density from host data

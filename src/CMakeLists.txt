@@ -57,6 +57,7 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     alg/AmgXConfigs.cpp
     alg/AmgXLinearSolver.cpp
     alg/PlatoSolverFactory.cpp
+    alg/PlatoAbstractSolver.cpp
 )
 
 if (PLATOANALYZE_ENABLE_EPETRA)
@@ -247,6 +248,10 @@ endif()
 
 if (PLATOANALYZE_ENABLE_TPETRA)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES} alg/TpetraLinearSolver.cpp)
+endif()
+
+if (PLATOANALYZE_ENABLE_TACHO)
+  set(ANALYZE_SOURCES ${ANALYZE_SOURCES} alg/TachoLinearSolver.cpp)
 endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/src)

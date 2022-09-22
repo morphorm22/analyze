@@ -1,5 +1,6 @@
 #pragma once
 
+#include "alg/PlatoAbstractSolver.hpp"
 #include "helmholtz/Problem_decl.hpp"
 
 namespace Plato
@@ -29,8 +30,8 @@ namespace Helmholtz
     {
         this->initialize(aMesh,aProblemParams);
 
-        Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
-        mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode);
+        Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"), LinearSystemType::SYMMETRIC_INDEFINITE);
+        mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode, mMPCs);
     }
 
     template<typename PhysicsType>
