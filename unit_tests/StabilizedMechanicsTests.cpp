@@ -1,9 +1,3 @@
-/*
- * StabilizedMechanicsTests.cpp
- *
- *  Created on: Mar 26, 2020
- */
-
 #include <Teuchos_XMLParameterListCoreHelpers.hpp>
 
 #include "Teuchos_UnitTestHarness.hpp"
@@ -15,9 +9,9 @@
 #include "stabilized/Mechanics.hpp"
 #include "stabilized/MechanicsElement.hpp"
 #include "PlatoUtilities.hpp"
-#include "PlatoTestHelpers.hpp"
-#include "stabilized/Problem.hpp"
 
+#include "util/PlatoTestHelpers.hpp"
+#include "stabilized/Problem.hpp"
 
 namespace StabilizedMechanicsTests
 {
@@ -26,7 +20,7 @@ namespace StabilizedMechanicsTests
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Kinematics3D)
 {
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     using ElementType = Plato::Stabilized::MechanicsElement<Plato::Tet4>;
 
@@ -114,7 +108,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Solution3D)
     // 1. DEFINE PROBLEM
     const bool tOutputData = false; // for debugging purpose, set true to enable the Paraview output file
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     using ElementType = Plato::Stabilized::MechanicsElement<Plato::Tet4>;
 
@@ -123,6 +117,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Solution3D)
       "<ParameterList name='Plato Problem'>                                               \n"
         "<Parameter name='Physics'         type='string'  value='Stabilized Mechanical'/> \n"
         "<Parameter name='PDE Constraint'  type='string'  value='Elliptic'/>              \n"
+          "<ParameterList  name='Linear Solver'>                                          \n"
+            "<Parameter name='Solver Stack' type='string' value='Tacho'/>                 \n"
+            "<Parameter name='Factorization Type' type='string' value='LDLT'/>            \n"
+          "</ParameterList>                                                               \n"
         "<ParameterList name='Elliptic'>                                                  \n"
           "<ParameterList name='Penalty Function'>                                        \n"
             "<Parameter name='Type' type='string' value='SIMP'/>                          \n"
@@ -165,14 +163,14 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Solution3D)
     Plato::Stabilized::Problem<Plato::Stabilized::Mechanics<Plato::Tet4>> tEllipticVMSProblem(tMesh, *tParamList, tMachine);
 
     // 2. Get Dirichlet Boundary Conditions
-    Plato::OrdinalType tDispDofX = 0;
-    Plato::OrdinalType tDispDofY = 1;
-    Plato::OrdinalType tDispDofZ = 2;
+    constexpr Plato::OrdinalType tDispDofX = 0;
+    constexpr Plato::OrdinalType tDispDofY = 1;
+    constexpr Plato::OrdinalType tDispDofZ = 2;
     constexpr Plato::OrdinalType tNumDofsPerNode = ElementType::mNumDofsPerNode;
-    auto tDirichletIndicesBoundaryX0_Xdof = PlatoUtestHelpers::get_dirichlet_indices_on_boundary_3D(tMesh, "x-", tNumDofsPerNode, tDispDofX);
-    auto tDirichletIndicesBoundaryX0_Ydof = PlatoUtestHelpers::get_dirichlet_indices_on_boundary_3D(tMesh, "x-", tNumDofsPerNode, tDispDofY);
-    auto tDirichletIndicesBoundaryX0_Zdof = PlatoUtestHelpers::get_dirichlet_indices_on_boundary_3D(tMesh, "x-", tNumDofsPerNode, tDispDofZ);
-    auto tDirichletIndicesBoundaryX1_Ydof = PlatoUtestHelpers::get_dirichlet_indices_on_boundary_3D(tMesh, "x+", tNumDofsPerNode, tDispDofY);
+    auto tDirichletIndicesBoundaryX0_Xdof = Plato::TestHelpers::get_dirichlet_indices_on_boundary_3D(tMesh, "x-", tNumDofsPerNode, tDispDofX);
+    auto tDirichletIndicesBoundaryX0_Ydof = Plato::TestHelpers::get_dirichlet_indices_on_boundary_3D(tMesh, "x-", tNumDofsPerNode, tDispDofY);
+    auto tDirichletIndicesBoundaryX0_Zdof = Plato::TestHelpers::get_dirichlet_indices_on_boundary_3D(tMesh, "x-", tNumDofsPerNode, tDispDofZ);
+    auto tDirichletIndicesBoundaryX1_Ydof = Plato::TestHelpers::get_dirichlet_indices_on_boundary_3D(tMesh, "x+", tNumDofsPerNode, tDispDofY);
 
     // 3. Set Dirichlet Boundary Conditions
     Plato::Scalar tValueToSet = 0;
@@ -267,7 +265,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StabilizedMechanics_Residual3D)
     // 1. PREPARE PROBLEM INPUS FOR TEST
     Plato::DataMap tDataMap;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tPDEInputs =
         Teuchos::getParametersFromXmlString(

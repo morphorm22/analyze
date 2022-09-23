@@ -1,4 +1,5 @@
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
+#include "util/PlatoMathTestHelpers.hpp"
 
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
@@ -9,6 +10,7 @@
 #include "ApplyConstraints.hpp"
 #include "LinearElasticMaterial.hpp"
 #include "alg/PlatoSolverFactory.hpp"
+#include "alg/EpetraLinearSolver.hpp"
 
 #ifdef HAVE_AMGX
 #include <alg/AmgXSparseLinearProblem.hpp>
@@ -18,21 +20,29 @@
 
 #include <memory>
 
-#ifdef PLATO_EPETRA
-namespace Plato {
-namespace Devel {
-
-/******************************************************************************//**
- * \brief get view from device
- *
- * \param[in] aView data on device
- * @returns Mirror on host
-**********************************************************************************/
+namespace
+{
 template <typename ClassT>
 using rcp = std::shared_ptr<ClassT>;
 
+Plato::rcp<Plato::AbstractSolver> solver(
+  const std::string& aSolverParams,
+  const unsigned int aNumRows)
+{
+  namespace pth = Plato::TestHelpers;
+
+  Teuchos::RCP<Teuchos::ParameterList> tParamList = Teuchos::getParametersFromXmlString(aSolverParams);
+  Plato::SolverFactory tSolverFactory(*tParamList);
+  
+  MPI_Comm myComm;
+  MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
+  Plato::Comm::Machine tMachine(myComm);
+
+  return tSolverFactory.create(aNumRows, tMachine, 1);
+}
+
 std::vector<std::vector<Plato::Scalar>>
-toFull(rcp<Epetra_VbrMatrix> aInMatrix)
+to_full(rcp<Epetra_VbrMatrix> aInMatrix)
 {
     int tNumMatrixRows = aInMatrix->NumGlobalRows();
 
@@ -54,9 +64,212 @@ toFull(rcp<Epetra_VbrMatrix> aInMatrix)
     }
     return tRetMatrix;
 }
-} // end namespace Devel
-} // end namespace Plato
 
+Teuchos::RCP<Teuchos::ParameterList> elastic_2d_xml_parameters()
+{
+    return Teuchos::getParametersFromXmlString(
+        "<ParameterList name='Plato Problem'>                                      \n"
+        "  <ParameterList name='Spatial Model'>                                    \n"
+        "    <ParameterList name='Domains'>                                        \n"
+        "      <ParameterList name='Design Volume'>                                \n"
+        "        <Parameter name='Element Block' type='string' value='body'/>      \n"
+        "        <Parameter name='Material Model' type='string' value='Unobtainium'/> \n"
+        "      </ParameterList>                                                    \n"
+        "    </ParameterList>                                                      \n"
+        "  </ParameterList>                                                        \n"
+        "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>       \n"
+        "  <Parameter name='Self-Adjoint' type='bool' value='true'/>               \n"
+        "  <ParameterList name='Elliptic'>                                         \n"
+        "    <ParameterList name='Penalty Function'>                               \n"
+        "      <Parameter name='Type' type='string' value='SIMP'/>                 \n"
+        "      <Parameter name='Exponent' type='double' value='1.0'/>              \n"
+        "    </ParameterList>                                                      \n"
+        "  </ParameterList>                                                        \n"
+        "  <ParameterList name='Material Models'>                                  \n"
+        "    <ParameterList name='Unobtainium'>                                    \n"
+        "      <ParameterList name='Isotropic Linear Elastic'>                     \n"
+        "        <Parameter  name='Poissons Ratio' type='double' value='0.3'/>     \n"
+        "        <Parameter  name='Youngs Modulus' type='double' value='1.0e11'/>  \n"
+        "      </ParameterList>                                                    \n"
+        "    </ParameterList>                                                      \n"
+        "  </ParameterList>                                                      \n"
+        "  <ParameterList  name='Natural Boundary Conditions'>                   \n"
+        "    <ParameterList  name='Traction Vector Boundary Condition'>          \n"
+        "      <Parameter name='Type'   type='string'        value='Uniform'/>   \n"
+        "      <Parameter name='Values' type='Array(double)' value='{1e3, 0}'/>  \n"
+        "      <Parameter name='Sides'  type='string'        value='x+'/>        \n"
+        "    </ParameterList>                                                    \n"
+        "  </ParameterList>                                                      \n"
+        "  <ParameterList  name='Essential Boundary Conditions'>                 \n"
+        "    <ParameterList  name='X Fixed Displacement Boundary Condition'>     \n"
+        "      <Parameter  name='Type'     type='string' value='Zero Value'/>    \n"
+#ifdef PLATOANALYZE_LONG_LONG_ORDINALTYPE
+        "      <Parameter  name='Index'    type='long long'    value='0'/>       \n"
+#else
+        "      <Parameter  name='Index'    type='int'    value='0'/>             \n"
+#endif
+        "      <Parameter  name='Sides'    type='string' value='x-'/>            \n"
+        "    </ParameterList>                                                    \n"
+        "    <ParameterList  name='Y Fixed Displacement Boundary Condition'>     \n"
+        "      <Parameter  name='Type'     type='string' value='Zero Value'/>    \n"
+#ifdef PLATOANALYZE_LONG_LONG_ORDINALTYPE
+        "      <Parameter  name='Index'    type='long long'    value='1'/>       \n"
+#else
+        "      <Parameter  name='Index'    type='int'    value='1'/>             \n"
+#endif
+        "      <Parameter  name='Sides'    type='string' value='y-'/>            \n"
+        "    </ParameterList>                                                    \n"
+        "  </ParameterList>                                                      \n"
+        "</ParameterList>                                                        \n"
+    );
+}
+
+struct ElasticProblemParameters
+{
+    Plato::Scalar mTraction = 0.0;
+    Plato::Scalar mYoungsModulus = 0.0;
+    Plato::Scalar mPoissonsRatio = 0.0;
+    Plato::Scalar mMeshWidth = 0.0;
+};
+
+ElasticProblemParameters elastic_2d_parameters(const Plato::Scalar aMeshPhysicalWidth)
+{
+    const Teuchos::RCP<const Teuchos::ParameterList> tParams = elastic_2d_xml_parameters();
+    const Teuchos::ParameterList tNaturalBCs = 
+        tParams->sublist("Natural Boundary Conditions").sublist("Traction Vector Boundary Condition");
+    const Teuchos::ParameterList tMaterial = 
+        tParams->sublist("Material Models").sublist("Unobtainium").sublist("Isotropic Linear Elastic");
+    // Use designated initializers in C++20:
+    return {/*.mTraction =*/ tNaturalBCs.get<Teuchos::Array<double>>("Values")[0], 
+        /*.mYoungsModulus =*/ tMaterial.get<double>("Youngs Modulus"),
+        /*.mPoissonsRatio =*/ tMaterial.get<double>("Poissons Ratio"),
+        /*.mMeshWidth = */ aMeshPhysicalWidth};
+}
+
+Plato::ScalarVector::HostMirror
+test_elastic_problem_solution(const Plato::Mesh& aMesh, const std::string& aSolverParameters)
+{
+    using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+    using ElementType = typename PhysicsType::ElementType;
+
+    const int tNumDofsPerNode = ElementType::mNumDofsPerNode;
+    const int tNumNodes = aMesh->NumNodes();
+    const int tNumDofs = tNumNodes * tNumDofsPerNode;
+
+    // create mesh based density
+    //
+    Plato::ScalarVector tControl("density", tNumDofs);
+    Kokkos::deep_copy(tControl, 1.0);
+
+    // create mesh based state
+    //
+    Plato::ScalarVector tState("state", tNumDofs);
+    Kokkos::deep_copy(tState, 0.0);
+
+    // create material model
+    //
+    Teuchos::RCP<Teuchos::ParameterList> tParamList = elastic_2d_xml_parameters();
+
+    Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(aMesh, *tParamList, tDataMap);
+    Plato::Elliptic::VectorFunction<PhysicsType>
+        vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
+
+    // compute and test constraint value
+    //
+    auto tResidual = vectorFunction.value(tState, tControl);
+
+    // compute and test constraint value
+    //
+    auto tJacobian = vectorFunction.gradient_u(tState, tControl);
+
+    // parse constraints
+    //
+    Plato::OrdinalVector tBcDofs;
+    Plato::ScalarVector tBcValues;
+    Plato::EssentialBCs<ElementType>
+        tEssentialBoundaryConditions(tParamList->sublist("Essential Boundary Conditions",false), aMesh);
+    tEssentialBoundaryConditions.get(tBcDofs, tBcValues);
+    Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(tJacobian, tResidual, tBcDofs, tBcValues);
+
+    MPI_Comm myComm;
+    MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
+    Plato::Comm::Machine tMachine(myComm);
+
+    Kokkos::deep_copy(tState, 0.0);
+    {
+        Teuchos::RCP<Teuchos::ParameterList> tSolverParams = Teuchos::getParametersFromXmlString(aSolverParameters);
+        Plato::SolverFactory tSolverFactory(*tSolverParams);
+        auto tSolver = tSolverFactory.create(aMesh->NumNodes(), tMachine, tNumDofsPerNode);
+        tSolver->solve(*tJacobian, tState, tResidual);
+    }
+    Plato::ScalarVector tStateSolution("state", tNumDofs);
+    Kokkos::deep_copy(tStateSolution, tState);
+
+    Plato::ScalarVector::HostMirror tStateSolutionHost = Kokkos::create_mirror_view(tStateSolution);
+    Kokkos::deep_copy(tStateSolutionHost, tStateSolution);
+    return tStateSolutionHost;
+}
+
+/// Exact solution for the problem defined in test_elastic_problem_solution.
+/// The solution is given by:
+/// \f$u = \frac{(\nu^2 - 1)}{E} P x \f$
+/// \f$v = \frac{\nu (1 + \nu)}{E} P y \f$
+Plato::Scalar analytic_elastic_2d_solution(const ElasticProblemParameters& aElasticParams, 
+    const int aMeshWidth, const int aIndex)
+{
+    const Plato::Scalar tDx = aElasticParams.mMeshWidth / aMeshWidth;
+    constexpr int tNumComponents = 2;
+    const int tNodeIndex = aIndex / tNumComponents;
+    const int tComponentIndex = aIndex % tNumComponents;
+    const Plato::Scalar tNu = aElasticParams.mPoissonsRatio;
+    const Plato::Scalar tE = aElasticParams.mYoungsModulus;
+    if(tComponentIndex == 0)
+    {
+        const int tNodeXIndex = tNodeIndex / (aMeshWidth + 1);
+        const Plato::Scalar tX = tDx * tNodeXIndex;
+        const Plato::Scalar tCoeff = (tNu * tNu - 1.0) / tE;
+        return tX * tCoeff * aElasticParams.mTraction;
+    }
+    else 
+    {
+        const int tNodeYIndex = tNodeIndex % (aMeshWidth + 1);
+        const Plato::Scalar tY = tDx * tNodeYIndex;
+        const Plato::Scalar tCoeff = tNu * (1.0 + tNu) / tE;
+        return tY * tCoeff * aElasticParams.mTraction;
+    }
+}
+
+void test_vs_analytic_2d_solution(
+    const std::string& aSolverParameters,
+    const int aMeshWidth, 
+    const double aRelativeTol, 
+    const double aSmallTol,
+    Teuchos::FancyOStream &aOut, 
+    bool &aSuccess)
+{
+    // Use structured binding in C++17:
+    Plato::Mesh tMesh;
+    BamG::MeshSpec tMeshSpec;
+    std::tie(tMesh, tMeshSpec) = Plato::TestHelpers::get_box_mesh_with_spec("TRI3", aMeshWidth);
+    const auto tSolution = test_elastic_problem_solution(tMesh, aSolverParameters);
+    const ElasticProblemParameters tElasticParams = elastic_2d_parameters(tMeshSpec.dimX);
+    for(int i = 0; i < tSolution.size(); i++)
+    {
+        if(std::abs(tSolution(i)) > aSmallTol)
+        {
+            TEUCHOS_TEST_FLOATING_EQUALITY(tSolution(i), 
+                analytic_elastic_2d_solution(tElasticParams, aMeshWidth, i), aRelativeTol, aOut, aSuccess);
+        }
+        else
+        {
+            TEUCHOS_TEST_EQUALITY(analytic_elastic_2d_solution(tElasticParams, aMeshWidth, i), 0.0, aOut, aSuccess);
+        }
+    }
+}
+}
+
+#ifdef PLATO_EPETRA
 /******************************************************************************/
 /*!
   \brief Test matrix conversion
@@ -71,7 +284,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionEpetra )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -140,8 +353,8 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionEpetra )
 
   auto tEpetra_VbrMatrix = tSystem.fromMatrix(*jacobian);
 
-  auto tFullEpetra = Plato::Devel::toFull(tEpetra_VbrMatrix);
-  auto tFullPlato  = PlatoUtestHelpers::toFull(jacobian);
+  auto tFullEpetra = to_full(tEpetra_VbrMatrix);
+  auto tFullPlato  = Plato::TestHelpers::to_full(jacobian);
 
   for(int iRow=0; iRow<tFullEpetra.size(); iRow++)
   {
@@ -164,7 +377,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToEpetraVector )
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -209,7 +422,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToEpetraVector_invalidI
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -246,7 +459,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector )
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -290,7 +503,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector_invali
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -324,7 +537,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector_invali
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -346,11 +559,33 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector_invali
   TEST_THROW(tSystem.toVector(tConvertedVector,tTestVector),std::range_error);
 }
 
+/******************************************************************************/
+/*!
+  \brief 2D Elastic problem
+
+  Construct a linear system and solve it with the Epetra interface.  
+  Test compares the numerical solution with an analytic solution.
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( SolverInterfaceTests, EpetraElastic2D )
+{
+    constexpr int tMeshWidth = 8;
+    // *** use Epetra solver interface *** //
+    //
+    constexpr auto tEpetraParameters = 
+      "<ParameterList name='Linear Solver'>                              \n"
+      "  <Parameter name='Solver Stack' type='string' value='Epetra'/>   \n"
+      "  <Parameter name='Display Iterations' type='int' value='0'/>     \n"
+      "  <Parameter name='Iterations' type='int' value='50'/>            \n"
+      "  <Parameter name='Tolerance' type='double' value='1e-14'/>       \n"
+      "</ParameterList>                                                  \n";
+    constexpr double tRelativeTol = 1e-12;
+    constexpr double tSmallTol = 1e-18;
+    test_vs_analytic_2d_solution(tEpetraParameters, tMeshWidth, tRelativeTol, tSmallTol, out, success);
+}
 #endif
 
-
 #ifdef PLATO_TPETRA
-
 /******************************************************************************/
 /*!
   \brief Test matrix conversion
@@ -365,7 +600,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
@@ -434,7 +669,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra )
 
   auto tTpetra_Matrix = tSystem.fromMatrix(*jacobian);
 
-  auto tFullPlato  = PlatoUtestHelpers::toFull(jacobian);
+  auto tFullPlato  = Plato::TestHelpers::to_full(jacobian);
 
   for(int iRow=0; iRow<tFullPlato.size(); iRow++)
   {
@@ -471,7 +706,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
@@ -537,7 +772,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
   Plato::Comm::Machine tMachine(myComm);
 
   constexpr int tBogusMeshWidth=3;
-  auto tBogusMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tBogusMeshWidth, "BogusMesh.exo");
+  auto tBogusMesh = Plato::TestHelpers::get_box_mesh("TRI3", tBogusMeshWidth, "BogusMesh.exo");
 
   Plato::TpetraSystem tSystem(tBogusMesh->NumNodes(), tMachine, tNumDofsPerNode);
 
@@ -556,7 +791,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToTpetraVector )
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
@@ -604,7 +839,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToTpetraVector_invalidI
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
@@ -640,7 +875,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector )
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
@@ -687,7 +922,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector_invali
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
@@ -723,7 +958,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector_invali
 {
   // create test mesh
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
 
@@ -746,213 +981,34 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector_invali
   TEST_THROW(tSystem.toVector(tConvertedVector,tTestVector), std::domain_error);
 }
 
-#endif
-
-
 /******************************************************************************/
 /*!
   \brief 2D Elastic problem
 
-  Construct a linear system and solve it with the old AmgX interface, the new
-  AmgX interface, and the Epetra interface.  Test passes if all solutions are
-  the same.
+  Construct a linear system and solve it with the Tpetra interface.  
+  Test compares the numerical solution with an analytic solution.
 */
 /******************************************************************************/
-TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
+TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraElastic2D )
 {
-  // create test mesh
-  //
-  constexpr int meshWidth=8;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
-
-  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
-  using ElementType = typename PhysicsType::ElementType;
-
-  int tNumDofsPerNode = ElementType::mNumDofsPerNode;
-  int tNumNodes = tMesh->NumNodes();
-  int tNumDofs = tNumNodes*tNumDofsPerNode;
-
-  // create mesh based density
-  //
-  Plato::ScalarVector control("density", tNumDofs);
-  Kokkos::deep_copy(control, 1.0);
-
-  // create mesh based state
-  //
-  Plato::ScalarVector state("state", tNumDofs);
-  Kokkos::deep_copy(state, 0.0);
-
-  // create material model
-  //
-  Teuchos::RCP<Teuchos::ParameterList> tParamList =
-    Teuchos::getParametersFromXmlString(
-    "<ParameterList name='Plato Problem'>                                      \n"
-    "  <ParameterList name='Spatial Model'>                                    \n"
-    "    <ParameterList name='Domains'>                                        \n"
-    "      <ParameterList name='Design Volume'>                                \n"
-    "        <Parameter name='Element Block' type='string' value='body'/>      \n"
-    "        <Parameter name='Material Model' type='string' value='Unobtainium'/> \n"
-    "      </ParameterList>                                                    \n"
-    "    </ParameterList>                                                      \n"
-    "  </ParameterList>                                                        \n"
-    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>       \n"
-    "  <Parameter name='Self-Adjoint' type='bool' value='true'/>               \n"
-    "  <ParameterList name='Elliptic'>                                         \n"
-    "    <ParameterList name='Penalty Function'>                               \n"
-    "      <Parameter name='Type' type='string' value='SIMP'/>                 \n"
-    "      <Parameter name='Exponent' type='double' value='1.0'/>              \n"
-    "    </ParameterList>                                                      \n"
-    "  </ParameterList>                                                        \n"
-    "  <ParameterList name='Material Models'>                                  \n"
-    "    <ParameterList name='Unobtainium'>                                    \n"
-    "      <ParameterList name='Isotropic Linear Elastic'>                     \n"
-    "        <Parameter  name='Poissons Ratio' type='double' value='0.3'/>     \n"
-    "        <Parameter  name='Youngs Modulus' type='double' value='1.0e11'/>  \n"
-    "      </ParameterList>                                                    \n"
-    "    </ParameterList>                                                      \n"
-    "  </ParameterList>                                                      \n"
-    "  <ParameterList  name='Natural Boundary Conditions'>                   \n"
-    "    <ParameterList  name='Traction Vector Boundary Condition'>          \n"
-    "      <Parameter name='Type'   type='string'        value='Uniform'/>   \n"
-    "      <Parameter name='Values' type='Array(double)' value='{1e3, 0}'/>  \n"
-    "      <Parameter name='Sides'  type='string'        value='x+'/>        \n"
-    "    </ParameterList>                                                    \n"
-    "  </ParameterList>                                                      \n"
-    "  <ParameterList  name='Essential Boundary Conditions'>                 \n"
-    "    <ParameterList  name='X Fixed Displacement Boundary Condition'>     \n"
-    "      <Parameter  name='Type'     type='string' value='Zero Value'/>    \n"
-#ifdef PLATOANALYZE_LONG_LONG_ORDINALTYPE
-    "      <Parameter  name='Index'    type='long long'    value='0'/>       \n"
-#else
-    "      <Parameter  name='Index'    type='int'    value='0'/>             \n"
-#endif
-    "      <Parameter  name='Sides'    type='string' value='x-'/>            \n"
-    "    </ParameterList>                                                    \n"
-    "    <ParameterList  name='Y Fixed Displacement Boundary Condition'>     \n"
-    "      <Parameter  name='Type'     type='string' value='Zero Value'/>    \n"
-#ifdef PLATOANALYZE_LONG_LONG_ORDINALTYPE
-    "      <Parameter  name='Index'    type='long long'    value='1'/>       \n"
-#else
-    "      <Parameter  name='Index'    type='int'    value='1'/>             \n"
-#endif
-    "      <Parameter  name='Sides'    type='string' value='x-'/>            \n"
-    "    </ParameterList>                                                    \n"
-    "  </ParameterList>                                                      \n"
-    "</ParameterList>                                                        \n"
-  );
-
-  Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
-
-  Plato::Elliptic::VectorFunction<PhysicsType>
-    vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
-
-  // compute and test constraint value
-  //
-  auto residual = vectorFunction.value(state, control);
-
-  // compute and test constraint value
-  //
-  auto jacobian = vectorFunction.gradient_u(state, control);
-
-  // parse constraints
-  //
-  Plato::OrdinalVector mBcDofs;
-  Plato::ScalarVector mBcValues;
-  Plato::EssentialBCs<ElementType>
-      tEssentialBoundaryConditions(tParamList->sublist("Essential Boundary Conditions",false), tMesh);
-  tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
-  Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(jacobian, residual, mBcDofs, mBcValues);
-
-  MPI_Comm myComm;
-  MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
-  Plato::Comm::Machine tMachine(myComm);
-
-
-#ifdef HAVE_AMGX
-  // *** use new AmgX solver interface *** //
-  //
-  Kokkos::deep_copy(state, 0.0);
-  {
-    Teuchos::RCP<Teuchos::ParameterList> tSolverParams =
-     Teuchos::getParametersFromXmlString(
-     "<ParameterList name='Linear Solver'>                                     \n"
-     "  <Parameter name='Solver' type='string' value='AmgX'/>                  \n"
-     "  <Parameter name='Configuration File' type='string' value='amgx.json'/> \n"
-     "</ParameterList>                                                         \n"
-   );
-
-   Plato::SolverFactory tSolverFactory(*tSolverParams);
-
-   auto tSolver = tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
-
-   tSolver->solve(*jacobian, state, residual);
-  }
-  Plato::ScalarVector stateNewAmgX("state", tNumDofs);
-  Kokkos::deep_copy(stateNewAmgX, state);
-#endif
-
-
-  // *** use Epetra solver interface *** //
-  //
-  Kokkos::deep_copy(state, 0.0);
-  {
-    Teuchos::RCP<Teuchos::ParameterList> tSolverParams =
-      Teuchos::getParametersFromXmlString(
-      "<ParameterList name='Linear Solver'>                              \n"
-      "  <Parameter name='Solver Stack' type='string' value='Epetra'/>   \n"
-      "  <Parameter name='Display Iterations' type='int' value='0'/>     \n"
-      "  <Parameter name='Iterations' type='int' value='50'/>            \n"
-      "  <Parameter name='Tolerance' type='double' value='1e-14'/>       \n"
-      "</ParameterList>                                                  \n"
-    );
-
-    Plato::SolverFactory tSolverFactory(*tSolverParams);
-
-    auto tSolver = tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
-
-    tSolver->solve(*jacobian, state, residual);
-  }
-  Plato::ScalarVector stateEpetra("state", tNumDofs);
-  Kokkos::deep_copy(stateEpetra, state);
-
-  auto stateEpetra_host = Kokkos::create_mirror_view(stateEpetra);
-  Kokkos::deep_copy(stateEpetra_host, stateEpetra);
-  
-#ifdef PLATO_TPETRA
-  // *** use Tpetra solver interface *** //
-  //
-  Kokkos::deep_copy(state, 0.0);
-  {
-    Teuchos::RCP<Teuchos::ParameterList> tSolverParams =
-      Teuchos::getParametersFromXmlString(
+    constexpr int tMeshWidth = 8;
+    // *** use Tpetra solver interface *** //
+    //
+    constexpr auto tTpetraParameters = 
       "<ParameterList name='Linear Solver'>                                       \n"
       "  <Parameter name='Solver Stack' type='string' value='Tpetra'/>            \n"
       "  <Parameter name='Preconditioner Package' type='string' value='ifpack2'/> \n"
       "  <Parameter name='Display Iterations' type='int' value='0'/>              \n"
       "  <Parameter name='Iterations' type='int' value='50'/>                     \n"
       "  <Parameter name='Tolerance' type='double' value='1e-14'/>                \n"
-      "</ParameterList>                                                           \n"
-    );
+      "</ParameterList>                                                           \n";
+    constexpr double tRelativeTol = 1e-12;
+    constexpr double tSmallTol = 1e-18;
+    test_vs_analytic_2d_solution(tTpetraParameters, tMeshWidth, tRelativeTol, tSmallTol, out, success);
 
-    Plato::SolverFactory tSolverFactory(*tSolverParams);
-
-    auto tSolver = tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
-
-    tSolver->solve(*jacobian, state, residual);
-  }
-  Plato::ScalarVector stateTpetra("state", tNumDofs);
-  Kokkos::deep_copy(stateTpetra, state);
-
-  auto stateTpetra_host = Kokkos::create_mirror_view(stateTpetra);
-  Kokkos::deep_copy(stateTpetra_host, stateTpetra);
-
-  // *** use Tpetra solver interface with MueLu preconditioner*** //
-  //
-  Kokkos::deep_copy(state, 0.0);
-  {
-    Teuchos::RCP<Teuchos::ParameterList> tSolverParams =
-      Teuchos::getParametersFromXmlString(
+    // *** use Tpetra solver interface with MueLu preconditioner*** //
+    //
+    constexpr auto tTpetraWithMueLuParameters = 
       "<ParameterList name='Linear Solver'>                                       \n"
       "  <Parameter name='Solver Stack' type='string' value='Tpetra'/>            \n"
       "  <Parameter name='Iterations' type='int' value='500'/>                    \n"
@@ -963,55 +1019,11 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, Elastic2D )
       "     <Parameter name='tentative: calculate qr' type='bool' value='false'/> \n"
       /***************************************************************************/
       "  </ParameterList>                                                         \n"
-      "</ParameterList>                                                           \n"
-    );
-
-    Plato::SolverFactory tSolverFactory(*tSolverParams);
-
-    auto tSolver = tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode);
-
-    tSolver->solve(*jacobian, state, residual);
-  }
-  Plato::ScalarVector stateTpetraWithMueLuPreconditioner("state", tNumDofs);
-  Kokkos::deep_copy(stateTpetraWithMueLuPreconditioner, state);
-
-  auto stateTpetraWithMueLuPreconditioner_host = Kokkos::create_mirror_view(stateTpetraWithMueLuPreconditioner);
-  Kokkos::deep_copy(stateTpetraWithMueLuPreconditioner_host, stateTpetraWithMueLuPreconditioner);
-#endif
-
-  // compare solutions
-  int tLength = stateEpetra_host.size();
-
-#ifdef PLATO_TPETRA
-  for(int i=0; i<tLength; i++)
-  {
-      if( stateEpetra_host(i) > 1e-18 || stateTpetra_host(i) > 1e-18)
-      {
-          TEST_FLOATING_EQUALITY(stateTpetra_host(i), stateEpetra_host(i), 1.0e-12);
-          TEST_FLOATING_EQUALITY(stateTpetra_host(i), stateTpetraWithMueLuPreconditioner_host(i), 1.0e-11);
-      }
-  }
-#endif
-
-#ifdef HAVE_AMGX
-  auto stateNewAmgX_host = Kokkos::create_mirror_view(stateNewAmgX);
-  Kokkos::deep_copy(stateNewAmgX_host, stateNewAmgX);
-
-  for(int i=0; i<tLength; i++){
-      if( stateNewAmgX_host(i) > 1e-18 )
-      {
-          TEST_FLOATING_EQUALITY(stateNewAmgX_host(i), stateEpetra_host(i), 1.0e-12);
-#ifdef PLATO_TPETRA
-          TEST_FLOATING_EQUALITY(stateNewAmgX_host(i), stateTpetra_host(i), 1.0e-12);
-#endif
-      }
-  }
-#endif
-
+      "</ParameterList>                                                           \n";
+    constexpr double tRelativeTolForPreconditioner = 1e-11;
+    test_vs_analytic_2d_solution(tTpetraWithMueLuParameters, tMeshWidth, tRelativeTolForPreconditioner, tSmallTol, out, success);
 }
 
-
-#ifdef PLATO_TPETRA
 /******************************************************************************/
 /*!
   \brief Tpetra Linear Solver will accept direct parameterlist input for
@@ -1027,7 +1039,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
   // create test mesh
   //
   constexpr int meshWidth=8;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -1221,7 +1233,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_valid_input )
 {
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -1262,7 +1274,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_valid_input )
 TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_invalid_solver_stack )
 {
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -1284,4 +1296,167 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_invalid_solver_stack )
   Plato::SolverFactory tSolverFactory(*tSolverParams);
   TEST_THROW(tSolverFactory.create(tMesh->NumNodes(), tMachine, tNumDofsPerNode),std::invalid_argument);
 }
-#endif
+#endif // PLATO_TPETRA
+
+#ifdef PLATO_TACHO
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, TachoSolver_NonBlockMatrix)
+{
+  namespace pth = Plato::TestHelpers;
+
+  const unsigned numRows = 4;
+  auto tMatrixA = Teuchos::rcp( new Plato::CrsMatrixType(numRows, numRows, 1, 1) );
+  std::vector<Plato::OrdinalType> tRowMapA = {0, 2, 5, 8, 10};
+  std::vector<Plato::OrdinalType> tColMapA = {0, 1, 0, 1, 2, 1, 2, 3, 2, 3};
+  std::vector<Plato::Scalar>      tValuesA = {2.0, -1.0, -1.0, 2.0, -1.0, -1.0, 2.0, -1.0, -1.0, 2.0};
+  pth::set_matrix_data(tMatrixA, tRowMapA, tColMapA, tValuesA);
+
+  std::vector<Plato::Scalar> rhs = {1.0, -1.0, 1.0, -1.0};
+  Plato::ScalarVector b("b", numRows);
+  pth::set_view_from_vector(b, rhs);
+  
+  const std::string tSolverParams = "<ParameterList name='Linear Solver'>\n"
+                                    "  <Parameter name='Solver Stack' type='string' value='Tacho'/>\n"
+                                    "</ParameterList>\n";
+
+  auto tSolver = solver(tSolverParams, numRows);
+  
+  Plato::ScalarVector x("x", numRows);
+  tSolver->solve(*tMatrixA, x, b);
+
+  auto x_host = Kokkos::create_mirror_view(x);
+  Kokkos::deep_copy(x_host, x);
+
+  const std::vector<Plato::Scalar> x_gold = {0.4, -0.2, 0.2, -0.4};
+
+  for(unsigned i=0; i<numRows; i++)
+  {
+    TEST_FLOATING_EQUALITY(x_host(i), x_gold[i], 1.0e-12);
+  }
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, TachoSolver_AsymmetricSparsityPatternThrows)
+{
+  namespace pth = Plato::TestHelpers;
+
+  constexpr int tNumRows = 4;
+  constexpr int tNumValues = 11;
+  const std::vector<int> tRowBegin = {0, 3, 5, 8, tNumValues}; 
+  const std::vector<int> tColumns = {0, 1, 2, 0, 1, 2, 1, 2, 3, 2, 3};
+  const std::vector<double> tValues = {2.0, -1.0, 1.0, -1.0, 2.0, -1.0, -1.0, 2.0, -1.0, -1.0, 2.0};
+  auto tMatrixA = Teuchos::rcp( new Plato::CrsMatrixType(tNumRows, tNumRows, 1, 1) );
+  pth::set_matrix_data(tMatrixA, tRowBegin, tColumns, tValues);
+
+  std::vector<Plato::Scalar> tRhs = {1.0, -1.0, 1.0, -1.0};
+  Plato::ScalarVector tB("b", tNumRows);
+  pth::set_view_from_vector(tB, tRhs);
+
+  const std::string tSolverParams = "<ParameterList name='Linear Solver'>\n"
+                                    "  <Parameter name='Solver Stack' type='string' value='Tacho'/>\n"
+                                    "</ParameterList>\n";
+  auto tSolver = solver(tSolverParams, tNumRows);
+
+  Plato::ScalarVector tX("x", tNumRows);
+  TEST_THROW(tSolver->solve(*tMatrixA, tX, tB), std::runtime_error);
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, TachoSolver_BlockMatrix)
+{
+  /*
+    2    -1    0    0
+    -1    2   -1    0
+     0   -1    2   -1
+     0    0   -1    2
+  */
+  namespace pth = Plato::TestHelpers;
+
+  constexpr unsigned numRows = 4;
+  auto tMatrixA = Teuchos::rcp( new Plato::CrsMatrixType(numRows, numRows, 2, 2) );
+  std::vector<Plato::OrdinalType> tRowMapA = {0, 2, 4};
+  std::vector<Plato::OrdinalType> tColMapA = {0, 1, 0, 1};
+  std::vector<Plato::Scalar>      tValuesA = {2.0, -1.0, -1.0, 2.0,
+                                              0.0, 0.0, -1.0, 0.0,
+                                              0.0, -1.0, 0.0, 0.0,
+                                              2.0, -1.0, -1.0, 2.0};
+  pth::set_matrix_data(tMatrixA, tRowMapA, tColMapA, tValuesA);
+
+  std::vector<Plato::Scalar> rhs = {1.0, -1.0, 1.0, -1.0};
+  Plato::ScalarVector b("b", numRows);
+  Plato::ScalarVector x("x", numRows);
+  pth::set_view_from_vector(b, rhs);
+  
+  Teuchos::RCP<Teuchos::ParameterList> tSolverParams =
+      Teuchos::getParametersFromXmlString(
+      "<ParameterList name='Linear Solver'>                                       \n"
+      "  <Parameter name='Solver Stack' type='string' value='Tacho'/>            \n"
+      "</ParameterList>                                                           \n"
+  );
+  
+  Plato::SolverFactory tSolverFactory(*tSolverParams);
+  
+  MPI_Comm myComm;
+  MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
+  Plato::Comm::Machine tMachine(myComm);
+
+  auto tSolver = tSolverFactory.create(numRows, tMachine, 1);
+  
+  tSolver->solve(*tMatrixA, x, b);
+
+  auto x_host = Kokkos::create_mirror_view(x);
+  Kokkos::deep_copy(x_host, x);
+
+  constexpr std::array<Plato::Scalar, 4> x_gold = {0.4, -0.2, 0.2, -0.4};
+
+  for(unsigned i=0; i<numRows; i++)
+  {
+    TEST_FLOATING_EQUALITY(x_host(i), x_gold[i], 1.0e-12);
+  }
+}
+
+/******************************************************************************/
+/*!
+  \brief 2D Elastic problem
+
+  Construct a linear system and solve it the Tacho interface. Test compares 
+  numerical solution with an analytic solution.
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( SolverInterfaceTests, TachoElastic2D )
+{
+    constexpr int tMeshWidth = 8;
+    // *** use Tacho solver interface *** //
+    //
+    constexpr auto tTachoParameters = 
+      "<ParameterList name='Linear Solver'>                           \n"
+      "  <Parameter name='Solver Stack' type='string' value='Tacho'/> \n"
+      "</ParameterList>                                               \n";
+    constexpr double tRelativeTol = 1e-12;
+    constexpr double tSmallTol = 1e-18;
+    test_vs_analytic_2d_solution(tTachoParameters, tMeshWidth, tRelativeTol, tSmallTol, out, success);
+}
+#endif // PLATO_TACHO
+
+#ifdef HAVE_AMGX
+/******************************************************************************/
+/*!
+  \brief 2D Elastic problem
+
+  Construct a linear system and solve it with the AmgX interface.  
+  Test compares the numerical solution with an analytic solution.
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( SolverInterfaceTests, AmgXElastic2D )
+{
+    constexpr int tMeshWidth = 8;
+    // *** use new AmgX solver interface *** //
+    //
+    constexpr auto tAmgxSolverParameters = 
+      "<ParameterList name='Linear Solver'>                                     \n"
+      "  <Parameter name='Solver' type='string' value='AmgX'/>                  \n"
+      "  <Parameter name='Configuration File' type='string' value='amgx.json'/> \n"
+      "</ParameterList>                                                         \n";
+    constexpr double tRelativeTol = 1e-12;
+    constexpr double tSmallTol = 1e-18;
+    test_vs_analytic_2d_solution(tAmgxSolverParameters, tMeshWidth, tRelativeTol, tSmallTol, out, success);
+}
+
+#endif // HAVE_AMGX

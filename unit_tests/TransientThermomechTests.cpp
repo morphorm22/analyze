@@ -1,9 +1,4 @@
-/*!
-  These unit tests are for the TransientThermomech functionality.
- \todo 
-*/
-
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
@@ -50,7 +45,7 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
   //
   constexpr int meshWidth=2;
 
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   using ElementType = typename Plato::ThermomechanicsElement<Plato::Tet4>;
 
@@ -343,7 +338,7 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, TransientThermomechResidual3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   using ElementType = typename Plato::ThermomechanicsElement<Plato::Tet4>;
 

@@ -6,8 +6,9 @@
 #include "SpatialModel.hpp"
 #include "PlatoUtilities.hpp"
 #include "InputDataUtils.hpp"
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 #include <Teuchos_UnitTestHarness.hpp>
+#include <Teuchos_XMLParameterListHelpers.hpp>
 
 namespace PlatoUnitTests
 {
@@ -70,7 +71,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, readCSV)
   tOutfile.close();
 
   constexpr int meshWidth=1;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -187,7 +188,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, uniformSpatialBasis)
   tOutfile.close();
 
   constexpr int meshWidth=1;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(

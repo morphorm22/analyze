@@ -3,7 +3,7 @@
  \todo 
 */
 
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
@@ -48,7 +48,7 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
 
   // create mesh based solution from host data
@@ -361,7 +361,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormAxial_3D)
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
     const Plato::Scalar tBoxWidth = 5.0;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -521,7 +521,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormShear_3D)
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
     const Plato::Scalar tBoxWidth = 5.0;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(

@@ -1,10 +1,4 @@
-/*
- * MicromorphicLinearMaterialModelTests.cpp
- *
- *  Created on: Oct 18, 2021
- */
-
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 
 #include "PlatoTypes.hpp"
 #include "PlatoStaticsTypes.hpp"
@@ -586,7 +580,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicElementTests, ElementFunctors3D)
     //
     constexpr int tMeshWidth=2;
     constexpr int tSpaceDim=3;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
     using ElementType = typename Plato::Hyperbolic::MicromorphicMechanicsElement<Plato::Tet4>;
 
     int tNumCells      = tMesh->NumElements();
@@ -1295,7 +1289,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicResidualTests, ErrorAFormNotSpecified)
     // create test mesh
     //
     constexpr int tMeshWidth=2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
     int tNumCells = tMesh->NumElements();
 
     Plato::DataMap tDataMap;
@@ -1366,7 +1360,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicResidualTests, ErrorAFormFalse)
     // create test mesh
     //
     constexpr int tMeshWidth=2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
     int tNumCells = tMesh->NumElements();
 
     Plato::DataMap tDataMap;
@@ -1437,7 +1431,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicResidualTests, ErrorExplicitNotSpecified)
     // create test mesh
     //
     constexpr int tMeshWidth=2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
     int tNumCells = tMesh->NumElements();
 
     Plato::DataMap tDataMap;
@@ -1508,7 +1502,7 @@ TEUCHOS_UNIT_TEST( RelaxedMicromorphicResidualTests, 3D_NoInertia )
     // create test mesh
     //
     constexpr int cMeshWidth=2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
     using ElementType = typename Plato::Hyperbolic::MicromorphicMechanicsElement<Plato::Tet4>;
     constexpr int tNumDofsPerNode  = ElementType::mNumDofsPerNode;
     int tNumNodes = tMesh->NumNodes();
@@ -1709,7 +1703,7 @@ TEUCHOS_UNIT_TEST( RelaxedMicromorphicResidualTests, 3D_WithInertia )
     // create test mesh
     //
     constexpr int cMeshWidth=2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", cMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", cMeshWidth);
     using ElementType = typename Plato::Hyperbolic::MicromorphicMechanicsElement<Plato::Tet4>;
     constexpr int tNumDofsPerNode  = ElementType::mNumDofsPerNode;
     int tNumNodes = tMesh->NumNodes();
@@ -1855,7 +1849,7 @@ TEUCHOS_UNIT_TEST(RelaxedMicromorphicProblemTests, ConstructWithFactory)
     // create test mesh
     //
     constexpr int tMeshWidth=2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
     int tNumCells = tMesh->NumElements();
 
     // set parameters
