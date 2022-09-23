@@ -32,10 +32,9 @@ void driver(
 
     Plato::Mesh tMesh = Plato::MeshFactory::create(tInputMesh);
 
-    // create mesh based density from host data
-    std::vector<Plato::Scalar> tControlHost(tMesh->NumNodes(), 1.0);
-    Kokkos::View<Plato::Scalar*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged> tControlHostView(tControlHost.data(), tControlHost.size());
-    auto tControl = Kokkos::create_mirror_view_and_copy(Kokkos::DefaultExecutionSpace(), tControlHostView);
+    // create default control vector
+    Plato::ScalarVector tControl("control", tMesh->NumNodes());
+    Kokkos::deep_copy(tControl, 1.0);
 
     // Solve Plato problem
     Plato::ProblemFactory tProblemFactory;

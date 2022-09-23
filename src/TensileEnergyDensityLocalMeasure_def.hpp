@@ -60,10 +60,11 @@ namespace Plato
     TensileEnergyDensityLocalMeasure<EvaluationType>::
     TensileEnergyDensityLocalMeasure(
         const Plato::SpatialDomain   & aSpatialModel,
+              Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aInputParams,
         const std::string            & aName
     ) : 
-        AbstractLocalMeasure<EvaluationType>(aSpatialModel, aInputParams, aName)
+        AbstractLocalMeasure<EvaluationType>(aSpatialModel, aDataMap, aInputParams, aName)
     {
         getYoungsModulusAndPoissonsRatio(aInputParams);
         computeLameConstants();
@@ -79,11 +80,12 @@ namespace Plato
     TensileEnergyDensityLocalMeasure<EvaluationType>::
     TensileEnergyDensityLocalMeasure(
         const Plato::SpatialDomain & aSpatialModel,
+              Plato::DataMap       & aDataMap,
         const Plato::Scalar        & aYoungsModulus,
         const Plato::Scalar        & aPoissonsRatio,
         const std::string          & aName
     ) :
-        AbstractLocalMeasure<EvaluationType>(aSpatialModel, aName),
+        AbstractLocalMeasure<EvaluationType>(aSpatialModel, aDataMap, aName),
         mYoungsModulus(aYoungsModulus),
         mPoissonsRatio(aPoissonsRatio)
     {
@@ -102,6 +104,7 @@ namespace Plato
     /******************************************************************************//**
      * \brief Evaluate tensile energy density local measure
      * \param [in] aState 2D container of state variables
+     * \param [in] aControl 2D container of control variables
      * \param [in] aConfig 3D container of configuration/coordinates
      * \param [in] aDataMap map to stored data
      * \param [out] aResult 1D container of cell local measure values
@@ -110,9 +113,10 @@ namespace Plato
     void
     TensileEnergyDensityLocalMeasure<EvaluationType>::
     operator()(
-        const Plato::ScalarMultiVectorT <StateT>  & aStateWS,
-        const Plato::ScalarArray3DT     <ConfigT> & aConfigWS,
-              Plato::ScalarVectorT      <ResultT> & aResultWS
+        const Plato::ScalarMultiVectorT <StateT>   & aStateWS,
+        const Plato::ScalarMultiVectorT <ControlT> & aControlWS,
+        const Plato::ScalarArray3DT     <ConfigT>  & aConfigWS,
+              Plato::ScalarVectorT      <ResultT>  & aResultWS
     )
     {
         const Plato::OrdinalType tNumCells = aResultWS.size();

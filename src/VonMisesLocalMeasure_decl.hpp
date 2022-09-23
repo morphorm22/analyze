@@ -1,5 +1,6 @@
 #pragma once
 
+#include "PlatoStaticsTypes.hpp"
 #include "ElasticModelFactory.hpp"
 #include "AbstractLocalMeasure.hpp"
 
@@ -18,17 +19,20 @@ class VonMisesLocalMeasure :
 private:
     using ElementType = typename EvaluationType::ElementType;
 
-    using AbstractLocalMeasure<EvaluationType>::mNumSpatialDims; /*!< space dimension */
-    using AbstractLocalMeasure<EvaluationType>::mNumVoigtTerms; /*!< number of voigt tensor terms */
-    using AbstractLocalMeasure<EvaluationType>::mNumNodesPerCell; /*!< number of nodes per cell */
+    using AbstractLocalMeasure<EvaluationType>::mNumSpatialDims;
+    using AbstractLocalMeasure<EvaluationType>::mNumVoigtTerms;
+    using AbstractLocalMeasure<EvaluationType>::mNumNodesPerCell;
     using AbstractLocalMeasure<EvaluationType>::mSpatialDomain; 
 
     using MatrixType = Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms>;
     MatrixType mCellStiffMatrix; /*!< cell/element Lame constants matrix */
 
-    using StateT  = typename EvaluationType::StateScalarType;  /*!< state variables automatic differentiation type */
-    using ConfigT = typename EvaluationType::ConfigScalarType; /*!< configuration variables automatic differentiation type */
-    using ResultT = typename EvaluationType::ResultScalarType; /*!< result variables automatic differentiation type */
+    using StateT   = typename EvaluationType::StateScalarType;
+    using ControlT = typename EvaluationType::ControlScalarType;
+    using ConfigT  = typename EvaluationType::ConfigScalarType;
+    using ResultT  = typename EvaluationType::ResultScalarType;
+
+    Plato::DataMap mDataMap;
 
 public:
     /******************************************************************************//**
@@ -38,6 +42,7 @@ public:
      **********************************************************************************/
     VonMisesLocalMeasure(
         const Plato::SpatialDomain   & aSpatialDomain,
+              Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aInputParams,
         const std::string            & aName
     );
@@ -49,6 +54,7 @@ public:
      **********************************************************************************/
     VonMisesLocalMeasure(
         const Plato::SpatialDomain & aSpatialDomain,
+              Plato::DataMap       & aDataMap,
         const MatrixType           & aCellStiffMatrix,
         const std::string            aName
     );
@@ -60,9 +66,10 @@ public:
      * \param [out] aResult 1D container of cell local measure values
     **********************************************************************************/
     void operator()(
-        const Plato::ScalarMultiVectorT<StateT> & aStateWS,
-        const Plato::ScalarArray3DT<ConfigT>    & aConfigWS,
-              Plato::ScalarVectorT<ResultT>     & aResultWS
+        const Plato::ScalarMultiVectorT<StateT>   & aStateWS,
+        const Plato::ScalarMultiVectorT<ControlT> & aControlWS,
+        const Plato::ScalarArray3DT<ConfigT>      & aConfigWS,
+              Plato::ScalarVectorT<ResultT>       & aResultWS
     ) override;
 };
 // class VonMisesLocalMeasure

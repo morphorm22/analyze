@@ -1,4 +1,5 @@
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
+#include "util/PlatoMathTestHelpers.hpp"
 
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
@@ -26,261 +27,6 @@
 #include <memory>
 #include <typeinfo>
 #include <vector>
-
-namespace PlatoDevel {
-
-/******************************************************************************/
-/*! 
-  \brief Set Kokkos::View data from std::vector
-*/
-/******************************************************************************/
-template <typename DataType>
-void setViewFromVector( Plato::ScalarVectorT<DataType> aView, std::vector<DataType> aVector)
-{
-  Kokkos::View<DataType*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged> tHostView(aVector.data(),aVector.size());
-  Kokkos::deep_copy(aView, tHostView);
-}
-
-/******************************************************************************/
-/*! 
-  \brief Set matrix data from provided views
-*/
-/******************************************************************************/
-void setMatrixData(
-  Teuchos::RCP<Plato::CrsMatrixType> aMatrix,
-  std::vector<Plato::OrdinalType>    aRowMap,
-  std::vector<Plato::OrdinalType>    aColMap,
-  std::vector<Plato::Scalar>         aValues )
-{
-  Plato::ScalarVectorT<Plato::OrdinalType> tRowMap("row map", aRowMap.size());
-  setViewFromVector(tRowMap, aRowMap);
-  aMatrix->setRowMap(tRowMap);
-
-  Plato::ScalarVectorT<Plato::OrdinalType> tColMap("col map", aColMap.size());
-  setViewFromVector(tColMap, aColMap);
-  aMatrix->setColumnIndices(tColMap);
-
-  Plato::ScalarVectorT<Plato::Scalar> tValues("values", aValues.size());
-  setViewFromVector(tValues, aValues);
-  aMatrix->setEntries(tValues);
-}
-
-// set CRS matrix from full 2D vector
-void fromFull( Teuchos::RCP<Plato::CrsMatrixType>            aOutMatrix,
-          const std::vector<std::vector<Plato::Scalar>> aInMatrix )
-{
-    using Plato::OrdinalType;
-    using Plato::Scalar;
-
-    if( aOutMatrix->numRows() != aInMatrix.size()    ) { ANALYZE_THROWERR("matrices have incompatible shapes"); }
-    if( aOutMatrix->numCols() != aInMatrix[0].size() ) { ANALYZE_THROWERR("matrices have incompatible shapes"); }
-
-    auto tNumRowsPerBlock = aOutMatrix->numRowsPerBlock();
-    auto tNumColsPerBlock = aOutMatrix->numColsPerBlock();
-    auto tNumBlockRows = aOutMatrix->numRows() / tNumRowsPerBlock;
-    auto tNumBlockCols = aOutMatrix->numCols() / tNumColsPerBlock;
-
-    std::vector<OrdinalType> tBlockRowMap(tNumBlockRows+1);;
-
-    tBlockRowMap[0] = 0;
-    std::vector<OrdinalType> tColumnIndices;
-    std::vector<Scalar> tBlockEntries;
-    for( OrdinalType iBlockRowIndex=0; iBlockRowIndex<tNumBlockRows; iBlockRowIndex++)
-    {
-        for( OrdinalType iBlockColIndex=0; iBlockColIndex<tNumBlockCols; iBlockColIndex++)
-        {
-             bool blockIsNonZero = false;
-             std::vector<Scalar> tLocalEntries;
-             for( OrdinalType iLocalBlockRowIndex=0; iLocalBlockRowIndex<tNumRowsPerBlock; iLocalBlockRowIndex++)
-             {
-                 for( OrdinalType iLocalBlockColIndex=0; iLocalBlockColIndex<tNumColsPerBlock; iLocalBlockColIndex++)
-                 {
-                      auto tMatrixRow = iBlockRowIndex * tNumRowsPerBlock + iLocalBlockRowIndex;
-                      auto tMatrixCol = iBlockColIndex * tNumColsPerBlock + iLocalBlockColIndex;
-                      tLocalEntries.push_back( aInMatrix[tMatrixRow][tMatrixCol] );
-                      if( aInMatrix[tMatrixRow][tMatrixCol] != 0.0 ) blockIsNonZero = true;
-                 }
-             }
-             if( blockIsNonZero )
-             {
-                 tColumnIndices.push_back( iBlockColIndex );
-                 tBlockEntries.insert(tBlockEntries.end(), tLocalEntries.begin(), tLocalEntries.end());
-             }
-        }
-        tBlockRowMap[iBlockRowIndex+1] = tColumnIndices.size();
-    }
-
-    setMatrixData(aOutMatrix, tBlockRowMap, tColumnIndices, tBlockEntries);
-}
-
-// print full matrix entries
-void PrintFullMatrix(const Teuchos::RCP<Plato::CrsMatrixType> & aInMatrix)
-{
-    auto tNumRows = aInMatrix->numRows();
-    auto tNumCols = aInMatrix->numCols();
-
-    auto tFullMat = ::PlatoUtestHelpers::toFull(aInMatrix);
-
-    printf("\n Full matrix entries: \n");
-    for (auto iRow = 0; iRow < tNumRows; iRow++)
-    {
-        for (auto iCol = 0; iCol < tNumCols; iCol++)
-        {
-            printf("%f ",tFullMat[iRow][iCol]);
-        }
-        printf("\n");
-    
-    }
-}
-
-// slow dumb matrix matrix multiply
-void SlowDumbMatrixMatrixMultiply( 
-      const Teuchos::RCP<Plato::CrsMatrixType> & aInMatrixOne,
-      const Teuchos::RCP<Plato::CrsMatrixType> & aInMatrixTwo,
-            Teuchos::RCP<Plato::CrsMatrixType> & aOutMatrix)
-{
-    auto tNumOutMatrixRows = aInMatrixOne->numRows();
-    auto tNumOutMatrixCols = aInMatrixTwo->numCols();
-
-    if( aInMatrixOne->numCols() != aInMatrixTwo->numRows() ) { ANALYZE_THROWERR("input matrices have incompatible shapes"); }
-
-    auto tNumInner = aInMatrixOne->numCols();
-
-    using Plato::Scalar;
-    std::vector<std::vector<Scalar>> tFullMatrix(tNumOutMatrixRows,std::vector<Scalar>(tNumOutMatrixCols, 0.0));
-
-    auto F1 = ::PlatoUtestHelpers::toFull(aInMatrixOne);
-    auto F2 = ::PlatoUtestHelpers::toFull(aInMatrixTwo);
-
-    for (auto iRow=0; iRow<tNumOutMatrixRows; iRow++)
-    {
-        for (auto iCol=0; iCol<tNumOutMatrixCols; iCol++)
-        {
-            tFullMatrix[iRow][iCol] = 0.0;
-            for (auto iK=0; iK<tNumInner; iK++)
-            {
-                tFullMatrix[iRow][iCol] += F1[iRow][iK]*F2[iK][iCol];
-            }
-        }
-    }
-
-    fromFull(aOutMatrix, tFullMatrix);
-}
-
-} // end namespace PlatoDevel
-
-template <typename DataType>
-bool is_same(
-      const Plato::ScalarVectorT<DataType> & aView,
-      const std::vector<DataType>          & aVec)
- {
-    auto tView_host = Kokkos::create_mirror(aView);
-    Kokkos::deep_copy(tView_host, aView);
-
-    if( aView.extent(0) != aVec.size() ) return false;
-
-    for (unsigned int i = 0; i < aVec.size(); ++i)
-    {
-        if(tView_host(i) != aVec[i])
-        {
-            return false;
-        }
-    }
-    return true;
- }
-
-template <typename DataType>
-bool is_same(
-      const Plato::ScalarVectorT<DataType> & aViewA,
-      const Plato::ScalarVectorT<DataType> & aViewB)
- {
-    if( aViewA.extent(0) != aViewB.extent(0) ) return false;
-    auto tViewA_host = Kokkos::create_mirror(aViewA);
-    Kokkos::deep_copy(tViewA_host, aViewA);
-    auto tViewB_host = Kokkos::create_mirror(aViewB);
-    Kokkos::deep_copy(tViewB_host, aViewB);
-    for (unsigned int i = 0; i < aViewA.extent(0); ++i)
-    {
-        if(tViewA_host(i) != tViewB_host(i)) return false;
-    }
-    return true;
- }
-
-bool is_equivalent(
-      const Plato::ScalarVectorT<Plato::OrdinalType> & aRowMap,
-      const Plato::ScalarVectorT<Plato::OrdinalType> & aColMapA,
-      const Plato::ScalarVectorT<Plato::Scalar>      & aValuesA,
-      const Plato::ScalarVectorT<Plato::OrdinalType> & aColMapB,
-      const Plato::ScalarVectorT<Plato::Scalar>      & aValuesB,
-      Plato::Scalar tolerance = 1.0e-14)
- {
-    if( aColMapA.extent(0) != aColMapB.extent(0) ) return false;
-    if( aValuesA.extent(0) != aValuesB.extent(0) ) return false;
-
-    auto tRowMap  = PlatoUtestHelpers::get(aRowMap);
-    auto tColMapA = PlatoUtestHelpers::get(aColMapA);
-    auto tValuesA = PlatoUtestHelpers::get(aValuesA);
-    auto tColMapB = PlatoUtestHelpers::get(aColMapB);
-    auto tValuesB = PlatoUtestHelpers::get(aValuesB);
-
-    Plato::OrdinalType tANumEntriesPerBlock = aValuesA.extent(0) / aColMapA.extent(0);
-    Plato::OrdinalType tBNumEntriesPerBlock = aValuesB.extent(0) / aColMapB.extent(0);
-    if( tANumEntriesPerBlock != tBNumEntriesPerBlock ) return false;
-
-    auto tNumRows = tRowMap.extent(0)-1;
-    for (unsigned int i = 0; i < tNumRows; ++i)
-    {
-        auto tFrom = tRowMap(i);
-        auto tTo = tRowMap(i+1);
-        for (auto iColMapEntryA=tFrom; iColMapEntryA<tTo; iColMapEntryA++)
-        {
-            auto tColumnIndexA = tColMapA(iColMapEntryA);
-            for (auto iColMapEntryB=tFrom; iColMapEntryB<tTo; iColMapEntryB++)
-            {
-                if (tColumnIndexA == tColMapB(iColMapEntryB) )
-                {
-                    for (auto iBlockEntry=0; iBlockEntry<tANumEntriesPerBlock; iBlockEntry++)
-                    {
-                        auto tBlockEntryIndexA = iColMapEntryA*tANumEntriesPerBlock+iBlockEntry;
-                        auto tBlockEntryIndexB = iColMapEntryB*tBNumEntriesPerBlock+iBlockEntry;
-                        Plato::Scalar tSum = fabs(tValuesA(tBlockEntryIndexA)) + fabs(tValuesB(tBlockEntryIndexB));
-                        Plato::Scalar tDif = fabs(tValuesA(tBlockEntryIndexA) - tValuesB(tBlockEntryIndexB));
-                        Plato::Scalar tRelVal = (tSum != 0.0) ? 2.0*tDif/tSum : 0.0;
-                        if (tRelVal > tolerance)
-                        {
-                            return false;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return true;
- }
-
-template <typename DataType>
-void print_view(const Plato::ScalarVectorT<DataType> & aView)
- {
-    auto tView_host = Kokkos::create_mirror(aView);
-    Kokkos::deep_copy(tView_host, aView);
-    std::cout << '\n';
-    for (unsigned int i = 0; i < aView.extent(0); ++i)
-    {
-        std::cout << tView_host(i) << '\n';
-    }
- }
-
-template <typename DataType>
-void print_view2(const Plato::ScalarVectorT<DataType> & aView)
- {
-    printf("Printing view now: ");
-    printf("\n size is %d",aView.extent(0));
-    Kokkos::parallel_for("print view values on device", aView.extent(0), KOKKOS_LAMBDA(const int & aIndex)
-    {
-        printf("Ordinal %d \n",aIndex);
-        printf("[%d] \n",aView(aIndex));
-    });
- }
 
 /******************************************************************************/
 /*!
@@ -354,7 +100,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, BuildCondensedSystem )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -384,7 +130,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, BuildCondensedSystem )
   // create vector function
   //
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(tMesh, *params);
+  Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
   Plato::Elliptic::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
 
@@ -439,10 +185,10 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, BuildCondensedSystem )
   auto tSlowDumbCondensedALeft = Teuchos::rcp( new Plato::CrsMatrixType(tNumDofs, tNumCondensedDofs, tNumDofsPerNode, tNumDofsPerNode) );
   auto tSlowDumbCondensedA     = Teuchos::rcp( new Plato::CrsMatrixType(tNumCondensedDofs, tNumCondensedDofs, tNumDofsPerNode, tNumDofsPerNode) );
   
-  PlatoDevel::SlowDumbMatrixMatrixMultiply( aA, tTransformMatrix, tSlowDumbCondensedALeft);
-  PlatoDevel::SlowDumbMatrixMatrixMultiply( tTransformMatrixTranspose, tSlowDumbCondensedALeft, tSlowDumbCondensedA);
+  Plato::TestHelpers::slow_dumb_matrix_matrix_multiply( aA, tTransformMatrix, tSlowDumbCondensedALeft);
+  Plato::TestHelpers::slow_dumb_matrix_matrix_multiply( tTransformMatrixTranspose, tSlowDumbCondensedALeft, tSlowDumbCondensedA);
 
-  // test lenths
+  // test lengths
   TEST_EQUALITY(tCondensedA->rowMap().size(), tSlowDumbCondensedA->rowMap().size());
 }
 
@@ -518,7 +264,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic2DTieMPC )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
@@ -548,7 +294,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic2DTieMPC )
   // create vector function
   //
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(tMesh, *params);
+  Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
   Plato::Elliptic::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
 
@@ -634,7 +380,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   using PhysicsType = ::Plato::Mechanics<Plato::Tet4>;
   using ElementType = typename PhysicsType::ElementType;
@@ -729,7 +475,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
   // create vector function
   //
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(tMesh, *params);
+  Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
   Plato::Elliptic::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
 
@@ -803,6 +549,4 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
   TEST_FLOATING_EQUALITY(checkDifferenceDof0, checkValue, 1.0e-8);
   TEST_FLOATING_EQUALITY(checkDifferenceDof1, checkValue, 1.0e-8);
   TEST_FLOATING_EQUALITY(checkDifferenceDof2, checkValue, 1.0e-8);
-
 }
-

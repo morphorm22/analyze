@@ -1,4 +1,4 @@
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
@@ -20,7 +20,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D )
   //
   constexpr int meshWidth=4;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1.0, meshWidth, 1.0, meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1.0, meshWidth, 1.0, meshWidth);
 
 
   // create mesh based density from host data
@@ -79,11 +79,11 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D )
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   // create objective
   //
-  Plato::DataMap tDataMap;
   std::string tMyFunction("Displacement");
   Plato::Elliptic::SolutionFunction<::Plato::Mechanics<Plato::Tri3>>
     scalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
@@ -151,7 +151,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D_Mag )
   //
   constexpr int meshWidth=4;
   constexpr int spaceDim=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1.0, meshWidth, 1.0, meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1.0, meshWidth, 1.0, meshWidth);
 
 
   // create mesh based density from host data
@@ -210,11 +210,11 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D_Mag )
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
   Plato::Comm::Machine tMachine(myComm);
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   // create objective
   //
-  Plato::DataMap tDataMap;
   std::string tMyFunction("Displacement");
   Plato::Elliptic::SolutionFunction<::Plato::Mechanics<Plato::Tri3>>
     scalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);

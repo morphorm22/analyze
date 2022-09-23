@@ -22,6 +22,10 @@ namespace Elliptic
 
 namespace Hatching
 {
+namespace
+{
+    constexpr auto kHatchingGradientDisabledErrorMessage = "Hatching gradients are disabled. The HATCHING_GRADIENT build option must be enabled to use this feature.";
+}
 
     /******************************************************************************//**
      * \brief PLATO problem constructor
@@ -35,7 +39,8 @@ namespace Hatching
       Teuchos::ParameterList & aProblemParams,
       Comm::Machine            aMachine
     ) :
-      mSpatialModel  (aMesh, aProblemParams),
+      AbstractProblem(aMesh, aProblemParams),
+      mSpatialModel  (aMesh, aProblemParams, mDataMap),
       mSequence      (mSpatialModel, aProblemParams),
       mPDE(std::make_shared<VectorFunctionType>(mSpatialModel, mDataMap, aProblemParams, aProblemParams.get<std::string>("PDE Constraint"))),
       mNumNewtonSteps(Plato::ParseTools::getSubParam<int>   (aProblemParams, "Newton Iteration", "Maximum Iterations",  1  )),
@@ -510,6 +515,10 @@ namespace Hatching
         const std::string         & aName
     )
     {
+#ifndef PLATO_HATCHING_GRADIENTS
+        ANALYZE_THROWERR(kHatchingGradientDisabledErrorMessage);
+#endif
+
         if( mCriteria.count(aName) )
         {
             Criterion tCriterion = mCriteria[aName];
@@ -543,6 +552,11 @@ namespace Hatching
         const Plato::Solutions    & aSolution,
               Criterion             aCriterion)
     {
+
+#ifndef PLATO_HATCHING_GRADIENTS
+        ANALYZE_THROWERR(kHatchingGradientDisabledErrorMessage);
+#endif
+
         if(aCriterion == nullptr)
         {
             ANALYZE_THROWERR("REQUESTED CRITERION NOT DEFINED BY USER.");

@@ -6,9 +6,9 @@
 #include "BLAS2.hpp"
 #include "FadTypes.hpp"
 #include "PlatoTypes.hpp"
-#include "TMKinetics.hpp"
 #include "TMKinematics.hpp"
 #include "GradientMatrix.hpp"
+#include "TMKineticsFactory.hpp"
 #include "InterpolateFromNodal.hpp"
 #include "GeneralFluxDivergence.hpp"
 #include "GeneralStressDivergence.hpp"
@@ -105,8 +105,10 @@ namespace Elliptic
 
       Plato::ComputeGradientMatrix<ElementType> computeGradient;
       Plato::TMKinematics<ElementType>          kinematics;
-      Plato::TMKinetics<ElementType>            kinetics(mMaterialModel);
       
+      Plato::TMKineticsFactory< EvaluationType, ElementType > tTMKineticsFactory;
+      auto tTMKinetics = tTMKineticsFactory.create(mMaterialModel, mSpatialDomain, mDataMap);
+
       Plato::GeneralStressDivergence<ElementType, mNumDofsPerNode, MDofOffset> stressDivergence;
       Plato::GeneralFluxDivergence  <ElementType, mNumDofsPerNode, TDofOffset> fluxDivergence;
 
@@ -124,57 +126,64 @@ namespace Elliptic
       auto tCubWeights = ElementType::getCubWeights();
       auto tNumPoints = tCubWeights.size();
 
+      Plato::ScalarArray3DT<ResultScalarType> tStress("stress", tNumCells, tNumPoints, mNumVoigtTerms);
+      Plato::ScalarArray3DT<ResultScalarType> tFlux  ("flux",   tNumCells, tNumPoints, mNumSpatialDims);
+      Plato::ScalarArray3DT<GradScalarType>   tStrain("strain", tNumCells, tNumPoints, mNumVoigtTerms);
+      Plato::ScalarArray3DT<GradScalarType>   tTGrad ("tgrad",  tNumCells, tNumPoints, mNumSpatialDims);
+
+      Plato::ScalarArray4DT<ConfigScalarType> tGradient("gradient", tNumCells, tNumPoints, mNumNodesPerCell, mNumSpatialDims);
+
+      Plato::ScalarMultiVectorT<ConfigScalarType> tVolume("volume", tNumCells, tNumPoints);
+      Plato::ScalarMultiVectorT<StateScalarType> tTemperature("temperature", tNumCells, tNumPoints);
+
       auto& applyStressWeighting = mApplyStressWeighting;
       auto& applyFluxWeighting  = mApplyFluxWeighting;
-      Kokkos::parallel_for("compute element state", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+      Kokkos::parallel_for("compute element kinematics", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
       KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-          ConfigScalarType tVolume(0.0);
-
-          Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, ConfigScalarType> tGradient;
-
-          Plato::Array<ElementType::mNumVoigtTerms,  GradScalarType>   tStrain(0.0);
-          Plato::Array<ElementType::mNumSpatialDims, GradScalarType>   tTGrad (0.0);
-          Plato::Array<ElementType::mNumVoigtTerms,  ResultScalarType> tStress(0.0);
-          Plato::Array<ElementType::mNumSpatialDims, ResultScalarType> tFlux  (0.0);
-
           auto tCubPoint = tCubPoints(iGpOrdinal);
 
-          computeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
+          computeGradient(iCellOrdinal, iGpOrdinal, tCubPoint, aConfig, tGradient, tVolume);
 
-          tVolume *= tCubWeights(iGpOrdinal);
+          tVolume(iCellOrdinal, iGpOrdinal) *= tCubWeights(iGpOrdinal);
 
           // compute strain and electric field
           //
-          kinematics(iCellOrdinal, tStrain, tTGrad, aState, tGradient);
+          kinematics(iCellOrdinal, iGpOrdinal, tStrain, tTGrad, aState, tGradient);
     
-          // compute stress and electric displacement
-          //
           auto tBasisValues = ElementType::basisValues(tCubPoint);
-          StateScalarType tTemperature = interpolateFromNodal(iCellOrdinal, tBasisValues, aState);
-          kinetics(tStress, tFlux, tStrain, tTGrad, tTemperature);
+          tTemperature(iCellOrdinal, iGpOrdinal) = interpolateFromNodal(iCellOrdinal, tBasisValues, aState);
+      });
 
+      // compute element state
+      (*tTMKinetics)(tStress, tFlux, tStrain, tTGrad, tTemperature, aControl);
+
+      Kokkos::parallel_for("compute divergence", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      {
           // apply weighting
           //
-          applyStressWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
-          applyFluxWeighting  (iCellOrdinal, aControl, tBasisValues, tFlux);
+          auto tCubPoint = tCubPoints(iGpOrdinal);
+          auto tBasisValues = ElementType::basisValues(tCubPoint);
+          applyStressWeighting(iCellOrdinal, iGpOrdinal, aControl, tBasisValues, tStress);
+          applyFluxWeighting  (iCellOrdinal, iGpOrdinal, aControl, tBasisValues, tFlux);
     
           // compute divergence
           //
-          stressDivergence(iCellOrdinal, aResult, tStress, tGradient, tVolume);
-          fluxDivergence  (iCellOrdinal, aResult, tFlux,   tGradient, tVolume);
+          stressDivergence(iCellOrdinal, iGpOrdinal, aResult, tStress, tGradient, tVolume);
+          fluxDivergence  (iCellOrdinal, iGpOrdinal, aResult, tFlux,   tGradient, tVolume);
 
           for(int i=0; i<ElementType::mNumVoigtTerms; i++)
           {
-              Kokkos::atomic_add(&tCellStrain(iCellOrdinal,i), tVolume*tStrain(i));
-              Kokkos::atomic_add(&tCellStress(iCellOrdinal,i), tVolume*tStress(i));
+              Kokkos::atomic_add(&tCellStrain(iCellOrdinal,i), tVolume(iCellOrdinal, iGpOrdinal)*tStrain(iCellOrdinal, iGpOrdinal, i));
+              Kokkos::atomic_add(&tCellStress(iCellOrdinal,i), tVolume(iCellOrdinal, iGpOrdinal)*tStress(iCellOrdinal, iGpOrdinal, i));
           }
           for(int i=0; i<ElementType::mNumSpatialDims; i++)
           {
-              Kokkos::atomic_add(&tCellTgrad(iCellOrdinal,i), tVolume*tTGrad(i));
-              Kokkos::atomic_add(&tCellFlux(iCellOrdinal,i), tVolume*tFlux(i));
+              Kokkos::atomic_add(&tCellTgrad(iCellOrdinal,i), tVolume(iCellOrdinal, iGpOrdinal)*tTGrad(iCellOrdinal, iGpOrdinal, i));
+              Kokkos::atomic_add(&tCellFlux(iCellOrdinal,i), tVolume(iCellOrdinal, iGpOrdinal)*tFlux(iCellOrdinal, iGpOrdinal, i));
           }
-          Kokkos::atomic_add(&tCellVolume(iCellOrdinal), tVolume);
+          Kokkos::atomic_add(&tCellVolume(iCellOrdinal), tVolume(iCellOrdinal, iGpOrdinal));
       });
 
       Kokkos::parallel_for("compute cell quantities", Kokkos::RangePolicy<>(0, tNumCells),

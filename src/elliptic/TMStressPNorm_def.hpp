@@ -3,11 +3,11 @@
 #include "elliptic/TMStressPNorm_decl.hpp"
 
 #include "FadTypes.hpp"
-#include "TMKinetics.hpp"
 #include "TMKinematics.hpp"
 #include "PlatoMeshExpr.hpp"
 #include "ScalarProduct.hpp"
 #include "GradientMatrix.hpp"
+#include "TMKineticsFactory.hpp"
 #include "InterpolateFromNodal.hpp"
 
 namespace Plato
@@ -78,9 +78,21 @@ namespace Elliptic
 
       Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
       Plato::TMKinematics<ElementType>          tKinematics;
-      Plato::TMKinetics<ElementType>            tKinetics(mMaterialModel);
+
+      Plato::TMKineticsFactory< EvaluationType, ElementType > tTMKineticsFactory;
+      auto tTMKinetics = tTMKineticsFactory.create(mMaterialModel, mSpatialDomain, mDataMap);
 
       Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode, TDofOffset> tInterpolateFromNodal;
+
+      Plato::ScalarArray3DT<ResultScalarType> tStress("stress", tNumCells, tNumPoints, mNumVoigtTerms);
+      Plato::ScalarArray3DT<ResultScalarType> tFlux  ("flux",   tNumCells, tNumPoints, mNumSpatialDims);
+      Plato::ScalarArray3DT<GradScalarType>   tStrain("strain", tNumCells, tNumPoints, mNumVoigtTerms);
+      Plato::ScalarArray3DT<GradScalarType>   tTGrad ("tgrad",  tNumCells, tNumPoints, mNumSpatialDims);
+
+      Plato::ScalarArray4DT<ConfigScalarType> tGradient("gradient", tNumCells, tNumPoints, mNumNodesPerCell, mNumSpatialDims);
+
+      Plato::ScalarMultiVectorT<ConfigScalarType> tVolume("volume", tNumCells, tNumPoints);
+      Plato::ScalarMultiVectorT<StateScalarType> tTemperature("temperature", tNumCells, tNumPoints);
 
       Plato::ScalarMultiVectorT<ResultScalarType> tCellStress("stress", tNumCells, mNumVoigtTerms);
       Plato::ScalarVectorT<ConfigScalarType> tCellVolume("volume", tNumCells);
@@ -89,42 +101,41 @@ namespace Elliptic
       Kokkos::parallel_for("compute internal energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
       KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-          ConfigScalarType tVolume(0.0);
-
-          Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, ConfigScalarType> tGradient;
-
-          Plato::Array<mNumVoigtTerms,  GradScalarType>   tStrain(0.0);
-          Plato::Array<mNumSpatialDims, GradScalarType>   tTGrad (0.0);
-          Plato::Array<mNumVoigtTerms,  ResultScalarType> tStress(0.0);
-          Plato::Array<mNumSpatialDims, ResultScalarType> tFlux  (0.0);
-
           auto tCubPoint = tCubPoints(iGpOrdinal);
 
-          tComputeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
+          tComputeGradient(iCellOrdinal, iGpOrdinal, tCubPoint, aConfig, tGradient, tVolume);
 
-          tVolume *= tCubWeights(iGpOrdinal);
-          tVolume *= tFxnValues(iCellOrdinal*tNumPoints + iGpOrdinal, 0);
+          tVolume(iCellOrdinal, iGpOrdinal) *= tCubWeights(iGpOrdinal);
+          tVolume(iCellOrdinal, iGpOrdinal) *= tFxnValues(iCellOrdinal*tNumPoints + iGpOrdinal, 0);
 
           // compute strain and electric field
           //
-          tKinematics(iCellOrdinal, tStrain, tTGrad, aState, tGradient);
+          tKinematics(iCellOrdinal, iGpOrdinal, tStrain, tTGrad, aState, tGradient);
 
           // compute stress and electric displacement
           //
           auto tBasisValues = ElementType::basisValues(tCubPoint);
-          StateScalarType tTemperature = tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState);
-          tKinetics(tStress, tFlux, tStrain, tTGrad, tTemperature);
+          tTemperature(iCellOrdinal, iGpOrdinal) = tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState);
+      });
 
+      // compute element state
+      (*tTMKinetics)(tStress, tFlux, tStrain, tTGrad, tTemperature, aControl);
+
+      Kokkos::parallel_for("compute internal energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      {
           // apply weighting
           //
-          tApplyStressWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
+          auto tCubPoint = tCubPoints(iGpOrdinal);
+          auto tBasisValues = ElementType::basisValues(tCubPoint);
+          tApplyStressWeighting(iCellOrdinal, iGpOrdinal, aControl, tBasisValues, tStress);
 
           for(int i=0; i<ElementType::mNumVoigtTerms; i++)
           {
-              Kokkos::atomic_add(&tCellStress(iCellOrdinal,i), tVolume*tStress(i));
+              Kokkos::atomic_add(&tCellStress(iCellOrdinal,i), tVolume(iCellOrdinal, iGpOrdinal)*tStress(iCellOrdinal, iGpOrdinal, i));
           }
 
-          Kokkos::atomic_add(&tCellVolume(iCellOrdinal), tVolume);
+          Kokkos::atomic_add(&tCellVolume(iCellOrdinal), tVolume(iCellOrdinal, iGpOrdinal));
       });
 
       Kokkos::parallel_for("compute cell stress", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, mNumVoigtTerms}),

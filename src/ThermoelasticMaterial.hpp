@@ -39,22 +39,25 @@ namespace Plato {
   /******************************************************************************/
   template<int SpatialDim>
   void ThermoelasticMaterial<SpatialDim>::
-  parseElasticStiffness(const Teuchos::ParameterList& paramList)
+  parseElasticStiffness(const Teuchos::ParameterList& aParamList)
   /******************************************************************************/
   {
-      auto tParams = paramList.sublist("Elastic Stiffness");
-      if (tParams.isSublist("Youngs Modulus"))
+      if(aParamList.isSublist("Elastic Stiffness"))
       {
-          this->setRank4VoigtFunctor("Elastic Stiffness", Plato::IsotropicStiffnessFunctor<SpatialDim>(tParams));
-      }
-      else
-      if (tParams.isType<Plato::Scalar>("Youngs Modulus"))
-      {
-          this->setRank4VoigtConstant("Elastic Stiffness", Plato::IsotropicStiffnessConstant<SpatialDim>(tParams));
-      }
-      else
-      {
-          this->parseRank4Voigt("Elastic Stiffness", tParams);
+          auto tParams = aParamList.sublist("Elastic Stiffness");
+          if (tParams.isSublist("Youngs Modulus"))
+          {
+              this->setRank4VoigtFunctor("Elastic Stiffness", Plato::IsotropicStiffnessFunctor<SpatialDim>(tParams));
+          }
+          else
+          if (tParams.isType<Plato::Scalar>("Youngs Modulus"))
+          {
+              this->setRank4VoigtConstant("Elastic Stiffness", Plato::IsotropicStiffnessConstant<SpatialDim>(tParams));
+          }
+          else
+          {
+              this->parseRank4Voigt("Elastic Stiffness", aParamList);
+          }
       }
   }
 

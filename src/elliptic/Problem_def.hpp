@@ -33,7 +33,8 @@ namespace Elliptic
       Teuchos::ParameterList & aProblemParams,
       Comm::Machine            aMachine
     ) :
-      mSpatialModel  (aMesh, aProblemParams),
+      AbstractProblem(aMesh, aProblemParams),
+      mSpatialModel  (aMesh, aProblemParams, mDataMap),
       mPDE(std::make_shared<VectorFunctionType>(mSpatialModel, mDataMap, aProblemParams, aProblemParams.get<std::string>("PDE Constraint"))),
       mNumNewtonSteps(Plato::ParseTools::getSubParam<int>   (aProblemParams, "Newton Iteration", "Maximum Iterations",  1  )),
       mNewtonIncTol  (Plato::ParseTools::getSubParam<double>(aProblemParams, "Newton Iteration", "Increment Tolerance", 0.0)),
@@ -49,11 +50,13 @@ namespace Elliptic
     {
         this->initialize(aProblemParams);
 
-        Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
-        if(mMPCs)
-            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode, mMPCs);
-        else
-            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode);
+        LinearSystemType systemType = LinearSystemType::SYMMETRIC_POSITIVE_DEFINITE;
+        if (mPhysics == "Electromechanical" || mPhysics == "Thermomechanical") {
+            systemType = LinearSystemType::SYMMETRIC_INDEFINITE;
+        }
+
+        Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"), systemType);
+        mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode, mMPCs);
     }
 
     template<typename PhysicsType>

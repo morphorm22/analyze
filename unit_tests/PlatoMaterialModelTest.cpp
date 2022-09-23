@@ -4,8 +4,10 @@
  *  Created on: Jun 11, 2020
  */
 
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
+
 #include <Teuchos_UnitTestHarness.hpp>
+#include <Teuchos_XMLParameterListHelpers.hpp>
 
 #include "MaterialModel.hpp"
 

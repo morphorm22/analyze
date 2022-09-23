@@ -16,16 +16,17 @@ class TensileEnergyDensityLocalMeasure :
 private:
     using ElementType = typename EvaluationType::ElementType;
 
-    using AbstractLocalMeasure<EvaluationType>::mNumSpatialDims; /*!< space dimension */
-    using AbstractLocalMeasure<EvaluationType>::mNumVoigtTerms; /*!< number of voigt tensor terms */
-    using AbstractLocalMeasure<EvaluationType>::mNumNodesPerCell; /*!< number of nodes per cell */
+    using AbstractLocalMeasure<EvaluationType>::mNumSpatialDims;
+    using AbstractLocalMeasure<EvaluationType>::mNumVoigtTerms;
+    using AbstractLocalMeasure<EvaluationType>::mNumNodesPerCell;
     using AbstractLocalMeasure<EvaluationType>::mSpatialDomain; 
 
-    Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffMatrix; /*!< cell/element Lame constants matrix */
+    Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffMatrix;
 
-    using StateT = typename EvaluationType::StateScalarType; /*!< state variables automatic differentiation type */
-    using ConfigT = typename EvaluationType::ConfigScalarType; /*!< configuration variables automatic differentiation type */
-    using ResultT = typename EvaluationType::ResultScalarType; /*!< result variables automatic differentiation type */
+    using StateT   = typename EvaluationType::StateScalarType;
+    using ControlT = typename EvaluationType::ControlScalarType;
+    using ConfigT  = typename EvaluationType::ConfigScalarType;
+    using ResultT  = typename EvaluationType::ResultScalarType;
 
     Plato::Scalar mLameConstantLambda, mLameConstantMu, mPoissonsRatio, mYoungsModulus;
 
@@ -48,6 +49,7 @@ public:
      **********************************************************************************/
     TensileEnergyDensityLocalMeasure(
         const Plato::SpatialDomain   & aSpatialModel,
+              Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aInputParams,
         const std::string            & aName
     );
@@ -60,6 +62,7 @@ public:
      **********************************************************************************/
     TensileEnergyDensityLocalMeasure(
         const Plato::SpatialDomain & aSpatialModel,
+              Plato::DataMap       & aDataMap,
         const Plato::Scalar        & aYoungsModulus,
         const Plato::Scalar        & aPoissonsRatio,
         const std::string          & aName
@@ -73,15 +76,17 @@ public:
     /******************************************************************************//**
      * \brief Evaluate tensile energy density local measure
      * \param [in] aState 2D container of state variables
+     * \param [in] aControl 2D container of control variables
      * \param [in] aConfig 3D container of configuration/coordinates
      * \param [in] aDataMap map to stored data
      * \param [out] aResult 1D container of cell local measure values
     **********************************************************************************/
     void
     operator()(
-        const Plato::ScalarMultiVectorT <StateT>  & aStateWS,
-        const Plato::ScalarArray3DT     <ConfigT> & aConfigWS,
-              Plato::ScalarVectorT      <ResultT> & aResultWS
+        const Plato::ScalarMultiVectorT <StateT>   & aStateWS,
+        const Plato::ScalarMultiVectorT <ControlT> & aControlWS,
+        const Plato::ScalarArray3DT     <ConfigT>  & aConfigWS,
+              Plato::ScalarVectorT      <ResultT>  & aResultWS
     ) override;
 };
 // class TensileEnergyDensityLocalMeasure

@@ -9,6 +9,7 @@
 #include "AnalyzeOutput.hpp"
 #include "AnalyzeMacros.hpp"
 #include "ApplyConstraints.hpp"
+#include "alg/PlatoAbstractSolver.hpp"
 #include "elliptic/ScalarFunctionBaseFactory.hpp"
 #include "parabolic/ScalarFunctionBaseFactory.hpp"
 #include "geometric/ScalarFunctionBaseFactory.hpp"
@@ -27,7 +28,8 @@ namespace Parabolic
           Teuchos::ParameterList & aProblemParams,
           Comm::Machine            aMachine
         ) :
-            mSpatialModel  (aMesh, aProblemParams),
+            AbstractProblem(aMesh, aProblemParams),
+            mSpatialModel  (aMesh, aProblemParams, mDataMap),
             mPDEConstraint (mSpatialModel, mDataMap, aProblemParams, aProblemParams.get<std::string>("PDE Constraint")),
             mTrapezoidIntegrator (aProblemParams.sublist("Time Integration")),
             mNumSteps      (Plato::ParseTools::getSubParam<int>   (aProblemParams, "Time Integration", "Number Time Steps",   1  )),
@@ -131,7 +133,7 @@ namespace Parabolic
                 }
             }
 
-            Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
+            Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"), LinearSystemType::SYMMETRIC_INDEFINITE);
             mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode);
 
         }

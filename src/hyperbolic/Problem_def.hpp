@@ -27,7 +27,8 @@ namespace Hyperbolic
       Teuchos::ParameterList & aProblemParams,
       Comm::Machine            aMachine
     ) :
-        mSpatialModel    (aMesh, aProblemParams),
+        AbstractProblem  (aMesh, aProblemParams),
+        mSpatialModel    (aMesh, aProblemParams, mDataMap),
         mPDEConstraint   (mSpatialModel, mDataMap, aProblemParams, aProblemParams.get<std::string>("PDE Constraint")),
         mSaveState       (aProblemParams.sublist("Hyperbolic").isType<Teuchos::Array<std::string>>("Plottable")),
         mInitDisplacement ("Init Displacement", mPDEConstraint.size()),

@@ -1,9 +1,4 @@
-/*!
-  These unit tests are for the HeatEquation functionality.
- \todo 
-*/
-
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
@@ -72,7 +67,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, 3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   using ElementType = typename Plato::ThermalElement<Plato::Tet4>;
 
@@ -427,7 +422,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, HeatEquationResidual3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   // create mesh based density from host data
   //
@@ -454,9 +449,9 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, HeatEquationResidual3D )
   auto Tdot = Kokkos::create_mirror_view_and_copy( Kokkos::DefaultExecutionSpace(), Tdot_host_view);
 
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
-
   Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
+
   Plato::Parabolic::VectorFunction<::Plato::Thermal<Plato::Tet4>>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
@@ -643,7 +638,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, InternalThermalEnergy3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   // create mesh based temperature from host data
   //
@@ -663,12 +658,12 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, InternalThermalEnergy3D )
   }, "temperature history");
 
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  Plato::DataMap dataMap;
   std::string tMyFunction("Internal Energy");
   Plato::Parabolic::PhysicsScalarFunction<::Plato::Thermal<Plato::Tet4>>
-    scalarFunction(tSpatialModel, dataMap, *tParamList, tMyFunction);
+    scalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
   auto timeStep = tParamList->sublist("Time Integration").get<Plato::Scalar>("Time Step");
   int timeIncIndex = 1;
@@ -774,7 +769,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, ComputedField_UniformScalar )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   // compute fields
   //

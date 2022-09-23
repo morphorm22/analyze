@@ -1,5 +1,6 @@
 #pragma once
 
+#include "PlatoStaticsTypes.hpp"
 #include "ThermoelasticMaterial.hpp"
 #include "AbstractLocalMeasure.hpp"
 
@@ -22,10 +23,12 @@ private:
     using AbstractLocalMeasure<EvaluationType>::mNumVoigtTerms;
     using AbstractLocalMeasure<EvaluationType>::mNumNodesPerCell;
     using AbstractLocalMeasure<EvaluationType>::mSpatialDomain; 
+    using AbstractLocalMeasure<EvaluationType>::mDataMap;
 
-    using StateT = typename EvaluationType::StateScalarType;
-    using ConfigT = typename EvaluationType::ConfigScalarType;
-    using ResultT = typename EvaluationType::ResultScalarType;
+    using StateT   = typename EvaluationType::StateScalarType;
+    using ConfigT  = typename EvaluationType::ConfigScalarType;
+    using ControlT = typename EvaluationType::ControlScalarType;
+    using ResultT  = typename EvaluationType::ResultScalarType;
 
     Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mMaterialModel;
 
@@ -41,6 +44,7 @@ public:
      **********************************************************************************/
     ThermalVonMisesLocalMeasure(
         const Plato::SpatialDomain   & aSpatialDomain,
+              Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aInputParams,
         const std::string            & aName
     );
@@ -59,9 +63,10 @@ public:
     **********************************************************************************/
     virtual void
     operator()(
-        const Plato::ScalarMultiVectorT <StateT>  & aStateWS,
-        const Plato::ScalarArray3DT     <ConfigT> & aConfigWS,
-              Plato::ScalarVectorT      <ResultT> & aResultWS
+        const Plato::ScalarMultiVectorT <StateT>   & aStateWS,
+        const Plato::ScalarMultiVectorT <ControlT> & aControlWS,
+        const Plato::ScalarArray3DT     <ConfigT>  & aConfigWS,
+              Plato::ScalarVectorT      <ResultT>  & aResultWS
     ) override;
 };
 // class ThermalVonMisesLocalMeasure

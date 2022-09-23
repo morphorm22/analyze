@@ -1,7 +1,7 @@
 #include "Teuchos_UnitTestRepository.hpp"
 #include <mpi.h>
 #include <Kokkos_Core.hpp>
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 
 #ifdef WATCH_ARITHMETIC
 #include <fenv.h>

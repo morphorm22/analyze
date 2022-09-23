@@ -4,8 +4,8 @@
 #include <memory>
 
 #ifdef PLATO_PARABOLIC
-#include "parabolic/TransientThermomechResidual.hpp"
 #include "parabolic/AbstractScalarFunction.hpp"
+#include "parabolic/TransientThermomechResidual.hpp"
 #include "parabolic/InternalThermoelasticEnergy.hpp"
 #endif
 
@@ -35,6 +35,7 @@ namespace ThermomechanicsFactory
     inline std::shared_ptr<Plato::AbstractLocalMeasure<EvaluationType>>
     create_local_measure(
       const Plato::SpatialDomain   & aSpatialDomain,
+            Plato::DataMap         & aDataMap,
             Teuchos::ParameterList & aProblemParams,
       const std::string            & aFuncName
     )
@@ -45,7 +46,7 @@ namespace ThermomechanicsFactory
         if(tLocalMeasure == "VonMises")
         {
           return std::make_shared<ThermalVonMisesLocalMeasure<EvaluationType>>
-              (aSpatialDomain, aProblemParams, "VonMises");
+              (aSpatialDomain, aDataMap, aProblemParams, "VonMises");
         }
         else
         {
@@ -67,9 +68,9 @@ namespace ThermomechanicsFactory
               Teuchos::ParameterList & aInputParams,
         const std::string            & aFuncName)
     {
-        auto EvalMeasure = Plato::ThermomechanicsFactory::create_local_measure<EvaluationType>(aSpatialDomain, aInputParams, aFuncName);
+        auto EvalMeasure = Plato::ThermomechanicsFactory::create_local_measure<EvaluationType>(aSpatialDomain, aDataMap, aInputParams, aFuncName);
         using Residual = typename Plato::Elliptic::ResidualTypes<typename EvaluationType::ElementType>;
-        auto PODMeasure = Plato::ThermomechanicsFactory::create_local_measure<Residual>(aSpatialDomain, aInputParams, aFuncName);
+        auto PODMeasure = Plato::ThermomechanicsFactory::create_local_measure<Residual>(aSpatialDomain, aDataMap, aInputParams, aFuncName);
 
         std::shared_ptr<Plato::AugLagStressCriterionQuadratic<EvaluationType>> tOutput;
         tOutput = std::make_shared< Plato::AugLagStressCriterionQuadratic<EvaluationType> >

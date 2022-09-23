@@ -17,10 +17,11 @@ namespace Plato
     VonMisesLocalMeasure<EvaluationType>::
     VonMisesLocalMeasure(
         const Plato::SpatialDomain   & aSpatialDomain,
+              Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aInputParams,
         const std::string            & aName
     ) : 
-        AbstractLocalMeasure<EvaluationType>(aSpatialDomain, aInputParams, aName)
+        AbstractLocalMeasure<EvaluationType>(aSpatialDomain, aDataMap, aInputParams, aName)
     {
         auto tMaterialName = mSpatialDomain.getMaterialName();
         Plato::ElasticModelFactory<mNumSpatialDims> tMaterialModelFactory(aInputParams);
@@ -37,10 +38,11 @@ namespace Plato
     VonMisesLocalMeasure<EvaluationType>::
     VonMisesLocalMeasure(
         const Plato::SpatialDomain & aSpatialDomain,
+              Plato::DataMap       & aDataMap,
         const MatrixType           & aCellStiffMatrix,
         const std::string            aName
     ) :
-        AbstractLocalMeasure<EvaluationType>(aSpatialDomain, aName)
+        AbstractLocalMeasure<EvaluationType>(aSpatialDomain, aDataMap, aName)
     {
         mCellStiffMatrix = aCellStiffMatrix;
     }
@@ -55,9 +57,10 @@ namespace Plato
     void
     VonMisesLocalMeasure<EvaluationType>::
     operator()(
-        const Plato::ScalarMultiVectorT<StateT> & aStateWS,
-        const Plato::ScalarArray3DT<ConfigT>    & aConfigWS,
-              Plato::ScalarVectorT<ResultT>     & aResultWS
+        const Plato::ScalarMultiVectorT<StateT>   & aStateWS,
+        const Plato::ScalarMultiVectorT<ControlT> & aControlWS,
+        const Plato::ScalarArray3DT<ConfigT>      & aConfigWS,
+              Plato::ScalarVectorT<ResultT>       & aResultWS
     )
     {
         using StrainT = typename Plato::fad_type_t<ElementType, StateT, ConfigT>;

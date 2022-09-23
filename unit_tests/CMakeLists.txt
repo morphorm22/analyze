@@ -7,6 +7,9 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/BamG)
 
 include (${CMAKE_CURRENT_SOURCE_DIR}/add_test.cmake)
 
+# Build test helper library
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/util)
+
 ## if SKIP_MATH is provided as the optional third argument below, unit tests
 ## will be compiled without checking for math exceptions.
 
@@ -20,10 +23,13 @@ Plato_add_test(MassProperties MassPropertiesTests.cpp)
 Plato_add_test(GeometryMisfit GeometryMisfitTests.cpp)
 Plato_add_test(LinearMaterialModel LinearMaterialModelTests.cpp)
 Plato_add_test(PlatoMaterialModel PlatoMaterialModelTest.cpp)
+Plato_add_test(MaterialBasis MaterialBasisTest.cpp)
+Plato_add_test(ReadData ReadDataTest.cpp)
 Plato_add_test(PlatoSpatialModel PlatoSpatialModelTests.cpp)
 Plato_add_test(Element ElementTests.cpp)
 Plato_add_test(PlatoMathTypes PlatoMathTypesTests.cpp)
 Plato_add_test(TensorNorm TensorNormTests.cpp)
+Plato_add_test(CrsMatrixUtils CrsMatrixUtilsTests.cpp)
 
 if(ELLIPTIC)
 Plato_add_test(MultipointConstraint PlatoMultipointConstraintTests.cpp)
@@ -72,18 +78,17 @@ if(HELMHOLTZ)
   Plato_add_test(HelmholtzFilter PlatoHelmholtzFilterTests.cpp)
 endif()
 
+if(PLATOANALYZE_ENABLE_TACHO)
+  Plato_add_test(TachoSolver TachoSolverTests.cpp)
+endif()
+
 if(PLATOANALYZE_ENABLE_MPMD)
-  set(AnalyzeApp_HEADERS
-    ${CMAKE_SOURCE_DIR}/src/Analyze_App.hpp
-    PlatoTestHelpers.hpp
-  )
   set(AnalyzeApp_SOURCES
     AnalyzeAppIntxTests.cpp
     PlatoUnitTestMain.cpp
   )
   add_executable(AnalyzeAppIntxTests
     ${AnalyzeApp_SOURCES}
-    ${AnalyzeApp_HEADERS}
   )
   target_link_libraries(AnalyzeAppIntxTests
     Analyze_App
@@ -99,9 +104,6 @@ if(PLATOANALYZE_ENABLE_MPMD)
   target_include_directories(AnalyzeAppIntxTests PRIVATE ${Trilinos_INCLUDE_DIRS} ${Trilinos_TPL_INCLUDE_DIRS})
 
   if (PLATOANALYZE_ENABLE_ENGINEMESH)
-    set(EngineMesh_HEADERS
-      PlatoTestHelpers.hpp
-    )
     set(EngineMesh_SOURCES
       EngineMeshIntxTests.cpp
       PlatoUnitTestMain.cpp
@@ -115,6 +117,7 @@ if(PLATOANALYZE_ENABLE_MPMD)
       ${PLATO_LIBS}
       ${Trilinos_LIBRARIES}
       ${Trilinos_TPL_LIBRARIES}
+      Analyze_UnitTestUtils
       )
 
     target_include_directories(EngineMeshIntxTests PRIVATE "${PLATOENGINE_PREFIX}/include")
@@ -129,19 +132,15 @@ if(PLATOANALYZE_ENABLE_MPMD)
       PlatoUnitTestMain.cpp
     )
 
-    set(MeshMapTests_HEADERS
-      PlatoTestHelpers.hpp
-    )
-
     add_executable(MeshMapUnitTests
       ${MeshMapTests_SOURCES}
-      ${MeshMapTests_HEADERS}
     )
     target_link_libraries(MeshMapUnitTests
       analyzelib
       ${PLATO_LIBS}
       ${Trilinos_LIBRARIES}
       ${Trilinos_TPL_LIBRARIES}
+      Analyze_UnitTestUtils
       )
     target_include_directories(MeshMapUnitTests PRIVATE "${PLATOENGINE_PREFIX}/include")
     target_include_directories(MeshMapUnitTests PRIVATE ${CMAKE_SOURCE_DIR}/src)

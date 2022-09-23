@@ -1,9 +1,4 @@
-/*!
-  These unit tests are for the Derivative functionality.
- \todo 
-*/
-
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
@@ -85,7 +80,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, ThermostaticResidual3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   // create mesh based density from host data
   //
@@ -108,13 +103,13 @@ TEUCHOS_UNIT_TEST( DerivativeTests, ThermostaticResidual3D )
 
   // create constraint evaluator
   //
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   using PhysicsType = typename Plato::Thermal<Plato::Tet4>;
 
-  Plato::DataMap dataMap;
   Plato::Elliptic::VectorFunction<PhysicsType>
-    tsVectorFunction(tSpatialModel, dataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
+    tsVectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
 
   // compute and test constraint value
@@ -266,7 +261,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalThermalEnergy3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
 
   // create mesh based density from host data
@@ -293,12 +288,12 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalThermalEnergy3D )
 
   // create objective
   //
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  Plato::DataMap dataMap;
   std::string tMyFunction("Internal Thermal Energy");
   Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermal<Plato::Tet4>>
-    eeScalarFunction(tSpatialModel, dataMap, *tParamList, tMyFunction);
+    eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
   // compute and test criterion value
@@ -439,7 +434,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, FluxPNorm3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
 
   // create mesh based density from host data
@@ -467,12 +462,12 @@ TEUCHOS_UNIT_TEST( DerivativeTests, FluxPNorm3D )
 
   // create objective
   //
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  Plato::DataMap dataMap;
   std::string tMyFunction("Flux P-Norm");
   Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermal<Plato::Tet4>>
-    scalarFunction(tSpatialModel, dataMap, *tParamList, tMyFunction);
+    scalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
   // compute and test criterion value

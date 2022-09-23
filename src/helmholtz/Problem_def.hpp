@@ -1,5 +1,6 @@
 #pragma once
 
+#include "alg/PlatoAbstractSolver.hpp"
 #include "helmholtz/Problem_decl.hpp"
 
 namespace Plato
@@ -18,22 +19,19 @@ namespace Helmholtz
       Teuchos::ParameterList & aProblemParams,
       Comm::Machine            aMachine
     ) :
-      mSpatialModel  (aMesh, aProblemParams),
+      AbstractProblem(aMesh, aProblemParams),
+      mSpatialModel  (aMesh, aProblemParams, mDataMap),
       mPDE(std::make_shared<VectorFunctionType>(mSpatialModel, mDataMap, aProblemParams, aProblemParams.get<std::string>("PDE Constraint"))),
       mResidual      ("MyResidual", mPDE->size()),
       mStates        ("States", static_cast<Plato::OrdinalType>(1), mPDE->size()),
       mJacobian      (Teuchos::null),
       mPDEType       (aProblemParams.get<std::string>("PDE Constraint")),
-      mPhysics       (aProblemParams.get<std::string>("Physics")),
-      mMPCs          (nullptr)
+      mPhysics       (aProblemParams.get<std::string>("Physics"))
     {
         this->initialize(aMesh,aProblemParams);
 
-        Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"));
-        if(mMPCs)
-            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode, mMPCs);
-        else
-            mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode);
+        Plato::SolverFactory tSolverFactory(aProblemParams.sublist("Linear Solver"), LinearSystemType::SYMMETRIC_INDEFINITE);
+        mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode);
     }
 
     template<typename PhysicsType>
@@ -261,14 +259,6 @@ namespace Helmholtz
     {
         auto tName = aProblemParams.get<std::string>("PDE Constraint");
         mPDE = std::make_shared<Plato::Helmholtz::VectorFunction<PhysicsType>>(mSpatialModel, mDataMap, aProblemParams, tName);
-
-        if(aProblemParams.isSublist("Multipoint Constraints") == true)
-        {
-            Plato::OrdinalType tNumDofsPerNode = mPDE->numDofsPerNode();
-            auto & tMyParams = aProblemParams.sublist("Multipoint Constraints", false);
-            mMPCs = std::make_shared<Plato::MultipointConstraints>(mSpatialModel, tNumDofsPerNode, tMyParams);
-            mMPCs->setupTransform();
-        }
     }
 
     /******************************************************************************/ /**

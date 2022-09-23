@@ -1,8 +1,4 @@
-/*!
-  These unit tests are for the stabilized two-field formulation
-*/
-
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
@@ -37,7 +33,7 @@ TEUCHOS_UNIT_TEST( StabilizedThermomechTests, 3D )
   // create test mesh
   //
   constexpr int meshWidth=2;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   using ElementType = Plato::Stabilized::ThermomechanicsElement<Plato::Tet4>;
 
@@ -577,7 +573,7 @@ TEUCHOS_UNIT_TEST( StabilizedThermomechTests, StabilizedThermomechResidual3D )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   using ElementType = Plato::Stabilized::ThermomechanicsElement<Plato::Tet4>;
 
@@ -653,7 +649,7 @@ TEUCHOS_UNIT_TEST( StabilizedThermomechTests, StabilizedThermomechResidual3D )
   // create constraint evaluator
   //
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(tMesh, *params);
+  Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
   Plato::Stabilized::VectorFunction<::Plato::Stabilized::Thermomechanics<Plato::Tet4>>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
 
@@ -777,7 +773,7 @@ TEUCHOS_UNIT_TEST( PlatoMathFunctors, RowSumSolve )
   //
   constexpr int meshWidth=2;
 
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
   using ElementType = Plato::Stabilized::ThermomechanicsElement<Plato::Tet4>;
   constexpr auto spaceDim = ElementType::mNumSpatialDims;
@@ -827,7 +823,7 @@ TEUCHOS_UNIT_TEST( PlatoMathFunctors, RowSumSolve )
   // create constraint evaluator
   //
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(tMesh, *params);
+  Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
   Plato::Stabilized::VectorFunction<::Plato::Stabilized::Projection<Plato::Tet4, ElementType::mNumDofsPerNode, ElementType::mPressureDofOffset>>
     tVectorFunction(tSpatialModel, tDataMap, *params, "State Gradient Projection");
 
