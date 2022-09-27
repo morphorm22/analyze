@@ -482,7 +482,7 @@ testScalarFunction_Partial_u(ScalarFunctionT aScalarFunction, SolutionT aSolutio
 
 } // end namespace HatchingTestUtils
 
-
+#ifdef PLATO_HATCHING_GRADIENTS
 TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D )
 {
   // create test mesh
@@ -1155,6 +1155,7 @@ TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D_full )
 
   delete tProblem;
 }
+#endif
 
 TEUCHOS_UNIT_TEST( EllipticHatchingProblemTests, 3D_StateUpdate )
 {
