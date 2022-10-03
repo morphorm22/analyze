@@ -92,6 +92,14 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
   Teuchos::RCP<Teuchos::ParameterList> params =
     Teuchos::getParametersFromXmlString(
     "<ParameterList name='Plato Problem'>                                           \n"
+    "  <ParameterList name='Spatial Model'>                                         \n"
+    "    <ParameterList name='Domains'>                                             \n"
+    "      <ParameterList name='Design Volume'>                                     \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>           \n"
+    "        <Parameter name='Material Model' type='string' value='Cookie Dough'/>  \n"
+    "      </ParameterList>                                                         \n"
+    "    </ParameterList>                                                           \n"
+    "  </ParameterList>                                                             \n"
     "  <ParameterList name='Material Models'>                                       \n"
     "    <ParameterList name='Cookie Dough'>                                        \n"
     "      <ParameterList name='Thermal Mass'>                                      \n"
