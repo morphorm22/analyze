@@ -393,7 +393,6 @@ create_thermomechanical_problem
 #ifdef PLATO_PARABOLIC
     if(tLowerPDE == "parabolic")
     {
-        throw std::runtime_error("Transient thermomechanics is not currently supported.");
         return makeProblem<Plato::Parabolic::Problem, Plato::Thermomechanics>(aMesh, aPlatoProb, aMachine);
     }
 #endif
