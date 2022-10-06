@@ -384,7 +384,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mGradientXFunctions.at(tName)->evaluate(tStateWS, tControlWS, tConfigWS, tJacobian, aTimeStep);
 
             // assembly to return matrix
-            Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumSpatialDims, mNumDofsPerNode, mNumNodesPerCell>
+            Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumSpatialDims, mNumDofsPerNode>
                 tJacobianMatEntryOrdinal(tJacobianMat, tMesh);
 
             auto tJacobianMatEntries = tJacobianMat->entries();
@@ -419,7 +419,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mGradientXFunctions.at(tFirstBlockName)->evaluate_boundary(mSpatialModel, tStateWS, tControlWS, tConfigWS, tJacobian, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumSpatialDims, mNumDofsPerNode, mNumNodesPerCell>
+            Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumSpatialDims, mNumDofsPerNode>
                 tJacobianMatEntryOrdinal(tJacobianMat, tMesh);
 
             auto tJacobianMatEntries = tJacobianMat->entries();
@@ -479,7 +479,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mJacobianFunctions.at(tName)->evaluate( tStateWS, tControlWS, tConfigWS, tJacobian, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixTransposeEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumNodesPerCell>
+            Plato::BlockMatrixTransposeEntryOrdinal<mNumNodesPerCell, mNumDofsPerNode>
                 tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
             auto tJacobianMatEntries = tJacobianMat->entries();
@@ -513,7 +513,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mJacobianFunctions.at(tFirstBlockName)->evaluate_boundary(mSpatialModel, tStateWS, tControlWS, tConfigWS, tJacobian, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixTransposeEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumNodesPerCell>
+            Plato::BlockMatrixTransposeEntryOrdinal<mNumNodesPerCell, mNumDofsPerNode>
                 tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
             auto tJacobianMatEntries = tJacobianMat->entries();
@@ -572,7 +572,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mJacobianFunctions.at(tName)->evaluate( tStateWS, tControlWS, tConfigWS, tJacobian, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumDofsPerNode, mNumNodesPerCell>
+            Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumDofsPerNode, mNumDofsPerNode>
                 tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
             auto tJacobianMatEntries = tJacobianMat->entries();
@@ -606,7 +606,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mJacobianFunctions.at(tFirstBlockName)->evaluate_boundary(mSpatialModel, tStateWS, tControlWS, tConfigWS, tJacobian, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumDofsPerNode, mNumNodesPerCell>
+            Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumDofsPerNode, mNumDofsPerNode>
                 tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
             auto tJacobianMatEntries = tJacobianMat->entries();
@@ -666,7 +666,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mGradientZFunctions.at(tName)->evaluate( tStateWS, tControlWS, tConfigWS, tJacobian, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumControl, mNumDofsPerNode, mNumNodesPerCell>
+            Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumControl, mNumDofsPerNode>
               tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
             auto tJacobianMatEntries = tJacobianMat->entries();
@@ -701,7 +701,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mGradientZFunctions.at(tFirstBlockName)->evaluate_boundary(mSpatialModel, tStateWS, tControlWS, tConfigWS, tJacobian, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumControl, mNumDofsPerNode, mNumNodesPerCell>
+            Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumControl, mNumDofsPerNode>
               tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
             auto tJacobianMatEntries = tJacobianMat->entries();

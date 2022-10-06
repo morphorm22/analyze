@@ -320,7 +320,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mGradientXFunctions.at(tName)->evaluate( tStateWS, tStateDotWS, tControlWS, tConfigWS, tGradient, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumSpatialDims, mNumDofsPerNode>
+            Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumSpatialDims, mNumDofsPerNode>
                 tGradientMatEntryOrdinal(tGradientMat, tMesh);
 
             auto tGradientMatEntries = tGradientMat->entries();
@@ -358,7 +358,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mBoundaryLoadsGradientXFunction->evaluate_boundary(mSpatialModel, tStateWS, tStateDotWS, tControlWS, tConfigWS, tGradient, aTimeStep);
 
             // assembly to return matrix
-            Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumSpatialDims, mNumDofsPerNode>
+            Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumSpatialDims, mNumDofsPerNode>
                 tGradientMatEntryOrdinal(tGradientMat, tMesh);
 
             auto tGradientMatEntries = tGradientMat->entries();
@@ -424,7 +424,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mGradientUFunctions.at(tName)->evaluate( tStateWS, tStateDotWS, tControlWS, tConfigWS, tGradient, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumDofsPerNode>
+            Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumDofsPerNode, mNumDofsPerNode>
                 tGradientMatEntryOrdinal( tGradientMat, tMesh );
 
             auto tGradientMatEntries = tGradientMat->entries();
@@ -462,7 +462,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mBoundaryLoadsGradientUFunction->evaluate_boundary(mSpatialModel, tStateWS, tStateDotWS, tControlWS, tConfigWS, tGradient, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumDofsPerNode>
+            Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumDofsPerNode, mNumDofsPerNode>
                 tGradientMatEntryOrdinal( tGradientMat, tMesh );
 
             auto tGradientMatEntries = tGradientMat->entries();
@@ -529,7 +529,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mGradientUFunctions.at(tName)->evaluate( tStateWS, tStateDotWS, tControlWS, tConfigWS, tGradient, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixTransposeEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumDofsPerNode>
+            Plato::BlockMatrixTransposeEntryOrdinal<mNumNodesPerCell, mNumDofsPerNode>
                 tGradientMatEntryOrdinal( tGradientMat, tMesh );
 
             auto tGradientMatEntries = tGradientMat->entries();
@@ -567,7 +567,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mBoundaryLoadsGradientUFunction->evaluate_boundary(mSpatialModel, tStateWS, tStateDotWS, tControlWS, tConfigWS, tGradient, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixTransposeEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumDofsPerNode>
+            Plato::BlockMatrixTransposeEntryOrdinal<mNumNodesPerCell, mNumDofsPerNode>
                 tGradientMatEntryOrdinal( tGradientMat, tMesh );
 
             auto tGradientMatEntries = tGradientMat->entries();
@@ -634,7 +634,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mGradientVFunctions.at(tName)->evaluate( tStateWS, tStateDotWS, tControlWS, tConfigWS, tGradient, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumDofsPerNode>
+            Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumDofsPerNode, mNumDofsPerNode>
                 tGradientMatEntryOrdinal( tGradientMat, tMesh );
 
             auto tGradientMatEntries = tGradientMat->entries();
@@ -672,7 +672,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mBoundaryLoadsGradientVFunction->evaluate_boundary(mSpatialModel, tStateWS, tStateDotWS, tControlWS, tConfigWS, tGradient, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumDofsPerNode>
+            Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumDofsPerNode, mNumDofsPerNode>
                 tGradientMatEntryOrdinal( tGradientMat, tMesh );
 
             auto tGradientMatEntries = tGradientMat->entries();
@@ -739,7 +739,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mGradientVFunctions.at(tName)->evaluate( tStateWS, tStateDotWS, tControlWS, tConfigWS, tGradient, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixTransposeEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumDofsPerNode>
+            Plato::BlockMatrixTransposeEntryOrdinal<mNumNodesPerCell, mNumDofsPerNode>
                 tGradientMatEntryOrdinal( tGradientMat, tMesh );
 
             auto tGradientMatEntries = tGradientMat->entries();
@@ -777,7 +777,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mBoundaryLoadsGradientVFunction->evaluate_boundary(mSpatialModel, tStateWS, tStateDotWS, tControlWS, tConfigWS, tGradient, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixTransposeEntryOrdinal<mNumSpatialDims, mNumDofsPerNode, mNumDofsPerNode>
+            Plato::BlockMatrixTransposeEntryOrdinal<mNumNodesPerCell, mNumDofsPerNode>
                 tGradientMatEntryOrdinal( tGradientMat, tMesh );
 
             auto tGradientMatEntries = tGradientMat->entries();
@@ -844,7 +844,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mGradientZFunctions.at(tName)->evaluate( tStateWS, tStateDotWS, tControlWS, tConfigWS, tGradient, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumControl, mNumDofsPerNode>
+            Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumControl, mNumDofsPerNode>
               tGradientMatEntryOrdinal( tGradientMat, tMesh );
 
             auto tGradientMatEntries = tGradientMat->entries();
@@ -882,7 +882,7 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
             mBoundaryLoadsGradientZFunction->evaluate_boundary(mSpatialModel, tStateWS, tStateDotWS, tControlWS, tConfigWS, tGradient, aTimeStep );
 
             // assembly to return matrix
-            Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumControl, mNumDofsPerNode>
+            Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumControl, mNumDofsPerNode>
               tGradientMatEntryOrdinal( tGradientMat, tMesh );
 
             auto tGradientMatEntries = tGradientMat->entries();
