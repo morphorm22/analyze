@@ -364,7 +364,8 @@ if (PLATOANALYZE_ENABLE_MPMD)
   endif()
 
   find_package(HDF5 REQUIRED)
-  target_link_libraries(Analyze_App HDF5::HDF5)
+  find_package(Boost REQUIRED)
+  target_link_libraries(Analyze_App HDF5::HDF5 Boost::boost)
 
   add_executable( analyze_MPMD src/Analyze_MPMD.cpp)
   if( CMAKE_INSTALL_PREFIX )
