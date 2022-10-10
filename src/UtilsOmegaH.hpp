@@ -599,7 +599,7 @@ inline void add_state_tags(Omega_h::Mesh& aMesh, const Plato::DataMap& aStateDat
 *******************************************************************************/
 template<Plato::OrdinalType SpatialDim, Plato::OrdinalType NodesPerCell = SpatialDim + 1>
 KOKKOS_INLINE_FUNCTION Omega_h::Few< Omega_h::Vector<SpatialDim>, NodesPerCell > local_element_coords
-(const Plato::OrdinalType & aCellOrdinal, const Plato::NodeCoordinate<SpatialDim> & aCoords)
+(const Plato::OrdinalType & aCellOrdinal, const Plato::NodeCoordinate<SpatialDim, NodesPerCell> & aCoords)
 {
     Omega_h::Few<Omega_h::Vector<SpatialDim>, NodesPerCell> tCellCoords;
     for (Plato::OrdinalType tNode = 0; tNode < NodesPerCell; tNode++)
@@ -671,7 +671,7 @@ KOKKOS_INLINE_FUNCTION void normalize(Omega_h::Vector<3> & aVector)
 KOKKOS_INLINE_FUNCTION Omega_h::Vector<1> unit_normal_vector
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::OrdinalType & aFaceOrdinal,
- const Plato::NodeCoordinate<1> & aCoords)
+ const Plato::NodeCoordinate<1, 2> & aCoords)
 {
     auto tCellPoints = Plato::omega_h::local_element_coords<1>(aCellOrdinal, aCoords);
     auto tNormalVec = Omega_h::get_side_vector(tCellPoints, aFaceOrdinal);
@@ -693,7 +693,7 @@ KOKKOS_INLINE_FUNCTION Omega_h::Vector<1> unit_normal_vector
 KOKKOS_INLINE_FUNCTION Omega_h::Vector<2> unit_normal_vector
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::OrdinalType & aFaceOrdinal,
- const Plato::NodeCoordinate<2> & aCoords)
+ const Plato::NodeCoordinate<2, 3> & aCoords)
 {
     auto tCellPoints = Plato::omega_h::local_element_coords<2>(aCellOrdinal, aCoords);
     auto tNormalVec = Omega_h::get_side_vector(tCellPoints, aFaceOrdinal);
@@ -715,7 +715,7 @@ KOKKOS_INLINE_FUNCTION Omega_h::Vector<2> unit_normal_vector
 KOKKOS_INLINE_FUNCTION Omega_h::Vector<3> unit_normal_vector
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::OrdinalType & aFaceOrdinal,
- const Plato::NodeCoordinate<3> & aCoords)
+ const Plato::NodeCoordinate<3, 4> & aCoords)
 {
     auto tCellPoints = Plato::omega_h::local_element_coords<3>(aCellOrdinal, aCoords);
     auto tNormalVec = Omega_h::get_side_vector(tCellPoints, aFaceOrdinal);
