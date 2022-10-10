@@ -124,9 +124,20 @@ namespace Parabolic
                         int tDofIndex = -1;
                         for (int j = 0; j < tDofNames.size(); ++j)
                         {
-                            if (tDofNames[j] == tName) {
+                            if (Plato::tolower(tDofNames[j]) == Plato::tolower(tName)) {
                                tDofIndex = j;
                             }
+                        }
+                        if (tDofIndex == -1)
+                        {
+                          std::stringstream ss;
+                          ss << "Tried to initialize non-existent state field: " << Plato::tolower(tName) << std::endl;
+                          ss << "Available states are: " << std::endl;
+                          for (const auto & tDofName : tDofNames)
+                          {
+                            ss << "  " << Plato::tolower(tDofName) << std::endl;
+                          }
+                          ANALYZE_THROWERR(ss.str());
                         }
                         mComputedFields->get(tFieldName, tDofIndex, tDofNames.size(), tInitialState);
                     }
@@ -507,15 +518,15 @@ namespace Parabolic
                 Plato::blas1::axpy(tR_vu, t_dFdv, t_dFdu);
 
                 // R_{u,u^k}
-                mJacobianU = mPDEConstraint.gradient_u(tU, tV, aControl, mTimeStep);
+                mJacobianU = mPDEConstraint.gradient_u_T(tU, tV, aControl, mTimeStep);
 
                 // R_{u,v^k}
-                mJacobianV = mPDEConstraint.gradient_v(tU, tV, aControl, mTimeStep);
+                mJacobianV = mPDEConstraint.gradient_v_T(tU, tV, aControl, mTimeStep);
 
                 // R_{u,u^k} -= R_{v,u^k} R_{u,v^k}
                 Plato::blas1::axpy(-tR_vu, mJacobianV->entries(), mJacobianU->entries());
 
-                this->applyStateConstraints(mJacobianU, t_dFdu, 1.0);
+                this->applyStateConstraints(mJacobianU, t_dFdu, /*scale_constraints_by*/0.0);
 
                 // L_u^k
                 mSolver->solve(*mJacobianU, tAdjoint_U, t_dFdu);
@@ -673,15 +684,15 @@ namespace Parabolic
 
 
                 // R_{u,u^k}
-                mJacobianU = mPDEConstraint.gradient_u(tU, tV, aControl, mTimeStep);
+                mJacobianU = mPDEConstraint.gradient_u_T(tU, tV, aControl, mTimeStep);
 
                 // R_{u,v^k}
-                mJacobianV = mPDEConstraint.gradient_v(tU, tV, aControl, mTimeStep);
+                mJacobianV = mPDEConstraint.gradient_v_T(tU, tV, aControl, mTimeStep);
 
                 // R_{u,u^k} -= R_{v,u^k} R_{u,v^k}
                 Plato::blas1::axpy(-tR_vu, mJacobianV->entries(), mJacobianU->entries());
 
-                this->applyStateConstraints(mJacobianU, t_dFdu, 1.0);
+                this->applyStateConstraints(mJacobianU, t_dFdu, /*scale_constraints_by*/0.0);
 
                 // L_u^k
                 mSolver->solve(*mJacobianU, tAdjoint_U, t_dFdu);

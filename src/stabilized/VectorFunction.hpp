@@ -389,7 +389,7 @@ public:
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
                 Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumSpatialDims, mNumDofsPerNode>(tMesh);
 
-        Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumSpatialDims, mNumDofsPerNode> tMatEntryOrdinal(tJacobianMat, tMesh);
+        Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumSpatialDims, mNumDofsPerNode> tMatEntryOrdinal(tJacobianMat, tMesh);
 
         auto tMatEntries = tJacobianMat->entries();
 
@@ -595,7 +595,7 @@ public:
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
             Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumDofsPerNode>( tMesh );
 
-        Plato::BlockMatrixTransposeEntryOrdinal<mNumSpatialDims, mNumDofsPerNode> tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
+        Plato::BlockMatrixTransposeEntryOrdinal<mNumNodesPerCell, mNumDofsPerNode> tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
         auto tJacobianMatEntries = tJacobianMat->entries();
 
@@ -700,7 +700,7 @@ public:
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
                 Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumDofsPerNode>( tMesh );
 
-        Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumDofsPerNode> tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
+        Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumDofsPerNode> tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
         auto tJacobianMatEntries = tJacobianMat->entries();
 
@@ -927,7 +927,7 @@ public:
         //
         // Note that the second two template parameters must match the block shape of the destination matrix, tJacobianMat
         //
-        Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumSpatialDims, mNumNodeStatePerNode>
+        Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumSpatialDims, mNumNodeStatePerNode>
             tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
         // Assemble from the AD-typed result, tJacobian, into the POD-typed global matrix, tJacobianMat.
@@ -1076,7 +1076,7 @@ public:
         //
         // Note that the second two template parameters must match the block shape of the destination matrix, tJacobianMat
         //
-        Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumNodeStatePerNode, mNumDofsPerNode>
+        Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumNodeStatePerNode, mNumDofsPerNode>
             tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
         // Assemble from the AD-typed result, tJacobian, into the POD-typed global matrix, tJacobianMat.
@@ -1198,7 +1198,7 @@ public:
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianMat =
                 Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumControl, mNumDofsPerNode>( tMesh );
 
-        Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumControl, mNumDofsPerNode> tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
+        Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumControl, mNumDofsPerNode> tJacobianMatEntryOrdinal( tJacobianMat, tMesh );
 
         auto tJacobianMatEntries = tJacobianMat->entries();
 
