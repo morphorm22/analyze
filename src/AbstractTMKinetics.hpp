@@ -83,11 +83,17 @@ public:
         {
             mVaryingMaterialBasis->VoigtTensorFromMaterialBasis(aStress);
             mVaryingMaterialBasis->VectorFromMaterialBasis(aFlux);
+            // rotate the kinematics back for output
+            mVaryingMaterialBasis->VoigtTensorFromMaterialBasis(aStrain);
+            mVaryingMaterialBasis->VectorFromMaterialBasis(aTGrad);
         }
         if(mUniformMaterialBasis)
         {
             mUniformMaterialBasis->VoigtTensorFromMaterialBasis(aStress);
             mUniformMaterialBasis->VectorFromMaterialBasis(aFlux);
+            // rotate the kinematics back for output
+            mUniformMaterialBasis->VoigtTensorFromMaterialBasis(aStrain);
+            mUniformMaterialBasis->VectorFromMaterialBasis(aTGrad);
         }
     };
 
