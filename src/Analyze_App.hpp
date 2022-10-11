@@ -6,10 +6,10 @@
 #include <iostream>
 #include <math.h>
 
+#include <Plato_Console.hpp>
 #include <Plato_InputData.hpp>
 #include <Plato_Application.hpp>
 #include <Plato_Exceptions.hpp>
-#include <Plato_Interface.hpp>
 #include <Plato_PenaltyModel.hpp>
 #include <Plato_SharedData.hpp>
 #include <Plato_SharedField.hpp>

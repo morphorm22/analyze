@@ -102,6 +102,7 @@ if(PLATOANALYZE_ENABLE_MPMD)
   target_include_directories(AnalyzeAppIntxTests PRIVATE "${CMAKE_SOURCE_DIR}/src")
   target_include_directories(AnalyzeAppIntxTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/BamG")
   target_include_directories(AnalyzeAppIntxTests PRIVATE ${Trilinos_INCLUDE_DIRS} ${Trilinos_TPL_INCLUDE_DIRS})
+  target_compile_definitions(AnalyzeAppIntxTests PRIVATE BOOST_NO_AUTO_PTR=1) # Suppress warnings on nvcc build
 
   if (PLATOANALYZE_ENABLE_ENGINEMESH)
     set(EngineMesh_SOURCES
@@ -147,6 +148,7 @@ if(PLATOANALYZE_ENABLE_MPMD)
     target_include_directories(MeshMapUnitTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/BamG")
     target_include_directories(MeshMapUnitTests PRIVATE ${Trilinos_INCLUDE_DIRS} ${Trilinos_TPL_INCLUDE_DIRS})
     target_link_libraries(MeshMapUnitTests ArborX::ArborX BamGlib)
+    target_compile_definitions(MeshMapUnitTests PRIVATE BOOST_NO_AUTO_PTR=1) # Suppress warnings on nvcc build
 
     build_mpi_test_string(ES_MPI_TEST 1 ${CMAKE_CURRENT_BINARY_DIR}/MeshMapUnitTests)
     add_test(NAME runMeshMapUnitTests COMMAND ${ES_MPI_TEST})
