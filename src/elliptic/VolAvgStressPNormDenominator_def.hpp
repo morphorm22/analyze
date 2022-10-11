@@ -57,8 +57,6 @@ namespace Elliptic
 
       auto tNumCells = mSpatialDomain.numCells();
 
-      Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
-
       Plato::ScalarVectorT<ConfigScalarType> tCellVolume("cell weight", tNumCells);
 
       Plato::ScalarMultiVectorT<ResultScalarType> tCellWeights("weighted one", tNumCells, mNumVoigtTerms);
