@@ -19,10 +19,10 @@
 #include "PlatoMathHelpers.hpp"
 #include "PlatoMathFunctors.hpp"
 #include "Mechanics.hpp"
-#include "StabilizedMechanics.hpp"
+#include "stabilized/Mechanics.hpp"
 #include "elliptic/PhysicsScalarFunction.hpp"
 #include "elliptic/VectorFunction.hpp"
-#include "VectorFunctionVMS.hpp"
+#include "stabilized/VectorFunction.hpp"
 #include "ApplyProjection.hpp"
 #include "AnalyzeMacros.hpp"
 #include "HyperbolicTangentProjection.hpp"
@@ -129,9 +129,9 @@ Teuchos::RCP<Plato::CrsMatrixType> createSquareMatrix()
   Plato::DataMap tDataMap;
 
   const Teuchos::RCP<Teuchos::ParameterList> elastostaticsParams = test_elastostatics_params();
-  Plato::SpatialModel tSpatialModel(tMesh, *elastostaticsParams);
+  Plato::SpatialModel tSpatialModel(tMesh, *elastostaticsParams, tDataMap);
 
-  Plato::Elliptic::VectorFunction<::Plato::Mechanics<spaceDim>>
+  Plato::Elliptic::VectorFunction<::Plato::Mechanics<Plato::Tet4>>
     tVectorFunction(tSpatialModel, tDataMap, *elastostaticsParams, 
         elastostaticsParams->get<std::string>("PDE Constraint"));
 
@@ -140,23 +140,23 @@ Teuchos::RCP<Plato::CrsMatrixType> createSquareMatrix()
   return tVectorFunction.gradient_u(u,z);
 }
 
-template <typename PhysicsT>
-Teuchos::RCP<Plato::VectorFunctionVMS<PhysicsT>>
+template <typename PhysicsType>
+Teuchos::RCP<Plato::Stabilized::VectorFunction<PhysicsType>>
 createStabilizedResidual(const Plato::SpatialModel & aSpatialModel)
 {
   const Teuchos::RCP<Teuchos::ParameterList> elastostaticsParams = test_elastostatics_params();
   Plato::DataMap tDataMap;
-  return Teuchos::rcp( new Plato::VectorFunctionVMS<PhysicsT>
+  return Teuchos::rcp( new Plato::Stabilized::VectorFunction<PhysicsType>
          (aSpatialModel, tDataMap, *elastostaticsParams, elastostaticsParams->get<std::string>("PDE Constraint")));
 }
 
-template <typename PhysicsT>
-Teuchos::RCP<Plato::VectorFunctionVMS<typename PhysicsT::ProjectorT>>
+template <typename PhysicsType>
+Teuchos::RCP<Plato::Stabilized::VectorFunction<typename PhysicsType::ProjectorType>>
 createStabilizedProjector(const Plato::SpatialModel & aSpatialModel)
 {
   const Teuchos::RCP<Teuchos::ParameterList> elastostaticsParams = test_elastostatics_params();
   Plato::DataMap tDataMap;
-  return Teuchos::rcp( new Plato::VectorFunctionVMS<typename PhysicsT::ProjectorT>
+  return Teuchos::rcp( new Plato::Stabilized::VectorFunction<typename PhysicsType::ProjectorType>
          (aSpatialModel, tDataMap, *elastostaticsParams, std::string("State Gradient Projection")));
 }
 }
@@ -814,12 +814,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_CondenseMatrix_2)
   constexpr int cMeshWidth = 2;
   auto tMesh = pth::get_box_mesh("TET4", cMeshWidth);
   
+  Plato::DataMap tDataMap;
   const Teuchos::RCP<Teuchos::ParameterList> elastostaticsParams = test_elastostatics_params();
-  Plato::SpatialModel tSpatialModel(tMesh, *elastostaticsParams);
+  Plato::SpatialModel tSpatialModel(tMesh, *elastostaticsParams, tDataMap);
 
-  using PhysicsT = Plato::StabilizedMechanics<cSpaceDim>;
-  auto tResidual = createStabilizedResidual<PhysicsT>(tSpatialModel);
-  auto tProjector = createStabilizedProjector<PhysicsT>(tSpatialModel);
+  using PhysicsType = Plato::Stabilized::Mechanics<Plato::Tet4>;
+  auto tResidual = createStabilizedResidual<PhysicsType>(tSpatialModel);
+  auto tProjector = createStabilizedProjector<PhysicsType>(tSpatialModel);
 
   auto tNverts = tMesh->NumNodes();
   Plato::ScalarVector U("state",          tResidual->size());
@@ -856,7 +857,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_CondenseMatrix_2)
   Plato::MatrixMatrixMultiply              ( t_dP_dn_T,    t_dg_dn_T,    tMatrixProduct    );
   pth::slow_dumb_matrix_matrix_multiply ( t_dP_dn_T_sd, t_dg_dn_T_sd, tMatrixProduct_sd );
 
-  auto tOffset = PhysicsT::ProjectorT::SimplexT::mProjectionDof;
+  auto tOffset = PhysicsType::ProjectorType::ElementType::mProjectionDof;
   // Nf x Nf - O( Nn x Nf ) => Nf x Nf
   Plato::MatrixMinusMatrix              ( t_dg_du_T,    tMatrixProduct,    tOffset );
   pth::slow_dumb_matrix_minus_matrix ( t_dg_du_T_sd, tMatrixProduct_sd, tOffset );
@@ -1362,9 +1363,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_MatrixTimesVectorPlusV
   Plato::DataMap tDataMap;
   std::string tMyFunction("Internal Elastic Energy");
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tParams);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParams, tDataMap);
 
-  Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<spaceDim>>
+  Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<Plato::Tet4>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParams, tMyFunction);
 
   Plato::Solutions tSolution;
@@ -1373,7 +1374,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_MatrixTimesVectorPlusV
 
   // create PDE constraint
   //
-  Plato::Elliptic::VectorFunction<::Plato::Mechanics<spaceDim>>
+  Plato::Elliptic::VectorFunction<::Plato::Mechanics<Plato::Tet4>>
     esVectorFunction(tSpatialModel, tDataMap, *tParams, tParams->get<std::string>("PDE Constraint"));
 
   auto dgdx = esVectorFunction.gradient_x(u,z);
@@ -1944,6 +1945,38 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_TransposeNonBlockMatri
 
   TEST_ASSERT(pth::is_same(tMatrixAT, tMatrixB));
 }
+
+/******************************************************************************/
+/*! 
+ \brief create symmetric block matrices A and B, A==B.  Scale the diagonal of
+ B by 2.0 and compare against A.
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_scaleDiagonal)
+{
+  auto tMatrixA = createSquareMatrix();
+  auto tMatrixB = createSquareMatrix();
+
+  scaleDiagonal(*tMatrixB, 2.0);
+
+  auto tMatrixA_full = pth::to_full(tMatrixA);
+  auto tMatrixB_full = pth::to_full(tMatrixB);
+
+  for(int i=0; i<tMatrixA_full.size(); i++)
+  {
+    for(int j=0; j<tMatrixA_full[i].size(); j++)
+    {
+      if( i==j )
+      {
+        TEST_FLOATING_EQUALITY(2.0*tMatrixA_full[i][j], tMatrixB_full[i][j], DBL_EPSILON);
+      }
+      else
+      {
+        TEST_FLOATING_EQUALITY(tMatrixA_full[i][j], tMatrixB_full[i][j], DBL_EPSILON);
+      }
+    }
+  }
+};
 
 /******************************************************************************/
 /*! 

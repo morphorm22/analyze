@@ -7,12 +7,37 @@
 
 namespace Plato {
 
-AbstractSolver::AbstractSolver() : mSystemMPCs(nullptr) {}
+AbstractSolver::AbstractSolver() : mSystemMPCs(nullptr), mAlpha(0.0) {}
+AbstractSolver::AbstractSolver(const Teuchos::ParameterList & aSolverParams) : mSystemMPCs(nullptr) {parse(aSolverParams);}
 
-AbstractSolver::AbstractSolver(std::shared_ptr<Plato::MultipointConstraints> aMPCs) : mSystemMPCs(aMPCs) {}
+AbstractSolver::AbstractSolver(
+  const Teuchos::ParameterList & aSolverParams,
+  std::shared_ptr<Plato::MultipointConstraints> aMPCs
+) : mSystemMPCs(aMPCs) {parse(aSolverParams);}
+
+void AbstractSolver::parse(const Teuchos::ParameterList & aSolverParams)
+{
+  if( aSolverParams.isType<Plato::Scalar>("Relative Diagonal Offset") )
+  {
+    auto tOffset = aSolverParams.get<Plato::Scalar>("Relative Diagonal Offset");
+    if(mAlpha < 0.0)
+    {
+      ANALYZE_THROWERR("Linear solver settings: Relative Diagonal Offset cannot be less than 0.0.");
+    }
+    mAlpha = tOffset+1.0;
+  }
+  else
+  {
+    mAlpha = 0.0;
+  }
+}
 
 void AbstractSolver::solve(Plato::CrsMatrix<int> aAf, Plato::ScalarVector aX,
                            Plato::ScalarVector aB, bool aAdjointFlag) {
+  if (mAlpha != 0.0) {
+    scaleDiagonal(aAf, mAlpha);
+  }
+
   if (mSystemMPCs) {
 
     Teuchos::RCP<Plato::CrsMatrixType> aA(&aAf, /*hasOwnership=*/false);
@@ -77,6 +102,10 @@ void AbstractSolver::solve(Plato::CrsMatrix<int> aAf, Plato::ScalarVector aX,
     Plato::blas1::axpy<Plato::ScalarVector>(1.0, tFullX, aX);
   } else {
     this->innerSolve(aAf, aX, aB);
+  }
+
+  if (mAlpha) {
+    scaleDiagonal(aAf, -mAlpha);
   }
 }
 

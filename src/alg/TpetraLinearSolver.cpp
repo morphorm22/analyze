@@ -170,7 +170,7 @@ TpetraLinearSolver::TpetraLinearSolver(
     int                                             aDofsPerNode,
     std::shared_ptr<Plato::MultipointConstraints>   aMPCs
 ) :
-    AbstractSolver(aMPCs),
+    AbstractSolver(aSolverParams, aMPCs),
     mSolverParams(aSolverParams),
     mSystem(Teuchos::rcp( new TpetraSystem(aNumNodes, aMachine, aDofsPerNode))),
     mPreLinearSolveTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Pre Linear Solve Setup")),

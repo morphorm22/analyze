@@ -100,6 +100,48 @@ void MatrixTimesVectorPlusVector(const Teuchos::RCP<Plato::CrsMatrixType> & aMat
     }
 }
 
+void scaleDiagonal(
+    Plato::CrsMatrixType const & aMatrix,
+    Plato::Scalar                aScale)
+{
+
+  if(aMatrix.isBlockMatrix())
+  {
+      auto tNodeRowMap = aMatrix.rowMap();
+      auto tNodeColIndices = aMatrix.columnIndices();
+      auto tNumRowsPerBlock = aMatrix.numRowsPerBlock();
+      auto tNumColsPerBlock = aMatrix.numColsPerBlock();
+      auto tEntries = aMatrix.entries();
+      auto tNumNodeRows = tNodeRowMap.size() - 1;
+
+      if(tNumRowsPerBlock != tNumColsPerBlock)
+      {
+        ANALYZE_THROWERR("scaleDiagonal expects a square matrix");
+      }
+
+      Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumNodeRows), KOKKOS_LAMBDA(const Plato::OrdinalType & aNodeRowOrdinal)
+      {
+        auto tRowStartIndex = tNodeRowMap(aNodeRowOrdinal);
+        auto tRowEndIndex = tNodeRowMap(aNodeRowOrdinal + 1);
+        for (auto tCrsIndex = tRowStartIndex; tCrsIndex < tRowEndIndex; tCrsIndex++)
+        {
+          if (tNodeColIndices(tCrsIndex) == aNodeRowOrdinal)
+          {
+            auto tMatrixEntryOffset = tNumRowsPerBlock*tNumColsPerBlock*tCrsIndex;
+            for ( auto tIndex = 0; tIndex < tNumRowsPerBlock; tIndex++ )
+            {
+              tEntries(tMatrixEntryOffset + tNumColsPerBlock*tIndex + tIndex) *= aScale;
+            }
+          }
+        }
+    }, "scale diagonal");
+  }
+  else
+  {
+    ANALYZE_THROWERR("scaleDiagonal not implemented for non-block matrices");
+  }
+}
+
 template<typename ScalarT>
 void VectorTimesMatrixPlusVector(
     const Plato::ScalarVectorT<ScalarT>      & aInput,
