@@ -53,7 +53,10 @@ conditional_expression(const Plato::Scalar & aX,
     return (tOutput);
 }
 
-void scaleDiagonal(
+Plato::Scalar diagonalAveAbs(
+    Plato::CrsMatrixType const & aMatrix);
+
+void shiftDiagonal(
     Plato::CrsMatrixType const & aMatrix,
     Plato::Scalar                aScale);
 

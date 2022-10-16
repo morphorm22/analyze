@@ -810,7 +810,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_CondenseMatrix_1)
 /******************************************************************************/
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_CondenseMatrix_2)
 {
-  constexpr int cSpaceDim  = 3;
   constexpr int cMeshWidth = 2;
   auto tMesh = pth::get_box_mesh("TET4", cMeshWidth);
   
@@ -1952,12 +1951,68 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_TransposeNonBlockMatri
  B by 2.0 and compare against A.
 */
 /******************************************************************************/
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_scaleDiagonal)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_diagonalAveAbs)
+{
+  auto tSparseMatrix = Teuchos::rcp( new Plato::CrsMatrixType( /*tNumRows=*/6, /*tNumCols=*/6, /*tNumRowsPerBlock=*/3, /*tNumColsPerBlock=*/3) );
+
+  {
+    std::vector<std::vector<Plato::Scalar>> tFullMatrix = {{1, 0, 0, 0, 0, 0},
+                                                           {0, 1, 0, 0, 0, 0},
+                                                           {0, 0, 1, 0, 0, 0},
+                                                           {0, 0, 0, 1, 0, 0},
+                                                           {0, 0, 0, 0, 1, 0},
+                                                           {0, 0, 0, 0, 0, 1}};
+    pth::from_full(tSparseMatrix, tFullMatrix);
+
+    auto tDiagonalAveAbs = diagonalAveAbs(*tSparseMatrix);
+
+    decltype(tDiagonalAveAbs) tGold(1.0);
+    TEST_FLOATING_EQUALITY(tDiagonalAveAbs, tGold, DBL_EPSILON);
+  }
+
+  {
+    std::vector<std::vector<Plato::Scalar>> tFullMatrix = {{1, 0, 0, 0, 0, 0},
+                                                           {0,-1, 0, 0, 0, 0},
+                                                           {0, 0, 1, 0, 0, 0},
+                                                           {0, 0, 0,-1, 0, 0},
+                                                           {0, 0, 0, 0,-1, 0},
+                                                           {0, 0, 0, 0, 0, 1}};
+    pth::from_full(tSparseMatrix, tFullMatrix);
+
+    auto tDiagonalAveAbs = diagonalAveAbs(*tSparseMatrix);
+
+    decltype(tDiagonalAveAbs) tGold(1.0);
+    TEST_FLOATING_EQUALITY(tDiagonalAveAbs, tGold, DBL_EPSILON);
+  }
+
+  {
+    std::vector<std::vector<Plato::Scalar>> tFullMatrix = {{1, 0, 2, 0, 2, 0},
+                                                           {0,-1, 0, 0, 0, 0},
+                                                           {0, 0, 1, 0, 2, 0},
+                                                           {0, 0, 0,-1, 0, 0},
+                                                           {0, 0, 0, 0,-1, 0},
+                                                           {0, 0, 0, 0, 0, 1}};
+    pth::from_full(tSparseMatrix, tFullMatrix);
+
+    auto tDiagonalAveAbs = diagonalAveAbs(*tSparseMatrix);
+
+    decltype(tDiagonalAveAbs) tGold(1.0);
+    TEST_FLOATING_EQUALITY(tDiagonalAveAbs, tGold, DBL_EPSILON);
+  }
+};
+
+/******************************************************************************/
+/*! 
+ \brief create symmetric block matrices A and B, A==B.  Scale the diagonal of
+ B by 2.0 and compare against A.
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_shiftDiagonal)
 {
   auto tMatrixA = createSquareMatrix();
   auto tMatrixB = createSquareMatrix();
 
-  scaleDiagonal(*tMatrixB, 2.0);
+  shiftDiagonal(*tMatrixB, 2.0);
 
   auto tMatrixA_full = pth::to_full(tMatrixA);
   auto tMatrixB_full = pth::to_full(tMatrixB);
@@ -1968,7 +2023,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_scaleDiagonal)
     {
       if( i==j )
       {
-        TEST_FLOATING_EQUALITY(2.0*tMatrixA_full[i][j], tMatrixB_full[i][j], DBL_EPSILON);
+        TEST_FLOATING_EQUALITY(tMatrixA_full[i][j]+2.0, tMatrixB_full[i][j], DBL_EPSILON);
       }
       else
       {
@@ -1977,6 +2032,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_scaleDiagonal)
     }
   }
 };
+
 
 /******************************************************************************/
 /*! 

@@ -24,7 +24,7 @@ void AbstractSolver::parse(const Teuchos::ParameterList & aSolverParams)
     {
       ANALYZE_THROWERR("Linear solver settings: Relative Diagonal Offset cannot be less than 0.0.");
     }
-    mAlpha = tOffset+1.0;
+    mAlpha = tOffset;
   }
   else
   {
@@ -34,8 +34,11 @@ void AbstractSolver::parse(const Teuchos::ParameterList & aSolverParams)
 
 void AbstractSolver::solve(Plato::CrsMatrix<int> aAf, Plato::ScalarVector aX,
                            Plato::ScalarVector aB, bool aAdjointFlag) {
+  
+  Plato::Scalar tOffset;
   if (mAlpha != 0.0) {
-    scaleDiagonal(aAf, mAlpha);
+    tOffset = mAlpha*diagonalAveAbs(aAf);
+    shiftDiagonal(aAf, tOffset);
   }
 
   if (mSystemMPCs) {
@@ -105,7 +108,7 @@ void AbstractSolver::solve(Plato::CrsMatrix<int> aAf, Plato::ScalarVector aX,
   }
 
   if (mAlpha) {
-    scaleDiagonal(aAf, -mAlpha);
+    shiftDiagonal(aAf, -tOffset);
   }
 }
 
