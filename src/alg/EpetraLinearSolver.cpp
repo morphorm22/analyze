@@ -134,7 +134,7 @@ EpetraLinearSolver::EpetraLinearSolver(
     int                                             aDofsPerNode,
     std::shared_ptr<Plato::MultipointConstraints>   aMPCs
 ) :
-    AbstractSolver(aMPCs),
+    AbstractSolver(aSolverParams, aMPCs),
     mSolverParams(aSolverParams),
     mSystem(std::make_shared<EpetraSystem>(aNumNodes, aMachine, aDofsPerNode)),
     mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Epetra Linear Solve"))

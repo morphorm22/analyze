@@ -13,8 +13,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/util)
 ## if SKIP_MATH is provided as the optional third argument below, unit tests
 ## will be compiled without checking for math exceptions.
 
-#TODO: update stablized formulations to new element
-#Plato_add_test(PlatoMathHelpers PlatoMathHelpersTest.cpp)
+Plato_add_test(PlatoMathHelpers PlatoMathHelpersTest.cpp)
 
 #TODO: update StructuralDynamics to new element
 #Plato_add_test(PlatoFunctors PlatoFunctorsTest.cpp)
