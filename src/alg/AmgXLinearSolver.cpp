@@ -132,7 +132,7 @@ AmgXLinearSolver::AmgXLinearSolver(
     int                                             aDofsPerNode,
     std::shared_ptr<Plato::MultipointConstraints>   aMPCs
 ) : 
-    AbstractSolver(aMPCs),
+    AbstractSolver(aSolverParams, aMPCs),
     mDofsPerNode(aDofsPerNode),
     mDisplayIterations(0),
     mSolverTime(0.0),

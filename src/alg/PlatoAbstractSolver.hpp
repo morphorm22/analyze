@@ -27,7 +27,12 @@ class AbstractSolver
   protected:
     std::shared_ptr<Plato::MultipointConstraints>   mSystemMPCs;
 
+    Plato::Scalar mAlpha;
+
     AbstractSolver();
+    AbstractSolver(const Teuchos::ParameterList & aSolverParams);
+
+    void parse(const Teuchos::ParameterList & aSolverParams);
 
     virtual void innerSolve(
         Plato::CrsMatrix<Plato::OrdinalType> aA,
@@ -38,7 +43,7 @@ class AbstractSolver
     virtual ~AbstractSolver() = default;
 
   public:
-    AbstractSolver(std::shared_ptr<Plato::MultipointConstraints> aMPCs);
+    AbstractSolver(const Teuchos::ParameterList & aSolverParams, std::shared_ptr<Plato::MultipointConstraints> aMPCs);
 
     void solve(
         Plato::CrsMatrix<int> aAf,
