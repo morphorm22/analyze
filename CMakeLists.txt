@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.0)
 CMAKE_POLICY(SET CMP0057 NEW)
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/pa_pre_commit.sh
+               ${CMAKE_CURRENT_SOURCE_DIR}/.git/hooks/pre-commit)
+
+
 project(PLATOANALYZE VERSION 0.0.0 LANGUAGES CXX)
 
 # hdf5 dependency (introduced by exodus) needs C
