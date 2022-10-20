@@ -63,7 +63,7 @@ SolverFactory::create(
   else if(tLowerSolverStack == "tpetra")
   {
 #ifdef PLATO_TPETRA
-      Plato::OrdinalType tNumCondensedNodes = aMPCs->getNumCondensedNodes();
+      const Plato::OrdinalType tNumCondensedNodes = (aMPCs == nullptr) ? aNumNodes : aMPCs->getNumCondensedNodes();
       return std::make_shared<Plato::TpetraLinearSolver>(mSolverParams, tNumCondensedNodes, aMachine, aDofsPerNode, aMPCs);
 #else
       ANALYZE_THROWERR("Not compiled with Tpetra");

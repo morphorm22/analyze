@@ -440,8 +440,13 @@ namespace Plato
 
             std::vector<Int> tNodesOneBased(tNodeSet.nodes);
             for( auto & tNodeID : tNodesOneBased ) tNodeID++;
+
             tErrorStatus = ex_put_set(mFileID, EX_NODE_SET, tNodeSet.ID, tNodesOneBased.data(), NULL);
             if(tErrorStatus) { ANALYZE_THROWERR("Unable to write exodus file. ex_put_set() failed."); }
+
+            tErrorStatus = ex_put_name(mFileID, EX_NODE_SET, tNodeSet.ID, tNodeSet.name.c_str());
+            if(tErrorStatus) { ANALYZE_THROWERR("Unable to write exodus file. ex_put_name() failed."); }
+
         }
 
         for(auto& tSideSet : mSideSets )
@@ -453,8 +458,13 @@ namespace Plato
             std::vector<Int> tSidesOneBased(tSideSet.sides);
             for( auto & tElemID : tElemsOneBased ) tElemID++;
             for( auto & tFaceID : tSidesOneBased ) tFaceID++;
+
             tErrorStatus = ex_put_set(mFileID, EX_SIDE_SET, tSideSet.ID, tElemsOneBased.data(), tSidesOneBased.data());
             if(tErrorStatus) { ANALYZE_THROWERR("Unable to write exodus file. ex_put_set() failed."); }
+
+            tErrorStatus = ex_put_name(mFileID, EX_SIDE_SET, tSideSet.ID, tSideSet.name.c_str());
+            if(tErrorStatus) { ANALYZE_THROWERR("Unable to write exodus file. ex_put_name() failed."); }
+
         }
 
         for(auto& tBlock : mElementBlocks )

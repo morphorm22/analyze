@@ -12,6 +12,10 @@
 #include "alg/PlatoSolverFactory.hpp"
 #include "alg/EpetraLinearSolver.hpp"
 
+#ifdef PLATO_TPETRA
+#include "alg/TpetraLinearSolver.hpp"
+#endif
+
 #ifdef HAVE_AMGX
 #include <alg/AmgXSparseLinearProblem.hpp>
 #endif
@@ -652,7 +656,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra )
 
   Plato::DataMap tDataMap;
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   Plato::Elliptic::VectorFunction<::Plato::Mechanics<Plato::Tri3>>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
@@ -671,12 +675,15 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra )
 
   auto tFullPlato  = Plato::TestHelpers::to_full(jacobian);
 
+  using indices_view_type = Tpetra::CrsMatrix<Plato::Scalar, int, Plato::OrdinalType>::nonconst_global_inds_host_view_type;
+  using values_view_type = Tpetra::CrsMatrix<Plato::Scalar, int, Plato::OrdinalType>::nonconst_values_host_view_type;
+
   for(int iRow=0; iRow<tFullPlato.size(); iRow++)
   {
     size_t tNumEntriesInRow = tTpetra_Matrix->getNumEntriesInGlobalRow(iRow);
-    Teuchos::Array<Plato::Scalar> tRowValues(tNumEntriesInRow);
-    Teuchos::Array<Plato::OrdinalType> tColumnIndices(tNumEntriesInRow);
-    tTpetra_Matrix->getGlobalRowCopy(iRow, tColumnIndices(), tRowValues(), tNumEntriesInRow);
+    values_view_type tRowValues("values", tNumEntriesInRow);
+    indices_view_type tColumnIndices("indices", tNumEntriesInRow);
+    tTpetra_Matrix->getGlobalRowCopy(iRow, tColumnIndices, tRowValues, tNumEntriesInRow);
 
     std::vector<Plato::Scalar> tTpetraRowValues(tFullPlato[iRow].size(), 0.0);
     for(size_t i = 0; i < tNumEntriesInRow; ++i)
@@ -758,7 +765,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
 
   Plato::DataMap tDataMap;
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   Plato::Elliptic::VectorFunction<::Plato::Mechanics<Plato::Tri3>>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
@@ -817,7 +824,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToTpetraVector )
   auto tTestVectorHostMirror = Kokkos::create_mirror_view(tTestVector);
   Kokkos::deep_copy(tTestVectorHostMirror,tTestVector);
 
-  auto tConvertedVectorDeviceView2D = tConvertedVector->getLocalViewDevice();
+  auto tConvertedVectorDeviceView2D = tConvertedVector->getLocalView<Plato::DeviceType>(Tpetra::Access::ReadWrite);
   auto tConvertedVectorDeviceView1D = Kokkos::subview(tConvertedVectorDeviceView2D,Kokkos::ALL(), 0);
   auto tConvertedVectorHostMirror = Kokkos::create_mirror_view(tConvertedVectorDeviceView1D);
   Kokkos::deep_copy(tConvertedVectorHostMirror,tConvertedVectorDeviceView1D);
@@ -900,7 +907,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromTpetraVector )
   auto tConvertedVectorHostMirror = Kokkos::create_mirror_view(tConvertedVector);
   Kokkos::deep_copy(tConvertedVectorHostMirror,tConvertedVector);
 
-  auto tTestVectorDeviceView2D = tTestVector->getLocalViewDevice();
+  auto tTestVectorDeviceView2D = tTestVector->getLocalView<Plato::DeviceType>(Tpetra::Access::ReadWrite);
   auto tTestVectorDeviceView1D = Kokkos::subview(tTestVectorDeviceView2D, Kokkos::ALL(), 0);
   auto tTestVectorHostMirror = Kokkos::create_mirror_view(tTestVectorDeviceView1D); 
   Kokkos::deep_copy(tTestVectorHostMirror,tTestVectorDeviceView1D);
@@ -1119,7 +1126,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
 
   Plato::DataMap tDataMap;
 
-  Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   Plato::Elliptic::VectorFunction<PhysicsType>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
