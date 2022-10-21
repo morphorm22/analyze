@@ -139,6 +139,7 @@ namespace Elliptic
                 break; 
             case solution_type_t::DIFF_BETWEEN_SOLUTION_IN_DIRECTION_AND_TARGET_SOLUTION_IN_DIRECTION:
                 {
+                    mTargetSolution = tFunctionParams.get<Plato::Scalar>("TargetSolution");
                     initialize_normal_vector(tFunctionParams);
                     auto tNormal = mNormal;
                     auto tTargetSolution = mTargetSolution;
