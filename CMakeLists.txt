@@ -83,6 +83,8 @@ set(CMAKE_CXX_COMPILER ${Trilinos_CXX_COMPILER})
 set(CMAKE_C_COMPILER ${Trilinos_C_COMPILER})
 set(CMAKE_Fortran_COMPILER ${Trilinos_Fortran_COMPILER})
 
+find_package(Boost REQUIRED COMPONENTS serialization)
+
 set(THREAD_COUNT "" CACHE STRING "Default number of threads to use")
 if(THREAD_COUNT)
   set(ALL_THREAD_ARGS "--kokkos-threads=${THREAD_COUNT}")
@@ -415,7 +417,8 @@ if (PLATOANALYZE_ENABLE_MPMD)
   endif()
 
   target_link_libraries(Analyze_App ${PLATO_LIBS} ${PLATO_LIBS} analyzelib)
-  target_link_libraries(analyze_MPMD Analyze_App ${PLATO_LIBS} ${PLATO_LIBS} analyzelib)
+  target_link_libraries(analyze_MPMD Analyze_App ${PLATO_LIBS} ${PLATO_LIBS} analyzelib Boost::serialization)
+  target_compile_definitions(analyze_MPMD PRIVATE BOOST_NO_AUTO_PTR=1) # Suppress warnings on nvcc build
 
   if (PLATOANALYZE_ENABLE_PYTHON)
       find_package(Python3 COMPONENTS Development)
@@ -425,6 +428,7 @@ if (PLATOANALYZE_ENABLE_MPMD)
       target_include_directories( PlatoPython PRIVATE "${PLATOENGINE_PREFIX}/include")
       target_include_directories( PlatoPython PRIVATE ${Trilinos_INCLUDE_DIRS} ${Trilinos_TPL_INCLUDE_DIRS})
       target_link_libraries( PlatoPython Analyze_App analyzelib ${PLATO_LIBS} ${Trilinos_LIBRARIES} ${Trilinos_TPL_LIBRARIES} ${Python3_LIBRARIES} )
+      target_compile_definitions( PlatoPython PRIVATE BOOST_NO_AUTO_PTR=1) # Suppress warnings on nvcc build
       set_target_properties( PlatoPython PROPERTIES PREFIX "" )
       target_compile_options( PlatoPython PRIVATE "-lmpi" )
       if( CMAKE_INSTALL_PREFIX )

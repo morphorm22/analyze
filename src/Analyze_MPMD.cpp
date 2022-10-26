@@ -1,4 +1,5 @@
 #include "Analyze_App.hpp"
+#include "Plato_Interface.hpp"
 #include <Teuchos_Comm.hpp>
 #include <Teuchos_DefaultMpiComm.hpp>
 #include <Teuchos_TimeMonitor.hpp>

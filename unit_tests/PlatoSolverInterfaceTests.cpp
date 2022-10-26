@@ -1458,7 +1458,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, AmgXElastic2D )
     //
     constexpr auto tAmgxSolverParameters = 
       "<ParameterList name='Linear Solver'>                                     \n"
-      "  <Parameter name='Solver' type='string' value='AmgX'/>                  \n"
+      "  <Parameter name='Solver Stack' type='string' value='AmgX'/>            \n"
       "  <Parameter name='Configuration File' type='string' value='amgx.json'/> \n"
       "</ParameterList>                                                         \n";
     constexpr double tRelativeTol = 1e-12;
