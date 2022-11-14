@@ -1,7 +1,7 @@
 #pragma once
 
+#include "PlatoMathTypes.hpp"
 #include "PlatoStaticsTypes.hpp"
-#include "SimplexMechanics.hpp"
 
 namespace Plato
 {
@@ -13,28 +13,30 @@ namespace Plato
  *  (Assumes isotropic linear elasticity. In 2D assumes plane strain!)
  */
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-class TensileEnergyDensity : public Plato::SimplexMechanics<SpaceDim>
+template<Plato::OrdinalType mNumSpatialDims>
+class TensileEnergyDensity
 {
   public:
 
     template<typename StrainType, typename ResultType>
-    DEVICE_TYPE inline void
-    operator()( Plato::OrdinalType aCellOrdinal,
-                const Plato::ScalarMultiVectorT<StrainType> & aPrincipalStrains,
-                const Plato::Scalar & aLameLambda,
-                const Plato::Scalar & aLameMu,
-                const Plato::ScalarVectorT<ResultType> & aTensileEnergyDensity) const 
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+              Plato::OrdinalType aCellOrdinal,
+        const Plato::Array<mNumSpatialDims, StrainType> & aPrincipalStrains,
+        const Plato::Scalar & aLameLambda,
+        const Plato::Scalar & aLameMu,
+        const Plato::ScalarVectorT<ResultType> & aTensileEnergyDensity
+    ) const 
     {
         ResultType tTensileEnergyDensity = static_cast<Plato::Scalar>(0.0);
         StrainType tStrainTrace = static_cast<Plato::Scalar>(0.0);
-        for (Plato::OrdinalType tDim = 0; tDim < SpaceDim; ++tDim)
+        for (Plato::OrdinalType tDim = 0; tDim < mNumSpatialDims; ++tDim)
         {
-            tStrainTrace += aPrincipalStrains(aCellOrdinal, tDim);
-            if (aPrincipalStrains(aCellOrdinal, tDim) >= 0.0)
+            tStrainTrace += aPrincipalStrains(tDim);
+            if (aPrincipalStrains(tDim) >= 0.0)
             {
-                tTensileEnergyDensity += (aPrincipalStrains(aCellOrdinal, tDim) * 
-                                          aPrincipalStrains(aCellOrdinal, tDim) * aLameMu);
+                tTensileEnergyDensity += (aPrincipalStrains(tDim) * 
+                                          aPrincipalStrains(tDim) * aLameMu);
             }
         }
         StrainType tStrainTraceTensile = (tStrainTrace >= 0.0) ? tStrainTrace : static_cast<Plato::Scalar>(0.0);
@@ -48,15 +50,3 @@ class TensileEnergyDensity : public Plato::SimplexMechanics<SpaceDim>
 
 }
 //namespace Plato
-
-#ifdef PLATOANALYZE_1D
-extern template class Plato::TensileEnergyDensity<1>;
-#endif
-
-#ifdef PLATOANALYZE_2D
-extern template class Plato::TensileEnergyDensity<2>;
-#endif
-
-#ifdef PLATOANALYZE_3D
-extern template class Plato::TensileEnergyDensity<3>;
-#endif

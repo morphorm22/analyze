@@ -1,5 +1,4 @@
-#ifndef SCALAR_GRAD_HPP
-#define SCALAR_GRAD_HPP
+#pragma once
 
 #include "PlatoMathTypes.hpp"
 #include "PlatoStaticsTypes.hpp"
@@ -12,15 +11,10 @@ namespace Plato
  *
  *  Given a gradient matrix and scalar field, compute the scalar gradient.
  *
- *  \tparam SpaceDim spatial dimensions
- *
-/******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
+ ******************************************************************************/
+template<typename ElementType>
 class ScalarGrad
 {
-private:
-    static constexpr auto mNumNodesPerCell = SpaceDim + 1; /*!< number of nodes per cell */
-
 public:
     /***********************************************************************************
      * \brief Compute scalar field gradient
@@ -29,8 +23,40 @@ public:
      * \param [in] aScalarField scalar field workset
      * \param [in] aGradient configuration gradient workset
      **********************************************************************************/
+    template<typename OutputScalarType, typename StateScalarType, typename ConfigScalarType>
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+      Plato::OrdinalType                                                   aCellOrdinal,
+            Plato::Array<ElementType::mNumSpatialDims, OutputScalarType> & aOutput,
+            Plato::ScalarMultiVectorT<StateScalarType>                     aScalarField,
+      const Plato::Matrix<ElementType::mNumNodesPerCell,
+                          ElementType::mNumSpatialDims,
+                          ConfigScalarType>                              & aGradient
+    ) const
+    {
+        // compute scalar gradient
+        //
+        for(Plato::OrdinalType tDimIndex = 0; tDimIndex < ElementType::mNumSpatialDims; tDimIndex++)
+        {
+            aOutput(tDimIndex) = 0.0;
+            for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < ElementType::mNumNodesPerCell; tNodeIndex++)
+            {
+                aOutput(tDimIndex) += aScalarField(aCellOrdinal, tNodeIndex)
+                        * aGradient(tNodeIndex, tDimIndex);
+            }
+        }
+    }
+
+# ifdef NOPE /* update or delete below */
+    /***********************************************************************************
+     * \brief Compute scalar field gradient
+     * \param [in] aCellOrdinal cell ordinal
+     * \param [in/out] aOutput scalar field gradient workset
+     * \param [in] aScalarField scalar field workset
+     * \param [in] aGradient configuration gradient workset
+     **********************************************************************************/
     template<typename ScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(Plato::OrdinalType aCellOrdinal,
                Kokkos::View<ScalarType**, Plato::Layout, Plato::MemSpace> aOutput,
                Kokkos::View<ScalarType**, Plato::Layout, Plato::MemSpace> aScalarField,
@@ -43,7 +69,8 @@ public:
             aOutput(aCellOrdinal, tDimIndex) = 0.0;
             for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
             {
-                aOutput(aCellOrdinal, tDimIndex) += aScalarField(aCellOrdinal, tNodeIndex) * aConfigGrad[tNodeIndex][tDimIndex];
+                aOutput(aCellOrdinal, tDimIndex) += aScalarField(aCellOrdinal, tNodeIndex)
+                        * aConfigGrad[tNodeIndex][tDimIndex];
             }
         }
     }
@@ -56,7 +83,7 @@ public:
      * \param [in] aGradient configuration gradient workset
      **********************************************************************************/
     template<typename ScalarGradType, typename ScalarType, typename GradientScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(Plato::OrdinalType aCellOrdinal,
                Plato::ScalarMultiVectorT<ScalarGradType> aOutput,
                Plato::ScalarMultiVectorT<ScalarType> aScalarField,
@@ -89,7 +116,7 @@ public:
      *
      **********************************************************************************/
     template<typename ScalarGradType, typename ScalarType, typename GradientScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(const Plato::OrdinalType & aCellOrdinal,
                const Plato::OrdinalType & aNumDofsPerNode,
                const Plato::OrdinalType & aScalarOffset,
@@ -108,10 +135,9 @@ public:
             }
         }
     }
+#endif // NOPE
 };
 // class ScalarGrad
 
 }
 // namespace Plato
-
-#endif

@@ -1,14 +1,12 @@
-#include "elliptic/FluxPNorm.hpp"
-#include "ExpInstMacros.hpp"
+#include "elliptic/FluxPNorm_decl.hpp"
 
-#ifdef PLATOANALYZE_1D
-PLATO_EXPL_DEF(Plato::Elliptic::FluxPNorm, Plato::SimplexThermal, 1)
-#endif
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#ifdef PLATOANALYZE_2D
-PLATO_EXPL_DEF(Plato::Elliptic::FluxPNorm, Plato::SimplexThermal, 2)
-#endif
+#include "elliptic/FluxPNorm_def.hpp"
 
-#ifdef PLATOANALYZE_3D
-PLATO_EXPL_DEF(Plato::Elliptic::FluxPNorm, Plato::SimplexThermal, 3)
+#include "ThermalElement.hpp"
+#include "elliptic/ExpInstMacros.hpp"
+
+PLATO_ELLIPTIC_EXP_INST(Plato::Elliptic::FluxPNorm, Plato::ThermalElement)
+
 #endif

@@ -136,7 +136,7 @@ public:
       // Finally do the evaluation.
       Kokkos::parallel_for("Compute yield stress",
                            Kokkos::RangePolicy<>(0, tNumCells),
-                           LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+                           KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
       {
         // Values that change based on the aCellOrdinal index. These
         // are values that the user has requested to come from the

@@ -1,11 +1,12 @@
-#include "geometric/DivisionFunction.hpp"
+#include "geometric/DivisionFunction_decl.hpp"
 
-#ifdef PLATOANALYZE_1D
-template class Plato::Geometric::DivisionFunction<::Plato::Geometrical<1>>;
-#endif
-#ifdef PLATOANALYZE_2D
-template class Plato::Geometric::DivisionFunction<::Plato::Geometrical<2>>;
-#endif
-#ifdef PLATOANALYZE_3D
-template class Plato::Geometric::DivisionFunction<::Plato::Geometrical<3>>;
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
+
+#include "geometric/DivisionFunction_def.hpp"
+
+#include "Geometrical.hpp"
+#include "BaseExpInstMacros.hpp"
+
+PLATO_ELEMENT_DEF(Plato::Geometric::DivisionFunction, Plato::Geometrical)
+
 #endif

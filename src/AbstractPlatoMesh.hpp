@@ -16,6 +16,11 @@ namespace Plato
             virtual std::string FileName() const = 0;
 
             /******************************************************************************//**
+            * \brief Return the element type
+            **********************************************************************************/
+            virtual std::string ElementType() const = 0;
+
+            /******************************************************************************//**
             * \brief Return number of nodes in the mesh
             * If the mesh is distributed, return the number of local nodes
             **********************************************************************************/

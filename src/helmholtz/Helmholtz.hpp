@@ -1,9 +1,7 @@
 #ifndef PLATO_HELMHOLTZ_HPP
 #define PLATO_HELMHOLTZ_HPP
 
-#include "Simplex.hpp"
-#include "helmholtz/SimplexHelmholtz.hpp"
-
+#include "PlatoUtilities.hpp"
 #include "helmholtz/AbstractVectorFunction.hpp"
 #include "helmholtz/HelmholtzResidual.hpp"
 
@@ -11,7 +9,6 @@ namespace Plato {
 
 namespace HelmholtzFactory {
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
 struct FunctionFactory{
 /******************************************************************************/
     template <typename EvaluationType>
@@ -20,11 +17,12 @@ struct FunctionFactory{
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aParamList,
-              std::string              strVectorFunctionType
+              std::string              aFunctionType
     )
     {
 
-        if( strVectorFunctionType == "Helmholtz Filter" )
+        auto tFunctionType = Plato::tolower(aFunctionType);
+        if( tFunctionType == "helmholtz filter" )
         {
             return std::make_shared<Plato::Helmholtz::HelmholtzResidual<EvaluationType>>
               (aSpatialDomain, aDataMap, aParamList);
@@ -39,12 +37,18 @@ struct FunctionFactory{
 
 } // namespace HelmholtzFactory
 
-template <Plato::OrdinalType SpaceDimParam>
-class HelmholtzFilter : public Plato::SimplexHelmholtz<SpaceDimParam> {
-  public:
-    typedef Plato::HelmholtzFactory::FunctionFactory<SpaceDimParam> FunctionFactory;
-    using SimplexT = SimplexHelmholtz<SpaceDimParam>;
-    static constexpr Plato::OrdinalType SpaceDim = SpaceDimParam;
+} // namespace Plato
+
+#include "HelmholtzElement.hpp"
+
+namespace Plato {
+
+template <typename TopoElementType>
+class HelmholtzFilter
+{
+public:
+    typedef Plato::HelmholtzFactory::FunctionFactory FunctionFactory;
+    using ElementType = HelmholtzElement<TopoElementType>;
 };
 // class HelmholtzFilter
 

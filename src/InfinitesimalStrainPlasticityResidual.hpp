@@ -26,7 +26,6 @@
 #include "ComputeDeviatoricStress.hpp"
 #include "ComputePrincipalStresses.hpp"
 #include "ThermoPlasticityUtilities.hpp"
-#include "LinearTetCubRuleDegreeOne.hpp"
 #include "IsotropicMaterialUtilities.hpp"
 #include "AbstractGlobalVectorFunctionInc.hpp"
 
@@ -82,7 +81,6 @@ private:
     using ResultT = typename EvaluationType::ResultScalarType;                 /*!< result variables automatic differentiation type */
 
     using FunctionBaseType = Plato::AbstractGlobalVectorFunctionInc<EvaluationType>;
-    using CubatureType = Plato::LinearTetCubRuleDegreeOne<mSpaceDim>;
 
     Plato::Scalar mPoissonsRatio;                  /*!< Poisson's ratio */
     Plato::Scalar mElasticModulus;                 /*!< elastic modulus */
@@ -98,7 +96,10 @@ private:
     std::vector<std::string> mPlotTable;           /*!< array of output element data identifiers*/
 
     std::shared_ptr<Plato::BodyLoads<EvaluationType, SimplexPhysicsType>> mBodyLoads;   /*!< body loads interface */
+
+    using CubatureType = typename SimplexPhysicsType::CubatureType;
     std::shared_ptr<CubatureType> mCubatureRule;                                        /*!< linear cubature rule */
+
     std::shared_ptr<Plato::NaturalBCs<mSpaceDim, mNumMechDims, mNumGlobalDofsPerNode, mMechDofOffset>> mNeumannLoads; /*!< Neumann loads interface */
 
 // Private access functions
@@ -455,7 +456,7 @@ public:
 
         auto tQuadratureWeight = mCubatureRule->getCubWeight();
         auto tBasisFunctions = mCubatureRule->getBasisFunctions();
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType &aCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType &aCellOrdinal)
         {
             // compute configuration gradients
             tComputeGradient(aCellOrdinal, tConfigurationGradient, aConfig, tCellVolume);

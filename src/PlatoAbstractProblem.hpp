@@ -11,6 +11,7 @@
 
 #include "Solutions.hpp"
 #include "AnalyzeMacros.hpp"
+#include "InputDataUtils.hpp"
 #include "PlatoStaticsTypes.hpp"
 
 namespace Plato
@@ -36,6 +37,19 @@ public:
     **********************************************************************************/
     virtual ~AbstractProblem()
     {
+    }
+
+    /******************************************************************************//**
+     * \brief PLATO abstract problem constructor
+    **********************************************************************************/
+    AbstractProblem() {}
+
+    AbstractProblem(
+      Plato::Mesh              aMesh,
+      Teuchos::ParameterList & aProblemParams
+    )
+    {
+      readInputData(aProblemParams, mDataMap, aMesh);
     }
 
     /******************************************************************************//**

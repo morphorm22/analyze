@@ -1,11 +1,8 @@
-#ifndef PLATO_SOLVER_FACTORY_HPP
-#define PLATO_SOLVER_FACTORY_HPP
+#pragma once
 
-#include "alg/AmgXLinearSolver.hpp"
-#include "alg/EpetraLinearSolver.hpp"
-#ifdef PLATO_TPETRA
-#include "alg/TpetraLinearSolver.hpp"
-#endif
+#include "Teuchos_ParameterList.hpp"
+#include "PlatoAbstractSolver.hpp"
+#include "alg/ParallelComm.hpp"
 
 namespace Plato {
 
@@ -14,29 +11,22 @@ namespace Plato {
 **********************************************************************************/
 class SolverFactory
 {
-    const Teuchos::ParameterList& mSolverParams;
-
   public:
     SolverFactory(
-        Teuchos::ParameterList& aSolverParams
-    ) : mSolverParams(aSolverParams) { }
-
-    rcp<AbstractSolver>
-    create(
-        Plato::OrdinalType                              aNumNodes,
-        Comm::Machine                                   aMachine,
-        Plato::OrdinalType                              aDofsPerNode
-    );
+        Teuchos::ParameterList& aSolverParams,
+        LinearSystemType type = LinearSystemType::SYMMETRIC_POSITIVE_DEFINITE
+    ) : mSolverParams(aSolverParams), mType(type) { }
 
     rcp<AbstractSolver>
     create(
         Plato::OrdinalType                              aNumNodes,
         Comm::Machine                                   aMachine,
         Plato::OrdinalType                              aDofsPerNode,
-        std::shared_ptr<Plato::MultipointConstraints>   aMPCs
+        std::shared_ptr<Plato::MultipointConstraints>   aMPCs = nullptr
     );
+private:
+    const Teuchos::ParameterList& mSolverParams;
+    const LinearSystemType mType;
 };
 
 } // end Plato namespace
-
-#endif

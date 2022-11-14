@@ -12,6 +12,7 @@
 
 #include "AnalyzeMacros.hpp"
 #include "PlatoMathExpr.hpp"
+#include "PlatoUtilities.hpp"
 #include "SurfaceLoadIntegral.hpp"
 #include "SurfacePressureIntegral.hpp"
 
@@ -63,13 +64,16 @@ inline Plato::Neumann::bc_t natural_boundary_condition_type(const std::string& a
 /***************************************************************************//**
  * \brief Class for natural boundary conditions.
  *
- * \tparam SpatialDim   spatial dimension
- * \tparam NumDofs      number degrees of freedom per natural boundary condition force vector
+ * \tparam ElementType  Element type
  * \tparam DofsPerNode  number degrees of freedom per node
  * \tparam DofOffset    degrees of freedom offset
  *
 *******************************************************************************/
-template<Plato::OrdinalType SpatialDim, Plato::OrdinalType NumDofs=SpatialDim, Plato::OrdinalType DofsPerNode=NumDofs, Plato::OrdinalType DofOffset=0>
+template<
+  typename ElementType,
+  Plato::OrdinalType NumDofs=ElementType::mNumSpatialDims,
+  Plato::OrdinalType DofsPerNode=NumDofs,
+  Plato::OrdinalType DofOffset=0>
 class NaturalBC
 {
     const std::string mName;         /*!< user-defined load sublist name */
@@ -84,7 +88,7 @@ public:
      * \param [in] aLoadName user-defined name for natural boundary condition sublist
      * \param [in] aSubList  natural boundary condition input parameter sublist
     *******************************************************************************/
-    NaturalBC<SpatialDim,NumDofs,DofsPerNode,DofOffset>(const std::string & aLoadName, Teuchos::ParameterList &aSubList) :
+    NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>(const std::string & aLoadName, Teuchos::ParameterList &aSubList) :
         mName(aLoadName),
         mType(aSubList.get<std::string>("Type")),
         mSideSetName(aSubList.get<std::string>("Sides")),
@@ -177,12 +181,12 @@ public:
 /***************************************************************************//**
  * \brief NaturalBC::get function definition
 *******************************************************************************/
-template<Plato::OrdinalType SpatialDim, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
+template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
 template<typename StateScalarType,
          typename ControlScalarType,
          typename ConfigScalarType,
          typename ResultScalarType>
-void NaturalBC<SpatialDim,NumDofs,DofsPerNode,DofOffset>::get(
+void NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>::get(
     const Plato::SpatialModel                          & aSpatialModel,
     const Plato::ScalarMultiVectorT<  StateScalarType> & aState,
     const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
@@ -207,14 +211,14 @@ void NaturalBC<SpatialDim,NumDofs,DofsPerNode,DofOffset>::get(
         case Plato::Neumann::UNIFORM:
         case Plato::Neumann::UNIFORM_COMPONENT:
         {
-            Plato::SurfaceLoadIntegral<SpatialDim, NumDofs, DofsPerNode, DofOffset> tSurfaceLoad(mSideSetName, mFlux);
+            Plato::SurfaceLoadIntegral<ElementType, NumDofs, DofsPerNode, DofOffset> tSurfaceLoad(mSideSetName, mFlux);
             tSurfaceLoad(aSpatialModel, aState, aControl, aConfig, aResult, aScale);
             break;
         }
         case Plato::Neumann::UNIFORM_PRESSURE:
         {
-            Plato::SurfacePressureIntegral<SpatialDim, NumDofs, DofsPerNode, DofOffset> tSurfacePress(mSideSetName, mFlux);
-            tSurfacePress(aSpatialModel, aState, aControl, aConfig, aResult, aScale);
+             Plato::SurfacePressureIntegral<ElementType, NumDofs, DofsPerNode, DofOffset> tSurfacePress(mSideSetName, mFlux);
+             tSurfacePress(aSpatialModel, aState, aControl, aConfig, aResult, aScale);
             break;
         }
         default:

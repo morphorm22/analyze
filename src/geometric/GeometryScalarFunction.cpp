@@ -1,11 +1,12 @@
-#include "geometric/GeometryScalarFunction.hpp"
+#include "geometric/GeometryScalarFunction_decl.hpp"
 
-#ifdef PLATOANALYZE_1D
-template class Plato::Geometric::GeometryScalarFunction<::Plato::Geometrical<1>>;
-#endif
-#ifdef PLATOANALYZE_2D
-template class Plato::Geometric::GeometryScalarFunction<::Plato::Geometrical<2>>;
-#endif
-#ifdef PLATOANALYZE_3D
-template class Plato::Geometric::GeometryScalarFunction<::Plato::Geometrical<3>>;
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
+
+#include "geometric/GeometryScalarFunction_def.hpp"
+
+#include "Geometrical.hpp"
+#include "BaseExpInstMacros.hpp"
+
+PLATO_ELEMENT_DEF(Plato::Geometric::GeometryScalarFunction, Plato::Geometrical)
+
 #endif

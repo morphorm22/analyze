@@ -302,7 +302,7 @@ public:
         auto tQuadratureWeight = mCubatureRule->getCubWeight();
         auto tBasisFunctions = mCubatureRule->getBasisFunctions();
         auto tOmegaTimesOmega = aAngularFrequency * aAngularFrequency;
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
         {
             // Compute elastic forces
             tComputeGradientWorkset(aCellOrdinal, tCellGradient, aConfiguration, tCellVolume);

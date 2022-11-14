@@ -7,7 +7,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
  
 #include "Mechanics.hpp"
 #include "WorksetBase.hpp"
@@ -16,6 +16,7 @@
 #include "StructuralDynamics.hpp"
 
 #include "Teuchos_UnitTestHarness.hpp"
+#include <Teuchos_XMLParameterListHelpers.hpp>
 
     // create material model
     //
@@ -63,7 +64,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ComputeStateWorkset)
     // ****** TEST STATE WORKSET TOOLS ****** //
     const Plato::OrdinalType tSpaceDim = 3;
     const Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // ******************** SET ELASTOSTATICS' EVALUATION TYPES FOR UNIT TEST ********************
     using ResidualT = typename Plato::Evaluation<typename Plato::Mechanics<tSpaceDim>::SimplexT>::Residual;
@@ -186,7 +187,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearStrainsToComplexStrains)
     // BUILD OMEGA_H MESH
     const Plato::OrdinalType tSpaceDim = 3;
     const Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // ******************** SET ELASTOSTATICS' EVALUATION TYPES FOR UNIT TEST ********************
     using ResidualT = typename Plato::Evaluation<typename Plato::Mechanics<tSpaceDim>::SimplexT>::Residual;
@@ -254,7 +255,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearStrainsToComplexStrains)
     const Plato::OrdinalType tNumVoigtTerms = 6;
     Plato::ScalarMultiVectorT<StrainT> tRealLinearStrain("RealLinearStrain", tNumCells, tNumVoigtTerms);
     Plato::ScalarMultiVectorT<StrainT> tImagLinearStrain("ImagLinearStrain", tNumCells, tNumVoigtTerms);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
         // compute strain
@@ -309,7 +310,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearStrainsToComplexStrains)
     Plato::ComplexStrain<tSpaceDim, tNumDofsPerNode> tComputeComplexStrain;
     Plato::ScalarArray3DT<StrainT> tComplexStrain("ComplexStrain", tNumCells, tCOMPLEX_SPACE_DIM, tNumVoigtTerms);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tCellVolume(aCellOrdinal) = 0.0;
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
@@ -346,7 +347,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearStressToComplexStress)
 
     using SimplexPhysics = typename Plato::SimplexMechanics<tSpaceDim>;
 
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // ******************** SET ELASTOSTATICS' EVALUATION TYPES FOR UNIT TEST ********************
     using ResidualT = typename Plato::Evaluation<typename Plato::Mechanics<tSpaceDim>::SimplexT>::Residual;
@@ -423,7 +424,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearStressToComplexStress)
     Plato::ScalarMultiVectorT<ResidualT::ResultScalarType> tRealLinearStress("RealLinearStress", tNumCells, tNumVoigtTerms);
     Plato::ScalarMultiVectorT<StrainT> tImagLinearStrain("ImagLinearStrain", tNumCells, tNumVoigtTerms);
     Plato::ScalarMultiVectorT<ResidualT::ResultScalarType> tImagLinearStress("ImagLinearStress", tNumCells, tNumVoigtTerms);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
 
@@ -487,7 +488,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearStressToComplexStress)
     Plato::ScalarArray3DT<ResidualT::ResultScalarType>
         tComplexStress("ComplexStress", tNumCells, tCOMPLEX_SPACE_DIM, tNumVoigtTerms);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tCellVolume(aCellOrdinal) = 0.0;
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
@@ -526,7 +527,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearElasticForcesToComplexElas
 
     using SimplexPhysics = typename Plato::SimplexMechanics<tSpaceDim>;
 
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // ******************** SET ELASTOSTATICS' EVALUATION TYPES FOR UNIT TEST ********************
     using ResidualT = typename Plato::Evaluation<typename Plato::Mechanics<tSpaceDim>::SimplexT>::Residual;
@@ -609,7 +610,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearElasticForcesToComplexElas
     Plato::ScalarMultiVectorT<ResidualT::ResultScalarType> tImagElasticForces("ImagElasticForces", tNumCells, tNumDofsPerCell);
 
     auto tQuadratureWeight = tCubatureRule.getCubWeight();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tCellVolume(aCellOrdinal) = 0.0;
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
@@ -679,7 +680,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CompareLinearElasticForcesToComplexElas
     Plato::ScalarMultiVectorT<ResidualT::ResultScalarType>
         tComplexElasticForces("ComplexElasticForces", tNumCells, tNumDofsPerCell);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tCellVolume(aCellOrdinal) = 0.0;
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);

@@ -44,8 +44,10 @@
 #include <Teuchos_RCPDecl.hpp>
 #include <Teuchos_GlobalMPISession.hpp>
 #include <Teuchos_Comm.hpp>
+#ifdef PLATO_EPETRA
 #include <Epetra_SerialComm.h>
 #include <Epetra_MpiComm.h>
+#endif
 #include <PlatoTypes.hpp>
 #include <mpi.h>
 #include <memory>
@@ -56,7 +58,9 @@ namespace Comm {
 struct Machine {
   Teuchos::RCP<Teuchos::GlobalMPISession> mpiSession;
   Teuchos::RCP<const Teuchos::Comm<int>>  teuchosComm;
+#ifdef PLATO_EPETRA
   std::shared_ptr<Epetra_Comm> epetraComm;
+#endif
 
   Machine(MPI_Comm& localComm);
 

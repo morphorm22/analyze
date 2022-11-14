@@ -15,6 +15,7 @@ namespace Plato
     class OmegaHMesh : public AbstractMesh
     {
         const std::string mFileName;
+        std::string mElementType;
         Omega_h::Assoc mAssoc;
 
         std::map<std::string, Plato::OrdinalVector> mSideSetFacesOrdinals;
@@ -39,6 +40,7 @@ namespace Plato
             OmegaHMesh(std::shared_ptr<Plato::OmegaHMesh> aOmegaHMesh) : OmegaHMesh(*aOmegaHMesh) {}
 
             std::string FileName() const override;
+            std::string ElementType() const override;
             Plato::OrdinalType NumNodes() const override;
             Plato::OrdinalType NumElements() const override;
             Plato::OrdinalType NumNodesPerElement() const override;
@@ -123,7 +125,7 @@ namespace Plato
                 auto tElem2Faces = mMesh.ask_down(cSpaceDims, cNumSpaceDimsOnFace).ab2b;
 
                 auto tNumFaces = aFaceLids.size();
-                Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumFaces), LAMBDA_EXPRESSION(const Plato::OrdinalType & aFaceI)
+                Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumFaces), KOKKOS_LAMBDA(const Plato::OrdinalType & aFaceI)
                 {
                     auto tFaceOrdinal = aFaceLids[aFaceI];
                     for( Plato::OrdinalType tElem = tFace2Elems_map[tFaceOrdinal]; tElem < tFace2Elems_map[tFaceOrdinal+1]; ++tElem )

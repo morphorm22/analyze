@@ -76,33 +76,15 @@ class EpetraLinearSolver : public AbstractSolver
 
     int mIterations = 1000; /*!< maximum linear solver iterations */
     int mDisplayIterations = 0; /*!< display solver iterations history to console */
-    bool mDisplayDiagnostics = true; /*!< display solver warnings/diagnostics to console */
-    Plato::Scalar mTolerance = 1e-14; /*!< linear solver tolerance */
+    Plato::Scalar mTolerance = 1e-10; /*!< linear solver tolerance */
 
   public:
-    /******************************************************************************//**
-     * \brief EpetraLinearSolver constructor
-
-     This constructor creates a new System.
-    **********************************************************************************/
-    EpetraLinearSolver(
-        const Teuchos::ParameterList&                   aSolverParams,
-        int                                             aNumNodes,
-        Comm::Machine                                   aMachine,
-        int                                             aDofsPerNode
-    );
-
-    /******************************************************************************//**
-     * @brief EpetraLinearSolver constructor with MPCs
-
-     This constructor takes a MultipointConstraints and creates a new System.
-    **********************************************************************************/
     EpetraLinearSolver(
         const Teuchos::ParameterList&                   aSolverParams,
         int                                             aNumNodes,
         Comm::Machine                                   aMachine,
         int                                             aDofsPerNode,
-        std::shared_ptr<Plato::MultipointConstraints>   aMPCs
+        std::shared_ptr<Plato::MultipointConstraints>   aMPCs = nullptr
     );
 
     /******************************************************************************//**

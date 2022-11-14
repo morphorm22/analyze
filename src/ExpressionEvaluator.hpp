@@ -658,15 +658,16 @@ set_variable( const char * varName,
 {
   Plato::OrdinalType start, end;
 
+  if( mNumThreads == 0 )
+    GPU_WARNING( "Invalid call to set_variable - "
+                 "setup_storage has not been called.",
+                 "The number of threads has not been set." );
+
   // If the default set the value for all threads.
   if( thread == (Plato::OrdinalType) -1 )
   {
     start = 0;
     end = mNumThreads;
-
-    if( mNumThreads == 0 )
-      GPU_WARNING( "Invalid call to set_variable - "
-                   "setup_storage has not been called.", "The number of threads has not been set." );
   }
   // Otherwise set just for this thread.
   else
@@ -699,7 +700,6 @@ set_variable( const char * varName,
           // used. The later makes for easy lookup when evaluating.
           mVariableMap(t, i).value = SCALAR_DATA_SOURCE * MAX_DATA_SOURCE + index;
         }
-
         mVariableScalarValues(t, index) = value;
 
         break;
@@ -726,21 +726,65 @@ set_variable( const char * varName,
 {
   Plato::OrdinalType start, end;
 
+  if( mNumThreads == 0 )
+    GPU_WARNING( "Invalid call to set_variable - "
+                 "setup_storage has not been called.",
+                 "The number of threads has not been set." );
+
   // If the default set the value for all threads.
   if( thread == (Plato::OrdinalType) -1 )
   {
     start = 0;
     end = mNumThreads;
-
-    if( mNumThreads == 0 )
-      GPU_WARNING( "Invalid call to set_variable - "
-                   "setup_storage has not been called.", "The number of threads has not been set." );
   }
   // Otherwise set just for this thread.
   else
   {
+    if( mNumValues == 1 )
+    {
+      std::stringstream errorMsg;
+
+      errorMsg << "Invalid call to set_variable - "
+               << "The vector, '" << varName << "' "
+               << "will be indexed over all threads but "
+               << "requesting the vector be used on a per thread basis.";
+
+      GPU_WARNING( errorMsg.str().c_str(), "");
+    }
+
     start = thread;
     end = thread + 1;
+  }
+
+  // When the number of values is one the vector will be indexed
+  // based on the thread.
+  if( mNumValues == 1 && values.extent(0) != mNumThreads )
+  {
+    std::stringstream errorMsg;
+
+    errorMsg << "Invalid call to set_variable - "
+             << "Indexing over the threads and "
+             << "the vector, '" << varName << "' "
+             << "has " << values.extent(0) << " values. "
+             << "The number of expected values is "
+             << mNumThreads << ".";
+
+    GPU_WARNING( errorMsg.str().c_str(), "");
+  }
+  // When the number of values is greater than one the vector
+  // will be indexed over the number values.
+  else if( mNumValues > 1 && values.extent(0) != mNumValues )
+  {
+    std::stringstream errorMsg;
+
+    errorMsg << "Invalid call to set_variable - "
+             << "Indexing over the number of values and "
+             << "the vector, '" << varName << "' "
+             << "has " << values.extent(0) << " values. "
+             << "The number of expected values is "
+             << mNumValues << ".";
+
+    GPU_WARNING( errorMsg.str().c_str(), "");
   }
 
   for( Plato::OrdinalType t=start; t<end; ++t)
@@ -790,6 +834,38 @@ ExpressionEvaluator<ResultType, StateType, VectorType, ScalarType>::
 set_variable( const char * varName,
               const StateType & values ) const
 {
+  if( mNumThreads == 0 )
+      GPU_WARNING( "Invalid call to set_variable - "
+                   "setup_storage has not been called.",
+                   "The number of threads has not been set." );
+
+  if( values.extent(0) != mNumThreads ||
+      values.extent(1) != mNumValues )
+  {
+    std::stringstream errorMsg1, errorMsg2;
+
+    errorMsg1 << "Invalid call to set_variable - ";
+
+    if( values.extent(0) != mNumThreads )
+      errorMsg1 << "The vector, '" << varName << "' "
+                << "has " << values.extent(0) << " threads. "
+                << "The number of expected threads is "
+                << mNumValues << ".";
+
+    if( values.extent(1) != mNumValues )
+      errorMsg1 << "The vector, '" << varName << "' "
+                << "has " << values.extent(0) << " values. "
+                << "The number of expected values is "
+                << mNumThreads << ".";
+
+    if( mNumValues == 1 )
+      errorMsg2 << "When the number of values expected is one. "
+                << "Set each value as a scalar constant "
+                << "on a per thread basis.";
+
+    GPU_WARNING( errorMsg1.str().c_str(), errorMsg2.str().c_str());
+  }
+
   // Even though there is only a single input across all threads set
   // up the map for each thread so that the map can be used regardless
   // of which thread is being processed. This is opposed to an unique
@@ -2264,7 +2340,7 @@ traverseNode( const Plato::OrdinalType i_node,
   if( node.ID == NodeID::EMPTY_NODE )
   {
     std::stringstream errorMsg;
-    errorMsg << "Invalid call to evaluateNode - "
+    errorMsg << "Invalid call to traverseNode - "
              << "empty node index is " << i_node;
     ANALYZE_THROWERR( errorMsg.str() );
   }
@@ -2368,7 +2444,6 @@ evaluateNode( const Plato::OrdinalType thread,
 
   //   return false;
   // }
-
   const Node & node = mNodes[i_node];
 
   // Empty node. This should never happen as checks are made not to
@@ -2430,6 +2505,7 @@ evaluateNode( const Plato::OrdinalType thread,
       break;
     case NodeID::NEGATIVE:
       for( Plato::OrdinalType i=0; i<mNumValues; ++i )
+        result(thread,i) = -right(thread,i);
       break;
 
     case NodeID::ADDITION:
@@ -2542,8 +2618,17 @@ evaluateNode( const Plato::OrdinalType thread,
       {
         const VectorType & values = mVariableVectorValues(thread, index);
 
-        for( Plato::OrdinalType i=0; i<mNumValues; ++i )
-          result(thread,i) = values[i];
+        // When the number of values is one index based on the thread
+        if( mNumValues == 1 )
+        {
+          result(thread,0) = values[thread];
+        }
+        // Otherwise index over all values.
+        else
+        {
+          for( Plato::OrdinalType i=0; i<mNumValues; ++i )
+            result(thread,i) = values[i];
+        }
       }
       else if( type == STATE_DATA_SOURCE )
       {
@@ -2737,7 +2822,7 @@ printNodeID( const Plato::OrdinalType i_node,
 
         os << " = " << values[0] << "  ";
 
-        if( mNumValues > 1 )
+        if( mNumThreads > 1 || mNumValues > 1 )
           os << "...  ";
       }
       else if( type == STATE_DATA_SOURCE )
@@ -2746,7 +2831,7 @@ printNodeID( const Plato::OrdinalType i_node,
 
         os << " = " << values(0,0) << "  ";
 
-        if( mNumValues > 1 )
+        if( mNumThreads > 1 || mNumValues > 1 )
           os << "...  ";
       }
       else

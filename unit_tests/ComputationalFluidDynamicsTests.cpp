@@ -10,9 +10,9 @@
 #include "BLAS3.hpp"
 #include "Analyze_Diagnostics.hpp"
 
-#include "hyperbolic/FluidsQuasiImplicit.hpp"
+#include "hyperbolic/fluids/FluidsQuasiImplicit.hpp"
 
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 
 namespace ComputationalFluidDynamicsTests
 {
@@ -112,7 +112,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, setState)
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -270,7 +270,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ReadFields)
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -417,7 +417,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Test_Read)
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -560,7 +560,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ReadSteps)
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -675,7 +675,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_CheckCrit
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -782,7 +782,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_CheckCrit
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -889,7 +889,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IsothermalFlowOnChannel_Re100_TestCrite
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -1014,7 +1014,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 50);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 50);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -1155,7 +1155,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 50);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 50);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -1305,7 +1305,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 50);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 50);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -1453,7 +1453,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionSquareEnclosure_Ra1e3_
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 40);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 40);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -1501,7 +1501,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateMisfitInfNorm)
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateConvectiveVelocityMagnitude)
 {
     // build mesh and spatial model
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::SpatialModel tSpatialModel(tMesh);
 
     // set velocity field
@@ -1539,7 +1539,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateConvectiveVelocityMagnitude)
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateElementCharacteristicSizes)
 {
     // build mesh and spatial model
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::SpatialModel tSpatialModel(tMesh);
 
     constexpr auto tNumSpaceDims = 2;
@@ -1591,7 +1591,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PressureIncrementResidual_EvaluateBound
     using EvaluationT = Plato::Fluids::Evaluation<PhysicsT::SimplexT>::Residual;
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     auto tSpatialDomainName = std::string("my box");
     Plato::SpatialDomain tDomain(tMesh, tSpatialDomainName);
     auto tElementBlockName = std::string("body");
@@ -1659,7 +1659,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PressureResidual)
     using EvaluationT = Plato::Fluids::Evaluation<PhysicsT::SimplexT>::Residual;
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     auto tSpatialDomainName = std::string("my box");
     Plato::SpatialDomain tDomain(tMesh, tSpatialDomainName);
     auto tElementBlockName = std::string("body");
@@ -1772,7 +1772,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateScalarFieldGradient)
     Kokkos::deep_copy(tPressure, tHostPressure);
 
     // call device function
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         Plato::Fluids::calculate_scalar_field_gradient<tNumNodesPerCell,tSpaceDims>(aCellOrdinal, tGradient, tPressure, tResult);
     }, "unit test calculate_scalar_field_gradient");
@@ -1818,7 +1818,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IntegrateDivergenceOperator)
     Plato::blas1::fill(0.33333333333333333333333, tBasisFunctions);
 
     // call device function
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         Plato::Fluids::integrate_divergence_operator<tNumNodesPerCell,tSpaceDims>
             (aCellOrdinal, tBasisFunctions, tGradient, tCellVolume, tPrevVel, tResult);
@@ -1857,7 +1857,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizeHeatSourceConstant)
     Kokkos::deep_copy(tControl, tHostControl);
 
     // call device function
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tResult(aCellOrdinal) =
             Plato::Fluids::penalize_heat_source_constant<tNumNodesPerCell>(aCellOrdinal, tHeatSourceConst, tPenaltyExp, tControl);
@@ -1891,7 +1891,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PenalizedEffectiveThermalProperty)
     constexpr auto tEffectiveThermalProperty  = 4.0;
 
     // call device function
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tResult(aCellOrdinal) =
             Plato::Fluids::penalized_effective_thermal_property<tNumNodesPerCell>(aCellOrdinal, tEffectiveThermalProperty, tPenaltyExp, tControl);
@@ -1932,7 +1932,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateFlux)
     Plato::ScalarMultiVector tFlux("flux", tNumCells, tSpaceDims);
 
     // call device function
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         Plato::Fluids::calculate_flux<tNumNodesPerCell,tSpaceDims>(aCellOrdinal, tGradient, tPrevTemp, tFlux);
     }, "unit test calculate_flux");
@@ -1957,7 +1957,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateFluxDivergence)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
 
     // set input data for unit test
     auto tNumCells = tMesh->NumElements();
@@ -1978,7 +1978,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateFluxDivergence)
 
     // call device function
     Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->NumElements(), tNodeCoordinate, tConfigWS);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
         Plato::Fluids::calculate_flux_divergence<tNumNodesPerCell,tSpaceDims>(aCellOrdinal, tGradient, tCellVolume, tFlux, tResult, 1.0);
@@ -2017,7 +2017,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IntegrateScalarField)
     // call device kernel
     Plato::LinearTetCubRuleDegreeOne<tSpaceDims> tCubRule;
     auto tBasisFunctions = tCubRule.getBasisFunctions();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         Plato::Fluids::integrate_scalar_field<tNumNodesPerCell>(aCellOrdinal, tBasisFunctions, tCellVolume, tSource, tResult, 1.0);
     }, "unit test integrate_scalar_field");
@@ -2044,7 +2044,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateConvectiveForces)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
 
     // set input data for unit test
     auto tNumCells = tMesh->NumElements();
@@ -2069,7 +2069,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateConvectiveForces)
     Plato::NodeCoordinate<tSpaceDims> tNodeCoordinate(tMesh);
 
     Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->NumElements(), tNodeCoordinate, tConfigWS);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
         Plato::Fluids::calculate_convective_forces<tNumNodesPerCell, tSpaceDims>(aCellOrdinal, tGradient, tPrevVelGP, tPrevTemp, tForces);
@@ -2108,7 +2108,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VelocityCorrectorResidual)
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
     Plato::SpatialModel tModel(tMesh);
@@ -2183,7 +2183,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculatePressureGradient)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
 
     // set input data for unit test
     auto tNumCells = tMesh->NumElements();
@@ -2210,7 +2210,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculatePressureGradient)
     // call device kernel
     auto tTheta = 0.2;
     Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->NumElements(), tNodeCoordinate, tConfigWS);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
         Plato::Fluids::calculate_pressure_gradient<tNumNodesPerCell, tSpaceDims>
@@ -2246,7 +2246,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateBrinkmanForces)
     Kokkos::deep_copy(tPrevVelGP, tHostPrevVelGP);
 
     // call device kernel
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         Plato::Fluids::calculate_brinkman_forces<tSpaceDims>(aCellOrdinal, tBrinkmanCoeff, tPrevVelGP, tResult);
     }, "unit test calculate_brinkman_forces");
@@ -2271,7 +2271,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IntegrateStabilizingForces)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
 
     // set input data for unit test
     auto tNumCells = tMesh->NumElements();
@@ -2302,7 +2302,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IntegrateStabilizingForces)
     auto tCubWeight = tCubRule.getCubWeight();
     auto tBasisFunctions = tCubRule.getBasisFunctions();
     Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->NumElements(), tNodeCoordinate, tConfigWS);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
         tCellVolume(aCellOrdinal) *= tCubWeight;
@@ -2347,7 +2347,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, Integrate)
     Plato::LinearTetCubRuleDegreeOne<tSpaceDims> tCubRule;
     auto tCubWeight = tCubRule.getCubWeight();
     auto tBasisFunctions = tCubRule.getBasisFunctions();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         Plato::Fluids::integrate_vector_field<tNumNodesPerCell, tSpaceDims>
             (aCellOrdinal, tBasisFunctions, tCellVolume, tInternalForces, tResult);
@@ -2374,7 +2374,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateAdvectedInternalForces)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
 
     // set input data for unit test
     auto tNumCells = tMesh->NumElements();
@@ -2402,7 +2402,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateAdvectedInternalForces)
     auto tCubWeight = tCubRule.getCubWeight();
     auto tBasisFunctions = tCubRule.getBasisFunctions();
     Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->NumElements(), tNodeCoordinate, tConfigWS);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
         tCellVolume(aCellOrdinal) *= tCubWeight;
@@ -2444,7 +2444,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CalculateNaturalConvectiveForces)
     Kokkos::deep_copy(tPenalizedGrNum, tHostPenalizedGrNum);
 
     // call device kernel
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         Plato::Fluids::calculate_natural_convective_forces<tSpaceDims>
             (aCellOrdinal, tPenalizedPrNumTimesPrNum, tPenalizedGrNum, tPrevTempGP, tResultGP);
@@ -2470,7 +2470,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IntegrateViscousForces)
 {
     // build mesh, mesh sets, and spatial domain
     constexpr auto tSpaceDims = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
 
     // set input data for unit test
     auto tNumCells = tMesh->NumElements();
@@ -2496,7 +2496,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, IntegrateViscousForces)
     // call device kernel
     auto tCubWeight = tCubRule.getCubWeight();
     Plato::workset_config_scalar<tSpaceDims, tNumNodesPerCell>(tMesh->NumElements(), tNodeCoordinate, tConfigWS);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tComputeGradient(aCellOrdinal, tGradient, tConfigWS, tCellVolume);
         tCellVolume(aCellOrdinal) *= tCubWeight;
@@ -2532,7 +2532,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BLAS2_update)
     Plato::ScalarMultiVector tVec2("vector two", tNumCells, tNumDofsPerCell);
     Plato::blas2::fill(2.0, tVec2);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         auto tConstant = static_cast<Plato::Scalar>(aCellOrdinal);
         Plato::blas2::update<tNumDofsPerCell>(aCellOrdinal, 2.0, tVec1, 3.0 + tConstant, tVec2);
@@ -2555,13 +2555,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BLAS2_update)
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, EntityFaceOrdinals)
 {
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
 
     // test: node sets
     auto tMyNodeSetOrdinals = tMesh->GetNodeSetNodes("x+");
     auto tLength = tMyNodeSetOrdinals.size();
     Plato::OrdinalVector tNodeSetOrdinals("node set ordinals", tLength);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
     {
         tNodeSetOrdinals(aOrdinal) = tMyNodeSetOrdinals(aOrdinal);
     }, "copy");
@@ -2620,7 +2620,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, NaturalConvectionBrinkman)
             );
 
     // build mesh, spatial domain, and spatial model
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
     tDomain.setMaterialName("water");
@@ -2691,7 +2691,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrainRate)
 {
     constexpr Plato::OrdinalType tNumSpaceDims = 2;
     constexpr Plato::OrdinalType tNumNodesPerCell = 3;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     TEST_EQUALITY(2, tMesh->NumElements());
 
     auto const tNumCells = tMesh->NumElements();
@@ -2715,7 +2715,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrainRate)
     tHostVelocity(0, 5) = 0.43; tHostVelocity(1, 5) = 0.11;
     Kokkos::deep_copy(tVelocity, tHostVelocity);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tComputeGradient(aCellOrdinal, tGradient, tConfig, tVolume);
         Plato::Fluids::strain_rate<tNumNodesPerCell, tNumSpaceDims>(aCellOrdinal, tVelocity, tGradient, tStrainRate);
@@ -2744,7 +2744,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BLAS2_DeviceScale)
     Plato::blas2::fill(1.0, tInput);
     Plato::ScalarMultiVector tOutput("output", tNumCells, tNumSpaceDims);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         Plato::blas2::scale<tNumSpaceDims>(aCellOrdinal, 4.0, tInput, tOutput);
     }, "device blas2::scale");
@@ -2768,7 +2768,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BLAS1_DeviceScale_Version2)
     Plato::ScalarMultiVector tInput("input", tNumCells, tNumSpaceDims);
     Plato::blas2::fill(1.0, tInput);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         Plato::blas2::scale<tNumSpaceDims>(aCellOrdinal, 4.0, tInput);
     }, "device blas2::scale");
@@ -2795,7 +2795,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BLAS1_Dot)
     Plato::blas2::fill(4.0, tInputB);
     Plato::ScalarVector tOutput("output", tNumCells);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         Plato::blas2::dot<tNumSpaceDims>(aCellOrdinal, tInputA, tInputB, tOutput);
     }, "device blas2::dot");
@@ -2818,7 +2818,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BLAS3_DeviceScale)
     Plato::blas3::fill<tNumSpaceDims, tNumSpaceDims>(tNumCells, 1.0, tInput);
     Plato::ScalarArray3D tOutput("output", tNumCells, tNumSpaceDims, tNumSpaceDims);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         Plato::blas3::scale<tNumSpaceDims, tNumSpaceDims>(aCellOrdinal, 4.0, tInput, tOutput);
     }, "device blas3::scale");
@@ -2848,7 +2848,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BLAS3_Dot)
     Plato::blas3::fill<tNumSpaceDims, tNumSpaceDims>(tNumCells, 4.0, tInputB);
     Plato::ScalarVector tOutput("output", tNumCells);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         Plato::blas3::dot<tNumSpaceDims, tNumSpaceDims>(aCellOrdinal, tInputA, tInputB, tOutput);
     }, "device blas3::dot");
@@ -2872,7 +2872,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BrinkmanPenalization)
     Plato::ScalarMultiVector tControlWS("control", tNumCells, tNumNodesPerCell);
     Plato::blas2::fill(0.5, tControlWS);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tOutput(aCellOrdinal) =
             Plato::Fluids::brinkman_penalization<tNumNodesPerCell>(aCellOrdinal, tPhysicalNum, tConvexityParam, tControlWS);
@@ -2890,7 +2890,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BrinkmanPenalization)
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets_SpatialDomain)
 {
     // build mesh and spatial domain
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -3015,7 +3015,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets_SpatialDoma
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets_SpatialDomain)
 {
     // build mesh and spatial domain
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::SpatialDomain tDomain(tMesh, "box");
     tDomain.cellOrdinals("body");
 
@@ -3237,7 +3237,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets)
     tPrimal.vector("critical time step", tTimeSteps);
 
     // set ordinal maps;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::LocalOrdinalMaps<PhysicsT> tOrdinalMaps(tMesh);
 
     // call build_vector_function_worksets
@@ -3420,7 +3420,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksetsTwo)
     tPrimal.vector("critical time step", tTimeSteps);
 
     // set ordinal maps;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::LocalOrdinalMaps<PhysicsT> tOrdinalMaps(tMesh);
 
     // call build_vector_function_worksets
@@ -3458,7 +3458,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets)
     tPrimal.vector("critical time step", tCriticalTimeStep);
     
     // set ordinal maps;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 1);
     Plato::LocalOrdinalMaps<PhysicsT> tOrdinalMaps(tMesh);
 
     // call build_scalar_function_worksets
@@ -3651,7 +3651,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, LocalOrdinalMaps)
 {
     constexpr Plato::OrdinalType tNumSpaceDim = 3;
     using PhysicsT = Plato::MomentumConservation<tNumSpaceDim>;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", 1.0, 1, 1.0, 1, 1.0, 1);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", 1.0, 1, 1.0, 1, 1.0, 1);
     Plato::LocalOrdinalMaps<PhysicsT> tLocalOrdinalMaps(tMesh);
 
     auto tNumCells = tMesh->NumElements();
@@ -3660,7 +3660,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, LocalOrdinalMaps)
     Plato::ScalarMultiVector tScalarFieldOrdinals("scalar field ordinals", tNumCells, PhysicsT::mNumNodesPerCell);
     Plato::ScalarArray3D tVectorFieldOrdinals("vector field ordinals", tNumCells, PhysicsT::mNumNodesPerCell, PhysicsT::mNumMomentumDofsPerNode);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tNode = 0; tNode < PhysicsT::mNumNodesPerCell; tNode++)
         {

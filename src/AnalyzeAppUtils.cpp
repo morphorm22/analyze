@@ -20,7 +20,7 @@ get_vector_component
 {
     Plato::OrdinalType tNumLocalVals = aFrom.size() / aStride;
     Plato::ScalarVector tRetVal("vector component", tNumLocalVals);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), LAMBDA_EXPRESSION(const Plato::OrdinalType & aNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), KOKKOS_LAMBDA(const Plato::OrdinalType & aNodeOrdinal)
     {
         tRetVal(aNodeOrdinal) = aFrom(aStride*aNodeOrdinal+aDof);
     }, "copy component from vector");
@@ -36,7 +36,7 @@ set_vector_component
  Plato::OrdinalType aStride)
 {
     Plato::OrdinalType tNumLocalVals = aFrom.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), LAMBDA_EXPRESSION(const Plato::OrdinalType & aNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), KOKKOS_LAMBDA(const Plato::OrdinalType & aNodeOrdinal)
     {
         aTo(aStride*aNodeOrdinal+aDof) = aFrom(aNodeOrdinal);
     }, "copy component to vector");

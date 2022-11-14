@@ -26,6 +26,9 @@ protected:
     StrVec mDofDotNames;
 
 public:
+
+    using AbstractType = Plato::Parabolic::AbstractVectorFunction<EvaluationType>;
+
     /******************************************************************************/
     explicit 
     AbstractVectorFunction(

@@ -2,7 +2,6 @@
 #define PLATO_HOMOGENIZED_STRESS_HPP
 
 #include "PlatoMathTypes.hpp"
-#include "SimplexMechanics.hpp"
 
 namespace Plato
 {
@@ -13,17 +12,17 @@ namespace Plato
     given a characteristic strain, compute the homogenized stress.
 */
 /******************************************************************************/
-template<int SpaceDim>
-class HomogenizedStress : public Plato::SimplexMechanics<SpaceDim>
+template<typename ElementType>
+class HomogenizedStress : public ElementType
 {
   private:
 
-    using Plato::SimplexMechanics<SpaceDim>::mNumVoigtTerms;
-    using Plato::SimplexMechanics<SpaceDim>::mNumNodesPerCell;
-    using Plato::SimplexMechanics<SpaceDim>::mNumDofsPerNode;
-    using Plato::SimplexMechanics<SpaceDim>::mNumDofsPerCell;
+    using ElementType::mNumVoigtTerms;
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumDofsPerNode;
+    using ElementType::mNumDofsPerCell;
 
-    const Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffness;
+    const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;
     const int mColumnIndex;
 
   public:
@@ -33,17 +32,17 @@ class HomogenizedStress : public Plato::SimplexMechanics<SpaceDim>
             mColumnIndex(aColumnIndex) {}
 
     template<typename StressScalarType, typename StrainScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( int cellOrdinal,
-                Kokkos::View<StressScalarType**, Plato::Layout, Plato::MemSpace> const& stress,
-                Kokkos::View<StrainScalarType**, Plato::Layout, Plato::MemSpace> const& strain) const {
+                Plato::Array<mNumVoigtTerms, StressScalarType> & tStress,
+                Plato::Array<mNumVoigtTerms, StrainScalarType> & tStrain) const {
 
       // compute stress
       //
       for( int iVoigt=0; iVoigt<mNumVoigtTerms; iVoigt++){
-        stress(cellOrdinal,iVoigt) = mCellStiffness(mColumnIndex, iVoigt);
+        tStress(iVoigt) = mCellStiffness(mColumnIndex, iVoigt);
         for( int jVoigt=0; jVoigt<mNumVoigtTerms; jVoigt++){
-          stress(cellOrdinal,iVoigt) -= strain(cellOrdinal,jVoigt)*mCellStiffness(jVoigt, iVoigt);
+          tStress(iVoigt) -= tStrain(jVoigt)*mCellStiffness(jVoigt, iVoigt);
         }
       }
     }

@@ -1,70 +1,93 @@
-/*
- * AbstractScalarFunction.hpp
- *
- *  Created on: Apr 6, 2021
- */
-
 #pragma once
 
-#include "WorkSets.hpp"
+#include "UtilsTeuchos.hpp"
 #include "SpatialModel.hpp"
-#include "ExpInstMacros.hpp"
-
-#include "hyperbolic/SimplexFluids.hpp"
-#include "hyperbolic/SimplexFluidsFadTypes.hpp"
+#include "PlatoStaticsTypes.hpp"
 
 namespace Plato
 {
 
-namespace Fluids
+namespace Hyperbolic
 {
 
-/***************************************************************************//**
- * \tparam PhysicsT    physics type
- * \tparam EvaluationT Forward Automatic Differentiation (FAD) evaluation type
- *
- * \class AbstractScalarFunction
- *
- * \brief Base pure virtual class for Plato scalar functions.
- ******************************************************************************/
-template<typename PhysicsT, typename EvaluationT>
+template<typename EvaluationType>
 class AbstractScalarFunction
 {
-private:
-    using ResultT = typename EvaluationT::ResultScalarType; /*!< result FAD type */
+protected:
+    const Plato::SpatialDomain & mSpatialDomain; 
+          Plato::DataMap       & mDataMap;       
+    const std::string            mFunctionName;  
+          bool                   mCompute;     
 
 public:
-    AbstractScalarFunction(){}
-    virtual ~AbstractScalarFunction(){}
 
-    virtual std::string name() const = 0;
-    virtual void evaluate(const Plato::WorkSets & aWorkSets, Plato::ScalarVectorT<ResultT> & aResult) const = 0;
-    virtual void evaluateBoundary(const Plato::SpatialModel & aSpatialModel, const Plato::WorkSets & aWorkSets, Plato::ScalarVectorT<ResultT> & aResult) const = 0;
-};
-// class AbstractScalarFunction
+    using AbstractType = typename Plato::Hyperbolic::AbstractScalarFunction<EvaluationType>;
+
+    AbstractScalarFunction(
+        const Plato::SpatialDomain   & aSpatialDomain,
+              Plato::DataMap         & aDataMap,
+              Teuchos::ParameterList & aInputs,
+        const std::string            & aName
+    ) :
+        mSpatialDomain (aSpatialDomain),
+        mDataMap       (aDataMap),
+        mFunctionName  (aName),
+        mCompute       (true)
+    {
+        std::string tCurrentDomainName = aSpatialDomain.getDomainName();
+
+        auto tMyCriteria = aInputs.sublist("Criteria").sublist(aName);
+        std::vector<std::string> tDomains = Plato::teuchos::parse_array<std::string>("Domains", tMyCriteria);
+        if(tDomains.size() != 0)
+        {
+            mCompute = (std::find(tDomains.begin(), tDomains.end(), tCurrentDomainName) != tDomains.end());
+            if(!mCompute)
+            {
+                std::stringstream ss;
+                ss << "Block '" << tCurrentDomainName << "' will not be included in the calculation of '" << aName << "'.";
+                REPORT(ss.str());
+            }
+        }
+    }
+
+    virtual ~AbstractScalarFunction()
+    {
+    }
+
+    virtual void
+    evaluate(
+        const Plato::ScalarMultiVectorT <typename EvaluationType::StateScalarType>        & aState,
+        const Plato::ScalarMultiVectorT <typename EvaluationType::StateDotScalarType>     & aStateDot,
+        const Plato::ScalarMultiVectorT <typename EvaluationType::StateDotDotScalarType>  & aStateDotDot,
+        const Plato::ScalarMultiVectorT <typename EvaluationType::ControlScalarType>      & aControl,
+        const Plato::ScalarArray3DT     <typename EvaluationType::ConfigScalarType>       & aConfig,
+              Plato::ScalarVectorT      <typename EvaluationType::ResultScalarType>       & aResult,
+              Plato::Scalar aTimeStep = 0.0
+    ) { if(mCompute) this->evaluate_conditional(aState, aStateDot, aStateDotDot, aControl, aConfig, aResult); }
+
+    virtual void
+    evaluate_conditional(
+        const Plato::ScalarMultiVectorT <typename EvaluationType::StateScalarType>        & aState,
+        const Plato::ScalarMultiVectorT <typename EvaluationType::StateDotScalarType>     & aStateDot,
+        const Plato::ScalarMultiVectorT <typename EvaluationType::StateDotDotScalarType>  & aStateDotDot,
+        const Plato::ScalarMultiVectorT <typename EvaluationType::ControlScalarType>      & aControl,
+        const Plato::ScalarArray3DT     <typename EvaluationType::ConfigScalarType>       & aConfig,
+              Plato::ScalarVectorT      <typename EvaluationType::ResultScalarType>       & aResult,
+              Plato::Scalar aTimeStep = 0.0) const = 0;
+
+    virtual void postEvaluate(Plato::ScalarVector aInput, Plato::Scalar aScalar)
+    { return; }
+
+    virtual void postEvaluate(Plato::Scalar&)
+    { return; }
+
+    const decltype(mFunctionName)& getName()
+    {
+        return mFunctionName;
+    }
+}; 
 
 }
-// namespace Fluids
 
 }
-// namespace Plato
 
-#include "hyperbolic/IncompressibleFluids.hpp"
-
-#ifdef PLATOANALYZE_1D
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractScalarFunction, Plato::MassConservation, Plato::SimplexFluids, 1, 1)
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractScalarFunction, Plato::EnergyConservation, Plato::SimplexFluids, 1, 1)
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractScalarFunction, Plato::MomentumConservation, Plato::SimplexFluids, 1, 1)
-#endif
-
-#ifdef PLATOANALYZE_2D
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractScalarFunction, Plato::MassConservation, Plato::SimplexFluids, 2, 1)
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractScalarFunction, Plato::EnergyConservation, Plato::SimplexFluids, 2, 1)
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractScalarFunction, Plato::MomentumConservation, Plato::SimplexFluids, 2, 1)
-#endif
-
-#ifdef PLATOANALYZE_3D
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractScalarFunction, Plato::MassConservation, Plato::SimplexFluids, 3, 1)
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractScalarFunction, Plato::EnergyConservation, Plato::SimplexFluids, 3, 1)
-PLATO_EXPL_DEC_FLUIDS(Plato::Fluids::AbstractScalarFunction, Plato::MomentumConservation, Plato::SimplexFluids, 3, 1)
-#endif

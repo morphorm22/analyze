@@ -11,19 +11,23 @@ namespace Plato
 /***************************************************************************//**
  * \brief Owner class that contains a vector of NaturalBC objects.
  *
- * \tparam SpatialDim   spatial dimension
+ * \tparam ElementType  Element type
  * \tparam NumDofs      number degrees of freedom per natural boundary condition force vector
  * \tparam DofsPerNode  number degrees of freedom per node
  * \tparam DofOffset    degrees of freedom offset
  *
 *******************************************************************************/
-template<Plato::OrdinalType SpatialDim, Plato::OrdinalType NumDofs=SpatialDim, Plato::OrdinalType DofsPerNode=NumDofs, Plato::OrdinalType DofOffset=0>
+template<
+  typename ElementType,
+  Plato::OrdinalType NumDofs=ElementType::mNumSpatialDims,
+  Plato::OrdinalType DofsPerNode=NumDofs,
+  Plato::OrdinalType DofOffset=0>
 class NaturalBCs
 {
 // private member data
 private:
     /*!< list of natural boundary condition */
-    std::vector<std::shared_ptr<Plato::NaturalBC<SpatialDim,NumDofs,DofsPerNode,DofOffset>>> mBCs;
+    std::vector<std::shared_ptr<Plato::NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>> mBCs;
 
 // private functions
 private:
@@ -43,7 +47,7 @@ private:
      *
      * \return shared pointer to an uniform natural boundary condition
     *******************************************************************************/
-    std::shared_ptr<NaturalBC<SpatialDim, NumDofs, DofsPerNode, DofOffset>>
+    std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
     setUniformNaturalBC(const std::string & aName, Teuchos::ParameterList &aSubList);
 
     /***************************************************************************//**
@@ -54,7 +58,7 @@ private:
      *
      * \return shared pointer to an uniform pressure natural boundary condition
     *******************************************************************************/
-    std::shared_ptr<NaturalBC<SpatialDim, NumDofs, DofsPerNode, DofOffset>>
+    std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
     setUniformPressureNaturalBC(const std::string & aName, Teuchos::ParameterList &aSubList);
 
     /***************************************************************************//**
@@ -65,7 +69,7 @@ private:
      *
      * \return shared pointer to an uniform component natural boundary condition
     *******************************************************************************/
-    std::shared_ptr<NaturalBC<SpatialDim, NumDofs, DofsPerNode, DofOffset>>
+    std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
     setUniformComponentNaturalBC(const std::string & aName, Teuchos::ParameterList &aSubList);
 
 // public functions
@@ -110,13 +114,13 @@ public :
 /***************************************************************************//**
  * \brief NaturalBC::appendNaturalBC function definition
 *******************************************************************************/
-template<Plato::OrdinalType SpatialDim, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-void NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::appendNaturalBC
+template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
+void NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::appendNaturalBC
 (const std::string & aName, Teuchos::ParameterList &aSubList)
 {
     const auto tType = aSubList.get<std::string>("Type");
     const auto tNeumannType = Plato::natural_boundary_condition_type(tType);
-    std::shared_ptr<NaturalBC<SpatialDim, NumDofs, DofsPerNode, DofOffset>> tBC;
+    std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>> tBC;
     switch(tNeumannType)
     {
         case Plato::Neumann::UNIFORM:
@@ -147,9 +151,9 @@ void NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::appendNaturalBC
 /***************************************************************************//**
  * \brief NaturalBC::setUniformNaturalBC function definition
 *******************************************************************************/
-template<Plato::OrdinalType SpatialDim, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-std::shared_ptr<NaturalBC<SpatialDim, NumDofs, DofsPerNode, DofOffset>>
-NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::setUniformNaturalBC
+template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
+std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
+NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::setUniformNaturalBC
 (const std::string & aName, Teuchos::ParameterList &aSubList)
 {
     bool tBC_Value = (aSubList.isType<Plato::Scalar>("Value") || aSubList.isType<std::string>("Value"));
@@ -158,7 +162,7 @@ NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::setUniformNaturalBC
                        aSubList.isType<Teuchos::Array<std::string>>("Values"));
 
     const auto tType = aSubList.get < std::string > ("Type");
-    std::shared_ptr<NaturalBC<SpatialDim, NumDofs, DofsPerNode, DofOffset>> tBC;
+    std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>> tBC;
     if (tBC_Values && tBC_Value)
     {
         std::stringstream tMsg;
@@ -219,16 +223,16 @@ NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::setUniformNaturalBC
         ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
-    tBC = std::make_shared<Plato::NaturalBC<SpatialDim, NumDofs, DofsPerNode, DofOffset>>(aName, aSubList);
+    tBC = std::make_shared<Plato::NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>(aName, aSubList);
     return tBC;
 }
 
 /***************************************************************************//**
  * \brief NaturalBC::setUniformPressureNaturalBC function definition
 *******************************************************************************/
-template<Plato::OrdinalType SpatialDim, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-std::shared_ptr<NaturalBC<SpatialDim, NumDofs, DofsPerNode, DofOffset>>
-NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::setUniformPressureNaturalBC
+template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
+std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
+NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::setUniformPressureNaturalBC
 (const std::string & aName, Teuchos::ParameterList &aSubList)
 {
     if(aSubList.isParameter("Value") == false)
@@ -256,16 +260,16 @@ NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::setUniformPressureNatur
         ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
-    auto tBC = std::make_shared<Plato::NaturalBC<SpatialDim, NumDofs, DofsPerNode, DofOffset>>(aName, aSubList);
+    auto tBC = std::make_shared<Plato::NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>(aName, aSubList);
     return tBC;
 }
 
 /***************************************************************************//**
  * \brief NaturalBC::setUniformComponentNaturalBC function definition
 *******************************************************************************/
-template<Plato::OrdinalType SpatialDim, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-std::shared_ptr<NaturalBC<SpatialDim, NumDofs, DofsPerNode, DofOffset>>
-NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::setUniformComponentNaturalBC
+template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
+std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
+NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::setUniformComponentNaturalBC
 (const std::string & aName, Teuchos::ParameterList &aSubList)
 {
     if(aSubList.isParameter("Value") == false)
@@ -287,7 +291,7 @@ NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::setUniformComponentNatu
     Teuchos::Array<Plato::Scalar> tFluxVector(NumDofs, 0.0);
     auto tFluxComponent = aSubList.get<std::string>("Component");
 
-    std::shared_ptr<NaturalBC<SpatialDim, NumDofs, DofsPerNode, DofOffset>> tBC;
+    std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>> tBC;
     if( (tFluxComponent == "x" || tFluxComponent == "X") )
     {
         tFluxVector[0] = tValue;
@@ -312,15 +316,15 @@ NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::setUniformComponentNatu
     }
 
     aSubList.set("Vector", tFluxVector);
-    tBC = std::make_shared<Plato::NaturalBC<SpatialDim, NumDofs, DofsPerNode, DofOffset>>(aName, aSubList);
+    tBC = std::make_shared<Plato::NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>(aName, aSubList);
     return tBC;
 }
 
 /***************************************************************************//**
  * \brief NaturalBCs Constructor definition
 *******************************************************************************/
-template<Plato::OrdinalType SpatialDim, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-NaturalBCs<SpatialDim, NumDofs, DofsPerNode, DofOffset>::NaturalBCs(Teuchos::ParameterList &aParams) :
+template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
+NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::NaturalBCs(Teuchos::ParameterList &aParams) :
 mBCs()
 {
     for (Teuchos::ParameterList::ConstIterator tItr = aParams.begin(); tItr != aParams.end(); ++tItr)
@@ -355,12 +359,12 @@ mBCs()
 /***************************************************************************//**
  * \brief NaturalBCs::get function definition
 *******************************************************************************/
-template<Plato::OrdinalType SpatialDim, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
+template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
 template<typename StateScalarType,
          typename ControlScalarType,
          typename ConfigScalarType,
          typename ResultScalarType>
-void NaturalBCs<SpatialDim,NumDofs,DofsPerNode,DofOffset>::get(
+void NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::get(
      const Plato::SpatialModel                           & aSpatialModel,
      const Plato::ScalarMultiVectorT <  StateScalarType> & aState,
      const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,

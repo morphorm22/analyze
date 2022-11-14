@@ -3,19 +3,17 @@
  *
  */
 
-#include "Plato_AugLagStressCriterionQuadratic.hpp"
+#include "Plato_AugLagStressCriterionQuadratic_decl.hpp"
 
-#ifdef PLATOANALYZE_1D
-PLATO_EXPL_DEF2(Plato::AugLagStressCriterionQuadratic, Plato::SimplexMechanics, 1)
-PLATO_EXPL_DEF2(Plato::AugLagStressCriterionQuadratic, Plato::SimplexThermomechanics, 1)
-#endif
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#ifdef PLATOANALYZE_2D
-PLATO_EXPL_DEF2(Plato::AugLagStressCriterionQuadratic, Plato::SimplexMechanics, 2)
-PLATO_EXPL_DEF2(Plato::AugLagStressCriterionQuadratic, Plato::SimplexThermomechanics, 2)
-#endif
+#include "Plato_AugLagStressCriterionQuadratic_def.hpp"
 
-#ifdef PLATOANALYZE_3D
-PLATO_EXPL_DEF2(Plato::AugLagStressCriterionQuadratic, Plato::SimplexMechanics, 3)
-PLATO_EXPL_DEF2(Plato::AugLagStressCriterionQuadratic, Plato::SimplexThermomechanics, 3)
+#include "MechanicsElement.hpp"
+#include "ThermomechanicsElement.hpp"
+#include "elliptic/ExpInstMacros.hpp"
+
+PLATO_ELLIPTIC_EXP_INST_2(Plato::AugLagStressCriterionQuadratic, Plato::MechanicsElement)
+PLATO_ELLIPTIC_EXP_INST_2(Plato::AugLagStressCriterionQuadratic, Plato::ThermomechanicsElement)
+
 #endif

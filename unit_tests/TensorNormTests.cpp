@@ -1,7 +1,11 @@
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 #include "PlatoStaticsTypes.hpp"
+
+#include "Tet4.hpp"
 #include "Mechanics.hpp"
 #include "TensorPNorm.hpp"
+
+#include "elliptic/EvaluationTypes.hpp"
 
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
@@ -16,11 +20,12 @@ namespace TensorNormTests
 /******************************************************************************/
 TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormDefaultVolumeScaling)
 {
-    constexpr int spaceDim=3;
-    constexpr int numVoigt=6;
-    constexpr int tNumNodesPerCell=4;
-    using PhysicsT = Plato::Mechanics<spaceDim>;
-    using ResidualEvalT = Plato::Evaluation<PhysicsT::SimplexT>::Residual;
+    using PhysicsType = Plato::Mechanics<Plato::Tet4>;
+    using ElementType = typename PhysicsType::ElementType;
+    using ResidualEvalT = Plato::Elliptic::Evaluation<ElementType>::Residual;
+
+    constexpr int numVoigt = ElementType::mNumVoigtTerms;
+    constexpr int tNumNodesPerCell = ElementType::mNumNodesPerCell;
 
     // set parameters
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
@@ -50,7 +55,7 @@ TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormDefaultVolumeScaling)
     Kokkos::deep_copy(tControl, 1.0);
     Kokkos::deep_copy(tCellVolume, 0.5);    
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), LAMBDA_EXPRESSION(const int & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), KOKKOS_LAMBDA(const int & aCellOrdinal)
     {
         for (int tVoigtIndex=0; tVoigtIndex<numVoigt; tVoigtIndex++)
         {
@@ -74,11 +79,12 @@ TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormDefaultVolumeScaling)
 /******************************************************************************/
 TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormSpecifiedVolumeScaling)
 {
-    constexpr int spaceDim=3;
-    constexpr int numVoigt=6;
-    constexpr int tNumNodesPerCell=4;
-    using PhysicsT = Plato::Mechanics<spaceDim>;
-    using ResidualEvalT = Plato::Evaluation<PhysicsT::SimplexT>::Residual;
+    using PhysicsType = Plato::Mechanics<Plato::Tet4>;
+    using ElementType = typename PhysicsType::ElementType;
+    using ResidualEvalT = Plato::Elliptic::Evaluation<ElementType>::Residual;
+
+    constexpr int numVoigt = ElementType::mNumVoigtTerms;
+    constexpr int tNumNodesPerCell = ElementType::mNumNodesPerCell;
 
     // set parameters
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
@@ -109,7 +115,7 @@ TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormSpecifiedVolumeScaling)
     Kokkos::deep_copy(tControl, 1.0);
     Kokkos::deep_copy(tCellVolume, 2.7);    
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), LAMBDA_EXPRESSION(const int & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), KOKKOS_LAMBDA(const int & aCellOrdinal)
     {
         for (int tVoigtIndex=0; tVoigtIndex<numVoigt; tVoigtIndex++)
         {
@@ -133,11 +139,12 @@ TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormSpecifiedVolumeScaling)
 /******************************************************************************/
 TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormNoVolumeScaling)
 {
-    constexpr int spaceDim=3;
-    constexpr int numVoigt=6;
-    constexpr int tNumNodesPerCell=4;
-    using PhysicsT = Plato::Mechanics<spaceDim>;
-    using ResidualEvalT = Plato::Evaluation<PhysicsT::SimplexT>::Residual;
+    using PhysicsType = Plato::Mechanics<Plato::Tet4>;
+    using ElementType = typename PhysicsType::ElementType;
+    using ResidualEvalT = Plato::Elliptic::Evaluation<ElementType>::Residual;
+
+    constexpr int numVoigt = ElementType::mNumVoigtTerms;
+    constexpr int tNumNodesPerCell = ElementType::mNumNodesPerCell;
 
     // set parameters
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
@@ -168,7 +175,7 @@ TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormNoVolumeScaling)
     Kokkos::deep_copy(tControl, 1.0);
     Kokkos::deep_copy(tCellVolume, 15.3);    
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), LAMBDA_EXPRESSION(const int & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumCells), KOKKOS_LAMBDA(const int & aCellOrdinal)
     {
         for (int tVoigtIndex=0; tVoigtIndex<numVoigt; tVoigtIndex++)
         {

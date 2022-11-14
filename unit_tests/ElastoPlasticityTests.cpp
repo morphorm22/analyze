@@ -7,7 +7,7 @@
 #include "Teuchos_UnitTestHarness.hpp"
 
 #include "PlatoUtilities.hpp"
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 #include "Analyze_Diagnostics.hpp"
 
 #include "PlasticityProblem.hpp"
@@ -39,7 +39,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputePrincipalStress
 {
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     // Set configuration workset
     auto tNumCells = tMesh->NumElements();
@@ -54,7 +54,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputePrincipalStress
     decltype(tNumNodes) tNumState = 3;
     auto tNumDofsPerNode = PhysicsT::mNumDofsPerNode;
     Plato::ScalarVectorT<EvalType::StateScalarType> tGlobalState("state", tNumState * tNumNodes);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), LAMBDA_EXPRESSION(const Plato::OrdinalType & aNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), KOKKOS_LAMBDA(const Plato::OrdinalType & aNodeOrdinal)
     {
         tGlobalState(aNodeOrdinal*tNumDofsPerNode+0) = (1e-7)*aNodeOrdinal; // disp_x
         tGlobalState(aNodeOrdinal*tNumDofsPerNode+1) = (2e-7)*aNodeOrdinal; // disp_y
@@ -94,7 +94,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputePrincipalStress
 {
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // Set configuration workset
     auto tNumCells = tMesh->NumElements();
@@ -109,7 +109,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputePrincipalStress
     decltype(tNumNodes) tNumState = 4;
     auto tNumDofsPerNode = PhysicsT::mNumDofsPerNode;
     Plato::ScalarVectorT<EvalType::StateScalarType> tGlobalState("state", tNumState * tNumNodes);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), LAMBDA_EXPRESSION(const Plato::OrdinalType & aNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), KOKKOS_LAMBDA(const Plato::OrdinalType & aNodeOrdinal)
     {
         tGlobalState(aNodeOrdinal*tNumDofsPerNode+0) = (1e-7)*aNodeOrdinal; // disp_x
         tGlobalState(aNodeOrdinal*tNumDofsPerNode+1) = (2e-7)*aNodeOrdinal; // disp_y
@@ -176,7 +176,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_DeviatoricStress1D)
 
     Plato::Scalar tShearModulus = 3.5;
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & tCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & tCellOrdinal)
     {
         tComputeDeviatoricStress(tCellOrdinal, tShearModulus, tElasticStrain, tDeviatoricStress);
     }, "Unit Test");
@@ -214,7 +214,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_DeviatoricStress2D)
 
     Plato::Scalar tShearModulus = 3.5;
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & tCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & tCellOrdinal)
     {
         tComputeDeviatoricStress(tCellOrdinal, tShearModulus, tElasticStrain, tDeviatoricStress);
     }, "Unit Test");
@@ -252,7 +252,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_DeviatoricStress3D)
 
     Plato::Scalar tShearModulus = 3.5;
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & tCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & tCellOrdinal)
     {
         tComputeDeviatoricStress(tCellOrdinal, tShearModulus, tElasticStrain, tDeviatoricStress);
     }, "Unit Test");
@@ -292,7 +292,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_computeCauchyStress3D)
     constexpr Plato::Scalar tShearModulus = 3;
     Plato::ComputeCauchyStress<tSpaceDim> tComputeCauchyStress;
     Plato::ScalarMultiVector tCauchyStress("cauchy stress", tNumCells, tNumStressTerms);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & tCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & tCellOrdinal)
     {
         tComputeCauchyStress(tCellOrdinal, tBulkModulus, tShearModulus, tElasticStrain, tCauchyStress);
     }, "Unit Test");
@@ -337,7 +337,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_computeCauchyStress2D)
     constexpr Plato::Scalar tShearModulus = 3;
     Plato::ComputeCauchyStress<tSpaceDim> tComputeCauchyStress;
     Plato::ScalarMultiVector tCauchyStress("cauchy stress", tNumCells, tNumStressTerms);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & tCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & tCellOrdinal)
     {
         tComputeCauchyStress(tCellOrdinal, tBulkModulus, tShearModulus, tElasticStrain, tCauchyStress);
     }, "Unit Test");
@@ -383,7 +383,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_computeCauchyStress1D)
     constexpr Plato::Scalar tShearModulus = 3;
     Plato::ComputeCauchyStress<tSpaceDim> tComputeCauchyStress;
     Plato::ScalarMultiVector tCauchyStress("cauchy stress", tNumCells, tNumStressTerms);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & tCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & tCellOrdinal)
     {
         tComputeCauchyStress(tCellOrdinal, tBulkModulus, tShearModulus, tElasticStrain, tCauchyStress);
     }, "Unit Test");
@@ -420,7 +420,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputeDeviatoricStrai
     Kokkos::deep_copy(tElasticStrain, tHostElasticStrain);
     Plato::ScalarMultiVector tDeviatoricStrain("elastic strain", tNumCells, tNumStrainTerms);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellIndex)
     {
         tComputeDeviatoricStrain(aCellIndex, tElasticStrain, tDeviatoricStrain);
     }, "test compute deviatoric strain functor");
@@ -454,7 +454,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputeDeviatoricStrai
     Kokkos::deep_copy(tElasticStrain, tHostElasticStrain);
     Plato::ScalarMultiVector tDeviatoricStrain("elastic strain", tNumCells, tNumStrainTerms);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellIndex)
     {
         tComputeDeviatoricStrain(aCellIndex, tElasticStrain, tDeviatoricStrain);
     }, "test compute deviatoric strain functor");
@@ -488,7 +488,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputeDeviatoricStrai
     Kokkos::deep_copy(tElasticStrain, tHostElasticStrain);
     Plato::ScalarMultiVector tDeviatoricStrain("elastic strain", tNumCells, tNumStrainTerms);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellIndex)
     {
         tComputeDeviatoricStrain(aCellIndex, tElasticStrain, tDeviatoricStrain);
     }, "test compute deviatoric strain functor");
@@ -529,7 +529,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputeElasticWork_3D)
     constexpr Plato::Scalar tShearModulus = 0.5;
     Plato::ScalarVector tElasticWork("elastic work", tNumCells);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellIndex)
     {
         tComputeDeviatoricStrain(aCellIndex, tElasticStrain, tDeviatoricStrain);
         tComputeElasticWork(aCellIndex, tShearModulus, tBulkModulus, tElasticStrain, tDeviatoricStrain, tElasticWork);
@@ -566,7 +566,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputeElasticWork_2D)
     constexpr Plato::Scalar tShearModulus = 0.5;
     Plato::ScalarVector tElasticWork("elastic work", tNumCells);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellIndex)
     {
         tComputeDeviatoricStrain(aCellIndex, tElasticStrain, tDeviatoricStrain);
         tComputeElasticWork(aCellIndex, tShearModulus, tBulkModulus, tElasticStrain, tDeviatoricStrain, tElasticWork);
@@ -603,7 +603,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputeElasticWork_1D)
     constexpr Plato::Scalar tShearModulus = 0.5;
     Plato::ScalarVector tElasticWork("elastic work", tNumCells);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellIndex)
     {
         tComputeDeviatoricStrain(aCellIndex, tElasticStrain, tDeviatoricStrain);
         tComputeElasticWork(aCellIndex, tShearModulus, tBulkModulus, tElasticStrain, tDeviatoricStrain, tElasticWork);
@@ -1390,7 +1390,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ApplyPenalty)
     Kokkos::deep_copy(tA, tHostA);
 
     // CALL FUNCTION
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumRows), LAMBDA_EXPRESSION(const Plato::OrdinalType & aRowIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumRows), KOKKOS_LAMBDA(const Plato::OrdinalType & aRowIndex)
     {
         Plato::apply_penalty<tNumCols>(aRowIndex, 0.5, tA);
     }, "identity workset");
@@ -1514,7 +1514,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_StrainDivergence3D)
 
     // CALL FUNCTION
     Plato::StrainDivergence<tSpaceDim> tComputeStrainDivergence;
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellIndex)
     {
         tComputeStrainDivergence(aCellIndex, tStrainTensor, tOutput);
     }, "test strain divergence functor");
@@ -1549,7 +1549,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_StrainDivergence2D)
 
     // CALL FUNCTION
     Plato::StrainDivergence<tSpaceDim> tComputeStrainDivergence;
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellIndex)
     {
         tComputeStrainDivergence(aCellIndex, tStrainTensor, tOutput);
     }, "test strain divergence functor");
@@ -1582,7 +1582,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_StrainDivergence1D)
 
     // CALL FUNCTION
     Plato::StrainDivergence<tSpaceDim> tComputeStrainDivergence;
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellIndex)
     {
         tComputeStrainDivergence(aCellIndex, tStrainTensor, tOutput);
     }, "test strain divergence functor");
@@ -1637,7 +1637,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputeStabilization3D
     constexpr Plato::Scalar tShearModulus = 2;
     Plato::ScalarMultiVector tStabilization("cell stabilization", tNumCells, tSpaceDim);
     Plato::ComputeStabilization<tSpaceDim> tComputeStabilization(tScaling, tShearModulus);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellIndex)
     {
         tComputeStabilization(aCellIndex, tCellVolume, tPressureGrad, tProjectedPressureGrad, tStabilization);
     }, "test compute stabilization functor");
@@ -1695,7 +1695,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputeStabilization2D
     constexpr Plato::Scalar tShearModulus = 2;
     Plato::ScalarMultiVector tStabilization("cell stabilization", tNumCells, tSpaceDim);
     Plato::ComputeStabilization<tSpaceDim> tComputeStabilization(tScaling, tShearModulus);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellIndex)
     {
         tComputeStabilization(aCellIndex, tCellVolume, tPressureGrad, tProjectedPressureGrad, tStabilization);
     }, "test compute stabilization functor");
@@ -1751,7 +1751,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputeStabilization1D
     constexpr Plato::Scalar tShearModulus = 2;
     Plato::ScalarMultiVector tStabilization("cell stabilization", tNumCells, tSpaceDim);
     Plato::ComputeStabilization<tSpaceDim> tComputeStabilization(tScaling, tShearModulus);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellIndex)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellIndex)
     {
         tComputeStabilization(aCellIndex, tCellVolume, tPressureGrad, tProjectedPressureGrad, tStabilization);
     }, "test compute stabilization functor");
@@ -1781,7 +1781,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputeElasticStrain3D
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
     constexpr Plato::OrdinalType tNumVoigtTerms = 6;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // Set configuration workset
     auto tNumCells = tMesh->NumElements();
@@ -1795,7 +1795,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputeElasticStrain3D
     decltype(tNumNodes) tNumState = 4;
     auto tNumDofsPerNode = PhysicsT::mNumDofsPerNode;
     Plato::ScalarVectorT<Plato::Scalar> tState("state", tNumState * tNumNodes);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), LAMBDA_EXPRESSION(const Plato::OrdinalType & aNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), KOKKOS_LAMBDA(const Plato::OrdinalType & aNodeOrdinal)
     {
         tState(aNodeOrdinal*tNumDofsPerNode+0) = (1e-7)*aNodeOrdinal; // disp_x
         tState(aNodeOrdinal*tNumDofsPerNode+1) = (2e-7)*aNodeOrdinal; // disp_y
@@ -1818,7 +1818,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ComputeElasticStrain3D
     Plato::ThermoPlasticityUtilities <tSpaceDim, PhysicsT> tThermoPlasticityUtils;
 
     auto tBasisFunctions = tCubatureRule.getBasisFunctions();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         tComputeGradient(aCellOrdinal, tGradient, tConfig, tCellVolume);
         tComputeTotalStrain(aCellOrdinal, tTotalStrain, tStateWS, tGradient);
@@ -1886,7 +1886,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_Residual2D_Elastic)
 
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     Plato::SpatialModel tSpatialModel(tMesh, *tElastoPlasticityInputs);
 
@@ -1910,7 +1910,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_Residual2D_Elastic)
     // 2.3 SET GLOBAL STATE
     auto tNumDofsPerNode = PhysicsT::mNumDofsPerNode;
     Plato::ScalarVector tGlobalState("global state", tNumDofsPerNode * tNumNodes);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), LAMBDA_EXPRESSION(const Plato::OrdinalType & aNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), KOKKOS_LAMBDA(const Plato::OrdinalType & aNodeOrdinal)
     {
         tGlobalState(aNodeOrdinal*tNumDofsPerNode+0) = (1e-7)*aNodeOrdinal; // disp_x
         tGlobalState(aNodeOrdinal*tNumDofsPerNode+1) = (2e-7)*aNodeOrdinal; // disp_y
@@ -1923,7 +1923,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_Residual2D_Elastic)
     // 2.4 SET PROJECTED PRESSURE GRADIENT
     auto tNumNodesPerCell = PhysicsT::mNumNodesPerCell;
     Plato::ScalarMultiVectorT<EvalType::NodeStateScalarType> tProjectedPressureGrad("projected pressure grad", tNumCells, PhysicsT::mNumNodeStatePerCell);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tNodeIndex=0; tNodeIndex< tNumNodesPerCell; tNodeIndex++)
         {
@@ -2003,7 +2003,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_Residual3D_Elastic)
 
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     Plato::SpatialModel tSpatialModel(tMesh, *tInputs);
 
@@ -2028,7 +2028,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_Residual3D_Elastic)
     auto tNumDofsPerNode = PhysicsT::mNumDofsPerNode;
     decltype(tNumDofsPerNode) tNumState = 4;
     Plato::ScalarVector tGlobalState("global state", tNumState * tNumNodes);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), LAMBDA_EXPRESSION(const Plato::OrdinalType & aNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), KOKKOS_LAMBDA(const Plato::OrdinalType & aNodeOrdinal)
     {
         tGlobalState(aNodeOrdinal*tNumDofsPerNode+0) = (1e-7)*aNodeOrdinal; // disp_x
         tGlobalState(aNodeOrdinal*tNumDofsPerNode+1) = (2e-7)*aNodeOrdinal; // disp_y
@@ -2042,7 +2042,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_Residual3D_Elastic)
     // 2.4 SET PROJECTED PRESSURE GRADIENT
     auto tNumNodesPerCell = PhysicsT::mNumNodesPerCell;
     Plato::ScalarMultiVectorT<EvalType::NodeStateScalarType> tProjectedPressureGrad("projected pressure grad", tNumCells, PhysicsT::mNumNodeStatePerCell);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tNodeIndex=0; tNodeIndex< tNumNodesPerCell; tNodeIndex++)
         {
@@ -2181,7 +2181,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ElasticSolution3D)
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     MPI_Comm myComm;
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -2233,7 +2233,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamTra
 {
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10.0, 10, 1.0, 2);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10.0, 10, 1.0, 2);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -2502,7 +2502,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
     );
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10.0, 10, 1.0, 2);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10.0, 10, 1.0, 2);
 
     MPI_Comm myComm;
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -2683,7 +2683,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
 
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10.0, 10, 1.0, 2);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10.0, 10, 1.0, 2);
 
     MPI_Comm myComm;
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -2865,7 +2865,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
 
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10.0, 10, 1.0, 2);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10.0, 10, 1.0, 2);
 
     MPI_Comm myComm;
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -3048,7 +3048,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
 
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10.0, 10, 1.0, 2);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10.0, 10, 1.0, 2);
 
     MPI_Comm myComm;
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -3142,7 +3142,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_SimplySupportedBeamPre
     const bool tOutputData = false; // for debugging purpose, set true to enable Paraview output
     const bool tDeleteSolverStats = false; // for debugging purpose, set true to enable Paraview output
     constexpr Plato::OrdinalType tSpaceDim = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", 10.0, 10, 1.0, 2);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", 10.0, 10, 1.0, 2);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -3328,7 +3328,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_CriterionTest_2D)
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -3444,7 +3444,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestCriterionGradientZ
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -3549,7 +3549,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_CriterionTest_3D)
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -3684,7 +3684,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestCriterionGradientZ
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -3799,7 +3799,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ObjectiveTest_2D)
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -3921,7 +3921,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestObjectiveGradientZ
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -4027,7 +4027,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_ObjectiveTest_3D)
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -4161,7 +4161,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestObjectiveGradientZ
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -4275,7 +4275,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestElasticWorkCriteri
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -4381,7 +4381,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestElasticWorkCriteri
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -4495,7 +4495,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestWeightedSumCriteri
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 2;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TRI3", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -4611,7 +4611,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_TestWeightedSumCriteri
     // 1. DEFINE PROBLEM
     constexpr Plato::OrdinalType tSpaceDim = 3;
     constexpr Plato::OrdinalType tMeshWidth = 2;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(

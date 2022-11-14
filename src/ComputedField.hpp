@@ -1,11 +1,7 @@
 #ifndef COMPUTED_FIELD_HPP
 #define COMPUTED_FIELD_HPP
 
-#include <Omega_h_expr.hpp>
-
-#include <Teuchos_ParameterList.hpp>
-
-#include "UtilsOmegaH.hpp"
+#include "PlatoMeshExpr.hpp"
 
 namespace Plato
 {
@@ -14,25 +10,26 @@ namespace Plato
 /*!
   \brief Class for computed fields.
 */
-template<int SpaceDim>
+template<int SpaceDim, typename ScalarType=Plato::Scalar>
 class ComputedField
 /******************************************************************************/
 {
   protected:
     const std::string   mName;
     const std::string   mFuncString;
-    Plato::ScalarVector mValues;
-  
+
+    Plato::ScalarMultiVectorT<ScalarType> mValues;
+
   public:
-  
+
   /**************************************************************************/
-  ComputedField<SpaceDim>(
-    const Plato::Mesh   aMesh, 
-    const std::string & aName, 
+  ComputedField<SpaceDim, ScalarType>(
+    const Plato::Mesh   aMesh,
+    const std::string & aName,
     const std::string & aFunc) :
     mName(aName),
     mFuncString(aFunc),
-    mValues(aName, aMesh->NumNodes())
+    mValues(aName, aMesh->NumNodes(), /*num functions=*/1)
   /**************************************************************************/
   {
     initialize(aMesh, aName, aFunc);
@@ -40,62 +37,84 @@ class ComputedField
 
   /**************************************************************************/
   void initialize(
-    const Plato::Mesh   aMesh, 
-    const std::string & aName, 
+    const Plato::Mesh   aMesh,
+    const std::string & aName,
     const std::string & aFunc)
   /**************************************************************************/
   {
-    auto numPoints = aMesh->NumNodes();
-    auto x_coords = Plato::omega_h::create_omega_h_write_array<Plato::Scalar>("x coords", numPoints);
-    auto y_coords = Plato::omega_h::create_omega_h_write_array<Plato::Scalar>("y coords", numPoints);
-    auto z_coords = Plato::omega_h::create_omega_h_write_array<Plato::Scalar>("z coords", numPoints);
-  
-    auto coords = aMesh->Coordinates();
-    auto values = mValues;
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,numPoints), LAMBDA_EXPRESSION(Plato::OrdinalType aPointOrdinal)
+    auto tNumPoints = aMesh->NumNodes();
+    Plato::ScalarVectorT<ScalarType> tXcoords("x coordinates", tNumPoints);
+    Plato::ScalarVectorT<ScalarType> tYcoords("y coordinates", tNumPoints);
+    Plato::ScalarVectorT<ScalarType> tZcoords("z coordinates", tNumPoints);
+
+    auto tCoords = aMesh->Coordinates();
+    auto tValues = mValues;
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumPoints), KOKKOS_LAMBDA(Plato::OrdinalType aPointOrdinal)
     {
-      if (SpaceDim > 0) x_coords[aPointOrdinal] = coords[aPointOrdinal*SpaceDim + 0];
-      if (SpaceDim > 1) y_coords[aPointOrdinal] = coords[aPointOrdinal*SpaceDim + 1];
-      if (SpaceDim > 2) z_coords[aPointOrdinal] = coords[aPointOrdinal*SpaceDim + 2];
+      if (SpaceDim > 0) tXcoords(aPointOrdinal) = tCoords(aPointOrdinal*SpaceDim + 0);
+      if (SpaceDim > 1) tYcoords(aPointOrdinal) = tCoords(aPointOrdinal*SpaceDim + 1);
+      if (SpaceDim > 2) tZcoords(aPointOrdinal) = tCoords(aPointOrdinal*SpaceDim + 2);
     },"fill coords");
 
-    Omega_h::ExprReader reader(numPoints, SpaceDim);
-    if (SpaceDim > 0) reader.register_variable("x", Omega_h::any(Omega_h::Reals(x_coords)));
-    if (SpaceDim > 1) reader.register_variable("y", Omega_h::any(Omega_h::Reals(y_coords)));
-    if (SpaceDim > 2) reader.register_variable("z", Omega_h::any(Omega_h::Reals(z_coords)));
-  
-    auto result = reader.read_string(mFuncString, "Value");
-    reader.repeat(result);
-    Omega_h::Reals fxnValues = Omega_h::any_cast<Omega_h::Reals>(result);
+    ExpressionEvaluator<Plato::ScalarMultiVectorT<ScalarType>,
+                        Plato::ScalarMultiVectorT<ScalarType>,
+                        Plato::ScalarVectorT<ScalarType>,
+                        Plato::Scalar> tExpEval;
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,numPoints), LAMBDA_EXPRESSION(Plato::OrdinalType aPointOrdinal)
+    tExpEval.parse_expression(aFunc.c_str());
+    tExpEval.setup_storage(tNumPoints, /*num vals to eval =*/ 1);
+
+    // The coords are indexed by threads so set the values outside the
+    // parallel for loop.
+//    tExpEval.set_variable("x", tXcoords);
+//    tExpEval.set_variable("y", tYcoords);
+//    tExpEval.set_variable("z", tZcoords);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumPoints), KOKKOS_LAMBDA(Plato::OrdinalType aPointOrdinal)
     {
-      values(aPointOrdinal) = fxnValues[aPointOrdinal];
-    },"copy result");
+        // Set the coords as a constant on a per thread basis. This
+        // call works but is not needed as the coords are indexed by
+        // threads so set the values outside the parallel for loop.
+
+        tExpEval.set_variable("x", tXcoords(aPointOrdinal), aPointOrdinal);
+        tExpEval.set_variable("y", tYcoords(aPointOrdinal), aPointOrdinal);
+        tExpEval.set_variable("z", tZcoords(aPointOrdinal), aPointOrdinal);
+
+        // This call works but is not needed as values are used across
+        // all threads so set the values outside the parallel for loop.
+
+        // tExpEval.set_variable("x", tXcoords, aPointOrdinal);
+        // tExpEval.set_variable("y", tYcoords, aPointOrdinal);
+        // tExpEval.set_variable("z", tZcoords, aPointOrdinal);
+
+        tExpEval.evaluate_expression( aPointOrdinal, tValues );
+    }, "evaluate");
+    Kokkos::fence();
+    tExpEval.clear_storage();
   }
 
   ~ComputedField(){}
-  
-  /******************************************************************************/
-  void get(Plato::ScalarVector aValues)
-  /******************************************************************************/
-  {
-    Kokkos::deep_copy( aValues, mValues );
-  }
+
+//  /******************************************************************************/
+//  void get(Plato::ScalarMultiVectorT<ScalarValue> aValues)
+//  /******************************************************************************/
+//  {
+//    Kokkos::deep_copy( aValues, mValues );
+//  }
 
   /******************************************************************************/
-  void get(Plato::ScalarVector aValues, int aOffset, int aStride)
+  void get(Plato::ScalarVectorT<ScalarType> aValues, int aOffset=0, int aStride=1)
   /******************************************************************************/
   {
     TEUCHOS_TEST_FOR_EXCEPTION(
-      mValues.extent(0)*aStride != aValues.extent(0), 
-      std::logic_error, 
+      mValues.extent(0)*aStride != aValues.extent(0),
+      std::logic_error,
       "Size mismatch in field initialization:  Mod(view, stride) != 0");
     auto tFromValues = mValues;
     auto tToValues = aValues;
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tFromValues.extent(0)), LAMBDA_EXPRESSION(Plato::OrdinalType aPointOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tFromValues.extent(0)), KOKKOS_LAMBDA(Plato::OrdinalType aPointOrdinal)
     {
-        tToValues(aStride*aPointOrdinal+aOffset) = tFromValues(aPointOrdinal);
+        tToValues(aStride*aPointOrdinal+aOffset) = tFromValues(aPointOrdinal, 0);
     }, "copy");
   }
 
@@ -108,20 +127,20 @@ class ComputedField
 
 /******************************************************************************/
 /*!
-  \brief Owner class that contains a vector of BodyLoad objects.
+  \brief Owner class that contains a vector of ComputeField instances
 */
-template<int SpaceDim>
+template<int SpaceDim, typename ScalarType=Plato::Scalar>
 class ComputedFields
 /******************************************************************************/
 {
   private:
-    std::vector<std::shared_ptr<ComputedField<SpaceDim>>> CFs;
+    std::vector<std::shared_ptr<ComputedField<SpaceDim,ScalarType>>> CFs;
 
   public :
 
   /****************************************************************************/
   /*!
-    \brief Constructor that parses and creates a vector of ComputedField objects
+    \brief Constructor that parses and creates a vector of ComputedField instances
     based on the ParameterList.
   */
   ComputedFields(const Plato::Mesh aMesh, Teuchos::ParameterList &params) : CFs()
@@ -131,11 +150,11 @@ class ComputedFields
     {
         const Teuchos::ParameterEntry &entry = params.entry(i);
         const std::string             &name  = params.name(i);
-  
+
         TEUCHOS_TEST_FOR_EXCEPTION(!entry.isList(), std::logic_error, "Parameter in Computed Fields block not valid.  Expect lists only.");
-  
+
         std::string function = params.sublist(name).get<std::string>("Function");
-        auto newCF = std::make_shared<Plato::ComputedField<SpaceDim>>(aMesh, name, function);
+        auto newCF = std::make_shared<Plato::ComputedField<SpaceDim, ScalarType>>(aMesh, name, function);
         CFs.push_back(newCF);
     }
   }

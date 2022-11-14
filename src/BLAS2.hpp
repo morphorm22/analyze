@@ -32,7 +32,7 @@ template<Plato::OrdinalType Length,
          typename ScalarT,
          typename AViewTypeT,
          typename BViewTypeT>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 update
 (const Plato::OrdinalType & aCellOrdinal,
  const ScalarT & aAlpha,
@@ -64,7 +64,7 @@ update
 template<Plato::OrdinalType Length,
          typename ScalarT,
          typename ResultT>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 scale
 (const Plato::OrdinalType & aCellOrdinal,
  const ScalarT & aScalar,
@@ -95,7 +95,7 @@ template<Plato::OrdinalType Length,
          typename ScalarT,
          typename AViewTypeT,
          typename BViewTypeT>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 scale
 (const Plato::OrdinalType & aCellOrdinal,
  const ScalarT & aScalar,
@@ -128,7 +128,7 @@ template<Plato::OrdinalType Length,
          typename AViewType,
          typename BViewType,
          typename CViewType>
-DEVICE_TYPE inline void dot
+KOKKOS_INLINE_FUNCTION void dot
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::ScalarMultiVectorT<AViewType> & aViewA,
  const Plato::ScalarMultiVectorT<BViewType> & aViewB,
@@ -163,7 +163,7 @@ inline void extract(const Plato::ScalarMultiVector& aFrom, Plato::ScalarMultiVec
         auto tFromSubView = Kokkos::subview(aFrom, tIndexI, Kokkos::ALL());
 
         auto tLength = tToSubView.extent(0);
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
         {
             tToSubView(aOrdinal) = tFromSubView(aOrdinal*NumStride + NumOffset);
         }, "blas2::extract");
@@ -193,7 +193,7 @@ inline void extract(const Plato::OrdinalType& aNumOrdinal, const Plato::ScalarMu
     {
         auto tToSubView = Kokkos::subview(aTo, tIndexI, Kokkos::ALL());
         auto tFromSubView = Kokkos::subview(aFrom, tIndexI, Kokkos::ALL());
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumOrdinal), LAMBDA_EXPRESSION(const Plato::OrdinalType & aOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, aNumOrdinal), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
         {
             for(Plato::OrdinalType tDim = 0; tDim < NumDim; tDim++)
             {
@@ -223,7 +223,7 @@ inline void fill(typename XViewType::const_value_type& aAlpha, XViewType& aXvec)
 
     const Plato::OrdinalType tNumEntriesDim0 = aXvec.extent(0);
     const Plato::OrdinalType tNumEntriesDim1 = aXvec.extent(1);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumEntriesDim0), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumEntriesDim0), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tIndex = 0; tIndex < tNumEntriesDim1; tIndex++)
         {
@@ -252,7 +252,7 @@ inline void scale(typename XViewType::const_value_type& aAlpha, XViewType& aXvec
 
     const Plato::OrdinalType tNumEntriesDim0 = aXvec.extent(0);
     const Plato::OrdinalType tNumEntriesDim1 = aXvec.extent(1);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumEntriesDim0), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumEntriesDim0), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tIndex = 0; tIndex < tNumEntriesDim1; tIndex++)
         {
@@ -296,7 +296,7 @@ inline void update(typename XViewType::const_value_type& aAlpha,
 
     const auto tNumEntriesDim0 = aXvec.extent(0);
     const auto tNumEntriesDim1 = aXvec.extent(1);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumEntriesDim0), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumEntriesDim0), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tIndex = 0; tIndex < tNumEntriesDim1; tIndex++)
         {
@@ -337,7 +337,7 @@ inline void axpy(const Plato::Scalar & aAlpha, const Plato::ScalarMultiVector& a
 
     const auto tInputVecDim0 = aIn.extent(0);
     const auto tInputVecDim1 = aIn.extent(1);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tInputVecDim0), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tInputVecDim0), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
     {
         for(Plato::OrdinalType tInputVecIndex = 0; tInputVecIndex < tInputVecDim1; tInputVecIndex++)
         {
@@ -414,7 +414,7 @@ inline void matrix_times_vector(const char aTransA[],
     auto tNumCols = aAmat.extent(2);
     if((aTransA[0] == 'N') || (aTransA[0] == 'n'))
     {
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
         {
             for(Plato::OrdinalType tRowIndex = 0; tRowIndex < tNumRows; tRowIndex++)
             {
@@ -433,7 +433,7 @@ inline void matrix_times_vector(const char aTransA[],
     }
     else
     {
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType & aCellOrdinal)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
         {
             for(Plato::OrdinalType tColIndex = 0; tColIndex < tNumCols; tColIndex++)
             {

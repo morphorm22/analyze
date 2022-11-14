@@ -1,14 +1,12 @@
-#include "elliptic/EffectiveEnergy.hpp"
-#include "ExpInstMacros.hpp"
+#include "elliptic/EffectiveEnergy_decl.hpp"
 
-#ifdef PLATOANALYZE_1D
-PLATO_EXPL_DEF(Plato::Elliptic::EffectiveEnergy, Plato::SimplexMechanics, 1)
-#endif
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#ifdef PLATOANALYZE_2D
-PLATO_EXPL_DEF(Plato::Elliptic::EffectiveEnergy, Plato::SimplexMechanics, 2)
-#endif
+#include "elliptic/EffectiveEnergy_def.hpp"
 
-#ifdef PLATOANALYZE_3D
-PLATO_EXPL_DEF(Plato::Elliptic::EffectiveEnergy, Plato::SimplexMechanics, 3)
+#include "MechanicsElement.hpp"
+#include "elliptic/ExpInstMacros.hpp"
+
+PLATO_ELLIPTIC_EXP_INST(Plato::Elliptic::EffectiveEnergy, Plato::MechanicsElement)
+
 #endif

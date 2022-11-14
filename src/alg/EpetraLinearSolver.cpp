@@ -127,39 +127,6 @@ EpetraSystem::toVector(Plato::ScalarVector tOutVector, rcp<Epetra_Vector> tInVec
     Kokkos::deep_copy(tOutVector, tInVector_host);
 }
 
-/******************************************************************************//**
- * \brief EpetraLinearSolver constructor
-
- This constructor creates a new System.
-**********************************************************************************/
-EpetraLinearSolver::EpetraLinearSolver(
-    const Teuchos::ParameterList& aSolverParams,
-    int                     aNumNodes,
-    Comm::Machine           aMachine,
-    int                     aDofsPerNode
-) :
-    mSolverParams(aSolverParams),
-    mSystem(std::make_shared<EpetraSystem>(aNumNodes, aMachine, aDofsPerNode)),
-    mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Epetra Linear Solve"))
-{
-    if(mSolverParams.isType<int>("Iterations"))
-        mIterations = mSolverParams.get<int>("Iterations");
-
-    if(mSolverParams.isType<double>("Tolerance"))
-        mTolerance = mSolverParams.get<double>("Tolerance");
-    
-    if(mSolverParams.isType<int>("Display Iterations"))
-        mDisplayIterations = mSolverParams.get<int>("Display Iterations");
-    
-    if(mSolverParams.isParameter("Display Diagnostics"))
-        mDisplayDiagnostics = mSolverParams.get<bool>("Display Diagnostics");
-}
-
-/******************************************************************************//**
- * @brief EpetraLinearSolver constructor with MPCs
-
- This constructor takes MultipointConstraints and creates a new System.
-**********************************************************************************/
 EpetraLinearSolver::EpetraLinearSolver(
     const Teuchos::ParameterList&                   aSolverParams,
     int                                             aNumNodes,
@@ -167,7 +134,7 @@ EpetraLinearSolver::EpetraLinearSolver(
     int                                             aDofsPerNode,
     std::shared_ptr<Plato::MultipointConstraints>   aMPCs
 ) :
-    AbstractSolver(aMPCs),
+    AbstractSolver(aSolverParams, aMPCs),
     mSolverParams(aSolverParams),
     mSystem(std::make_shared<EpetraSystem>(aNumNodes, aMachine, aDofsPerNode)),
     mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Epetra Linear Solve"))
@@ -180,9 +147,6 @@ EpetraLinearSolver::EpetraLinearSolver(
     
     if(mSolverParams.isType<int>("Display Iterations"))
         mDisplayIterations = mSolverParams.get<int>("Display Iterations");
-    
-    if(mSolverParams.isParameter("Display Diagnostics"))
-        mDisplayDiagnostics = mSolverParams.get<bool>("Display Diagnostics");
 }
 
 /******************************************************************************//**
@@ -209,35 +173,8 @@ EpetraLinearSolver::innerSolve(
     mLinearSolverTimer->stop(); mLinearSolverTimer->incrementNumCalls();
     
     const double* tSolverStatus = tSolver.GetAztecStatus();
-    if (tSolverStatus[AZ_why] == AZ_normal)
-    {
-        // Do nothing
-    }
-    else if (tSolverStatus[AZ_why] == AZ_loss)
-    {
-        if(mDisplayDiagnostics)
-            printf("Epetra Warning: Loss of numerical precision occured during linear solve.\n");
-    }
-    else if (tSolverStatus[AZ_why] == AZ_ill_cond)
-    {
-        if(mDisplayDiagnostics)
-            printf("Epetra Warning: Hessenberg matrix in GMRES is ill-conditioned.\n");
-    }
-    else if (tSolverStatus[AZ_why] == AZ_maxits)
-    {
-        const std::string tWarningMessage = std::string("Epetra Warning: Specified maximum iterations (")
-              + std::to_string(mIterations) + ") reached without convergence to requested tolerance ("
-              + std::to_string(mTolerance) + ").";
-        if(mDisplayDiagnostics)
-            std::cout << tWarningMessage << std::endl;
-    }
-    else if (tSolverStatus[AZ_why] == AZ_param)
-    {
-        ANALYZE_THROWERR("Epetra Error: User requested option not available.")
-    }
-    else if (tSolverStatus[AZ_why] == AZ_breakdown)
-    {
-        ANALYZE_THROWERR("Epetra Error: Numerical breakdown occured during linear solve.")
+    if (tSolverStatus[AZ_why] != AZ_normal) {
+        ANALYZE_THROWERR("Epetra solve failed. Epetra is deprecated anyway - please use Tacho or one of the other solvers.");
     }
 
     if (mDisplayIterations > 0)
@@ -258,7 +195,7 @@ EpetraLinearSolver::setupSolver(AztecOO& aSolver)
         tSolverType = mSolverParams.get<std::string>("Solver");
     std::string tLowerSolverType = Plato::tolower(tSolverType);
 
-    aSolver.SetAztecOption(AZ_output, 0); // Previously used tDisplayIterations here but now perform our own output.
+    aSolver.SetAztecOption(AZ_output, 1); // Previously used tDisplayIterations here but now perform our own output.
     aSolver.SetAztecOption(AZ_subdomain_solve, AZ_ilu);
     aSolver.SetAztecOption(AZ_precond, AZ_dom_decomp);
     if (tLowerSolverType == "gmres")

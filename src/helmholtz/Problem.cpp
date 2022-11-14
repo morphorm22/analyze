@@ -1,11 +1,12 @@
-#include "helmholtz/Problem.hpp"
+#include "helmholtz/Problem_decl.hpp"
 
-#ifdef PLATOANALYZE_1D
-template class Plato::Helmholtz::Problem<::Plato::HelmholtzFilter<1>>;
-#endif
-#ifdef PLATOANALYZE_2D
-template class Plato::Helmholtz::Problem<::Plato::HelmholtzFilter<2>>;
-#endif
-#ifdef PLATOANALYZE_3D
-template class Plato::Helmholtz::Problem<::Plato::HelmholtzFilter<3>>;
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
+
+#include "helmholtz/Problem_def.hpp"
+
+#include "Helmholtz.hpp"
+#include "BaseExpInstMacros.hpp"
+
+PLATO_ELEMENT_DEF(Plato::Helmholtz::Problem, Plato::HelmholtzFilter)
+
 #endif

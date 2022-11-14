@@ -5,6 +5,7 @@
 #include <MueLu.hpp>
 #include <MueLu_CreateTpetraPreconditioner.hpp>
 #include "PlatoUtilities.hpp"
+#include <ios>
 #include <limits>
 
 namespace Plato {
@@ -124,7 +125,7 @@ TpetraSystem::fromVector(const Plato::ScalarVector tInVector) const
   if(tInVector.extent(0) != tOutVector->getLocalLength())
     throw std::domain_error("ScalarVector size does not match TpetraSystem map\n");
 
-  auto tOutVectorDeviceView2D = tOutVector->getLocalViewDevice();
+  auto tOutVectorDeviceView2D = tOutVector->getLocalView<Plato::DeviceType>(Tpetra::Access::ReadWrite);
   auto tOutVectorDeviceView1D = Kokkos::subview(tOutVectorDeviceView2D,Kokkos::ALL(), 0);
 
   Kokkos::deep_copy(tOutVectorDeviceView1D,tInVector);
@@ -147,30 +148,10 @@ TpetraSystem::toVector(Plato::ScalarVector& tOutVector, const Teuchos::RCP<Tpetr
     if(tOutVector.extent(0) != tTemp->getLocalLength())
       throw std::range_error("ScalarVector does not match TpetraSystem map.");
 
-    auto tInVectorDeviceView2D = tInVector->getLocalViewDevice();
+    auto tInVectorDeviceView2D = tInVector->getLocalView<Plato::DeviceType>(Tpetra::Access::ReadWrite);
     auto tInVectorDeviceView1D = Kokkos::subview(tInVectorDeviceView2D,Kokkos::ALL(), 0);
 
     Kokkos::deep_copy(tOutVector,tInVectorDeviceView1D);
-}
-
-/******************************************************************************//**
- This constructor creates a new System.
-**********************************************************************************/
-TpetraLinearSolver::TpetraLinearSolver(
-    const Teuchos::ParameterList& aSolverParams,
-    int                     aNumNodes,
-    Comm::Machine           aMachine,
-    int                     aDofsPerNode
-) :
-    mSolverParams(aSolverParams),
-    mSystem(Teuchos::rcp( new TpetraSystem(aNumNodes, aMachine, aDofsPerNode))),
-    mPreLinearSolveTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Pre Linear Solve Setup")),
-    mPreconditionerSetupTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Preconditioner Setup")),
-    mLinearSolverTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Tpetra Linear Solve")),
-    mSolverEndTime(mPreLinearSolveTimer->wallTime()),
-    mDofsPerNode(aDofsPerNode)
-{
-    this->initialize();
 }
 
 void
@@ -182,11 +163,6 @@ TpetraLinearSolver::initialize()
     setupPreconditionerOptions();
 }
 
-/******************************************************************************//**
- * @brief TpetraLinearSolver constructor with MPCs
-
- This constructor takes a MultipointConstraints instance and creates a new System.
-**********************************************************************************/
 TpetraLinearSolver::TpetraLinearSolver(
     const Teuchos::ParameterList&                   aSolverParams,
     int                                             aNumNodes,
@@ -194,7 +170,7 @@ TpetraLinearSolver::TpetraLinearSolver(
     int                                             aDofsPerNode,
     std::shared_ptr<Plato::MultipointConstraints>   aMPCs
 ) :
-    AbstractSolver(aMPCs),
+    AbstractSolver(aSolverParams, aMPCs),
     mSolverParams(aSolverParams),
     mSystem(Teuchos::rcp( new TpetraSystem(aNumNodes, aMachine, aDofsPerNode))),
     mPreLinearSolveTimer(Teuchos::TimeMonitor::getNewTimer("Analyze: Pre Linear Solve Setup")),
@@ -299,9 +275,6 @@ TpetraLinearSolver::setupSolverOptions ()
   if(mSolverParams.isType<Teuchos::ParameterList>("Solver Options"))
     mSolverOptions = mSolverParams.get<Teuchos::ParameterList>("Solver Options");
 
-  if(mSolverParams.isParameter("Display Diagnostics"))
-    mDisplayDiagnostics = mSolverParams.get<bool>("Display Diagnostics");
-  
   this->addDefaultToParameterList(mSolverOptions, "Maximum Iterations",    tMaxIterations);
   this->addDefaultToParameterList(mSolverOptions, "Convergence Tolerance", tTolerance);
   this->addDefaultToParameterList(mSolverOptions, "Block Size",            mDofsPerNode);
@@ -404,9 +377,13 @@ TpetraLinearSolver::belosSolve (Teuchos::RCP<const OP> A, Teuchos::RCP<MV> X, Te
 
   if (result == Belos::Unconverged) {
     Plato::Scalar tTolerance = static_cast<Plato::Scalar>(100.0) * std::numeric_limits<Plato::Scalar>::epsilon();
-    if (mAchievedTolerance > tTolerance && mDisplayDiagnostics)
-    printf("Tpetra Warning: Belos solver did not achieve desired tolerance. Completed %d iterations, achieved absolute tolerance of %7.1e (not relative)\n",
-            mNumIterations, mAchievedTolerance);
+    if (mAchievedTolerance > tTolerance) {
+        std::stringstream errorMessage;
+        errorMessage << "Tpetra Warning: Belos solver did not achieve desired tolerance." <<
+                        "Completed " << mNumIterations << " iterations, achieved absolute tolerance of " <<
+                        std::scientific << mAchievedTolerance << " (not relative)" << std::endl;
+        ANALYZE_THROWERR(errorMessage.str());
+    }
   }
 }
 

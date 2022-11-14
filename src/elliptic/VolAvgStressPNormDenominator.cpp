@@ -1,10 +1,12 @@
-#include "elliptic/VolAvgStressPNormDenominator.hpp"
-#include "ExpInstMacros.hpp"
+#include "elliptic/VolAvgStressPNormDenominator_decl.hpp"
 
-#ifdef PLATOANALYZE_2D
-PLATO_EXPL_DEF(Plato::Elliptic::VolAvgStressPNormDenominator, Plato::SimplexMechanics, 2)
-#endif
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#ifdef PLATOANALYZE_3D
-PLATO_EXPL_DEF(Plato::Elliptic::VolAvgStressPNormDenominator, Plato::SimplexMechanics, 3)
+#include "elliptic/VolAvgStressPNormDenominator_def.hpp"
+
+#include "MechanicsElement.hpp"
+#include "elliptic/ExpInstMacros.hpp"
+
+PLATO_ELLIPTIC_EXP_INST(Plato::Elliptic::VolAvgStressPNormDenominator, Plato::MechanicsElement)
+
 #endif

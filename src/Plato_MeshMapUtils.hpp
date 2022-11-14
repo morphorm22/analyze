@@ -13,6 +13,7 @@
 
 #include <Kokkos_Core.hpp>
 
+#include "ElementBase.hpp"
 #include "SpatialModel.hpp"
 
 namespace Plato {
@@ -107,9 +108,6 @@ namespace Plato {
 namespace Geometry {
 
 enum Dim { X=0, Y, Z };
-constexpr static size_t cSpaceDim = 3;
-constexpr static size_t cNVertsPerElem = cSpaceDim+1;
-constexpr static size_t cNFacesPerElem = cSpaceDim+1;
 
 /***************************************************************************//**
 * @brief Functor that computes position in local coordinates of a point given
@@ -142,7 +140,7 @@ constexpr static size_t cNFacesPerElem = cSpaceDim+1;
   Below directly solves the linear system above for \f$x_l\f$, \f$ y_l \f$, and
   \f$ z_l \f$ then evaluates the basis.
 *******************************************************************************/
-template <typename ScalarT>
+template <typename ElementT, typename ScalarT>
 struct GetBasis
 {
     using ScalarArrayT  = typename Plato::ScalarVectorT<ScalarT>;
@@ -158,39 +156,101 @@ struct GetBasis
       mCoords(aMesh->Coordinates()) {}
 
     /******************************************************************************//**
-     * @brief Find local coordinates from global coordinates, compute basis values
-     * @param [in]  Zh, Yh, Zh position in global coordinates
-     * @param [in]  i0, i1, i2, i3 global indices of nodes comprised by the element
-     * @param [out] b0, b1, b2, b3 basis values
+     * @brief Get node locations from global coordinates
+     * @param [in]  indices of nodes comprised by the element
+     * @param [out] node locations
     **********************************************************************************/
-    DEVICE_TYPE inline void
-    basis(
-      ScalarT  Xh, ScalarT  Yh, ScalarT  Zh,
-      OrdinalT i0, OrdinalT i1, OrdinalT i2, OrdinalT i3,
-      ScalarT& b0, ScalarT& b1, ScalarT& b2, ScalarT& b3) const
+    KOKKOS_INLINE_FUNCTION
+    Plato::Matrix<ElementT::mNumNodesPerCell, ElementT::mNumSpatialDims>
+    getNodeLocations(
+      const Plato::Array<ElementT::mNumNodesPerCell, Plato::OrdinalType> & aNodeOrdinals
+    ) const
     {
-        // get vertex point values
-        ScalarT X0=mCoords[i0*cSpaceDim+Dim::X], Y0=mCoords[i0*cSpaceDim+Dim::Y], Z0=mCoords[i0*cSpaceDim+Dim::Z];
-        ScalarT X1=mCoords[i1*cSpaceDim+Dim::X], Y1=mCoords[i1*cSpaceDim+Dim::Y], Z1=mCoords[i1*cSpaceDim+Dim::Z];
-        ScalarT X2=mCoords[i2*cSpaceDim+Dim::X], Y2=mCoords[i2*cSpaceDim+Dim::Y], Z2=mCoords[i2*cSpaceDim+Dim::Z];
-        ScalarT X3=mCoords[i3*cSpaceDim+Dim::X], Y3=mCoords[i3*cSpaceDim+Dim::Y], Z3=mCoords[i3*cSpaceDim+Dim::Z];
+        Plato::Matrix<ElementT::mNumNodesPerCell, ElementT::mNumSpatialDims> tNodeLocations;
+        for(Plato::OrdinalType iNode=0; iNode<ElementT::mNumNodesPerCell; iNode++)
+        {
+            for(Plato::OrdinalType iDim=0; iDim<ElementT::mNumSpatialDims; iDim++)
+            {
+                tNodeLocations(iNode, iDim) = mCoords(aNodeOrdinals(iNode)*ElementT::mNumSpatialDims+iDim);
+            }
+        }
+        return tNodeLocations;
+    }
 
-        ScalarT a11=X0-X3, a12=X1-X3, a13=X2-X3;
-        ScalarT a21=Y0-Y3, a22=Y1-Y3, a23=Y2-Y3;
-        ScalarT a31=Z0-Z3, a32=Z1-Z3, a33=Z2-Z3;
+    /******************************************************************************//**
+     * @brief Find local coordinates from global coordinates, compute basis values
+     * @param [in]  position in global coordinates
+     * @param [in]  indices of nodes comprised by the element
+     * @param [out] basis values
+    **********************************************************************************/
+    KOKKOS_INLINE_FUNCTION void
+    basis(
+      const Plato::Array<ElementT::mNumSpatialDims, ScalarT>             & aPhysicalLocation,
+      const Plato::Array<ElementT::mNumNodesPerCell, Plato::OrdinalType> & aNodeOrdinals,
+            Plato::Array<ElementT::mNumNodesPerCell, ScalarT>            & aBases
+    ) const
+    {
+        Plato::Array<ElementT::mNumSpatialDims, ScalarT> tParentCoords(0.0);
 
-        ScalarT detA = a11*a22*a33+a12*a23*a31+a13*a21*a32-a11*a23*a32-a12*a21*a33-a13*a22*a31;
+        Plato::Matrix<ElementT::mNumNodesPerCell, ElementT::mNumSpatialDims, ScalarT>
+        tNodeLocations = getNodeLocations(aNodeOrdinals);
 
-        ScalarT b11=(a22*a33-a23*a32)/detA, b12=(a13*a32-a12*a33)/detA, b13=(a12*a23-a13*a22)/detA;
-        ScalarT b21=(a23*a31-a21*a33)/detA, b22=(a11*a33-a13*a31)/detA, b23=(a13*a21-a11*a23)/detA;
-        ScalarT b31=(a21*a32-a22*a31)/detA, b32=(a12*a31-a11*a32)/detA, b33=(a11*a22-a12*a21)/detA;
+        aBases = ElementT::basisValues(tParentCoords);
 
-        ScalarT FX=Xh-X3, FY=Yh-Y3, FZ=Zh-Z3;
+        // compute current difference 
+        Plato::Array<ElementT::mNumSpatialDims, ScalarT> tDiff(0.0);
+        for(Plato::OrdinalType iDim=0; iDim<ElementT::mNumSpatialDims; iDim++)
+        {
+            ScalarT tPhysical(0.0);
+            for(Plato::OrdinalType iNode=0; iNode<ElementT::mNumNodesPerCell; iNode++)
+            {
+                tPhysical += aBases(iNode)*tNodeLocations(iNode,iDim);
+            }
+            tDiff(iDim) = aPhysicalLocation(iDim) - tPhysical;
+        }
 
-        b0=b11*FX+b12*FY+b13*FZ;
-        b1=b21*FX+b22*FY+b23*FZ;
-        b2=b31*FX+b32*FY+b33*FZ;
-        b3=1.0-b0-b1-b2;
+        ScalarT tError(0.0);
+        for(Plato::OrdinalType iDim=0; iDim<ElementT::mNumSpatialDims; iDim++)
+        {
+            tError += tDiff(iDim)*tDiff(iDim);
+        }
+      
+        Plato::OrdinalType tIteration = 0;
+        while(tError > 1e-3 && tIteration < 4)
+        {
+            auto tJacobian = Plato::ElementBase<ElementT>::template jacobian<ScalarT>(tParentCoords, tNodeLocations);
+            auto tJacInv = Plato::invert(tJacobian);
+
+            // multiply tJacInv by tDiff and subtract from tParentCoords
+            for(Plato::OrdinalType iDim=0; iDim<ElementT::mNumSpatialDims; iDim++)
+            {
+                for(Plato::OrdinalType jDim=0; jDim<ElementT::mNumSpatialDims; jDim++)
+                {
+                    tParentCoords(iDim) += tJacInv(iDim, jDim) * tDiff(jDim);
+                }
+            }
+        
+            aBases = ElementT::basisValues(tParentCoords);
+
+            // compute current difference 
+            Plato::Array<ElementT::mNumSpatialDims, ScalarT> tDiff(0.0);
+            for(Plato::OrdinalType iDim=0; iDim<ElementT::mNumSpatialDims; iDim++)
+            {
+                ScalarT tPhysical(0.0);
+                for(Plato::OrdinalType iNode=0; iNode<ElementT::mNumNodesPerCell; iNode++)
+                {
+                    tPhysical += aBases(iNode)*tNodeLocations(iNode,iDim);
+                }
+                tDiff(iDim) = aPhysicalLocation(iDim) - tPhysical;
+            }
+
+            tError = 0.0;
+            for(Plato::OrdinalType iDim=0; iDim<ElementT::mNumSpatialDims; iDim++)
+            {
+                tError += tDiff(iDim)*tDiff(iDim);
+            }
+            tIteration++;
+        }
     }
 
 
@@ -204,7 +264,7 @@ struct GetBasis
      * @param [out] aColumnMap of the sparse matrix
      * @param [out] aEntries of the sparse matrix
     **********************************************************************************/
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
       VectorArrayT  aLocations,
       OrdinalT      aNodeOrdinal,
@@ -214,70 +274,54 @@ struct GetBasis
       ScalarArrayT  aEntries) const
     {
         // get input point values
-        ScalarT Xh=aLocations(Dim::X,aNodeOrdinal),
-                Yh=aLocations(Dim::Y,aNodeOrdinal),
-                Zh=aLocations(Dim::Z,aNodeOrdinal);
+        Plato::Array<ElementT::mNumSpatialDims, ScalarT> tPhysicalPoint;
+        for(Plato::OrdinalType iDim=0; iDim<ElementT::mNumSpatialDims; iDim++)
+        {
+            tPhysicalPoint(iDim) = aLocations(iDim, aNodeOrdinal);
+        }
 
-        // get vertex indices
-        OrdinalT i0 = mCells2Nodes[aElemOrdinal*cNVertsPerElem  ];
-        OrdinalT i1 = mCells2Nodes[aElemOrdinal*cNVertsPerElem+1];
-        OrdinalT i2 = mCells2Nodes[aElemOrdinal*cNVertsPerElem+2];
-        OrdinalT i3 = mCells2Nodes[aElemOrdinal*cNVertsPerElem+3];
+        // get node indices
+        Plato::Array<ElementT::mNumNodesPerCell, Plato::OrdinalType> tNodeOrdinals;
+        for(Plato::OrdinalType iOrd=0; iOrd<ElementT::mNumNodesPerCell; iOrd++)
+        {
+            tNodeOrdinals(iOrd) = mCells2Nodes(aElemOrdinal*ElementT::mNumNodesPerCell+iOrd);
+        }
 
-        ScalarT b0, b1, b2, b3;
+        Plato::Array<ElementT::mNumNodesPerCell, ScalarT> tBases;
 
-        basis(Xh, Yh, Zh,
-              i0, i1, i2, i3,
-              b0, b1, b2, b3);
+        basis(tPhysicalPoint, tNodeOrdinals, tBases);
 
-        aColumnMap(aEntryOrdinal  ) = i0;
-        aColumnMap(aEntryOrdinal+1) = i1;
-        aColumnMap(aEntryOrdinal+2) = i2;
-        aColumnMap(aEntryOrdinal+3) = i3;
-
-        aEntries(aEntryOrdinal  ) = b0;
-        aEntries(aEntryOrdinal+1) = b1;
-        aEntries(aEntryOrdinal+2) = b2;
-        aEntries(aEntryOrdinal+3) = b3;
+        for(Plato::OrdinalType iOrd=0; iOrd<ElementT::mNumNodesPerCell; iOrd++)
+        {
+            aColumnMap(aEntryOrdinal+iOrd) = tNodeOrdinals(iOrd);
+            aEntries(aEntryOrdinal+iOrd)   = tBases(iOrd);
+        }
     }
 
     /******************************************************************************//**
      * @brief Find local coordinates from global coordinates and compute basis values
-     * @param [in]  aLocations view of points (D, N)
-     * @param [in]  aNodeOrdinal index of point for which to determine local coords
      * @param [in]  aElemOrdinal index of element whose bases will be used for interpolation
+     * @param [in]  aLocation of point (D)
      * @param [out] aBases basis values
     **********************************************************************************/
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(
-      VectorArrayT  aLocations,
-      OrdinalT      aNodeOrdinal,
-      int           aElemOrdinal,
-      ScalarT       aBases[cNVertsPerElem]) const
+      Plato::OrdinalType                                  aElemOrdinal,
+      Plato::Array<ElementT::mNumSpatialDims, ScalarT>    aPhysicalLocation,
+      Plato::Array<ElementT::mNumNodesPerCell, ScalarT> & aBases
+    ) const
     {
-        // get input point values
-        ScalarT Xh=aLocations(Dim::X,aNodeOrdinal),
-                Yh=aLocations(Dim::Y,aNodeOrdinal),
-                Zh=aLocations(Dim::Z,aNodeOrdinal);
+        // get node indices
+        Plato::Array<ElementT::mNumNodesPerCell, Plato::OrdinalType> tNodeOrdinals;
+        for(Plato::OrdinalType iOrd=0; iOrd<ElementT::mNumNodesPerCell; iOrd++)
+        {
+            tNodeOrdinals(iOrd) = mCells2Nodes(aElemOrdinal*ElementT::mNumNodesPerCell+iOrd);
+        }
 
-        // get vertex indices
-        OrdinalT i0 = mCells2Nodes[aElemOrdinal*cNVertsPerElem  ];
-        OrdinalT i1 = mCells2Nodes[aElemOrdinal*cNVertsPerElem+1];
-        OrdinalT i2 = mCells2Nodes[aElemOrdinal*cNVertsPerElem+2];
-        OrdinalT i3 = mCells2Nodes[aElemOrdinal*cNVertsPerElem+3];
-
-        ScalarT b0, b1, b2, b3;
-
-        basis(Xh, Yh, Zh,
-              i0, i1, i2, i3,
-              b0, b1, b2, b3);
-
-        aBases[0] = b0;
-        aBases[1] = b1;
-        aBases[2] = b2;
-        aBases[3] = b3;
+        basis(aPhysicalLocation, tNodeOrdinals, aBases);
     }
 };
+
 
 /***************************************************************************//**
 * @brief Find element that contains each mapped node
@@ -292,7 +336,7 @@ struct GetBasis
    is set to -2.
    If a node is not mapped, aParentElements(node_id) is set to -1.
 *******************************************************************************/
-template <typename ScalarT>
+template <typename ElementT, typename ScalarT>
 void
 findParentElements(
   Plato::Mesh aMesh,
@@ -301,51 +345,48 @@ findParentElements(
   Plato::ScalarVectorT<int> aParentElements,
   ScalarT aSearchTolerance)
 {
-    using OrdinalT      = typename Plato::ScalarVectorT<ScalarT>::size_type;
+    using OrdinalT = typename Plato::ScalarVectorT<ScalarT>::size_type;
 
     auto tNElems = aMesh->NumElements();
-    Plato::ScalarMultiVectorT<ScalarT> tMin("min", cSpaceDim, tNElems);
-    Plato::ScalarMultiVectorT<ScalarT> tMax("max", cSpaceDim, tNElems);
+    Plato::ScalarMultiVectorT<ScalarT> tMin("min", ElementT::mNumSpatialDims, tNElems);
+    Plato::ScalarMultiVectorT<ScalarT> tMax("max", ElementT::mNumSpatialDims, tNElems);
 
     // fill d_* data
     auto tCoords = aMesh->Coordinates();
     auto tCells2Nodes = aMesh->Connectivity();
     Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalT>(0, tNElems), KOKKOS_LAMBDA(OrdinalT iCellOrdinal)
     {
-        OrdinalT tNVertsPerElem = cSpaceDim+1;
-
         // set min and max of element bounding box to first node
-        for(size_t iDim=0; iDim<cSpaceDim; ++iDim)
+        for(size_t iDim=0; iDim<ElementT::mNumSpatialDims; ++iDim)
         {
-            OrdinalT tVertIndex = tCells2Nodes[iCellOrdinal*tNVertsPerElem];
-            tMin(iDim, iCellOrdinal) = tCoords[tVertIndex*cSpaceDim+iDim];
-            tMax(iDim, iCellOrdinal) = tCoords[tVertIndex*cSpaceDim+iDim];
+            OrdinalT tVertIndex = tCells2Nodes[iCellOrdinal*ElementT::mNumNodesPerCell];
+            tMin(iDim, iCellOrdinal) = tCoords[tVertIndex*ElementT::mNumSpatialDims+iDim];
+            tMax(iDim, iCellOrdinal) = tCoords[tVertIndex*ElementT::mNumSpatialDims+iDim];
         }
         // loop on remaining nodes to find min
-        for(OrdinalT iVert=1; iVert<tNVertsPerElem; ++iVert)
+        for(OrdinalT iVert=1; iVert<ElementT::mNumNodesPerCell; ++iVert)
         {
-            OrdinalT tVertIndex = tCells2Nodes[iCellOrdinal*tNVertsPerElem + iVert];
-            for(size_t iDim=0; iDim<cSpaceDim; ++iDim)
+            OrdinalT tVertIndex = tCells2Nodes[iCellOrdinal*ElementT::mNumNodesPerCell + iVert];
+            for(size_t iDim=0; iDim<ElementT::mNumSpatialDims; ++iDim)
             {
-                if( tMin(iDim, iCellOrdinal) > tCoords[tVertIndex*cSpaceDim+iDim] )
+                if( tMin(iDim, iCellOrdinal) > tCoords[tVertIndex*ElementT::mNumSpatialDims+iDim] )
                 {
-                    tMin(iDim, iCellOrdinal) = tCoords[tVertIndex*cSpaceDim+iDim];
+                    tMin(iDim, iCellOrdinal) = tCoords[tVertIndex*ElementT::mNumSpatialDims+iDim];
                 }
                 else
-                if( tMax(iDim, iCellOrdinal) < tCoords[tVertIndex*cSpaceDim+iDim] )
+                if( tMax(iDim, iCellOrdinal) < tCoords[tVertIndex*ElementT::mNumSpatialDims+iDim] )
                 {
-                    tMax(iDim, iCellOrdinal) = tCoords[tVertIndex*cSpaceDim+iDim];
+                    tMax(iDim, iCellOrdinal) = tCoords[tVertIndex*ElementT::mNumSpatialDims+iDim];
                 }
             }
         }
-        for(size_t iDim=0; iDim<cSpaceDim; ++iDim)
+        for(size_t iDim=0; iDim<ElementT::mNumSpatialDims; ++iDim)
         {
             ScalarT tLen = tMax(iDim, iCellOrdinal) - tMin(iDim, iCellOrdinal);
             tMax(iDim, iCellOrdinal) += aSearchTolerance * tLen;
             tMin(iDim, iCellOrdinal) -= aSearchTolerance * tLen;
         }
     }, "element bounding boxes");
-
 
     auto d_x0 = Kokkos::subview(tMin, (size_t)Dim::X, Kokkos::ALL());
     auto d_y0 = Kokkos::subview(tMin, (size_t)Dim::Y, Kokkos::ALL());
@@ -371,14 +412,20 @@ findParentElements(
     ArborX::query(bvh, tExecSpace, Points{d_x.data(), d_y.data(), d_z.data(), static_cast<int>(tNumLocations)}, tIndices, tOffset);
 
     // loop over indices and find containing element
-    GetBasis<ScalarT> tGetBasis(aMesh);
+    GetBasis<ElementT, ScalarT> tGetBasis(aMesh);
     Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalT>(0, tNumLocations), KOKKOS_LAMBDA(OrdinalT iNodeOrdinal)
     {
-        ScalarT tBasis[cNVertsPerElem];
+        Plato::Array<ElementT::mNumNodesPerCell, Plato::Scalar> tBasis(0.0);
+        Plato::Array<ElementT::mNumSpatialDims, Plato::Scalar> tInPoint(0.0);
+
         aParentElements(iNodeOrdinal) = -1;
-        if( aLocations(Dim::X, iNodeOrdinal) != aMappedLocations(Dim::X, iNodeOrdinal) ||
-            aLocations(Dim::Y, iNodeOrdinal) != aMappedLocations(Dim::Y, iNodeOrdinal) ||
-            aLocations(Dim::Z, iNodeOrdinal) != aMappedLocations(Dim::Z, iNodeOrdinal) )
+
+        bool tMapped = false;
+        for(OrdinalT iDim=0; iDim<ElementT::mNumSpatialDims; iDim++)
+        {
+            tMapped = tMapped || ( aLocations(iDim, iNodeOrdinal) != aMappedLocations(iDim, iNodeOrdinal) );
+        }
+        if( tMapped )
         {
             aParentElements(iNodeOrdinal) = -2;
             constexpr ScalarT cNotFound = -1e8; // big negative number ensures max min is found
@@ -388,11 +435,17 @@ findParentElements(
             typename Plato::ScalarVectorT<int>::value_type iParent = -2;
             for( int iElem=tOffset(iNodeOrdinal); iElem<tOffset(iNodeOrdinal+1); iElem++ )
             {
-                auto tElem = tIndices(iElem);
-                tGetBasis(aMappedLocations, iNodeOrdinal, tElem, tBasis);
+                auto tElemIndex = tIndices(iElem);
+                for(OrdinalT iDim=0; iDim<ElementT::mNumSpatialDims; iDim++)
+                {
+                    tInPoint(iDim) = aMappedLocations(iDim, iNodeOrdinal);
+                }
+
+                tGetBasis(tElemIndex, tInPoint, tBasis);
+
                 ScalarT tEleMin = tBasis[0];
                 OrdinalT tNegCount = 0;
-                for(OrdinalT iB=0; iB<cNVertsPerElem; iB++)
+                for(OrdinalT iB=0; iB<ElementT::C1::mNumNodesPerCell; iB++)
                 {
                     if( tBasis[iB] < tEleMin ) tEleMin = tBasis[iB];
                     if( tBasis[iB] < cEpsilon ) tNegCount += 1;
@@ -401,12 +454,12 @@ findParentElements(
                 {
                      tRunningNegCount = tNegCount;
                      tMaxMin = tEleMin;
-                     iParent = tElem;
+                     iParent = tElemIndex;
                 }
                 else if ( ( tNegCount == tRunningNegCount ) && ( tEleMin > tMaxMin ) )
                 {
                      tMaxMin = tEleMin;
-                     iParent = tElem;
+                     iParent = tElemIndex;
                 }
             }
             if( tMaxMin >= cEpsilon )
@@ -416,7 +469,7 @@ findParentElements(
             else
             {
                 OrdinalT tBoundCheck = 0;
-                for(OrdinalT iDim=0; iDim<cSpaceDim; iDim++)
+                for(OrdinalT iDim=0; iDim<ElementT::mNumSpatialDims; iDim++)
                 {
                     ScalarT tBoundTol = aSearchTolerance * (tMax(iDim, iParent) - tMin(iDim, iParent));
                     if( tMaxMin < -tBoundTol ) tBoundCheck += 1;
@@ -429,7 +482,6 @@ findParentElements(
         }
     }, "find parent element");
 }
-
 /***************************************************************************//**
 * @brief Find element that contains each mapped node
  * @param [in]  aDomainCellMap map of local parent domain cell IDs to global cell IDs
@@ -443,20 +495,21 @@ findParentElements(
    If a node is mapped but the parent element isn't found, aParentElements(node_id)
    is set to -2.
 *******************************************************************************/
-template <typename ScalarT>
+template <typename ElementT, typename ScalarT>
 void
 findParentElements(
-  Plato::Mesh aMesh,
-  const Plato::ScalarVectorT<int> & aDomainCellMap,
-  Plato::ScalarMultiVectorT<ScalarT> aLocations,
-  Plato::ScalarMultiVectorT<ScalarT> aMappedLocations,
-  Plato::ScalarVectorT<int> aParentElements)
+        Plato::Mesh                          aMesh,
+  const Plato::ScalarVectorT<int>          & aDomainCellMap,
+        Plato::ScalarMultiVectorT<ScalarT>   aLocations,
+        Plato::ScalarMultiVectorT<ScalarT>   aMappedLocations,
+        Plato::ScalarVectorT<int>            aParentElements
+)
 {
-    using OrdinalT      = typename Plato::ScalarVectorT<ScalarT>::size_type;
+    using OrdinalT = typename Plato::ScalarVectorT<ScalarT>::size_type;
 
     int tNElems = aDomainCellMap.size();
-    Plato::ScalarMultiVectorT<ScalarT> tMin("min", cSpaceDim, tNElems);
-    Plato::ScalarMultiVectorT<ScalarT> tMax("max", cSpaceDim, tNElems);
+    Plato::ScalarMultiVectorT<ScalarT> tMin("min", ElementT::mNumSpatialDims, tNElems);
+    Plato::ScalarMultiVectorT<ScalarT> tMax("max", ElementT::mNumSpatialDims, tNElems);
 
     constexpr ScalarT cRelativeTol = 1e-2;
 
@@ -467,41 +520,39 @@ findParentElements(
 
     Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalT>(0, tNElems), KOKKOS_LAMBDA(OrdinalT iCellOrdinal)
     {
-        OrdinalT tNVertsPerElem = cSpaceDim+1;
         OrdinalT tCellOrdinal = tDomainCellMap(iCellOrdinal);
 
         // set min and max of element bounding box to first node
-        for(size_t iDim=0; iDim<cSpaceDim; ++iDim)
+        for(size_t iDim=0; iDim<ElementT::mNumSpatialDims; ++iDim)
         {
-            OrdinalT tVertIndex = tCells2Nodes[tCellOrdinal*tNVertsPerElem];
-            tMin(iDim, iCellOrdinal) = tCoords[tVertIndex*cSpaceDim+iDim];
-            tMax(iDim, iCellOrdinal) = tCoords[tVertIndex*cSpaceDim+iDim];
+            OrdinalT tVertIndex = tCells2Nodes[tCellOrdinal*ElementT::mNumNodesPerCell];
+            tMin(iDim, iCellOrdinal) = tCoords[tVertIndex*ElementT::mNumSpatialDims+iDim];
+            tMax(iDim, iCellOrdinal) = tCoords[tVertIndex*ElementT::mNumSpatialDims+iDim];
         }
         // loop on remaining nodes to find min
-        for(OrdinalT iVert=1; iVert<tNVertsPerElem; ++iVert)
+        for(OrdinalT iVert=1; iVert<ElementT::mNumNodesPerCell; ++iVert)
         {
-            OrdinalT tVertIndex = tCells2Nodes[tCellOrdinal*tNVertsPerElem + iVert];
-            for(size_t iDim=0; iDim<cSpaceDim; ++iDim)
+            OrdinalT tVertIndex = tCells2Nodes[tCellOrdinal*ElementT::mNumNodesPerCell + iVert];
+            for(size_t iDim=0; iDim<ElementT::mNumSpatialDims; ++iDim)
             {
-                if( tMin(iDim, iCellOrdinal) > tCoords[tVertIndex*cSpaceDim+iDim] )
+                if( tMin(iDim, iCellOrdinal) > tCoords[tVertIndex*ElementT::mNumSpatialDims+iDim] )
                 {
-                    tMin(iDim, iCellOrdinal) = tCoords[tVertIndex*cSpaceDim+iDim];
+                    tMin(iDim, iCellOrdinal) = tCoords[tVertIndex*ElementT::mNumSpatialDims+iDim];
                 }
                 else
-                if( tMax(iDim, iCellOrdinal) < tCoords[tVertIndex*cSpaceDim+iDim] )
+                if( tMax(iDim, iCellOrdinal) < tCoords[tVertIndex*ElementT::mNumSpatialDims+iDim] )
                 {
-                    tMax(iDim, iCellOrdinal) = tCoords[tVertIndex*cSpaceDim+iDim];
+                    tMax(iDim, iCellOrdinal) = tCoords[tVertIndex*ElementT::mNumSpatialDims+iDim];
                 }
             }
         }
-        for(size_t iDim=0; iDim<cSpaceDim; ++iDim)
+        for(size_t iDim=0; iDim<ElementT::mNumSpatialDims; ++iDim)
         {
             ScalarT tLen = tMax(iDim, iCellOrdinal) - tMin(iDim, iCellOrdinal);
             tMax(iDim, iCellOrdinal) += cRelativeTol * tLen;
             tMin(iDim, iCellOrdinal) -= cRelativeTol * tLen;
         }
     }, "element bounding boxes");
-
 
     auto d_x0 = Kokkos::subview(tMin, (size_t)Dim::X, Kokkos::ALL());
     auto d_y0 = Kokkos::subview(tMin, (size_t)Dim::Y, Kokkos::ALL());
@@ -527,10 +578,12 @@ findParentElements(
     ArborX::query(bvh, tExecSpace, Points{d_x.data(), d_y.data(), d_z.data(), static_cast<int>(tNumLocations)}, tIndices, tOffset);
 
     // loop over indices and find containing element
-    GetBasis<ScalarT> tGetBasis(aMesh);
+    GetBasis<ElementT, ScalarT> tGetBasis(aMesh);
     Kokkos::parallel_for(Kokkos::RangePolicy<OrdinalT>(0, tNumLocations), KOKKOS_LAMBDA(OrdinalT iNodeOrdinal)
     {
-        ScalarT tBasis[cNVertsPerElem];
+        Plato::Array<ElementT::mNumNodesPerCell, Plato::Scalar> tBasis(0.0);
+        Plato::Array<ElementT::mNumSpatialDims, Plato::Scalar> tInPoint(0.0);
+
         aParentElements(iNodeOrdinal) = -2;
         constexpr ScalarT cNotFound = -1e8; // big negative number ensures max min is found
         constexpr ScalarT cEpsilon = -1e-8; // small negative number for checking if float greater than 0
@@ -539,11 +592,18 @@ findParentElements(
         typename Plato::ScalarVectorT<int>::value_type iParent = -2;
         for( int iElem=tOffset(iNodeOrdinal); iElem<tOffset(iNodeOrdinal+1); iElem++ )
         {
-            auto tElem = tDomainCellMap(tIndices(iElem));
-            tGetBasis(aMappedLocations, iNodeOrdinal, tElem, tBasis);
+            auto tElemIndex = tDomainCellMap(tIndices(iElem));
+
+            for(OrdinalT iDim=0; iDim<ElementT::mNumSpatialDims; iDim++)
+            {
+                tInPoint(iDim) = aMappedLocations(iDim, iNodeOrdinal);
+            }
+
+            tGetBasis(tElemIndex, tInPoint, tBasis);
+
             ScalarT tEleMin = tBasis[0];
             OrdinalT tNegCount = 0;
-            for(OrdinalT iB=0; iB<cNVertsPerElem; iB++)
+            for(OrdinalT iB=0; iB<ElementT::mNumNodesPerCell; iB++)
             {
                 if( tBasis[iB] < tEleMin ) tEleMin = tBasis[iB];
                 if( tBasis[iB] < cEpsilon ) tNegCount += 1;
@@ -552,12 +612,12 @@ findParentElements(
             {
                  tRunningNegCount = tNegCount;
                  tMaxMin = tEleMin;
-                 iParent = tElem;
+                 iParent = tElemIndex;
             }
             else if ( ( tNegCount == tRunningNegCount ) && ( tEleMin > tMaxMin ) )
             {
                  tMaxMin = tEleMin;
-                 iParent = tElem;
+                 iParent = tElemIndex;
 
             }
         }
@@ -568,7 +628,7 @@ findParentElements(
         else
         {
             OrdinalT tBoundCheck = 0;
-            for(OrdinalT iDim=0; iDim<cSpaceDim; iDim++)
+            for(OrdinalT iDim=0; iDim<ElementT::mNumSpatialDims; iDim++)
             {
                 ScalarT tBoundTol = cRelativeTol * (tMax(iDim, iParent) - tMin(iDim, iParent));
                 if( tMaxMin < -tBoundTol ) tBoundCheck += 1;

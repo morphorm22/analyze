@@ -44,14 +44,9 @@ class AmgXLinearSolver : public AbstractSolver
 
   public:
     AmgXLinearSolver(
-        const Teuchos::ParameterList& aSolverParams,
-        int aDofsPerNode
-    );
-
-    AmgXLinearSolver(
         const Teuchos::ParameterList&                   aSolverParams,
         int                                             aDofsPerNode,
-        std::shared_ptr<Plato::MultipointConstraints>   aMPCs
+        std::shared_ptr<Plato::MultipointConstraints>   aMPCs = nullptr
     );
 
     void innerSolve(

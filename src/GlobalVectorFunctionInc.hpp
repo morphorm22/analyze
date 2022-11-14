@@ -1189,7 +1189,7 @@ public:
         //
         // Note that the second two template parameters must match the block shape of the destination matrix, tJacobianMat
         //
-        Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumNodeStatePerNode, mNumGlobalDofsPerNode>
+        Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumNodeStatePerNode, mNumGlobalDofsPerNode>
             tJacobianMatEntryOrdinal( tAssembledTransposeJacobian, tMesh );
 
         for(const auto& tDomain : mSpatialModel.Domains)

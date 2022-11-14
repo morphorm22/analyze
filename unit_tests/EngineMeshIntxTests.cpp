@@ -5,7 +5,7 @@
  */
 
 
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 #include "Teuchos_UnitTestHarness.hpp"
 
 #include "EngineMesh.hpp"
@@ -69,7 +69,7 @@ const Plato::Scalar cTol = 1e-9;
 
 TEUCHOS_UNIT_TEST(EngineMeshIntxTests, CreateSurfaceMesh_Tet4)
 {
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", /*tMeshIntervals=*/ 2);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", /*tMeshIntervals=*/ 2);
 
     std::vector<std::string> tExcludeNames;
 
@@ -110,7 +110,7 @@ TEUCHOS_UNIT_TEST(EngineMeshIntxTests, CreateSurfaceMesh_Tet4)
 
 TEUCHOS_UNIT_TEST(EngineMeshIntxTests, CreateSurfaceComplement_Tet4)
 {
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", /*tMeshIntervals=*/ 2);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", /*tMeshIntervals=*/ 2);
 
     std::vector<std::string> tExcludeNames;
     tExcludeNames.push_back("z+");
@@ -152,7 +152,7 @@ TEUCHOS_UNIT_TEST(EngineMeshIntxTests, CreateSurfaceComplement_Tet4)
 
 TEUCHOS_UNIT_TEST(EngineMeshIntxTests, CreateSurfaceComplement_Hex8)
 {
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("HEX8", /*tMeshIntervals=*/ 2);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("HEX8", /*tMeshIntervals=*/ 2);
 
     std::vector<std::string> tExcludeNames;
     tExcludeNames.push_back("z+");
@@ -192,7 +192,7 @@ TEUCHOS_UNIT_TEST(EngineMeshIntxTests, CreateSurfaceComplement_Hex8)
 
 TEUCHOS_UNIT_TEST(EngineMeshIntxTests, CreateSurfaceMesh_Hex8)
 {
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("HEX8", /*tMeshIntervals=*/ 2);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("HEX8", /*tMeshIntervals=*/ 2);
 
     std::vector<std::string> tExcludeNames;
 
@@ -449,6 +449,61 @@ TEUCHOS_UNIT_TEST(EngineMeshIntxTests, ReadHex20Mesh)
     TEST_ASSERT(std::count(tSideSetNames.begin(), tSideSetNames.end(), "z+") == 1);
 }
 
+TEUCHOS_UNIT_TEST(EngineMeshIntxTests, ReadHex27Mesh)
+{
+    std::string tFileName = "unit_cube_hex27.exo";
+    Plato::EngineMesh tMesh(tFileName);
+
+    TEST_ASSERT(tMesh.NumNodes() == 125)
+    TEST_ASSERT(tMesh.NumElements() == 8)
+    TEST_ASSERT(tMesh.NumDimensions() == 3)
+    TEST_ASSERT(tMesh.NumNodesPerElement() == 27)
+
+    // verify node locations on x-
+    auto tVals = getSetProjection(tMesh, "x-", 0, -0.5);
+    for( auto tVal : tVals ) TEST_FLOATING_EQUALITY(fabs(tVal), 0.0, cTol);
+
+    // verify node locations on x+
+    tVals = getSetProjection(tMesh, "x+", 0, 0.5);
+    for( auto tVal : tVals ) TEST_FLOATING_EQUALITY(fabs(tVal), 0.0, cTol);
+
+    // verify node locations on y+
+    tVals = getSetProjection(tMesh, "y+", 1, 0.5);
+    for( auto tVal : tVals ) TEST_FLOATING_EQUALITY(fabs(tVal), 0.0, cTol);
+
+    // mesh has a single block names 'block_1'.  verify.
+    auto tBlockNames = tMesh.GetElementBlockNames();
+    TEST_ASSERT(tBlockNames.size() == 1);
+    TEST_ASSERT(tBlockNames[0] == "block_1");
+
+    // mesh has a single block with sequential element ids.  verify.
+    auto tLocalElementIDs = tMesh.GetLocalElementIDs(tBlockNames[0]);
+    auto tHostData = Kokkos::create_mirror_view(tLocalElementIDs);
+    Kokkos::deep_copy(tHostData, tLocalElementIDs);
+    for(Plato::OrdinalType iElem=0; iElem<tMesh.NumElements(); iElem++)
+    {
+        TEST_ASSERT(tHostData(iElem) == iElem);
+    }
+
+    // verify that nodesets are accounted for.
+    auto tNodeSetNames = tMesh.GetNodeSetNames();
+    TEST_ASSERT(tNodeSetNames.size() == 6);
+    TEST_ASSERT(std::count(tNodeSetNames.begin(), tNodeSetNames.end(), "y-") == 1);
+    TEST_ASSERT(std::count(tNodeSetNames.begin(), tNodeSetNames.end(), "y+") == 1);
+    TEST_ASSERT(std::count(tNodeSetNames.begin(), tNodeSetNames.end(), "z-") == 1);
+    TEST_ASSERT(std::count(tNodeSetNames.begin(), tNodeSetNames.end(), "z+") == 1);
+
+    // verify that sidesets are accounted for.
+    auto tSideSetNames = tMesh.GetSideSetNames();
+    TEST_ASSERT(tSideSetNames.size() == 6);
+    TEST_ASSERT(std::count(tSideSetNames.begin(), tSideSetNames.end(), "x-") == 1);
+    TEST_ASSERT(std::count(tSideSetNames.begin(), tSideSetNames.end(), "x+") == 1);
+    TEST_ASSERT(std::count(tSideSetNames.begin(), tSideSetNames.end(), "y-") == 1);
+    TEST_ASSERT(std::count(tSideSetNames.begin(), tSideSetNames.end(), "y+") == 1);
+    TEST_ASSERT(std::count(tSideSetNames.begin(), tSideSetNames.end(), "z-") == 1);
+    TEST_ASSERT(std::count(tSideSetNames.begin(), tSideSetNames.end(), "z+") == 1);
+}
+
 TEUCHOS_UNIT_TEST(EngineWriterIntxTests, WriteReadTet4Mesh)
 {
     // read mesh
@@ -573,6 +628,37 @@ TEUCHOS_UNIT_TEST(EngineWriterIntxTests, WriteReadHex20Mesh)
     TEST_THROW(tRead.ReadNodeData("nonExistentVar", /*stepIndex=*/ 0), std::exception);
 }
 
+TEUCHOS_UNIT_TEST(EngineWriterIntxTests, WriteReadHex27Mesh)
+{
+    // read mesh
+    std::string tMeshFileName = "unit_cube_hex27.exo";
+    Plato::EngineMesh tMesh(tMeshFileName);
+
+    // create writer for this mesh
+    std::string tOutFileName = "unit_cube_hex27_out.exo";
+    Plato::EngineMeshIO tWrite(tOutFileName, tMesh, "write");
+
+    // create test node field
+    Plato::ScalarVector tDataOut("test nodal field", tMesh.NumNodes());
+    Kokkos::deep_copy(tDataOut, 1.234);
+    tWrite.AddNodeData("testNodalField", tDataOut);
+
+    // write node field
+    tWrite.Write(/*stepIndex=*/ 0, /*timeValue=*/ 1.0);
+
+    // create reader
+    Plato::EngineMeshIO tRead(tOutFileName, tMesh, "read");
+
+    // read node field
+    auto tDataIn = tRead.ReadNodeData("testNodalField", /*stepIndex=*/ 0);
+
+    // compare node field
+    TEST_ASSERT(are_equal(tDataOut, tDataIn));
+
+    // check that attempting to read a non-existent node field throws a signal.
+    TEST_THROW(tRead.ReadNodeData("nonExistentVar", /*stepIndex=*/ 0), std::exception);
+}
+
 TEUCHOS_UNIT_TEST(EngineWriterIntxTests, WriteTet4ScalarField)
 {
     const Plato::OrdinalType cSpaceDim = 3;
@@ -587,7 +673,7 @@ TEUCHOS_UNIT_TEST(EngineWriterIntxTests, WriteTet4ScalarField)
 
     // compute distance of each node from origin
     auto tCoordinates = tMesh.Coordinates();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), LAMBDA_EXPRESSION(Plato::OrdinalType tNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), KOKKOS_LAMBDA(Plato::OrdinalType tNodeOrdinal)
     {
         Plato::Scalar tDistance = 0.0;
         for(Plato::OrdinalType tDim=0; tDim<cSpaceDim; tDim++)
@@ -623,7 +709,7 @@ TEUCHOS_UNIT_TEST(EngineWriterIntxTests, WriteTet10ScalarField)
 
     // compute distance of each node from origin
     auto tCoordinates = tMesh.Coordinates();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), LAMBDA_EXPRESSION(Plato::OrdinalType tNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), KOKKOS_LAMBDA(Plato::OrdinalType tNodeOrdinal)
     {
         Plato::Scalar tDistance = 0.0;
         for(Plato::OrdinalType tDim=0; tDim<cSpaceDim; tDim++)
@@ -659,7 +745,7 @@ TEUCHOS_UNIT_TEST(EngineWriterIntxTests, WriteHex8ScalarField)
 
     // compute distance of each node from origin
     auto tCoordinates = tMesh.Coordinates();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), LAMBDA_EXPRESSION(Plato::OrdinalType tNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), KOKKOS_LAMBDA(Plato::OrdinalType tNodeOrdinal)
     {
         Plato::Scalar tDistance = 0.0;
         for(Plato::OrdinalType tDim=0; tDim<cSpaceDim; tDim++)
@@ -695,7 +781,7 @@ TEUCHOS_UNIT_TEST(EngineWriterIntxTests, WriteHex20ScalarField)
 
     // compute distance of each node from origin
     auto tCoordinates = tMesh.Coordinates();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), LAMBDA_EXPRESSION(Plato::OrdinalType tNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumNodes), KOKKOS_LAMBDA(Plato::OrdinalType tNodeOrdinal)
     {
         Plato::Scalar tDistance = 0.0;
         for(Plato::OrdinalType tDim=0; tDim<cSpaceDim; tDim++)

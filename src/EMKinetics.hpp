@@ -1,7 +1,6 @@
 #ifndef PLATO_EMKINETICS_HPP
 #define PLATO_EMKINETICS_HPP
 
-#include "SimplexElectromechanics.hpp"
 #include "LinearElectroelasticMaterial.hpp"
 
 /******************************************************************************/
@@ -39,26 +38,27 @@
 namespace Plato
 {
 
-template<int SpaceDim>
-class EMKinetics : public Plato::SimplexElectromechanics<SpaceDim>
+template<typename ElementType>
+class EMKinetics : public ElementType
 {
   private:
 
-    using Plato::SimplexElectromechanics<SpaceDim>::mNumVoigtTerms;
-    using Plato::SimplexElectromechanics<SpaceDim>::mNumNodesPerCell;
-    using Plato::SimplexElectromechanics<SpaceDim>::mNumDofsPerNode;
-    using Plato::SimplexElectromechanics<SpaceDim>::mNumDofsPerCell;
+    using ElementType::mNumSpatialDims;
+    using ElementType::mNumVoigtTerms;
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumDofsPerNode;
+    using ElementType::mNumDofsPerCell;
 
-    const Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffness;
-    const Plato::Matrix<SpaceDim, mNumVoigtTerms> mCellPiezoelectricCoupling;
-    const Plato::Matrix<SpaceDim, SpaceDim> mCellPermittivity;
+    const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;
+    const Plato::Matrix<mNumSpatialDims, mNumVoigtTerms> mCellPiezoelectricCoupling;
+    const Plato::Matrix<mNumSpatialDims, mNumSpatialDims> mCellPermittivity;
  
     const Plato::Scalar mAlpha;
     const Plato::Scalar mAlpha2;
 
   public:
 
-    EMKinetics( const Teuchos::RCP<Plato::LinearElectroelasticMaterial<SpaceDim>> materialModel ) :
+    EMKinetics( const Teuchos::RCP<Plato::LinearElectroelasticMaterial<mNumSpatialDims>> materialModel ) :
             mCellStiffness(materialModel->getStiffnessMatrix()),
             mCellPiezoelectricCoupling(materialModel->getPiezoMatrix()),
             mCellPermittivity(materialModel->getPermittivityMatrix()),
@@ -66,34 +66,36 @@ class EMKinetics : public Plato::SimplexElectromechanics<SpaceDim>
             mAlpha2(mAlpha*mAlpha) { }
 
     template<typename KineticsScalarType, typename KinematicsScalarType>
-    DEVICE_TYPE inline void
-    operator()( int cellOrdinal,
-                Kokkos::View<KineticsScalarType**,   Plato::Layout, Plato::MemSpace> const& stress,
-                Kokkos::View<KineticsScalarType**,   Plato::Layout, Plato::MemSpace> const& edisp,
-                Kokkos::View<KinematicsScalarType**, Plato::Layout, Plato::MemSpace> const& strain,
-                Kokkos::View<KinematicsScalarType**, Plato::Layout, Plato::MemSpace> const& efield) const {
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+        Plato::Array<mNumVoigtTerms,  KineticsScalarType>         & aStress,
+        Plato::Array<mNumSpatialDims, KineticsScalarType>         & aEDisp,
+        Plato::Array<mNumVoigtTerms,  KinematicsScalarType> const & tStrain,
+        Plato::Array<mNumSpatialDims, KinematicsScalarType> const & tEField
+    ) const
+    {
 
       // compute stress
       //
       for( int iVoigt=0; iVoigt<mNumVoigtTerms; iVoigt++){
-        stress(cellOrdinal,iVoigt) = 0.0;
+        aStress(iVoigt) = 0.0;
         for( int jVoigt=0; jVoigt<mNumVoigtTerms; jVoigt++){
-          stress(cellOrdinal,iVoigt) += strain(cellOrdinal,jVoigt)*mCellStiffness(iVoigt, jVoigt);
+          aStress(iVoigt) += tStrain(jVoigt)*mCellStiffness(iVoigt, jVoigt);
         }
-        for( int jDim=0; jDim<SpaceDim; jDim++){
-          stress(cellOrdinal,iVoigt) -= mAlpha*efield(cellOrdinal,jDim)*mCellPiezoelectricCoupling(jDim, iVoigt);
+        for( int jDim=0; jDim<mNumSpatialDims; jDim++){
+          aStress(iVoigt) -= mAlpha*tEField(jDim)*mCellPiezoelectricCoupling(jDim, iVoigt);
         }
       }
 
       // compute edisp
       //
-      for( int iDim=0; iDim<SpaceDim; iDim++){
-        edisp(cellOrdinal,iDim) = 0.0;
-        for( int jDim=0; jDim<SpaceDim; jDim++){
-          edisp(cellOrdinal,iDim) += mAlpha2*efield(cellOrdinal,jDim)*mCellPermittivity(iDim, jDim);
+      for( int iDim=0; iDim<mNumSpatialDims; iDim++){
+        aEDisp(iDim) = 0.0;
+        for( int jDim=0; jDim<mNumSpatialDims; jDim++){
+          aEDisp(iDim) += mAlpha2*tEField(jDim)*mCellPermittivity(iDim, jDim);
         }
         for( int jVoigt=0; jVoigt<mNumVoigtTerms; jVoigt++){
-          edisp(cellOrdinal,iDim) += mAlpha*strain(cellOrdinal,jVoigt)*mCellPiezoelectricCoupling(iDim, jVoigt);
+          aEDisp(iDim) += mAlpha*tStrain(jVoigt)*mCellPiezoelectricCoupling(iDim, jVoigt);
         }
       }
     }

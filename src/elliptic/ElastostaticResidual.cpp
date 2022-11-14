@@ -1,12 +1,12 @@
-#include "elliptic/ElastostaticResidual.hpp"
-#include "ExpInstMacros.hpp"
+#include "elliptic/ElastostaticResidual_decl.hpp"
 
-#ifdef PLATOANALYZE_1D
-PLATO_EXPL_DEF(Plato::Elliptic::ElastostaticResidual, Plato::SimplexMechanics, 1)
-#endif
-#ifdef PLATOANALYZE_2D
-PLATO_EXPL_DEF(Plato::Elliptic::ElastostaticResidual, Plato::SimplexMechanics, 2)
-#endif
-#ifdef PLATOANALYZE_3D
-PLATO_EXPL_DEF(Plato::Elliptic::ElastostaticResidual, Plato::SimplexMechanics, 3)
+#ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
+
+#include "elliptic/ElastostaticResidual_def.hpp"
+
+#include "MechanicsElement.hpp"
+#include "elliptic/ExpInstMacros.hpp"
+
+PLATO_ELLIPTIC_EXP_INST(Plato::Elliptic::ElastostaticResidual, Plato::MechanicsElement)
+
 #endif

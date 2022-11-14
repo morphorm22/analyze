@@ -1,17 +1,12 @@
 #pragma once
 
-#include "Simplex.hpp"
+#include <algorithm>
+
 #include "ApplyWeighting.hpp"
 #include "PlatoStaticsTypes.hpp"
-#include "ImplicitFunctors.hpp"
-#include "geometric/GeometricSimplexFadTypes.hpp"
+#include "geometric/EvaluationTypes.hpp"
 #include "geometric/AbstractScalarFunction.hpp"
-#include "UtilsTeuchos.hpp"
-#include "Simp.hpp"
-#include "Ramp.hpp"
-#include "Heaviside.hpp"
 #include "ExpInstMacros.hpp"
-#include "NoPenalty.hpp"
 
 namespace Plato
 {
@@ -21,12 +16,16 @@ namespace Geometric
 
 /******************************************************************************/
 template<typename EvaluationType, typename PenaltyFunctionType>
-class Volume : public Plato::Geometric::AbstractScalarFunction<EvaluationType>
+class Volume :
+    public EvaluationType::ElementType,
+    public Plato::Geometric::AbstractScalarFunction<EvaluationType>
 /******************************************************************************/
 {
   private:
-    static constexpr int SpaceDim = EvaluationType::SpatialDim;
-    
+    using ElementType = typename EvaluationType::ElementType;
+
+    using ElementType::mNumNodesPerCell;
+
     using Plato::Geometric::AbstractScalarFunction<EvaluationType>::mSpatialDomain;
     using Plato::Geometric::AbstractScalarFunction<EvaluationType>::mDataMap;
 
@@ -34,10 +33,8 @@ class Volume : public Plato::Geometric::AbstractScalarFunction<EvaluationType>
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
-    Plato::Scalar mQuadratureWeight;
-
     PenaltyFunctionType mPenaltyFunction;
-    Plato::ApplyWeighting<SpaceDim,1,PenaltyFunctionType> mApplyWeighting;
+    Plato::ApplyWeighting<mNumNodesPerCell,1,PenaltyFunctionType> mApplyWeighting;
 
     bool mCompute;
 
@@ -48,85 +45,47 @@ class Volume : public Plato::Geometric::AbstractScalarFunction<EvaluationType>
               Plato::DataMap         & aDataMap, 
               Teuchos::ParameterList & aInputs, 
               Teuchos::ParameterList & aPenaltyParams,
-              std::string            & aFunctionName
+        const std::string            & aFunctionName
     ) :
-        Plato::Geometric::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aFunctionName),
+        Plato::Geometric::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, aInputs, aFunctionName),
         mPenaltyFunction(aPenaltyParams),
-        mApplyWeighting(mPenaltyFunction)
+        mApplyWeighting(mPenaltyFunction) {}
     /**************************************************************************/
-    {
-      // decide whether we should compute the volume for the current domain
-      mCompute = false;
-      std::string tCurrentDomainName = aSpatialDomain.getDomainName();
-
-
-      auto tMyCriteria = aInputs.sublist("Criteria").sublist(aFunctionName);
-      std::vector<std::string> tDomains = Plato::teuchos::parse_array<std::string>("Domains", tMyCriteria);
-
-      // see if this matches any of the domains we want to compute volumes of
-      for (int i = 0; i < tDomains.size(); i++)
-      {
-        if (tCurrentDomainName == tDomains[i])
-        {
-          mCompute = true;
-        }
-      }
-
-      // if not specified compute all
-      if(!tMyCriteria.isParameter("Domains"))
-      {
-          WARNING(std::string("'Domains' parameter is not defined in Volume criterion. All domains will be included in the volume computation."));
-          mCompute = true;
-      }
-
-      // check for a case we don't handle
-      if (tMyCriteria.isParameter("Domains") && tDomains.size() == 0)
-      {
-          WARNING(std::string("Empty Domains array in Volume criterion. All domains will be included in the volume computation."));
-          mCompute = true;
-      }
-
-      mQuadratureWeight = 1.0; // for a 1-point quadrature rule for simplices
-      for (Plato::OrdinalType tDimIndex=2; tDimIndex<=SpaceDim; tDimIndex++)
-      { 
-        mQuadratureWeight /= Plato::Scalar(tDimIndex);
-      }
-    }
 
     /**************************************************************************/
     void
-    evaluate(
+    evaluate_conditional(
         const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
         const Plato::ScalarArray3DT    <ConfigScalarType > & aConfig,
               Plato::ScalarVectorT     <ResultScalarType > & aResult
     ) const override
     /**************************************************************************/
     {
+        auto tNumCells   = mSpatialDomain.numCells();
+        auto tCubPoints  = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints  = tCubWeights.size();
 
-      if (mCompute)
-      {
+        auto& tApplyWeighting = mApplyWeighting;
 
-        auto tNumCells = mSpatialDomain.numCells();
+        Kokkos::parallel_for("compute volume", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        {
+            auto tCubPoint  = tCubPoints(iGpOrdinal);
+            auto tCubWeight = tCubWeights(iGpOrdinal);
 
-        Plato::ComputeCellVolume<SpaceDim> tComputeCellVolume;
+            auto tJacobian = ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal);
 
-        auto tQuadratureWeight = mQuadratureWeight;
-        auto tApplyWeighting = mApplyWeighting;
-        Kokkos::parallel_for(
-            Kokkos::RangePolicy<>(0, tNumCells), LAMBDA_EXPRESSION(const Plato::OrdinalType &aCellOrdinal)
-            {
-              ConfigScalarType tCellVolume;
-              tComputeCellVolume(aCellOrdinal, aConfig, tCellVolume);
-              tCellVolume *= tQuadratureWeight;
+            ResultScalarType tCellVolume = Plato::determinant(tJacobian);
 
-              aResult(aCellOrdinal) = tCellVolume;
+            tCellVolume *= tCubWeight;
 
-              // apply weighting
-              //
-              tApplyWeighting(aCellOrdinal, aResult, aControl);
-            },
-            "volume");
-      }
+            auto tBasisValues = ElementType::basisValues(tCubPoint);
+            tApplyWeighting(iCellOrdinal, aControl, tBasisValues, tCellVolume);
+
+            Kokkos::atomic_add(&aResult(iCellOrdinal), tCellVolume);
+
+        });
     }
 };
 // class Volume

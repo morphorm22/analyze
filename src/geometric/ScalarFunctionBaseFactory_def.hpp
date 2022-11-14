@@ -21,9 +21,9 @@ namespace Geometric
      * \param [in] aProblemParams parameter input
      * \param [in] aFunctionName name of function in parameter list
      **********************************************************************************/
-    template <typename PhysicsT>
+    template <typename PhysicsType>
     std::shared_ptr<Plato::Geometric::ScalarFunctionBase> 
-    ScalarFunctionBaseFactory<PhysicsT>::create(
+    ScalarFunctionBaseFactory<PhysicsType>::create(
         const Plato::SpatialModel    & aSpatialModel,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
@@ -35,27 +35,27 @@ namespace Geometric
 
         if(tFunctionType == "Weighted Sum")
         {
-            return std::make_shared<WeightedSumFunction<PhysicsT>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
+            return std::make_shared<WeightedSumFunction<PhysicsType>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
         }
         else
         if(tFunctionType == "Division")
         {
-            return std::make_shared<DivisionFunction<PhysicsT>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
+            return std::make_shared<DivisionFunction<PhysicsType>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
         }
         else
         if(tFunctionType == "Least Squares")
         {
-            return std::make_shared<LeastSquaresFunction<PhysicsT>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
+            return std::make_shared<LeastSquaresFunction<PhysicsType>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
         }
         else
         if(tFunctionType == "Mass Properties")
         {
-            return std::make_shared<MassPropertiesFunction<PhysicsT>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
+            return std::make_shared<MassPropertiesFunction<PhysicsType>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
         }
         else
         if(tFunctionType == "Scalar Function")
         {
-            return std::make_shared<GeometryScalarFunction<PhysicsT>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
+            return std::make_shared<GeometryScalarFunction<PhysicsType>>(aSpatialModel, aDataMap, aProblemParams, aFunctionName);
         }
         else
         {

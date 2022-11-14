@@ -272,40 +272,14 @@ createProblem(ProblemDefinition& aDefinition)
   auto tInputMesh = aDefinition.params.get<std::string>("Input Mesh");
 
   mMesh = Plato::MeshFactory::create(tInputMesh);
+  mNumSpatialDims = mMesh->NumDimensions();
 
   mDebugAnalyzeApp = aDefinition.params.get<bool>("Debug", false);
-  mNumSpatialDims = aDefinition.params.get<int>("Spatial Dimension");
 
-  if (mNumSpatialDims == 3)
-  {
-    #ifdef PLATOANALYZE_3D
-    Plato::ProblemFactory<3> tProblemFactory;
-    mProblem = nullptr; // otherwise destructor of previous problem not called
-    mProblem = tProblemFactory.create(mMesh, aDefinition.params, mMachine);
-    #else
-    throw Plato::ParsingException("3D physics is not compiled.");
-    #endif
-  } else
-  if (mNumSpatialDims == 2)
-  {
-    #ifdef PLATOANALYZE_2D
-    Plato::ProblemFactory<2> tProblemFactory;
-    mProblem = nullptr; // otherwise destructor of previous problem not called
-    mProblem = tProblemFactory.create(mMesh, aDefinition.params, mMachine);
-    #else
-    throw Plato::ParsingException("2D physics is not compiled.");
-    #endif
-  } else
-  if (mNumSpatialDims == 1)
-  {
-    #ifdef PLATOANALYZE_1D
-    Plato::ProblemFactory<1> tProblemFactory;
-    mProblem = nullptr; // otherwise destructor of previous problem not called
-    mProblem = tProblemFactory.create(mMesh, aDefinition.params, mMachine);
-    #else
-    throw Plato::ParsingException("1D physics is not compiled.");
-    #endif
-  }
+  Plato::ProblemFactory tProblemFactory;
+
+  mProblem = nullptr; // otherwise destructor of previous problem not called
+  mProblem = tProblemFactory.create(mMesh, aDefinition.params, mMachine);
 
   aDefinition.modified = false;
 }
@@ -1480,6 +1454,7 @@ void MPMD_App::Visualization::operator()()
     mOptimizationIterationCounter++;
 }
 
+#ifdef PLATO_HELMHOLTZ
 /******************************************************************************/
 MPMD_App::ApplyHelmholtz::
 ApplyHelmholtz(MPMD_App* aMyApp, Plato::InputData& aOpNode, Teuchos::RCP<ProblemDefinition> aOpDef) :
@@ -1568,6 +1543,7 @@ void MPMD_App::ApplyHelmholtzGradient::operator()()
     }
 
 }
+#endif // HELMHOLTZ
 
 /******************************************************************************/
 void MPMD_App::finalize()
@@ -1702,7 +1678,7 @@ Plato::ScalarMultiVector MPMD_App::getCoords()
     auto tNumVerts = mMesh->NumNodes();
     auto tNumDims = mMesh->NumDimensions();
     Plato::ScalarMultiVector retval("coords", tNumVerts, tNumDims);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumVerts), LAMBDA_EXPRESSION(const Plato::OrdinalType & tVertOrdinal){
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumVerts), KOKKOS_LAMBDA(const Plato::OrdinalType & tVertOrdinal){
         for (int iDim=0; iDim<tNumDims; iDim++){
             retval(tVertOrdinal,iDim) = tCoords[tVertOrdinal*tNumDims+iDim];
         }

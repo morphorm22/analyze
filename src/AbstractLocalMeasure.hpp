@@ -2,7 +2,6 @@
 
 #include "SpatialModel.hpp"
 #include "PlatoStaticsTypes.hpp"
-#include "SimplexMechanics.hpp"
 #include <Teuchos_ParameterList.hpp>
 
 namespace Plato
@@ -13,19 +12,24 @@ namespace Plato
  * \tparam EvaluationType evaluation type use to determine automatic differentiation
  *   type for scalar function (e.g. Residual, Jacobian, GradientZ, etc.)
 **********************************************************************************/
-template<typename EvaluationType, typename SimplexPhysics>
-class AbstractLocalMeasure
+template<typename EvaluationType>
+class AbstractLocalMeasure :
+    public EvaluationType::ElementType
 {
 protected:
-    static constexpr Plato::OrdinalType mSpaceDim = EvaluationType::SpatialDim; /*!< spatial dimensions */
-    static constexpr Plato::OrdinalType mNumVoigtTerms = SimplexPhysics::mNumVoigtTerms; /*!< number of Voigt terms */
-    static constexpr Plato::OrdinalType mNumNodesPerCell = SimplexPhysics::mNumNodesPerCell; /*!< number of nodes per cell/element */
+    using ElementType = typename EvaluationType::ElementType;
 
-    using StateT = typename EvaluationType::StateScalarType; /*!< state variables automatic differentiation type */
-    using ConfigT = typename EvaluationType::ConfigScalarType; /*!< configuration variables automatic differentiation type */
-    using ResultT = typename EvaluationType::ResultScalarType; /*!< result variables automatic differentiation type */
+    using ElementType::mNumVoigtTerms;
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumSpatialDims;
+
+    using StateT   = typename EvaluationType::StateScalarType;
+    using ControlT = typename EvaluationType::ControlScalarType;
+    using ConfigT  = typename EvaluationType::ConfigScalarType;
+    using ResultT  = typename EvaluationType::ResultScalarType;
 
     const Plato::SpatialDomain & mSpatialDomain;
+          Plato::DataMap       & mDataMap;
 
     const std::string mName; /*!< Local measure name */
 
@@ -37,10 +41,12 @@ public:
      **********************************************************************************/
     AbstractLocalMeasure(
         const Plato::SpatialDomain   & aSpatialDomain,
+              Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aInputParams,
         const std::string            & aName
     ) :
         mSpatialDomain (aSpatialDomain),
+        mDataMap       (aDataMap),
         mName          (aName)
     {
     }
@@ -51,9 +57,11 @@ public:
      **********************************************************************************/
     AbstractLocalMeasure(
         const Plato::SpatialDomain & aSpatialDomain,
+              Plato::DataMap       & aDataMap,
         const std::string          & aName
     ) : 
         mSpatialDomain (aSpatialDomain),
+        mDataMap       (aDataMap),
         mName          (aName)
     {
     }
@@ -68,14 +76,16 @@ public:
     /******************************************************************************//**
      * \brief Evaluate local measure
      * \param [in] aState 2D container of state variables
+     * \param [in] aControl 2D container of control variables
      * \param [in] aConfig 3D container of configuration/coordinates
      * \param [out] aResult 1D container of cell criterion values
     **********************************************************************************/
     virtual void
     operator()(
-        const Plato::ScalarMultiVectorT <StateT>  & aStateWS,
-        const Plato::ScalarArray3DT     <ConfigT> & aConfigWS,
-              Plato::ScalarVectorT      <ResultT> & aResultWS ) = 0;
+        const Plato::ScalarMultiVectorT <StateT>   & aStateWS,
+        const Plato::ScalarMultiVectorT <ControlT> & aControlWS,
+        const Plato::ScalarArray3DT     <ConfigT>  & aConfigWS,
+              Plato::ScalarVectorT      <ResultT>  & aResultWS ) = 0;
 
     /******************************************************************************//**
      * \brief Get local measure name

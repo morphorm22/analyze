@@ -4,8 +4,10 @@
  *  Created on: Jun 11, 2020
  */
 
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
+
 #include <Teuchos_UnitTestHarness.hpp>
+#include <Teuchos_XMLParameterListHelpers.hpp>
 
 #include "MaterialModel.hpp"
 
@@ -30,7 +32,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_ScalarFunctor)
 
         Plato::ScalarVector tResult("result", 2);
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             tResult(aOrd) = tEmptyScalarFunctor(0.0);
             tResult(aOrd+1) = tConstantScalarFunctor(0.0);
@@ -56,7 +58,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_ScalarFunctor)
         Plato::ScalarFunctor tLinearScalarFunctor(*tLinearScalarParams);
         Plato::ScalarVector tResult("result", 3);
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             tResult(aOrd  ) = tLinearScalarFunctor(0.0);
             tResult(aOrd+1) = tLinearScalarFunctor(1000.0);
@@ -85,7 +87,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_ScalarFunctor)
         Plato::ScalarFunctor tQuadraticScalarFunctor(*tQuadraticScalarParams);
         Plato::ScalarVector tResult("result", 4);
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             Plato::Scalar tX[4] = {0.0, 1000.0, 1234.0, -1500.0};
             for (int i=0; i<4; i++)
@@ -117,7 +119,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_ScalarFunctor)
         Plato::ScalarFunctor tQuadraticScalarFunctor(*tQuadraticScalarParams);
         Plato::ScalarVector tResult("result", 4);
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             Plato::Scalar tX[4] = {0.0, 1000.0, 1234.0, -1500.0};
             for (int i=0; i<4; i++)
@@ -150,7 +152,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_TensorConstant)
 
         Plato::ScalarArray3D tResult("result", 1, 3, 3);
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             for (int i=0; i<3; i++)
                 for (int j=0; j<3; j++)
@@ -176,7 +178,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_TensorConstant)
 
         Plato::ScalarArray3D tResult("result", 1, 3, 3);
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             for (int i=0; i<3; i++)
                 for (int j=0; j<3; j++)
@@ -211,7 +213,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_TensorFunctor)
 
         Plato::ScalarArray3D tResult("result", 1, 3, 3);
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             for (int i=0; i<3; i++)
                 for (int j=0; j<3; j++)
@@ -237,7 +239,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_TensorFunctor)
 
         Plato::ScalarArray3D tResult("result", 2, 3, 3);
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             for (int i=0; i<3; i++)
                 for (int j=0; j<3; j++)
@@ -274,7 +276,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_TensorFunctor)
 
         Plato::TensorFunctor<3> tLinearTensorFunctor(*tLinearTensorParams);
         std::vector<Plato::Scalar> tValues = {0.0, 1000.0, 1234.0, -1500.0};
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             for (int i=0; i<3; i++)
                 for (int j=0; j<3; j++)
@@ -321,7 +323,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_TensorFunctor)
 
         Plato::TensorFunctor<3> tLinearTensorFunctor(*tLinearTensorParams);
         std::vector<Plato::Scalar> tValues = {0.0, 1000.0, 1234.0, -1500.0};
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             for (int i=0; i<3; i++)
                 for (int j=0; j<3; j++)
@@ -405,7 +407,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_Rank4VoigtFunctor)
 
         Plato::ScalarArray3D tResult("result", 1, 6, 6);
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             for (int i=0; i<6; i++)
                 for (int j=0; j<6; j++)
@@ -440,7 +442,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_Rank4VoigtFunctor)
 
         Plato::Rank4VoigtFunctor<3> tConstantRank4VoigtFunctor(*tConstantRank4VoigtParams);
         std::vector<Plato::Scalar> tValues = {0.0, 1000.0, 1234.0, -1500.0};
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             for (int i=0; i<6; i++)
                 for (int j=0; j<6; j++)
@@ -485,7 +487,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_Rank4VoigtFunctor)
 
         Plato::Rank4VoigtFunctor<3> tLinearRank4VoigtFunctor(*tLinearRank4VoigtParams);
         std::vector<Plato::Scalar> tValues = {0.0, 1000.0, 1234.0, -1500.0};
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             for (int i=0; i<6; i++)
                 for (int j=0; j<6; j++)
@@ -537,7 +539,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_Rank4VoigtFunctor)
 
         Plato::Rank4VoigtFunctor<3> tQuadraticRank4VoigtFunctor(*tQuadraticRank4VoigtParams);
         std::vector<Plato::Scalar> tValues = {0.0, 1000.0, 1234.0, -1500.0};
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             for (int i=0; i<6; i++)
                 for (int j=0; j<6; j++)
@@ -589,7 +591,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_Rank4VoigtConstant)
 
         Plato::ScalarArray3D tResult("result", 1, 6, 6);
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             for (int i=0; i<6; i++)
                 for (int j=0; j<6; j++)
@@ -633,7 +635,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_Rank4VoigtConstant)
           };
 
         Plato::Rank4VoigtConstant<3> tRank4VoigtConstant(*tConstantRank4VoigtParams);
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             for (int i=0; i<6; i++)
                 for (int j=0; j<6; j++)
@@ -712,7 +714,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_IsotropicStiffnessFu
 
         Plato::IsotropicStiffnessFunctor<3> tConstantIsotropicFunctor(*tConstantIsotropicParams);
         std::vector<Plato::Scalar> tValues = {0.0, 1000.0, 1234.0, -1500.0};
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             for (int i=0; i<6; i++)
                 for (int j=0; j<6; j++)
@@ -755,7 +757,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_IsotropicStiffnessFu
 
         Plato::IsotropicStiffnessFunctor<3> tLinearIsotropicFunctor(*tLinearIsotropicParams);
         std::vector<Plato::Scalar> tValues = {0.0, 1000.0, 1234.0, -1500.0};
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             for (int i=0; i<6; i++)
                 for (int j=0; j<6; j++)
@@ -801,7 +803,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_IsotropicStiffnessFu
 
         Plato::IsotropicStiffnessFunctor<3> tQuadraticIsotropicFunctor(*tQuadraticIsotropicParams);
         std::vector<Plato::Scalar> tValues = {0.0, 1000.0, 1234.0, -1500.0};
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             for (int i=0; i<6; i++)
                 for (int j=0; j<6; j++)
@@ -865,7 +867,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_IsotropicStiffnessCo
         Plato::ScalarArray3D tResult("result", 1, 6, 6);
 
         Plato::IsotropicStiffnessConstant<3> tIsotropicConstant(*tConstantIsotropicParams);
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             for (int i=0; i<6; i++)
                 for (int j=0; j<6; j++)
@@ -933,7 +935,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_MaterialModel)
         auto tFunctor = tModel.getScalarFunctor("Some Scalar");
         Plato::ScalarVector tResult("result", 1);
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             tResult(aOrd) = tFunctor(0.0);
         }, "eval");
@@ -958,7 +960,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_MaterialModel)
         auto tConstant = tModel.getScalarConstant("Some Scalar");
         Plato::ScalarVector tResult("result", 1);
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             tResult(aOrd) = tConstant;
         }, "eval");
@@ -1016,7 +1018,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_MaterialModel)
         Plato::ScalarArray3D tTensorResult("result", 3, 3, 3);
         Plato::ScalarArray3D tRank4VoigtResult("result", 3, 6, 6);
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             tScalarResult(0) = tDefaultConstant;
             tScalarResult(1) = tDefinedConstant;
@@ -1110,7 +1112,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_MaterialModel)
         Plato::ScalarVector tScalarResult("result", 1);
         Plato::ScalarArray3D tTensorResult("result", 3, 3, 3);
 
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), LAMBDA_EXPRESSION(const int aOrd)
+        Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             tScalarResult(0) = tScalarFunctor(0.0);
 

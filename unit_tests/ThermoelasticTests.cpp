@@ -3,7 +3,7 @@
  \todo 
 */
 
-#include "PlatoTestHelpers.hpp"
+#include "util/PlatoTestHelpers.hpp"
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
@@ -20,21 +20,19 @@
 #include <alg/CrsLinearProblem.hpp>
 #include <alg/ParallelComm.hpp>
 
-#include "Simp.hpp"
+#include "Mechanics.hpp"
 #include "Solutions.hpp"
 #include "ScalarProduct.hpp"
-#include "SimplexFadTypes.hpp"
 #include "WorksetBase.hpp"
 #include "elliptic/VectorFunction.hpp"
 #include "elliptic/PhysicsScalarFunction.hpp"
 #include "elliptic/Problem.hpp"
 #include "StateValues.hpp"
 #include "ApplyConstraints.hpp"
-#include "SimplexThermomechanics.hpp"
 #include "Thermomechanics.hpp"
-#include "ComputedField.hpp"
 #include "ImplicitFunctors.hpp"
 #include "LinearThermoelasticMaterial.hpp"
+#include "ExpressionEvaluator.hpp"
 
 #include <fenv.h>
 
@@ -50,7 +48,7 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   //
   constexpr int meshWidth=2;
   constexpr int spaceDim=3;
-  auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", meshWidth);
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
 
   // create mesh based solution from host data
@@ -61,7 +59,7 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   Plato::ScalarMultiVector states("states", /*numSteps=*/1, tNumDofs);
   auto state = Kokkos::subview(states, 0, Kokkos::ALL());
   Plato::ScalarVector z("control", tNumDofs);
-  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), LAMBDA_EXPRESSION(const int & aNodeOrdinal)
+  Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,tNumNodes), KOKKOS_LAMBDA(const int & aNodeOrdinal)
   {
      z(aNodeOrdinal) = 1.0;
 
@@ -123,8 +121,8 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   );
 
   Plato::DataMap tDataMap;
-  Plato::SpatialModel tSpatialModel(tMesh, *params);
-  Plato::Elliptic::VectorFunction<::Plato::Thermomechanics<spaceDim>>
+  Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
+  Plato::Elliptic::VectorFunction<::Plato::Thermomechanics<Plato::Tet4>>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
 
 
@@ -254,7 +252,7 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   // create objective
   //
   std::string tMyFunction("Internal Thermoelastic Energy");
-  Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermomechanics<spaceDim>>
+  Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermomechanics<Plato::Tet4>>
     scalarFunction(tSpatialModel, tDataMap, *params, tMyFunction);
 
   // compute and test objective value
@@ -359,12 +357,11 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormAxial_3D)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
     const Plato::Scalar tBoxWidth = 5.0;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -460,7 +457,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormAxial_3D)
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Add sidesets
-    using PhysicsT = Plato::Mechanics<tSpaceDim>;
+    using PhysicsT = Plato::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tEllipticProblem(tMesh, *tParamList, tMachine);
     tEllipticProblem.readEssentialBoundaryConditions(*tParamList);
@@ -520,12 +517,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormAxial_3D)
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormShear_3D)
 {
-    constexpr Plato::OrdinalType tSpaceDim = 3;
     const Plato::OrdinalType tNumElemX = 1;
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
     const Plato::Scalar tBoxWidth = 5.0;
-    auto tMesh = PlatoUtestHelpers::getBoxMesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
@@ -627,7 +623,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormShear_3D)
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    using PhysicsT = Plato::Mechanics<tSpaceDim>;
+    using PhysicsT = Plato::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tEllipticProblem(tMesh, *tParamList, tMachine);
     tEllipticProblem.readEssentialBoundaryConditions(*tParamList);
@@ -667,3 +663,123 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormShear_3D)
         tEllipticProblem.output("VolAvgStressPNormShear_3D");
     }
 }
+
+#if 0
+void call_expression_evaluator()
+{
+    using PhysicsT = Plato::Mechanics<3>;
+    using EvalType = typename Plato::Evaluation<PhysicsT>::Residual;
+    using StateT  = typename EvalType::StateScalarType;  /*!< state variables automatic differentiation type */
+    using ConfigT = typename EvalType::ConfigScalarType; /*!< configuration variables automatic differentiation type */
+    using KinematicsScalarType = typename Plato::fad_type_t<PhysicsT, StateT, ConfigT>; /*!<   strain variables automatic differentiation type */
+
+
+    const Plato::Scalar tNumCells = 5;
+    Plato::ScalarVectorT<EvalType::ControlScalarType> tElementDensity("Gauss point density", tNumCells);
+    std::shared_ptr<Plato::LinearTetCubRuleDegreeOne<EvalType::SpatialDim>> tCubatureRule =
+             std::make_shared<Plato::LinearTetCubRuleDegreeOne<EvalType::SpatialDim>>();
+    auto tBasisFunctions = tCubatureRule->getBasisFunctions();
+    Plato::InterpolateFromNodal<EvalType::SpatialDim, 1, 0> tInterpolateFromNodal;
+    Plato::ScalarMultiVectorT<EvalType::ControlScalarType> tLocalControl("Local Control", tNumCells, 4);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+    {
+        for(int i=0; i<4; ++i)
+        {
+            tLocalControl(aCellOrdinal, i) = 0.5;
+        }
+    },"Compute Youngs Modulus for each Element");
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+    {
+        tInterpolateFromNodal(aCellOrdinal, tBasisFunctions, tLocalControl, tElementDensity);
+    },"Compute Youngs Modulus for each Element");
+
+
+    Plato::ExpressionEvaluator<Plato::ScalarMultiVectorT<EvalType::ResultScalarType>,
+                        Plato::ScalarMultiVectorT<KinematicsScalarType>,
+                        Plato::ScalarVectorT<EvalType::ControlScalarType>,
+                        Plato::Scalar > tExpEval;
+
+    tExpEval.parse_expression("E0*tRho*tRho*tRho");
+    tExpEval.setup_storage(tNumCells, 1);
+    tExpEval.set_variable("E0", 1e9);
+    Plato::ScalarMultiVectorT<EvalType::ResultScalarType> tElementYoungsModulusValues("Element Youngs Modulus", tNumCells, 1);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+    {
+        tExpEval.set_variable("tRho", tElementDensity, aCellOrdinal);
+        tExpEval.evaluate_expression( aCellOrdinal, tElementYoungsModulusValues );
+    },"Compute Youngs Modulus for each Element");
+    Kokkos::fence();
+    tExpEval.clear_storage();
+}
+
+void call_expression_evaluator_jac()
+{
+    using PhysicsT = Plato::Thermomechanics<3>;
+    using EvalType = typename Plato::Evaluation<PhysicsT>::Jacobian;
+    using StateT  = typename EvalType::StateScalarType;
+    using ConfigT = typename EvalType::ConfigScalarType; 
+    using KinematicsScalarType = typename Plato::fad_type_t<PhysicsT, StateT, ConfigT>; 
+
+    const Plato::Scalar tNumCells = 5;
+    Plato::ScalarVectorT<EvalType::ControlScalarType> tElementDensity("Gauss point density", tNumCells);
+    std::shared_ptr<Plato::LinearTetCubRuleDegreeOne<EvalType::SpatialDim>> tCubatureRule =
+             std::make_shared<Plato::LinearTetCubRuleDegreeOne<EvalType::SpatialDim>>();
+    auto tBasisFunctions = tCubatureRule->getBasisFunctions();
+    Plato::InterpolateFromNodal<EvalType::SpatialDim, 1, 0> tInterpolateFromNodal;
+    Plato::ScalarMultiVectorT<EvalType::ControlScalarType> tLocalControl("Local Control", tNumCells, 4);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+    {
+        for(int i=0; i<4; ++i)
+        {
+            tLocalControl(aCellOrdinal, i) = 0.5;
+        }
+    },"Compute Youngs Modulus for each Element");
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+    {
+        tInterpolateFromNodal(aCellOrdinal, tBasisFunctions, tLocalControl, tElementDensity);
+    },"Compute Youngs Modulus for each Element");
+
+    Plato::ExpressionEvaluator<Plato::ScalarMultiVectorT<EvalType::ResultScalarType>,
+                        Plato::ScalarMultiVectorT<KinematicsScalarType>,
+                        Plato::ScalarVectorT<EvalType::ControlScalarType>,
+                        Plato::Scalar > tExpEval;
+
+    tExpEval.parse_expression("E0*tRho*tRho*tRho");
+    tExpEval.setup_storage(tNumCells, 1);
+    tExpEval.set_variable("E0", 1e9);
+    Plato::ScalarMultiVectorT<EvalType::ResultScalarType> tElementYoungsModulusValues("Element Youngs Modulus", tNumCells, 1);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+    {
+        tExpEval.set_variable("tRho", tElementDensity, aCellOrdinal);
+        tExpEval.evaluate_expression( aCellOrdinal, tElementYoungsModulusValues );
+    },"Compute Youngs Modulus for each Element");
+    Kokkos::fence();
+    tExpEval.clear_storage();
+/*
+    auto EHost = Kokkos::create_mirror_view( tElementYoungsModulusValues );
+    Kokkos::deep_copy(EHost, tElementYoungsModulusValues);
+    for(int i=0; i<tNumCells; ++i)
+    { 
+      std::cout << "EHost: " << EHost(i,0) << std::endl;
+    }
+*/
+}
+
+void eval_some_value()
+{
+    call_expression_evaluator();
+    call_expression_evaluator_jac();
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ExpressionTMKinetics)
+{
+    eval_some_value();
+    eval_some_value();
+}
+#endif

@@ -267,7 +267,7 @@ private:
         // Assemble full Jacobian
         auto tMesh = mGlobalEquation->getMesh();
         auto tGlobalJacobian = Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumGlobalDofsPerNode, mNumGlobalDofsPerNode>(tMesh);
-        Plato::BlockMatrixEntryOrdinal<mNumSpatialDims, mNumGlobalDofsPerNode> tGlobalJacEntryOrdinal(tGlobalJacobian, tMesh);
+        Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumGlobalDofsPerNode> tGlobalJacEntryOrdinal(tGlobalJacobian, tMesh);
         auto tJacEntries = tGlobalJacobian->entries();
         Plato::assemble_jacobian_transpose_pod(tNumCells, mNumGlobalDofsPerCell, mNumGlobalDofsPerCell, tGlobalJacEntryOrdinal, tDrDu, tJacEntries);
 

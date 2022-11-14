@@ -56,7 +56,7 @@ public:
      * \return element density
     *******************************************************************************/
     template<typename WeightScalarType>
-    DEVICE_TYPE inline WeightScalarType
+    KOKKOS_INLINE_FUNCTION WeightScalarType
     operator()(const Plato::OrdinalType & aCellOrdinal,
                const Plato::ScalarMultiVectorT<WeightScalarType> & aControl) const
     {

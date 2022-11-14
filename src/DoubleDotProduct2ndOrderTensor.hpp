@@ -40,7 +40,7 @@ public:
      * \param [in] aOutput      output container
      *******************************************************************************/
     template<typename AViewType, typename BViewType, typename CViewType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()(const Plato::OrdinalType& aCellOrdinal,
                const Plato::ScalarMultiVectorT<AViewType> & aA,
                const Plato::ScalarMultiVectorT<BViewType> & aB,
@@ -66,7 +66,7 @@ public:
 *******************************************************************************/
 template<>
 template<typename AViewType, typename BViewType, typename CViewType>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 DoubleDotProduct2ndOrderTensor<3>::operator()(const Plato::OrdinalType& aCellOrdinal,
                                               const Plato::ScalarMultiVectorT<AViewType> & aA,
                                               const Plato::ScalarMultiVectorT<BViewType> & aB,
@@ -102,7 +102,7 @@ DoubleDotProduct2ndOrderTensor<3>::operator()(const Plato::OrdinalType& aCellOrd
 *******************************************************************************/
 template<>
 template<typename AViewType, typename BViewType, typename CViewType>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 DoubleDotProduct2ndOrderTensor<2>::operator()(const Plato::OrdinalType& aCellOrdinal,
                                               const Plato::ScalarMultiVectorT<AViewType> & aA,
                                               const Plato::ScalarMultiVectorT<BViewType> & aB,
@@ -128,7 +128,7 @@ DoubleDotProduct2ndOrderTensor<2>::operator()(const Plato::OrdinalType& aCellOrd
 *******************************************************************************/
 template<>
 template<typename AViewType, typename BViewType, typename CViewType>
-DEVICE_TYPE inline void
+KOKKOS_INLINE_FUNCTION void
 DoubleDotProduct2ndOrderTensor<1>::operator()(const Plato::OrdinalType& aCellOrdinal,
                                               const Plato::ScalarMultiVectorT<AViewType> & aA,
                                               const Plato::ScalarMultiVectorT<BViewType> & aB,

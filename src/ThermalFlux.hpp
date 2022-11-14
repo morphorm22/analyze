@@ -13,19 +13,19 @@ namespace Plato
     given a temperature gradient, compute the thermal flux
 */
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
+template<typename ElementType>
 class ThermalFlux
 {
   private:
     Plato::MaterialModelType mModelType;
 
-    Plato::TensorFunctor<SpaceDim> mConductivityFunctor;
+    Plato::TensorFunctor<ElementType::mNumSpatialDims> mConductivityFunctor;
 
-    Plato::TensorConstant<SpaceDim> mConductivityConstant;
+    Plato::TensorConstant<ElementType::mNumSpatialDims> mConductivityConstant;
 
   public:
 
-    ThermalFlux(const Teuchos::RCP<Plato::MaterialModel<SpaceDim>> aMaterialModel)
+    ThermalFlux(const Teuchos::RCP<Plato::MaterialModel<ElementType::mNumSpatialDims>> aMaterialModel)
     {
         mModelType = aMaterialModel->type();
         if (mModelType == Plato::MaterialModelType::Nonlinear)
@@ -38,9 +38,40 @@ class ThermalFlux
         }
     }
 
+    template<typename TScalarType, typename TGradScalarType, typename TFluxScalarType>
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+            Plato::Array<ElementType::mNumSpatialDims, TFluxScalarType> & tflux,
+      const Plato::Array<ElementType::mNumSpatialDims, TGradScalarType> & tgrad,
+      const TScalarType                                                 & temperature
+    ) const
+    {
+
+      // compute thermal flux
+      //
+      if (mModelType == Plato::MaterialModelType::Linear)
+      {
+        for( Plato::OrdinalType iDim=0; iDim<ElementType::mNumSpatialDims; iDim++){
+          tflux(iDim) = 0.0;
+          for( Plato::OrdinalType jDim=0; jDim<ElementType::mNumSpatialDims; jDim++){
+            tflux(iDim) -= tgrad(jDim)*mConductivityConstant(iDim, jDim);
+          }
+        }
+      } else
+      if (mModelType == Plato::MaterialModelType::Nonlinear)
+      {
+        TScalarType cellT = temperature;
+        for( Plato::OrdinalType iDim=0; iDim<ElementType::mNumSpatialDims; iDim++){
+          tflux(iDim) = 0.0;
+          for( Plato::OrdinalType jDim=0; jDim<ElementType::mNumSpatialDims; jDim++){
+            tflux(iDim) -= tgrad(jDim)*mConductivityFunctor(cellT, iDim, jDim);
+          }
+        }
+      }
+    }
 
     template<typename TScalarType, typename TGradScalarType, typename TFluxScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( Plato::OrdinalType cellOrdinal,
                 Plato::ScalarMultiVectorT<TFluxScalarType> tflux,
                 Plato::ScalarMultiVectorT<TGradScalarType> tgrad,
@@ -50,9 +81,9 @@ class ThermalFlux
       //
       if (mModelType == Plato::MaterialModelType::Linear)
       {
-        for( Plato::OrdinalType iDim=0; iDim<SpaceDim; iDim++){
+        for( Plato::OrdinalType iDim=0; iDim<ElementType::mNumSpatialDims; iDim++){
           tflux(cellOrdinal,iDim) = 0.0;
-          for( Plato::OrdinalType jDim=0; jDim<SpaceDim; jDim++){
+          for( Plato::OrdinalType jDim=0; jDim<ElementType::mNumSpatialDims; jDim++){
             tflux(cellOrdinal,iDim) -= tgrad(cellOrdinal,jDim)*mConductivityConstant(iDim, jDim);
           }
         }
@@ -60,9 +91,9 @@ class ThermalFlux
       if (mModelType == Plato::MaterialModelType::Nonlinear)
       {
         TScalarType cellT = temperature(cellOrdinal);
-        for( Plato::OrdinalType iDim=0; iDim<SpaceDim; iDim++){
+        for( Plato::OrdinalType iDim=0; iDim<ElementType::mNumSpatialDims; iDim++){
           tflux(cellOrdinal,iDim) = 0.0;
-          for( Plato::OrdinalType jDim=0; jDim<SpaceDim; jDim++){
+          for( Plato::OrdinalType jDim=0; jDim<ElementType::mNumSpatialDims; jDim++){
             tflux(cellOrdinal,iDim) -= tgrad(cellOrdinal,jDim)*mConductivityFunctor(cellT, iDim, jDim);
           }
         }
@@ -70,16 +101,16 @@ class ThermalFlux
     }
 
     template<typename TGradScalarType, typename TFluxScalarType>
-    DEVICE_TYPE inline void
+    KOKKOS_INLINE_FUNCTION void
     operator()( Plato::OrdinalType cellOrdinal,
                 Plato::ScalarMultiVectorT<TFluxScalarType> tflux,
                 Plato::ScalarMultiVectorT<TGradScalarType> tgrad) const {
 
       // compute thermal flux
       //
-      for( Plato::OrdinalType iDim=0; iDim<SpaceDim; iDim++){
+      for( Plato::OrdinalType iDim=0; iDim<ElementType::mNumSpatialDims; iDim++){
         tflux(cellOrdinal,iDim) = 0.0;
-        for( Plato::OrdinalType jDim=0; jDim<SpaceDim; jDim++){
+        for( Plato::OrdinalType jDim=0; jDim<ElementType::mNumSpatialDims; jDim++){
           tflux(cellOrdinal,iDim) -= tgrad(cellOrdinal,jDim)*mConductivityConstant(iDim, jDim);
         }
       }

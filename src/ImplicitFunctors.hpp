@@ -5,7 +5,6 @@
 #include "PlatoMathTypes.hpp"
 
 #include <Teuchos_RCPDecl.hpp>
-#include "SimplexMechanics.hpp"
 
 namespace Plato
 {
@@ -14,7 +13,7 @@ namespace Plato
 * \brief functor that provides mesh-local node ordinal
 * \param [in] aMesh Plato abstract mesh
 **********************************************************************************/
-template<Plato::OrdinalType SpaceDim>
+template<Plato::OrdinalType SpaceDim, Plato::OrdinalType NodesPerCell=SpaceDim+1>
 class NodeOrdinal
 {
   public:
@@ -30,21 +29,21 @@ class NodeOrdinal
     * \param [in] aCellOrdinal mesh-local element ordinal
     * \param [in] aNodeOrdinal elem-local node ordinal
     **********************************************************************************/
-    DEVICE_TYPE inline
+    KOKKOS_INLINE_FUNCTION
     Plato::OrdinalType
     operator()(
         Plato::OrdinalType aCellOrdinal,
         Plato::OrdinalType aNodeOrdinal
     ) const
     {
-        return mCells2nodes(aCellOrdinal*(SpaceDim+1) + aNodeOrdinal);
+        return mCells2nodes(aCellOrdinal*NodesPerCell + aNodeOrdinal);
     }
 };
 /******************************************************************************/
 
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode=1>
+template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode, Plato::OrdinalType NodesPerCell=SpaceDim+1>
 class VectorEntryOrdinal
 {
   public:
@@ -55,17 +54,17 @@ class VectorEntryOrdinal
       Plato::Mesh mesh ) :
       mCells2nodes(mesh->Connectivity()) {}
 
-    DEVICE_TYPE inline Plato::OrdinalType
+    KOKKOS_INLINE_FUNCTION Plato::OrdinalType
     operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType nodeOrdinal, Plato::OrdinalType dofOrdinal=0) const
     {
-        Plato::OrdinalType vertexNumber = mCells2nodes(cellOrdinal*(SpaceDim+1) + nodeOrdinal);
+        Plato::OrdinalType vertexNumber = mCells2nodes(cellOrdinal*NodesPerCell + nodeOrdinal);
         return vertexNumber * DofsPerNode + dofOrdinal;
     }
 };
 /******************************************************************************/
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
+template<Plato::OrdinalType SpaceDim, Plato::OrdinalType NodesPerCell>
 class NodeCoordinate
 {
   private:
@@ -75,43 +74,21 @@ class NodeCoordinate
   public:
     NodeCoordinate(Plato::Mesh aMesh) :
       mCells2nodes(aMesh->Connectivity()),
-      mCoords(aMesh->Coordinates()) { }
+      mCoords(aMesh->Coordinates())
+      {
+        if (aMesh->NumDimensions() != SpaceDim || aMesh->NumNodesPerElement() != NodesPerCell)
+        {
+            throw std::runtime_error("Input mesh doesn't match physics spatial dimension and/or nodes per cell.");
+        }
+      }
 
-    DEVICE_TYPE
-    inline
+    KOKKOS_INLINE_FUNCTION
     Plato::Scalar
     operator()(Plato::OrdinalType aCellOrdinal, Plato::OrdinalType aNodeOrdinal, Plato::OrdinalType aDimOrdinal) const
     {
-        const Plato::OrdinalType tVertexNumber = mCells2nodes(aCellOrdinal*(SpaceDim+1) + aNodeOrdinal);
+        const Plato::OrdinalType tVertexNumber = mCells2nodes(aCellOrdinal*NodesPerCell + aNodeOrdinal);
         const Plato::Scalar tCoord = mCoords(tVertexNumber * SpaceDim + aDimOrdinal);
         return tCoord;
-    }
-};
-/******************************************************************************/
-
-/******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-class JacobianDet
-{
-  private:
-    const NodeCoordinate<SpaceDim> mNodeCoordinate;
-
-  public:
-    JacobianDet( Plato::Mesh mesh ) :
-      mNodeCoordinate(mesh) {}
-
-    DEVICE_TYPE
-    inline
-    Plato::Scalar
-    operator()(Plato::OrdinalType cellOrdinal) const {
-      Plato::Matrix<SpaceDim, SpaceDim> jacobian;
-
-      for (Plato::OrdinalType d1=0; d1<SpaceDim; d1++) {
-        for (Plato::OrdinalType d2=0; d2<SpaceDim; d2++) {
-          jacobian(d1,d2) = mNodeCoordinate(cellOrdinal,d2,d1) - mNodeCoordinate(cellOrdinal,SpaceDim,d1);
-        }
-      }
-      return Plato::determinant(jacobian);
     }
 };
 /******************************************************************************/
@@ -127,7 +104,7 @@ class ComputeProjectionWorkset
 public:
     /******************************************************************************/
     template<typename GaussPointScalarType, typename ProjectedScalarType, typename VolumeScalarType>
-    DEVICE_TYPE inline void operator()(const Plato::OrdinalType & aCellOrdinal,
+    KOKKOS_INLINE_FUNCTION void operator()(const Plato::OrdinalType & aCellOrdinal,
                                        const Plato::ScalarVectorT<VolumeScalarType> & aCellVolume,
                                        const Plato::ScalarVectorT<Plato::Scalar> & tBasisFunctions,
                                        const Plato::ScalarMultiVectorT<GaussPointScalarType> & aStateValues,
@@ -151,463 +128,8 @@ public:
 /******************************************************************************/
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-class ComputeGradientWorkset
-{
-  private:
-    Plato::Matrix<SpaceDim, SpaceDim> jacobian, jacobianInverse;
-
-  public:
-    template<typename ScalarType>
-    DEVICE_TYPE inline void
-    operator()(Plato::OrdinalType aCellOrdinal,
-               Plato::ScalarArray3DT<ScalarType> aGradients,
-               Plato::ScalarArray3DT<ScalarType> aConfig,
-               Plato::ScalarVectorT<ScalarType> aCellVolume) const;
-};
-
-  template<>
-  template<typename ScalarType>
-  DEVICE_TYPE inline void
-  ComputeGradientWorkset<3>::operator()(Plato::OrdinalType aCellOrdinal,
-                                        Plato::ScalarArray3DT<ScalarType> aGradients,
-                                        Plato::ScalarArray3DT<ScalarType> aConfig,
-                                        Plato::ScalarVectorT<ScalarType> aCellVolume) const
-  {
-    ScalarType j11=aConfig(aCellOrdinal,0,0)-aConfig(aCellOrdinal,3,0);
-    ScalarType j12=aConfig(aCellOrdinal,1,0)-aConfig(aCellOrdinal,3,0);
-    ScalarType j13=aConfig(aCellOrdinal,2,0)-aConfig(aCellOrdinal,3,0);
-
-    ScalarType j21=aConfig(aCellOrdinal,0,1)-aConfig(aCellOrdinal,3,1);
-    ScalarType j22=aConfig(aCellOrdinal,1,1)-aConfig(aCellOrdinal,3,1);
-    ScalarType j23=aConfig(aCellOrdinal,2,1)-aConfig(aCellOrdinal,3,1);
-
-    ScalarType j31=aConfig(aCellOrdinal,0,2)-aConfig(aCellOrdinal,3,2);
-    ScalarType j32=aConfig(aCellOrdinal,1,2)-aConfig(aCellOrdinal,3,2);
-    ScalarType j33=aConfig(aCellOrdinal,2,2)-aConfig(aCellOrdinal,3,2);
-
-    ScalarType detj = j11*j22*j33+j12*j23*j31+j13*j21*j32
-                     -j11*j23*j32-j12*j21*j33-j13*j22*j31;
-
-    ScalarType i11 = (j22*j33-j23*j32)/detj;
-    ScalarType i12 = (j13*j32-j12*j33)/detj;
-    ScalarType i13 = (j12*j23-j13*j22)/detj;
-
-    ScalarType i21 = (j23*j31-j21*j33)/detj;
-    ScalarType i22 = (j11*j33-j13*j31)/detj;
-    ScalarType i23 = (j13*j21-j11*j23)/detj;
-
-    ScalarType i31 = (j21*j32-j22*j31)/detj;
-    ScalarType i32 = (j12*j31-j11*j32)/detj;
-    ScalarType i33 = (j11*j22-j12*j21)/detj;
-
-    aCellVolume(aCellOrdinal) = fabs(detj);
-
-    aGradients(aCellOrdinal,0,0) = i11;
-    aGradients(aCellOrdinal,0,1) = i12;
-    aGradients(aCellOrdinal,0,2) = i13;
-
-    aGradients(aCellOrdinal,1,0) = i21;
-    aGradients(aCellOrdinal,1,1) = i22;
-    aGradients(aCellOrdinal,1,2) = i23;
-
-    aGradients(aCellOrdinal,2,0) = i31;
-    aGradients(aCellOrdinal,2,1) = i32;
-    aGradients(aCellOrdinal,2,2) = i33;
-
-    aGradients(aCellOrdinal,3,0) = -(i11+i21+i31);
-    aGradients(aCellOrdinal,3,1) = -(i12+i22+i32);
-    aGradients(aCellOrdinal,3,2) = -(i13+i23+i33);
-  }
-
-  template<>
-  template<typename ScalarType>
-  DEVICE_TYPE inline void
-  ComputeGradientWorkset<2>::operator()(Plato::OrdinalType cellOrdinal,
-                                        Plato::ScalarArray3DT<ScalarType> gradients,
-                                        Plato::ScalarArray3DT<ScalarType> config,
-                                        Plato::ScalarVectorT<ScalarType> cellVolume) const
-  {
-    ScalarType j11=config(cellOrdinal,0,0)-config(cellOrdinal,2,0);
-    ScalarType j12=config(cellOrdinal,1,0)-config(cellOrdinal,2,0);
-
-    ScalarType j21=config(cellOrdinal,0,1)-config(cellOrdinal,2,1);
-    ScalarType j22=config(cellOrdinal,1,1)-config(cellOrdinal,2,1);
-
-    ScalarType detj = j11*j22-j12*j21;
-
-    ScalarType i11 = j22/detj;
-    ScalarType i12 =-j12/detj;
-
-    ScalarType i21 =-j21/detj;
-    ScalarType i22 = j11/detj;
-
-    cellVolume(cellOrdinal) = fabs(detj);
-
-    gradients(cellOrdinal,0,0) = i11;
-    gradients(cellOrdinal,0,1) = i12;
-
-    gradients(cellOrdinal,1,0) = i21;
-    gradients(cellOrdinal,1,1) = i22;
-
-    gradients(cellOrdinal,2,0) = -(i11+i21);
-    gradients(cellOrdinal,2,1) = -(i12+i22);
-  }
-
-  template<>
-  template<typename ScalarType>
-  DEVICE_TYPE inline void
-  ComputeGradientWorkset<1>::operator()(Plato::OrdinalType cellOrdinal,
-                                        Plato::ScalarArray3DT<ScalarType> gradients,
-                                        Plato::ScalarArray3DT<ScalarType> config,
-                                        Plato::ScalarVectorT<ScalarType> cellVolume) const
-  {
-    ScalarType j11=config(cellOrdinal,1,0)-config(cellOrdinal,0,0);
-
-    ScalarType detj = j11;
-
-    ScalarType i11 = 1.0/detj;
-
-    cellVolume(cellOrdinal) = fabs(detj)/2.0;
-
-    gradients(cellOrdinal,0,0) =-i11;
-    gradients(cellOrdinal,1,0) = i11;
-  }
-
-/******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-class ComputeCellVolume
-{
-  private:
-    Plato::Matrix<SpaceDim, SpaceDim> jacobian, jacobianInverse;
-
-  public:
-    template<typename ScalarType>
-    DEVICE_TYPE inline void
-    operator()(Plato::OrdinalType cellOrdinal,
-               Plato::ScalarArray3DT<ScalarType> config,
-               ScalarType& cellVolume) const;
-};
-
-  template<>
-  template<typename ScalarType>
-  DEVICE_TYPE inline void
-  ComputeCellVolume<3>::operator()(Plato::OrdinalType cellOrdinal,
-                                   Plato::ScalarArray3DT<ScalarType> config,
-                                   ScalarType& cellVolume) const
-  {
-    ScalarType j11=config(cellOrdinal,0,0)-config(cellOrdinal,3,0);
-    ScalarType j12=config(cellOrdinal,1,0)-config(cellOrdinal,3,0);
-    ScalarType j13=config(cellOrdinal,2,0)-config(cellOrdinal,3,0);
-
-    ScalarType j21=config(cellOrdinal,0,1)-config(cellOrdinal,3,1);
-    ScalarType j22=config(cellOrdinal,1,1)-config(cellOrdinal,3,1);
-    ScalarType j23=config(cellOrdinal,2,1)-config(cellOrdinal,3,1);
-
-    ScalarType j31=config(cellOrdinal,0,2)-config(cellOrdinal,3,2);
-    ScalarType j32=config(cellOrdinal,1,2)-config(cellOrdinal,3,2);
-    ScalarType j33=config(cellOrdinal,2,2)-config(cellOrdinal,3,2);
-
-    ScalarType detj = j11*j22*j33+j12*j23*j31+j13*j21*j32
-                     -j11*j23*j32-j12*j21*j33-j13*j22*j31;
-
-    cellVolume = fabs(detj);
-  }
-
-  template<>
-  template<typename ScalarType>
-  DEVICE_TYPE inline void
-  ComputeCellVolume<2>::operator()(Plato::OrdinalType cellOrdinal,
-                                   Plato::ScalarArray3DT<ScalarType> config,
-                                   ScalarType& cellVolume) const
-  {
-    ScalarType j11=config(cellOrdinal,0,0)-config(cellOrdinal,2,0);
-    ScalarType j12=config(cellOrdinal,1,0)-config(cellOrdinal,2,0);
-
-    ScalarType j21=config(cellOrdinal,0,1)-config(cellOrdinal,2,1);
-    ScalarType j22=config(cellOrdinal,1,1)-config(cellOrdinal,2,1);
-
-    ScalarType detj = j11*j22-j12*j21;
-
-    cellVolume = fabs(detj);
-  }
-
-  template<>
-  template<typename ScalarType>
-  DEVICE_TYPE inline void
-  ComputeCellVolume<1>::operator()(Plato::OrdinalType cellOrdinal,
-                                   Plato::ScalarArray3DT<ScalarType> config,
-                                   ScalarType& cellVolume) const
-  {
-    ScalarType j11=config(cellOrdinal,0,0)-config(cellOrdinal,1,0);
-
-    ScalarType detj = j11;
-
-    cellVolume = fabs(detj);
-  }
-
-
-  /******************************************************************************/
-  template<Plato::OrdinalType SpaceDim>
-  class ComputeSurfaceArea
-  {
-    private:
-      Plato::Matrix<SpaceDim, SpaceDim> jacobian, jacobianInverse;
-    public:
-      ComputeSurfaceArea(){}
-
-
-
-      template<typename ScalarType>
-      DEVICE_TYPE inline void
-      operator()(Plato::OrdinalType aCellOrdinal,
-                 int*               aCellLocalNodeOrdinals,
-                 Plato::ScalarArray3DT<ScalarType> config,
-                 ScalarType& sideArea) const;
-  };
-
-
-    template<>
-    template<typename ScalarType>
-    DEVICE_TYPE inline void
-    ComputeSurfaceArea<3>::operator()(Plato::OrdinalType aCellOrdinal,
-                                      int*                aCellLocalNodeOrdinals,
-                                      Plato::ScalarArray3DT<ScalarType> config,
-                                      ScalarType& sideArea) const
-    {
-
-        ScalarType ab0 = config(aCellOrdinal,aCellLocalNodeOrdinals[2],0) - config(aCellOrdinal,aCellLocalNodeOrdinals[0],0);
-        ScalarType ab1 = config(aCellOrdinal,aCellLocalNodeOrdinals[2],1) - config(aCellOrdinal,aCellLocalNodeOrdinals[0],1);
-        ScalarType ab2 = config(aCellOrdinal,aCellLocalNodeOrdinals[2],2) - config(aCellOrdinal,aCellLocalNodeOrdinals[0],2);
-
-        ScalarType bc0 = config(aCellOrdinal,aCellLocalNodeOrdinals[1],0) - config(aCellOrdinal,aCellLocalNodeOrdinals[2],0);
-        ScalarType bc1 = config(aCellOrdinal,aCellLocalNodeOrdinals[1],1) - config(aCellOrdinal,aCellLocalNodeOrdinals[2],1);
-        ScalarType bc2 = config(aCellOrdinal,aCellLocalNodeOrdinals[1],2) - config(aCellOrdinal,aCellLocalNodeOrdinals[2],2);
-
-
-        ScalarType Cross0 = ab1 * bc2 - ab2 * bc1;
-        ScalarType Cross1 = ab2 * bc0 - ab0 * bc2;
-        ScalarType Cross2 = ab0 * bc1 - ab1 * bc0;
-
-        sideArea = sqrt(Cross0*Cross0 + Cross1*Cross1 + Cross2*Cross2)/2;
-    }
-
-    template<>
-    template<typename ScalarType>
-    DEVICE_TYPE inline void
-    ComputeSurfaceArea<2>::operator()(Plato::OrdinalType aCellOrdinal,
-                                      int*                aCellLocalNodeOrdinals,
-                                      Plato::ScalarArray3DT<ScalarType> config,
-                                      ScalarType& sideArea) const
-    {
-    }
-
-    template<>
-    template<typename ScalarType>
-    DEVICE_TYPE inline void
-    ComputeSurfaceArea<1>::operator()(Plato::OrdinalType aCellOrdinal,
-                                      int*                aCellLocalNodeOrdinals,
-                                      Plato::ScalarArray3DT<ScalarType> config,
-                                      ScalarType& sideArea) const
-    {
-    }
-
-
-/******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-class ComputeGradient
-{
-  private:
-    const NodeCoordinate<SpaceDim> mNodeCoordinate;
-
-  public:
-    ComputeGradient(
-      NodeCoordinate<SpaceDim> nodeCoordinate) :
-      mNodeCoordinate(nodeCoordinate) {}
-
-    DEVICE_TYPE
-    inline
-    void
-    operator()(Plato::OrdinalType cellOrdinal,
-               Plato::Array<SpaceDim>* gradients,
-               Scalar& cellVolume) const
-    {
-      // compute jacobian/Det/inverse for cell:
-      //
-      Plato::Matrix<SpaceDim, SpaceDim> jacobian, jacobianInverse;
-      for (Plato::OrdinalType d1=0; d1<SpaceDim; d1++)
-      {
-        for (Plato::OrdinalType d2=0; d2<SpaceDim; d2++)
-        {
-          jacobian(d1,d2) = mNodeCoordinate(cellOrdinal,d2,d1) - mNodeCoordinate(cellOrdinal,SpaceDim,d1);
-        }
-      }
-      Plato::Scalar jacobianDet = Plato::determinant(jacobian);
-      jacobianInverse = Plato::invert(jacobian);
-      cellVolume = fabs(jacobianDet);
-
-      // ref gradients in 3D are:
-      //    field 0 = ( 1 ,0, 0)
-      //    field 1 = ( 0, 1, 0)
-      //    field 2 = ( 0, 0, 1)
-      //    field 3 = (-1,-1,-1)
-
-      // Therefore, when we multiply by the transpose jacobian inverse (which is what we do to compute physical gradients),
-      // we have the following values:
-      //    field 0 = row 0 of jacobianInv
-      //    field 1 = row 1 of jacobianInv
-      //    field 2 = row 2 of jacobianInv
-      //    field 3 = negative sum of the three rows
-
-      for (Plato::OrdinalType d=0; d<SpaceDim; d++)
-      {
-        gradients[SpaceDim][d] = 0.0;
-      }
-
-      for (Plato::OrdinalType nodeOrdinal=0; nodeOrdinal<SpaceDim; nodeOrdinal++)  // "d1" for jacobian
-      {
-        for (Plato::OrdinalType d=0; d<SpaceDim; d++) // "d2" for jacobian
-        {
-          gradients[nodeOrdinal][d] = jacobianInverse(nodeOrdinal,d);
-          gradients[SpaceDim][d]   -= jacobianInverse(nodeOrdinal,d);
-        }
-      }
-    }
-};
-/******************************************************************************/
-
-/******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-class ComputeVolume
-{
-  private:
-    const NodeCoordinate<SpaceDim> mNodeCoordinate;
-
-  public:
-    ComputeVolume(
-      NodeCoordinate<SpaceDim> nodeCoordinate) :
-      mNodeCoordinate(nodeCoordinate) {}
-
-    DEVICE_TYPE
-    inline
-	Scalar
-    operator()(Plato::OrdinalType cellOrdinal) const
-    {
-      // compute jacobian/Det for cell:
-      //
-      Plato::Matrix<SpaceDim, SpaceDim> jacobian;
-      for (Plato::OrdinalType d1=0; d1<SpaceDim; d1++)
-      {
-        for (Plato::OrdinalType d2=0; d2<SpaceDim; d2++)
-        {
-          jacobian(d1,d2) = mNodeCoordinate(cellOrdinal,d2,d1) - mNodeCoordinate(cellOrdinal,SpaceDim,d1);
-        }
-      }
-      Plato::Scalar jacobianDet = Plato::determinant(jacobian);
-      constexpr Plato::Scalar det2Vol = (SpaceDim == 2) ? 0.5 : 1./6.;
-      return det2Vol*fabs(jacobianDet);
-    }
-};
-/******************************************************************************/
-
-
-/******************************************************************************/
-template<Plato::OrdinalType SpaceDim>
-class ComputeGradientMatrix : public Plato::SimplexMechanics<SpaceDim>
-{
-  private:
-
-    using Plato::SimplexMechanics<SpaceDim>::mNumVoigtTerms;
-    using Plato::SimplexMechanics<SpaceDim>::mNumNodesPerCell;
-    using Plato::SimplexMechanics<SpaceDim>::mNumDofsPerCell;
-    static constexpr auto mNumSpaceDim = SpaceDim;
-
-  public:
-
-    DEVICE_TYPE
-    void
-    operator()( const Plato::Array<mNumSpaceDim>* gradients,
-                      Plato::Array<mNumVoigtTerms>* gradientMatrix) const
-    {
-      for (Plato::OrdinalType iDof=0; iDof<mNumDofsPerCell; iDof++){
-        for (Plato::OrdinalType iVoigt=0; iVoigt<mNumVoigtTerms; iVoigt++){
-          gradientMatrix[iDof][iVoigt] = 0.0;
-        }
-      }
-
-      for (Plato::OrdinalType iNode=0; iNode<mNumNodesPerCell; iNode++)
-      {
-        Plato::OrdinalType voigtTerm=0;
-        for (Plato::OrdinalType iDof=0; iDof<mNumSpaceDim; iDof++){
-          gradientMatrix[mNumSpaceDim*iNode+iDof][voigtTerm] = gradients[iNode][iDof];
-          voigtTerm++;
-        }
-
-        for (Plato::OrdinalType jDof=mNumSpaceDim-1; jDof>=1; jDof--){
-          for (Plato::OrdinalType iDof=jDof-1; iDof>=0; iDof--){
-            gradientMatrix[mNumSpaceDim*iNode+iDof][voigtTerm] = gradients[iNode][jDof];
-            gradientMatrix[mNumSpaceDim*iNode+jDof][voigtTerm] = gradients[iNode][iDof];
-            voigtTerm++;
-          }
-        }
-      }
-    }
-};
-/******************************************************************************/
-
-
-/******************************************************************************/
-template<Plato::OrdinalType SpaceDim, typename OrdinalLookupType>
-class Assemble
-{
-  private:
-    static constexpr auto mNumVoigtTerms   = (SpaceDim == 3) ? 6 :
-                                             ((SpaceDim == 2) ? 3 :
-                                            (((SpaceDim == 1) ? 1 : 0)));
-    static constexpr auto mNumNodesPerCell = SpaceDim+1;
-    static constexpr auto mNumDofsPerCell  = SpaceDim*mNumNodesPerCell;
-
-    const typename CrsMatrixType::ScalarVectorT mMatrixEntries;
-    const Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffness;
-    const OrdinalLookupType mEntryOrdinalLookup;
-    const Plato::OrdinalType mEntriesLength;
-
-  public:
-    Assemble(const Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> aCellStiffness,
-             Teuchos::RCP<Plato::CrsMatrixType> aMatrix,
-             OrdinalLookupType aEntryOrdinalLookup ) :
-        mMatrixEntries(aMatrix->entries()),
-        mCellStiffness(aCellStiffness),
-        mEntryOrdinalLookup(aEntryOrdinalLookup),
-        mEntriesLength(mMatrixEntries.size()) {}
-
-    DEVICE_TYPE
-    inline
-    void
-    operator()(Plato::OrdinalType cellOrdinal,
-               const Plato::Array<mNumVoigtTerms>* gradientMatrix,
-               const Plato::Scalar& cellVolume) const
-    {
-      for (Plato::OrdinalType iDof=0; iDof<mNumDofsPerCell; iDof++)
-      {
-        for (Plato::OrdinalType jDof=0; jDof<mNumDofsPerCell; jDof++)
-        {
-            Plato::Scalar integral = (gradientMatrix[iDof] * (mCellStiffness * gradientMatrix[jDof])) * cellVolume;
-
-            auto entryOrdinal = mEntryOrdinalLookup(cellOrdinal,iDof,jDof);
-            if (entryOrdinal < mEntriesLength)
-            {
-                Kokkos::atomic_add(&mMatrixEntries(entryOrdinal), integral);
-            }
-        }
-      }
-    }
-};
-/******************************************************************************/
-
-
-/******************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode>
+template<Plato::OrdinalType NodesPerCell,
+         Plato::OrdinalType DofsPerNode>
 class BlockMatrixTransposeEntryOrdinal
 {
   private:
@@ -621,8 +143,7 @@ class BlockMatrixTransposeEntryOrdinal
       mColumnIndices(matrix->columnIndices()),
       mCells2nodes(mesh->Connectivity()) { }
 
-    DEVICE_TYPE
-    inline
+    KOKKOS_INLINE_FUNCTION
     Plato::OrdinalType
     operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType icellDof, Plato::OrdinalType jcellDof) const
     {
@@ -630,8 +151,8 @@ class BlockMatrixTransposeEntryOrdinal
         auto iDof  = icellDof % DofsPerNode;
         auto jNode = jcellDof / DofsPerNode;
         auto jDof  = jcellDof % DofsPerNode;
-        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * (SpaceDim+1) + iNode);
-        Plato::OrdinalType jLocalOrdinal = mCells2nodes(cellOrdinal * (SpaceDim+1) + jNode);
+        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * NodesPerCell + iNode);
+        Plato::OrdinalType jLocalOrdinal = mCells2nodes(cellOrdinal * NodesPerCell + jNode);
         Plato::OrdinalType rowStart = mRowMap(jLocalOrdinal);
         Plato::OrdinalType rowEnd   = mRowMap(jLocalOrdinal+1);
         for (Plato::OrdinalType entryOrdinal=rowStart; entryOrdinal<rowEnd; entryOrdinal++)
@@ -666,8 +187,7 @@ class LocalByGlobalEntryFunctor
       mColumnIndices (tMatrix->columnIndices()),
       mCells2nodes   (tMesh->Connectivity()) { }
 
-    DEVICE_TYPE
-    inline
+    KOKKOS_INLINE_FUNCTION
     Plato::OrdinalType
     operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType icellDof, Plato::OrdinalType jcellDof) const
     {
@@ -686,13 +206,12 @@ class LocalByGlobalEntryFunctor
         return Plato::OrdinalType(-1);
     }
 };
-/******************************************************************************/
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode_I, Plato::OrdinalType DofsPerElem_J>
+//template<Plato::OrdinalType mNumNodesPerCell, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofsPerGP>
+template<typename ElementType>
 class GlobalByLocalEntryFunctor
 {
-  private:
     const typename CrsMatrixType::RowMapVectorT mRowMap;
     const typename CrsMatrixType::OrdinalVectorT mColumnIndices;
     const Plato::OrdinalVectorT<const Plato::OrdinalType> mCells2nodes;
@@ -703,31 +222,36 @@ class GlobalByLocalEntryFunctor
       mColumnIndices(matrix->columnIndices()),
       mCells2nodes(mesh->Connectivity()) { }
 
-    DEVICE_TYPE
-    inline
+    KOKKOS_INLINE_FUNCTION
     Plato::OrdinalType
-    operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType icellDof, Plato::OrdinalType jcellDof) const
+    operator()(
+        Plato::OrdinalType cellOrdinal,
+        Plato::OrdinalType gpOrdinal,
+        Plato::OrdinalType icellDof,
+        Plato::OrdinalType jcellDof
+    ) const
     {
-        auto iNode = icellDof / DofsPerNode_I;
-        auto iDof  = icellDof % DofsPerNode_I;
-        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * (SpaceDim+1) + iNode);
-        Plato::OrdinalType jLocalOrdinal = cellOrdinal;
+        auto iNode = icellDof / ElementType::mNumDofsPerNode;
+        auto iDof  = icellDof % ElementType::mNumDofsPerNode;
+        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * ElementType::mNumNodesPerCell + iNode);
+        Plato::OrdinalType jLocalOrdinal = cellOrdinal*ElementType::mNumGaussPoints + gpOrdinal;
         Plato::OrdinalType rowStart = mRowMap(iLocalOrdinal);
         Plato::OrdinalType rowEnd   = mRowMap(iLocalOrdinal+1);
         for (Plato::OrdinalType entryOrdinal=rowStart; entryOrdinal<rowEnd; entryOrdinal++)
         {
           if (mColumnIndices(entryOrdinal) == jLocalOrdinal)
           {
-            return entryOrdinal*DofsPerNode_I*DofsPerElem_J+iDof*DofsPerElem_J+jcellDof;
+            return entryOrdinal*ElementType::mNumDofsPerNode*ElementType::mNumLocalStatesPerGP+iDof*ElementType::mNumLocalStatesPerGP+jcellDof;
           }
         }
         return Plato::OrdinalType(-1);
     }
 };
-/******************************************************************************/
 
 /******************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode_I, Plato::OrdinalType DofsPerNode_J=DofsPerNode_I>
+template<Plato::OrdinalType NodesPerCell,
+         Plato::OrdinalType DofsPerNode_I,
+         Plato::OrdinalType DofsPerNode_J=DofsPerNode_I>
 class BlockMatrixEntryOrdinal
 {
   private:
@@ -741,8 +265,7 @@ class BlockMatrixEntryOrdinal
       mColumnIndices(matrix->columnIndices()),
       mCells2nodes(mesh->Connectivity()) { }
 
-    DEVICE_TYPE
-    inline
+    KOKKOS_INLINE_FUNCTION
     Plato::OrdinalType
     operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType icellDof, Plato::OrdinalType jcellDof) const
     {
@@ -750,8 +273,8 @@ class BlockMatrixEntryOrdinal
         auto iDof  = icellDof % DofsPerNode_I;
         auto jNode = jcellDof / DofsPerNode_J;
         auto jDof  = jcellDof % DofsPerNode_J;
-        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * (SpaceDim+1) + iNode);
-        Plato::OrdinalType jLocalOrdinal = mCells2nodes(cellOrdinal * (SpaceDim+1) + jNode);
+        Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * NodesPerCell + iNode);
+        Plato::OrdinalType jLocalOrdinal = mCells2nodes(cellOrdinal * NodesPerCell + jNode);
         Plato::OrdinalType rowStart = mRowMap(iLocalOrdinal);
         Plato::OrdinalType rowEnd   = mRowMap(iLocalOrdinal+1);
         for (Plato::OrdinalType entryOrdinal=rowStart; entryOrdinal<rowEnd; entryOrdinal++)
@@ -762,47 +285,6 @@ class BlockMatrixEntryOrdinal
           }
         }
         return Plato::OrdinalType(-1);
-    }
-};
-/******************************************************************************/
-
-/******************************************************************************/
-template<Plato::OrdinalType SpaceDim, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofsPerNode_J=DofsPerNode>
-class MatrixEntryOrdinal
-{
-  private:
-    const typename CrsMatrixType::RowMapVectorT mRowMap;
-    const typename CrsMatrixType::OrdinalVectorT mColumnIndices;
-    const Plato::OrdinalVectorT<const Plato::OrdinalType> mCells2nodes;
-
-  public:
-    MatrixEntryOrdinal(Teuchos::RCP<Plato::CrsMatrixType> aMatrix,
-                       Plato::Mesh aMesh ) :
-      mRowMap(aMatrix->rowMap()),
-      mColumnIndices(aMatrix->columnIndices()),
-      mCells2nodes(aMesh->Connectivity()) { }
-
-    DEVICE_TYPE
-    inline
-    Plato::OrdinalType
-    operator()(Plato::OrdinalType cellOrdinal, Plato::OrdinalType icellDof, Plato::OrdinalType jcellDof) const
-    {
-      auto iNode = icellDof / DofsPerNode;
-      auto iDof  = icellDof % DofsPerNode;
-      auto jNode = jcellDof / DofsPerNode;
-      auto jDof  = jcellDof % DofsPerNode;
-      Plato::OrdinalType iLocalOrdinal = mCells2nodes(cellOrdinal * (SpaceDim+1) + iNode);
-      Plato::OrdinalType jLocalOrdinal = mCells2nodes(cellOrdinal * (SpaceDim+1) + jNode);
-      Plato::OrdinalType rowStart = mRowMap(DofsPerNode*iLocalOrdinal+iDof  );
-      Plato::OrdinalType rowEnd   = mRowMap(DofsPerNode*iLocalOrdinal+iDof+1);
-      for (Plato::OrdinalType entryOrdinal=rowStart; entryOrdinal<rowEnd; entryOrdinal++)
-      {
-        if (mColumnIndices(entryOrdinal) == DofsPerNode*jLocalOrdinal+jDof)
-        {
-          return entryOrdinal;
-        }
-      }
-      return Plato::OrdinalType(-1);
     }
 };
 /******************************************************************************/
@@ -821,9 +303,7 @@ class MatrixEntryOrdinal
   number of non-zero block entries (NNodesPerCell)
 */
 template <typename MatrixType,
-          Plato::OrdinalType NodesPerElem,
-          Plato::OrdinalType DofsPerNode_I,
-          Plato::OrdinalType DofsPerElem_J>
+          typename ElementType>
 Teuchos::RCP<MatrixType>
 CreateGlobalByLocalBlockMatrix( Plato::Mesh aMesh )
 /******************************************************************************/
@@ -834,33 +314,37 @@ CreateGlobalByLocalBlockMatrix( Plato::Mesh aMesh )
 
     auto tNumElems = aMesh->NumElements();
     auto tNumNodes = aMesh->NumNodes();
-    auto tNumNonZeros = tNumElems*NodesPerElem;
+    auto tNumNonZeros = tNumElems*ElementType::mNumGaussPoints*ElementType::mNumNodesPerCell;
 
-    constexpr Plato::OrdinalType numBlockDofs = DofsPerNode_I*DofsPerElem_J;
+    constexpr Plato::OrdinalType numBlockDofs = ElementType::mNumDofsPerNode*ElementType::mNumLocalStatesPerGP;
 
     typename MatrixType::RowMapVectorT  rowMap        ("row map",        tNumNodes+1);
     typename MatrixType::ScalarVectorT  entries       ("matrix entries", tNumNonZeros*numBlockDofs);
     typename MatrixType::OrdinalVectorT columnIndices ("column indices", tNumNonZeros);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumNodes), LAMBDA_EXPRESSION(Plato::OrdinalType aNodeOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumNodes), KOKKOS_LAMBDA(Plato::OrdinalType aNodeOrdinal)
     {
       auto tFrom = tOffsetMap(aNodeOrdinal);
       auto tTo   = tOffsetMap(aNodeOrdinal+1);
-      rowMap(aNodeOrdinal)   = tFrom;
-      rowMap(aNodeOrdinal+1) = tTo;
+      rowMap(aNodeOrdinal)   = ElementType::mNumGaussPoints*tFrom;
+      rowMap(aNodeOrdinal+1) = ElementType::mNumGaussPoints*tTo;
 
-      for( decltype(tFrom) tColumnEntry = tFrom; tColumnEntry < tTo; tColumnEntry++ )
+      for( decltype(tFrom) tOffset = tFrom; tOffset < tTo; tOffset++ )
       {
-          columnIndices(tColumnEntry) = tElementOrds(tColumnEntry);
+          for( decltype(tFrom) tGPOrd = 0; tGPOrd < ElementType::mNumGaussPoints; tGPOrd++ )
+          {
+              auto tColumnEntry = ElementType::mNumGaussPoints * tOffset + tGPOrd;
+              columnIndices(tColumnEntry) = ElementType::mNumGaussPoints*tElementOrds(tOffset) + tGPOrd;
+          }
       }
     });
 
     auto retMatrix = Teuchos::rcp(
      new MatrixType( rowMap, columnIndices, entries,
-                     tNumNodes*DofsPerNode_I,
-                     tNumElems*DofsPerElem_J,
-                     DofsPerNode_I,
-                     DofsPerElem_J )
+                     tNumNodes*ElementType::mNumDofsPerNode,
+                     tNumElems*ElementType::mNumGaussPoints*ElementType::mNumLocalStatesPerGP,
+                     ElementType::mNumDofsPerNode,
+                     ElementType::mNumLocalStatesPerGP )
     );
     return retMatrix;
 }
@@ -897,7 +381,7 @@ CreateLocalByGlobalBlockMatrix( Plato::Mesh aMesh )
     typename MatrixType::ScalarVectorT  entries       ("matrix entries", tNumNonZeros*numBlockDofs);
     typename MatrixType::OrdinalVectorT columnIndices ("column indices", tNumNonZeros);
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumElems), LAMBDA_EXPRESSION(Plato::OrdinalType aCellOrdinal)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumElems), KOKKOS_LAMBDA(Plato::OrdinalType aCellOrdinal)
     {
       auto tFrom = aCellOrdinal*NodesPerElem;
       auto tTo   = (aCellOrdinal+1)*NodesPerElem;
@@ -955,7 +439,7 @@ CreateBlockMatrix( Plato::Mesh aMesh )
     // The compressed row storage format in omega_h doesn't include diagonals.  This
     // function creates a CRSMatrix with diagonal entries included.
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,numRows), LAMBDA_EXPRESSION(Plato::OrdinalType rowNumber)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,numRows), KOKKOS_LAMBDA(Plato::OrdinalType rowNumber)
     {
       auto entryOffset_oh = tOffsetMap(rowNumber);
       auto R0 = tOffsetMap(rowNumber) + rowNumber;
@@ -1039,7 +523,7 @@ CreateMatrix( Plato::Mesh aMesh )
     // function creates a CRSMatrix with diagonal entries included and expands the
     // graph to DofsPerNode.
 
-    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,numRows), LAMBDA_EXPRESSION(Plato::OrdinalType rowNumber)
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,numRows), KOKKOS_LAMBDA(Plato::OrdinalType rowNumber)
     {
       auto entryOffset_oh = tOffsetMap(rowNumber);
       auto R0 = tOffsetMap(rowNumber) + rowNumber;
