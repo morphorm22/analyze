@@ -19,30 +19,34 @@
 namespace immersus
 {
 
-template<typename Type>
 struct Range
 {
 private:
-    std::string mPhysics; /*!< physics to be analyzed/simulated */
-    std::unordered_map<std::string, Type> mPOD; /*!< map from data name to pod type */
+    std::string mPhysics = "undefined"; /*!< physics to be analyzed/simulated */
+    std::unordered_map<std::string, Plato::ScalarMultiVector> mMV; /*!< map from data name to pod type */
     std::unordered_map<std::string, Plato::OrdinalType> mDataID2NumDofs; /*!< map from data name to number of degrees of freedom */
     std::unordered_map<std::string, std::vector<std::string>> mDataID2DofNames; /*!< map from data name to degrees of freedom names */
 
 public:
+    Range(){} default;
+    Range(const std::string& aPhysics) : mPhysics(aPhysics)
+    {}
+    ~Range(){}
+
     std::vector<std::string> tags() const
     {
         std::vector<std::string> tTags;
-        for(auto& tPair : mPOD)
+        for(auto& tPair : mMV)
         {
             tTags.push_back(tPair.first);
         }
         return tTags;
     }
-    Type get(const std::string& aTag) const
+    Plato::ScalarMultiVector get(const std::string& aTag) const
     {
         auto tLowerTag = Plato::tolower(aTag);
-        auto tItr = mPOD.find(tLowerTag);
-        if(tItr == mPOD.end())
+        auto tItr = mMV.find(tLowerTag);
+        if(tItr == mMV.end())
         {
             ANALYZE_THROWERR(std::string("Data with tag '") + aTag + "' is not defined in Range associative map")
         }
@@ -51,7 +55,7 @@ public:
     void set(const std::string& aTag, const Type& aData)
     {
         auto tLowerTag = Plato::tolower(aTag);
-        mPOD[tLowerTag] = aData;
+        mMV[tLowerTag] = aData;
     }
     Plato::OrdinalType dofs(const std::string& aTag) const
     {
@@ -76,7 +80,7 @@ public:
         }
         auto tTags = this->tags();
         const std::string tTag = tTags[0];
-        auto tItr = mPOD.find(tTag);
+        auto tItr = mMV.find(tTag);
         auto tSolution = tItr->second;
         return tSolution.extent(0);
     }
@@ -92,14 +96,14 @@ public:
     }
     void print() const
     {
-        if(mPOD.empty())
+        if(mMV.empty())
         { return; }
-        for(auto& tPair : mPOD)
+        for(auto& tPair : mMV)
         { Plato::print_array_2D(tPair.second, tPair.first); }
     }
     bool empty() const
     {
-        return mPOD.empty();
+        return mMV.empty();
     }
 };
 // struct Range
@@ -128,6 +132,12 @@ public:
     **********************************************************************************/
     virtual immersus::Range
     solution(const immersus::Domain & aDomain)=0;
+
+    virtual Plato::Scalar
+    criterionValue(const immersus::Domain& aDomain,const std::string& aName)=0;
+
+    virtual Plato::ScalarVector
+    criterionGradient(const immersus::Domain& aDomain,const std::string& aName)=0;
 };
 // class Abstract Problem
 
@@ -137,8 +147,18 @@ public:
 template<typename PhysicsType>
 class Problem: public immersus::AbstractProblem
 {
-private:
+public:
+    virtual immersus::Range
+    solution(const immersus::Domain & aDomain)
+    { return immersus::Range(); }
 
+    virtual Plato::Scalar
+    criterionValue(const immersus::Domain& aDomain,const std::string& aName)
+    { return 0; }
+
+    virtual Plato::ScalarVector
+    criterionGradient(const immersus::Domain & aDomain,const std::string& aName)
+    {return Plato::ScalarVector("hello");}
 };
 // class Problem
 
