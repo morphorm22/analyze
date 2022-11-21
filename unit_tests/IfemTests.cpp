@@ -162,6 +162,9 @@ public:
 };
 // class Problem
 
+}
+// namespace immersus
+
 namespace IfemTests
 {
 
