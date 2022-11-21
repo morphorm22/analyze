@@ -140,6 +140,7 @@ namespace IfemTests
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ElastoPlasticity_NewtonRaphsonStoppingCriterion)
 {
     std::vector<double> tVector;
+    immersus::Range<Plato::ScalarMultiVector> tRange();
 }
 
 }
