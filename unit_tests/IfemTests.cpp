@@ -28,7 +28,7 @@ private:
     std::unordered_map<std::string, std::vector<std::string>> mDataID2DofNames; /*!< map from data name to degrees of freedom names */
 
 public:
-    Range(){} default;
+    Range(){};
     Range(const std::string& aPhysics) : mPhysics(aPhysics)
     {}
     ~Range(){}
@@ -52,7 +52,7 @@ public:
         }
         return tItr->second;
     }
-    void set(const std::string& aTag, const Type& aData)
+    void set(const std::string& aTag, const Plato::ScalarMultiVector& aData)
     {
         auto tLowerTag = Plato::tolower(aTag);
         mMV[tLowerTag] = aData;
