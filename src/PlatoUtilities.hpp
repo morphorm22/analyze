@@ -53,8 +53,7 @@ readNodeFields(
 template<Plato::OrdinalType NumSpatialDims,
          Plato::OrdinalType NumNodesPerCell>
 KOKKOS_INLINE_FUNCTION
-Plato::Scalar
-calculate_element_size
+Plato::Scalar calculate_element_size
 (const Plato::OrdinalType & aCellOrdinal,
  const Plato::OrdinalVectorT<const Plato::OrdinalType> & aConnectivity,
  const Plato::OrdinalVectorT<const Plato::Scalar> & aCoordinates)

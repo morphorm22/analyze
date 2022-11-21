@@ -186,8 +186,7 @@ namespace Plato {
        * \param [in] j \f$ j \f$ value in expression.
        * unit test: PlatoMaterialModel_TensorFunctor
       **********************************************************************************/
-      KOKKOS_INLINE_FUNCTION Plato::Scalar
-      operator()(Plato::OrdinalType i, Plato::OrdinalType j ) const {
+      KOKKOS_INLINE_FUNCTION Plato::Scalar operator()(Plato::OrdinalType i, Plato::OrdinalType j ) const {
           return c0[i][j];
       }
   };
