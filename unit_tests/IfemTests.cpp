@@ -18,16 +18,17 @@
 #include "MetaData.hpp"
 #include "WorkSets.hpp"
 #include "SurfaceArea.hpp"
-#include "PlatoMathExpr.hpp"
-#include "SpatialModel.hpp"
 #include "SmallStrain.hpp"
+#include "SpatialModel.hpp"
 #include "LinearStress.hpp"
+#include "PlatoMathExpr.hpp"
 #include "PlatoMeshExpr.hpp"
-#include "GradientMatrix.hpp"
 #include "PlatoUtilities.hpp"
+#include "GradientMatrix.hpp"
 #include "ApplyWeighting.hpp"
 #include "PlatoStaticsTypes.hpp"
 #include "ElasticModelFactory.hpp"
+#include "WeightedNormalVector.hpp"
 #include "GeneralStressDivergence.hpp"
 
 namespace Plato
@@ -306,16 +307,6 @@ public:
         this->bodyloads(aParams);
     }
 
-    std::vector< std::shared_ptr< AbstractVolumeForce<EvaluationType> > >&
-    get(Plato::volume_force_t aType) const
-    {
-        auto tItr = mVolumeForces.find(aType);
-        if(tItr == mVolumeForces.end()){
-            ANALYZE_THROWERR("Did not find requested volume force");
-        }
-        return tItr->second;
-    }
-
     /**************************************************************************/
     /*!
      \brief Add the body load to the result workset
@@ -323,8 +314,8 @@ public:
     void evaluate
     (const Plato::SpatialDomain & aSpatialDomain,
      const Plato::WorkSets      & aWorkSets,
-           Plato::Scalar          aScale = 1.0,
-           Plato::Scalar          aCurrentTime = 0.0) const
+           Plato::Scalar          aScale,
+           Plato::Scalar          aCurrentTime) const
     {
         for(const auto & tForce : mVolumeForces)
         {
@@ -353,51 +344,66 @@ private:
     }
 };
 
-enum class natural_bc_t
+enum class surface_force_t
 {
-    SURFACE_FORCE,
+    UNIFORM,
+    PRESSURE,
     UNDEFINED
 };
 
 template<typename EvaluationType>
 class AbstractNaturalBC
 {
-public:
-    virtual ~AbstractNaturalBC(){}
-    virtual Plato::natural_bc_t type() const = 0;
-    virtual void evaluate
-    (const Plato::SpatialDomain & aSpatialDomain,
-     const Plato::WorkSets      & aWorkSets,
-           Plato::Scalar          aScale = 1.0,
-           Plato::Scalar          aCurrentTime = 0.0) const = 0;
-};
-
-template<typename EvaluationType>
-class SurfaceForce : public Plato::AbstractNaturalBC<EvaluationType>
-{
-private:
-    // set local element type definition
+protected:
     using ElementType = typename EvaluationType::ElementType;
 
-    // set local fad type definitions
-    using ResultFadType  = typename EvaluationType::ResultScalarType;
-    using ConfigFadType  = typename EvaluationType::ConfigScalarType;
-
-    // set local parameter values
     using ElementType::mNumSpatialDims;
-    using ElementType::mNumDofsPerNode;
 
     // allocate local member data
-    const std::string mType;         /*!< natural boundary condition type */
-    const std::string mBlockName;    /*!< input block of force parameters */
-    const std::string mSideSetName;  /*!< side set name */
-    const Plato::Array<mNumSpatialDims> mForceCoef; /*!< force coefficients */
+    const std::string mName;        /*!< natural boundary condition sublist name */
+    const std::string mSideSetName; /*!< side set name */
+    const Plato::Array<mNumSpatialDims> mForceCoeff; /*!< natural boundary condition coefficients */
 
     // allocate local member instances
-    std::shared_ptr<Plato::MathExpr> mForceCoefExpr[mNumSpatialDims];
+    std::shared_ptr<Plato::MathExpr> mForceCoeffExpr[mNumSpatialDims];
+
+public:
+    AbstractNaturalBC
+    (const std::string            & aLoadName,
+           Teuchos::ParameterList & aSubList) :
+        mName(aLoadName),
+        mSideSetName(aSubList.get<std::string>("Sides")),
+        mForceCoeffExpr{nullptr}
+    {
+        this->setCoeff(aSubList);
+    }
+    virtual ~AbstractNaturalBC(){}
+
+    std::string name() const { return mName; }
+    std::string sideset() const { return mSideSetName; }
+    Plato::Array<mNumSpatialDims> coefficients() const { return mForceCoeff; }
+
+    Plato::surface_force_t type() const = 0;
+    virtual void evaluate
+    (const Plato::SpatialModel & aSpatialModel,
+     const Plato::WorkSets     & aWorkSets,
+           Plato::Scalar         aScale,
+           Plato::Scalar         aCurrentTime) const = 0;
+
+protected:
+    void evalForceExpr(Plato::Scalar aCurrentTime)
+    {
+        for(int iDim=0; iDim<mNumSpatialDims; iDim++)
+        {
+            if(mForceCoeffExpr[iDim])
+            {
+                mForceCoeff(iDim) = mForceCoeffExpr[iDim]->value(aCurrentTime);
+            }
+        }
+    }
 
 private:
-    void initialize(Teuchos::ParameterList & aSubList)
+    void setCoeff(Teuchos::ParameterList & aSubList)
     {
         auto tIsValue = aSubList.isType<Teuchos::Array<Plato::Scalar>>("Vector");
         auto tIsExpr  = aSubList.isType<Teuchos::Array<std::string>>("Vector");
@@ -406,7 +412,7 @@ private:
             auto tForceVal = aSubList.get<Teuchos::Array<Plato::Scalar>>("Vector");
             for(Plato::OrdinalType tDim=0; tDim<mNumSpatialDims; tDim++)
             {
-                mForceCoef(tDim) = tForceVal[tDim];
+                mForceCoeff(tDim) = tForceVal[tDim];
             }
         }
         else
@@ -415,48 +421,147 @@ private:
             auto tExpression = aSubList.get<Teuchos::Array<std::string>>("Vector");
             for(Plato::OrdinalType tDim=0; tDim<mNumSpatialDims; tDim++)
             {
-                mForceCoefExpr[tDim] = std::make_shared<Plato::MathExpr>(tExpression[tDim]);
-                mForceCoef(tDim) = mForceCoefExpr[tDim]->value(0.0);
+                mForceCoeffExpr[tDim] = std::make_shared<Plato::MathExpr>(tExpression[tDim]);
+                mForceCoeff(tDim) = mForceCoeffExpr[tDim]->value(0.0);
             }
         }
     }
-    void evalForceExpr(Plato::Scalar aCurrentTime)
-    {
-        for(int iDim=0; iDim<mNumSpatialDims; iDim++)
-        {
-            if(mForceCoefExpr[iDim])
-            {
-                mForceCoef(iDim) = mForceCoefExpr[iDim]->value(aCurrentTime);
-            }
-        }
-    }
+};
+
+template<typename EvaluationType>
+class PressureNaturalBC : public Plato::AbstractNaturalBC<EvaluationType>
+{
+private:
+    // set local element type definition
+    using ElementType = typename EvaluationType::ElementType;
+
+    // set local parent class type
+    using ForceBaseType = Plato::AbstractNaturalBC<EvaluationType>;
+
+    // set local fad type definitions
+    using ResultFadType  = typename EvaluationType::ResultScalarType;
+    using ConfigFadType  = typename EvaluationType::ConfigScalarType;
 
 public:
-    SurfaceForce
-    (const std::string            & aBlockName,
+    PressureNaturalBC
+    (const std::string            & aLoadName,
            Teuchos::ParameterList & aSubList) :
-        mBlockName(aBlockName),
-        mType(aSubList.get<std::string>("Type")),
-        mSideSetName(aSubList.get<std::string>("Sides")),
-        mForceCoefExpr{nullptr}
+        ForceBaseType(aLoadName,aSubList)
     {
         this->initialize(aSubList)
     }
-    Plato::natural_bc_t type() const
+    ~PressureNaturalBC(){}
+
+    Plato::surface_force_t type() const
     {
-        return Plato::natural_bc_t::SURFACE_FORCE;
+        return Plato::surface_force_t::PRESSURE;
     }
+
+    void evaluate
+    (const Plato::SpatialModel & aSpatialModel,
+     const Plato::WorkSets     & aWorkSets,
+     Plato::Scalar               aScale,
+     Plato::Scalar               aCurrentTime) const
+    {
+        // get side set connectivity information
+        auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
+        auto tNodeOrds    = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
+        auto tFaceOrds    = aSpatialModel.Mesh->GetSideSetFaces(mSideSetName);
+
+        // local functor - calculate normal vector
+        Plato::WeightedNormalVector<ElementType> tWeightedNormalVector;
+
+        // get integration point and weights
+        auto tFlux = mForceCoeff;
+        auto tCubatureWeights = ElementType::Face::getCubWeights();
+        auto tCubaturePoints  = ElementType::Face::getCubPoints();
+        auto tNumPoints = tCubatureWeights.size();
+
+        // get input worksets (i.e., domain for function evaluate)
+        auto tResultWS = Plato::metadata<Plato::ScalarMultiVectorT<ResultFadType>>(aWorkSets.get("result"));
+        auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigFadType>>(aWorkSets.get("configuration"));
+
+        // pressure forces should act towards the surface; thus, -1.0 is used to invert the outward facing normal inwards.
+        Plato::Scalar tNormalMultiplier(-1.0);
+        Plato::OrdinalType tNumFaces = tElementOrds.size();
+        Kokkos::parallel_for(Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumFaces, tNumPoints}),
+        KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
+        {
+            auto tElementOrdinal = tElementOrds(aSideOrdinal);
+            auto tElemFaceOrdinal = tFaceOrds(aSideOrdinal);
+
+            Plato::Array<ElementType::mNumNodesPerFace, Plato::OrdinalType> tLocalNodeOrds;
+            for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<ElementType::mNumNodesPerFace; tNodeOrd++)
+            {
+                tLocalNodeOrds(tNodeOrd) = tNodeOrds(aSideOrdinal*ElementType::mNumNodesPerFace+tNodeOrd);
+            }
+
+            auto tCubatureWeight = tCubatureWeights(aPointOrdinal);
+            auto tCubaturePoint = tCubaturePoints(aPointOrdinal);
+            auto tBasisValues = ElementType::Face::basisValues(tCubaturePoint);
+            auto tBasisGrads  = ElementType::Face::basisGrads(tCubaturePoint);
+
+            // compute area weighted normal vector
+            Plato::Array<ElementType::mNumSpatialDims, ConfigScalarType> tWeightedNormalVec;
+            tWeightedNormalVector(tElementOrdinal, tLocalNodeOrds, tBasisGrads, tConfigWS, tWeightedNormalVec);
+
+            // project into aResult workset
+            for( Plato::OrdinalType tNode=0; tNode<ElementType::mNumNodesPerFace; tNode++)
+            {
+                for( Plato::OrdinalType tDof=0; tDof<NumDofs; tDof++)
+                {
+                    auto tElementDofOrdinal = (tLocalNodeOrds[tNode] * DofsPerNode) + tDof + DofOffset;
+                    ResultScalarType tVal =
+                      tWeightedNormalVec(tDof) * tFlux(tDof) * aScale * tCubatureWeight * tNormalMultiplier * tBasisValues(tNode);
+                    Kokkos::atomic_add(&tResultWS(tElementOrdinal, tElementDofOrdinal), tVal);
+                }
+            }
+        }, "uniform surface pressure");
+    }
+};
+
+template<typename EvaluationType>
+class UniformNaturalBC : public Plato::AbstractNaturalBC<EvaluationType>
+{
+private:
+    // set local element type definition
+    using ElementType = typename EvaluationType::ElementType;
+
+    // set local parent class type
+    using ForceBaseType = Plato::AbstractNaturalBC<EvaluationType>;
+
+    // set local fad type definitions
+    using ResultFadType  = typename EvaluationType::ResultScalarType;
+    using ConfigFadType  = typename EvaluationType::ConfigScalarType;
+
+public:
+    UniformNaturalBC
+    (const std::string            & aLoadName,
+           Teuchos::ParameterList & aSubList) :
+        ForceBaseType(aLoadName,aSubList)
+    {
+        this->initialize(aSubList)
+    }
+    ~UniformNaturalBC(){}
+
+    Plato::surface_force_t type() const
+    {
+        return Plato::surface_force_t::UNIFORM;
+    }
+
     void evaluate
     (const Plato::SpatialModel & aSpatialModel,
      const Plato::WorkSets     & aWorkSets,
            Plato::Scalar         aScale,
            Plato::Scalar         aCurrentTime)
     {
+        // evaluate expression if defined
         this->evalForceExpr(aCurrentTime);
 
         // get input worksets (i.e., domain for function evaluate)
-        auto tResult = Plato::metadata<Plato::ScalarMultiVectorT<ResultFadType>>(aWorkSets.get("result"));
-        auto tConfig = Plato::metadata<Plato::ScalarArray3DT<ConfigFadType>>(aWorkSets.get("configuration"));
+        auto tResultWS = Plato::metadata<Plato::ScalarMultiVectorT<ResultFadType>>(aWorkSets.get("result"));
+        auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigFadType>>(aWorkSets.get("configuration"));
+
         // get side set connectivity
         auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
         auto tNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
@@ -466,7 +571,7 @@ public:
         Plato::SurfaceArea<ElementType> tComputeSurfaceArea;
 
         // get integration points and weights
-        auto tForceCoef = mForceCoef;
+        auto tForceCoef = mForceCoeff;
         auto tCubatureWeights = ElementType::Face::getCubWeights();
         auto tCubaturePoints  = ElementType::Face::getCubPoints();
         auto tNumPoints = tCubatureWeights.size();
@@ -488,74 +593,82 @@ public:
           auto tBasisGrads  = ElementType::Face::basisGrads(tCubaturePoint);
 
           ResultScalarType tSurfaceArea(0.0);
-          tComputeSurfaceArea(tElementOrdinal, tLocalNodeOrds, tBasisGrads, aConfig, tSurfaceArea);
+          tComputeSurfaceArea(tElementOrdinal, tLocalNodeOrds, tBasisGrads, tConfigWS, tSurfaceArea);
           tSurfaceArea *= aScale;
           tSurfaceArea *= tCubatureWeight;
 
-          // project into aResult workset
+          // project into Result workset
           for( Plato::OrdinalType tNode=0; tNode<ElementType::mNumNodesPerFace; tNode++)
           {
               for( Plato::OrdinalType tDim=0; tDim<ElementType::mNumSpatialDims; tDim++)
               {
                   auto tElementDofOrdinal = tLocalNodeOrds[tNode] * ElementType::mNumDofsPerNode + tDim;
                   ResultScalarType tResult = tBasisValues(tNode)*tForceCoef[tDim]*tSurfaceArea;
-                  Kokkos::atomic_add(&aResult(tElementOrdinal,tElementDofOrdinal), tResult);
+                  Kokkos::atomic_add(&tResultWS(tElementOrdinal,tElementDofOrdinal), tResult);
               }
           }
-        }, "surface force");
+        }, "uniform surface force");
     }
-};
-
-enum class natural_bc_category_t
-{
-    UNIFORM,
-    UNDEFINED
 };
 
 template<typename EvaluationType>
-class NaturalBCs
+class NaturalBCsFactory
 {
-// private member data
 private:
-    /*!< list of natural boundary condition */
-    std::unordered_map<Plato::natural_bc_t,std::vector<std::shared_ptr<Plato::AbstractNaturalBC<EvaluationType> > > > mBCs;
+    /*!< map from input force type string to supported enum */
+    std::unordered_map<std::string,Plato::surface_force_t> mForceTypes =
+        {
+            {"uniform",Plato::surface_force_t::UNIFORM},
+            {"pressure",Plato::surface_force_t::PRESSURE}
+        };
 
 public:
-    NaturalBCs(Teuchos::ParameterList &aParams) :
-        mBCs()
+    NaturalBCsFactory(){}
+    ~NaturalBCsFactory(){}
+
+    std::shared_ptr<Plato::AbstractNaturalBC<EvaluationType>>
+    create(const std::string & aName, Teuchos::ParameterList &aSubList)
     {
-        for (Teuchos::ParameterList::ConstIterator tItr = aParams.begin(); tItr != aParams.end(); ++tItr)
+        auto tType = this->type(aSubList);
+        this->setValues(aName,aSubList);
+        switch(tType)
         {
-            const Teuchos::ParameterEntry &tEntry = aParams.entry(tItr);
-            if (!tEntry.isList())
+            case Plato::surface_force_t::UNIFORM:
             {
-                ANALYZE_THROWERR("Natural Boundary Condition block is not valid. Constructor expects Parameter Lists only")
+                return std::make_shared<Plato::UniformNaturalBC<EvaluationType>>(aName, aSubList);
             }
-
-            const std::string &tName = aParams.name(tItr);
-            if(aParams.isSublist(tName) == false)
+            case Plato::surface_force_t::PRESSURE:
             {
-                std::stringstream tMsg;
-                tMsg << "Natural Boundary Condition Sublist: '" << tName.c_str() << "' is NOT defined";
-                ANALYZE_THROWERR(tMsg.str().c_str())
+                return std::make_shared<Plato::PressureNaturalBC<EvaluationType>>(aName, aSubList);
             }
-            Teuchos::ParameterList &tSubList = aParams.sublist(tName);
-
-            if(tSubList.isParameter("Type") == false)
+            default:
             {
-                std::stringstream tMsg;
-                tMsg << "Natural Boundary Condition 'Type' keyword is not defined in "
-                     << "Natural Boundary Condition Parameter Sublist with name '"
-                     << tName.c_str() << "'";
-                ANALYZE_THROWERR(tMsg.str().c_str())
+                return {nullptr};
             }
-            // TODO: IMPLEMENT FACTORY
-            this->flux(tName, tSubList);
         }
     }
 
-    std::shared_ptr<Plato::SurfaceForce<EvaluationType>>
-    flux(const std::string & aName, Teuchos::ParameterList &aSubList)
+private:
+    Plato::surface_force_t type(Teuchos::ParameterList & aSubList)
+    {
+        std::string tType = aSubList.get<std::string>("Type");
+        tType = Plato::tolower(tType);
+        auto tItr = mForceTypes.find(tType);
+        if( tItr == mForceTypes.end() ){
+            std::string tMsg;
+            tMsg + "Natural Boundary Condition of type '" + tType "' is not supported. "
+                 + "Supported options are: ";
+            for(const auto& tPair : mForceTypes)
+            {
+                tMsg + tPair.first << ", ";
+            }
+            auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+            ANALYZE_THROWERR(tSubMsg)
+        }
+        return (tItr->second);
+    }
+
+    void setValues(const std::string & aName, Teuchos::ParameterList &aSubList)
     {
         bool tValuesKeyword = aSubList.isType<Teuchos::Array<Plato::Scalar>>("Values");
         if (tValuesKeyword)
@@ -591,8 +704,74 @@ public:
                  << "Parameter Sublist with name '" << aName.c_str() << "'";
             ANALYZE_THROWERR(tMsg.str().c_str())
         }
-        auto tBC = std::make_shared<Plato::SurfaceForce<EvaluationType>>(aName, aSubList);
-        return tBC;
+    }
+};
+
+template<typename EvaluationType>
+class NewNaturalBCs
+{
+// private member data
+private:
+    Plato::NaturalBCsFactory<EvaluationType> mFactory;
+    /*!< list of natural boundary condition */
+    std::unordered_map<Plato::surface_force_t,std::vector<std::shared_ptr<Plato::AbstractNaturalBC<EvaluationType> > > > mBCs;
+
+// public member functions
+public:
+    NewNaturalBCs(Teuchos::ParameterList &aParams) :
+        mBCs()
+    {
+        this->parse(aParams);
+    }
+
+    void evaluate
+    (const Plato::SpatialModel & aSpatialModel,
+     const Plato::WorkSets     & aWorkSets,
+           Plato::Scalar         aScale,
+           Plato::Scalar         aCurrentTime) const
+    {
+        for (const auto &tPair : mBCs)
+        {
+            for(const auto &tBC : tPair.second)
+            {
+                tBC->evaluate(aSpatialModel, aWorkSets, aScale, aCurrentTime);
+            }
+        }
+    }
+
+// private member functions
+private:
+    void parse(Teuchos::ParameterList &aParams)
+    {
+        for (Teuchos::ParameterList::ConstIterator tItr = aParams.begin(); tItr != aParams.end(); ++tItr)
+        {
+            const Teuchos::ParameterEntry &tEntry = aParams.entry(tItr);
+            if (!tEntry.isList())
+            {
+                ANALYZE_THROWERR("Natural Boundary Condition block is not valid. Constructor expects Parameter Lists only")
+            }
+
+            const std::string &tName = aParams.name(tItr);
+            if(aParams.isSublist(tName) == false)
+            {
+                std::stringstream tMsg;
+                tMsg << "Natural Boundary Condition Sublist: '" << tName.c_str() << "' is NOT defined";
+                ANALYZE_THROWERR(tMsg.str().c_str())
+            }
+            Teuchos::ParameterList &tSubList = aParams.sublist(tName);
+
+            if(tSubList.isParameter("Type") == false)
+            {
+                std::stringstream tMsg;
+                tMsg << "Natural Boundary Condition 'Type' keyword is not defined in "
+                     << "Natural Boundary Condition Parameter Sublist with name '"
+                     << tName.c_str() << "'";
+                ANALYZE_THROWERR(tMsg.str().c_str())
+            }
+            std::shared_ptr<Plato::AbstractNaturalBC<EvaluationType>> tBC = mFactory->create(tName, tSubList);
+            Plato::surface_force_t tType = tBC->type();
+            mBCs[tType].push_back(tBC);
+        }
     }
 };
 
@@ -665,9 +844,6 @@ public:
 template<typename EvaluationType>
 class AbstractResidual
 {
-private:
-    using ResultFadType = typename EvaluationType::ResultScalarType;
-
 protected:
     const Plato::SpatialDomain     & mSpatialDomain;  /*!< Plato spatial model containing mesh, meshsets, etc */
           Plato::DataMap           & mDataMap;        /*!< Plato Analyze database */
@@ -687,11 +863,9 @@ public:
      * \fn void evaluate
      * \brief Evaluate inner domain residual, exclude boundary terms.
      * \param [in] aWorkSets holds state and control worksets
-     * \param [in/out] aResult   result workset
      ******************************************************************************/
     virtual void evaluate
-    (const Plato::WorkSets & aWorkSets,
-     Plato::ScalarMultiVectorT<ResultFadType> &aResult) const = 0;
+    (const Plato::WorkSets & aWorkSets) const = 0;
 
     /***************************************************************************//**
      * \fn void evaluateBoundary
@@ -699,24 +873,20 @@ public:
      *        resulting from applying integration by part to the residual equation.
      * \param [in]  aSpatialModel holds mesh and entity sets (e.g. node and side sets) metadata
      * \param [in]  aWorkSets     holds input worksets (e.g. states, control, etc)
-     * \param [out] aResultWS     result/output workset
      ******************************************************************************/
     virtual void evaluate_boundary
     (const Plato::SpatialModel & aSpatialModel,
-     const Plato::WorkSets     & aWorkSets,
-     Plato::ScalarMultiVectorT<ResultFadType> &aResult) const = 0;
+     const Plato::WorkSets     & aWorkSets) const = 0;
 
     /***************************************************************************//**
      * \fn void evaluatePrescribed
      * \brief Evaluate vector function on prescribed boundaries.
      * \param [in]  aSpatialModel holds mesh and entity sets (e.g. node and side sets) metadata
      * \param [in]  aWorkSets     holds input worksets (e.g. states, control, etc)
-     * \param [out] aResultWS     result/output workset
      ******************************************************************************/
     virtual void evaluate_prescribed
     (const Plato::SpatialModel & aSpatialModel,
-     const Plato::WorkSets     & aWorkSets,
-     Plato::ScalarMultiVectorT<ResultFadType> &aResult) const = 0;
+     const Plato::WorkSets     & aWorkSets) const = 0;
 };
 // class abstract residual
 
@@ -747,6 +917,7 @@ private:
     using ConfigFadType  = typename EvaluationType::ConfigScalarType;
     using ControlFadType = typename EvaluationType::ControlScalarType;
 
+    std::shared_ptr<Plato::NewNaturalBCs<EvaluationType>> mNaturalBCs;
     std::shared_ptr<Plato::VolumeForces<EvaluationType>> mBodyLoads;
     std::shared_ptr<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterial;
     Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, Plato::MSIMP> mApplyWeighting;
@@ -773,11 +944,15 @@ public:
         {
             mBodyLoads = std::make_shared<Plato::VolumeForces<EvaluationType>>(aProbParams.sublist("Body Loads"));
         }
+
+        // parse natural boundary conditions
+        if(aProblemParams.isSublist("Natural Boundary Conditions"))
+        {
+            mNaturalBCs = std::make_shared<Plato::NewNaturalBCs<EvaluationType>>(aProbParams.sublist("Natural Boundary Conditions"));
+        }
     }
 
-    void evaluate
-    (const Plato::WorkSets                          & aWorkSets,
-           Plato::ScalarMultiVectorT<ResultFadType> & aResult) const
+    void evaluate(const Plato::WorkSets &aWorkSets) const
     {
         // set strain fad type
         using StrainFadType = typename Plato::fad_type_t<ElementType, StateFadType, ConfigFadType>;
@@ -796,6 +971,7 @@ public:
 
         // get input worksets (i.e., domain for function evaluate)
         auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateFadType>>( aWorkSets.get("state"));
+        auto tResultWS  = Plato::metadata<Plato::ScalarMultiVectorT<ResultFadType>>( aWorkSets.get("result"));
         auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigFadType>>( aWorkSets.get("configuration"));
         auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlFadType>>( aWorkSets.get("control"));
 
@@ -831,7 +1007,7 @@ public:
             tApplyWeighting(iCellOrdinal, tControlWS, tBasisValues, tStress);
 
             // apply divergence to stress
-            tComputeStressDivergence(iCellOrdinal, aResult, tStress, tGradient, tVolume);
+            tComputeStressDivergence(iCellOrdinal, tResultWS, tStress, tGradient, tVolume);
 
             // compute cell stress and strain: aggregate stress and strain contribution from each integration point
             for(int i=0; i<ElementType::mNumVoigtTerms; i++)
@@ -857,7 +1033,22 @@ public:
         // add body loads contribution
         if( mBodyLoads != nullptr )
         {
-            mBodyLoads->evaluate(mSpatialDomain,aWorkSets,-1.0);
+            mBodyLoads->evaluate(mSpatialDomain,aWorkSets,-1.0 /*scale*/,0.0 /*time step*/);
+        }
+    }
+
+    void evaluate_boundary
+    (const Plato::SpatialModel & aSpatialModel,
+     const Plato::WorkSets     & aWorkSets) const
+    { return; }
+
+    void evaluate_prescribed
+    (const Plato::SpatialModel & aSpatialModel,
+     const Plato::WorkSets     & aWorkSets) const
+    {
+        if( mNaturalBCs != nullptr )
+        {
+            mNaturalBCs->evaluate(aSpatialModel,aWorkSets,-1.0 /*scale*/,0.0 /*time step*/);
         }
     }
 };
