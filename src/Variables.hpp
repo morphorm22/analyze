@@ -98,6 +98,7 @@ private:
 // struct Variables
 
 typedef Variables Dual;   /*!< variant name used to identify quantities associated with the dual optimization problem */
+typedef Variables Domain; /*!< variant name used to identify quantities associated with the primal optimization problem */
 typedef Variables Primal; /*!< variant name used to identify quantities associated with the primal optimization problem */
 
 }
