@@ -22,6 +22,7 @@
 #include "SmallStrain.hpp"
 #include "SpatialModel.hpp"
 #include "LinearStress.hpp"
+#include "ScalarProduct.hpp"
 #include "PlatoMathExpr.hpp"
 #include "PlatoMeshExpr.hpp"
 #include "PlatoUtilities.hpp"
@@ -31,6 +32,7 @@
 #include "PlatoStaticsTypes.hpp"
 #include "ElasticModelFactory.hpp"
 #include "WeightedNormalVector.hpp"
+#include "PlatoAbstractProblem.hpp"
 #include "GeneralStressDivergence.hpp"
 
 #include "elliptic/EvaluationTypes.hpp"
@@ -174,10 +176,10 @@ enum class volume_force_t
 };
 
 template<typename EvaluationType>
-class AbstractVolumeForce
+class VolumeForceBase
 {
 public:
-    virtual ~AbstractVolumeForce(){}
+    virtual ~VolumeForceBase(){}
     virtual Plato::volume_force_t type() const = 0;
     virtual void evaluate
     (const Plato::SpatialDomain & aSpatialDomain,
@@ -194,7 +196,7 @@ public:
  \brief Class for essential boundary conditions.
  */
 template<typename EvaluationType>
-class BodyLoad : public Plato::AbstractVolumeForce<EvaluationType>
+class BodyLoad : public Plato::VolumeForceBase<EvaluationType>
 /******************************************************************************/
 {
 private:
@@ -290,7 +292,7 @@ class VolumeForces
 /******************************************************************************/
 {
 private:
-    std::unordered_map<Plato::volume_force_t,std::vector< std::shared_ptr< AbstractVolumeForce<EvaluationType> > > > mVolumeForces;
+    std::unordered_map<Plato::volume_force_t,std::vector< std::shared_ptr< VolumeForceBase<EvaluationType> > > > mVolumeForces;
 
 public:
 
@@ -350,7 +352,7 @@ enum class surface_force_t
 };
 
 template<typename EvaluationType>
-class AbstractNaturalBC
+class NaturalBCBase
 {
 protected:
     using ElementType = typename EvaluationType::ElementType;
@@ -366,7 +368,7 @@ protected:
     std::shared_ptr<Plato::MathExpr> mForceCoeffExpr[mNumSpatialDims];
 
 public:
-    AbstractNaturalBC
+    NaturalBCBase
     (const std::string            & aLoadName,
            Teuchos::ParameterList & aSubList) :
         mName(aLoadName),
@@ -375,7 +377,7 @@ public:
     {
         this->setCoeff(aSubList);
     }
-    virtual ~AbstractNaturalBC(){}
+    virtual ~NaturalBCBase(){}
 
     std::string name() const { return mName; }
     std::string sideset() const { return mSideSetName; }
@@ -427,14 +429,14 @@ private:
 };
 
 template<typename EvaluationType>
-class NaturalBCPressure : public Plato::AbstractNaturalBC<EvaluationType>
+class NaturalBCPressure : public Plato::NaturalBCBase<EvaluationType>
 {
 private:
     // set local element type definition
     using ElementType = typename EvaluationType::ElementType;
 
     // set local parent class type
-    using ForceBaseType = Plato::AbstractNaturalBC<EvaluationType>;
+    using ForceBaseType = Plato::NaturalBCBase<EvaluationType>;
 
     // set local fad type definitions
     using ResultFadType  = typename EvaluationType::ResultScalarType;
@@ -519,14 +521,14 @@ public:
 };
 
 template<typename EvaluationType>
-class NaturalBCUniform : public Plato::AbstractNaturalBC<EvaluationType>
+class NaturalBCUniform : public Plato::NaturalBCBase<EvaluationType>
 {
 private:
     // set local element type definition
     using ElementType = typename EvaluationType::ElementType;
 
     // set local parent class type
-    using ForceBaseType = Plato::AbstractNaturalBC<EvaluationType>;
+    using ForceBaseType = Plato::NaturalBCBase<EvaluationType>;
 
     // set local fad type definitions
     using ResultFadType  = typename EvaluationType::ResultScalarType;
@@ -624,7 +626,7 @@ public:
     FactoryNaturalBC(){}
     ~FactoryNaturalBC(){}
 
-    std::shared_ptr<Plato::AbstractNaturalBC<EvaluationType>>
+    std::shared_ptr<Plato::NaturalBCBase<EvaluationType>>
     create(const std::string & aName, Teuchos::ParameterList &aSubList)
     {
         auto tType = this->type(aSubList);
@@ -715,7 +717,7 @@ class NaturalBCs
 private:
     Plato::FactoryNaturalBC<EvaluationType> mFactory;
     /*!< list of natural boundary condition */
-    std::unordered_map<Plato::surface_force_t,std::vector<std::shared_ptr<Plato::AbstractNaturalBC<EvaluationType> > > > mBCs;
+    std::unordered_map<Plato::surface_force_t,std::vector<std::shared_ptr<Plato::NaturalBCBase<EvaluationType> > > > mBCs;
 
 // public member functions
 public:
@@ -769,7 +771,7 @@ private:
                      << tName.c_str() << "'";
                 ANALYZE_THROWERR(tMsg.str().c_str())
             }
-            std::shared_ptr<Plato::AbstractNaturalBC<EvaluationType>> tBC = mFactory->create(tName, tSubList);
+            std::shared_ptr<Plato::NaturalBCBase<EvaluationType>> tBC = mFactory->create(tName, tSubList);
             Plato::surface_force_t tType = tBC->type();
             mBCs[tType].push_back(tBC);
         }
@@ -844,8 +846,7 @@ public:
 };
 // class LinearStress
 
-template<typename EvaluationType>
-class AbstractResidual
+class ResidualBase
 {
 protected:
     const Plato::SpatialDomain     & mSpatialDomain;  /*!< Plato spatial model containing mesh, meshsets, etc */
@@ -853,13 +854,13 @@ protected:
           std::vector<std::string>   mDofNames;       /*!< state dof names */
 
 public:
-    explicit AbstractResidual
+    explicit ResidualBase
     (const Plato::SpatialDomain & aSpatialDomain,
            Plato::DataMap       & aDataMap) :
         mSpatialDomain(aSpatialDomain),
         mDataMap(aDataMap)
     {}
-    virtual ~AbstractResidual()
+    virtual ~ResidualBase()
     {}
 
     /***************************************************************************//**
@@ -898,7 +899,7 @@ public:
 
 
 template<typename EvaluationType>
-class ResidualElastostatics : public Plato::AbstractResidual<EvaluationType>
+class ResidualElastostatics : public Plato::ResidualBase
 {
 private:
     // set local element type
@@ -910,12 +911,6 @@ private:
     using ElementType::mNumDofsPerNode;
     using ElementType::mNumDofsPerCell;
     using ElementType::mNumSpatialDims;
-
-    // access parent class data structures
-    using ResidualBaseType = Plato::AbstractResidual<EvaluationType>;
-    using ResidualBaseType::mSpatialDomain;
-    using ResidualBaseType::mDataMap;
-    using ResidualBaseType::mDofNames;
 
     // set local fad types
     using StateFadType   = typename EvaluationType::StateScalarType;
@@ -934,7 +929,7 @@ public:
     (const Plato::SpatialDomain & aDomain,
      Plato::DataMap             & aDataMap,
      Teuchos::ParameterList     & aProbParams) :
-         ResidualBaseType(aDomain, aDataMap)
+         Plato::ResidualBase(aDomain, aDataMap)
     {
         // obligatory: define dof names in order
         mDofNames.push_back("displacement X");
@@ -1077,7 +1072,7 @@ struct FactoryResidual
      * \param [in] aPDE PDE type
     **********************************************************************************/
     template<typename EvaluationType>
-    std::shared_ptr<Plato::AbstractResidual<EvaluationType>>
+    std::shared_ptr<Plato::ResidualBase>
     createResidual(
         const Plato::SpatialDomain   & aDomain,
               Plato::DataMap         & aDataMap,
@@ -1154,7 +1149,7 @@ public:
 
     void build
     (const Plato::SpatialDomain & aSpatialDomain,
-     const Plato::Domain        & aDataDomain,
+     const Plato::Database      & aDatabase,
      const WorksetFunctionality & aWorksetFuncs,
            Plato::WorkSets      & aWorkSets) const
     {
@@ -1165,14 +1160,14 @@ public:
         using StateScalarType = typename EvaluationType::StateScalarType;
         auto tStateWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<StateScalarType> > >
             ( Plato::ScalarMultiVectorT<StateScalarType>("State Workset", tNumCells, mNumDofsPerNode) );
-        aWorksetFuncs.worksetState(aDataDomain.vector("state"), tStateWS->mData, aSpatialDomain);
+        aWorksetFuncs.worksetState(aDatabase.vector("state"), tStateWS->mData, aSpatialDomain);
         aWorkSets.set("state", tStateWS);
 
         // build control workset
         using ControlScalarType = typename EvaluationType::ControlScalarType;
         auto tControlWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ControlScalarType> > >
             ( Plato::ScalarMultiVectorT<ControlScalarType>("Control Workset", tNumCells, mNumNodesPerCell) );
-        aWorksetFuncs.worksetControl(aDataDomain.vector("control"), tControlWS->mData, aSpatialDomain);
+        aWorksetFuncs.worksetControl(aDatabase.vector("control"), tControlWS->mData, aSpatialDomain);
         aWorkSets.set("control", tControlWS);
 
         // build configuration workset
@@ -1191,7 +1186,7 @@ public:
 
     void build
     (const Plato::OrdinalType   & tNumCells,
-     const Plato::Domain        & aDataDomain,
+     const Plato::Database      & aDatabase,
      const WorksetFunctionality & aWorksetFuncs,
            Plato::WorkSets      & aWorkSets) const
     {
@@ -1199,14 +1194,14 @@ public:
         using StateScalarType = typename EvaluationType::StateScalarType;
         auto tStateWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<StateScalarType> > >
             ( Plato::ScalarMultiVectorT<StateScalarType>("State Workset", tNumCells, mNumDofsPerNode) );
-        aWorksetFuncs.worksetState(aDataDomain.vector("state"), tStateWS->mData);
+        aWorksetFuncs.worksetState(aDatabase.vector("state"), tStateWS->mData);
         aWorkSets.set("state", tStateWS);
 
         // build control workset
         using ControlScalarType = typename EvaluationType::ControlScalarType;
         auto tControlWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ControlScalarType> > >
             ( Plato::ScalarMultiVectorT<ControlScalarType>("Control Workset", tNumCells, mNumNodesPerCell) );
-        aWorksetFuncs.worksetControl(aDataDomain.vector("control"), tControlWS->mData);
+        aWorksetFuncs.worksetControl(aDatabase.vector("control"), tControlWS->mData);
         aWorkSets.set("control", tControlWS);
 
         // build configuration workset
@@ -1225,34 +1220,37 @@ public:
 };
 
 template<typename PhysicsType>
-class AbstractVectorFunction
+class VectorFunctionBase
 {
 public:
-    virtual ~AbstractVectorFunction(){}
+    virtual ~VectorFunctionBase(){}
 
     virtual
     Plato::ScalarVector
-    value(const Plato::Domain & aDomain,
-          const Plato::Scalar & aCycle) const = 0;
+    value(const Plato::Database & aDatabase,
+          const Plato::Scalar   & aCycle) const = 0;
 
     virtual
     Teuchos::RCP<Plato::CrsMatrixType>
-    jacobianState(const Plato::Domain & aDomain,
-                  const Plato::Scalar & aCycle) const = 0;
+    jacobianState(const Plato::Database & aDatabase,
+                  const Plato::Scalar   & aCycle,
+                        bool              aTranspose) const = 0;
 
     virtual
     Teuchos::RCP<Plato::CrsMatrixType>
-    jacobianControl(const Plato::Domain & aDomain,
-                    const Plato::Scalar & aCycle) const = 0;
+    jacobianControl(const Plato::Database & aDatabase,
+                    const Plato::Scalar   & aCycle,
+                          bool              aTranspose) const = 0;
 
     virtual
     Teuchos::RCP<Plato::CrsMatrixType>
-    jacobianConfig(const Plato::Domain & aDomain,
-                   const Plato::Scalar & aCycle) const = 0;
+    jacobianConfig(const Plato::Database & aDatabase,
+                   const Plato::Scalar   & aCycle,
+                         bool              aTranspose) const = 0;
 };
 
 template<typename PhysicsType>
-class VectorFunction : public Plato::exp::AbstractVectorFunction
+class VectorFunction : public Plato::exp::VectorFunctionBase
 {
 private:
     using ElementType = typename PhysicsType::ElementType;
@@ -1271,19 +1269,14 @@ private:
     using JacobianXEvalType = typename Plato::Elliptic::Evaluation<ElementType>::GradientX;
     using JacobianZEvalType = typename Plato::Elliptic::Evaluation<ElementType>::GradientZ;
 
-    using Residual  = std::shared_ptr<Plato::AbstractResidual<ResidualEvalType>>;
-    using JacobianU = std::shared_ptr<Plato::AbstractResidual<JacobianUEvalType>>;
-    using JacobianX = std::shared_ptr<Plato::AbstractResidual<JacobianXEvalType>>;
-    using JacobianZ = std::shared_ptr<Plato::AbstractResidual<JacobianZEvalType>>;
-
-    std::unordered_map<std::string, Residual>  mResiduals;
-    std::unordered_map<std::string, JacobianU> mJacobiansU;
-    std::unordered_map<std::string, JacobianX> mJacobiansX;
-    std::unordered_map<std::string, JacobianZ> mJacobiansZ;
+    std::unordered_map<std::string,std::shared_ptr<Plato::ResidualBase>> mResiduals;
+    std::unordered_map<std::string,std::shared_ptr<Plato::ResidualBase>> mJacobiansU;
+    std::unordered_map<std::string,std::shared_ptr<Plato::ResidualBase>> mJacobiansX;
+    std::unordered_map<std::string,std::shared_ptr<Plato::ResidualBase>> mJacobiansZ;
 
     Plato::DataMap & mDataMap;
     const Plato::SpatialModel & mSpatialModel;
-    Plato::WorksetBase<ElementType> mWorksets;
+    Plato::WorksetBase<ElementType> mWorksetFuncs;
 
 public:
     VectorFunction
@@ -1292,7 +1285,7 @@ public:
            Plato::DataMap         & aDataMap,
            Teuchos::ParameterList & aProbParams) :
         mSpatialModel (aSpatialModel),
-        mWorksets (aSpatialModel.Mesh),
+        mWorksetFuncs (aSpatialModel.Mesh),
         mDataMap      (aDataMap)
     {
         typename PhysicsType::FactoryResidual tFactoryResidual;
@@ -1307,8 +1300,8 @@ public:
     }
 
     Plato::ScalarVector value
-    (const Plato::Domain & aDomain,
-     const Plato::Scalar & aCycle) const
+    (const Plato::Database & aDatabase,
+     const Plato::Scalar   & aCycle) const
     {
         // set local result workset scalar type
         using ResultScalarType  = typename ResidualEvalType::ResultScalarType;
@@ -1317,11 +1310,12 @@ public:
         WorksetBuilder<ResidualEvalType> tWorksetBuilder;
         Plato::ScalarVector tResidual("Assembled Residual",mNumDofsPerNode*tNumNodes);
 
+        // internal forces
         for(const auto& tSpatialDomain : mSpatialModel.Domains)
         {
             // build worksets
             Plato::WorkSets tWorksets;
-            tWorksetBuilder.build(tSpatialDomain, aDomain, mWorksets, tWorksets);
+            tWorksetBuilder.build(tSpatialDomain, aDatabase, mWorksetFuncs, tWorksets);
 
             // evaluate internal forces
             auto tName = tSpatialDomain.getDomainName();
@@ -1330,14 +1324,15 @@ public:
             // assemble to return view
             Plato::ScalarMultiVectorT<ResultScalarType> tResultWS =
                     Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>( tWorksets.get("result") );
-            mWorksets.assembleResidual( tResultWS, tResidual, tSpatialDomain );
+            mWorksetFuncs.assembleResidual( tResultWS, tResidual, tSpatialDomain );
         }
 
+        // prescribed forces
         {
             // build worksets
             Plato::WorkSets tWorksets;
             auto tNumCells = mSpatialModel.Mesh->NumElements();
-            tWorksetBuilder.build(tNumCells, aDomain, mWorksets, tWorksets);
+            tWorksetBuilder.build(tNumCells, aDatabase, mWorksetFuncs, tWorksets);
 
             // evaluate prescribed forces
             auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
@@ -1346,7 +1341,7 @@ public:
             // create and assemble to return view
             Plato::ScalarMultiVectorT<ResultScalarType> tResultWS =
                     Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>( tWorksets.get("result") );
-            mWorksets.assembleResidual( tResultWS, tResidual);
+            mWorksetFuncs.assembleResidual( tResultWS, tResidual);
         }
 
         return tResidual;
@@ -1354,8 +1349,9 @@ public:
 
     Teuchos::RCP<Plato::CrsMatrixType>
     jacobianState
-    (const Plato::Domain & aDomain,
-     const Plato::Scalar & aCycle) const
+    (const Plato::Database & aDatabase,
+     const Plato::Scalar   & aCycle,
+           bool              aTranspose = true) const
     {
         // set local result workset scalar type
         using ResultScalarType = typename JacobianUEvalType::ResultScalarType;
@@ -1365,13 +1361,13 @@ public:
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianU =
                 Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumDofsPerNode>( tMesh );
 
-        // evaluate internal forces
         WorksetBuilder<JacobianUEvalType> tWorksetBuilder;
+        // internal forces
         for(const auto& tSpatialDomain : mSpatialModel.Domains)
         {
             // build worksets
             Plato::WorkSets tWorksets;
-            tWorksetBuilder.build(tSpatialDomain, aDomain, mWorksets, tWorksets);
+            tWorksetBuilder.build(tSpatialDomain, aDatabase, mWorksetFuncs, tWorksets);
 
             // evaluate internal forces
             auto tName = tSpatialDomain.getDomainName();
@@ -1384,14 +1380,15 @@ public:
             auto tJacEntries = tJacobianU->entries();
             Plato::ScalarMultiVectorT<ResultScalarType> tResultWS =
                     Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>( tWorksets.get("result") );
-            mWorksets.assembleJacobianFad(mNumDofsPerCell,mNumDofsPerCell,tJacEntryOrdinal,tResultWS,tJacEntries,tSpatialDomain);
+            mWorksetFuncs.assembleJacobianFad(mNumDofsPerCell,mNumDofsPerCell,tJacEntryOrdinal,tResultWS,tJacEntries,tSpatialDomain);
         }
 
+        // prescribed forces
         {
             // build worksets
             Plato::WorkSets tWorksets;
             auto tNumCells = mSpatialModel.Mesh->NumElements();
-            tWorksetBuilder.build(tNumCells, aDomain, mWorksets, tWorksets);
+            tWorksetBuilder.build(tNumCells, aDatabase, mWorksetFuncs, tWorksets);
 
             // evaluate prescribed forces
             auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
@@ -1403,29 +1400,34 @@ public:
             auto tJacEntries = tJacobianU->entries();
             Plato::ScalarMultiVectorT<ResultScalarType> tResultWS =
                     Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>( tWorksets.get("result") );
-            mWorksets.assembleJacobianFad(mNumDofsPerCell, mNumDofsPerCell,tJacEntryOrdinal,tResultWS,tJacEntries);
+            mWorksetFuncs.assembleJacobianFad(mNumDofsPerCell, mNumDofsPerCell,tJacEntryOrdinal,tResultWS,tJacEntries);
         }
         return tJacobianU;
     }
 
     Teuchos::RCP<Plato::CrsMatrixType>
-    jacobianConfig(const Plato::Domain & aDomain,
-                   const Plato::Scalar & aCycle) const
+    jacobianConfig(const Plato::Database & aDatabase,
+                   const Plato::Scalar   & aCycle,
+                         bool              aTranspose = true) const
     {
         // set local result workset scalar type
         using ResultScalarType = typename JacobianXEvalType::ResultScalarType;
 
         // create return matrix
         auto tMesh = mSpatialModel.Mesh;
-        Teuchos::RCP<Plato::CrsMatrixType> tJacobianX =
-            Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumSpatialDims, mNumDofsPerNode>(tMesh);
+        Teuchos::RCP<Plato::CrsMatrixType> tJacobianX;
+        if(aTranspose)
+        { tJacobianX = Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumSpatialDims, mNumDofsPerNode>(tMesh); }
+        else
+        { tJacobianX = Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumSpatialDims>(tMesh); }
 
         WorksetBuilder<JacobianXEvalType> tWorksetBuilder;
+        // internal forces
         for(const auto& tSpatialDomain : mSpatialModel.Domains)
         {
             // build worksets
             Plato::WorkSets tWorksets;
-            tWorksetBuilder.build(tSpatialDomain, aDomain, mWorksets, tWorksets);
+            tWorksetBuilder.build(tSpatialDomain, aDatabase, mWorksetFuncs, tWorksets);
 
             // evaluate internal forces
             auto tName     = tSpatialDomain.getDomainName();
@@ -1438,15 +1440,18 @@ public:
             auto tJacEntries = tJacobianX->entries();
             Plato::ScalarMultiVectorT<ResultScalarType> tResultWS =
                     Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>( tWorksets.get("result") );
-            mWorksets.assembleTransposeJacobian
-                (mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS, tJacEntries, tSpatialDomain);
+            if(aTranspose)
+            { mWorksetFuncs.assembleTransposeJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS, tJacEntries, tSpatialDomain); }
+            else
+            { mWorksetFuncs.assembleJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS, tJacEntries, tSpatialDomain); }
         }
 
+        // prescribed forces
         {
             // build worksets
             Plato::WorkSets tWorksets;
             auto tNumCells = mSpatialModel.Mesh->NumElements();
-            tWorksetBuilder.build(tNumCells, aDomain, mWorksets, tWorksets);
+            tWorksetBuilder.build(tNumCells, aDatabase, mWorksetFuncs, tWorksets);
 
             // evaluate prescribed forces
             auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
@@ -1459,31 +1464,38 @@ public:
             auto tJacEntries = tJacobianX->entries();
             Plato::ScalarMultiVectorT<ResultScalarType> tResultWS =
                     Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>( tWorksets.get("result") );
-            mWorksets.assembleTransposeJacobian
-                (mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS, tJacEntries);
+            if(aTranspose)
+            { mWorksetFuncs.assembleTransposeJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS, tJacEntries); }
+            else
+            { mWorksetFuncs.assembleJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS, tJacEntries); }
         }
 
         return tJacobianX;
     }
 
     Teuchos::RCP<Plato::CrsMatrixType>
-    jacobianControl(const Plato::Domain & aDomain,
-                    const Plato::Scalar & aCycle) const
+    jacobianControl(const Plato::Database & aDatabase,
+                    const Plato::Scalar   & aCycle,
+                          bool              aTranspose = true) const
     {
         // set local result workset scalar type
         using ResultScalarType = typename JacobianZEvalType::ResultScalarType;
 
         // create return matrix
         auto tMesh = mSpatialModel.Mesh;
-        Teuchos::RCP<Plato::CrsMatrixType> tJacobianZ =
-                Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumControl, mNumDofsPerNode>( tMesh );
+        Teuchos::RCP<Plato::CrsMatrixType> tJacobianZ;
+        if(aTranspose)
+        { tJacobianZ = Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumControl, mNumDofsPerNode>( tMesh ); }
+        else
+        { tJacobianZ = Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumControl>( tMesh ); }
 
         WorksetBuilder<JacobianZEvalType> tWorksetBuilder;
+        // internal forces
         for(const auto& tSpatialDomain : mSpatialModel.Domains)
         {
             // build worksets
             Plato::WorkSets tWorksets;
-            tWorksetBuilder.build(tSpatialDomain, aDomain, mWorksets, tWorksets);
+            tWorksetBuilder.build(tSpatialDomain, aDatabase, mWorksetFuncs, tWorksets);
 
             // evaluate internal forces
             auto tName = tSpatialDomain.getDomainName();
@@ -1495,14 +1507,18 @@ public:
             auto tJacEntries = tJacobianZ->entries();
             Plato::ScalarMultiVectorT<ResultScalarType> tResultWS =
                     Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>( tWorksets.get("result") );
-            mWorksets.assembleTransposeJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS, tJacEntries, tSpatialDomain);
+            if(aTranspose)
+            { mWorksetFuncs.assembleTransposeJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS, tJacEntries, tSpatialDomain); }
+            else
+            { mWorksetFuncs.assembleJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS, tJacEntries, tSpatialDomain); }
         }
 
+        // prescribed forces
         {
             // build worksets
             Plato::WorkSets tWorksets;
             auto tNumCells = mSpatialModel.Mesh->NumElements();
-            tWorksetBuilder.build(tNumCells, aDomain, mWorksets, tWorksets);
+            tWorksetBuilder.build(tNumCells, aDatabase, mWorksetFuncs, tWorksets);
 
             // evaluate prescribed forces
             auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
@@ -1514,40 +1530,255 @@ public:
             auto tJacEntries = tJacobianZ->entries();
             Plato::ScalarMultiVectorT<ResultScalarType> tResultWS =
                     Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>( tWorksets.get("result") );
-            mWorksets.assembleTransposeJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tJacobianZ, tJacEntries);
+            if(aTranspose)
+            { mWorksetFuncs.assembleTransposeJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tJacobianZ, tJacEntries); }
+            else
+            { mWorksetFuncs.assembleJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tJacobianZ, tJacEntries); }
         }
+
         return tJacobianZ;
     }
 };
 
-class AbstractProblem
+class CriterionBase
 {
+protected:
+    const Plato::SpatialDomain & mSpatialDomain; /*!< spatial domain */
+          Plato::DataMap       & mDataMap;       /*!< analyze data map */
+    const std::string            mName;          /*!< criterion name */
+          bool                   mCompute;       /*!< if true, include in evaluation */
+
 public:
-    virtual ~AbstractProblem(){}
+    /******************************************************************************//**
+     * \brief CriterionBase constructor
+     * \param [in] aSpatialDomain spatial domain
+     * \param [in] aDataMap       data map
+     * \param [in] aInputs        problem input, used to set up active domains
+     * \param [in] aName          criterion name
+    **********************************************************************************/
+    CriterionBase(
+        const Plato::SpatialDomain   & aSpatialDomain,
+              Plato::DataMap         & aDataMap,
+              Teuchos::ParameterList & aInputs,
+        const std::string            & aName
+    ) :
+        mSpatialDomain (aSpatialDomain),
+        mDataMap       (aDataMap),
+        mName  (aName),
+        mCompute       (true)
+    {
+        std::string tCurrentDomainName = aSpatialDomain.getDomainName();
+
+        auto tMyCriteria = aInputs.sublist("Criteria").sublist(aName);
+        std::vector<std::string> tDomains = Plato::teuchos::parse_array<std::string>("Domains", tMyCriteria);
+        if(tDomains.size() != 0)
+        {
+            mCompute = (std::find(tDomains.begin(), tDomains.end(), tCurrentDomainName) != tDomains.end());
+            if(!mCompute)
+            {
+                std::stringstream ss;
+                ss << "Block '" << tCurrentDomainName << "' will not be included in the calculation of '" << aName << "'.";
+                REPORT(ss.str());
+            }
+        }
+    }
 
     /******************************************************************************//**
-     * \brief Write results to output database.
-     * \param [in] aFilename name of output database file
+     * \brief CriterionBase destructor
     **********************************************************************************/
-    virtual void output(const std::string& aFilename) = 0;
+    virtual ~CriterionBase(){}
+
+    virtual void
+    evaluateConditional(const Plato::WorkSets & aDatabase,
+                        const Plato::Scalar   & aCycle) const = 0;
+
+    virtual void
+    evaluate(const Plato::WorkSets & aDatabase,
+             const Plato::Scalar   & aCycle)
+    { if(mCompute) this->evaluateConditional(aDatabase, aCycle); }
+
+
+    /******************************************************************************//**
+     * \brief Return criterion name
+     * \return name
+    **********************************************************************************/
+    const decltype(mName)& getName()
+    { return mName; }
+
+    /******************************************************************************//**
+     * \brief Get abstract scalar function evaluation and total gradient
+    **********************************************************************************/
+    virtual void postEvaluate(Plato::ScalarVector, Plato::Scalar)
+    { return; }
+
+    /******************************************************************************//**
+     * \brief Get abstract scalar function evaluation
+     * \param [out] aOutput scalar function evaluation
+    **********************************************************************************/
+    virtual void postEvaluate(Plato::Scalar& aOutput)
+    { return; }
+
+    /******************************************************************************//**
+     * \brief Set spatial weight function
+     * \param [in] aInput math expression
+    **********************************************************************************/
+    virtual void setSpatialWeightFunction(std::string aWeightFunctionString)
+    { return; }
 };
-// class Abstract Problem
 
-}
+template<typename EvaluationType>
+class CriterionInternalElasticEnergy : public CriterionBase
+{
+private:
+    using ElementType = typename EvaluationType::ElementType;
 
-/******************************************************************************//**
- * \brief Manage scalar and vector function evaluations
-**********************************************************************************/
-template<typename PhysicsType>
-class Problem: public Plato::exp::AbstractProblem
+    using ElementType::mNumVoigtTerms;
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumDofsPerNode;
+    using ElementType::mNumDofsPerCell;
+    using ElementType::mNumSpatialDims;
+
+    using StateScalarType   = typename EvaluationType::StateScalarType;
+    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
+
+    std::shared_ptr<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterial;
+    Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, Plato::MSIMP> mApplyWeighting;
+
+public:
+    CriterionInternalElasticEnergy
+    (const Plato::SpatialDomain   & aDomain,
+           Plato::DataMap         & aDataMap,
+           Teuchos::ParameterList & aProbParams,
+     const std::string            & aCriterionName) :
+        CriterionBase(aDomain, aDataMap, aProbParams, aCriterionName)
+    {
+        // create material model and get stiffness
+        Plato::FactoryElasticMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
+        mMaterial = tMaterialFactory.create(aDomain.getMaterialName());
+    }
+
+    // TODO
+    void evaluateConditional(const Plato::WorkSets & aWorkSets,
+                             const Plato::Scalar   & aCycle) const
+    {
+        // set local strain scalar type
+        using StrainScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
+
+        // get input worksets (i.e., domain for function evaluate)
+        auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>( aWorkSets.get("state") );
+        auto tResultWS  = Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>( aWorkSets.get("result") );
+        auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>( aWorkSets.get("configuration") );
+        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("control") );
+
+        Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
+        Plato::ScalarProduct<mNumVoigtTerms>      tComputeScalarProduct;
+        Plato::SmallStrain<ElementType>           tComputeVoigtStrain;
+        Plato::CauchyStress<EvaluationType>       tComputeVoigtStress(mMaterial.operator*());
+
+        auto tCubPoints = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints = tCubWeights.size();
+
+        auto tApplyWeighting = mApplyWeighting;
+        auto tNumCells = mSpatialDomain.numCells();
+        Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        {
+            ConfigScalarType tVolume(0.0);
+
+            Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, ConfigScalarType> tGradient;
+
+            Plato::Array<ElementType::mNumVoigtTerms, StrainScalarType> tStrain(0.0);
+            Plato::Array<ElementType::mNumVoigtTerms, ResultScalarType> tStress(0.0);
+
+            auto tCubPoint = tCubPoints(iGpOrdinal);
+
+            tComputeGradient(iCellOrdinal, tCubPoint, tConfigWS, tGradient, tVolume);
+
+            tComputeVoigtStrain(iCellOrdinal, tStrain, tStateWS, tGradient);
+
+            tComputeVoigtStress(tStress, tStrain);
+
+            tVolume *= tCubWeights(iGpOrdinal);
+
+            auto tBasisValues = ElementType::basisValues(tCubPoint);
+            tApplyWeighting(iCellOrdinal, tControlWS, tBasisValues, tStress);
+
+            tComputeScalarProduct(iCellOrdinal, tResultWS, tStress, tStrain, tVolume, 0.5);
+        });
+    }
+};
+
+
+class ScalarFunctionBase
 {
 public:
-    void output(const std::string& aFilename){}
+    virtual ~ScalarFunctionBase(){}
+
+    virtual std::string name() const = 0;
+
+    virtual Plato::Scalar
+    value(const Plato::Database & aDatabase,
+          const Plato::Scalar   & aCycle) const = 0;
+
+    virtual Plato::ScalarVector
+    gradientControl(const Plato::Database & aDatabase,
+                    const Plato::Scalar   & aCycle) const = 0;
+
+    virtual Plato::ScalarVector
+    gradientState(const Plato::Database & aDatabase,
+                  const Plato::Scalar   & aCycle) const = 0;
+
+    virtual Plato::ScalarVector
+    gradientConfig(const Plato::Database & aDatabase,
+                   const Plato::Scalar   & aCycle) const = 0;
 };
-// class Problem
+
+template<typename PhysicsType>
+class ScalarFunction : public ScalarFunctionBase
+{
+private:
+    using ElementType = typename PhysicsType::ElementType;
+
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumNodesPerFace;
+    using ElementType::mNumDofsPerNode;
+    using ElementType::mNumDofsPerCell;
+    using ElementType::mNumSpatialDims;
+    using ElementType::mNumControl;
+
+    using ValueEvalType = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+    using GradUEvalType = typename Plato::Elliptic::Evaluation<ElementType>::Jacobian;
+    using GradXEvalType = typename Plato::Elliptic::Evaluation<ElementType>::GradientX;
+    using GradZEvalType = typename Plato::Elliptic::Evaluation<ElementType>::GradientZ;
+
+    using ValueFunction     = std::shared_ptr<CriterionBase<ValueEvalType>>;
+    using GradientUFunction = std::shared_ptr<CriterionBase<GradUEvalType>>;
+    using GradientXFunction = std::shared_ptr<CriterionBase<GradXEvalType>>;
+    using GradientZFunction = std::shared_ptr<CriterionBase<GradZEvalType>>;
+
+    Plato::DataMap & mDataMap;
+    const Plato::SpatialModel & mSpatialModel;
+    Plato::WorksetBase<ElementType> mWorksetFuncs;
+
+    std::string mName;
+
+    // TODO FINISH
+};
+
+template<typename PhysicsType>
+class Problem : public Plato::AbstractProblem
+{
+
+};
 
 }
-// namespace immersus
+// namespace exp
+
+}
+// namespace Plato
 
 namespace IfemTests
 {
