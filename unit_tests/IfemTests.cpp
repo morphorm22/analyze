@@ -1308,13 +1308,16 @@ private:
     using ElementType::mNumDofsPerCell;
     using ElementType::mNumNodesPerCell;
 
+    std::shared_ptr<Plato::WorksetBase<ElementType>> mWorksetFuncs;
+
 public:
-    WorksetBuilder(){}
+    WorksetBuilder(const std::shared_ptr<Plato::WorksetBase<ElementType>>& aWorksetFuncs) :
+        mWorksetFuncs(aWorksetFuncs)
+    {}
 
     void build
     (const Plato::SpatialDomain & aSpatialDomain,
      const Plato::Database      & aDatabase,
-     const WorksetFunctionality & aWorksetFuncs,
            Plato::WorkSets      & aWorkSets) const
     {
         // number of cells in the spatial domain
@@ -1324,49 +1327,48 @@ public:
         using StateScalarType = typename EvaluationType::StateScalarType;
         auto tStateWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<StateScalarType> > >
             ( Plato::ScalarMultiVectorT<StateScalarType>("State Workset", tNumCells, mNumDofsPerCell) );
-        aWorksetFuncs.worksetState(aDatabase.vector("state"), tStateWS->mData, aSpatialDomain);
+        mWorksetFuncs->worksetState(aDatabase.vector("state"), tStateWS->mData, aSpatialDomain);
         aWorkSets.set("state", tStateWS);
 
         // build control workset
         using ControlScalarType = typename EvaluationType::ControlScalarType;
         auto tControlWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ControlScalarType> > >
             ( Plato::ScalarMultiVectorT<ControlScalarType>("Control Workset", tNumCells, mNumNodesPerCell) );
-        aWorksetFuncs.worksetControl(aDatabase.vector("control"), tControlWS->mData, aSpatialDomain);
+        mWorksetFuncs->worksetControl(aDatabase.vector("control"), tControlWS->mData, aSpatialDomain);
         aWorkSets.set("control", tControlWS);
 
         // build configuration workset
         using ConfigScalarType = typename EvaluationType::ConfigScalarType;
         auto tConfigWS = std::make_shared< Plato::MetaData< Plato::ScalarArray3DT<ConfigScalarType> > >
             ( Plato::ScalarArray3DT<ConfigScalarType>("Config Workset", tNumCells, mNumNodesPerCell, mNumSpatialDims) );
-        aWorksetFuncs.worksetConfig(tConfigWS, aSpatialDomain);
+        mWorksetFuncs->worksetConfig(tConfigWS, aSpatialDomain);
         aWorkSets.set("configuration", tConfigWS);
     }
 
     void build
     (const Plato::OrdinalType   & tNumCells,
      const Plato::Database      & aDatabase,
-     const WorksetFunctionality & aWorksetFuncs,
            Plato::WorkSets      & aWorkSets) const
     {
         // build state workset
         using StateScalarType = typename EvaluationType::StateScalarType;
         auto tStateWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<StateScalarType> > >
             ( Plato::ScalarMultiVectorT<StateScalarType>("State Workset", tNumCells, mNumDofsPerCell) );
-        aWorksetFuncs.worksetState(aDatabase.vector("state"), tStateWS->mData);
+        mWorksetFuncs->worksetState(aDatabase.vector("state"), tStateWS->mData);
         aWorkSets.set("state", tStateWS);
 
         // build control workset
         using ControlScalarType = typename EvaluationType::ControlScalarType;
         auto tControlWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ControlScalarType> > >
             ( Plato::ScalarMultiVectorT<ControlScalarType>("Control Workset", tNumCells, mNumNodesPerCell) );
-        aWorksetFuncs.worksetControl(aDatabase.vector("control"), tControlWS->mData);
+        mWorksetFuncs->worksetControl(aDatabase.vector("control"), tControlWS->mData);
         aWorkSets.set("control", tControlWS);
 
         // build configuration workset
         using ConfigScalarType = typename EvaluationType::ConfigScalarType;
         auto tConfigWS = std::make_shared< Plato::MetaData< Plato::ScalarArray3DT<ConfigScalarType> > >
             ( Plato::ScalarArray3DT<ConfigScalarType>("Config Workset", tNumCells, mNumNodesPerCell, mNumSpatialDims) );
-        aWorksetFuncs.worksetConfig(tConfigWS);
+        mWorksetFuncs->worksetConfig(tConfigWS);
         aWorkSets.set("configuration", tConfigWS);
     }
 };
@@ -1428,7 +1430,7 @@ private:
 
     Plato::DataMap & mDataMap;
     const Plato::SpatialModel & mSpatialModel;
-    Plato::WorksetBase<ElementType> mWorksetFuncs;
+    std::shared_ptr<Plato::WorksetBase<ElementType>> mWorksetFuncs;
 
 public:
     VectorFunction
@@ -1449,6 +1451,8 @@ public:
             mJacobiansZ[tName] = tFactoryResidual.template createResidual<JacobianXEvalType>(tDomain, aDataMap, aProbParams, aType);
             mJacobiansX[tName] = tFactoryResidual.template createResidual<JacobianZEvalType>(tDomain, aDataMap, aProbParams, aType);
         }
+
+        mWorksetFuncs = std::make_shared<Plato::WorksetBase<ElementType>>();
     }
 
     Plato::ScalarVector
@@ -1461,7 +1465,7 @@ public:
         using ResultScalarType  = typename ResidualEvalType::ResultScalarType;
 
         auto tNumNodes = mSpatialModel.Mesh->NumNodes();
-        WorksetBuilder<ResidualEvalType> tWorksetBuilder;
+        WorksetBuilder<ResidualEvalType> tWorksetBuilder(mWorksetFuncs);
         Plato::ScalarVector tResidual("Assembled Residual",mNumDofsPerNode*tNumNodes);
 
         // internal forces
@@ -1469,7 +1473,7 @@ public:
         {
             // build residual domain worksets
             Plato::WorkSets tWorksets;
-            tWorksetBuilder.build(tDomain, aDatabase, mWorksetFuncs, tWorksets);
+            tWorksetBuilder.build(tDomain, aDatabase, tWorksets);
 
             // build residual range workset
             auto tNumCells = tDomain.numCells();
@@ -1482,7 +1486,7 @@ public:
             mResiduals.at(tName)->evaluate( tWorksets, aCycle );
 
             // assemble to return view
-            mWorksetFuncs.assembleResidual(tResultWS->mData, tResidual, tDomain );
+            mWorksetFuncs->assembleResidual(tResultWS->mData, tResidual, tDomain );
         }
 
         // prescribed forces
@@ -1490,7 +1494,7 @@ public:
             // build residual domain worksets
             Plato::WorkSets tWorksets;
             auto tNumCells = mSpatialModel.Mesh->NumElements();
-            tWorksetBuilder.build(tNumCells, aDatabase, mWorksetFuncs, tWorksets);
+            tWorksetBuilder.build(tNumCells, aDatabase, tWorksets);
 
             // build residual range workset
             auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ResultScalarType> > >
@@ -1502,7 +1506,7 @@ public:
             mResiduals.at(tFirstBlockName)->evaluatePrescribed(mSpatialModel, tWorksets, aCycle );
 
             // create and assemble to return view
-            mWorksetFuncs.assembleResidual(tResultWS->mData, tResidual);
+            mWorksetFuncs->assembleResidual(tResultWS->mData, tResidual);
         }
 
         return tResidual;
@@ -1523,13 +1527,13 @@ public:
         Teuchos::RCP<Plato::CrsMatrixType> tJacobianU =
                 Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumDofsPerNode>( tMesh );
 
-        WorksetBuilder<JacobianUEvalType> tWorksetBuilder;
+        WorksetBuilder<JacobianUEvalType> tWorksetBuilder(mWorksetFuncs);
         // internal forces
         for(const auto& tDomain : mSpatialModel.Domains)
         {
             // build jacobian domain worksets
             Plato::WorkSets tWorksets;
-            tWorksetBuilder.build(tDomain, aDatabase, mWorksetFuncs, tWorksets);
+            tWorksetBuilder.build(tDomain, aDatabase, tWorksets);
 
             // build jacobian range workset
             auto tNumCells = tDomain.numCells();
@@ -1546,7 +1550,7 @@ public:
                 tJacEntryOrdinal( tJacobianU, tMesh );
 
             auto tJacEntries = tJacobianU->entries();
-            mWorksetFuncs.assembleJacobianFad(mNumDofsPerCell,mNumDofsPerCell,tJacEntryOrdinal,tResultWS->mData,tJacEntries,tDomain);
+            mWorksetFuncs->assembleJacobianFad(mNumDofsPerCell,mNumDofsPerCell,tJacEntryOrdinal,tResultWS->mData,tJacEntries,tDomain);
         }
 
         // prescribed forces
@@ -1554,7 +1558,7 @@ public:
             // build jacobian domain worksets
             Plato::WorkSets tWorksets;
             auto tNumCells = mSpatialModel.Mesh->NumElements();
-            tWorksetBuilder.build(tNumCells, aDatabase, mWorksetFuncs, tWorksets);
+            tWorksetBuilder.build(tNumCells, aDatabase, tWorksets);
 
             // build jacobian range workset
             auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ResultScalarType> > >
@@ -1569,7 +1573,7 @@ public:
             Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumDofsPerNode, mNumDofsPerNode> tJacEntryOrdinal( tJacobianU, tMesh );
 
             auto tJacEntries = tJacobianU->entries();
-            mWorksetFuncs.assembleJacobianFad(mNumDofsPerCell, mNumDofsPerCell,tJacEntryOrdinal,tResultWS->mData,tJacEntries);
+            mWorksetFuncs->assembleJacobianFad(mNumDofsPerCell, mNumDofsPerCell,tJacEntryOrdinal,tResultWS->mData,tJacEntries);
         }
         return tJacobianU;
     }
@@ -1592,13 +1596,13 @@ public:
         else
         { tJacobianX = Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumSpatialDims>(tMesh); }
 
-        WorksetBuilder<JacobianXEvalType> tWorksetBuilder;
+        WorksetBuilder<JacobianXEvalType> tWorksetBuilder(mWorksetFuncs);
         // internal forces
         for(const auto& tDomain : mSpatialModel.Domains)
         {
             // build jacobian domain worksets
             Plato::WorkSets tWorksets;
-            tWorksetBuilder.build(tDomain, aDatabase, mWorksetFuncs, tWorksets);
+            tWorksetBuilder.build(tDomain, aDatabase, tWorksets);
 
             // build jacobian range workset
             auto tNumCells = tDomain.numCells();
@@ -1616,9 +1620,9 @@ public:
 
             auto tJacEntries = tJacobianX->entries();
             if(aTranspose)
-            { mWorksetFuncs.assembleTransposeJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
+            { mWorksetFuncs->assembleTransposeJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
             else
-            { mWorksetFuncs.assembleJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
+            { mWorksetFuncs->assembleJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
         }
 
         // prescribed forces
@@ -1626,7 +1630,7 @@ public:
             // build jacobian domain worksets
             Plato::WorkSets tWorksets;
             auto tNumCells = mSpatialModel.Mesh->NumElements();
-            tWorksetBuilder.build(tNumCells, aDatabase, mWorksetFuncs, tWorksets);
+            tWorksetBuilder.build(tNumCells, aDatabase, tWorksets);
 
             // build jacobian range workset
             auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ResultScalarType> > >
@@ -1643,9 +1647,9 @@ public:
 
             auto tJacEntries = tJacobianX->entries();
             if(aTranspose)
-            { mWorksetFuncs.assembleTransposeJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
+            { mWorksetFuncs->assembleTransposeJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
             else
-            { mWorksetFuncs.assembleJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
+            { mWorksetFuncs->assembleJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
         }
 
         return tJacobianX;
@@ -1669,13 +1673,13 @@ public:
         else
         { tJacobianZ = Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumControl>( tMesh ); }
 
-        WorksetBuilder<JacobianZEvalType> tWorksetBuilder;
+        WorksetBuilder<JacobianZEvalType> tWorksetBuilder(mWorksetFuncs);
         // internal forces
         for(const auto& tDomain : mSpatialModel.Domains)
         {
             // build jacobian domain worksets
             Plato::WorkSets tWorksets;
-            tWorksetBuilder.build(tDomain, aDatabase, mWorksetFuncs, tWorksets);
+            tWorksetBuilder.build(tDomain, aDatabase, tWorksets);
 
             // build jacobian range workset
             auto tNumCells = tDomain.numCells();
@@ -1692,9 +1696,9 @@ public:
 
             auto tJacEntries = tJacobianZ->entries();
             if(aTranspose)
-            { mWorksetFuncs.assembleTransposeJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
+            { mWorksetFuncs->assembleTransposeJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
             else
-            { mWorksetFuncs.assembleJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
+            { mWorksetFuncs->assembleJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
         }
 
         // prescribed forces
@@ -1702,7 +1706,7 @@ public:
             // build jacobian domain worksets
             Plato::WorkSets tWorksets;
             auto tNumCells = mSpatialModel.Mesh->NumElements();
-            tWorksetBuilder.build(tNumCells, aDatabase, mWorksetFuncs, tWorksets);
+            tWorksetBuilder.build(tNumCells, aDatabase, tWorksets);
 
             // build jacobian range workset
             auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ResultScalarType> > >
@@ -1718,9 +1722,9 @@ public:
 
             auto tJacEntries = tJacobianZ->entries();
             if(aTranspose)
-            { mWorksetFuncs.assembleTransposeJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
+            { mWorksetFuncs->assembleTransposeJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
             else
-            { mWorksetFuncs.assembleJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
+            { mWorksetFuncs->assembleJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
         }
 
         return tJacobianZ;
@@ -1784,7 +1788,7 @@ private:
 
     Plato::DataMap & mDataMap;
     const Plato::SpatialModel & mSpatialModel;
-    Plato::WorksetBase<ElementType> mWorksetFuncs;
+    std::shared_ptr<Plato::WorksetBase<ElementType>> mWorksetFuncs;
 
     std::string mName;
 
@@ -1846,12 +1850,12 @@ public:
         using ResultScalarType = typename ValueEvalType::ResultScalarType;
 
         Plato::Scalar tReturnVal(0.0);
-        WorksetBuilder<ValueEvalType> tWorksetBuilder;
+        WorksetBuilder<ValueEvalType> tWorksetBuilder(mWorksetFuncs);
         for(const auto& tDomain : mSpatialModel.Domains)
         {
             // build criterion value domain worksets
             Plato::WorkSets tWorksets;
-            tWorksetBuilder.build(tDomain, aDatabase, mWorksetFuncs, tWorksets);
+            tWorksetBuilder.build(tDomain, aDatabase, tWorksets);
 
             // build criterion value range workset
             auto tNumCells = tDomain.numCells();
@@ -1888,17 +1892,17 @@ public:
         using ResultScalarType = typename GradXEvalType::ResultScalarType;
 
         // create output
-        auto tNumNodes = mWorksetFuncs.numNodes();
+        auto tNumNodes = mWorksetFuncs->numNodes();
         Plato::ScalarVector tGradientX("criterion gradient configuration", mNumSpatialDims * tNumNodes);
 
         // evaluate gradient
         Plato::Scalar tValue(0.0);
-        WorksetBuilder<ValueEvalType> tWorksetBuilder;
+        WorksetBuilder<GradXEvalType> tWorksetBuilder(mWorksetFuncs);
         for(const auto& tDomain : mSpatialModel.Domains)
         {
             // build gradient domain worksets
             Plato::WorkSets tWorksets;
-            tWorksetBuilder.build(tDomain, aDatabase, mWorksetFuncs, tWorksets);
+            tWorksetBuilder.build(tDomain, aDatabase, tWorksets);
 
             // build gradient range workset
             auto tNumCells = tDomain.numCells();
@@ -1912,7 +1916,7 @@ public:
             mGradientXFunctions.at(tName)->evaluate(tWorksets, aCycle);
 
             // assemble gradient
-            mWorksetFuncs.assembleVectorGradientFadX(tResultWS->mData, tGradientX);
+            mWorksetFuncs->assembleVectorGradientFadX(tResultWS->mData, tGradientX);
 
             tValue += Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS->mData);
         }
@@ -1934,17 +1938,17 @@ public:
         using ResultScalarType = typename GradUEvalType::ResultScalarType;
 
         // create output
-        auto tNumNodes = mWorksetFuncs.numNodes();
+        auto tNumNodes = mWorksetFuncs->numNodes();
         Plato::ScalarVector tGradientU("criterion gradient state", mNumDofsPerNode * tNumNodes);
 
         // evaluate gradient
         Plato::Scalar tValue(0.0);
-        WorksetBuilder<ValueEvalType> tWorksetBuilder;
+        WorksetBuilder<GradUEvalType> tWorksetBuilder(mWorksetFuncs);
         for(const auto& tDomain : mSpatialModel.Domains)
         {
             // build gradient domain worksets
             Plato::WorkSets tWorksets;
-            tWorksetBuilder.build(tDomain, aDatabase, mWorksetFuncs, tWorksets);
+            tWorksetBuilder.build(tDomain, aDatabase, tWorksets);
 
             // build gradient range workset
             auto tNumCells = tDomain.numCells();
@@ -1958,7 +1962,7 @@ public:
             mGradientUFunctions.at(tName)->evaluate(tWorksets, aCycle);
 
             // assemble gradient
-            mWorksetFuncs.assembleVectorGradientFadU(tResultWS->mData, tGradientU);
+            mWorksetFuncs->assembleVectorGradientFadU(tResultWS->mData, tGradientU);
 
             tValue += Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS->mData);
         }
@@ -1980,17 +1984,17 @@ public:
         using ResultScalarType = typename GradZEvalType::ResultScalarType;
 
         // create output
-        auto tNumNodes = mWorksetFuncs.numNodes();
+        auto tNumNodes = mWorksetFuncs->numNodes();
         Plato::ScalarVector tGradientZ("criterion gradient control", tNumNodes);
 
         // evaluate gradient
         Plato::Scalar tValue(0.0);
-        WorksetBuilder<ValueEvalType> tWorksetBuilder;
+        WorksetBuilder<GradZEvalType> tWorksetBuilder(mWorksetFuncs);
         for(const auto& tDomain : mSpatialModel.Domains)
         {
             // build gradient domain worksets
             Plato::WorkSets tWorksets;
-            tWorksetBuilder.build(tDomain, aDatabase, mWorksetFuncs, tWorksets);
+            tWorksetBuilder.build(tDomain, aDatabase, tWorksets);
 
             // build gradient range workset
             auto tNumCells = tDomain.numCells();
@@ -2004,7 +2008,7 @@ public:
             mGradientZFunctions.at(tName)->evaluate(tWorksets, aCycle);
 
             // assemble gradient and value
-            mWorksetFuncs.assembleScalarGradientFadZ(tResultWS->mData, tGradientZ);
+            mWorksetFuncs->assembleScalarGradientFadZ(tResultWS->mData, tGradientZ);
             tValue += Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS->mData);
         }
 
@@ -2031,6 +2035,8 @@ private:
             mGradientXFunctions[tDomainName] = tFactory.template createCriterion<GradXEvalType>(tFunType, mName, tDomain, mDataMap, aProbParams);
             mGradientZFunctions[tDomainName] = tFactory.template createCriterion<GradZEvalType>(tFunType, mName, tDomain, mDataMap, aProbParams);
         }
+
+        mWorksetFuncs = std::make_shared<Plato::WorksetBase<ElementType>>();
     }
 };
 
