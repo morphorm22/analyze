@@ -266,7 +266,7 @@ public:
         KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
             auto tCubPoint = tCubPoints(iGpOrdinal);
-            auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal));
+            auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, tConfig, iCellOrdinal));
 
             ControlFadType tDensity(0.0);
             auto tBasisValues = ElementType::basisValues(tCubPoint);
@@ -454,7 +454,7 @@ public:
            Teuchos::ParameterList & aSubList) :
         ForceBaseType(aLoadName,aSubList)
     {
-        this->initialize(aSubList)
+        this->initialize(aSubList);
     }
     ~NaturalBCPressure(){}
 
