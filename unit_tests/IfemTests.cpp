@@ -2131,14 +2131,13 @@ public:
 template<typename PhysicsType>
 class Problem : public Plato::AbstractProblem
 {
-// TODO: FINISH
 private:
     // define local types
     using ElementType = typename PhysicsType::ElementType;
     using Criterion = std::shared_ptr<ScalarFunctionBase>;
 
+    bool mIsLinear; /*!< indicates if optimization problem is linear */
     bool mSaveState;
-    bool mIsSelfAdjoint; /*!< indicates if problem is self-adjoint */
 
     std::string mPDEType;
     std::string mPhysicsType;
@@ -2167,7 +2166,7 @@ public:
             mResidual("Residual", mResidualEvaluator->numDofs()),
             mState("States", 1, mResidualEvaluator->numDofs()),
             mJacobianState(Teuchos::null),
-            mIsSelfAdjoint(aProbParams.get<bool>("Self-Adjoint", false)),
+            mIsLinear(aProbParams.get<bool>("Self-Adjoint", false)),
             mPDEType(aProbParams.get < std::string > ("PDE Constraint")),
             mPhysicsType(aProbParams.get < std::string > ("Physics"))
     {
@@ -2212,7 +2211,7 @@ public:
         mDataMap.clearStates();
         mDataMap.scalarNodeFields["Topology"] = tDatabase.vector("control");
 
-        const Plato::Scalar tCYCLE = 0.0;
+        constexpr Plato::Scalar tCYCLE = 0.0;
         mResidual = mResidualEvaluator->value(tDatabase,tCYCLE);
         Plato::blas1::scale(-1.0, mResidual);
         mJacobianState = mResidualEvaluator->jacobianState(tDatabase, tCYCLE, /*transpose=*/ false);
@@ -2239,12 +2238,11 @@ public:
     (const Plato::ScalarVector & aControl,
      const std::string         & aName)
     {
-        const Plato::Scalar tCYCLE = 0.0;
-
         Plato::Database tDatabase;
         this->buildDatabase(aControl,tDatabase);
         if( mCriterionEvaluator.count(aName) )
         {
+            constexpr Plato::Scalar tCYCLE = 0.0;
             auto tValue = mCriterionEvaluator[aName]->value(tDatabase, tCYCLE);
             return tValue;
         }
@@ -2424,9 +2422,26 @@ private:
         }
     }
 
+    void
+    applyAdjointConstraints
+    (const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
+     const Plato::ScalarVector                & aVector)
+    {
+        Plato::ScalarVector tDirichletValues("Essential Boundary Conditions for Adjoint Problem", mBcValues.size());
+        Plato::blas1::scale(static_cast<Plato::Scalar>(0.0), tDirichletValues);
+        if(mJacobianState->isBlockMatrix())
+        {
+            Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tDirichletValues);
+        }
+        else
+        {
+            Plato::applyConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tDirichletValues);
+        }
+    }
+
     Plato::ScalarVector
     computeCriterionGradientControl
-    (const Plato::Database & aControl,
+    (const Plato::Database & aDatabase,
            Criterion       & aCriterion)
     {
         if(aCriterion == nullptr)
@@ -2441,35 +2456,34 @@ private:
         }
 
         // compute gradient with respect to control variables
-        const Plato::Scalar tCYCLE = 0.0;
-        auto tGradientControl = aCriterion->gradientControl(tDatabase, tCYCLE);
+        constexpr Plato::Scalar tCYCLE = 0.0;
+        auto tGradientControl = aCriterion->gradientControl(aDatabase, tCYCLE);
 
         // get adjoint vector for this cycle
-        const size_t tCYCLE_INDEX = 0;
+        constexpr size_t tCYCLE_INDEX = 0;
         Plato::ScalarVector tAdjointVector = Kokkos::subview(mAdjoint, tCYCLE_INDEX, Kokkos::ALL());
-        if(mIsSelfAdjoint)
+        if(mIsLinear)
         {
-            auto tStateVector = tDatabase.vector("state");
+            auto tStateVector = aDatabase.vector("state");
             Plato::blas1::copy(tStateVector, tAdjointVector);
             Plato::blas1::scale(-1.0, tAdjointVector);
         }
         else
         {
             // compute gradient with respect to state variables
-            auto tGradientState = aCriterion->gradientState(tDatabase, tCYCLE);
+            auto tGradientState = aCriterion->gradientState(aDatabase, tCYCLE);
             Plato::blas1::scale(-1.0, tGradientState);
 
             // compute jacobian with respect to state variables
-            mJacobianState = mResidualEvaluator->jacobianState(tDatabase, tCYCLE, /*transpose=*/ true);
-
-            this->applyAdjointConstraints(mJacobianState, tGradientState); // TODO: IMPLEMENT
+            mJacobianState = mResidualEvaluator->jacobianState(aDatabase, tCYCLE, /*transpose=*/ true);
+            this->applyAdjointConstraints(mJacobianState, tGradientState);
 
             Plato::blas1::fill(0.0, tAdjointVector);
             mSolver->solve(*mJacobianState, tAdjointVector, tGradientState, /*isAdjointSolve=*/ true);
         }
 
         // compute jacobian with respect to control variables
-        auto tJacobianControl = mResidualEvaluator->jacobianControl(tDatabase, tCYCLE, /*transpose=*/ true);
+        auto tJacobianControl = mResidualEvaluator->jacobianControl(aDatabase, tCYCLE, /*transpose=*/ true);
 
         // compute gradient with respect to design variables
         Plato::MatrixTimesVectorPlusVector(tJacobianControl, tAdjointVector, tGradientControl);
@@ -2479,10 +2493,49 @@ private:
 
     Plato::ScalarVector
     computeCriterionGradientConfig
-    (const Plato::Database & aControl,
+    (const Plato::Database & aDatabase,
            Criterion       & aCriterion)
     {
-        // TODO: FINISH
+        if(aCriterion == nullptr)
+        {
+            ANALYZE_THROWERR("ERROR: Requested criterion is undefined");
+        }
+
+        if(static_cast<Plato::OrdinalType>(mAdjoint.size()) <= static_cast<Plato::OrdinalType>(0))
+        {
+            const auto tNumDofs = mResidualEvaluator->numDofs();
+            mAdjoint = Plato::ScalarMultiVector("Adjoint Variables", 1, tNumDofs);
+        }
+
+        // compute gradient with respect to configuration variables
+        constexpr Plato::Scalar tCYCLE = 0.0;
+        auto tGradientConfig  = aCriterion->gradientConfig(aDatabase, tCYCLE);
+
+        if(mIsLinear)
+        {
+            Plato::blas1::scale(static_cast<Plato::Scalar>(-1), tGradientConfig);
+        }
+        else
+        {
+            // compute gradient with respect to state variables
+            auto tGradientState = aCriterion->gradientState(aDatabase, tCYCLE);
+            Plato::blas1::scale(static_cast<Plato::Scalar>(-1), tGradientState);
+
+            // compute jacobian with respect to state variables
+            mJacobianState = mResidualEvaluator->jacobianState(aDatabase, tCYCLE, /*transpose=*/ true);
+            this->applyAdjointConstraints(mJacobianState, tGradientState);
+
+            constexpr size_t tCYCLE_INDEX = 0;
+            Plato::ScalarVector tAdjointVector = Kokkos::subview(mAdjoint, tCYCLE_INDEX, Kokkos::ALL());
+            mSolver->solve(*mJacobianState, tAdjointVector, tGradientState, /*isAdjointSolve=*/ true);
+
+            // compute jacobian with respect to configuration variables
+            auto tJacobianConfig = mResidualEvaluator->jacobianConfig(aDatabase, tCYCLE, /*transpose=*/ true);
+
+            // compute gradient with respect to design variables: dgdx * adjoint + dfdx
+            Plato::MatrixTimesVectorPlusVector(tJacobianConfig, tAdjointVector, tGradientConfig);
+        }
+        return tGradientConfig;
     }
 };
 
