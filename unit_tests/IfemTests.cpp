@@ -666,9 +666,8 @@ private:
         tType = Plato::tolower(tType);
         auto tItr = mForceTypes.find(tType);
         if( tItr == mForceTypes.end() ){
-            std::string tMsg;
-            tMsg + "Natural Boundary Condition of type '" + tType "' is not supported. "
-                 + "Supported options are: ";
+            std::string tMsg = std::string("Natural Boundary Condition of type '")
+                + tType + "' is not supported. " + "Supported options are: ";
             for(const auto& tPair : mForceTypes)
             {
                 tMsg + tPair.first << ", ";
@@ -934,10 +933,10 @@ private:
     using ElementType::mNumSpatialDims;
 
     // set local fad types
-    using StateFadType   = typename EvaluationType::StateScalarType;
-    using ResultFadType  = typename EvaluationType::ResultScalarType;
-    using ConfigFadType  = typename EvaluationType::ConfigScalarType;
-    using ControlFadType = typename EvaluationType::ControlScalarType;
+    using StateScalarType   = typename EvaluationType::StateScalarType;
+    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
 
     std::shared_ptr<Plato::exp::NaturalBCs<EvaluationType>> mPrescribedForces;
     std::shared_ptr<Plato::VolumeForces<EvaluationType>> mBodyLoads;
@@ -968,9 +967,9 @@ public:
         }
 
         // parse natural boundary conditions
-        if(aProblemParams.isSublist("Natural Boundary Conditions"))
+        if(aProbParams.isSublist("Natural Boundary Conditions"))
         {
-            mPrescribedForces = std::make_shared<Plato::NaturalBCs<EvaluationType>>(aProbParams.sublist("Natural Boundary Conditions"));
+            mPrescribedForces = std::make_shared<Plato::exp::NaturalBCs<EvaluationType>>(aProbParams.sublist("Natural Boundary Conditions"));
         }
     }
 
@@ -979,13 +978,13 @@ public:
      const Plato::Scalar   & aCycle) const
     {
         // set strain fad type
-        using StrainFadType = typename Plato::fad_type_t<ElementType, StateFadType, ConfigFadType>;
+        using StrainFadType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
         // create local worksets
         auto tNumCells = mSpatialDomain.numCells();
-        Plato::ScalarVectorT<ConfigFadType> tCellVolume("volume", tNumCells);
+        Plato::ScalarVectorT<ConfigScalarType> tCellVolume("volume", tNumCells);
         Plato::ScalarMultiVectorT<StrainFadType> tCellStrain("strain", tNumCells, mNumVoigtTerms);
-        Plato::ScalarMultiVectorT<ResultFadType> tCellStress("stress", tNumCells, mNumVoigtTerms);
+        Plato::ScalarMultiVectorT<ResultScalarType> tCellStress("stress", tNumCells, mNumVoigtTerms);
 
         // create local functors
         Plato::SmallStrain<ElementType>             tComputeVoigtStrain;
@@ -994,10 +993,10 @@ public:
         Plato::CauchyStress<EvaluationType>         tComputeVoigtStress(mMaterial.operator*());
 
         // get input worksets (i.e., domain for function evaluate)
-        auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateFadType>>( aWorkSets.get("state"));
-        auto tResultWS  = Plato::metadata<Plato::ScalarMultiVectorT<ResultFadType>>( aWorkSets.get("result"));
-        auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigFadType>>( aWorkSets.get("configuration"));
-        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlFadType>>( aWorkSets.get("control"));
+        auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>( aWorkSets.get("state"));
+        auto tResultWS  = Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>( aWorkSets.get("result"));
+        auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>( aWorkSets.get("configuration"));
+        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("control"));
 
         // get element integration points and weights
         auto tCubPoints = ElementType::getCubPoints();
