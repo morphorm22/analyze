@@ -441,8 +441,11 @@ private:
     // set local element type definition
     using ElementType = typename EvaluationType::ElementType;
 
-    // set local parent class type
+    // set local base class type
     using ForceBaseType = Plato::NaturalBCBase<EvaluationType>;
+
+    // set base class member data
+    using ForceBaseType::mSideSetName;
 
     // set local fad type definitions
     using ResultFadType  = typename EvaluationType::ResultScalarType;
