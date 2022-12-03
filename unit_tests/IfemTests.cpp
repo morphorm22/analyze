@@ -434,6 +434,7 @@ private:
     }
 };
 
+
 template<typename EvaluationType>
 class NaturalBCPressure : public Plato::NaturalBCBase<EvaluationType>
 {
@@ -444,12 +445,13 @@ private:
     // set local base class type
     using ForceBaseType = Plato::NaturalBCBase<EvaluationType>;
 
-    // set base class member data
+    // set natural boundary condition base class member data
+    using ForceBaseType::mForceCoeff;
     using ForceBaseType::mSideSetName;
 
     // set local fad type definitions
-    using ResultFadType  = typename EvaluationType::ResultScalarType;
-    using ConfigFadType  = typename EvaluationType::ConfigScalarType;
+    using ResultScalarType = typename EvaluationType::ResultScalarType;
+    using ConfigScalarType = typename EvaluationType::ConfigScalarType;
 
 public:
     NaturalBCPressure
@@ -487,8 +489,8 @@ public:
         auto tNumPoints = tCubatureWeights.size();
 
         // get input worksets (i.e., domain for function evaluate)
-        auto tResultWS = Plato::metadata<Plato::ScalarMultiVectorT<ResultFadType>>(aWorkSets.get("result"));
-        auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigFadType>>(aWorkSets.get("configuration"));
+        auto tResultWS = Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
+        auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
 
         // pressure forces should act towards the surface; thus, -1.0 is used to invert the outward facing normal inwards.
         Plato::Scalar tNormalMultiplier(-1.0);
@@ -517,11 +519,11 @@ public:
             // project into aResult workset
             for( Plato::OrdinalType tNode=0; tNode<ElementType::mNumNodesPerFace; tNode++)
             {
-                for( Plato::OrdinalType tDof=0; tDof<NumDofs; tDof++)
+                for( Plato::OrdinalType tDim=0; tDim<ElementType::mNumSpatialDims; tDim++)
                 {
-                    auto tElementDofOrdinal = (tLocalNodeOrds[tNode] * DofsPerNode) + tDof + DofOffset;
+                    auto tElementDofOrdinal = (tLocalNodeOrds[tNode] * ElementType::mNumDofsPerNode) + tDim + DofOffset;
                     ResultScalarType tVal =
-                      tWeightedNormalVec(tDof) * tFlux(tDof) * aScale * tCubatureWeight * tNormalMultiplier * tBasisValues(tNode);
+                      tWeightedNormalVec(tDim) * tFlux(tDim) * aScale * tCubatureWeight * tNormalMultiplier * tBasisValues(tNode);
                     Kokkos::atomic_add(&tResultWS(tElementOrdinal, tElementDofOrdinal), tVal);
                 }
             }
