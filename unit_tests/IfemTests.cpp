@@ -521,7 +521,7 @@ public:
             {
                 for( Plato::OrdinalType tDim=0; tDim<ElementType::mNumSpatialDims; tDim++)
                 {
-                    auto tElementDofOrdinal = (tLocalNodeOrds[tNode] * ElementType::mNumDofsPerNode) + tDim + DofOffset;
+                    auto tElementDofOrdinal = (tLocalNodeOrds[tNode] * ElementType::mNumDofsPerNode) + tDim;
                     ResultScalarType tVal =
                       tWeightedNormalVec(tDim) * tFlux(tDim) * aScale * tCubatureWeight * tNormalMultiplier * tBasisValues(tNode);
                     Kokkos::atomic_add(&tResultWS(tElementOrdinal, tElementDofOrdinal), tVal);
@@ -542,8 +542,8 @@ private:
     using ForceBaseType = Plato::NaturalBCBase<EvaluationType>;
 
     // set local fad type definitions
-    using ResultFadType  = typename EvaluationType::ResultScalarType;
-    using ConfigFadType  = typename EvaluationType::ConfigScalarType;
+    using ResultScalarType = typename EvaluationType::ResultScalarType;
+    using ConfigScalarType = typename EvaluationType::ConfigScalarType;
 
 public:
     NaturalBCUniform
@@ -551,7 +551,7 @@ public:
            Teuchos::ParameterList & aSubList) :
         ForceBaseType(aLoadName,aSubList)
     {
-        this->initialize(aSubList)
+        this->initialize(aSubList);
     }
     ~NaturalBCUniform(){}
 
@@ -570,19 +570,19 @@ public:
         this->evalForceExpr(aCycle);
 
         // get input worksets (i.e., domain for function evaluate)
-        auto tResultWS = Plato::metadata<Plato::ScalarMultiVectorT<ResultFadType>>(aWorkSets.get("result"));
-        auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigFadType>>(aWorkSets.get("configuration"));
+        auto tResultWS = Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
+        auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
 
         // get side set connectivity
-        auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
-        auto tNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
+        auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(ForceBaseType::mSideSetName);
+        auto tNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(ForceBaseType::mSideSetName);
         Plato::OrdinalType tNumFaces = tElementOrds.size();
 
         // create surface area functor
         Plato::SurfaceArea<ElementType> tComputeSurfaceArea;
 
         // get integration points and weights
-        auto tForceCoef = mForceCoeff;
+        auto tForceCoef = ForceBaseType::mForceCoeff;
         auto tCubatureWeights = ElementType::Face::getCubWeights();
         auto tCubaturePoints  = ElementType::Face::getCubPoints();
         auto tNumPoints = tCubatureWeights.size();
