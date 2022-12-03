@@ -21,8 +21,10 @@
 #include "WorksetBase.hpp"
 #include "SurfaceArea.hpp"
 #include "SmallStrain.hpp"
+#include "EssentialBCs.hpp"
 #include "SpatialModel.hpp"
 #include "LinearStress.hpp"
+#include "AnalyzeOutput.hpp"
 #include "ScalarProduct.hpp"
 #include "PlatoMathExpr.hpp"
 #include "PlatoMeshExpr.hpp"
@@ -30,12 +32,15 @@
 #include "GradientMatrix.hpp"
 #include "ApplyWeighting.hpp"
 #include "MechanicsElement.hpp"
+#include "ApplyConstraints.hpp"
 #include "PlatoStaticsTypes.hpp"
 #include "ElasticModelFactory.hpp"
 #include "WeightedNormalVector.hpp"
 #include "PlatoAbstractProblem.hpp"
 #include "GeneralStressDivergence.hpp"
 
+#include "alg/PlatoSolverFactory.hpp"
+#include "alg/PlatoAbstractSolver.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 
 namespace Plato
@@ -864,6 +869,16 @@ public:
     virtual ~ResidualBase()
     {}
 
+    decltype(mSpatialDomain.Mesh) getMesh() const
+    {
+        return (mSpatialDomain.Mesh);
+    }
+
+    const decltype(mDofNames)& getDofNames() const
+    {
+        return mDofNames;
+    }
+
     /***************************************************************************//**
      * \fn void evaluate
      * \brief Evaluate inner domain residual, exclude boundary terms.
@@ -1076,37 +1091,25 @@ public:
      * \param [in] aInputs        problem input, used to set up active domains
      * \param [in] aName          criterion name
     **********************************************************************************/
-    CriterionBase(
-        const Plato::SpatialDomain   & aSpatialDomain,
-              Plato::DataMap         & aDataMap,
-              Teuchos::ParameterList & aInputs,
-        const std::string            & aName
-    ) :
+    CriterionBase
+    (const Plato::SpatialDomain   & aSpatialDomain,
+           Plato::DataMap         & aDataMap,
+           Teuchos::ParameterList & aProbParams,
+     const std::string            & aName) :
         mSpatialDomain (aSpatialDomain),
         mDataMap       (aDataMap),
         mName          (aName),
         mCompute       (true)
     {
-        std::string tCurrentDomainName = aSpatialDomain.getDomainName();
-
-        auto tMyCriteria = aInputs.sublist("Criteria").sublist(aName);
-        std::vector<std::string> tDomains = Plato::teuchos::parse_array<std::string>("Domains", tMyCriteria);
-        if(tDomains.size() != 0)
-        {
-            mCompute = (std::find(tDomains.begin(), tDomains.end(), tCurrentDomainName) != tDomains.end());
-            if(!mCompute)
-            {
-                std::stringstream ss;
-                ss << "Block '" << tCurrentDomainName << "' will not be included in the calculation of '" << aName << "'.";
-                REPORT(ss.str());
-            }
-        }
+        this->initialize(aProbParams);
     }
 
     /******************************************************************************//**
      * \brief CriterionBase destructor
     **********************************************************************************/
     virtual ~CriterionBase(){}
+
+    virtual void isLinear() const = 0;
 
     virtual void
     evaluateConditional(const Plato::WorkSets & aWorksets,
@@ -1144,6 +1147,27 @@ public:
     **********************************************************************************/
     virtual void setSpatialWeightFunction(std::string aWeightFunctionString)
     { return; }
+
+private:
+    void
+    initialize
+    (Teuchos::ParameterList & aProbParams)
+    {
+        std::string tCurrentDomainName = mSpatialDomain.getDomainName();
+
+        auto tMyCriteria = aProbParams.sublist("Criteria").sublist(mName);
+        std::vector<std::string> tDomains = Plato::teuchos::parse_array<std::string>("Domains", tMyCriteria);
+        if(tDomains.size() != 0)
+        {
+            mCompute = (std::find(tDomains.begin(), tDomains.end(), tCurrentDomainName) != tDomains.end());
+            if(!mCompute)
+            {
+                std::stringstream ss;
+                ss << "Block '" << tCurrentDomainName << "' will not be included in the calculation of '" << mName << "'.";
+                REPORT(ss.str());
+            }
+        }
+    }
 };
 
 template<typename EvaluationType>
@@ -1179,7 +1203,8 @@ public:
         mMaterial = tMaterialFactory.create(aDomain.getMaterialName());
     }
 
-    // TODO
+    bool isLinear() const { return false; }
+
     void evaluateConditional(const Plato::WorkSets & aWorkSets,
                              const Plato::Scalar   & aCycle) const
     {
@@ -1453,6 +1478,18 @@ public:
         }
 
         mWorksetFuncs = std::make_shared<Plato::WorksetBase<ElementType>>();
+    }
+
+    Plato::OrdinalType numDofs() const
+    {
+        auto tNumNodes = mSpatialModel.Mesh->NumNodes();
+        return (tNumNodes*mNumDofsPerNode);
+    }
+
+    std::vector<std::string> getDofNames() const
+    {
+        auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
+        return mResiduals.at(tFirstBlockName)->getDofNames();
     }
 
     Plato::ScalarVector
@@ -1744,6 +1781,8 @@ public:
 
     virtual std::string name() const = 0;
 
+    virtual bool isLinear() const = 0;
+
     virtual Plato::Scalar
     value(const Plato::Database & aDatabase,
           const Plato::Scalar   & aCycle) const = 0;
@@ -1794,13 +1833,13 @@ private:
 
 public:
     ScalarFunction
-    (const Plato::SpatialModel    & aSpatialModel,
+    (const std::string            & aFuncName,
+     const Plato::SpatialModel    & aSpatialModel,
            Plato::DataMap         & aDataMap,
-           Teuchos::ParameterList & aProbParams,
-           std::string            & aName) :
+           Teuchos::ParameterList & aProbParams) :
         mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
-        mName         (aName)
+        mName         (aFuncName)
     {
         this->initialize(aProbParams);
     }
@@ -1838,6 +1877,12 @@ public:
                 break;
             }
         }
+    }
+
+    bool isLinear() const
+    {
+        auto tDomainName = mSpatialModel.Domains.front().getDomainName();
+        return ( mValueFunctions.at(tDomainName)->isLinear() );
     }
 
     Plato::Scalar
@@ -2041,9 +2086,404 @@ private:
 };
 
 template<typename PhysicsType>
+class FactoryScalarFunction
+{
+public:
+    /******************************************************************************//**
+     * \brief Constructor
+     **********************************************************************************/
+    FactoryScalarFunction () {}
+
+    /******************************************************************************//**
+     * \brief Destructor
+     **********************************************************************************/
+    ~FactoryScalarFunction() {}
+
+    /******************************************************************************//**
+     * \brief Create method
+     * \param [in] aMesh mesh database
+     * \param [in] aDataMap Plato Engine and Analyze data map
+     * \param [in] aInputParams parameter input
+     * \param [in] aFunctionName name of function in parameter list
+     **********************************************************************************/
+    std::shared_ptr<ScalarFunctionBase>
+    create
+    (const std::string            & aFuncName,
+     const Plato::SpatialModel    & aSpatialModel,
+           Plato::DataMap         & aDataMap,
+           Teuchos::ParameterList & aProbParams)
+    {
+        auto tFuncParams = aProbParams.sublist("Criteria").sublist(aFuncName);
+        auto tFuncType = tFuncParams.get<std::string>("Type", "Not Defined");
+
+        if(tFuncType == "Scalar Function")
+        {
+            return std::make_shared<ScalarFunction<PhysicsType>>(aFuncName, aSpatialModel, aDataMap, aProbParams);
+        }
+        else
+        {
+            return nullptr;
+        }
+        return nullptr;
+    }
+};
+
+template<typename PhysicsType>
 class Problem : public Plato::AbstractProblem
 {
+// TODO: FINISH
+private:
+    // define local types
+    using ElementType = typename PhysicsType::ElementType;
+    using Criterion = std::shared_ptr<ScalarFunctionBase>;
 
+    bool mSaveState;
+    bool mIsSelfAdjoint; /*!< indicates if problem is self-adjoint */
+
+    std::string mPDEType;
+    std::string mPhysicsType;
+
+    Plato::ScalarVector mResidual;
+    Plato::ScalarMultiVector mState;
+    Plato::ScalarMultiVector mAdjoint;
+    Teuchos::RCP<Plato::CrsMatrixType> mJacobianState; /*!< Jacobian with respect to state variables */
+
+    Plato::OrdinalVector mBcDofs;  /*!< list of essential boundary condition degrees of freedom */
+    Plato::ScalarVector mBcValues; /*!< list of values associated with the essential boundary condition degrees of freedom */
+
+    Plato::SpatialModel mSpatialModel; /*!< SpatialModel instance, contains the mesh, mesh sets, domains, etc. */
+    std::shared_ptr<Plato::AbstractSolver> mSolver;
+    std::unordered_map<std::string, Criterion> mCriterionEvaluator;
+    std::shared_ptr<VectorFunction<PhysicsType>> mResidualEvaluator;
+
+public:
+    Problem
+    (Plato::Mesh            &aMesh,
+     Teuchos::ParameterList &aProbParams,
+     Comm::Machine          &aMachine) :
+            Plato::AbstractProblem(aMesh, aProbParams),
+            mSpatialModel(aMesh, aProbParams, mDataMap),
+            mSaveState(aProbParams.sublist("Elliptic").isType < Teuchos::Array < std::string >> ("Plottable")),
+            mResidual("Residual", mResidualEvaluator->numDofs()),
+            mState("States", 1, mResidualEvaluator->numDofs()),
+            mJacobianState(Teuchos::null),
+            mIsSelfAdjoint(aProbParams.get<bool>("Self-Adjoint", false)),
+            mPDEType(aProbParams.get < std::string > ("PDE Constraint")),
+            mPhysicsType(aProbParams.get < std::string > ("Physics"))
+    {
+        this->initializeEvaluators(aProbParams);
+        this->initializeSolver(aMesh,aProbParams,aMachine);
+    }
+
+    Plato::Solutions getSolution() const
+    {
+        Plato::Solutions tSolution(mPhysicsType, mPDEType);
+        tSolution.set("state", mState, mResidualEvaluator->getDofNames());
+        return tSolution;
+    }
+
+    void
+    output
+    (const std::string & aFilepath)
+    {
+        auto tDataMap = this->getDataMap();
+        auto tSolution = this->getSolution();
+        Plato::universal_solution_output(aFilepath, tSolution, tDataMap, mSpatialModel.Mesh);
+    }
+
+    void
+    updateProblem
+    (const Plato::ScalarVector & aControl,
+     const Plato::Solutions    & aSolution)
+    { return; }
+
+    Plato::Solutions
+    solution
+    (const Plato::ScalarVector & aControl)
+    {
+        // build database
+        Plato::Database tDatabase;
+        this->buildDatabase(aControl,tDatabase);
+
+        // initializa state vector
+        Plato::ScalarVector tStateVector = tDatabase.vector("state");
+        Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tStateVector);
+
+        mDataMap.clearStates();
+        mDataMap.scalarNodeFields["Topology"] = tDatabase.vector("control");
+
+        const Plato::Scalar tCYCLE = 0.0;
+        mResidual = mResidualEvaluator->value(tDatabase,tCYCLE);
+        Plato::blas1::scale(-1.0, mResidual);
+        mJacobianState = mResidualEvaluator->jacobianState(tDatabase, tCYCLE, /*transpose=*/ false);
+        this->applyStateConstraints(mJacobianState, mResidual, 1.0);
+
+        Plato::ScalarVector tDeltaState("increment", tStateVector.extent(0));
+        Plato::blas1::fill(0.0, tDeltaState);
+        mSolver->solve(*mJacobianState, tDeltaState, mResidual);
+        Plato::blas1::axpy(1.0, tDeltaState, tStateVector);
+
+        if ( mSaveState )
+        {
+            // evaluate at new state
+            mResidual = mResidualEvaluator->value(tDatabase,tCYCLE);
+            mDataMap.saveState();
+        }
+
+        auto tSolution = this->getSolution();
+        return tSolution;
+    }
+
+    Plato::Scalar
+    criterionValue
+    (const Plato::ScalarVector & aControl,
+     const std::string         & aName)
+    {
+        const Plato::Scalar tCYCLE = 0.0;
+
+        Plato::Database tDatabase;
+        this->buildDatabase(aControl,tDatabase);
+        if( mCriterionEvaluator.count(aName) )
+        {
+            auto tValue = mCriterionEvaluator[aName]->value(tDatabase, tCYCLE);
+            return tValue;
+        }
+        else
+        {
+            ANALYZE_THROWERR(std::string("ERROR: Criterion with name '") + aName + "' is not defined")
+        }
+    }
+
+    Plato::Scalar
+    criterionValue
+    (const Plato::ScalarVector & aControl,
+     const Plato::Solutions    & aSolution,
+     const std::string         & aName)
+    {
+        return (this->criterionValue(aControl,aName));
+    }
+
+    Plato::ScalarVector
+    criterionGradient
+    (const Plato::ScalarVector & aControl,
+     const std::string         & aName)
+    {
+        if( mCriterionEvaluator.find(aName) == mCriterionEvaluator.end() )
+        {
+            ANALYZE_THROWERR(std::string("ERROR: Criterion with name '") + aName + "' is not defined")
+        }
+
+        // build database
+        Plato::Database tDatabase;
+        this->buildDatabase(aControl,tDatabase);
+
+        // compute gradient
+        if(mCriterionEvaluator.at(aName)->isLinear() )
+        {
+            return ( mCriterionEvaluator.at(aName)->gradientControl(tDatabase,/*cycle=*/ 0.0) );
+        }
+        else
+        {
+            return ( this->computeCriterionGradientControl(tDatabase, mCriterionEvaluator[aName]) );
+        }
+    }
+
+    Plato::ScalarVector
+    criterionGradient
+    (const Plato::ScalarVector & aControl,
+     const Plato::Solutions    & aSolution,
+     const std::string         & aName)
+    {
+        return (this->criterionGradient(aControl,aName));
+    }
+
+    Plato::ScalarVector
+    criterionGradientX
+    (const Plato::ScalarVector & aControl,
+     const std::string         & aName)
+    {
+        if( mCriterionEvaluator.find(aName) == mCriterionEvaluator.end() )
+        {
+            ANALYZE_THROWERR(std::string("ERROR: Criterion with name '") + aName + "' is not defined")
+        }
+
+        // build database
+        Plato::Database tDatabase;
+        this->buildDatabase(aControl,tDatabase);
+
+        // compute gradient
+        if(mCriterionEvaluator.at(aName)->isLinear() )
+        {
+            return ( mCriterionEvaluator.at(aName)->gradientConfig(tDatabase,/*cycle=*/ 0.0) );
+        }
+        else
+        {
+            return ( this->computeCriterionGradientConfig(tDatabase, mCriterionEvaluator[aName]) );
+        }
+    }
+
+    Plato::ScalarVector
+    criterionGradientX
+    (const Plato::ScalarVector & aControl,
+     const Plato::Solutions    & aSolution,
+     const std::string         & aName)
+    {
+        return (this->criterionGradientX(aControl,aName));
+    }
+
+private:
+    void
+    initializeSolver
+    (Plato::Mesh            &aMesh,
+     Teuchos::ParameterList &aProbParams,
+     Comm::Machine          &aMachine)
+    {
+        mPhysicsType = Plato::tolower(mPhysicsType);
+        auto tSystemType = LinearSystemType::SYMMETRIC_POSITIVE_DEFINITE;
+        if(mPhysicsType == "electromechanical" || mPhysicsType == "thermomechanical")
+        {
+            tSystemType = LinearSystemType::SYMMETRIC_INDEFINITE;
+        }
+
+        Plato::SolverFactory tSolverFactory(aProbParams.sublist("Linear Solver"), tSystemType);
+        mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode);
+    }
+
+    void
+    initializeEvaluators
+    (Teuchos::ParameterList& aProbParams)
+    {
+        mResidualEvaluator = std::make_shared<VectorFunction<PhysicsType>>(mPhysicsType,mSpatialModel,mDataMap,aProbParams);
+
+        if(aProbParams.isSublist("Criteria"))
+        {
+            FactoryScalarFunction<PhysicsType> tFactoryScalarFunction;
+
+            auto tFuncParams = aProbParams.sublist("Criteria");
+            for(Teuchos::ParameterList::ConstIterator tIndex = tFuncParams.begin(); tIndex != tFuncParams.end(); ++tIndex)
+            {
+                const Teuchos::ParameterEntry &tEntry = tFuncParams.entry(tIndex);
+                std::string tScalarFuncName = tFuncParams.name(tIndex);
+
+                std::string tErrMsg("Parameter in Criteria block not valid.  Expect lists only.");
+                TEUCHOS_TEST_FOR_EXCEPTION(!tEntry.isList(), std::logic_error, tErrMsg);
+
+                auto tCriterion = tFactoryScalarFunction.create(tScalarFuncName, mSpatialModel, mDataMap, aProbParams);
+                if(tCriterion != nullptr)
+                {
+                    mCriterionEvaluator[tScalarFuncName] = tCriterion;
+                }
+            }
+            if( mCriterionEvaluator.size() )
+            {
+                auto tNumDofs = mResidualEvaluator->numDofs();
+                mAdjoint = Plato::ScalarVector("Adjoint Vector", 1, tNumDofs);
+            }
+        }
+
+        this->readEssentialBCs(aProbParams);
+    }
+
+    void
+    readEssentialBCs
+    (Teuchos::ParameterList& aProbParams)
+    {
+        if(aProbParams.isSublist("Essential Boundary Conditions") == false)
+        {
+            ANALYZE_THROWERR("ABORT: Essential boundary conditions parameter list is not defined")
+        }
+        Plato::EssentialBCs<ElementType>
+        tEssentialBoundaryConditions(aProbParams.sublist("Essential Boundary Conditions", false), mSpatialModel.Mesh);
+        tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
+    }
+
+    void
+    buildDatabase
+    (const Plato::ScalarVector & aControl,
+           Plato::Database     & aDatabase)
+    {
+        const size_t tCYCLE_INDEX = 0;
+        auto tStateVector = Kokkos::subview(mState, tCYCLE_INDEX, Kokkos::ALL());
+        aDatabase.vector("state"  , tStateVector);
+        aDatabase.vector("control", aControl);
+    }
+
+    void
+    applyStateConstraints
+    (const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
+     const Plato::ScalarVector                & aVector,
+           Plato::Scalar                      & aScale)
+    {
+        if(mJacobianState->isBlockMatrix())
+        {
+            Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, mBcValues, aScale);
+        }
+        else
+        {
+            Plato::applyConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, mBcValues, aScale);
+        }
+    }
+
+    Plato::ScalarVector
+    computeCriterionGradientControl
+    (const Plato::Database & aControl,
+           Criterion       & aCriterion)
+    {
+        if(aCriterion == nullptr)
+        {
+            ANALYZE_THROWERR("ERROR: Requested criterion is undefined");
+        }
+
+        if(static_cast<Plato::OrdinalType>(mAdjoint.size()) <= static_cast<Plato::OrdinalType>(0))
+        {
+            const auto tNumDofs = mResidualEvaluator->numDofs();
+            mAdjoint = Plato::ScalarMultiVector("Adjoint Variables", 1, tNumDofs);
+        }
+
+        // compute gradient with respect to control variables
+        const Plato::Scalar tCYCLE = 0.0;
+        auto tGradientControl = aCriterion->gradientControl(tDatabase, tCYCLE);
+
+        // get adjoint vector for this cycle
+        const size_t tCYCLE_INDEX = 0;
+        Plato::ScalarVector tAdjointVector = Kokkos::subview(mAdjoint, tCYCLE_INDEX, Kokkos::ALL());
+        if(mIsSelfAdjoint)
+        {
+            auto tStateVector = tDatabase.vector("state");
+            Plato::blas1::copy(tStateVector, tAdjointVector);
+            Plato::blas1::scale(-1.0, tAdjointVector);
+        }
+        else
+        {
+            // compute gradient with respect to state variables
+            auto tGradientState = aCriterion->gradientState(tDatabase, tCYCLE);
+            Plato::blas1::scale(-1.0, tGradientState);
+
+            // compute jacobian with respect to state variables
+            mJacobianState = mResidualEvaluator->jacobianState(tDatabase, tCYCLE, /*transpose=*/ true);
+
+            this->applyAdjointConstraints(mJacobianState, tGradientState); // TODO: IMPLEMENT
+
+            Plato::blas1::fill(0.0, tAdjointVector);
+            mSolver->solve(*mJacobianState, tAdjointVector, tGradientState, /*isAdjointSolve=*/ true);
+        }
+
+        // compute jacobian with respect to control variables
+        auto tJacobianControl = mResidualEvaluator->jacobianControl(tDatabase, tCYCLE, /*transpose=*/ true);
+
+        // compute gradient with respect to design variables
+        Plato::MatrixTimesVectorPlusVector(tJacobianControl, tAdjointVector, tGradientControl);
+
+        return tGradientControl;
+    }
+
+    Plato::ScalarVector
+    computeCriterionGradientConfig
+    (const Plato::Database & aControl,
+           Criterion       & aCriterion)
+    {
+        // TODO: FINISH
+    }
 };
 
 }
