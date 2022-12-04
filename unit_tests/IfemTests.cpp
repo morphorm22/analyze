@@ -20,7 +20,6 @@
 #include "MetaData.hpp"
 #include "WorkSets.hpp"
 #include "Assembly.hpp"
-#include "Mechanics.hpp"
 #include "WorksetBase.hpp"
 #include "SurfaceArea.hpp"
 #include "SmallStrain.hpp"
@@ -353,7 +352,7 @@ private:
             }
 
             Teuchos::ParameterList& tSublist = aParams.sublist(tName);
-            auto tNewVolumeForce = std::make_shared<Plato::BodyLoad<EvaluationType>>(tName, tSublist);
+            auto tNewVolumeForce = std::make_shared<BodyLoad<EvaluationType>>(tName, tSublist);
             volume_force_t tType = tNewVolumeForce.type();
             mVolumeForces[tType].push_back(tNewVolumeForce);
         }
@@ -962,7 +961,7 @@ public:
         if(mNumSpatialDims > 2) mDofNames.push_back("displacement Z");
 
         // create material model and get stiffness
-        Plato::exp::FactoryElasticMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
+        FactoryElasticMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
         mMaterial = tMaterialFactory.create(aDomain.getMaterialName());
 
         // parse body loads
@@ -1265,11 +1264,10 @@ public:
     }
 };
 
-
 /******************************************************************************//**
  * \brief Factory for linear mechanics problem
 **********************************************************************************/
-struct FactoryResidual
+struct FactoryMechanicsResidual
 {
     /******************************************************************************//**
      * \brief Create a PLATO vector function (i.e. residual equation)
@@ -1294,7 +1292,7 @@ struct FactoryResidual
 /******************************************************************************//**
  * \brief Factory for linear mechanics problem
 **********************************************************************************/
-struct FactoryCriterion
+struct FactoryMechanicsCriterion
 {
     /******************************************************************************//**
      * \brief Create a PLATO vector function (i.e. residual equation)
@@ -1317,13 +1315,13 @@ struct FactoryCriterion
 
 };
 
-namespace exp
-{
-
 template<typename ElementTopoType>
 class PhysicsMechanics
 {
 public:
+    typedef FactoryMechanicsResidual  FactoryResidual;
+    typedef FactoryMechanicsCriterion FactoryCriterion;
+
     using ElementType = Plato::MechanicsElement<ElementTopoType>;
 };
 
@@ -2626,7 +2624,7 @@ TEUCHOS_UNIT_TEST(NewInterface, Elastostatics)
     MPI_Comm_dup(MPI_COMM_WORLD, &tMyComm);
     Plato::Comm::Machine tMachine(tMyComm);
 
-    Plato::exp::Problem<Plato::Mechanics<Plato::Tet10>>
+    Plato::exp::Problem<Plato::exp::PhysicsMechanics<Plato::Tet10>>
         tElasticityProblem(tMesh, *tParamList, tMachine);
 }
 
