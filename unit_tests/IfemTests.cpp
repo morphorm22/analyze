@@ -15,6 +15,7 @@
 
 // immersus includes
 #include "Simp.hpp"
+#include "BLAS1.hpp"
 #include "FadTypes.hpp"
 #include "MetaData.hpp"
 #include "WorkSets.hpp"
@@ -50,6 +51,9 @@
 #include "util/PlatoTestHelpers.hpp"
 
 namespace Plato
+{
+
+namespace exp
 {
 
 template<typename Type>
@@ -192,7 +196,7 @@ class VolumeForceBase
 {
 public:
     virtual ~VolumeForceBase(){}
-    virtual Plato::volume_force_t type() const = 0;
+    virtual volume_force_t type() const = 0;
     virtual void evaluate
     (const Plato::SpatialDomain & aSpatialDomain,
      const Plato::WorkSets      & aWorkSets,
@@ -200,7 +204,7 @@ public:
      const Plato::Scalar        & aCycle) const=0;
 
     std::unordered_map<volume_force_t,std::string> AM =
-        { {Plato::volume_force_t::BODYLOAD,"Body Load"} };
+        { {volume_force_t::BODYLOAD,"Body Load"} };
 };
 
 /******************************************************************************/
@@ -208,7 +212,7 @@ public:
  \brief Class for essential boundary conditions.
  */
 template<typename EvaluationType>
-class BodyLoad : public Plato::VolumeForceBase<EvaluationType>
+class BodyLoad : public VolumeForceBase<EvaluationType>
 /******************************************************************************/
 {
 private:
@@ -237,7 +241,7 @@ public:
     {
     }
 
-    Plato::volume_force_t type() const { return Plato::volume_force_t::BODYLOAD; }
+    volume_force_t type() const { return volume_force_t::BODYLOAD; }
 
     void evaluate
     (const Plato::SpatialDomain & aSpatialDomain,
@@ -304,7 +308,7 @@ class VolumeForces
 /******************************************************************************/
 {
 private:
-    std::unordered_map<Plato::volume_force_t,std::vector< std::shared_ptr< VolumeForceBase<EvaluationType> > > > mVolumeForces;
+    std::unordered_map<volume_force_t,std::vector< std::shared_ptr< VolumeForceBase<EvaluationType> > > > mVolumeForces;
 
 public:
 
@@ -350,7 +354,7 @@ private:
 
             Teuchos::ParameterList& tSublist = aParams.sublist(tName);
             auto tNewVolumeForce = std::make_shared<Plato::BodyLoad<EvaluationType>>(tName, tSublist);
-            Plato::volume_force_t tType = tNewVolumeForce.type();
+            volume_force_t tType = tNewVolumeForce.type();
             mVolumeForces[tType].push_back(tNewVolumeForce);
         }
     }
@@ -395,7 +399,7 @@ public:
     std::string sideset() const { return mSideSetName; }
     Plato::Array<mNumSpatialDims> coefficients() const { return mForceCoeff; }
 
-    Plato::surface_force_t type() const = 0;
+    surface_force_t type() const = 0;
     virtual void evaluate
     (const Plato::SpatialModel & aSpatialModel,
      const Plato::WorkSets     & aWorkSets,
@@ -442,14 +446,14 @@ private:
 
 
 template<typename EvaluationType>
-class NaturalBCPressure : public Plato::NaturalBCBase<EvaluationType>
+class NaturalBCPressure : public NaturalBCBase<EvaluationType>
 {
 private:
     // set local element type definition
     using ElementType = typename EvaluationType::ElementType;
 
     // set local base class type
-    using ForceBaseType = Plato::NaturalBCBase<EvaluationType>;
+    using ForceBaseType = NaturalBCBase<EvaluationType>;
 
     // set natural boundary condition base class member data
     using ForceBaseType::mForceCoeff;
@@ -469,9 +473,9 @@ public:
     }
     ~NaturalBCPressure(){}
 
-    Plato::surface_force_t type() const
+    surface_force_t type() const
     {
-        return Plato::surface_force_t::PRESSURE;
+        return surface_force_t::PRESSURE;
     }
 
     void evaluate
@@ -538,14 +542,14 @@ public:
 };
 
 template<typename EvaluationType>
-class NaturalBCUniform : public Plato::NaturalBCBase<EvaluationType>
+class NaturalBCUniform : public NaturalBCBase<EvaluationType>
 {
 private:
     // set local element type definition
     using ElementType = typename EvaluationType::ElementType;
 
     // set local parent class type
-    using ForceBaseType = Plato::NaturalBCBase<EvaluationType>;
+    using ForceBaseType = NaturalBCBase<EvaluationType>;
 
     // set local fad type definitions
     using ResultScalarType = typename EvaluationType::ResultScalarType;
@@ -561,9 +565,9 @@ public:
     }
     ~NaturalBCUniform(){}
 
-    Plato::surface_force_t type() const
+    surface_force_t type() const
     {
-        return Plato::surface_force_t::UNIFORM;
+        return surface_force_t::UNIFORM;
     }
 
     void evaluate
@@ -633,30 +637,30 @@ class FactoryNaturalBC
 {
 private:
     /*!< map from input force type string to supported enum */
-    std::unordered_map<std::string,Plato::surface_force_t> mForceTypes =
+    std::unordered_map<std::string,surface_force_t> mForceTypes =
         {
-            {"uniform",Plato::surface_force_t::UNIFORM},
-            {"pressure",Plato::surface_force_t::PRESSURE}
+            {"uniform",surface_force_t::UNIFORM},
+            {"pressure",surface_force_t::PRESSURE}
         };
 
 public:
     FactoryNaturalBC(){}
     ~FactoryNaturalBC(){}
 
-    std::shared_ptr<Plato::NaturalBCBase<EvaluationType>>
+    std::shared_ptr<NaturalBCBase<EvaluationType>>
     create(const std::string & aName, Teuchos::ParameterList &aSubList)
     {
         auto tType = this->type(aSubList);
         this->setValues(aName,aSubList);
         switch(tType)
         {
-            case Plato::surface_force_t::UNIFORM:
+            case surface_force_t::UNIFORM:
             {
-                return std::make_shared<Plato::NaturalBCUniform<EvaluationType>>(aName, aSubList);
+                return std::make_shared<NaturalBCUniform<EvaluationType>>(aName, aSubList);
             }
-            case Plato::surface_force_t::PRESSURE:
+            case surface_force_t::PRESSURE:
             {
-                return std::make_shared<Plato::NaturalBCPressure<EvaluationType>>(aName, aSubList);
+                return std::make_shared<NaturalBCPressure<EvaluationType>>(aName, aSubList);
             }
             default:
             {
@@ -666,7 +670,7 @@ public:
     }
 
 private:
-    Plato::surface_force_t type(Teuchos::ParameterList & aSubList)
+    surface_force_t type(Teuchos::ParameterList & aSubList)
     {
         std::string tType = aSubList.get<std::string>("Type");
         tType = Plato::tolower(tType);
@@ -723,17 +727,14 @@ private:
     }
 };
 
-namespace exp
-{
-
 template<typename EvaluationType>
 class NaturalBCs
 {
 // private member data
 private:
-    Plato::FactoryNaturalBC<EvaluationType> mFactory;
+    FactoryNaturalBC<EvaluationType> mFactory;
     /*!< list of natural boundary condition */
-    std::unordered_map<Plato::surface_force_t,std::vector<std::shared_ptr<Plato::NaturalBCBase<EvaluationType> > > > mBCs;
+    std::unordered_map<surface_force_t,std::vector<std::shared_ptr<NaturalBCBase<EvaluationType> > > > mBCs;
 
 // public member functions
 public:
@@ -787,14 +788,12 @@ private:
                      << tName.c_str() << "'";
                 ANALYZE_THROWERR(tMsg.str().c_str())
             }
-            std::shared_ptr<Plato::NaturalBCBase<EvaluationType>> tBC = mFactory->create(tName, tSubList);
-            Plato::surface_force_t tType = tBC->type();
+            std::shared_ptr<NaturalBCBase<EvaluationType>> tBC = mFactory->create(tName, tSubList);
+            surface_force_t tType = tBC->type();
             mBCs[tType].push_back(tBC);
         }
     }
 };
-
-}
 
 /******************************************************************************/
 /*! Stress functor.
@@ -925,7 +924,7 @@ public:
 
 
 template<typename EvaluationType>
-class ResidualElastostatics : public Plato::ResidualBase
+class ResidualElastostatics : public ResidualBase
 {
 private:
     // set local element type
@@ -944,8 +943,8 @@ private:
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ControlScalarType = typename EvaluationType::ControlScalarType;
 
-    std::shared_ptr<Plato::exp::NaturalBCs<EvaluationType>> mPrescribedForces;
-    std::shared_ptr<Plato::VolumeForces<EvaluationType>> mBodyLoads;
+    std::shared_ptr<NaturalBCs<EvaluationType>> mPrescribedForces;
+    std::shared_ptr<VolumeForces<EvaluationType>> mBodyLoads;
     std::shared_ptr<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterial;
     Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, Plato::MSIMP> mApplyWeighting;
 
@@ -955,7 +954,7 @@ public:
     (const Plato::SpatialDomain & aDomain,
      Plato::DataMap             & aDataMap,
      Teuchos::ParameterList     & aProbParams) :
-         Plato::ResidualBase(aDomain, aDataMap)
+         ResidualBase(aDomain, aDataMap)
     {
         // obligatory: define dof names in order
         mDofNames.push_back("displacement X");
@@ -963,19 +962,19 @@ public:
         if(mNumSpatialDims > 2) mDofNames.push_back("displacement Z");
 
         // create material model and get stiffness
-        Plato::FactoryElasticMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
+        Plato::exp::FactoryElasticMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
         mMaterial = tMaterialFactory.create(aDomain.getMaterialName());
 
         // parse body loads
         if(aProbParams.isSublist("Body Loads"))
         {
-            mBodyLoads = std::make_shared<Plato::VolumeForces<EvaluationType>>(aProbParams.sublist("Body Loads"));
+            mBodyLoads = std::make_shared<VolumeForces<EvaluationType>>(aProbParams.sublist("Body Loads"));
         }
 
         // parse natural boundary conditions
         if(aProbParams.isSublist("Natural Boundary Conditions"))
         {
-            mPrescribedForces = std::make_shared<Plato::exp::NaturalBCs<EvaluationType>>(aProbParams.sublist("Natural Boundary Conditions"));
+            mPrescribedForces = std::make_shared<NaturalBCs<EvaluationType>>(aProbParams.sublist("Natural Boundary Conditions"));
         }
     }
 
@@ -993,10 +992,10 @@ public:
         Plato::ScalarMultiVectorT<ResultScalarType> tCellStress("stress", tNumCells, mNumVoigtTerms);
 
         // create local functors
+        CauchyStress<EvaluationType>                tComputeVoigtStress(mMaterial.operator*());
         Plato::SmallStrain<ElementType>             tComputeVoigtStrain;
         Plato::ComputeGradientMatrix<ElementType>   tComputeGradient;
         Plato::GeneralStressDivergence<ElementType> tComputeStressDivergence;
-        Plato::CauchyStress<EvaluationType>         tComputeVoigtStress(mMaterial.operator*());
 
         // get input worksets (i.e., domain for function evaluate)
         auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>( aWorkSets.get("state"));
@@ -1209,7 +1208,7 @@ public:
         CriterionBase(aDomain, aDataMap, aProbParams, aName)
     {
         // create material model and get stiffness
-        Plato::FactoryElasticMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
+        FactoryElasticMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
         mMaterial = tMaterialFactory.create(aDomain.getMaterialName());
     }
 
@@ -1227,10 +1226,10 @@ public:
         auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>( aWorkSets.get("configuration") );
         auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("control") );
 
+        CauchyStress<EvaluationType>              tComputeVoigtStress(mMaterial.operator*());
         Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
         Plato::ScalarProduct<mNumVoigtTerms>      tComputeScalarProduct;
         Plato::SmallStrain<ElementType>           tComputeVoigtStrain;
-        Plato::CauchyStress<EvaluationType>       tComputeVoigtStress(mMaterial.operator*());
 
         auto tCubPoints = ElementType::getCubPoints();
         auto tCubWeights = ElementType::getCubWeights();
@@ -1280,14 +1279,14 @@ struct FactoryResidual
      * \param [in] aPDE PDE type
     **********************************************************************************/
     template<typename EvaluationType>
-    std::shared_ptr<Plato::ResidualBase>
+    std::shared_ptr<ResidualBase>
     createResidual(
         const Plato::SpatialDomain   & aDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProbParams,
               std::string              aType)
     {
-        return std::make_shared<Plato::ResidualElastostatics<EvaluationType>>(aDomain, aDataMap, aProbParams);
+        return std::make_shared<ResidualElastostatics<EvaluationType>>(aDomain, aDataMap, aProbParams);
     }
 
 };
@@ -1305,7 +1304,7 @@ struct FactoryCriterion
      * \param [in] aPDE PDE type
     **********************************************************************************/
     template<typename EvaluationType>
-    std::shared_ptr<Plato::ResidualBase>
+    std::shared_ptr<CriterionBase>
     createCriterion(
         const std::string            & aType,
         const std::string            & aName,
@@ -1313,7 +1312,7 @@ struct FactoryCriterion
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProbParams)
     {
-        return std::make_shared<Plato::CriterionInternalElasticEnergy<EvaluationType>>(aDomain, aDataMap, aProbParams, aName);
+        return std::make_shared<CriterionInternalElasticEnergy<EvaluationType>>(aDomain, aDataMap, aProbParams, aName);
     }
 
 };
@@ -1325,8 +1324,6 @@ template<typename ElementTopoType>
 class PhysicsMechanics
 {
 public:
-    typedef Plato::FactoryResidual  FactoryResidual;
-    typedef Plato::FactoryCriterion FactoryCriterion;
     using ElementType = Plato::MechanicsElement<ElementTopoType>;
 };
 
@@ -1438,7 +1435,7 @@ public:
 };
 
 template<typename PhysicsType>
-class VectorFunction : public Plato::exp::VectorFunctionBase
+class VectorFunction : public VectorFunctionBase
 {
 private:
     using ElementType = typename PhysicsType::ElementType;
@@ -1457,10 +1454,10 @@ private:
     using JacobianXEvalType = typename Plato::Elliptic::Evaluation<ElementType>::GradientX;
     using JacobianZEvalType = typename Plato::Elliptic::Evaluation<ElementType>::GradientZ;
 
-    std::unordered_map<std::string,std::shared_ptr<Plato::ResidualBase>> mResiduals;
-    std::unordered_map<std::string,std::shared_ptr<Plato::ResidualBase>> mJacobiansU;
-    std::unordered_map<std::string,std::shared_ptr<Plato::ResidualBase>> mJacobiansX;
-    std::unordered_map<std::string,std::shared_ptr<Plato::ResidualBase>> mJacobiansZ;
+    std::unordered_map<std::string,std::shared_ptr<ResidualBase>> mResiduals;
+    std::unordered_map<std::string,std::shared_ptr<ResidualBase>> mJacobiansU;
+    std::unordered_map<std::string,std::shared_ptr<ResidualBase>> mJacobiansX;
+    std::unordered_map<std::string,std::shared_ptr<ResidualBase>> mJacobiansZ;
 
     Plato::DataMap & mDataMap;
     const Plato::SpatialModel & mSpatialModel;
