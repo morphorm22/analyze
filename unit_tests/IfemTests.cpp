@@ -1459,7 +1459,7 @@ private:
 
     Plato::DataMap & mDataMap;
     const Plato::SpatialModel & mSpatialModel;
-    std::shared_ptr<Plato::WorksetBase<ElementType>> mWorksetFuncs;
+    Plato::WorksetBase<ElementType> mWorksetFuncs;
 
 public:
     VectorFunction
@@ -1480,8 +1480,6 @@ public:
             mJacobiansZ[tName] = tFactoryResidual.template createResidual<JacobianXEvalType>(tDomain, aDataMap, aProbParams, aType);
             mJacobiansX[tName] = tFactoryResidual.template createResidual<JacobianZEvalType>(tDomain, aDataMap, aProbParams, aType);
         }
-
-        mWorksetFuncs = std::make_shared<Plato::WorksetBase<ElementType>>(mSpatialModel.Mesh);
     }
 
     Plato::OrdinalType numDofs() const
