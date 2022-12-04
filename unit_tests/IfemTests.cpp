@@ -930,11 +930,11 @@ private:
     using ElementType = typename EvaluationType::ElementType;
 
     // set local static types
-    using ElementType::mNumVoigtTerms;
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumDofsPerNode;
-    using ElementType::mNumDofsPerCell;
-    using ElementType::mNumSpatialDims;
+    static constexpr auto mNumVoigtTerms   = ElementType::mNumVoigtTerms;
+    static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+    static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+    static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+    static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
 
     // set local fad types
     using StateScalarType   = typename EvaluationType::StateScalarType;
@@ -1184,11 +1184,11 @@ class CriterionInternalElasticEnergy : public CriterionBase
 private:
     using ElementType = typename EvaluationType::ElementType;
 
-    using ElementType::mNumVoigtTerms;
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumDofsPerNode;
-    using ElementType::mNumDofsPerCell;
-    using ElementType::mNumSpatialDims;
+    static constexpr auto mNumVoigtTerms   = ElementType::mNumVoigtTerms;
+    static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+    static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+    static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+    static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
 
     using StateScalarType   = typename EvaluationType::StateScalarType;
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
@@ -1334,9 +1334,9 @@ private:
     using ElementType = typename EvaluationType::ElementType;
     using WorksetFunctionality = Plato::WorksetBase<ElementType>;
 
-    using ElementType::mNumSpatialDims;
-    using ElementType::mNumDofsPerCell;
-    using ElementType::mNumNodesPerCell;
+    static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+    static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+    static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
 
     std::shared_ptr<Plato::WorksetBase<ElementType>> mWorksetFuncs;
 
@@ -1880,6 +1880,8 @@ public:
             }
         }
     }
+
+    std::string name() const { return mName; }
 
     bool isLinear() const
     {
