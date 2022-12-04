@@ -1438,14 +1438,14 @@ class VectorFunction : public VectorFunctionBase
 private:
     using ElementType = typename PhysicsType::ElementType;
 
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumNodesPerFace;
-    using ElementType::mNumDofsPerNode;
-    using ElementType::mNumDofsPerCell;
-    using ElementType::mNumSpatialDims;
-    using ElementType::mNumControl;
+    static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+    static constexpr auto mNumNodesPerFace = ElementType::mNumNodesPerFace;
+    static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+    static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+    static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+    static constexpr auto mNumControl      = ElementType::mNumControl;
 
-    static constexpr Plato::OrdinalType mNumConfigDofsPerCell = mNumSpatialDims*mNumNodesPerCell;
+    static constexpr auto mNumConfigDofsPerCell = mNumSpatialDims*mNumNodesPerCell;
 
     using ResidualEvalType  = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
     using JacobianUEvalType = typename Plato::Elliptic::Evaluation<ElementType>::Jacobian;
@@ -1810,12 +1810,12 @@ class ScalarFunction : public ScalarFunctionBase
 private:
     using ElementType = typename PhysicsType::ElementType;
 
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumNodesPerFace;
-    using ElementType::mNumDofsPerNode;
-    using ElementType::mNumDofsPerCell;
-    using ElementType::mNumSpatialDims;
-    using ElementType::mNumControl;
+    static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+    static constexpr auto mNumNodesPerFace = ElementType::mNumNodesPerFace;
+    static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+    static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+    static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+    static constexpr auto mNumControl      = ElementType::mNumControl;
 
     using ValueEvalType = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
     using GradUEvalType = typename Plato::Elliptic::Evaluation<ElementType>::Jacobian;
