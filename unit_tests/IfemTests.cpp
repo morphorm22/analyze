@@ -2382,7 +2382,7 @@ private:
             if( mCriterionEvaluator.size() )
             {
                 auto tNumDofs = mResidualEvaluator->numDofs();
-                mAdjoint = Plato::ScalarVector("Adjoint Vector", 1, tNumDofs);
+                mAdjoint = Plato::ScalarMultiVector("Adjoint Vector", 1, tNumDofs);
             }
         }
 
