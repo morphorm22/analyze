@@ -11,6 +11,7 @@
 // trilinos includes
 #include <Teuchos_ParameterList.hpp>
 #include <Teuchos_UnitTestHarness.hpp>
+#include <Teuchos_XMLParameterListHelpers.hpp>
 
 // immersus includes
 #include "Simp.hpp"
@@ -18,6 +19,7 @@
 #include "MetaData.hpp"
 #include "WorkSets.hpp"
 #include "Assembly.hpp"
+#include "Mechanics.hpp"
 #include "WorksetBase.hpp"
 #include "SurfaceArea.hpp"
 #include "SmallStrain.hpp"
