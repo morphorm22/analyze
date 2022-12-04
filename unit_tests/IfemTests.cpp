@@ -398,7 +398,8 @@ public:
     std::string sideset() const { return mSideSetName; }
     Plato::Array<mNumSpatialDims> coefficients() const { return mForceCoeff; }
 
-    surface_force_t type() const = 0;
+    virtual surface_force_t type() const = 0;
+
     virtual void evaluate
     (const Plato::SpatialModel & aSpatialModel,
      const Plato::WorkSets     & aWorkSets,
