@@ -21,6 +21,7 @@
 #include "WorksetBase.hpp"
 #include "SurfaceArea.hpp"
 #include "SmallStrain.hpp"
+#include "UtilsTeuchos.hpp"
 #include "EssentialBCs.hpp"
 #include "SpatialModel.hpp"
 #include "LinearStress.hpp"
@@ -42,6 +43,9 @@
 #include "alg/PlatoSolverFactory.hpp"
 #include "alg/PlatoAbstractSolver.hpp"
 #include "elliptic/EvaluationTypes.hpp"
+
+// unit test includes
+#include "util/PlatoTestHelpers.hpp"
 
 namespace Plato
 {
@@ -670,7 +674,7 @@ private:
                 + tType + "' is not supported. " + "Supported options are: ";
             for(const auto& tPair : mForceTypes)
             {
-                tMsg = tMsg + tPair.first << ", ";
+                tMsg = tMsg + tPair.first + ", ";
             }
             auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
             ANALYZE_THROWERR(tSubMsg)
@@ -978,12 +982,12 @@ public:
      const Plato::Scalar   & aCycle) const
     {
         // set strain fad type
-        using StrainFadType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
+        using StrainScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
         // create local worksets
         auto tNumCells = mSpatialDomain.numCells();
         Plato::ScalarVectorT<ConfigScalarType> tCellVolume("volume", tNumCells);
-        Plato::ScalarMultiVectorT<StrainFadType> tCellStrain("strain", tNumCells, mNumVoigtTerms);
+        Plato::ScalarMultiVectorT<StrainScalarType> tCellStrain("strain", tNumCells, mNumVoigtTerms);
         Plato::ScalarMultiVectorT<ResultScalarType> tCellStress("stress", tNumCells, mNumVoigtTerms);
 
         // create local functors
@@ -1010,9 +1014,9 @@ public:
             ConfigScalarType tVolume(0.0);
 
             // create local containers for stress, strains, and gradients
-            Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, ConfigFadType> tGradient;
-            Plato::Array<ElementType::mNumVoigtTerms, StrainFadType> tStrain(0.0);
-            Plato::Array<ElementType::mNumVoigtTerms, ResultFadType> tStress(0.0);
+            Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, ConfigScalarType> tGradient;
+            Plato::Array<ElementType::mNumVoigtTerms, StrainScalarType> tStrain(0.0);
+            Plato::Array<ElementType::mNumVoigtTerms, ResultScalarType> tStress(0.0);
 
             // get integration
             auto tCubPoint = tCubPoints(iGpOrdinal);
@@ -1402,7 +1406,6 @@ public:
     }
 };
 
-template<typename PhysicsType>
 class VectorFunctionBase
 {
 public:
