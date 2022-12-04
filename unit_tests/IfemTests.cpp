@@ -809,8 +809,8 @@ private:
     using ElementType = typename EvaluationType::ElementType;
 
     // set local static parameters
-    using ElementType::mNumVoigtTerms; /*!< number of stress/strain terms */
-    static constexpr auto mSpaceDim = EvaluationType::SpatialDim; /*!< spatial dimensions */
+    static constexpr auto mNumVoigtTerms  = ElementType::mNumVoigtTerms; /*!< number of stress/strain terms */
+    static constexpr auto mNumSpatialDims = ElementType::mNumSpatialDims;
 
     // set local array types
     Plato::Array<mNumVoigtTerms> mReferenceStrain; /*!< reference strain tensor */
@@ -827,7 +827,7 @@ public:
      * \brief Constructor
      * \param [in] aMaterialModel material model interface
     **********************************************************************************/
-    CauchyStress(const Plato::LinearElasticMaterial<mSpaceDim> & aMaterial) :
+    CauchyStress(const Plato::LinearElasticMaterial<mNumSpatialDims> & aMaterial) :
         mCellStiffness  (aMaterial.getStiffnessMatrix()),
         mReferenceStrain(aMaterial.getReferenceStrain())
     {}
@@ -945,6 +945,8 @@ private:
     std::shared_ptr<NaturalBCs<EvaluationType>> mPrescribedForces;
     std::shared_ptr<VolumeForces<EvaluationType>> mBodyLoads;
     std::shared_ptr<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterial;
+
+    Plato::MSIMP mPenaltyFunction;
     Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, Plato::MSIMP> mApplyWeighting;
 
 
@@ -953,7 +955,9 @@ public:
     (const Plato::SpatialDomain & aDomain,
      Plato::DataMap             & aDataMap,
      Teuchos::ParameterList     & aProbParams) :
-         ResidualBase(aDomain, aDataMap)
+         ResidualBase(aDomain, aDataMap),
+         mPenaltyFunction(aProbParams),
+         mApplyWeighting(mPenaltyFunction)
     {
         // obligatory: define dof names in order
         mDofNames.push_back("displacement X");
@@ -1117,7 +1121,7 @@ public:
     **********************************************************************************/
     virtual ~CriterionBase(){}
 
-    virtual void isLinear() const = 0;
+    virtual bool isLinear() const = 0;
 
     virtual void
     evaluateConditional(const Plato::WorkSets & aWorksets,
@@ -1196,6 +1200,8 @@ private:
     using ControlScalarType = typename EvaluationType::ControlScalarType;
 
     std::shared_ptr<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterial;
+
+    Plato::MSIMP mPenaltyFunction;
     Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, Plato::MSIMP> mApplyWeighting;
 
 public:
@@ -1204,7 +1210,9 @@ public:
            Plato::DataMap         & aDataMap,
            Teuchos::ParameterList & aProbParams,
      const std::string            & aName) :
-        CriterionBase(aDomain, aDataMap, aProbParams, aName)
+        CriterionBase(aDomain, aDataMap, aProbParams, aName),
+        mPenaltyFunction(aProbParams),
+        mApplyWeighting(mPenaltyFunction)
     {
         // create material model and get stiffness
         FactoryElasticMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
