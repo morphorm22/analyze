@@ -352,9 +352,9 @@ private:
             }
 
             Teuchos::ParameterList& tSublist = aParams.sublist(tName);
-            auto tNewVolumeForce = std::make_shared<BodyLoad<EvaluationType>>(tName, tSublist);
-            volume_force_t tType = tNewVolumeForce.type();
-            mVolumeForces[tType].push_back(tNewVolumeForce);
+            auto tVolumeForce = std::make_shared<BodyLoad<EvaluationType>>(tName, tSublist);
+            volume_force_t tType = tVolumeForce->type();
+            mVolumeForces[tType].push_back(tVolumeForce);
         }
     }
 };
@@ -372,7 +372,7 @@ class NaturalBCBase
 protected:
     using ElementType = typename EvaluationType::ElementType;
 
-    using ElementType::mNumSpatialDims;
+    static constexpr auto mNumSpatialDims = ElementType::mNumSpatialDims;
 
     // allocate local member data
     const std::string mName;        /*!< natural boundary condition sublist name */
@@ -787,7 +787,7 @@ private:
                      << tName.c_str() << "'";
                 ANALYZE_THROWERR(tMsg.str().c_str())
             }
-            std::shared_ptr<NaturalBCBase<EvaluationType>> tBC = mFactory->create(tName, tSubList);
+            std::shared_ptr<NaturalBCBase<EvaluationType>> tBC = mFactory.create(tName, tSubList);
             surface_force_t tType = tBC->type();
             mBCs[tType].push_back(tBC);
         }
@@ -1837,7 +1837,7 @@ private:
 
     Plato::DataMap & mDataMap;
     const Plato::SpatialModel & mSpatialModel;
-    std::shared_ptr<Plato::WorksetBase<ElementType>> mWorksetFuncs;
+    Plato::WorksetBase<ElementType> mWorksetFuncs;
 
     std::string mName;
 
@@ -1847,8 +1847,9 @@ public:
      const Plato::SpatialModel    & aSpatialModel,
            Plato::DataMap         & aDataMap,
            Teuchos::ParameterList & aProbParams) :
-        mSpatialModel (aSpatialModel),
         mDataMap      (aDataMap),
+        mSpatialModel (aSpatialModel),
+        mWorksetFuncs (aSpatialModel.Mesh),
         mName         (aFuncName)
     {
         this->initialize(aProbParams);
@@ -2092,8 +2093,6 @@ private:
             mGradientXFunctions[tDomainName] = tFactory.template createCriterion<GradXEvalType>(tFunType, mName, tDomain, mDataMap, aProbParams);
             mGradientZFunctions[tDomainName] = tFactory.template createCriterion<GradZEvalType>(tFunType, mName, tDomain, mDataMap, aProbParams);
         }
-
-        mWorksetFuncs = std::make_shared<Plato::WorksetBase<ElementType>>();
     }
 };
 
