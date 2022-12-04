@@ -670,7 +670,7 @@ private:
                 + tType + "' is not supported. " + "Supported options are: ";
             for(const auto& tPair : mForceTypes)
             {
-                tMsg + tPair.first << ", ";
+                tMsg = tMsg + tPair.first << ", ";
             }
             auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
             ANALYZE_THROWERR(tSubMsg)
