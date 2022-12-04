@@ -1481,7 +1481,7 @@ public:
             mJacobiansX[tName] = tFactoryResidual.template createResidual<JacobianZEvalType>(tDomain, aDataMap, aProbParams, aType);
         }
 
-        mWorksetFuncs = std::make_shared<Plato::WorksetBase<ElementType>>();
+        mWorksetFuncs = std::make_shared<Plato::WorksetBase<ElementType>>(mSpatialModel.Mesh);
     }
 
     Plato::OrdinalType numDofs() const
