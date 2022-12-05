@@ -1672,7 +1672,7 @@ public:
             if(aTranspose)
             { mWorksetFuncs.assembleTransposeJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
             else
-            { mWorksetFuncs.assembleJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
+            { mWorksetFuncs.assembleJacobianFad(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); } // TODO: Fix. call jacobian fad
         }
 
         // prescribed forces
@@ -1699,7 +1699,7 @@ public:
             if(aTranspose)
             { mWorksetFuncs.assembleTransposeJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
             else
-            { mWorksetFuncs.assembleJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
+            { mWorksetFuncs.assembleJacobianFad(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
         }
 
         return tJacobianX;
@@ -1748,7 +1748,7 @@ public:
             if(aTranspose)
             { mWorksetFuncs.assembleTransposeJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
             else
-            { mWorksetFuncs.assembleJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
+            { mWorksetFuncs.assembleJacobianFad(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
         }
 
         // prescribed forces
@@ -1774,7 +1774,7 @@ public:
             if(aTranspose)
             { mWorksetFuncs.assembleTransposeJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
             else
-            { mWorksetFuncs.assembleJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
+            { mWorksetFuncs.assembleJacobianFad(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
         }
 
         return tJacobianZ;
@@ -2427,7 +2427,7 @@ private:
     applyStateConstraints
     (const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
      const Plato::ScalarVector                & aVector,
-           Plato::Scalar                      & aScale)
+           Plato::Scalar                        aScale)
     {
         if(mJacobianState->isBlockMatrix())
         {
