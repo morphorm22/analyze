@@ -154,7 +154,7 @@ public:
         if (!mParamList.isSublist("Material Models"))
         {
             REPORT("'Material Models' list not found! Returning 'nullptr'");
-            return std::make_shared<Plato::LinearElasticMaterial<SpatialDim>>(nullptr);
+            return std::make_shared<Plato::LinearElasticMaterial<SpatialDim>>();
         }
         else
         {
@@ -562,9 +562,7 @@ public:
     (const std::string            & aLoadName,
            Teuchos::ParameterList & aSubList) :
         ForceBaseType(aLoadName,aSubList)
-    {
-        this->initialize(aSubList);
-    }
+    {}
     ~NaturalBCUniform(){}
 
     surface_force_t type() const
