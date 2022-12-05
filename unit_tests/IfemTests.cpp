@@ -153,8 +153,7 @@ public:
     {
         if (!mParamList.isSublist("Material Models"))
         {
-            REPORT("'Material Models' list not found! Returning 'nullptr'");
-            return std::make_shared<Plato::LinearElasticMaterial<SpatialDim>>();
+            ANALYZE_THROWERR("ERROR: 'Material Models' list not found! Returning 'nullptr'");
         }
         else
         {
