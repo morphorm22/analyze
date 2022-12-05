@@ -174,7 +174,10 @@ public:
             {
                 return std::make_shared<Plato::OrthotropicLinearElasticMaterial<SpatialDim>>(tModelParamList.sublist("Orthotropic Linear Elastic"));
             }
-            return std::make_shared<Plato::LinearElasticMaterial<SpatialDim>>(nullptr);
+            else
+            {
+                ANALYZE_THROWERR(std::string("ERROR: Requested a material model '") + aModelName + "' is not supported");
+            }
         }
     }
 
