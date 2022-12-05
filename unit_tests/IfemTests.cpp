@@ -199,7 +199,7 @@ public:
     (const Plato::SpatialDomain & aSpatialDomain,
      const Plato::WorkSets      & aWorkSets,
      const Plato::Scalar        & aScale,
-     const Plato::Scalar        & aCycle) const=0;
+     const Plato::Scalar        & aCycle) = 0;
 
     std::unordered_map<volume_force_t,std::string> AM =
         { {volume_force_t::BODYLOAD,"Body Load"} };
@@ -245,7 +245,7 @@ public:
     (const Plato::SpatialDomain & aSpatialDomain,
      const Plato::WorkSets      & aWorkSets,
      const Plato::Scalar        & aScale,
-     const Plato::Scalar        & aCycle) const
+     const Plato::Scalar        & aCycle)
     {
         // get input worksets (i.e., domain for function evaluate)
         auto tConfig  = Plato::metadata<Plato::ScalarArray3DT<ConfigFadType>>(aWorkSets.get("configuration"));
@@ -329,7 +329,7 @@ public:
     (const Plato::SpatialDomain & aSpatialDomain,
      const Plato::WorkSets      & aWorkSets,
      const Plato::Scalar        & aScale,
-     const Plato::Scalar        & aCycle) const
+     const Plato::Scalar        & aCycle)
     {
         for(const auto & tPair : mVolumeForces)
         {
@@ -406,10 +406,10 @@ public:
     (const Plato::SpatialModel & aSpatialModel,
      const Plato::WorkSets     & aWorkSets,
      const Plato::Scalar       & aScale,
-     const Plato::Scalar       & aCycle) const = 0;
+     const Plato::Scalar       & aCycle) = 0;
 
 protected:
-    void evalForceExpr(Plato::Scalar aCycle)
+    void evalForceExpr(const Plato::Scalar & aCycle)
     {
         for(int iDim=0; iDim<mNumSpatialDims; iDim++)
         {
@@ -483,7 +483,7 @@ public:
     (const Plato::SpatialModel & aSpatialModel,
      const Plato::WorkSets     & aWorkSets,
      const Plato::Scalar       & aScale,
-     const Plato::Scalar       & aCycle) const
+     const Plato::Scalar       & aCycle)
     {
         // get side set connectivity information
         auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
@@ -573,7 +573,7 @@ public:
     (const Plato::SpatialModel & aSpatialModel,
      const Plato::WorkSets     & aWorkSets,
      const Plato::Scalar       & aScale,
-     const Plato::Scalar       & aCycle) const
+     const Plato::Scalar       & aCycle)
     {
         // evaluate expression if defined
         this->evalForceExpr(aCycle);
@@ -747,7 +747,7 @@ public:
     (const Plato::SpatialModel & aSpatialModel,
      const Plato::WorkSets     & aWorkSets,
      const Plato::Scalar       & aScale,
-     const Plato::Scalar       & aCycle) const
+     const Plato::Scalar       & aCycle)
     {
         for (const auto &tPair : mBCs)
         {
@@ -894,7 +894,7 @@ public:
      ******************************************************************************/
     virtual void evaluate
     (const Plato::WorkSets & aWorkSets,
-     const Plato::Scalar   & aCycle) const = 0;
+     const Plato::Scalar   & aCycle) = 0;
 
     /***************************************************************************//**
      * \fn void evaluateBoundary
@@ -906,7 +906,7 @@ public:
     virtual void evaluateBoundary
     (const Plato::SpatialModel & aSpatialModel,
      const Plato::WorkSets     & aWorkSets,
-     const Plato::Scalar       & aCycle) const = 0;
+     const Plato::Scalar       & aCycle) = 0;
 
     /***************************************************************************//**
      * \fn void evaluatePrescribed
@@ -917,7 +917,7 @@ public:
     virtual void evaluatePrescribed
     (const Plato::SpatialModel & aSpatialModel,
      const Plato::WorkSets     & aWorkSets,
-     const Plato::Scalar       & aCycle) const = 0;
+     const Plato::Scalar       & aCycle) = 0;
 };
 // class abstract residual
 
@@ -983,7 +983,7 @@ public:
 
     void evaluate
     (const Plato::WorkSets & aWorkSets,
-     const Plato::Scalar   & aCycle) const
+     const Plato::Scalar   & aCycle)
     {
         // set strain fad type
         using StrainScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
@@ -1071,13 +1071,13 @@ public:
     void evaluateBoundary
     (const Plato::SpatialModel & aSpatialModel,
      const Plato::WorkSets     & aWorkSets,
-     const Plato::Scalar       & aCycle) const
+     const Plato::Scalar       & aCycle)
     { return; }
 
     void evaluatePrescribed
     (const Plato::SpatialModel & aSpatialModel,
      const Plato::WorkSets     & aWorkSets,
-     const Plato::Scalar       & aCycle) const
+     const Plato::Scalar       & aCycle)
     {
         if( mPrescribedForces != nullptr )
         {
@@ -1125,7 +1125,7 @@ public:
 
     virtual void
     evaluateConditional(const Plato::WorkSets & aWorksets,
-                        const Plato::Scalar   & aCycle) const = 0;
+                        const Plato::Scalar   & aCycle) = 0;
 
     virtual void
     evaluate(const Plato::WorkSets & aWorksets,
@@ -1222,7 +1222,7 @@ public:
     bool isLinear() const { return false; }
 
     void evaluateConditional(const Plato::WorkSets & aWorkSets,
-                             const Plato::Scalar   & aCycle) const
+                             const Plato::Scalar   & aCycle)
     {
         // set local strain scalar type
         using StrainScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
@@ -1419,25 +1419,25 @@ public:
     virtual
     Plato::ScalarVector
     value(const Plato::Database & aDatabase,
-          const Plato::Scalar   & aCycle) const = 0;
+          const Plato::Scalar   & aCycle) = 0;
 
     virtual
     Teuchos::RCP<Plato::CrsMatrixType>
     jacobianState(const Plato::Database & aDatabase,
                   const Plato::Scalar   & aCycle,
-                        bool              aTranspose) const = 0;
+                        bool              aTranspose) = 0;
 
     virtual
     Teuchos::RCP<Plato::CrsMatrixType>
     jacobianControl(const Plato::Database & aDatabase,
                     const Plato::Scalar   & aCycle,
-                          bool              aTranspose) const = 0;
+                          bool              aTranspose) = 0;
 
     virtual
     Teuchos::RCP<Plato::CrsMatrixType>
     jacobianConfig(const Plato::Database & aDatabase,
                    const Plato::Scalar   & aCycle,
-                         bool              aTranspose) const = 0;
+                         bool              aTranspose) = 0;
 };
 
 template<typename PhysicsType>
@@ -1506,7 +1506,6 @@ public:
     value
     (const Plato::Database & aDatabase,
      const Plato::Scalar   & aCycle)
-    const
     {
         // set local result workset scalar type
         using ResultScalarType  = typename ResidualEvalType::ResultScalarType;
@@ -1564,7 +1563,6 @@ public:
     (const Plato::Database & aDatabase,
      const Plato::Scalar   & aCycle,
            bool              aTranspose = true)
-    const
     {
         // set local result workset scalar type
         using ResultScalarType = typename JacobianUEvalType::ResultScalarType;
@@ -1630,7 +1628,6 @@ public:
     (const Plato::Database & aDatabase,
      const Plato::Scalar   & aCycle,
            bool              aTranspose = true)
-    const
     {
         // set local result workset scalar type
         using ResultScalarType = typename JacobianXEvalType::ResultScalarType;
@@ -1707,7 +1704,6 @@ public:
     (const Plato::Database & aDatabase,
      const Plato::Scalar   & aCycle,
            bool              aTranspose = true)
-    const
     {
         // set local result workset scalar type
         using ResultScalarType = typename JacobianZEvalType::ResultScalarType;
@@ -1795,19 +1791,19 @@ public:
 
     virtual Plato::Scalar
     value(const Plato::Database & aDatabase,
-          const Plato::Scalar   & aCycle) const = 0;
+          const Plato::Scalar   & aCycle) = 0;
 
     virtual Plato::ScalarVector
     gradientControl(const Plato::Database & aDatabase,
-                    const Plato::Scalar   & aCycle) const = 0;
+                    const Plato::Scalar   & aCycle) = 0;
 
     virtual Plato::ScalarVector
     gradientState(const Plato::Database & aDatabase,
-                  const Plato::Scalar   & aCycle) const = 0;
+                  const Plato::Scalar   & aCycle) = 0;
 
     virtual Plato::ScalarVector
     gradientConfig(const Plato::Database & aDatabase,
-                   const Plato::Scalar   & aCycle) const = 0;
+                   const Plato::Scalar   & aCycle) = 0;
 };
 
 template<typename PhysicsType>
@@ -1902,7 +1898,6 @@ public:
     value
     (const Plato::Database & aDatabase,
      const Plato::Scalar   & aCycle)
-    const
     {
         // set local result scalar type
         using ResultScalarType = typename ValueEvalType::ResultScalarType;
@@ -1944,7 +1939,6 @@ public:
     gradientConfig
     (const Plato::Database & aDatabase,
      const Plato::Scalar   & aCycle)
-    const
     {
         // set local result type
         using ResultScalarType = typename GradXEvalType::ResultScalarType;
@@ -1990,7 +1984,6 @@ public:
     gradientState
     (const Plato::Database & aDatabase,
      const Plato::Scalar   & aCycle)
-    const
     {
         // set local result type
         using ResultScalarType = typename GradUEvalType::ResultScalarType;
@@ -2036,7 +2029,6 @@ public:
     gradientControl
     (const Plato::Database & aDatabase,
      const Plato::Scalar   & aCycle)
-    const
     {
         // set local result type
         using ResultScalarType = typename GradZEvalType::ResultScalarType;
