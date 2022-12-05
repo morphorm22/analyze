@@ -332,9 +332,12 @@ public:
      const Plato::Scalar        & aScale,
      const Plato::Scalar        & aCycle) const
     {
-        for(const auto & tForce : mVolumeForces)
+        for(const auto & tPair : mVolumeForces)
         {
-            tForce.second->evaluate(aSpatialDomain, aWorkSets, aScale, aCycle);
+            for(const auto & tForce : tPair.second)
+            {
+                tForce->evaluate(aSpatialDomain, aWorkSets, aScale, aCycle);
+            }
         }
     }
 
