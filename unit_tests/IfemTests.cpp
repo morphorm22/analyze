@@ -1379,7 +1379,7 @@ public:
         using ConfigScalarType = typename EvaluationType::ConfigScalarType;
         auto tConfigWS = std::make_shared< Plato::MetaData< Plato::ScalarArray3DT<ConfigScalarType> > >
             ( Plato::ScalarArray3DT<ConfigScalarType>("Config Workset", tNumCells, mNumNodesPerCell, mNumSpatialDims) );
-        mWorksetFuncs.worksetConfig(tConfigWS, aSpatialDomain);
+        mWorksetFuncs.worksetConfig(tConfigWS->mData, aSpatialDomain);
         aWorkSets.set("configuration", tConfigWS);
     }
 
@@ -1406,7 +1406,7 @@ public:
         using ConfigScalarType = typename EvaluationType::ConfigScalarType;
         auto tConfigWS = std::make_shared< Plato::MetaData< Plato::ScalarArray3DT<ConfigScalarType> > >
             ( Plato::ScalarArray3DT<ConfigScalarType>("Config Workset", tNumCells, mNumNodesPerCell, mNumSpatialDims) );
-        mWorksetFuncs.worksetConfig(tConfigWS);
+        mWorksetFuncs.worksetConfig(tConfigWS->mData);
         aWorkSets.set("configuration", tConfigWS);
     }
 };
