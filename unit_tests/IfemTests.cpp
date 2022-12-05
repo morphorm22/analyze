@@ -279,7 +279,7 @@ public:
 
             ControlFadType tDensity(0.0);
             auto tBasisValues = ElementType::basisValues(tCubPoint);
-            for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < ElementType::mNumNodesPerCell; tFieldOrdinal++)
+            for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
             {
                 tDensity += tBasisValues(tFieldOrdinal)*tControl(iCellOrdinal, tFieldOrdinal);
             }
@@ -288,7 +288,7 @@ public:
 
             auto tFxnValue = tFxnValues(tEntryOffset + iGpOrdinal, 0);
             auto tWeight = aScale * tCubWeights(iGpOrdinal) * tDetJ;
-            for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < ElementType::mNumNodesPerCell; tFieldOrdinal++)
+            for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
             {
                 Kokkos::atomic_add(&tResult(iCellOrdinal,tFieldOrdinal*mNumDofsPerNode+tDof),
                         tWeight * tFxnValue * tBasisValues(tFieldOrdinal) * tDensity);
@@ -377,9 +377,9 @@ protected:
     // allocate local member data
     const std::string mName;        /*!< natural boundary condition sublist name */
     const std::string mSideSetName; /*!< side set name */
-    const Plato::Array<mNumSpatialDims> mForceCoeff; /*!< natural boundary condition coefficients */
 
     // allocate local member instances
+    Plato::Array<mNumSpatialDims> mForceCoeff; /*!< natural boundary condition coefficients */
     std::shared_ptr<Plato::MathExpr> mForceCoeffExpr[mNumSpatialDims];
 
 public:
@@ -468,10 +468,9 @@ public:
     (const std::string            & aLoadName,
            Teuchos::ParameterList & aSubList) :
         ForceBaseType(aLoadName,aSubList)
-    {
-        this->initialize(aSubList);
-    }
-    ~NaturalBCPressure(){}
+    {}
+    ~NaturalBCPressure()
+    {}
 
     surface_force_t type() const
     {
@@ -574,7 +573,7 @@ public:
     (const Plato::SpatialModel & aSpatialModel,
      const Plato::WorkSets     & aWorkSets,
      const Plato::Scalar       & aScale,
-     const Plato::Scalar       & aCycle)
+     const Plato::Scalar       & aCycle) const
     {
         // evaluate expression if defined
         this->evalForceExpr(aCycle);
@@ -1230,7 +1229,7 @@ public:
 
         // get input worksets (i.e., domain for function evaluate)
         auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>( aWorkSets.get("state") );
-        auto tResultWS  = Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>( aWorkSets.get("result") );
+        auto tResultWS  = Plato::metadata<Plato::ScalarVectorT<ResultScalarType>>( aWorkSets.get("result") );
         auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>( aWorkSets.get("configuration") );
         auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("control") );
 
@@ -1347,10 +1346,10 @@ private:
     static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
     static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
 
-    std::shared_ptr<Plato::WorksetBase<ElementType>> mWorksetFuncs;
+    const Plato::WorksetBase<ElementType> & mWorksetFuncs;
 
 public:
-    WorksetBuilder(const std::shared_ptr<Plato::WorksetBase<ElementType>>& aWorksetFuncs) :
+    WorksetBuilder(const Plato::WorksetBase<ElementType>& aWorksetFuncs) :
         mWorksetFuncs(aWorksetFuncs)
     {}
 
@@ -1366,21 +1365,21 @@ public:
         using StateScalarType = typename EvaluationType::StateScalarType;
         auto tStateWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<StateScalarType> > >
             ( Plato::ScalarMultiVectorT<StateScalarType>("State Workset", tNumCells, mNumDofsPerCell) );
-        mWorksetFuncs->worksetState(aDatabase.vector("state"), tStateWS->mData, aSpatialDomain);
+        mWorksetFuncs.worksetState(aDatabase.vector("state"), tStateWS->mData, aSpatialDomain);
         aWorkSets.set("state", tStateWS);
 
         // build control workset
         using ControlScalarType = typename EvaluationType::ControlScalarType;
         auto tControlWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ControlScalarType> > >
             ( Plato::ScalarMultiVectorT<ControlScalarType>("Control Workset", tNumCells, mNumNodesPerCell) );
-        mWorksetFuncs->worksetControl(aDatabase.vector("control"), tControlWS->mData, aSpatialDomain);
+        mWorksetFuncs.worksetControl(aDatabase.vector("control"), tControlWS->mData, aSpatialDomain);
         aWorkSets.set("control", tControlWS);
 
         // build configuration workset
         using ConfigScalarType = typename EvaluationType::ConfigScalarType;
         auto tConfigWS = std::make_shared< Plato::MetaData< Plato::ScalarArray3DT<ConfigScalarType> > >
             ( Plato::ScalarArray3DT<ConfigScalarType>("Config Workset", tNumCells, mNumNodesPerCell, mNumSpatialDims) );
-        mWorksetFuncs->worksetConfig(tConfigWS, aSpatialDomain);
+        mWorksetFuncs.worksetConfig(tConfigWS, aSpatialDomain);
         aWorkSets.set("configuration", tConfigWS);
     }
 
@@ -1393,21 +1392,21 @@ public:
         using StateScalarType = typename EvaluationType::StateScalarType;
         auto tStateWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<StateScalarType> > >
             ( Plato::ScalarMultiVectorT<StateScalarType>("State Workset", tNumCells, mNumDofsPerCell) );
-        mWorksetFuncs->worksetState(aDatabase.vector("state"), tStateWS->mData);
+        mWorksetFuncs.worksetState(aDatabase.vector("state"), tStateWS->mData);
         aWorkSets.set("state", tStateWS);
 
         // build control workset
         using ControlScalarType = typename EvaluationType::ControlScalarType;
         auto tControlWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ControlScalarType> > >
             ( Plato::ScalarMultiVectorT<ControlScalarType>("Control Workset", tNumCells, mNumNodesPerCell) );
-        mWorksetFuncs->worksetControl(aDatabase.vector("control"), tControlWS->mData);
+        mWorksetFuncs.worksetControl(aDatabase.vector("control"), tControlWS->mData);
         aWorkSets.set("control", tControlWS);
 
         // build configuration workset
         using ConfigScalarType = typename EvaluationType::ConfigScalarType;
         auto tConfigWS = std::make_shared< Plato::MetaData< Plato::ScalarArray3DT<ConfigScalarType> > >
             ( Plato::ScalarArray3DT<ConfigScalarType>("Config Workset", tNumCells, mNumNodesPerCell, mNumSpatialDims) );
-        mWorksetFuncs->worksetConfig(tConfigWS);
+        mWorksetFuncs.worksetConfig(tConfigWS);
         aWorkSets.set("configuration", tConfigWS);
     }
 };
@@ -1534,7 +1533,7 @@ public:
             mResiduals.at(tName)->evaluate( tWorksets, aCycle );
 
             // assemble to return view
-            mWorksetFuncs->assembleResidual(tResultWS->mData, tResidual, tDomain );
+            mWorksetFuncs.assembleResidual(tResultWS->mData, tResidual, tDomain );
         }
 
         // prescribed forces
@@ -1554,7 +1553,7 @@ public:
             mResiduals.at(tFirstBlockName)->evaluatePrescribed(mSpatialModel, tWorksets, aCycle );
 
             // create and assemble to return view
-            mWorksetFuncs->assembleResidual(tResultWS->mData, tResidual);
+            mWorksetFuncs.assembleResidual(tResultWS->mData, tResidual);
         }
 
         return tResidual;
@@ -1598,7 +1597,7 @@ public:
                 tJacEntryOrdinal( tJacobianU, tMesh );
 
             auto tJacEntries = tJacobianU->entries();
-            mWorksetFuncs->assembleJacobianFad(mNumDofsPerCell,mNumDofsPerCell,tJacEntryOrdinal,tResultWS->mData,tJacEntries,tDomain);
+            mWorksetFuncs.assembleJacobianFad(mNumDofsPerCell,mNumDofsPerCell,tJacEntryOrdinal,tResultWS->mData,tJacEntries,tDomain);
         }
 
         // prescribed forces
@@ -1621,7 +1620,7 @@ public:
             Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumDofsPerNode, mNumDofsPerNode> tJacEntryOrdinal( tJacobianU, tMesh );
 
             auto tJacEntries = tJacobianU->entries();
-            mWorksetFuncs->assembleJacobianFad(mNumDofsPerCell, mNumDofsPerCell,tJacEntryOrdinal,tResultWS->mData,tJacEntries);
+            mWorksetFuncs.assembleJacobianFad(mNumDofsPerCell, mNumDofsPerCell,tJacEntryOrdinal,tResultWS->mData,tJacEntries);
         }
         return tJacobianU;
     }
@@ -1668,9 +1667,9 @@ public:
 
             auto tJacEntries = tJacobianX->entries();
             if(aTranspose)
-            { mWorksetFuncs->assembleTransposeJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
+            { mWorksetFuncs.assembleTransposeJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
             else
-            { mWorksetFuncs->assembleJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
+            { mWorksetFuncs.assembleJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
         }
 
         // prescribed forces
@@ -1695,9 +1694,9 @@ public:
 
             auto tJacEntries = tJacobianX->entries();
             if(aTranspose)
-            { mWorksetFuncs->assembleTransposeJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
+            { mWorksetFuncs.assembleTransposeJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
             else
-            { mWorksetFuncs->assembleJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
+            { mWorksetFuncs.assembleJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
         }
 
         return tJacobianX;
@@ -1744,9 +1743,9 @@ public:
 
             auto tJacEntries = tJacobianZ->entries();
             if(aTranspose)
-            { mWorksetFuncs->assembleTransposeJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
+            { mWorksetFuncs.assembleTransposeJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
             else
-            { mWorksetFuncs->assembleJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
+            { mWorksetFuncs.assembleJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
         }
 
         // prescribed forces
@@ -1770,9 +1769,9 @@ public:
 
             auto tJacEntries = tJacobianZ->entries();
             if(aTranspose)
-            { mWorksetFuncs->assembleTransposeJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
+            { mWorksetFuncs.assembleTransposeJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
             else
-            { mWorksetFuncs->assembleJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
+            { mWorksetFuncs.assembleJacobian(mNumDofsPerCell, mNumNodesPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries); }
         }
 
         return tJacobianZ;
@@ -1951,7 +1950,7 @@ public:
         using ResultScalarType = typename GradXEvalType::ResultScalarType;
 
         // create output
-        auto tNumNodes = mWorksetFuncs->numNodes();
+        auto tNumNodes = mWorksetFuncs.numNodes();
         Plato::ScalarVector tGradientX("criterion gradient configuration", mNumSpatialDims * tNumNodes);
 
         // evaluate gradient
@@ -1975,7 +1974,7 @@ public:
             mGradientXFunctions.at(tName)->evaluate(tWorksets, aCycle);
 
             // assemble gradient
-            mWorksetFuncs->assembleVectorGradientFadX(tResultWS->mData, tGradientX);
+            mWorksetFuncs.assembleVectorGradientFadX(tResultWS->mData, tGradientX);
 
             tValue += Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS->mData);
         }
@@ -1997,7 +1996,7 @@ public:
         using ResultScalarType = typename GradUEvalType::ResultScalarType;
 
         // create output
-        auto tNumNodes = mWorksetFuncs->numNodes();
+        auto tNumNodes = mWorksetFuncs.numNodes();
         Plato::ScalarVector tGradientU("criterion gradient state", mNumDofsPerNode * tNumNodes);
 
         // evaluate gradient
@@ -2021,7 +2020,7 @@ public:
             mGradientUFunctions.at(tName)->evaluate(tWorksets, aCycle);
 
             // assemble gradient
-            mWorksetFuncs->assembleVectorGradientFadU(tResultWS->mData, tGradientU);
+            mWorksetFuncs.assembleVectorGradientFadU(tResultWS->mData, tGradientU);
 
             tValue += Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS->mData);
         }
@@ -2043,7 +2042,7 @@ public:
         using ResultScalarType = typename GradZEvalType::ResultScalarType;
 
         // create output
-        auto tNumNodes = mWorksetFuncs->numNodes();
+        auto tNumNodes = mWorksetFuncs.numNodes();
         Plato::ScalarVector tGradientZ("criterion gradient control", tNumNodes);
 
         // evaluate gradient
@@ -2067,7 +2066,7 @@ public:
             mGradientZFunctions.at(tName)->evaluate(tWorksets, aCycle);
 
             // assemble gradient and value
-            mWorksetFuncs->assembleScalarGradientFadZ(tResultWS->mData, tGradientZ);
+            mWorksetFuncs.assembleScalarGradientFadZ(tResultWS->mData, tGradientZ);
             tValue += Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS->mData);
         }
 
