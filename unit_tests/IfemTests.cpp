@@ -2999,7 +2999,7 @@ TEUCHOS_UNIT_TEST( Morphorm, TestInternalElasticEnergyGradZ_3D_TET10 )
     TEST_ASSERT(tError < 1e-4);
 }
 
-TEUCHOS_UNIT_TEST( Morphorm, TestInternalElasticEnergyGradZ_3D_TET10 )
+TEUCHOS_UNIT_TEST( Morphorm, TestVolumeGradZ_3D_TET10 )
 {
     // create test mesh
     //
