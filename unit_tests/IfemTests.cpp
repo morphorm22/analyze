@@ -205,7 +205,7 @@ public:
      const Plato::Scalar        & aScale,
      const Plato::Scalar        & aCycle) = 0;
 
-    std::unordered_map<volume_force_t,std::string> AM =
+    std::map<volume_force_t,std::string> SupportedForces =
         { {volume_force_t::BODYLOAD,"Body Load"} };
 };
 
@@ -640,7 +640,7 @@ class FactoryNaturalBC
 {
 private:
     /*!< map from input force type string to supported enum */
-    std::unordered_map<std::string,surface_force_t> mForceTypes =
+    std::map<std::string,surface_force_t> mSupportedForces =
         {
             {"uniform",surface_force_t::UNIFORM},
             {"pressure",surface_force_t::PRESSURE}
@@ -677,11 +677,11 @@ private:
     {
         std::string tType = aSubList.get<std::string>("Type");
         tType = Plato::tolower(tType);
-        auto tItr = mForceTypes.find(tType);
-        if( tItr == mForceTypes.end() ){
+        auto tItr = mSupportedForces.find(tType);
+        if( tItr == mSupportedForces.end() ){
             std::string tMsg = std::string("Natural Boundary Condition of type '")
                 + tType + "' is not supported. " + "Supported options are: ";
-            for(const auto& tPair : mForceTypes)
+            for(const auto& tPair : mSupportedForces)
             {
                 tMsg = tMsg + tPair.first + ", ";
             }
@@ -1181,6 +1181,70 @@ private:
 };
 
 template<typename EvaluationType>
+class Volume : public CriterionBase
+{
+private:
+    using ElementType = typename EvaluationType::ElementType;
+
+    static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+    static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+
+    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
+
+    Plato::MSIMP mPenaltyFunction;
+    Plato::ApplyWeighting<mNumNodesPerCell, /*num_weighted_terms=*/ 1, Plato::MSIMP> mApplyWeighting;
+
+public:
+    Volume
+    (const Plato::SpatialDomain   & aDomain,
+           Plato::DataMap         & aDataMap,
+           Teuchos::ParameterList & aProbParams,
+     const std::string            & aFuncName) :
+        CriterionBase(aDomain, aDataMap, aProbParams, aFuncName),
+        mPenaltyFunction(aProbParams.sublist("Criteria").sublist(aFuncName).sublist("Penalty Function")),
+        mApplyWeighting(mPenaltyFunction)
+    { return; }
+
+    bool isLinear() const
+    { return true; }
+
+    void
+    evaluateConditional
+    (const Plato::WorkSets & aWorkSets,
+     const Plato::Scalar   & aCycle)
+    {
+        auto tNumCells = mSpatialDomain.numCells();
+        auto tCubPoints  = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints  = tCubWeights.size();
+
+        // get input worksets (i.e., domain for function evaluate)
+        auto tResultWS  = Plato::metadata<Plato::ScalarVectorT<ResultScalarType>>( aWorkSets.get("result") );
+        auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>( aWorkSets.get("configuration") );
+        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("control") );
+
+        auto& tApplyWeighting  = mApplyWeighting;
+        Kokkos::parallel_for("compute volume", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        {
+            auto tCubPoint  = tCubPoints(iGpOrdinal);
+            auto tCubWeight = tCubWeights(iGpOrdinal);
+
+            auto tJacobian = ElementType::jacobian(tCubPoint, tConfigWS, iCellOrdinal);
+            ResultScalarType tCellVolume = Plato::determinant(tJacobian);
+            tCellVolume *= tCubWeight;
+
+            auto tBasisValues = ElementType::basisValues(tCubPoint);
+            tApplyWeighting(iCellOrdinal, tControlWS, tBasisValues, tCellVolume);
+
+            Kokkos::atomic_add(&tResultWS(iCellOrdinal), tCellVolume);
+        });
+    }
+};
+
+template<typename EvaluationType>
 class CriterionInternalElasticEnergy : public CriterionBase
 {
 private:
@@ -1219,8 +1283,10 @@ public:
 
     bool isLinear() const { return false; }
 
-    void evaluateConditional(const Plato::WorkSets & aWorkSets,
-                             const Plato::Scalar   & aCycle)
+    void
+    evaluateConditional
+    (const Plato::WorkSets & aWorkSets,
+     const Plato::Scalar   & aCycle)
     {
         // set local strain scalar type
         using StrainScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
@@ -1240,7 +1306,7 @@ public:
         auto tCubWeights = ElementType::getCubWeights();
         auto tNumPoints = tCubWeights.size();
 
-        auto tApplyWeighting = mApplyWeighting;
+        auto& tApplyWeighting = mApplyWeighting;
         auto tNumCells = mSpatialDomain.numCells();
         Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
         KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
@@ -1300,6 +1366,27 @@ struct FactoryMechanicsResidual
 **********************************************************************************/
 struct FactoryMechanicsCriterion
 {
+private:
+    /*!< map from input force type string to supported enum */
+    std::vector<std::string> mSupportedCriterion =
+        {"internal elastic energy","volume"};
+
+    std::string
+    getErrMsg
+    (const std::string & aLowerType)
+    const
+    {
+        std::string tMsg = std::string("Mechanics Problem: Criterion of type '")
+            + aLowerType + "' is not supported. " + "Supported criteria are: ";
+        for(const auto& tElement : mSupportedCriterion)
+        {
+            tMsg = tMsg + tElement + ", ";
+        }
+        auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+        return tSubMsg;
+    }
+
+public:
     /******************************************************************************//**
      * \brief Create a PLATO vector function (i.e. residual equation)
      * \param [in] aSpatialDomain Plato Analyze spatial domain
@@ -1316,7 +1403,21 @@ struct FactoryMechanicsCriterion
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProbParams)
     {
-        return std::make_shared<CriterionInternalElasticEnergy<EvaluationType>>(aDomain, aDataMap, aProbParams, aName);
+        auto tLowerType = Plato::tolower(aType);
+        if( tLowerType == "internal elastic energy" )
+        {
+            return std::make_shared<CriterionInternalElasticEnergy<EvaluationType>>(aDomain, aDataMap, aProbParams, aName);
+        }
+        else
+        if ( tLowerType == "volume" )
+        {
+            return std::make_shared<Volume<EvaluationType>>(aDomain, aDataMap, aProbParams, aName);
+        }
+        else
+        {
+            auto tErrMsg = this->getErrMsg(tLowerType);
+            ANALYZE_THROWERR(tErrMsg)
+        }
     }
 
 };
@@ -1824,10 +1925,10 @@ private:
 
     using CriterionType = std::shared_ptr<CriterionBase>;
 
-    std::map<std::string, std::shared_ptr<CriterionBase>> mValueFunctions;     /*!< map from domain name to criterion value */
-    std::map<std::string, std::shared_ptr<CriterionBase>> mGradientUFunctions; /*!< map from domain name to criterion gradient wrt state */
-    std::map<std::string, std::shared_ptr<CriterionBase>> mGradientXFunctions; /*!< map from domain name to criterion gradient wrt configuration */
-    std::map<std::string, std::shared_ptr<CriterionBase>> mGradientZFunctions; /*!< map from domain name to criterion gradient wrt control */
+    std::unordered_map<std::string, std::shared_ptr<CriterionBase>> mValueFunctions;     /*!< map from domain name to criterion value */
+    std::unordered_map<std::string, std::shared_ptr<CriterionBase>> mGradientUFunctions; /*!< map from domain name to criterion gradient wrt state */
+    std::unordered_map<std::string, std::shared_ptr<CriterionBase>> mGradientXFunctions; /*!< map from domain name to criterion gradient wrt configuration */
+    std::unordered_map<std::string, std::shared_ptr<CriterionBase>> mGradientZFunctions; /*!< map from domain name to criterion gradient wrt control */
 
     Plato::DataMap & mDataMap;
     const Plato::SpatialModel & mSpatialModel;
@@ -2463,7 +2564,7 @@ private:
         constexpr Plato::Scalar tCYCLE = 0.0;
         auto tGradientControl = aCriterion->gradientControl(aDatabase, tCYCLE);
 
-        if( !aCriterion->isLinear() )
+        // add residual contribution to the gradient
         {
             // compute gradient with respect to state variables
             auto tGradientState = aCriterion->gradientState(aDatabase, tCYCLE);
@@ -2509,7 +2610,6 @@ private:
         auto tGradientConfig  = aCriterion->gradientConfig(aDatabase, tCYCLE);
 
         // add residual contribution to the gradient
-        if( !aCriterion->isLinear() )
         {
             // compute gradient with respect to state variables
             auto tGradientState = aCriterion->gradientState(aDatabase, tCYCLE);
@@ -2669,7 +2769,6 @@ TEUCHOS_UNIT_TEST( Morphorm, InternalElasticEnergy3D )
     "    </ParameterList>                                                          \n"
     "  </ParameterList>                                                            \n"
     "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>           \n"
-    "  <Parameter name='Self-Adjoint' type='bool' value='true'/>                   \n"
     "  <ParameterList name='Material Models'>                                      \n"
     "    <ParameterList name='Unobtainium'>                                        \n"
     "      <ParameterList name='Isotropic Linear Elastic'>                         \n"
@@ -2836,7 +2935,6 @@ TEUCHOS_UNIT_TEST( Morphorm, TestInternalElasticEnergyGradZ_3D_TET10 )
       "  </ParameterList>                                                               \n"
       "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>              \n"
       "  <Parameter name='Physics' type='string' value='Mechanical'/>                   \n"
-      "  <Parameter name='Self-Adjoint' type='bool' value='true'/>                      \n"
       "  <ParameterList name='Criteria'>                                                \n"
       "    <ParameterList name='Internal Elastic Energy'>                               \n"
       "      <Parameter name='Type' type='string' value='Scalar Function'/>             \n"
@@ -2898,6 +2996,92 @@ TEUCHOS_UNIT_TEST( Morphorm, TestInternalElasticEnergyGradZ_3D_TET10 )
         tElasticityProblem(tMesh, *tParamList, tMachine);
 
     auto tError = Plato::test_criterion_grad_wrt_control(tElasticityProblem, tMesh, "Internal Elastic Energy");
+    TEST_ASSERT(tError < 1e-4);
+}
+
+TEUCHOS_UNIT_TEST( Morphorm, TestInternalElasticEnergyGradZ_3D_TET10 )
+{
+    // create test mesh
+    //
+    constexpr int tMeshWidth=2;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", tMeshWidth);
+
+    // create input
+    //
+    Teuchos::RCP<Teuchos::ParameterList> tParamList =
+    Teuchos::getParametersFromXmlString(
+      "<ParameterList name='Plato Problem'>                                             \n"
+      "  <ParameterList name='Spatial Model'>                                           \n"
+      "    <ParameterList name='Domains'>                                               \n"
+      "      <ParameterList name='Design Volume'>                                       \n"
+      "        <Parameter name='Element Block' type='string' value='body'/>             \n"
+      "        <Parameter name='Material Model' type='string' value='Unobtainium'/>     \n"
+      "      </ParameterList>                                                           \n"
+      "    </ParameterList>                                                             \n"
+      "  </ParameterList>                                                               \n"
+      "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>              \n"
+      "  <Parameter name='Physics' type='string' value='Mechanical'/>                   \n"
+      "  <ParameterList name='Criteria'>                                                \n"
+      "    <ParameterList name='Internal Elastic Energy'>                               \n"
+      "      <Parameter name='Type' type='string' value='Scalar Function'/>             \n"
+      "      <Parameter name='Scalar Function Type' type='string' value='Volume'/>      \n"
+      "      <ParameterList name='Penalty Function'>                                    \n"
+      "        <Parameter name='Exponent' type='double' value='1.0'/>                   \n"
+      "        <Parameter name='Minimum Value' type='double' value='0.0'/>              \n"
+      "        <Parameter name='Type' type='string' value='SIMP'/>                      \n"
+      "      </ParameterList>                                                           \n"
+      "    </ParameterList>                                                             \n"
+      "  </ParameterList>                                                               \n"
+      "  <ParameterList name='Elliptic'>                                                \n"
+      "    <ParameterList name='Penalty Function'>                                      \n"
+      "      <Parameter name='Exponent' type='double' value='1.0'/>                     \n"
+      "      <Parameter name='Minimum Value' type='double' value='0.0'/>                \n"
+      "      <Parameter name='Type' type='string' value='SIMP'/>                        \n"
+      "    </ParameterList>                                                             \n"
+      "  </ParameterList>                                                               \n"
+      "  <ParameterList name='Material Models'>                                         \n"
+      "    <ParameterList name='Unobtainium'>                                           \n"
+      "      <ParameterList name='Isotropic Linear Elastic'>                            \n"
+      "        <Parameter name='Poissons Ratio' type='double' value='0.3'/>             \n"
+      "        <Parameter name='Youngs Modulus' type='double' value='1.0e6'/>           \n"
+      "      </ParameterList>                                                           \n"
+      "    </ParameterList>                                                             \n"
+      "  </ParameterList>                                                               \n"
+      "  <ParameterList  name='Natural Boundary Conditions'>                            \n"
+      "    <ParameterList  name='Traction Vector Boundary Condition'>                   \n"
+      "      <Parameter  name='Type'     type='string'        value='Uniform'/>         \n"
+      "      <Parameter  name='Values'   type='Array(double)' value='{1.0, 0.0, 0.0}'/> \n"
+      "      <Parameter  name='Sides'    type='string'        value='x+'/>              \n"
+      "    </ParameterList>                                                             \n"
+      "  </ParameterList>                                                               \n"
+      "  <ParameterList  name='Essential Boundary Conditions'>                          \n"
+      "    <ParameterList  name='X Fixed Displacement Boundary Condition'>              \n"
+      "      <Parameter  name='Type'     type='string' value='Zero Value'/>             \n"
+      "      <Parameter  name='Index'    type='int'    value='0'/>                      \n"
+      "      <Parameter  name='Sides'    type='string' value='x-'/>                     \n"
+      "    </ParameterList>                                                             \n"
+      "    <ParameterList  name='Y Fixed Displacement Boundary Condition'>              \n"
+      "      <Parameter  name='Type'     type='string' value='Zero Value'/>             \n"
+      "      <Parameter  name='Index'    type='int'    value='1'/>                      \n"
+      "      <Parameter  name='Sides'    type='string' value='x-'/>                     \n"
+      "    </ParameterList>                                                             \n"
+      "    <ParameterList  name='Z Fixed Displacement Boundary Condition'>              \n"
+      "      <Parameter  name='Type'     type='string' value='Zero Value'/>             \n"
+      "      <Parameter  name='Index'    type='int'    value='2'/>                      \n"
+      "      <Parameter  name='Sides'    type='string' value='x-'/>                     \n"
+      "    </ParameterList>                                                             \n"
+      "  </ParameterList>                                                               \n"
+      "</ParameterList>                                                                 \n"
+    );
+
+    MPI_Comm tMyComm;
+    MPI_Comm_dup(MPI_COMM_WORLD, &tMyComm);
+    Plato::Comm::Machine tMachine(tMyComm);
+
+    Plato::exp::Problem<Plato::exp::PhysicsMechanics<Plato::Tet10>>
+        tElasticityProblem(tMesh, *tParamList, tMachine);
+
+    auto tError = Plato::test_criterion_grad_wrt_control(tElasticityProblem, tMesh, "Volume");
     TEST_ASSERT(tError < 1e-4);
 }
 
