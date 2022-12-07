@@ -1372,11 +1372,11 @@ private:
         {"internal elastic energy","volume"};
 
     std::string
-    getErrMsg
+    getErrorMsg
     (const std::string & aLowerType)
     const
     {
-        std::string tMsg = std::string("Mechanics Problem: Criterion of type '")
+        std::string tMsg = std::string("ERROR: Mechanics criterion of type '")
             + aLowerType + "' is not supported. " + "Supported criteria are: ";
         for(const auto& tElement : mSupportedCriterion)
         {
@@ -1415,7 +1415,7 @@ public:
         }
         else
         {
-            auto tErrMsg = this->getErrMsg(tLowerType);
+            auto tErrMsg = this->getErrorMsg(tLowerType);
             ANALYZE_THROWERR(tErrMsg)
         }
     }
@@ -2352,7 +2352,8 @@ public:
         }
         else
         {
-            ANALYZE_THROWERR(std::string("ERROR: Criterion with name '") + aName + "' is not defined")
+            auto tErrMsg = this->getErrorMsg(aName);
+            ANALYZE_THROWERR(tErrMsg)
         }
     }
 
@@ -2372,7 +2373,8 @@ public:
     {
         if( mCriterionEvaluator.find(aName) == mCriterionEvaluator.end() )
         {
-            ANALYZE_THROWERR(std::string("ERROR: Criterion with name '") + aName + "' is not defined")
+            auto tErrMsg = this->getErrorMsg(aName);
+            ANALYZE_THROWERR(tErrMsg)
         }
 
         // build database
@@ -2406,7 +2408,8 @@ public:
     {
         if( mCriterionEvaluator.find(aName) == mCriterionEvaluator.end() )
         {
-            ANALYZE_THROWERR(std::string("ERROR: Criterion with name '") + aName + "' is not defined")
+            auto tErrMsg = this->getErrorMsg(aName);
+            ANALYZE_THROWERR(tErrMsg)
         }
 
         // build database
@@ -2434,6 +2437,21 @@ public:
     }
 
 private:
+    std::string
+    getErrorMsg
+    (const std::string & aName)
+    const
+    {
+        std::string tMsg = std::string("ERROR: Criterion with name '")
+            + aName + "' is not defined. " + "Defined criteria are: ";
+        for(const auto& tPair : mCriterionEvaluator)
+        {
+            tMsg = tMsg + tPair.first + ", ";
+        }
+        auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+        return tSubMsg;
+    }
+
     void
     initializeSolver
     (Plato::Mesh            &aMesh,
@@ -2493,7 +2511,7 @@ private:
     {
         if(aProbParams.isSublist("Essential Boundary Conditions") == false)
         {
-            ANALYZE_THROWERR("ABORT: Essential boundary conditions parameter list is not defined")
+            ANALYZE_THROWERR("ERROR: Essential boundary conditions parameter list is not defined")
         }
         Plato::EssentialBCs<ElementType>
         tEssentialBoundaryConditions(aProbParams.sublist("Essential Boundary Conditions", false), mSpatialModel.Mesh);
@@ -2551,7 +2569,7 @@ private:
     {
         if(aCriterion == nullptr)
         {
-            ANALYZE_THROWERR("ERROR: Requested criterion is undefined");
+            ANALYZE_THROWERR("ERROR: Requested criterion is null");
         }
 
         if(static_cast<Plato::OrdinalType>(mAdjoints.size()) <= static_cast<Plato::OrdinalType>(0))
@@ -2596,7 +2614,7 @@ private:
     {
         if(aCriterion == nullptr)
         {
-            ANALYZE_THROWERR("ERROR: Requested criterion is undefined");
+            ANALYZE_THROWERR("ERROR: Requested criterion is null");
         }
 
         if(static_cast<Plato::OrdinalType>(mAdjoints.size()) <= static_cast<Plato::OrdinalType>(0))
@@ -3022,7 +3040,7 @@ TEUCHOS_UNIT_TEST( Morphorm, TestVolumeGradZ_3D_TET10 )
       "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>              \n"
       "  <Parameter name='Physics' type='string' value='Mechanical'/>                   \n"
       "  <ParameterList name='Criteria'>                                                \n"
-      "    <ParameterList name='Internal Elastic Energy'>                               \n"
+      "    <ParameterList name='Volume'>                                                \n"
       "      <Parameter name='Type' type='string' value='Scalar Function'/>             \n"
       "      <Parameter name='Scalar Function Type' type='string' value='Volume'/>      \n"
       "      <ParameterList name='Penalty Function'>                                    \n"
