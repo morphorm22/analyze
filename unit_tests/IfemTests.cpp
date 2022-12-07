@@ -949,11 +949,12 @@ private:
 
 public:
     ResidualElastostatics
-    (const Plato::SpatialDomain & aDomain,
+    (const std::string          & aTypePDE,
+     const Plato::SpatialDomain & aDomain,
      Plato::DataMap             & aDataMap,
      Teuchos::ParameterList     & aProbParams) :
          ResidualBase(aDomain, aDataMap),
-         mPenaltyFunction(aProbParams),
+         mPenaltyFunction(aProbParams.sublist(aTypePDE).sublist("Penalty Function")),
          mApplyWeighting(mPenaltyFunction)
     {
         // obligatory: define dof names in order
@@ -1287,9 +1288,9 @@ struct FactoryMechanicsResidual
         const Plato::SpatialDomain   & aDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProbParams,
-              std::string              aType)
+              std::string              aTypePDE)
     {
-        return std::make_shared<ResidualElastostatics<EvaluationType>>(aDomain, aDataMap, aProbParams);
+        return std::make_shared<ResidualElastostatics<EvaluationType>>(aTypePDE, aDomain, aDataMap, aProbParams);
     }
 
 };
