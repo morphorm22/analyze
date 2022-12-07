@@ -2653,5 +2653,175 @@ TEUCHOS_UNIT_TEST(NewInterface, Elastostatics)
     }
 }
 
+/******************************************************************************/
+/*!
+  \brief Compute value and both gradients (wrt state, config, and control) of
+         InternalElasticEnergy in 3D.
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
+{
+  // create material model
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                          \n"
+    "  <ParameterList name='Spatial Model'>                                        \n"
+    "    <ParameterList name='Domains'>                                            \n"
+    "      <ParameterList name='Design Volume'>                                    \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>          \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>  \n"
+    "      </ParameterList>                                                        \n"
+    "    </ParameterList>                                                          \n"
+    "  </ParameterList>                                                            \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>           \n"
+    "  <Parameter name='Self-Adjoint' type='bool' value='true'/>                   \n"
+    "  <ParameterList name='Material Models'>                                      \n"
+    "    <ParameterList name='Unobtainium'>                                        \n"
+    "      <ParameterList name='Isotropic Linear Elastic'>                         \n"
+    "        <Parameter name='Poissons Ratio' type='double' value='0.3'/>          \n"
+    "        <Parameter name='Youngs Modulus' type='double' value='1.0e6'/>        \n"
+    "      </ParameterList>                                                        \n"
+    "    </ParameterList>                                                          \n"
+    "  </ParameterList>                                                            \n"
+    "  <ParameterList name='Criteria'>                                             \n"
+    "    <ParameterList name='Internal Elastic Energy'>                            \n"
+    "      <Parameter name='Type' type='string' value='Scalar Function'/>          \n"
+    "      <Parameter name='Scalar Function Type' type='string' value='Internal Elastic Energy'/>  \n"
+    "      <ParameterList name='Penalty Function'>                                 \n"
+    "        <Parameter name='Exponent' type='double' value='1.0'/>                \n"
+    "        <Parameter name='Minimum Value' type='double' value='0.0'/>           \n"
+    "        <Parameter name='Type' type='string' value='SIMP'/>                   \n"
+    "      </ParameterList>                                                        \n"
+    "    </ParameterList>                                                          \n"
+    "  </ParameterList>                                                            \n"
+    "</ParameterList>                                                              \n"
+  );
+
+  // create test mesh
+  //
+  constexpr int meshWidth=2;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", meshWidth);
+
+  // create mesh based density from host data
+  //
+  auto tNumNodes = tMesh->NumNodes();
+  Plato::ScalarVector z("density", tNumNodes);
+  Kokkos::deep_copy(z, 1.0);
+
+  // create mesh based displacement from host data
+  //
+  ordType tNumDofs = tMesh->NumDimensions()*tMesh->NumNodes();
+  Plato::ScalarMultiVector U("states", /*numSteps=*/1, tNumDofs);
+  auto u = Kokkos::subview(U, 0, Kokkos::ALL());
+  auto u_host = Kokkos::create_mirror_view( u );
+  Plato::Scalar disp = 0.0, dval = 0.0001;
+  for(ordType i=0; i<tNumDofs; i++)
+  {
+      u_host(i) = (disp += dval);
+  }
+  Kokkos::deep_copy(u, u_host);
+
+
+  // create objective
+  //
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
+
+  std::string tMyFunction("Internal Elastic Energy");
+  Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<Plato::Tet10>>
+    eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
+
+
+  // compute and test criterion value
+  //
+  Plato::Solutions tSolution;
+  tSolution.set("State", U);
+  auto value = eeScalarFunction.value(tSolution,z);
+
+  Plato::Scalar value_gold = 1206.13846153846043;
+  TEST_FLOATING_EQUALITY(value, value_gold, 1e-13);
+
+
+  // compute and test criterion gradient wrt state, u
+  //
+  tSolution.set("State", U);
+  auto grad_u = eeScalarFunction.gradient_u(tSolution, z, /*stepIndex=*/0);
+
+  auto grad_u_Host = Kokkos::create_mirror_view( grad_u );
+  Kokkos::deep_copy( grad_u_Host, grad_u );
+
+  std::vector<Plato::Scalar> grad_u_gold = {
+   0., 0., 0., -2432.692307692301, -1663.461538461530,
+   -615.3846153846263, 0., 0., 0., -2432.692307692299,
+   -1663.461538461529, -615.3846153846263, 0., 0., 0.,
+   -2355.769230769225, -692.3076923077053, -1432.692307692301,
+   -3711.538461538447, -1153.846153846157, -1000.000000000002,
+   -3711.538461538460, -1153.846153846169, -999.9999999999920,
+   -3711.538461538446, -1153.846153846156, -1000.000000000002,
+   -1355.769230769233 };
+
+  for(int iNode=0; iNode<int(grad_u_gold.size()); iNode++){
+      if(grad_u_gold[iNode] == 0.0)
+      {
+          TEST_ASSERT(fabs(grad_u_Host[iNode]) < 1e-10);
+      }
+      else
+      {
+          TEST_FLOATING_EQUALITY(grad_u_Host[iNode], grad_u_gold[iNode], 1e-13);
+      }
+  }
+
+
+  // compute and test criterion gradient wrt control, z
+  //
+  tSolution.set("State", U);
+  auto grad_z = eeScalarFunction.gradient_z(tSolution,z);
+
+  auto grad_z_Host = Kokkos::create_mirror_view( grad_z );
+  Kokkos::deep_copy( grad_z_Host, grad_z );
+
+  std::vector<Plato::Scalar> grad_z_gold = {
+    -7.53836538461538375, 10.0511538461537988, -10.0511538461538468,
+    10.0511538461537935, -2.51278846153846125, 10.0511538461537988,
+    10.0511538461537988, 15.0767307692307462, 10.0511538461537935,
+    5.02557692307694648, -10.0511538461538485, 15.0767307692307444,
+    -15.0767307692307710, 15.0767307692307391, -5.02557692307692072,
+    10.0511538461537953, 10.0511538461537917, 15.0767307692307426};
+
+  for(int iNode=0; iNode<int(grad_z_gold.size()); iNode++){
+    TEST_FLOATING_EQUALITY(grad_z_Host[iNode], grad_z_gold[iNode], 1e-13);
+  }
+
+  // compute and test criterion gradient wrt node position, x
+  //
+  tSolution.set("State", U);
+  auto grad_x = eeScalarFunction.gradient_x(tSolution, z);
+
+  auto grad_x_Host = Kokkos::create_mirror_view( grad_x );
+  Kokkos::deep_copy(grad_x_Host, grad_x);
+
+  std::vector<Plato::Scalar> grad_x_gold = {
+    0., 0., 0., 91.0903846153847354, -21.9865384615381778,
+    5.65384615384538058, 0., 0., 0., 91.0903846153847496,
+   -21.9865384615381956, 5.65384615384537881, 0., 0., 0.,
+    84.1673076923079861, 26.8846153846146265, -44.8788461538458705,
+    75.4500000000003013, 35.1923076923072244, 7.03846153846112799,
+    75.4500000000003723, 35.1923076923068976, 7.03846153846193090,
+    75.4500000000002871, 35.1923076923071747, 7.03846153846111378
+  };
+
+  for(int iNode=0; iNode<int(grad_x_gold.size()); iNode++){
+      if(grad_x_gold[iNode] == 0.0)
+      {
+          TEST_ASSERT(fabs(grad_x_Host[iNode]) < 1e-10);
+      }
+      else
+      {
+          TEST_FLOATING_EQUALITY(grad_x_Host[iNode], grad_x_gold[iNode], 1e-12);
+      }
+  }
+}
+
 }
 // namespace IfemTests
