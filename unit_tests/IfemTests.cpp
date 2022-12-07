@@ -695,13 +695,6 @@ private:
         bool tValuesKeyword = aSubList.isType<Teuchos::Array<Plato::Scalar>>("Values");
         if (tValuesKeyword)
         {
-            std::stringstream tMsg;
-            tMsg << "'Values' parameter keyword is not defined in Natural Boundary Condition "
-                << "Parameter Sublist with name '" << aName.c_str() << "'";
-            ANALYZE_THROWERR(tMsg.str().c_str())
-        }
-        else if (tValuesKeyword)
-        {
             if(aSubList.isType<Teuchos::Array<Plato::Scalar>>("Values"))
             {
                 auto tValues = aSubList.get<Teuchos::Array<Plato::Scalar>>("Values");
@@ -722,8 +715,8 @@ private:
         else
         {
             std::stringstream tMsg;
-            tMsg << "Error while parsing surface force in Natural Boundary Condition "
-                 << "Parameter Sublist with name '" << aName.c_str() << "'";
+            tMsg << "'Values' parameter keyword is not defined in Natural Boundary Condition "
+                << "Parameter Sublist with name '" << aName.c_str() << "'";
             ANALYZE_THROWERR(tMsg.str().c_str())
         }
     }
