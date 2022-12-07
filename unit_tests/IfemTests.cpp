@@ -2628,6 +2628,36 @@ TEUCHOS_UNIT_TEST(NewInterface, Elastostatics)
 
     Plato::exp::Problem<Plato::exp::PhysicsMechanics<Plato::Tet10>>
         tElasticityProblem(tMesh, *tParamList, tMachine);
+
+    // SOLVE ELASTOSTATICS EQUATIONS
+    auto tNumVerts = tMesh->NumNodes();
+    Plato::ScalarVector tControl("Control", tNumVerts);
+    Plato::blas1::fill(1.0, tControl);
+    auto tElasticitySolution = tElasticityProblem.solution(tControl);
+
+    // TEST RESULTS
+    constexpr Plato::OrdinalType tTimeStep = 0;
+    auto tState = tElasticitySolution.get("State");
+    auto tSolution = Kokkos::subview(tState, tTimeStep, Kokkos::ALL());
+    auto tHostSolution = Kokkos::create_mirror_view(tSolution);
+    Kokkos::deep_copy(tHostSolution, tSolution);
+
+    std::vector<Plato::Scalar> tGold =
+        {8.44215e-8, 9.58193e-7, -7.30424e-8, 4.50125e-9,
+         9.61752e-7, -7.46016e-8, -7.46016e-8,
+         9.68308e-7, -7.43541e-8, -1.50715e-7,
+         9.67836e-7, -1.47979e-7, 1.60339e-7,
+         9.65735e-7, -1.47873e-7, 8.41994e-8,
+         9.6498e-7, -1.49664e-7, 4.12353e-9,
+         9.68308e-7, -1.50715e-7, -7.43541e-8,
+         9.79216e-7, -1.52588e-7, -1.52588e-7};
+
+    constexpr Plato::Scalar tTolerance = 1e-4;
+    constexpr Plato::OrdinalType tDofOffset = 350; // comparing only the last 25 dofs
+    for(Plato::OrdinalType tDofIndex=0; tDofIndex < tGold.size(); tDofIndex++)
+    {
+        TEST_FLOATING_EQUALITY(tHostSolution(tDofOffset+tDofIndex), tGold[tDofIndex], tTolerance);
+    }
 }
 
 }
