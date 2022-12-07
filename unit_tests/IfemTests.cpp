@@ -2139,7 +2139,6 @@ private:
     using ElementType = typename PhysicsType::ElementType;
     using Criterion = std::shared_ptr<ScalarFunctionBase>;
 
-    bool mIsLinear; /*!< indicates if optimization problem is linear */
     bool mSaveState;
 
     std::string mPDEType;
@@ -2171,7 +2170,6 @@ public:
             mResidual(),
             mStates(),
             mJacobianState(Teuchos::null),
-            mIsLinear(aProbParams.get<bool>("Self-Adjoint", false)),
             mPDEType(aProbParams.get < std::string > ("PDE Constraint")),
             mPhysicsType(aProbParams.get < std::string > ("Physics"))
     {
@@ -2461,20 +2459,11 @@ private:
             mAdjoints = Plato::ScalarMultiVector("Adjoint Variables", 1, tNumDofs);
         }
 
-        // compute gradient with respect to control variables
+        // compute criterion contribution to the gradient
         constexpr Plato::Scalar tCYCLE = 0.0;
         auto tGradientControl = aCriterion->gradientControl(aDatabase, tCYCLE);
 
-        // get adjoint vector for this cycle
-        constexpr size_t tCYCLE_INDEX = 0;
-        Plato::ScalarVector tAdjointVector = Kokkos::subview(mAdjoints, tCYCLE_INDEX, Kokkos::ALL());
-        if(mIsLinear)
-        {
-            auto tStateVector = aDatabase.vector("state");
-            Plato::blas1::copy(tStateVector, tAdjointVector);
-            Plato::blas1::scale(-1.0, tAdjointVector);
-        }
-        else
+        if( !aCriterion->isLinear() )
         {
             // compute gradient with respect to state variables
             auto tGradientState = aCriterion->gradientState(aDatabase, tCYCLE);
@@ -2484,15 +2473,17 @@ private:
             mJacobianState = mResidualEvaluator->jacobianState(aDatabase, tCYCLE, /*transpose=*/ true);
             this->applyAdjointConstraints(mJacobianState, tGradientState);
 
-            Plato::blas1::fill(0.0, tAdjointVector);
+            // solve adjoint system of equations
+            constexpr size_t tCYCLE_INDEX = 0;
+            Plato::ScalarVector tAdjointVector = Kokkos::subview(mAdjoints, tCYCLE_INDEX, Kokkos::ALL());
             mSolver->solve(*mJacobianState, tAdjointVector, tGradientState, /*isAdjointSolve=*/ true);
+
+            // compute jacobian with respect to control variables
+            auto tJacobianControl = mResidualEvaluator->jacobianControl(aDatabase, tCYCLE, /*transpose=*/ true);
+
+            // compute gradient with respect to design variables
+            Plato::MatrixTimesVectorPlusVector(tJacobianControl, tAdjointVector, tGradientControl);
         }
-
-        // compute jacobian with respect to control variables
-        auto tJacobianControl = mResidualEvaluator->jacobianControl(aDatabase, tCYCLE, /*transpose=*/ true);
-
-        // compute gradient with respect to design variables
-        Plato::MatrixTimesVectorPlusVector(tJacobianControl, tAdjointVector, tGradientControl);
 
         return tGradientControl;
     }
@@ -2513,15 +2504,12 @@ private:
             mAdjoints = Plato::ScalarMultiVector("Adjoint Variables", 1, tNumDofs);
         }
 
-        // compute gradient with respect to configuration variables
+        // compute criterion contribution to the gradient
         constexpr Plato::Scalar tCYCLE = 0.0;
         auto tGradientConfig  = aCriterion->gradientConfig(aDatabase, tCYCLE);
 
-        if(mIsLinear)
-        {
-            Plato::blas1::scale(static_cast<Plato::Scalar>(-1), tGradientConfig);
-        }
-        else
+        // add residual contribution to the gradient
+        if( !aCriterion->isLinear() )
         {
             // compute gradient with respect to state variables
             auto tGradientState = aCriterion->gradientState(aDatabase, tCYCLE);
@@ -2531,6 +2519,7 @@ private:
             mJacobianState = mResidualEvaluator->jacobianState(aDatabase, tCYCLE, /*transpose=*/ true);
             this->applyAdjointConstraints(mJacobianState, tGradientState);
 
+            // solve adjoint system of equations
             constexpr size_t tCYCLE_INDEX = 0;
             Plato::ScalarVector tAdjointVector = Kokkos::subview(mAdjoints, tCYCLE_INDEX, Kokkos::ALL());
             mSolver->solve(*mJacobianState, tAdjointVector, tGradientState, /*isAdjointSolve=*/ true);
@@ -2541,6 +2530,7 @@ private:
             // compute gradient with respect to design variables: dgdx * adjoint + dfdx
             Plato::MatrixTimesVectorPlusVector(tJacobianConfig, tAdjointVector, tGradientConfig);
         }
+
         return tGradientConfig;
     }
 };
