@@ -1208,9 +1208,9 @@ public:
            Teuchos::ParameterList & aProbParams,
      const std::string            & aFuncName) :
         CriterionBase(aDomain, aDataMap, aProbParams, aFuncName),
+        mPenaltyFunction(aProbParams.sublist("Criteria").sublist(aFuncName).sublist("Penalty Function")),
         mApplyWeighting(mPenaltyFunction)
     {
-        mPenaltyFunction = Plato::MSIMP(aProbParams.sublist("Criteria").sublist(aFuncName).sublist("Penalty Function"));
         // create material model and get stiffness
         FactoryElasticMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
         mMaterial = tMaterialFactory.create(aDomain.getMaterialName());
