@@ -1483,8 +1483,8 @@ public:
             auto tName = tDomain.getDomainName();
             mResiduals [tName] = tFactoryResidual.template createResidual<ResidualEvalType> (aType, tDomain, aDataMap, aProbParams);
             mJacobiansU[tName] = tFactoryResidual.template createResidual<JacobianUEvalType>(aType, tDomain, aDataMap, aProbParams);
-            mJacobiansZ[tName] = tFactoryResidual.template createResidual<JacobianXEvalType>(aType, tDomain, aDataMap, aProbParams);
-            mJacobiansX[tName] = tFactoryResidual.template createResidual<JacobianZEvalType>(aType, tDomain, aDataMap, aProbParams);
+            mJacobiansZ[tName] = tFactoryResidual.template createResidual<JacobianZEvalType>(aType, tDomain, aDataMap, aProbParams);
+            mJacobiansX[tName] = tFactoryResidual.template createResidual<JacobianXEvalType>(aType, tDomain, aDataMap, aProbParams);
         }
     }
 
