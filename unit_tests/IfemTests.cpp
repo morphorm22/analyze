@@ -1288,7 +1288,7 @@ struct FactoryMechanicsResidual
         const Plato::SpatialDomain   & aDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProbParams,
-              std::string              aTypePDE)
+              std::string            & aTypePDE)
     {
         return std::make_shared<ResidualElastostatics<EvaluationType>>(aTypePDE, aDomain, aDataMap, aProbParams);
     }
