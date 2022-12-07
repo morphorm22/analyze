@@ -213,7 +213,7 @@ public:
  \brief Class for essential boundary conditions.
  */
 template<typename EvaluationType>
-class BodyLoad : public VolumeForceBase<EvaluationType>
+class BodyForce : public VolumeForceBase<EvaluationType>
 /******************************************************************************/
 {
 private:
@@ -235,7 +235,7 @@ private:
     const Plato::OrdinalType mDof;
 
 public:
-    BodyLoad<EvaluationType>(const std::string &aName, Teuchos::ParameterList &aProbParam) :
+    BodyForce<EvaluationType>(const std::string &aName, Teuchos::ParameterList &aProbParam) :
             mName(aName),
             mDof(aProbParam.get<Plato::OrdinalType>("Index", 0)),
             mFunction(aProbParam.get<std::string>("Function"))
@@ -298,11 +298,11 @@ public:
         });
     }
 };
-// end class BodyLoad
+// end class BodyForce
 
 /******************************************************************************/
 /*!
- \brief Contains list of BodyLoad objects.
+ \brief Contains list of BodyForce objects.
  */
 template<typename EvaluationType>
 class VolumeForces
@@ -314,7 +314,7 @@ private:
 public:
 
     /******************************************************************************//**
-     * \brief Constructor that parses and creates a vector of BodyLoad objects based on
+     * \brief Constructor that parses and creates a vector of BodyForce objects based on
      *   the ParameterList.
      * \param aParams Body Loads sublist with input parameters
     **********************************************************************************/
@@ -357,7 +357,7 @@ private:
             }
 
             Teuchos::ParameterList& tSublist = aParams.sublist(tName);
-            auto tVolumeForce = std::make_shared<BodyLoad<EvaluationType>>(tName, tSublist);
+            auto tVolumeForce = std::make_shared<BodyForce<EvaluationType>>(tName, tSublist);
             volume_force_t tType = tVolumeForce->type();
             mVolumeForces[tType].push_back(tVolumeForce);
         }
@@ -946,7 +946,7 @@ private:
     using ControlScalarType = typename EvaluationType::ControlScalarType;
 
     std::shared_ptr<NaturalBCs<EvaluationType>> mPrescribedForces;
-    std::shared_ptr<VolumeForces<EvaluationType>> mBodyLoads;
+    std::shared_ptr<VolumeForces<EvaluationType>> mBodyForces;
     std::shared_ptr<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterial;
 
     Plato::MSIMP mPenaltyFunction;
@@ -974,7 +974,7 @@ public:
         // parse body loads
         if(aProbParams.isSublist("Body Loads"))
         {
-            mBodyLoads = std::make_shared<VolumeForces<EvaluationType>>(aProbParams.sublist("Body Loads"));
+            mBodyForces = std::make_shared<VolumeForces<EvaluationType>>(aProbParams.sublist("Body Loads"));
         }
 
         // parse natural boundary conditions
@@ -1065,9 +1065,9 @@ public:
         });
 
         // add body loads contribution
-        if( mBodyLoads != nullptr )
+        if( mBodyForces != nullptr )
         {
-            mBodyLoads->evaluate(mSpatialDomain,aWorkSets,-1.0 /*scale*/,aCycle);
+            mBodyForces->evaluate(mSpatialDomain,aWorkSets,-1.0 /*scale*/,aCycle);
         }
     }
 
