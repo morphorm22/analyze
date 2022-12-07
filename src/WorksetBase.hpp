@@ -560,6 +560,15 @@ public:
         Plato::assemble_scalar_gradient_fad<mNumNodesPerCell>(mNumCells, mControlEntryOrdinal, aWorkset, aOutput);
     }
 
+    template<class WorksetType, class OutType>
+    void assembleScalarGradientFadZ
+    (const Plato::SpatialDomain & aDomain,
+     const WorksetType          & aWorkset,
+           OutType              & aOutput) const
+    {
+        Plato::assemble_scalar_gradient_fad<mNumNodesPerCell>(aDomain, mControlEntryOrdinal, aWorkset, aOutput);
+    }
+
     /******************************************************************************//**
      * \brief Assemble Jacobian
      *

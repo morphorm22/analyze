@@ -2053,8 +2053,10 @@ public:
             auto tName = tDomain.getDomainName();
             mGradientZFunctions.at(tName)->evaluate(tWorksets, aCycle);
 
-            // assemble gradient and value
-            mWorksetFuncs.assembleScalarGradientFadZ(tResultWS->mData, tGradientZ);
+            // assemble gradient
+            mWorksetFuncs.assembleScalarGradientFadZ(tDomain, tResultWS->mData, tGradientZ);
+
+            // assemble value
             tValue += Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS->mData);
         }
 
