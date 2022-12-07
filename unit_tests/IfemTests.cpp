@@ -221,14 +221,14 @@ private:
     using ElementType = typename EvaluationType::ElementType;
 
     // set local fad type definitions
-    using ResultFadType  = typename EvaluationType::ResultScalarType;
-    using ConfigFadType  = typename EvaluationType::ConfigScalarType;
-    using ControlFadType = typename EvaluationType::ControlScalarType;
+    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
 
     // set local static types
-    static constexpr Plato::OrdinalType mSpaceDim = EvaluationType::SpatialDim; /*!< spatial dimensions */
-    static constexpr Plato::OrdinalType mNumDofsPerNode = ElementType::mNumDofsPerNode; /*!< number of degrees of freedom per node */
-    static constexpr Plato::OrdinalType mNumNodesPerCell = ElementType::mNumNodesPerCell; /*!< number of nodes per cell/element */
+    static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims; /*!< spatial dimensions */
+    static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode; /*!< number of degrees of freedom per node */
+    static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell; /*!< number of nodes per cell/element */
 
     const std::string mName;
     const std::string mFunction;
@@ -251,9 +251,9 @@ public:
      const Plato::Scalar        & aCycle)
     {
         // get input worksets (i.e., domain for function evaluate)
-        auto tConfig  = Plato::metadata<Plato::ScalarArray3DT<ConfigFadType>>(aWorkSets.get("configuration"));
-        auto tResult  = Plato::metadata<Plato::ScalarMultiVectorT<ResultFadType>>(aWorkSets.get("result"));
-        auto tControl = Plato::metadata<Plato::ScalarMultiVectorT<ControlFadType>>(aWorkSets.get("control"));
+        auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+        auto tResultWS  = Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
+        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>(aWorkSets.get("control"));
 
         // get integration points and weights
         auto tCubPoints  = ElementType::getCubPoints();
@@ -262,28 +262,28 @@ public:
 
         // map points to physical space
         Plato::OrdinalType tNumCells = aSpatialDomain.numCells();
-        Plato::ScalarArray3DT<ConfigFadType> tPhysicalPoints("cub points physical space", tNumCells, tNumPoints, mSpaceDim);
-        Plato::mapPoints<ElementType>(tConfig, tPhysicalPoints);
+        Plato::ScalarArray3DT<ConfigScalarType> tPhysicalPoints("cub points physical space", tNumCells, tNumPoints, mNumSpatialDims);
+        Plato::mapPoints<ElementType>(tConfigWS, tPhysicalPoints);
 
         // get integrand values at quadrature points
-        Plato::ScalarMultiVectorT<ConfigFadType> tFxnValues("function values", tNumCells*tNumPoints, 1);
-        Plato::getFunctionValues<mSpaceDim>(tPhysicalPoints, mFunction, tFxnValues);
+        Plato::ScalarMultiVectorT<ConfigScalarType> tFxnValues("function values", tNumCells*tNumPoints, 1);
+        Plato::getFunctionValues<mNumSpatialDims>(tPhysicalPoints, mFunction, tFxnValues);
 
         // integrate and assemble
         //
         auto tDof = mDof;
-        Plato::VectorEntryOrdinal<mSpaceDim, mSpaceDim> tVectorEntryOrdinal(aSpatialDomain.Mesh);
+        Plato::VectorEntryOrdinal<mNumSpatialDims, mNumSpatialDims> tVectorEntryOrdinal(aSpatialDomain.Mesh);
         Kokkos::parallel_for("compute body load", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
         KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
             auto tCubPoint = tCubPoints(iGpOrdinal);
-            auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, tConfig, iCellOrdinal));
+            auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, tConfigWS, iCellOrdinal));
 
-            ControlFadType tDensity(0.0);
+            ControlScalarType tDensity(0.0);
             auto tBasisValues = ElementType::basisValues(tCubPoint);
             for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
             {
-                tDensity += tBasisValues(tFieldOrdinal)*tControl(iCellOrdinal, tFieldOrdinal);
+                tDensity += tBasisValues(tFieldOrdinal)*tControlWS(iCellOrdinal, tFieldOrdinal);
             }
 
             auto tEntryOffset = iCellOrdinal * tNumPoints;
@@ -292,8 +292,8 @@ public:
             auto tWeight = aScale * tCubWeights(iGpOrdinal) * tDetJ;
             for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
             {
-                Kokkos::atomic_add(&tResult(iCellOrdinal,tFieldOrdinal*mNumDofsPerNode+tDof),
-                        tWeight * tFxnValue * tBasisValues(tFieldOrdinal) * tDensity);
+                ResultScalarType tValue = tWeight * tFxnValue * tBasisValues(tFieldOrdinal) * tDensity;
+                Kokkos::atomic_add(&tResultWS(iCellOrdinal,tFieldOrdinal*mNumDofsPerNode+tDof), tValue);
             }
         });
     }
