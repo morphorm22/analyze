@@ -1206,11 +1206,11 @@ public:
     (const Plato::SpatialDomain   & aDomain,
            Plato::DataMap         & aDataMap,
            Teuchos::ParameterList & aProbParams,
-     const std::string            & aName) :
-        CriterionBase(aDomain, aDataMap, aProbParams, aName),
-        mPenaltyFunction(aProbParams),
+     const std::string            & aFuncName) :
+        CriterionBase(aDomain, aDataMap, aProbParams, aFuncName),
         mApplyWeighting(mPenaltyFunction)
     {
+        mPenaltyFunction = Plato::MSIMP(aProbParams.sublist("Criteria").sublist(aFuncName).sublist("Penalty Function"));
         // create material model and get stiffness
         FactoryElasticMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
         mMaterial = tMaterialFactory.create(aDomain.getMaterialName());
@@ -2583,17 +2583,6 @@ TEUCHOS_UNIT_TEST(NewInterface, Elastostatics)
       "      <Parameter name='Type' type='string' value='SIMP'/>                        \n"
       "    </ParameterList>                                                             \n"
       "  </ParameterList>                                                               \n"
-      "  <ParameterList name='Criteria'>                                                \n"
-      "    <ParameterList name='Internal Elastic Energy'>                               \n"
-      "      <Parameter name='Type' type='string' value='Scalar Function'/>             \n"
-      "      <Parameter name='Scalar Function Type' type='string' value='Internal Elastic Energy'/>  \n"
-      "      <ParameterList name='Penalty Function'>                                    \n"
-      "        <Parameter name='Exponent' type='double' value='1.0'/>                   \n"
-      "        <Parameter name='Minimum Value' type='double' value='0.0'/>              \n"
-      "        <Parameter name='Type' type='string' value='SIMP'/>                      \n"
-      "      </ParameterList>                                                           \n"
-      "    </ParameterList>                                                             \n"
-      "  </ParameterList>                                                               \n"
       "  <ParameterList name='Material Models'>                                         \n"
       "    <ParameterList name='Unobtainium'>                                           \n"
       "      <ParameterList name='Isotropic Linear Elastic'>                            \n"
@@ -2665,8 +2654,6 @@ TEUCHOS_UNIT_TEST(NewInterface, Elastostatics)
     {
         TEST_FLOATING_EQUALITY(tHostSolution(tDofOffset+tDofIndex), tGold[tDofIndex], tTolerance);
     }
-
-    Plato::test_criterion_grad_wrt_control(tElasticityProblem,tMesh,"Internal Elastic Energy");
 }
 
 /******************************************************************************/
