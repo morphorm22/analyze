@@ -2142,8 +2142,8 @@ private:
     std::string mPhysicsType;
 
     Plato::ScalarVector mResidual;
-    Plato::ScalarMultiVector mState;
-    Plato::ScalarMultiVector mAdjoint;
+    Plato::ScalarMultiVector mStates;
+    Plato::ScalarMultiVector mAdjoints;
     Teuchos::RCP<Plato::CrsMatrixType> mJacobianState; /*!< Jacobian with respect to state variables */
 
     Plato::OrdinalVector mBcDofs;  /*!< list of essential boundary condition degrees of freedom */
@@ -2165,7 +2165,7 @@ public:
             mSpatialModel(aMesh, aProbParams, mDataMap),
             mSaveState(aProbParams.sublist("Elliptic").isType < Teuchos::Array < std::string >> ("Plottable")),
             mResidual(),
-            mState(),
+            mStates(),
             mJacobianState(Teuchos::null),
             mIsLinear(aProbParams.get<bool>("Self-Adjoint", false)),
             mPDEType(aProbParams.get < std::string > ("PDE Constraint")),
@@ -2178,7 +2178,7 @@ public:
     Plato::Solutions getSolution() const
     {
         Plato::Solutions tSolution(mPhysicsType, mPDEType);
-        tSolution.set("state", mState, mResidualEvaluator->getDofNames());
+        tSolution.set("state", mStates, mResidualEvaluator->getDofNames());
         return tSolution;
     }
 
@@ -2353,7 +2353,7 @@ private:
     (Teuchos::ParameterList& aProbParams)
     {
         mResidualEvaluator = std::make_shared<VectorFunction<PhysicsType>>(mPhysicsType,mSpatialModel,mDataMap,aProbParams);
-        mState = Plato::ScalarMultiVector("States", 1, mResidualEvaluator->numDofs());
+        mStates = Plato::ScalarMultiVector("States", 1, mResidualEvaluator->numDofs());
 
         if(aProbParams.isSublist("Criteria"))
         {
@@ -2377,7 +2377,7 @@ private:
             if( mCriterionEvaluator.size() )
             {
                 auto tNumDofs = mResidualEvaluator->numDofs();
-                mAdjoint = Plato::ScalarMultiVector("Adjoint Vector", 1, tNumDofs);
+                mAdjoints = Plato::ScalarMultiVector("Adjoint Vector", 1, tNumDofs);
             }
         }
 
@@ -2402,8 +2402,8 @@ private:
     (const Plato::ScalarVector & aControl,
            Plato::Database     & aDatabase)
     {
-        const size_t tCYCLE_INDEX = 0;
-        auto tStateVector = Kokkos::subview(mState, tCYCLE_INDEX, Kokkos::ALL());
+        constexpr size_t tCYCLE_INDEX = 0;
+        auto tStateVector = Kokkos::subview(mStates, tCYCLE_INDEX, Kokkos::ALL());
         aDatabase.vector("state"  , tStateVector);
         aDatabase.vector("control", aControl);
     }
@@ -2451,10 +2451,10 @@ private:
             ANALYZE_THROWERR("ERROR: Requested criterion is undefined");
         }
 
-        if(static_cast<Plato::OrdinalType>(mAdjoint.size()) <= static_cast<Plato::OrdinalType>(0))
+        if(static_cast<Plato::OrdinalType>(mAdjoints.size()) <= static_cast<Plato::OrdinalType>(0))
         {
             const auto tNumDofs = mResidualEvaluator->numDofs();
-            mAdjoint = Plato::ScalarMultiVector("Adjoint Variables", 1, tNumDofs);
+            mAdjoints = Plato::ScalarMultiVector("Adjoint Variables", 1, tNumDofs);
         }
 
         // compute gradient with respect to control variables
@@ -2463,7 +2463,7 @@ private:
 
         // get adjoint vector for this cycle
         constexpr size_t tCYCLE_INDEX = 0;
-        Plato::ScalarVector tAdjointVector = Kokkos::subview(mAdjoint, tCYCLE_INDEX, Kokkos::ALL());
+        Plato::ScalarVector tAdjointVector = Kokkos::subview(mAdjoints, tCYCLE_INDEX, Kokkos::ALL());
         if(mIsLinear)
         {
             auto tStateVector = aDatabase.vector("state");
@@ -2503,10 +2503,10 @@ private:
             ANALYZE_THROWERR("ERROR: Requested criterion is undefined");
         }
 
-        if(static_cast<Plato::OrdinalType>(mAdjoint.size()) <= static_cast<Plato::OrdinalType>(0))
+        if(static_cast<Plato::OrdinalType>(mAdjoints.size()) <= static_cast<Plato::OrdinalType>(0))
         {
             const auto tNumDofs = mResidualEvaluator->numDofs();
-            mAdjoint = Plato::ScalarMultiVector("Adjoint Variables", 1, tNumDofs);
+            mAdjoints = Plato::ScalarMultiVector("Adjoint Variables", 1, tNumDofs);
         }
 
         // compute gradient with respect to configuration variables
@@ -2528,7 +2528,7 @@ private:
             this->applyAdjointConstraints(mJacobianState, tGradientState);
 
             constexpr size_t tCYCLE_INDEX = 0;
-            Plato::ScalarVector tAdjointVector = Kokkos::subview(mAdjoint, tCYCLE_INDEX, Kokkos::ALL());
+            Plato::ScalarVector tAdjointVector = Kokkos::subview(mAdjoints, tCYCLE_INDEX, Kokkos::ALL());
             mSolver->solve(*mJacobianState, tAdjointVector, tGradientState, /*isAdjointSolve=*/ true);
 
             // compute jacobian with respect to configuration variables
@@ -2700,58 +2700,55 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
 
   // create test mesh
   //
-  constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", meshWidth);
+  constexpr int tMeshWidth=2;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", tMeshWidth);
 
   // create mesh based density from host data
   //
   auto tNumNodes = tMesh->NumNodes();
-  Plato::ScalarVector z("density", tNumNodes);
-  Kokkos::deep_copy(z, 1.0);
+  Plato::ScalarVector tControl("density", tNumNodes);
+  Kokkos::deep_copy(tControl, 1.0);
 
   // create mesh based displacement from host data
   //
-  ordType tNumDofs = tMesh->NumDimensions()*tMesh->NumNodes();
-  Plato::ScalarMultiVector U("states", /*numSteps=*/1, tNumDofs);
-  auto u = Kokkos::subview(U, 0, Kokkos::ALL());
-  auto u_host = Kokkos::create_mirror_view( u );
-  Plato::Scalar disp = 0.0, dval = 0.0001;
+  auto tNumDofs = tMesh->NumDimensions()*tMesh->NumNodes();
+  Plato::ScalarMultiVector tStates("states", /*numSteps=*/1, tNumDofs);
+  auto tState = Kokkos::subview(tStates, 0, Kokkos::ALL());
+  auto tHostState = Kokkos::create_mirror_view( tState );
+  Plato::Scalar tDisp = 0.0, tDval = 0.0001;
   for(ordType i=0; i<tNumDofs; i++)
   {
-      u_host(i) = (disp += dval);
+      tHostState(i) = (tDisp += tDval);
   }
-  Kokkos::deep_copy(u, u_host);
-
+  Kokkos::deep_copy(tState, tHostState);
 
   // create objective
   //
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  std::string tMyFunction("Internal Elastic Energy");
-  Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<Plato::Tet10>>
-    eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
-
+  std::string tMyFunctionName("Internal Elastic Energy");
+  Plato::exp::ScalarFunction<Plato::exp::PhysicsMechanics<Plato::Tet10>>
+    tScalarFunction(tMyFunctionName, tSpatialModel, tDataMap, *tParamList);
 
   // compute and test criterion value
   //
   Plato::Solutions tSolution;
-  tSolution.set("State", U);
-  auto value = eeScalarFunction.value(tSolution,z);
+  tSolution.set("State", tStates);
+  auto tValue = tScalarFunction.value(tSolution,tControl);
 
-  Plato::Scalar value_gold = 1206.13846153846043;
-  TEST_FLOATING_EQUALITY(value, value_gold, 1e-13);
+  Plato::Scalar tValueGold = 1206.13846153846043;
+  TEST_FLOATING_EQUALITY(tValue, tValueGold, 1e-13);
 
-
-  // compute and test criterion gradient wrt state, u
+  // compute and test criterion gradient wrt state
   //
-  tSolution.set("State", U);
-  auto grad_u = eeScalarFunction.gradient_u(tSolution, z, /*stepIndex=*/0);
+  tSolution.set("State", tStates);
+  auto tGradU = tScalarFunction.gradientState(tSolution, tControl, /*stepIndex=*/0);
 
-  auto grad_u_Host = Kokkos::create_mirror_view( grad_u );
-  Kokkos::deep_copy( grad_u_Host, grad_u );
+  auto tHostGradU = Kokkos::create_mirror_view( tGradU );
+  Kokkos::deep_copy( tHostGradU, tGradU );
 
-  std::vector<Plato::Scalar> grad_u_gold = {
+  std::vector<Plato::Scalar> tGoldGradU = {
    0., 0., 0., -2432.692307692301, -1663.461538461530,
    -615.3846153846263, 0., 0., 0., -2432.692307692299,
    -1663.461538461529, -615.3846153846263, 0., 0., 0.,
@@ -2761,27 +2758,26 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
    -3711.538461538446, -1153.846153846156, -1000.000000000002,
    -1355.769230769233 };
 
-  for(int iNode=0; iNode<int(grad_u_gold.size()); iNode++){
-      if(grad_u_gold[iNode] == 0.0)
+  for(int iNode=0; iNode<int(tGoldGradU.size()); iNode++){
+      if(tGoldGradU[iNode] == 0.0)
       {
-          TEST_ASSERT(fabs(grad_u_Host[iNode]) < 1e-10);
+          TEST_ASSERT(fabs(tHostGradU[iNode]) < 1e-10);
       }
       else
       {
-          TEST_FLOATING_EQUALITY(grad_u_Host[iNode], grad_u_gold[iNode], 1e-13);
+          TEST_FLOATING_EQUALITY(tHostGradU[iNode], tGoldGradU[iNode], 1e-13);
       }
   }
 
-
   // compute and test criterion gradient wrt control, z
   //
-  tSolution.set("State", U);
-  auto grad_z = eeScalarFunction.gradient_z(tSolution,z);
+  tSolution.set("State", tStates);
+  auto tGradZ = tScalarFunction.gradientControl(tSolution,tControl);
 
-  auto grad_z_Host = Kokkos::create_mirror_view( grad_z );
-  Kokkos::deep_copy( grad_z_Host, grad_z );
+  auto tHostGradZ = Kokkos::create_mirror_view( tGradZ );
+  Kokkos::deep_copy( tHostGradZ, tGradZ );
 
-  std::vector<Plato::Scalar> grad_z_gold = {
+  std::vector<Plato::Scalar> tGoldGradZ = {
     -7.53836538461538375, 10.0511538461537988, -10.0511538461538468,
     10.0511538461537935, -2.51278846153846125, 10.0511538461537988,
     10.0511538461537988, 15.0767307692307462, 10.0511538461537935,
@@ -2789,19 +2785,19 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
     -15.0767307692307710, 15.0767307692307391, -5.02557692307692072,
     10.0511538461537953, 10.0511538461537917, 15.0767307692307426};
 
-  for(int iNode=0; iNode<int(grad_z_gold.size()); iNode++){
-    TEST_FLOATING_EQUALITY(grad_z_Host[iNode], grad_z_gold[iNode], 1e-13);
+  for(int iNode=0; iNode<int(tGoldGradZ.size()); iNode++){
+    TEST_FLOATING_EQUALITY(tHostGradZ[iNode], tGoldGradZ[iNode], 1e-13);
   }
 
   // compute and test criterion gradient wrt node position, x
   //
-  tSolution.set("State", U);
-  auto grad_x = eeScalarFunction.gradient_x(tSolution, z);
+  tSolution.set("State", tStates);
+  auto tGradX = tScalarFunction.gradientConfig(tSolution, tControl);
 
-  auto grad_x_Host = Kokkos::create_mirror_view( grad_x );
-  Kokkos::deep_copy(grad_x_Host, grad_x);
+  auto tHostGradX = Kokkos::create_mirror_view( tGradX );
+  Kokkos::deep_copy(tHostGradX, tGradX);
 
-  std::vector<Plato::Scalar> grad_x_gold = {
+  std::vector<Plato::Scalar> tGoldGradX = {
     0., 0., 0., 91.0903846153847354, -21.9865384615381778,
     5.65384615384538058, 0., 0., 0., 91.0903846153847496,
    -21.9865384615381956, 5.65384615384537881, 0., 0., 0.,
@@ -2811,14 +2807,14 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
     75.4500000000002871, 35.1923076923071747, 7.03846153846111378
   };
 
-  for(int iNode=0; iNode<int(grad_x_gold.size()); iNode++){
-      if(grad_x_gold[iNode] == 0.0)
+  for(int iNode=0; iNode<int(tGoldGradX.size()); iNode++){
+      if(tGoldGradX[iNode] == 0.0)
       {
-          TEST_ASSERT(fabs(grad_x_Host[iNode]) < 1e-10);
+          TEST_ASSERT(fabs(tHostGradX[iNode]) < 1e-10);
       }
       else
       {
-          TEST_FLOATING_EQUALITY(grad_x_Host[iNode], grad_x_gold[iNode], 1e-12);
+          TEST_FLOATING_EQUALITY(tHostGradX[iNode], tGoldGradX[iNode], 1e-12);
       }
   }
 }
