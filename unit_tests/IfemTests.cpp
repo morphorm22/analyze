@@ -48,7 +48,7 @@
 
 // unit test includes
 #include "util/PlatoTestHelpers.hpp"
-#include "unit_tests/Plato_Diagnostics.hpp"
+#include "Analyze_Diagnostics.hpp"
 
 namespace Plato
 {
