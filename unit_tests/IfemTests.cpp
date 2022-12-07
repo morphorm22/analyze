@@ -2712,11 +2712,10 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
   // create mesh based displacement from host data
   //
   auto tNumDofs = tMesh->NumDimensions()*tMesh->NumNodes();
-  Plato::ScalarMultiVector tStates("states", /*numSteps=*/1, tNumDofs);
-  auto tState = Kokkos::subview(tStates, 0, Kokkos::ALL());
+  Plato::ScalarVector tState("state", tNumDofs);
   auto tHostState = Kokkos::create_mirror_view( tState );
   Plato::Scalar tDisp = 0.0, tDval = 0.0001;
-  for(ordType i=0; i<tNumDofs; i++)
+  for(decltype(tNumDofs) i=0; i<tNumDofs; i++)
   {
       tHostState(i) = (tDisp += tDval);
   }
@@ -2731,19 +2730,23 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
   Plato::exp::ScalarFunction<Plato::exp::PhysicsMechanics<Plato::Tet10>>
     tScalarFunction(tMyFunctionName, tSpatialModel, tDataMap, *tParamList);
 
+  // set database
+  //
+  Plato::Database tDatabase;
+  tDatabase.vector("state"  , tState);
+  tDatabase.vector("control", tControl);
+
   // compute and test criterion value
   //
-  Plato::Solutions tSolution;
-  tSolution.set("State", tStates);
-  auto tValue = tScalarFunction.value(tSolution,tControl);
+  constexpr Plato::Scalar tCYCLE = 0.0;
+  auto tValue = tScalarFunction.value(tDatabase,tCYCLE);
 
   Plato::Scalar tValueGold = 1206.13846153846043;
   TEST_FLOATING_EQUALITY(tValue, tValueGold, 1e-13);
 
   // compute and test criterion gradient wrt state
   //
-  tSolution.set("State", tStates);
-  auto tGradU = tScalarFunction.gradientState(tSolution, tControl, /*stepIndex=*/0);
+  auto tGradU = tScalarFunction.gradientState(tDatabase,tCYCLE);
 
   auto tHostGradU = Kokkos::create_mirror_view( tGradU );
   Kokkos::deep_copy( tHostGradU, tGradU );
@@ -2771,8 +2774,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
 
   // compute and test criterion gradient wrt control, z
   //
-  tSolution.set("State", tStates);
-  auto tGradZ = tScalarFunction.gradientControl(tSolution,tControl);
+  auto tGradZ = tScalarFunction.gradientControl(tDatabase,tCYCLE);
 
   auto tHostGradZ = Kokkos::create_mirror_view( tGradZ );
   Kokkos::deep_copy( tHostGradZ, tGradZ );
@@ -2791,8 +2793,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
 
   // compute and test criterion gradient wrt node position, x
   //
-  tSolution.set("State", tStates);
-  auto tGradX = tScalarFunction.gradientConfig(tSolution, tControl);
+  auto tGradX = tScalarFunction.gradientConfig(tDatabase,tCYCLE);
 
   auto tHostGradX = Kokkos::create_mirror_view( tGradX );
   Kokkos::deep_copy(tHostGradX, tGradX);
