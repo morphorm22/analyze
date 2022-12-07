@@ -1285,10 +1285,10 @@ struct FactoryMechanicsResidual
     template<typename EvaluationType>
     std::shared_ptr<ResidualBase>
     createResidual(
-        const Plato::SpatialDomain   & aDomain,
-              Plato::DataMap         & aDataMap,
-              Teuchos::ParameterList & aProbParams,
-              std::string            & aTypePDE)
+            const std::string          & aTypePDE,
+            const Plato::SpatialDomain & aDomain,
+              Plato::DataMap           & aDataMap,
+              Teuchos::ParameterList   & aProbParams)
     {
         return std::make_shared<ResidualElastostatics<EvaluationType>>(aTypePDE, aDomain, aDataMap, aProbParams);
     }
@@ -1481,10 +1481,10 @@ public:
         for(const auto& tDomain : mSpatialModel.Domains)
         {
             auto tName = tDomain.getDomainName();
-            mResiduals [tName] = tFactoryResidual.template createResidual<ResidualEvalType> (tDomain, aDataMap, aProbParams, aType);
-            mJacobiansU[tName] = tFactoryResidual.template createResidual<JacobianUEvalType>(tDomain, aDataMap, aProbParams, aType);
-            mJacobiansZ[tName] = tFactoryResidual.template createResidual<JacobianXEvalType>(tDomain, aDataMap, aProbParams, aType);
-            mJacobiansX[tName] = tFactoryResidual.template createResidual<JacobianZEvalType>(tDomain, aDataMap, aProbParams, aType);
+            mResiduals [tName] = tFactoryResidual.template createResidual<ResidualEvalType> (aType, tDomain, aDataMap, aProbParams);
+            mJacobiansU[tName] = tFactoryResidual.template createResidual<JacobianUEvalType>(aType, tDomain, aDataMap, aProbParams);
+            mJacobiansZ[tName] = tFactoryResidual.template createResidual<JacobianXEvalType>(aType, tDomain, aDataMap, aProbParams);
+            mJacobiansX[tName] = tFactoryResidual.template createResidual<JacobianZEvalType>(aType, tDomain, aDataMap, aProbParams);
         }
     }
 
