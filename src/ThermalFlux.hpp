@@ -25,16 +25,16 @@ class ThermalFlux
 
   public:
 
-    ThermalFlux(const Teuchos::RCP<Plato::MaterialModel<ElementType::mNumSpatialDims>> aMaterialModel)
+    ThermalFlux(const Plato::MaterialModel<ElementType::mNumSpatialDims>& aMaterialModel)
     {
-        mModelType = aMaterialModel->type();
+        mModelType = aMaterialModel.type();
         if (mModelType == Plato::MaterialModelType::Nonlinear)
         {
-            mConductivityFunctor = aMaterialModel->getTensorFunctor("Thermal Conductivity");
+            mConductivityFunctor = aMaterialModel.getTensorFunctor("Thermal Conductivity");
         } else
         if (mModelType == Plato::MaterialModelType::Linear)
         {
-            mConductivityConstant = aMaterialModel->getTensorConstant("Thermal Conductivity");
+            mConductivityConstant = aMaterialModel.getTensorConstant("Thermal Conductivity");
         }
     }
 

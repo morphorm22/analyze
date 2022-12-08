@@ -81,7 +81,7 @@ namespace Parabolic
 
       Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
       Plato::ScalarGrad<ElementType>            tScalarGrad;
-      Plato::ThermalFlux<ElementType>           tThermalFlux(mThermalConductivityMaterialModel);
+      Plato::ThermalFlux<ElementType>           tThermalFlux(*mThermalConductivityMaterialModel);
       Plato::GeneralFluxDivergence<ElementType> tFluxDivergence;
       Plato::ProjectToNode<ElementType>         tProjectThermalEnergyRate;
 

@@ -53,7 +53,7 @@ namespace Parabolic
       Plato::ComputeGradientMatrix<ElementType> computeGradient;
       Plato::ScalarGrad<ElementType>            scalarGrad;
       Plato::ScalarProduct<mNumSpatialDims>     scalarProduct;
-      Plato::ThermalFlux<ElementType>           thermalFlux(mThermalConductivityMaterialModel);
+      Plato::ThermalFlux<ElementType>           thermalFlux(*mThermalConductivityMaterialModel);
 
       Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode> tInterpolateFromNodal;
 

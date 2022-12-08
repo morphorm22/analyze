@@ -61,7 +61,7 @@ namespace Elliptic
       Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
       Plato::ScalarGrad<ElementType>            tComputeScalarGrad;
       Plato::ScalarProduct<mNumSpatialDims>     tComputeScalarProduct;
-      Plato::ThermalFlux<ElementType>           tComputeThermalFlux(mMaterialModel);
+      Plato::ThermalFlux<ElementType>           tComputeThermalFlux(*mMaterialModel);
 
       Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode> tInterpolateFromNodal;
 

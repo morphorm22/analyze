@@ -89,7 +89,7 @@ namespace Elliptic
       Plato::ScalarGrad<ElementType>             scalarGrad;
       Plato::GeneralFluxDivergence<ElementType>  fluxDivergence;
 
-      Plato::ThermalFlux<ElementType>            thermalFlux(mMaterialModel);
+      Plato::ThermalFlux<ElementType>            thermalFlux(*mMaterialModel);
 
       Plato::ScalarVectorT<ConfigScalarType> tCellVolume("cell weight",tNumCells);
 

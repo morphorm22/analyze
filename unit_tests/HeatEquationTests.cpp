@@ -130,7 +130,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, 3D )
   Plato::ThermalConductionModelFactory<spaceDim> mmfactory(*tParamList);
   auto tMaterialModel = mmfactory.create("Unobtainium");
 
-  Plato::ThermalFlux<ElementType>           thermalFlux(tMaterialModel);
+  Plato::ThermalFlux<ElementType>           thermalFlux(*tMaterialModel);
   Plato::GeneralFluxDivergence<ElementType> fluxDivergence;
 
   Plato::ScalarVectorT<Plato::Scalar> cellVolume("cell volume",numCells);

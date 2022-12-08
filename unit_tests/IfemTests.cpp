@@ -1240,7 +1240,7 @@ public:
 
         if( mBodyForces != nullptr )
         {
-            mBodyForces->get( mSpatialDomain,aWorkSets,1.0 /*scale*/,aCycle );
+            mBodyForces->evaluate( mSpatialDomain,aWorkSets,1.0 /*scale*/,aCycle );
         }
     }
 
