@@ -134,14 +134,14 @@ public:
  *
 **********************************************************************************/
 template<Plato::OrdinalType SpatialDim>
-class FactoryElasticMaterial
+class FactoryElasticModel
 {
 public:
     /******************************************************************************//**
     * \brief Linear elastic material model factory constructor.
     * \param [in] aParamList input parameter list
     **********************************************************************************/
-    FactoryElasticMaterial(const Teuchos::ParameterList& aParamList) :
+    FactoryElasticModel(const Teuchos::ParameterList& aParamList) :
         mParamList(aParamList){}
 
     /******************************************************************************//**
@@ -963,7 +963,7 @@ public:
         if(mNumSpatialDims > 2) mDofNames.push_back("displacement Z");
 
         // create material model and get stiffness
-        FactoryElasticMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
+        FactoryElasticModel<mNumSpatialDims> tMaterialFactory(aProbParams);
         mMaterial = tMaterialFactory.create(aDomain.getMaterialName());
 
         // parse body loads
@@ -1277,7 +1277,7 @@ public:
         mApplyWeighting(mPenaltyFunction)
     {
         // create material model and get stiffness
-        FactoryElasticMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
+        FactoryElasticModel<mNumSpatialDims> tMaterialFactory(aProbParams);
         mMaterial = tMaterialFactory.create(aDomain.getMaterialName());
     }
 
