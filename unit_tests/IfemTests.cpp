@@ -20,6 +20,8 @@
 #include "MetaData.hpp"
 #include "WorkSets.hpp"
 #include "Assembly.hpp"
+#include "ScalarGrad.hpp"
+#include "ThermalFlux.hpp"
 #include "WorksetBase.hpp"
 #include "SurfaceArea.hpp"
 #include "SmallStrain.hpp"
@@ -27,6 +29,7 @@
 #include "EssentialBCs.hpp"
 #include "SpatialModel.hpp"
 #include "LinearStress.hpp"
+#include "MaterialModel.hpp"
 #include "AnalyzeOutput.hpp"
 #include "ScalarProduct.hpp"
 #include "PlatoMathExpr.hpp"
@@ -34,12 +37,15 @@
 #include "PlatoUtilities.hpp"
 #include "GradientMatrix.hpp"
 #include "ApplyWeighting.hpp"
+#include "ThermalElement.hpp"
 #include "MechanicsElement.hpp"
 #include "ApplyConstraints.hpp"
 #include "PlatoStaticsTypes.hpp"
 #include "ElasticModelFactory.hpp"
 #include "WeightedNormalVector.hpp"
 #include "PlatoAbstractProblem.hpp"
+#include "InterpolateFromNodal.hpp"
+#include "GeneralFluxDivergence.hpp"
 #include "GeneralStressDivergence.hpp"
 
 #include "alg/PlatoSolverFactory.hpp"
@@ -55,137 +61,6 @@ namespace Plato
 
 namespace exp
 {
-
-template<typename Type>
-struct Range
-{
-private:
-    std::unordered_map<std::string, Type> mRange; /*!< map from data name to two-dimensional array of pod type */
-    std::unordered_map<std::string, Plato::OrdinalType> mDataID2NumDofs; /*!< map from data name to number of degrees of freedom */
-    std::unordered_map<std::string, std::vector<std::string>> mDataID2DofNames; /*!< map from data name to degrees of freedom names */
-
-public:
-    Range(){};
-    ~Range(){}
-
-    std::vector<std::string> tags() const
-    {
-        std::vector<std::string> tTags;
-        for(auto& tPair : mRange)
-        {
-            tTags.push_back(tPair.first);
-        }
-        return tTags;
-    }
-    Type get(const std::string& aTag) const
-    {
-        auto tLowerTag = Plato::tolower(aTag);
-        auto tItr = mRange.find(tLowerTag);
-        if(tItr == mRange.end())
-        {
-            ANALYZE_THROWERR(std::string("Data with tag '") + aTag + "' is not defined in Range associative map")
-        }
-        return tItr->second;
-    }
-    void set(const std::string& aTag, const Type& aData)
-    {
-        auto tLowerTag = Plato::tolower(aTag);
-        mRange[tLowerTag] = aData;
-    }
-    Plato::OrdinalType dofs(const std::string& aTag) const
-    {
-        auto tLowerTag = Plato::tolower(aTag);
-        auto tItr = mDataID2NumDofs.find(tLowerTag);
-        if(tItr == mDataID2NumDofs.end())
-        {
-            ANALYZE_THROWERR(std::string("Data with tag '") + aTag + "' is not defined in Range associative map")
-        }
-        return tItr->second;
-    }
-    std::vector<std::string> dof_names(const std::string& aTag) const
-    {
-        auto tLowerTag = Plato::tolower(aTag);
-        auto tItr = mDataID2DofNames.find(tLowerTag);
-        if(tItr == mDataID2DofNames.end())
-        {
-            return std::vector<std::string>(0);
-        }
-        return tItr->second;
-    }
-    void print() const
-    {
-        if(mRange.empty())
-        { return; }
-        for(auto& tPair : mRange)
-        { Plato::print_array_2D(tPair.second, tPair.first); }
-    }
-    bool empty() const
-    {
-        return mRange.empty();
-    }
-};
-// struct Range
-
-
-/******************************************************************************//**
- * \brief Factory for creating linear elastic material models.
- *
- * \tparam SpatialDim spatial dimensions: options 1D, 2D, and 3D
- *
-**********************************************************************************/
-template<Plato::OrdinalType SpatialDim>
-class FactoryElasticModel
-{
-public:
-    /******************************************************************************//**
-    * \brief Linear elastic material model factory constructor.
-    * \param [in] aParamList input parameter list
-    **********************************************************************************/
-    FactoryElasticModel(const Teuchos::ParameterList& aParamList) :
-        mParamList(aParamList){}
-
-    /******************************************************************************//**
-    * \brief Create a linear elastic material model.
-    * \param [in] aModelName name of the model to be created.
-    * \return Teuchos reference counter pointer to linear elastic material model
-    **********************************************************************************/
-    std::shared_ptr<Plato::LinearElasticMaterial<SpatialDim>>
-    create(std::string aModelName)
-    {
-        if (!mParamList.isSublist("Material Models"))
-        {
-            ANALYZE_THROWERR("ERROR: 'Material Models' list not found! Returning 'nullptr'");
-        }
-        else
-        {
-            auto tModelsParamList = mParamList.get<Teuchos::ParameterList>("Material Models");
-            if (!tModelsParamList.isSublist(aModelName))
-            {
-                std::stringstream tSS;
-                tSS << "Requested a material model ('" << aModelName << "') that isn't defined";
-                ANALYZE_THROWERR(tSS.str());
-            }
-
-            auto tModelParamList = tModelsParamList.sublist(aModelName);
-            if(tModelParamList.isSublist("Isotropic Linear Elastic"))
-            {
-                return std::make_shared<Plato::IsotropicLinearElasticMaterial<SpatialDim>>(tModelParamList.sublist("Isotropic Linear Elastic"));
-            }
-            else if(tModelParamList.isSublist("Orthotropic Linear Elastic"))
-            {
-                return std::make_shared<Plato::OrthotropicLinearElasticMaterial<SpatialDim>>(tModelParamList.sublist("Orthotropic Linear Elastic"));
-            }
-            else
-            {
-                ANALYZE_THROWERR(std::string("ERROR: Requested a material model '") + aModelName + "' is not supported");
-            }
-        }
-    }
-
-private:
-    const Teuchos::ParameterList& mParamList; /*!< Input parameter list */
-};
-// class ElasticModelFactory
 
 enum class volume_force_t
 {
@@ -918,6 +793,85 @@ public:
 };
 // class abstract residual
 
+/******************************************************************************//**
+ * \brief Factory for creating linear elastic material models.
+ *
+ * \tparam SpatialDim spatial dimensions: options 1D, 2D, and 3D
+ *
+**********************************************************************************/
+template<Plato::OrdinalType SpatialDim>
+class FactoryElasticMaterial
+{
+private:
+    const Teuchos::ParameterList& mParamList; /*!< Input parameter list */
+
+public:
+    /******************************************************************************//**
+    * \brief Linear elastic material model factory constructor.
+    * \param [in] aParamList input parameter list
+    **********************************************************************************/
+    FactoryElasticMaterial(const Teuchos::ParameterList& aParamList) :
+        mParamList(aParamList){}
+
+    /******************************************************************************//**
+    * \brief Create a linear elastic material model.
+    * \param [in] aModelName name of the model to be created.
+    * \return Teuchos reference counter pointer to linear elastic material model
+    **********************************************************************************/
+    std::shared_ptr<Plato::LinearElasticMaterial<SpatialDim>>
+    create(std::string aModelName) const
+    {
+        if (!mParamList.isSublist("Material Models"))
+        {
+            ANALYZE_THROWERR("ERROR: 'Material Models' parameter list not found! Returning 'nullptr'");
+        }
+        else
+        {
+            auto tModelsParamList = mParamList.get<Teuchos::ParameterList>("Material Models");
+            if (!tModelsParamList.isSublist(aModelName))
+            {
+                std::stringstream tSS;
+                tSS << "Requested a material model ('" << aModelName << "') that isn't defined";
+                ANALYZE_THROWERR(tSS.str());
+            }
+
+            auto tModelParamList = tModelsParamList.sublist(aModelName);
+            if(tModelParamList.isSublist("Isotropic Linear Elastic"))
+            {
+                return std::make_shared<Plato::IsotropicLinearElasticMaterial<SpatialDim>>(tModelParamList.sublist("Isotropic Linear Elastic"));
+            }
+            else if(tModelParamList.isSublist("Orthotropic Linear Elastic"))
+            {
+                return std::make_shared<Plato::OrthotropicLinearElasticMaterial<SpatialDim>>(tModelParamList.sublist("Orthotropic Linear Elastic"));
+            }
+            else
+            {
+                auto tErrMsg = this->getErrorMsg();
+                ANALYZE_THROWERR(tErrMsg);
+            }
+        }
+    }
+
+private:
+    /*!< map from input force type string to supported enum */
+    std::vector<std::string> mSupportedMaterials =
+        {"isotropic linear elastic"};
+
+    std::string
+    getErrorMsg()
+    const
+    {
+        std::string tMsg = std::string("ERROR: Requested material constitutive model is not supported. ")
+            + "Supported material constitutive models for mechanical analysis are: ";
+        for(const auto& tElement : mSupportedMaterials)
+        {
+            tMsg = tMsg + "'" + tElement + "', ";
+        }
+        auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+        return tSubMsg;
+    }
+};
+// class ElasticModelFactory
 
 template<typename EvaluationType>
 class ResidualElastostatics : public ResidualBase
@@ -938,6 +892,9 @@ private:
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ControlScalarType = typename EvaluationType::ControlScalarType;
+
+    // set strain fad type
+    using StrainScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
     std::shared_ptr<NaturalBCs<EvaluationType>> mPrescribedForces;
     std::shared_ptr<VolumeForces<EvaluationType>> mBodyForces;
@@ -963,7 +920,7 @@ public:
         if(mNumSpatialDims > 2) mDofNames.push_back("displacement Z");
 
         // create material model and get stiffness
-        FactoryElasticModel<mNumSpatialDims> tMaterialFactory(aProbParams);
+        FactoryElasticMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
         mMaterial = tMaterialFactory.create(aDomain.getMaterialName());
 
         // parse body loads
@@ -983,9 +940,6 @@ public:
     (const Plato::WorkSets & aWorkSets,
      const Plato::Scalar   & aCycle)
     {
-        // set strain fad type
-        using StrainScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
-
         // create local worksets
         auto tNumCells = mSpatialDomain.numCells();
         Plato::ScalarVectorT<ConfigScalarType> tCellVolume("volume", tNumCells);
@@ -1085,6 +1039,230 @@ public:
 };
 
 
+
+template<int SpatialDim>
+class MaterialThermalConduction : public MaterialModel<SpatialDim>
+{
+  public:
+    MaterialThermalConduction(const Teuchos::ParameterList& paramList)
+    {
+        this->parseTensor("Thermal Conductivity", paramList);
+    }
+};
+
+template<Plato::OrdinalType SpatialDim>
+class FactoryThermalMaterial
+{
+private:
+    const Teuchos::ParameterList& mParamList;
+
+public:
+    FactoryThermalMaterial(const Teuchos::ParameterList& aParamList) :
+            mParamList(aParamList)
+    {
+    }
+
+    std::shared_ptr<Plato::MaterialModel<SpatialDim>>
+    create
+    (std::string aModelName) const
+    {
+        if(!mParamList.isSublist("Material Models"))
+        {
+            ANALYZE_THROWERR("ERROR: 'Material Models' parameter list was not found! Returning 'nullptr'");
+        }
+        else
+        {
+            auto tModelsParamList = mParamList.get < Teuchos::ParameterList > ("Material Models");
+
+            if(!tModelsParamList.isSublist(aModelName))
+            {
+                auto tErrMsg = std::string("Requested a material model ('") + aModelName + "') that isn't defined";
+                ANALYZE_THROWERR(tErrMsg);
+            }
+
+            auto tModelParamList = tModelsParamList.sublist(aModelName);
+            if(tModelParamList.isSublist("Thermal Conduction"))
+            {
+                return std::make_shared<MaterialThermalConduction<SpatialDim>>(tModelParamList.sublist("Thermal Conduction"));
+            }
+            else
+            {
+                auto tErrMsg = this->getErrorMsg();
+                ANALYZE_THROWERR(tErrMsg);
+            }
+        }
+    }
+    std::vector<std::string> mSupportedMaterials =
+        {"thermal conduction"};
+
+    std::string
+    getErrorMsg()
+    const
+    {
+        std::string tMsg = std::string("ERROR: Requested material constitutive model is not supported. ")
+            + "Supported material constitutive models for thermal analysis are: ";
+        for(const auto& tElement : mSupportedMaterials)
+        {
+            tMsg = tMsg + "'" + tElement + "', ";
+        }
+        auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+        return tSubMsg;
+    }
+};
+
+template<typename EvaluationType>
+class ResidualThermostatics : public ResidualBase
+{
+private:
+    // set local element type
+    using ElementType = typename EvaluationType::ElementType;
+
+    // set local static types
+    static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+    static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+    static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+    static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+
+    // set local fad types
+    using StateScalarType   = typename EvaluationType::StateScalarType;
+    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
+
+    using GradScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
+
+    std::shared_ptr<VolumeForces<EvaluationType>> mBodyForces;
+    std::shared_ptr<NaturalBCs<EvaluationType>>   mPrescribedForces;
+
+    std::shared_ptr<Plato::MaterialModel<mNumSpatialDims>> mMaterial;
+
+    Plato::MSIMP mPenaltyFunction;
+    Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, Plato::MSIMP> mApplyWeighting;
+
+public:
+    ResidualThermostatics
+    (const std::string          & aTypePDE,
+     const Plato::SpatialDomain & aDomain,
+     Plato::DataMap             & aDataMap,
+     Teuchos::ParameterList     & aProbParams) :
+         ResidualBase(aDomain, aDataMap),
+         mPenaltyFunction(aProbParams.sublist(aTypePDE).sublist("Penalty Function")),
+         mApplyWeighting(mPenaltyFunction)
+    {
+        // obligatory: define dof names in order
+        mDofNames.push_back("temperature");
+
+        // create material model and get stiffness
+        FactoryThermalMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
+        mMaterial = tMaterialFactory.create(aDomain.getMaterialName());
+
+        // parse body loads
+        if(aProbParams.isSublist("Body Loads"))
+        {
+            mBodyForces = std::make_shared<VolumeForces<EvaluationType>>(aProbParams.sublist("Body Loads"));
+        }
+
+        // parse natural boundary conditions
+        if(aProbParams.isSublist("Natural Boundary Conditions"))
+        {
+            mPrescribedForces = std::make_shared<NaturalBCs<EvaluationType>>(aProbParams.sublist("Natural Boundary Conditions"));
+        }
+    }
+
+    void evaluate
+    (const Plato::WorkSets & aWorkSets,
+     const Plato::Scalar   & aCycle)
+    {
+        // create local worksets
+        auto tNumCells = mSpatialDomain.numCells();
+        Plato::ScalarVectorT<ConfigScalarType>      tCellVolume("volume", tNumCells);
+        Plato::ScalarMultiVectorT<GradScalarType>   tCellGrad  ("temperature gradient", tNumCells, mNumSpatialDims);
+        Plato::ScalarMultiVectorT<ResultScalarType> tCellFlux  ("thermal flux", tNumCells, mNumSpatialDims);
+
+        // create local functors
+        Plato::ScalarGrad<ElementType>            tScalarGrad;
+        Plato::ThermalFlux<ElementType>           tThermalFlux(mMaterial);
+        Plato::GeneralFluxDivergence<ElementType> tFluxDivergence;
+        Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
+
+        Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode> tInterpolateFromNodal;
+
+        // get input worksets (i.e., domain for function evaluate)
+        auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>( aWorkSets.get("state"));
+        auto tResultWS  = Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>( aWorkSets.get("result"));
+        auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>( aWorkSets.get("configuration"));
+        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("control"));
+
+        // get cubature weights and points
+        auto tCubPoints = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints = tCubWeights.size();
+
+        auto& tApplyWeighting = mApplyWeighting;
+        Kokkos::parallel_for("compute stress", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        {
+            ConfigScalarType tVolume(0.0);
+
+            Plato::Array <mNumSpatialDims,GradScalarType> tGrad(0.0);
+            Plato::Array <mNumSpatialDims,ResultScalarType> tFlux(0.0);
+            Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient;
+
+            auto tCubPoint = tCubPoints(iGpOrdinal);
+            auto tBasisValues = ElementType::basisValues(tCubPoint);
+
+            tComputeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
+            tScalarGrad(iCellOrdinal, tGrad, aState, tGradient);
+            StateScalarType tTemperature = tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState);
+            tThermalFlux(tFlux, tGrad, tTemperature);
+
+            tVolume *= tCubWeights(iGpOrdinal);
+            tApplyWeighting(iCellOrdinal, aControl, tBasisValues, tFlux);
+            tFluxDivergence(iCellOrdinal, aResult, tFlux, tGradient, tVolume, -1.0);
+
+            for(Plato::OrdinalType tDim=0; tDim < mNumSpatialDims; tDim++)
+            {
+                Kokkos::atomic_add(&tCellGrad(iCellOrdinal,tDim), tVolume*tGrad(tDim));
+                Kokkos::atomic_add(&tCellFlux(iCellOrdinal,tDim), tVolume*tFlux(tDim));
+            }
+            Kokkos::atomic_add(&tCellVolume(iCellOrdinal), tVolume);
+        });
+
+        Kokkos::parallel_for("compute cell quantities", Kokkos::RangePolicy<>(0, tNumCells),
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal)
+        {
+            for(Plato::OrdinalType tDim=0; tDim < mNumSpatialDims; tDim++)
+            {
+                tCellGrad(iCellOrdinal,tDim) /= tCellVolume(iCellOrdinal);
+                tCellFlux(iCellOrdinal,tDim) /= tCellVolume(iCellOrdinal);
+            }
+        });
+
+        if( mBodyForces != nullptr )
+        {
+            mBodyForces->get( mSpatialDomain,aWorkSets,1.0 /*scale*/,aCycle );
+        }
+    }
+
+    void evaluateBoundary
+    (const Plato::SpatialModel & aSpatialModel,
+     const Plato::WorkSets     & aWorkSets,
+     const Plato::Scalar       & aCycle)
+    { return; }
+
+    void evaluatePrescribed
+    (const Plato::SpatialModel & aSpatialModel,
+     const Plato::WorkSets     & aWorkSets,
+     const Plato::Scalar       & aCycle)
+    {
+        if( mPrescribedForces != nullptr )
+        {
+            mPrescribedForces->evaluate(aSpatialModel,aWorkSets,/*multiplier=*/ 1.0,aCycle);
+        }
+    }
+};
+
+
 class CriterionBase
 {
 protected:
@@ -1102,11 +1280,11 @@ public:
      * \param [in] aName          criterion name
     **********************************************************************************/
     CriterionBase
-    (const Plato::SpatialDomain   & aSpatialDomain,
+    (const std::string            & aName,
+     const Plato::SpatialDomain   & aDomain,
            Plato::DataMap         & aDataMap,
-           Teuchos::ParameterList & aProbParams,
-     const std::string            & aName) :
-        mSpatialDomain (aSpatialDomain),
+           Teuchos::ParameterList & aProbParams) :
+        mSpatialDomain (aDomain),
         mDataMap       (aDataMap),
         mName          (aName),
         mCompute       (true)
@@ -1181,7 +1359,7 @@ private:
 };
 
 template<typename EvaluationType>
-class Volume : public CriterionBase
+class CriterionVolume : public CriterionBase
 {
 private:
     using ElementType = typename EvaluationType::ElementType;
@@ -1197,12 +1375,12 @@ private:
     Plato::ApplyWeighting<mNumNodesPerCell, /*num_weighted_terms=*/ 1, Plato::MSIMP> mApplyWeighting;
 
 public:
-    Volume
-    (const Plato::SpatialDomain   & aDomain,
+    CriterionVolume
+    (const std::string            & aFuncName,
+     const Plato::SpatialDomain   & aDomain,
            Plato::DataMap         & aDataMap,
-           Teuchos::ParameterList & aProbParams,
-     const std::string            & aFuncName) :
-        CriterionBase(aDomain, aDataMap, aProbParams, aFuncName),
+           Teuchos::ParameterList & aProbParams) :
+        CriterionBase(aFuncName, aDomain, aDataMap, aProbParams),
         mPenaltyFunction(aProbParams.sublist("Criteria").sublist(aFuncName).sublist("Penalty Function")),
         mApplyWeighting(mPenaltyFunction)
     { return; }
@@ -1256,10 +1434,14 @@ private:
     static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
     static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
 
+    // set local fad scalar type
     using StateScalarType   = typename EvaluationType::StateScalarType;
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
     using ControlScalarType = typename EvaluationType::ControlScalarType;
+
+    // set local fad strain scalar type
+    using StrainScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
     std::shared_ptr<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterial;
 
@@ -1268,29 +1450,27 @@ private:
 
 public:
     CriterionInternalElasticEnergy
-    (const Plato::SpatialDomain   & aDomain,
+    (const std::string            & aFuncName,
+     const Plato::SpatialDomain   & aDomain,
            Plato::DataMap         & aDataMap,
-           Teuchos::ParameterList & aProbParams,
-     const std::string            & aFuncName) :
-        CriterionBase(aDomain, aDataMap, aProbParams, aFuncName),
+           Teuchos::ParameterList & aProbParams) :
+        CriterionBase(aFuncName, aDomain, aDataMap, aProbParams),
         mPenaltyFunction(aProbParams.sublist("Criteria").sublist(aFuncName).sublist("Penalty Function")),
         mApplyWeighting(mPenaltyFunction)
     {
         // create material model and get stiffness
-        FactoryElasticModel<mNumSpatialDims> tMaterialFactory(aProbParams);
+        FactoryElasticMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
         mMaterial = tMaterialFactory.create(aDomain.getMaterialName());
     }
 
-    bool isLinear() const { return false; }
+    bool isLinear() const
+    { return false; }
 
     void
     evaluateConditional
     (const Plato::WorkSets & aWorkSets,
      const Plato::Scalar   & aCycle)
     {
-        // set local strain scalar type
-        using StrainScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
-
         // get input worksets (i.e., domain for function evaluate)
         auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>( aWorkSets.get("state") );
         auto tResultWS  = Plato::metadata<Plato::ScalarVectorT<ResultScalarType>>( aWorkSets.get("result") );
@@ -1336,6 +1516,113 @@ public:
     }
 };
 
+template<typename EvaluationType>
+class CriterionInternalThermalEnergy : public CriterionBase
+{
+private:
+    using ElementType = typename EvaluationType::ElementType;
+
+    static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+    static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+    static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+    static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+
+    using StateScalarType   = typename EvaluationType::StateScalarType;
+    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
+
+    using GradScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
+
+    Plato::MSIMP mPenaltyFunction;
+    Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, Plato::MSIMP> mApplyWeighting;
+
+    std::shared_ptr<Plato::MaterialModel<mNumSpatialDims>> mMaterial;
+
+public:
+    /******************************************************************************//**
+     * \brief Constructor
+     * \param aSpatialDomain Plato Analyze spatial domain
+     * \param aProblemParams input database for overall problem
+     * \param aPenaltyParams input database for penalty function
+     **********************************************************************************/
+    CriterionInternalThermalEnergy
+    (const std::string            & aFuncName,
+     const Plato::SpatialDomain   & aDomain,
+           Plato::DataMap         & aDataMap,
+           Teuchos::ParameterList & aProbParams) :
+        CriterionBase(aFuncName, aDomain, aDataMap, aProbParams),
+        mPenaltyFunction(aProbParams.sublist("Criteria").sublist(aFuncName).sublist("Penalty Function")),
+        mApplyWeighting(mPenaltyFunction)
+    {
+        // create material model and get stiffness
+        FactoryThermalMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
+        mMaterial = tMaterialFactory.create(aDomain.getMaterialName());
+    }
+
+    bool isLinear() const
+    { return false; }
+
+    void
+    evaluateConditional
+    (const Plato::WorkSets & aWorkSets,
+     const Plato::Scalar   & aCycle)
+    {
+        // get input worksets (i.e., domain for function evaluate)
+        auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>( aWorkSets.get("state") );
+        auto tResultWS  = Plato::metadata<Plato::ScalarVectorT<ResultScalarType>>( aWorkSets.get("result") );
+        auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>( aWorkSets.get("configuration") );
+        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("control") );
+
+        Plato::ScalarGrad<ElementType>            tComputeScalarGrad;
+        Plato::ThermalFlux<ElementType>           tComputeThermalFlux(mMaterial);
+        Plato::ScalarProduct<mNumSpatialDims>     tComputeScalarProduct;
+        Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
+
+        Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode> tInterpolateFromNodal;
+
+        auto tCubPoints = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints = tCubWeights.size();
+
+        auto tApplyWeighting  = mApplyWeighting;
+        auto tNumCells = mSpatialDomain.numCells();
+        Kokkos::parallel_for("thermal energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        {
+            ConfigScalarType tVolume(0.0);
+
+            Plato::Array <mNumSpatialDims, GradScalarType> tGrad(0.0);
+            Plato::Array <mNumSpatialDims, ResultScalarType> tFlux(0.0);
+            Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, ConfigScalarType> tGradient;
+
+            auto tCubPoint = tCubPoints(iGpOrdinal);
+            auto tBasisValues = ElementType::basisValues(tCubPoint);
+
+            tComputeGradient(iCellOrdinal, tCubPoint, tConfigWS, tGradient, tVolume);
+
+            tVolume *= tCubWeights(iGpOrdinal);
+
+            // compute temperature gradient
+            //
+            tComputeScalarGrad(iCellOrdinal, tGrad, tStateWS, tGradient);
+
+            // compute flux
+            //
+            StateScalarType tTemperature = tInterpolateFromNodal(iCellOrdinal, tBasisValues, tStateWS);
+            tComputeThermalFlux(tFlux, tGrad, tTemperature);
+
+            // apply weighting
+            //
+            tApplyWeighting(iCellOrdinal, tControlWS, tBasisValues, tFlux);
+
+            // compute element internal energy (inner product of tgrad and weighted tflux)
+            //
+            tComputeScalarProduct(iCellOrdinal, tResultWS, tFlux, tGrad, tVolume, -1.0);
+        });
+    }
+};
+
 /******************************************************************************//**
  * \brief Factory for linear mechanics problem
 **********************************************************************************/
@@ -1343,10 +1630,11 @@ struct FactoryMechanicsResidual
 {
     /******************************************************************************//**
      * \brief Create a PLATO vector function (i.e. residual equation)
+     * \return reference count pointer to a residual base instance
+     * \param [in] aPDE           PDE type
      * \param [in] aSpatialDomain Plato Analyze spatial domain
      * \param [in] aDataMap Plato Analyze physics-based database
      * \param [in] aProblemParams input parameters
-     * \param [in] aPDE PDE type
     **********************************************************************************/
     template<typename EvaluationType>
     std::shared_ptr<ResidualBase>
@@ -1362,7 +1650,7 @@ struct FactoryMechanicsResidual
 };
 
 /******************************************************************************//**
- * \brief Factory for linear mechanics problem
+ * \brief Factory for mechanics problem
 **********************************************************************************/
 struct FactoryMechanicsCriterion
 {
@@ -1380,7 +1668,7 @@ private:
             + aLowerType + "' is not supported. " + "Supported criteria are: ";
         for(const auto& tElement : mSupportedCriterion)
         {
-            tMsg = tMsg + tElement + ", ";
+            tMsg = tMsg + "'" + tElement + "', ";
         }
         auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
         return tSubMsg;
@@ -1388,11 +1676,13 @@ private:
 
 public:
     /******************************************************************************//**
-     * \brief Create a PLATO vector function (i.e. residual equation)
+     * \brief Create a criterion function.
+     * \return reference count pointer to a criterion base instance
+     * \param [in] aPDE           criterion type
+     * \param [in] aName          criterion user-defined name
      * \param [in] aSpatialDomain Plato Analyze spatial domain
      * \param [in] aDataMap Plato Analyze physics-based database
      * \param [in] aProblemParams input parameters
-     * \param [in] aPDE PDE type
     **********************************************************************************/
     template<typename EvaluationType>
     std::shared_ptr<CriterionBase>
@@ -1406,12 +1696,12 @@ public:
         auto tLowerType = Plato::tolower(aType);
         if( tLowerType == "internal elastic energy" )
         {
-            return std::make_shared<CriterionInternalElasticEnergy<EvaluationType>>(aDomain, aDataMap, aProbParams, aName);
+            return std::make_shared<CriterionInternalElasticEnergy<EvaluationType>>(aName, aDomain, aDataMap, aProbParams);
         }
         else
         if ( tLowerType == "volume" )
         {
-            return std::make_shared<Volume<EvaluationType>>(aDomain, aDataMap, aProbParams, aName);
+            return std::make_shared<CriterionVolume<EvaluationType>>(aName, aDomain, aDataMap, aProbParams);
         }
         else
         {
@@ -1430,6 +1720,105 @@ public:
     typedef FactoryMechanicsCriterion FactoryCriterion;
 
     using ElementType = Plato::MechanicsElement<ElementTopoType>;
+};
+
+/******************************************************************************//**
+ * \brief Residual factory for thermal problems.
+**********************************************************************************/
+struct FactoryThermalResidual
+{
+    /******************************************************************************//**
+     * \brief Create a thermal residual function
+     * \return reference count pointer to a residual base instance
+     * \param [in] aPDE           PDE type
+     * \param [in] aSpatialDomain spatial domain database
+     * \param [in] aDataMap       output database
+     * \param [in] aProblemParams input parameters
+    **********************************************************************************/
+    template<typename EvaluationType>
+    std::shared_ptr<ResidualBase>
+    createResidual
+    (const std::string            & aTypePDE,
+     const Plato::SpatialDomain   & aDomain,
+           Plato::DataMap         & aDataMap,
+           Teuchos::ParameterList & aProbParams)
+    {
+        return std::make_shared<ResidualThermostatics<EvaluationType>>(aTypePDE, aDomain, aDataMap, aProbParams);
+    }
+
+};
+
+/******************************************************************************//**
+ * \brief Criterion factory for thermal problems
+**********************************************************************************/
+struct FactoryThermalCriterion
+{
+private:
+    /*!< map from input force type string to supported enum */
+    std::vector<std::string> mSupportedCriterion =
+        {"internal thermal energy","volume"};
+
+    std::string
+    getErrorMsg
+    (const std::string & aLowerType)
+    const
+    {
+        std::string tMsg = std::string("ERROR: Thermal criterion of type '")
+            + aLowerType + "' is not supported. " + "Supported criteria are: ";
+        for(const auto& tElement : mSupportedCriterion)
+        {
+            tMsg = tMsg + "'" + tElement + "', ";
+        }
+        auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+        return tSubMsg;
+    }
+
+public:
+    /******************************************************************************//**
+     * \brief Create a criterion function.
+     * \return reference count pointer to a criterion base instance
+     * \param [in] aPDE           criterion type
+     * \param [in] aName          criterion user-defined name
+     * \param [in] aSpatialDomain spatial domain database
+     * \param [in] aDataMap       output database
+     * \param [in] aProblemParams input parameters
+    **********************************************************************************/
+    template<typename EvaluationType>
+    std::shared_ptr<CriterionBase>
+    createCriterion
+    (const std::string            & aType,
+     const std::string            & aName,
+     const Plato::SpatialDomain   & aDomain,
+           Plato::DataMap         & aDataMap,
+           Teuchos::ParameterList & aProbParams)
+    {
+        auto tLowerType = Plato::tolower(aType);
+        if( tLowerType == "internal thermal energy" )
+        {
+            return std::make_shared<CriterionInternalElasticEnergy<EvaluationType>>(aName, aDomain, aDataMap, aProbParams);
+        }
+        else
+        if ( tLowerType == "volume" )
+        {
+            return std::make_shared<CriterionVolume<EvaluationType>>(aName, aDomain, aDataMap, aProbParams);
+        }
+        else
+        {
+            auto tErrMsg = this->getErrorMsg(tLowerType);
+            ANALYZE_THROWERR(tErrMsg)
+        }
+    }
+
+};
+
+template<typename ElementTopoType>
+class PhysicsThermal
+{
+public:
+    typedef FactoryThermalResidual  FactoryResidual;
+    typedef FactoryThermalCriterion FactoryCriterion;
+
+    using ElementType = Plato::ThermalElement<ElementTopoType>;
 };
 
 
@@ -2446,7 +2835,7 @@ private:
             + aName + "' is not defined. " + "Parsed criterion parameter list names are: ";
         for(const auto& tPair : mCriterionEvaluator)
         {
-            tMsg = tMsg + tPair.first + ", ";
+            tMsg = tMsg + "'" + tPair.first + "', ";
         }
         auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
         tSubMsg += ". The value provided for the criterion 'Type' keyword and the parameter list name must match.";
