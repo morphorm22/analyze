@@ -2449,7 +2449,7 @@ private:
             tMsg = tMsg + tPair.first + ", ";
         }
         auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
-        tSubMsg += ". The value provided for the criterion 'Type' keyword and the parameter list name must match."
+        tSubMsg += ". The value provided for the criterion 'Type' keyword and the parameter list name must match.";
         return tSubMsg;
     }
 
