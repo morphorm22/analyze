@@ -1211,14 +1211,14 @@ public:
             auto tCubPoint = tCubPoints(iGpOrdinal);
             auto tBasisValues = ElementType::basisValues(tCubPoint);
 
-            tComputeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
-            tScalarGrad(iCellOrdinal, tGrad, aState, tGradient);
-            StateScalarType tTemperature = tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState);
+            tComputeGradient(iCellOrdinal, tCubPoint, tConfigWS, tGradient, tVolume);
+            tScalarGrad(iCellOrdinal, tGrad, tStateWS, tGradient);
+            StateScalarType tTemperature = tInterpolateFromNodal(iCellOrdinal, tBasisValues, tStateWS);
             tThermalFlux(tFlux, tGrad, tTemperature);
 
             tVolume *= tCubWeights(iGpOrdinal);
-            tApplyWeighting(iCellOrdinal, aControl, tBasisValues, tFlux);
-            tFluxDivergence(iCellOrdinal, aResult, tFlux, tGradient, tVolume, -1.0);
+            tApplyWeighting(iCellOrdinal, tControlWS, tBasisValues, tFlux);
+            tFluxDivergence(iCellOrdinal, tResultWS, tFlux, tGradient, tVolume, -1.0);
 
             for(Plato::OrdinalType tDim=0; tDim < mNumSpatialDims; tDim++)
             {
