@@ -25,7 +25,7 @@ class ThermalFlux
 
   public:
 
-    ThermalFlux(const Plato::MaterialModel<ElementType::mNumSpatialDims>& aMaterialModel)
+    ThermalFlux(Plato::MaterialModel<ElementType::mNumSpatialDims>& aMaterialModel)
     {
         mModelType = aMaterialModel.type();
         if (mModelType == Plato::MaterialModelType::Nonlinear)
