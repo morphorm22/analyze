@@ -3585,5 +3585,174 @@ TEUCHOS_UNIT_TEST( Morphorm, TestInternalElasticEnergyPlusBodyForcesGradZ_3D_TET
     TEST_ASSERT(tError < 1e-4);
 }
 
+TEUCHOS_UNIT_TEST( Morphorm, ThermostaticResidual3D )
+{
+  // create input
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                          \n"
+    "  <ParameterList name='Spatial Model'>                                        \n"
+    "    <ParameterList name='Domains'>                                            \n"
+    "      <ParameterList name='Design Volume'>                                    \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>          \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>  \n"
+    "      </ParameterList>                                                        \n"
+    "    </ParameterList>                                                          \n"
+    "  </ParameterList>                                                            \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>           \n"
+    "  <Parameter name='Physics' type='string' value='Thermal'/>                   \n"
+    "  <ParameterList name='Elliptic'>                                             \n"
+    "    <ParameterList name='Penalty Function'>                                   \n"
+    "      <Parameter name='Exponent' type='double' value='1.0'/>                  \n"
+    "      <Parameter name='Minimum Value' type='double' value='0.0'/>             \n"
+    "      <Parameter name='Type' type='string' value='SIMP'/>                     \n"
+    "    </ParameterList>                                                          \n"
+    "  </ParameterList>                                                            \n"
+    "  <ParameterList name='Material Models'>                                      \n"
+    "    <ParameterList name='Unobtainium'>                                        \n"
+    "      <ParameterList name='Thermal Conduction'>                               \n"
+    "        <Parameter name='Thermal Conductivity' type='double' value='100.0'/>  \n"
+    "      </ParameterList>                                                        \n"
+    "    </ParameterList>                                                          \n"
+    "  </ParameterList>                                                            \n"
+    "</ParameterList>                                                              \n"
+  );
+
+  // create test mesh
+  //
+  constexpr int meshWidth=2;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
+
+  // create mesh based density from host data
+  //
+  std::vector<Plato::Scalar> z_host( tMesh->NumNodes(), 1.0 );
+  Kokkos::View<Plato::Scalar*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>
+    z_host_view(z_host.data(),z_host.size());
+  auto z = Kokkos::create_mirror_view_and_copy( Kokkos::DefaultExecutionSpace(), z_host_view);
+
+
+  // create mesh based temperature from host data
+  //
+  std::vector<Plato::Scalar> t_host( tMesh->NumNodes() );
+  Plato::Scalar disp = 0.0, dval = 0.1;
+  for( auto& val : t_host ) val = (disp += dval);
+  Kokkos::View<Plato::Scalar*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>
+    t_host_view(t_host.data(),t_host.size());
+  auto u = Kokkos::create_mirror_view_and_copy( Kokkos::DefaultExecutionSpace(), t_host_view);
+
+
+
+  // create constraint evaluator
+  //
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
+
+  using PhysicsType = typename Plato::exp::PhysicsThermal<Plato::Tet4>;
+  Plato::exp::VectorFunction<PhysicsType>
+    tsVectorFunction(tParamList->get<std::string>("PDE Constraint"), tSpatialModel, tDataMap, *tParamList);
+
+
+  // compute and test constraint value
+  //
+  auto residual = tsVectorFunction.value(u,z);
+
+  auto residual_Host = Kokkos::create_mirror_view( residual );
+  Kokkos::deep_copy( residual_Host, residual );
+
+  std::vector<Plato::Scalar> residual_gold = {
+  -21.66666666666666, -30.00000000000000, -8.333333333333332,
+  -25.00000000000000, -45.00000000000001, -19.99999999999999,
+  -3.333333333333332, -15.00000000000000, -11.66666666666667,
+  -10.00000000000001, -15.00000000000000, -4.999999999999993,
+  -5.000000000000004,  0.000000000000000,  4.999999999999980,
+   5.000000000000002,  15.00000000000001,  9.99999999999999,
+   11.66666666666667,  14.99999999999999,  3.333333333333336,
+   20.00000000000000,  45.00000000000005,  25.00000000000000,
+   8.333333333333321,  29.99999999999999,  21.66666666666667
+  };
+
+  for(int iNode=0; iNode<int(residual_gold.size()); iNode++){
+    if(residual_gold[iNode] == 0.0){
+      TEST_ASSERT(fabs(residual_Host[iNode]) < 1e-11);
+    } else {
+      TEST_FLOATING_EQUALITY(residual_Host[iNode], residual_gold[iNode], 1e-13);
+    }
+  }
+
+
+  // compute and test constraint gradient wrt state, u. (i.e., jacobian)
+  //
+  auto jacobian = tsVectorFunction.gradient_u(u,z);
+
+  auto jac_entries = jacobian->entries();
+  auto jac_entriesHost = Kokkos::create_mirror_view( jac_entries );
+  Kokkos::deep_copy(jac_entriesHost, jac_entries);
+
+  std::vector<Plato::Scalar> gold_jac_entries = {
+   49.9999999999999858, -16.6666666666666643, -16.6666666666666643, 0,
+  -16.6666666666666643, 0, 0, 0, -16.6666666666666643,
+   83.3333333333333002, -16.6666666666666643, -24.9999999999999964, 0,
+  -24.9999999999999964, 0, 0, 0, -16.6666666666666643,
+   33.3333333333333286, -8.33333333333333215, -8.33333333333333215, 0
+  };
+
+  int jac_entriesSize = gold_jac_entries.size();
+  for(int i=0; i<jac_entriesSize; i++){
+    TEST_FLOATING_EQUALITY(jac_entriesHost(i), gold_jac_entries[i], 1.0e-15);
+  }
+
+
+  // compute and test gradient wrt control, z
+  //
+  auto gradient = tsVectorFunction.gradient_z(u,z);
+
+  auto grad_entries = gradient->entries();
+  auto grad_entriesHost = Kokkos::create_mirror_view( grad_entries );
+  Kokkos::deep_copy(grad_entriesHost, grad_entries);
+
+  std::vector<Plato::Scalar> gold_grad_entries = {
+   -5.41666666666666607, -2.08333333333333304, -0.833333333333333259,
+   -2.91666666666666696,  2.91666666666666563,  0.833333333333333037,
+    2.08333333333333304,  5.41666666666666785, -0.416666666666666630,
+   -7.50000000000000000, -2.08333333333333304, -2.08333333333333348,
+   -2.91666666666666563,  4.16666666666666607,  0.833333333333334370,
+    4.58333333333333304,  5.41666666666666519, -0.416666666666666741,
+   -2.08333333333333304, -1.24999999999999956,  1.25000000000000044,
+    2.49999999999999911
+  };
+
+  int grad_entriesSize = gold_grad_entries.size();
+  for(int i=0; i<grad_entriesSize; i++){
+    TEST_FLOATING_EQUALITY(grad_entriesHost(i), gold_grad_entries[i], 1.0e-14);
+  }
+
+  // compute and test gradient wrt node position, x
+  //
+  auto gradient_x = tsVectorFunction.gradient_x(u,z);
+
+  auto grad_x_entries = gradient_x->entries();
+  auto grad_x_entriesHost = Kokkos::create_mirror_view( grad_x_entries );
+  Kokkos::deep_copy(grad_x_entriesHost, grad_x_entries);
+
+  std::vector<Plato::Scalar> gold_grad_x_entries = {
+   -90.0000000000000000, -29.9999999999999929, -10.0000000000000000,
+    28.3333333333333357,  8.33333333333332860,  23.3333333333333321,
+    25.0000000000000000,  26.6666666666666679, -1.66666666666667052,
+   -6.66666666666666696,  15.0000000000000018,  15.0000000000000018
+};
+
+  int grad_x_entriesSize = gold_grad_x_entries.size();
+  for(int i=0; i<grad_x_entriesSize; i++){
+    if(fabs(gold_grad_x_entries[i]) < 1e-10){
+      TEST_ASSERT(fabs(grad_x_entriesHost[i]) < 1e-10);
+    } else {
+      TEST_FLOATING_EQUALITY(grad_x_entriesHost(i), gold_grad_x_entries[i], 1.0e-13);
+    }
+  }
+
+
+}
+
 }
 // namespace IfemTests
