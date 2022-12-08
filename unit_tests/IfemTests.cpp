@@ -3687,7 +3687,7 @@ TEUCHOS_UNIT_TEST( Morphorm, ThermostaticResidual3D )
 
   // compute and test constraint gradient wrt state, tState. (i.e., jacobian)
   //
-  auto jacobian = tsVectorFunction.gradient_u(tDatabase,/*cycle=*/0.0);
+  auto jacobian = tsVectorFunction.jacobianState(tDatabase,/*cycle=*/0.0);
 
   auto jac_entries = jacobian->entries();
   auto jac_entriesHost = Kokkos::create_mirror_view( jac_entries );
@@ -3709,7 +3709,7 @@ TEUCHOS_UNIT_TEST( Morphorm, ThermostaticResidual3D )
 
   // compute and test gradient wrt control, z
   //
-  auto gradient = tsVectorFunction.gradient_z(tDatabase,/*cycle=*/0.0);
+  auto gradient = tsVectorFunction.jacobianControl(tDatabase,/*cycle=*/0.0);
 
   auto grad_entries = gradient->entries();
   auto grad_entriesHost = Kokkos::create_mirror_view( grad_entries );
@@ -3733,7 +3733,7 @@ TEUCHOS_UNIT_TEST( Morphorm, ThermostaticResidual3D )
 
   // compute and test gradient wrt node position, x
   //
-  auto gradient_x = tsVectorFunction.gradient_x(tDatabase,/*cycle=*/0.0);
+  auto gradient_x = tsVectorFunction.jacobianConfig(tDatabase,/*cycle=*/0.0);
 
   auto grad_x_entries = gradient_x->entries();
   auto grad_x_entriesHost = Kokkos::create_mirror_view( grad_x_entries );
