@@ -2442,13 +2442,14 @@ private:
     (const std::string & aName)
     const
     {
-        std::string tMsg = std::string("ERROR: Criterion with name '")
-            + aName + "' is not defined. " + "Defined criteria are: ";
+        std::string tMsg = std::string("ERROR: Criterion parameter list with name '")
+            + aName + "' is not defined. " + "Parsed criterion parameter list names are: ";
         for(const auto& tPair : mCriterionEvaluator)
         {
             tMsg = tMsg + tPair.first + ", ";
         }
         auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+        tSubMsg += ". The value provided for the criterion 'Type' keyword and the parameter list name must match."
         return tSubMsg;
     }
 
