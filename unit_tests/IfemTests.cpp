@@ -1181,7 +1181,7 @@ public:
 
         // create local functors
         Plato::ScalarGrad<ElementType>            tScalarGrad;
-        Plato::ThermalFlux<ElementType>           tThermalFlux(mMaterial);
+        Plato::ThermalFlux<ElementType>           tThermalFlux(mMaterial.operator*());
         Plato::GeneralFluxDivergence<ElementType> tFluxDivergence;
         Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
 
@@ -1575,7 +1575,7 @@ public:
         auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("control") );
 
         Plato::ScalarGrad<ElementType>            tComputeScalarGrad;
-        Plato::ThermalFlux<ElementType>           tComputeThermalFlux(mMaterial);
+        Plato::ThermalFlux<ElementType>           tComputeThermalFlux(mMaterial.operator*());
         Plato::ScalarProduct<mNumSpatialDims>     tComputeScalarProduct;
         Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
 
