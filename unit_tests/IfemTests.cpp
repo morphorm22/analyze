@@ -3925,5 +3925,73 @@ TEUCHOS_UNIT_TEST( Morphorm, InternalThermalEnergy3D )
   }
 }
 
+
+TEUCHOS_UNIT_TEST( Morphorm, InternalThermalEnergyGrad_3D_TET4 )
+{
+    // create test mesh
+    //
+    constexpr int tMeshWidth=2;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", tMeshWidth);
+
+    // create input
+    //
+    Teuchos::RCP<Teuchos::ParameterList> tParamList =
+      Teuchos::getParametersFromXmlString(
+      "<ParameterList name='Plato Problem'>                                          \n"
+      "  <ParameterList name='Spatial Model'>                                        \n"
+      "    <ParameterList name='Domains'>                                            \n"
+      "      <ParameterList name='Design Volume'>                                    \n"
+      "        <Parameter name='Element Block' type='string' value='body'/>          \n"
+      "        <Parameter name='Material Model' type='string' value='Unobtainium'/>  \n"
+      "      </ParameterList>                                                        \n"
+      "    </ParameterList>                                                          \n"
+      "  </ParameterList>                                                            \n"
+      "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>           \n"
+      "  <Parameter name='Physics' type='string' value='Thermostatics'/>             \n"
+      "  <ParameterList name='Criteria'>                                             \n"
+      "    <ParameterList name='Internal Thermal Energy'>                            \n"
+      "      <Parameter name='Type' type='string' value='Scalar Function'/>          \n"
+      "      <Parameter name='Scalar Function Type' type='string' value='Internal Thermal Energy'/>  \n"
+      "      <ParameterList name='Penalty Function'>                                 \n"
+      "        <Parameter name='Exponent' type='double' value='1.0'/>                \n"
+      "        <Parameter name='Minimum Value' type='double' value='0.0'/>           \n"
+      "        <Parameter name='Type' type='string' value='SIMP'/>                   \n"
+      "      </ParameterList>                                                        \n"
+      "    </ParameterList>                                                          \n"
+      "  </ParameterList>                                                            \n"
+      "  <ParameterList name='Material Models'>                                      \n"
+      "    <ParameterList name='Unobtainium'>                                        \n"
+      "      <ParameterList name='Thermal Conduction'>                               \n"
+      "        <Parameter name='Thermal Conductivity' type='double' value='100.0'/>  \n"
+      "      </ParameterList>                                                        \n"
+      "    </ParameterList>                                                          \n"
+      "  </ParameterList>                                                            \n"
+      "  <ParameterList  name='Natural Boundary Conditions'>                         \n"
+      "    <ParameterList  name='Flux Boundary Condition'>                           \n"
+      "      <Parameter  name='Type'     type='string'   value='Uniform'/>           \n"
+      "      <Parameter  name='Value'    type='double'   value='1.0'/>               \n"
+      "      <Parameter  name='Sides'    type='string'   value='x+'/>                \n"
+      "    </ParameterList>                                                          \n"
+      "  </ParameterList>                                                            \n"
+      "  <ParameterList  name='Essential Boundary Conditions'>                       \n"
+      "    <ParameterList  name='Fixed Temperature Boundary Condition'>              \n"
+      "      <Parameter  name='Type'     type='string' value='Zero Value'/>          \n"
+      "      <Parameter  name='Sides'    type='string' value='x-'/>                  \n"
+      "    </ParameterList>                                                          \n"
+      "  </ParameterList>                                                            \n"
+      "</ParameterList>                                                              \n"
+    );
+
+    MPI_Comm tMyComm;
+    MPI_Comm_dup(MPI_COMM_WORLD, &tMyComm);
+    Plato::Comm::Machine tMachine(tMyComm);
+
+    Plato::exp::Problem<Plato::exp::PhysicsThermal<Plato::Tet4>> tThermalProblem(tMesh, *tParamList, tMachine);
+
+    auto tError = Plato::test_criterion_grad_wrt_control(tThermalProblem, tMesh, "Internal Thermal Energy");
+    TEST_ASSERT(tError < 1e-4);
+}
+
+
 }
 // namespace IfemTests
