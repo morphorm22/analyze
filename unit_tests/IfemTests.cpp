@@ -597,7 +597,7 @@ private:
         else
         {
             auto tErrorMsg = std::string("ERROR: A natural boundary condition was requested but no coefficient ")
-                + "values were defined. Check input parameter list '" + aName.c_str() + "' definition."
+                + "values were defined. Check input parameter list '" + aName.c_str() + "' definition.";
             ANALYZE_THROWERR(tErrorMsg)
         }
     }
