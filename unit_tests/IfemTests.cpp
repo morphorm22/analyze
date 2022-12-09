@@ -3836,7 +3836,7 @@ TEUCHOS_UNIT_TEST( Morphorm, InternalThermalEnergy3D )
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   std::string tMyFunctionName("Internal Thermal Energy");
-  Plato::exp::ScalarFunction<Plato::exp::PhysicsMechanics<Plato::Tet4>>
+  Plato::exp::ScalarFunction<Plato::exp::PhysicsThermal<Plato::Tet4>>
       tScalarFunction(tMyFunctionName, tSpatialModel, tDataMap, *tParamList);
 
   // compute and test criterion value
