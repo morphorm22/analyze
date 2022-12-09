@@ -3931,7 +3931,7 @@ TEUCHOS_UNIT_TEST( Morphorm, InternalThermalEnergyGrad_3D_TET4 )
     // create test mesh
     //
     constexpr int tMeshWidth=2;
-    auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
     // create input
     //
