@@ -1795,7 +1795,7 @@ public:
         auto tLowerType = Plato::tolower(aType);
         if( tLowerType == "internal thermal energy" )
         {
-            return std::make_shared<CriterionInternalElasticEnergy<EvaluationType>>(aName, aDomain, aDataMap, aProbParams);
+            return std::make_shared<CriterionInternalThermalEnergy<EvaluationType>>(aName, aDomain, aDataMap, aProbParams);
         }
         else
         if ( tLowerType == "volume" )
