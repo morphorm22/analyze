@@ -2154,7 +2154,7 @@ public:
             if(aTranspose)
             { mWorksetFuncs.assembleTransposeJacobian(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
             else
-            { mWorksetFuncs.assembleJacobianFad(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); } // TODO: Fix. call jacobian fad
+            { mWorksetFuncs.assembleJacobianFad(mNumDofsPerCell, mNumConfigDofsPerCell, tJacEntryOrdinal, tResultWS->mData, tJacEntries, tDomain); }
         }
 
         // prescribed forces
@@ -3273,7 +3273,7 @@ TEUCHOS_UNIT_TEST( Morphorm, InternalElasticEnergy3D )
       }
   }
 
-  // compute and test criterion gradient wrt control, z
+  // compute and test criterion gradient wrt control, control
   //
   auto tGradZ = tScalarFunction.gradientControl(tDatabase,tCYCLE);
 
@@ -3601,7 +3601,7 @@ TEUCHOS_UNIT_TEST( Morphorm, ThermostaticResidual3D )
     "    </ParameterList>                                                          \n"
     "  </ParameterList>                                                            \n"
     "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>           \n"
-    "  <Parameter name='Physics' type='string' value='Thermal'/>                   \n"
+    "  <Parameter name='Physics' type='string' value='Thermostatics'/>             \n"
     "  <ParameterList name='Elliptic'>                                             \n"
     "    <ParameterList name='Penalty Function'>                                   \n"
     "      <Parameter name='Exponent' type='double' value='1.0'/>                  \n"
@@ -3621,25 +3621,25 @@ TEUCHOS_UNIT_TEST( Morphorm, ThermostaticResidual3D )
 
   // create test mesh
   //
-  constexpr int meshWidth=2;
-  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
+  constexpr int tMeshWidth=2;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
 
   // create mesh based density from host data
   //
-  std::vector<Plato::Scalar> z_host( tMesh->NumNodes(), 1.0 );
+  std::vector<Plato::Scalar> tHostControl( tMesh->NumNodes(), 1.0 );
   Kokkos::View<Plato::Scalar*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>
-    z_host_view(z_host.data(),z_host.size());
-  auto tControl = Kokkos::create_mirror_view_and_copy( Kokkos::DefaultExecutionSpace(), z_host_view);
+    tHostControlView(tHostControl.data(),tHostControl.size());
+  auto tControl = Kokkos::create_mirror_view_and_copy( Kokkos::DefaultExecutionSpace(), tHostControlView);
 
 
   // create mesh based temperature from host data
   //
-  std::vector<Plato::Scalar> t_host( tMesh->NumNodes() );
-  Plato::Scalar disp = 0.0, dval = 0.1;
-  for( auto& val : t_host ) val = (disp += dval);
+  std::vector<Plato::Scalar> tHostState( tMesh->NumNodes() );
+  Plato::Scalar tTemp = 0.0, tDval = 0.1;
+  for( auto& tVal : tHostState ) tVal = (tTemp += tDval);
   Kokkos::View<Plato::Scalar*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>
-    t_host_view(t_host.data(),t_host.size());
-  auto tState = Kokkos::create_mirror_view_and_copy( Kokkos::DefaultExecutionSpace(), t_host_view);
+    tHostView(tHostState.data(),tHostState.size());
+  auto tState = Kokkos::create_mirror_view_and_copy( Kokkos::DefaultExecutionSpace(), tHostView);
 
   // create database
   //
@@ -3654,17 +3654,17 @@ TEUCHOS_UNIT_TEST( Morphorm, ThermostaticResidual3D )
 
   using PhysicsType = typename Plato::exp::PhysicsThermal<Plato::Tet4>;
   Plato::exp::VectorFunction<PhysicsType>
-    tsVectorFunction(tParamList->get<std::string>("PDE Constraint"), tSpatialModel, tDataMap, *tParamList);
+    tResidualFunction(tParamList->get<std::string>("PDE Constraint"), tSpatialModel, tDataMap, *tParamList);
 
 
-  // compute and test constraint value
+  // compute and test residual
   //
-  auto residual = tsVectorFunction.value(tDatabase,/*cycle=*/0.0);
+  auto tResidual = tResidualFunction.value(tDatabase,/*cycle=*/0.0);
 
-  auto residual_Host = Kokkos::create_mirror_view( residual );
-  Kokkos::deep_copy( residual_Host, residual );
+  auto tHostResidual = Kokkos::create_mirror_view( tResidual );
+  Kokkos::deep_copy( tHostResidual, tResidual );
 
-  std::vector<Plato::Scalar> residual_gold = {
+  std::vector<Plato::Scalar> tGoldResidual = {
   -21.66666666666666, -30.00000000000000, -8.333333333333332,
   -25.00000000000000, -45.00000000000001, -19.99999999999999,
   -3.333333333333332, -15.00000000000000, -11.66666666666667,
@@ -3676,24 +3676,24 @@ TEUCHOS_UNIT_TEST( Morphorm, ThermostaticResidual3D )
    8.333333333333321,  29.99999999999999,  21.66666666666667
   };
 
-  for(int iNode=0; iNode<int(residual_gold.size()); iNode++){
-    if(residual_gold[iNode] == 0.0){
-      TEST_ASSERT(fabs(residual_Host[iNode]) < 1e-11);
+  for(int iNode=0; iNode<int(tGoldResidual.size()); iNode++){
+    if(tGoldResidual[iNode] == 0.0){
+      TEST_ASSERT(fabs(tHostResidual[iNode]) < 1e-11);
     } else {
-      TEST_FLOATING_EQUALITY(residual_Host[iNode], residual_gold[iNode], 1e-13);
+      TEST_FLOATING_EQUALITY(tHostResidual[iNode], tGoldResidual[iNode], 1e-13);
     }
   }
 
 
   // compute and test constraint gradient wrt state, tState. (i.e., jacobian)
   //
-  auto jacobian = tsVectorFunction.jacobianState(tDatabase,/*cycle=*/0.0);
+  auto tJacobian = tResidualFunction.jacobianState(tDatabase,/*cycle=*/0.0);
 
-  auto jac_entries = jacobian->entries();
-  auto jac_entriesHost = Kokkos::create_mirror_view( jac_entries );
-  Kokkos::deep_copy(jac_entriesHost, jac_entries);
+  auto tJacobianEntries = tJacobian->entries();
+  auto tHostJacobianEntries = Kokkos::create_mirror_view( tJacobianEntries );
+  Kokkos::deep_copy(tHostJacobianEntries, tJacobianEntries);
 
-  std::vector<Plato::Scalar> gold_jac_entries = {
+  std::vector<Plato::Scalar> tGoldJacobianEntries = {
    49.9999999999999858, -16.6666666666666643, -16.6666666666666643, 0,
   -16.6666666666666643, 0, 0, 0, -16.6666666666666643,
    83.3333333333333002, -16.6666666666666643, -24.9999999999999964, 0,
@@ -3701,15 +3701,15 @@ TEUCHOS_UNIT_TEST( Morphorm, ThermostaticResidual3D )
    33.3333333333333286, -8.33333333333333215, -8.33333333333333215, 0
   };
 
-  int jac_entriesSize = gold_jac_entries.size();
-  for(int i=0; i<jac_entriesSize; i++){
-    TEST_FLOATING_EQUALITY(jac_entriesHost(i), gold_jac_entries[i], 1.0e-15);
+  int tJacobianEntriesSize = tGoldJacobianEntries.size();
+  for(int i=0; i<tJacobianEntriesSize; i++){
+    TEST_FLOATING_EQUALITY(tHostJacobianEntries(i), tGoldJacobianEntries[i], 1.0e-15);
   }
 
 
-  // compute and test gradient wrt control, z
+  // compute and test gradient wrt control, control
   //
-  auto gradient = tsVectorFunction.jacobianControl(tDatabase,/*cycle=*/0.0);
+  auto gradient = tResidualFunction.jacobianControl(tDatabase,/*cycle=*/0.0);
 
   auto grad_entries = gradient->entries();
   auto grad_entriesHost = Kokkos::create_mirror_view( grad_entries );
@@ -3733,7 +3733,7 @@ TEUCHOS_UNIT_TEST( Morphorm, ThermostaticResidual3D )
 
   // compute and test gradient wrt node position, x
   //
-  auto gradient_x = tsVectorFunction.jacobianConfig(tDatabase,/*cycle=*/0.0);
+  auto gradient_x = tResidualFunction.jacobianConfig(tDatabase,/*cycle=*/0.0);
 
   auto grad_x_entries = gradient_x->entries();
   auto grad_x_entriesHost = Kokkos::create_mirror_view( grad_x_entries );
@@ -3744,7 +3744,7 @@ TEUCHOS_UNIT_TEST( Morphorm, ThermostaticResidual3D )
     28.3333333333333357,  8.33333333333332860,  23.3333333333333321,
     25.0000000000000000,  26.6666666666666679, -1.66666666666667052,
    -6.66666666666666696,  15.0000000000000018,  15.0000000000000018
-};
+  };
 
   int grad_x_entriesSize = gold_grad_x_entries.size();
   for(int i=0; i<grad_x_entriesSize; i++){
@@ -3754,8 +3754,176 @@ TEUCHOS_UNIT_TEST( Morphorm, ThermostaticResidual3D )
       TEST_FLOATING_EQUALITY(grad_x_entriesHost(i), gold_grad_x_entries[i], 1.0e-13);
     }
   }
+}
+
+/******************************************************************************/
+/*!
+  \brief Compute value and both gradients (wrt state and control) of
+         InternalThermalEnergy in 3D.
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Morphorm, InternalThermalEnergy3D )
+{
+  // create input
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+    Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                          \n"
+    "  <ParameterList name='Spatial Model'>                                        \n"
+    "    <ParameterList name='Domains'>                                            \n"
+    "      <ParameterList name='Design Volume'>                                    \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>          \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>  \n"
+    "      </ParameterList>                                                        \n"
+    "    </ParameterList>                                                          \n"
+    "  </ParameterList>                                                            \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>           \n"
+    "  <Parameter name='Physics' type='string' value='Thermostatics'/>             \n"
+    "  <ParameterList name='Criteria'>                                             \n"
+    "    <ParameterList name='Internal Thermal Energy'>                            \n"
+    "      <Parameter name='Type' type='string' value='Scalar Function'/>          \n"
+    "      <Parameter name='Scalar Function Type' type='string' value='Internal Thermal Energy'/>  \n"
+    "      <ParameterList name='Penalty Function'>                                 \n"
+    "        <Parameter name='Exponent' type='double' value='1.0'/>                \n"
+    "        <Parameter name='Minimum Value' type='double' value='0.0'/>           \n"
+    "        <Parameter name='Type' type='string' value='SIMP'/>                   \n"
+    "      </ParameterList>                                                        \n"
+    "    </ParameterList>                                                          \n"
+    "  </ParameterList>                                                            \n"
+    "  <ParameterList name='Material Models'>                                      \n"
+    "    <ParameterList name='Unobtainium'>                                        \n"
+    "      <ParameterList name='Thermal Conduction'>                               \n"
+    "        <Parameter name='Thermal Conductivity' type='double' value='100.0'/>  \n"
+    "      </ParameterList>                                                        \n"
+    "    </ParameterList>                                                          \n"
+    "  </ParameterList>                                                            \n"
+    "</ParameterList>                                                              \n"
+  );
+
+  // create test mesh
+  //
+  constexpr int tMeshWidth=2;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
+
+  // create mesh based density from host data
+  //
+  std::vector<Plato::Scalar> tHostControl( tMesh->NumNodes(), 1.0 );
+  Kokkos::View<Plato::Scalar*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged>
+    tHostControlView(tHostControl.data(),tHostControl.size());
+  auto tControl = Kokkos::create_mirror_view_and_copy( Kokkos::DefaultExecutionSpace(), tHostControlView);
+
+  // create mesh based temperature from host data
+  //
+  Plato::OrdinalType tNumDofs = tMesh->NumNodes();
+  Plato::ScalarVector tState("state", tNumDofs);
+  auto tStateView = Kokkos::subview(tState, 0, Kokkos::ALL());
+  auto tHostState = Kokkos::create_mirror_view( tStateView );
+  Plato::Scalar tTemp = 0.0, tDval = 0.1;
+  for(Plato::OrdinalType i=0; i<tNumDofs; i++)
+  {
+      tHostState(i) = (tTemp += tDval);
+  }
+  Kokkos::deep_copy(tStateView, tHostState);
+
+  // create database
+  //
+  Plato::Database tDatabase;
+  tDatabase.vector("state"  , tState);
+  tDatabase.vector("control", tControl);
+
+  // create criterion
+  //
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
+
+  std::string tMyFunction("Internal Thermal Energy");
+  Plato::exp::ScalarFunction<Plato::exp::PhysicsMechanics<Plato::Tet4>>
+      tScalarFunction(tMyFunctionName, tSpatialModel, tDataMap, *tParamList);
+
+  // compute and test criterion value
+  //
+  auto tValue = tScalarFunction.value(tDatabase, /*cycle=*/0.0);
+
+  Plato::Scalar tGoldValue = 363.999999999999829;
+  TEST_FLOATING_EQUALITY(tValue, tGoldValue, 1e-13);
 
 
+  // compute and test criterion gradient wrt state, u
+  //
+  auto tGradState = tScalarFunction.gradientState(tSolution, tControl, /*stepIndex=*/0);
+
+  auto tHostGradState = Kokkos::create_mirror_view( tGradState );
+  Kokkos::deep_copy( tHostGradState, tGradState );
+
+  std::vector<Plato::Scalar> tGoldGradState = {
+  -43.33333333333333, -60.00000000000000, -16.66666666666666,
+  -49.99999999999999, -90.00000000000001, -39.99999999999999,
+  -6.666666666666664, -30.00000000000000, -23.33333333333334,
+  -20.00000000000001, -29.99999999999999, -9.99999999999999,
+  -10.00000000000001,  0.000000000000000,  9.99999999999996,
+   10.00000000000000,  30.00000000000003,  19.99999999999998,
+   23.33333333333334,  29.99999999999996,  6.666666666666671,
+   39.99999999999999,  90.00000000000009,  50.00000000000000,
+   16.66666666666664,  59.99999999999997,  43.33333333333335
+  };
+
+  for(int iNode=0; iNode<int(tGoldGradState.size()); iNode++){
+    if(tGoldGradState[iNode] == 0.0){
+      TEST_ASSERT(fabs(tHostGradState[iNode]) < 1e-12);
+    } else {
+      TEST_FLOATING_EQUALITY(tHostGradState[iNode], tGoldGradState[iNode], 1e-13);
+    }
+  }
+
+
+  // compute and test criterion gradient wrt control, control
+  //
+  auto tGradControl = tScalarFunction.gradientControl(tSolution, tControl);
+
+  auto tHostGradControl = Kokkos::create_mirror_view( tGradControl );
+  Kokkos::deep_copy( tHostGradControl, tGradControl );
+
+  std::vector<Plato::Scalar> tGoldGradControl = {
+  11.37500000000000, 15.16666666666666, 3.791666666666666,
+  15.16666666666667, 22.74999999999999, 7.583333333333331,
+  3.791666666666667, 7.583333333333333, 3.791666666666666,
+  15.16666666666667, 22.75000000000000, 7.583333333333334,
+  22.75000000000000, 45.50000000000001, 22.75000000000000,
+  7.583333333333332, 22.75000000000000, 15.16666666666667,
+  3.791666666666667, 7.583333333333337, 3.791666666666667,
+  7.583333333333334, 22.75000000000001, 15.16666666666667,
+  3.791666666666666, 15.16666666666667, 11.37500000000001
+  };
+
+  for(int iNode=0; iNode<int(tGoldGradControl.size()); iNode++){
+    TEST_FLOATING_EQUALITY(tHostGradControl[iNode], tGoldGradControl[iNode], 1e-13);
+  }
+
+  // compute and test criterion gradient wrt node position, x
+  //
+  auto tGradConfig = tScalarFunction.gradientConfig(tSolution, tControl);
+
+  auto tHostGradConfig = Kokkos::create_mirror_view( tGradConfig );
+  Kokkos::deep_copy(tHostGradConfig, tGradConfig);
+
+  std::vector<Plato::Scalar> tGoldGradConfig = {
+  47.66666666666666, -4.333333333333325, -21.66666666666667,
+  62.50000000000003, -9.500000000000027,  12.00000000000000,
+  14.83333333333334, -5.166666666666668,  33.66666666666667,
+  44.50000000000000,  29.99999999999999, -35.50000000000000,
+  71.00000000000001,  54.00000000000001,  18.00000000000001,
+  26.49999999999999,  24.00000000000000,  53.50000000000001,
+ -3.166666666666664,  34.33333333333334, -13.83333333333333,
+  8.499999999999988,  63.50000000000001,  5.999999999999993,
+  11.66666666666666,  29.16666666666667,  19.83333333333333,
+  36.00000000000003, -33.49999999999999, -41.50000000000001,
+  53.99999999999994, -73.00000000000003,  6.000000000000016,
+  17.99999999999999, -39.50000000000001,  47.50000000000001
+  };
+
+  for(int iNode=0; iNode<int(tGoldGradConfig.size()); iNode++){
+    TEST_FLOATING_EQUALITY(tHostGradConfig[iNode], tGoldGradConfig[iNode], 1e-13);
+  }
 }
 
 }
