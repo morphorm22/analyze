@@ -253,15 +253,15 @@ class NaturalBCBase
 protected:
     using ElementType = typename EvaluationType::ElementType;
 
-    static constexpr auto mNumSpatialDims = ElementType::mNumSpatialDims;
+    static constexpr auto mNumDofsPerNode = ElementType::mNumDofsPerNode;
 
     // allocate local member data
     const std::string mName;        /*!< natural boundary condition sublist name */
     const std::string mSideSetName; /*!< side set name */
 
     // allocate local member instances
-    Plato::Array<mNumSpatialDims> mForceCoeff; /*!< natural boundary condition coefficients */
-    std::shared_ptr<Plato::MathExpr> mForceCoeffExpr[mNumSpatialDims];
+    Plato::Array<mNumDofsPerNode> mForceCoeff; /*!< natural boundary condition coefficients */
+    std::shared_ptr<Plato::MathExpr> mForceCoeffExpr[mNumDofsPerNode];
 
 public:
     NaturalBCBase
@@ -271,13 +271,13 @@ public:
         mSideSetName(aSubList.get<std::string>("Sides")),
         mForceCoeffExpr{nullptr}
     {
-        this->setCoeff(aSubList);
+        this->setCoefficients(aSubList);
     }
     virtual ~NaturalBCBase(){}
 
     std::string name() const { return mName; }
     std::string sideset() const { return mSideSetName; }
-    Plato::Array<mNumSpatialDims> coefficients() const { return mForceCoeff; }
+    Plato::Array<mNumDofsPerNode> coefficients() const { return mForceCoeff; }
 
     virtual surface_force_t type() const = 0;
 
@@ -290,36 +290,36 @@ public:
 protected:
     void evalForceExpr(const Plato::Scalar & aCycle)
     {
-        for(int iDim=0; iDim<mNumSpatialDims; iDim++)
+        for(int tDof=0; tDof<mNumDofsPerNode; tDof++)
         {
-            if(mForceCoeffExpr[iDim])
+            if(mForceCoeffExpr[tDof])
             {
-                mForceCoeff(iDim) = mForceCoeffExpr[iDim]->value(aCycle);
+                mForceCoeff(tDof) = mForceCoeffExpr[tDof]->value(aCycle);
             }
         }
     }
 
 private:
-    void setCoeff(Teuchos::ParameterList & aSubList)
+    void setCoefficients(Teuchos::ParameterList & aSubList)
     {
         auto tIsValue = aSubList.isType<Teuchos::Array<Plato::Scalar>>("Vector");
         auto tIsExpr  = aSubList.isType<Teuchos::Array<std::string>>("Vector");
         if (tIsValue)
         {
             auto tForceVal = aSubList.get<Teuchos::Array<Plato::Scalar>>("Vector");
-            for(Plato::OrdinalType tDim=0; tDim<mNumSpatialDims; tDim++)
+            for(Plato::OrdinalType tDof=0; tDof<mNumDofsPerNode; tDof++)
             {
-                mForceCoeff(tDim) = tForceVal[tDim];
+                mForceCoeff(tDof) = tForceVal[tDof];
             }
         }
         else
         if (tIsExpr)
         {
             auto tExpression = aSubList.get<Teuchos::Array<std::string>>("Vector");
-            for(Plato::OrdinalType tDim=0; tDim<mNumSpatialDims; tDim++)
+            for(Plato::OrdinalType tDof=0; tDof<mNumDofsPerNode; tDof++)
             {
-                mForceCoeffExpr[tDim] = std::make_shared<Plato::MathExpr>(tExpression[tDim]);
-                mForceCoeff(tDim) = mForceCoeffExpr[tDim]->value(0.0);
+                mForceCoeffExpr[tDof] = std::make_shared<Plato::MathExpr>(tExpression[tDof]);
+                mForceCoeff(tDof) = mForceCoeffExpr[tDof]->value(0.0);
             }
         }
     }
@@ -409,11 +409,11 @@ public:
             // project into aResult workset
             for( Plato::OrdinalType tNode=0; tNode<ElementType::mNumNodesPerFace; tNode++)
             {
-                for( Plato::OrdinalType tDim=0; tDim<ElementType::mNumSpatialDims; tDim++)
+                for( Plato::OrdinalType tDof=0; tDof<ElementType::mNumDofsPerNode; tDof++)
                 {
-                    auto tElementDofOrdinal = (tLocalNodeOrds[tNode] * ElementType::mNumDofsPerNode) + tDim;
+                    auto tElementDofOrdinal = (tLocalNodeOrds[tNode] * ElementType::mNumDofsPerNode) + tDof;
                     ResultScalarType tVal =
-                      tWeightedNormalVec(tDim) * tFlux(tDim) * aScale * tCubatureWeight * tNormalMultiplier * tBasisValues(tNode);
+                      tWeightedNormalVec(tDof) * tFlux(tDof) * aScale * tCubatureWeight * tNormalMultiplier * tBasisValues(tNode);
                     Kokkos::atomic_add(&tResultWS(tElementOrdinal, tElementDofOrdinal), tVal);
                 }
             }
@@ -470,7 +470,7 @@ public:
         Plato::SurfaceArea<ElementType> tComputeSurfaceArea;
 
         // get integration points and weights
-        auto tForceCoef = ForceBaseType::mForceCoeff;
+        auto tForceCoeff = ForceBaseType::mForceCoeff;
         auto tCubatureWeights = ElementType::Face::getCubWeights();
         auto tCubaturePoints  = ElementType::Face::getCubPoints();
         auto tNumPoints = tCubatureWeights.size();
@@ -499,10 +499,10 @@ public:
           // project into Result workset
           for( Plato::OrdinalType tNode=0; tNode<ElementType::mNumNodesPerFace; tNode++)
           {
-              for( Plato::OrdinalType tDim=0; tDim<ElementType::mNumSpatialDims; tDim++)
+              for( Plato::OrdinalType tDof=0; tDof<ElementType::mNumDofsPerNode; tDof++)
               {
-                  auto tElementDofOrdinal = tLocalNodeOrds[tNode] * ElementType::mNumDofsPerNode + tDim;
-                  ResultScalarType tResult = tBasisValues(tNode)*tForceCoef[tDim]*tSurfaceArea;
+                  auto tElementDofOrdinal = ( tLocalNodeOrds[tNode] * ElementType::mNumDofsPerNode ) + tDof;
+                  ResultScalarType tResult = tBasisValues(tNode)*tForceCoeff[tDof]*tSurfaceArea;
                   Kokkos::atomic_add(&tResultWS(tElementOrdinal,tElementDofOrdinal), tResult);
               }
           }
@@ -514,6 +514,12 @@ template<typename EvaluationType>
 class FactoryNaturalBC
 {
 private:
+    // set local element type definition
+    using ElementType = typename EvaluationType::ElementType;
+
+    // set local static types
+    static constexpr auto mNumDofsPerNode = ElementType::mNumDofsPerNode;
+
     /*!< map from input force type string to supported enum */
     std::map<std::string,surface_force_t> mSupportedForces =
         {
@@ -528,8 +534,8 @@ public:
     std::shared_ptr<NaturalBCBase<EvaluationType>>
     create(const std::string & aName, Teuchos::ParameterList &aSubList)
     {
+        this->parseCoefficients(aName,aSubList);
         auto tType = this->type(aSubList);
-        this->setValues(aName,aSubList);
         switch(tType)
         {
             case surface_force_t::UNIFORM:
@@ -566,34 +572,73 @@ private:
         return (tItr->second);
     }
 
-    void setValues(const std::string & aName, Teuchos::ParameterList &aSubList)
+    void parseCoefficients(const std::string & aName, Teuchos::ParameterList &aSubList)
     {
-        bool tValuesKeyword = aSubList.isType<Teuchos::Array<Plato::Scalar>>("Values");
-        if (tValuesKeyword)
+        bool tValueNBC  = ( aSubList.isType<Plato::Scalar>("Value") ||
+                            aSubList.isType<std::string>("Value") );
+        bool tValuesNBC = ( aSubList.isType<Teuchos::Array<Plato::Scalar>>("Values") ||
+                            aSubList.isType<Teuchos::Array<std::string>>("Values") );
+
+        if (tValuesNBC && tValueNBC)
         {
-            if(aSubList.isType<Teuchos::Array<Plato::Scalar>>("Values"))
-            {
-                auto tValues = aSubList.get<Teuchos::Array<Plato::Scalar>>("Values");
-                aSubList.set("Vector", tValues);
-            } else
-            if(aSubList.isType<Teuchos::Array<std::string>>("Values"))
-            {
-                auto tValues = aSubList.get<Teuchos::Array<std::string>>("Values");
-                aSubList.set("Vector", tValues);
-            } else
-            {
-                std::stringstream tMsg;
-                tMsg << "Unexpected type encountered for 'Values' parameter keyword. "
-                     << "Specify 'type' of 'Array(double)' or 'Array(string)'.";
-                ANALYZE_THROWERR(tMsg.str().c_str())
-            }
+            auto tErrMsg = std::string("ERROR: The 'Values' and 'Value' keyword cannot be defined simultaneously ")
+                + "in parameter list '" + aName.c_str() + "'. Only one of the two options must be selected.";
+            ANALYZE_THROWERR(tErrMsg)
+        }
+
+        if(tValueNBC)
+        {
+            this->parseValue(aSubList);
+        } else
+        if(tValuesNBC)
+        {
+            this->parseValues(aSubList);
         }
         else
         {
-            std::stringstream tMsg;
-            tMsg << "'Values' parameter keyword is not defined in Natural Boundary Condition "
-                << "Parameter Sublist with name '" << aName.c_str() << "'";
-            ANALYZE_THROWERR(tMsg.str().c_str())
+            auto tErrorMsg = std::string("ERROR: A natural boundary condition was requested but no coefficient ")
+                + "values were defined. Check input parameter list '" + aName.c_str() + "' definition."
+            ANALYZE_THROWERR(tErrorMsg)
+        }
+    }
+
+    void parseValue(Teuchos::ParameterList &aSubList)
+    {
+        if(aSubList.isType<Plato::Scalar>("Value"))
+        {
+            auto tValue = aSubList.get<Plato::Scalar>("Value");
+            Teuchos::Array<Plato::Scalar> tForceVector(mNumDofsPerNode, tValue);
+            aSubList.set("Vector", tForceVector);
+        } else
+        if(aSubList.isType<std::string>("Value"))
+        {
+            auto tValue = aSubList.get<std::string>("Value");
+            Teuchos::Array<std::string> tForceVector(mNumDofsPerNode, tValue);
+            aSubList.set("Vector", tForceVector);
+        } else
+        {
+            std::string tErrMsg = std::string("ERROR: Unexpected type encountered for 'Value' Parameter Keyword. ")
+                 + "Specify 'type' of 'double' or 'string'.";
+            ANALYZE_THROWERR(tErrMsg)
+        }
+    }
+
+    void parseValues(Teuchos::ParameterList &aSubList)
+    {
+        if(aSubList.isType<Teuchos::Array<Plato::Scalar>>("Values"))
+        {
+            auto tValues = aSubList.get<Teuchos::Array<Plato::Scalar>>("Values");
+            aSubList.set("Vector", tValues);
+        } else
+        if(aSubList.isType<Teuchos::Array<std::string>>("Values"))
+        {
+            auto tValues = aSubList.get<Teuchos::Array<std::string>>("Values");
+            aSubList.set("Vector", tValues);
+        } else
+        {
+            auto tErrMsg = std::string("ERROR: Unexpected type encountered for 'Values' parameter keyword. ")
+                 + "Specify 'type' of 'Array(double)' or 'Array(string)'.";
+            ANALYZE_THROWERR(tErrMsg)
         }
     }
 };
