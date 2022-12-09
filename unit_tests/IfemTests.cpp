@@ -3709,13 +3709,13 @@ TEUCHOS_UNIT_TEST( Morphorm, ThermostaticResidual3D )
 
   // compute and test gradient wrt control, control
   //
-  auto gradient = tResidualFunction.jacobianControl(tDatabase,/*cycle=*/0.0);
+  auto tJacobianControl = tResidualFunction.jacobianControl(tDatabase,/*cycle=*/0.0);
 
-  auto grad_entries = gradient->entries();
-  auto grad_entriesHost = Kokkos::create_mirror_view( grad_entries );
-  Kokkos::deep_copy(grad_entriesHost, grad_entries);
+  auto tJacobianControlEntries = tJacobianControl->entries();
+  auto tHostJacobianControlEntries = Kokkos::create_mirror_view( tJacobianControlEntries );
+  Kokkos::deep_copy(tHostJacobianControlEntries, tJacobianControlEntries);
 
-  std::vector<Plato::Scalar> gold_grad_entries = {
+  std::vector<Plato::Scalar> tGoldJacobianControlEntries = {
    -5.41666666666666607, -2.08333333333333304, -0.833333333333333259,
    -2.91666666666666696,  2.91666666666666563,  0.833333333333333037,
     2.08333333333333304,  5.41666666666666785, -0.416666666666666630,
@@ -3726,32 +3726,32 @@ TEUCHOS_UNIT_TEST( Morphorm, ThermostaticResidual3D )
     2.49999999999999911
   };
 
-  int grad_entriesSize = gold_grad_entries.size();
-  for(int i=0; i<grad_entriesSize; i++){
-    TEST_FLOATING_EQUALITY(grad_entriesHost(i), gold_grad_entries[i], 1.0e-14);
+  int tJacobianControlEntriesSize = tGoldJacobianControlEntries.size();
+  for(int i=0; i<tJacobianControlEntriesSize; i++){
+    TEST_FLOATING_EQUALITY(tHostJacobianControlEntries(i), tGoldJacobianControlEntries[i], 1.0e-14);
   }
 
   // compute and test gradient wrt node position, x
   //
-  auto gradient_x = tResidualFunction.jacobianConfig(tDatabase,/*cycle=*/0.0);
+  auto tJacobianConfig = tResidualFunction.jacobianConfig(tDatabase,/*cycle=*/0.0);
 
-  auto grad_x_entries = gradient_x->entries();
-  auto grad_x_entriesHost = Kokkos::create_mirror_view( grad_x_entries );
-  Kokkos::deep_copy(grad_x_entriesHost, grad_x_entries);
+  auto tJacobianConfigEntries = tJacobianConfig->entries();
+  auto tHostJacobianConfigEntries = Kokkos::create_mirror_view( tJacobianConfigEntries );
+  Kokkos::deep_copy(tHostJacobianConfigEntries, tJacobianConfigEntries);
 
-  std::vector<Plato::Scalar> gold_grad_x_entries = {
+  std::vector<Plato::Scalar> tGoldJacobianConfigEntries = {
    -90.0000000000000000, -29.9999999999999929, -10.0000000000000000,
     28.3333333333333357,  8.33333333333332860,  23.3333333333333321,
     25.0000000000000000,  26.6666666666666679, -1.66666666666667052,
    -6.66666666666666696,  15.0000000000000018,  15.0000000000000018
   };
 
-  int grad_x_entriesSize = gold_grad_x_entries.size();
-  for(int i=0; i<grad_x_entriesSize; i++){
-    if(fabs(gold_grad_x_entries[i]) < 1e-10){
-      TEST_ASSERT(fabs(grad_x_entriesHost[i]) < 1e-10);
+  int tJacobianConfigEntriesSize = tGoldJacobianConfigEntries.size();
+  for(int i=0; i<tJacobianConfigEntriesSize; i++){
+    if(fabs(tGoldJacobianConfigEntries[i]) < 1e-10){
+      TEST_ASSERT(fabs(tHostJacobianConfigEntries[i]) < 1e-10);
     } else {
-      TEST_FLOATING_EQUALITY(grad_x_entriesHost(i), gold_grad_x_entries[i], 1.0e-13);
+      TEST_FLOATING_EQUALITY(tHostJacobianConfigEntries(i), tGoldJacobianConfigEntries[i], 1.0e-13);
     }
   }
 }
@@ -3816,14 +3816,13 @@ TEUCHOS_UNIT_TEST( Morphorm, InternalThermalEnergy3D )
   //
   Plato::OrdinalType tNumDofs = tMesh->NumNodes();
   Plato::ScalarVector tState("state", tNumDofs);
-  auto tStateView = Kokkos::subview(tState, 0, Kokkos::ALL());
-  auto tHostState = Kokkos::create_mirror_view( tStateView );
+  auto tHostState = Kokkos::create_mirror_view( tState );
   Plato::Scalar tTemp = 0.0, tDval = 0.1;
   for(Plato::OrdinalType i=0; i<tNumDofs; i++)
   {
       tHostState(i) = (tTemp += tDval);
   }
-  Kokkos::deep_copy(tStateView, tHostState);
+  Kokkos::deep_copy(tState, tHostState);
 
   // create database
   //
@@ -3850,7 +3849,7 @@ TEUCHOS_UNIT_TEST( Morphorm, InternalThermalEnergy3D )
 
   // compute and test criterion gradient wrt state, u
   //
-  auto tGradState = tScalarFunction.gradientState(tSolution, tControl, /*stepIndex=*/0);
+  auto tGradState = tScalarFunction.gradientState(tDatabase, /*cycle=*/0.0);
 
   auto tHostGradState = Kokkos::create_mirror_view( tGradState );
   Kokkos::deep_copy( tHostGradState, tGradState );
@@ -3878,7 +3877,7 @@ TEUCHOS_UNIT_TEST( Morphorm, InternalThermalEnergy3D )
 
   // compute and test criterion gradient wrt control, control
   //
-  auto tGradControl = tScalarFunction.gradientControl(tSolution, tControl);
+  auto tGradControl = tScalarFunction.gradientControl(tDatabase, /*cycle=*/0.0);
 
   auto tHostGradControl = Kokkos::create_mirror_view( tGradControl );
   Kokkos::deep_copy( tHostGradControl, tGradControl );
@@ -3901,7 +3900,7 @@ TEUCHOS_UNIT_TEST( Morphorm, InternalThermalEnergy3D )
 
   // compute and test criterion gradient wrt node position, x
   //
-  auto tGradConfig = tScalarFunction.gradientConfig(tSolution, tControl);
+  auto tGradConfig = tScalarFunction.gradientConfig(tDatabase, /*cycle=*/0.0);
 
   auto tHostGradConfig = Kokkos::create_mirror_view( tGradConfig );
   Kokkos::deep_copy(tHostGradConfig, tGradConfig);
