@@ -240,15 +240,15 @@ private:
     }
 };
 
-enum class surface_force_t
+enum class boundary_condition_t
 {
-    UNIFORM,
-    PRESSURE,
+    UNIFORM_FORCE,
+    PRESSURE_FORCE,
     UNDEFINED
 };
 
 template<typename EvaluationType>
-class NaturalBCBase
+class BoundaryConditionBase
 {
 protected:
     using ElementType = typename EvaluationType::ElementType;
@@ -256,30 +256,30 @@ protected:
     static constexpr auto mNumDofsPerNode = ElementType::mNumDofsPerNode;
 
     // allocate local member data
-    const std::string mName;        /*!< natural boundary condition sublist name */
-    const std::string mSideSetName; /*!< side set name */
+    const std::string mName;        /*!< boundary condition sublist name */
+    const std::string mEntitySetName; /*!< entity set name */
 
     // allocate local member instances
-    Plato::Array<mNumDofsPerNode> mForceCoeff; /*!< natural boundary condition coefficients */
-    std::shared_ptr<Plato::MathExpr> mForceCoeffExpr[mNumDofsPerNode];
+    Plato::Array<mNumDofsPerNode> mCoefficients; /*!< natural boundary condition coefficients */
+    std::shared_ptr<Plato::MathExpr> mCoefficientsExpr[mNumDofsPerNode];
 
 public:
-    NaturalBCBase
+    BoundaryConditionBase
     (const std::string            & aLoadName,
            Teuchos::ParameterList & aSubList) :
         mName(aLoadName),
-        mSideSetName(aSubList.get<std::string>("Sides")),
-        mForceCoeffExpr{nullptr}
+        mEntitySetName(aSubList.get<std::string>("Sides")),
+        mCoefficientsExpr{nullptr}
     {
         this->setCoefficients(aSubList);
     }
-    virtual ~NaturalBCBase(){}
+    virtual ~BoundaryConditionBase(){}
 
     std::string name() const { return mName; }
-    std::string sideset() const { return mSideSetName; }
-    Plato::Array<mNumDofsPerNode> coefficients() const { return mForceCoeff; }
+    std::string entityset() const { return mEntitySetName; }
+    Plato::Array<mNumDofsPerNode> coefficients() const { return mCoefficients; }
 
-    virtual surface_force_t type() const = 0;
+    virtual boundary_condition_t type() const = 0;
 
     virtual void evaluate
     (const Plato::SpatialModel & aSpatialModel,
@@ -288,13 +288,13 @@ public:
      const Plato::Scalar       & aCycle) = 0;
 
 protected:
-    void evalForceExpr(const Plato::Scalar & aCycle)
+    void evaluateExpression(const Plato::Scalar & aCycle)
     {
         for(int tDof=0; tDof<mNumDofsPerNode; tDof++)
         {
-            if(mForceCoeffExpr[tDof])
+            if(mCoefficientsExpr[tDof])
             {
-                mForceCoeff(tDof) = mForceCoeffExpr[tDof]->value(aCycle);
+                mCoefficients(tDof) = mCoefficientsExpr[tDof]->value(aCycle);
             }
         }
     }
@@ -309,7 +309,7 @@ private:
             auto tForceVal = aSubList.get<Teuchos::Array<Plato::Scalar>>("Vector");
             for(Plato::OrdinalType tDof=0; tDof<mNumDofsPerNode; tDof++)
             {
-                mForceCoeff(tDof) = tForceVal[tDof];
+                mCoefficients(tDof) = tForceVal[tDof];
             }
         }
         else
@@ -318,8 +318,8 @@ private:
             auto tExpression = aSubList.get<Teuchos::Array<std::string>>("Vector");
             for(Plato::OrdinalType tDof=0; tDof<mNumDofsPerNode; tDof++)
             {
-                mForceCoeffExpr[tDof] = std::make_shared<Plato::MathExpr>(tExpression[tDof]);
-                mForceCoeff(tDof) = mForceCoeffExpr[tDof]->value(0.0);
+                mCoefficientsExpr[tDof] = std::make_shared<Plato::MathExpr>(tExpression[tDof]);
+                mCoefficients(tDof) = mCoefficientsExpr[tDof]->value(0.0);
             }
         }
     }
@@ -327,18 +327,18 @@ private:
 
 
 template<typename EvaluationType>
-class NaturalBCPressure : public NaturalBCBase<EvaluationType>
+class NaturalBCPressure : public BoundaryConditionBase<EvaluationType>
 {
 private:
     // set local element type definition
     using ElementType = typename EvaluationType::ElementType;
 
     // set local base class type
-    using ForceBaseType = NaturalBCBase<EvaluationType>;
+    using BaseClassType = BoundaryConditionBase<EvaluationType>;
 
     // set natural boundary condition base class member data
-    using ForceBaseType::mForceCoeff;
-    using ForceBaseType::mSideSetName;
+    using BaseClassType::mCoefficients;
+    using BaseClassType::mEntitySetName;
 
     // set local fad type definitions
     using ResultScalarType = typename EvaluationType::ResultScalarType;
@@ -348,14 +348,14 @@ public:
     NaturalBCPressure
     (const std::string            & aLoadName,
            Teuchos::ParameterList & aSubList) :
-        ForceBaseType(aLoadName,aSubList)
+        BaseClassType(aLoadName,aSubList)
     {}
     ~NaturalBCPressure()
     {}
 
-    surface_force_t type() const
+    boundary_condition_t type() const
     {
-        return surface_force_t::PRESSURE;
+        return boundary_condition_t::PRESSURE_FORCE;
     }
 
     void evaluate
@@ -365,15 +365,15 @@ public:
      const Plato::Scalar       & aCycle)
     {
         // get side set connectivity information
-        auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
-        auto tNodeOrds    = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
-        auto tFaceOrds    = aSpatialModel.Mesh->GetSideSetFaces(mSideSetName);
+        auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(mEntitySetName);
+        auto tNodeOrds    = aSpatialModel.Mesh->GetSideSetLocalNodes(mEntitySetName);
+        auto tFaceOrds    = aSpatialModel.Mesh->GetSideSetFaces(mEntitySetName);
 
         // local functor - calculate normal vector
         Plato::WeightedNormalVector<ElementType> tWeightedNormalVector;
 
         // get integration point and weights
-        auto tFlux = mForceCoeff;
+        auto tCoefficients = mCoefficients;
         auto tCubatureWeights = ElementType::Face::getCubWeights();
         auto tCubaturePoints  = ElementType::Face::getCubPoints();
         auto tNumPoints = tCubatureWeights.size();
@@ -413,7 +413,7 @@ public:
                 {
                     auto tElementDofOrdinal = (tLocalNodeOrds[tNode] * ElementType::mNumDofsPerNode) + tDof;
                     ResultScalarType tVal =
-                      tWeightedNormalVec(tDof) * tFlux(tDof) * aScale * tCubatureWeight * tNormalMultiplier * tBasisValues(tNode);
+                      tWeightedNormalVec(tDof) * tCoefficients(tDof) * aScale * tCubatureWeight * tNormalMultiplier * tBasisValues(tNode);
                     Kokkos::atomic_add(&tResultWS(tElementOrdinal, tElementDofOrdinal), tVal);
                 }
             }
@@ -422,14 +422,14 @@ public:
 };
 
 template<typename EvaluationType>
-class NaturalBCUniform : public NaturalBCBase<EvaluationType>
+class NaturalBCUniform : public BoundaryConditionBase<EvaluationType>
 {
 private:
     // set local element type definition
     using ElementType = typename EvaluationType::ElementType;
 
     // set local parent class type
-    using ForceBaseType = NaturalBCBase<EvaluationType>;
+    using BaseClassType = BoundaryConditionBase<EvaluationType>;
 
     // set local fad type definitions
     using ResultScalarType = typename EvaluationType::ResultScalarType;
@@ -439,13 +439,13 @@ public:
     NaturalBCUniform
     (const std::string            & aLoadName,
            Teuchos::ParameterList & aSubList) :
-        ForceBaseType(aLoadName,aSubList)
+        BaseClassType(aLoadName,aSubList)
     {}
     ~NaturalBCUniform(){}
 
-    surface_force_t type() const
+    boundary_condition_t type() const
     {
-        return surface_force_t::UNIFORM;
+        return boundary_condition_t::UNIFORM_FORCE;
     }
 
     void evaluate
@@ -455,22 +455,22 @@ public:
      const Plato::Scalar       & aCycle)
     {
         // evaluate expression if defined
-        this->evalForceExpr(aCycle);
+        this->evaluateExpression(aCycle);
 
         // get input worksets (i.e., domain for function evaluate)
         auto tResultWS = Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
         auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
 
         // get side set connectivity
-        auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(ForceBaseType::mSideSetName);
-        auto tNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(ForceBaseType::mSideSetName);
+        auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(BaseClassType::mEntitySetName);
+        auto tNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(BaseClassType::mEntitySetName);
         Plato::OrdinalType tNumFaces = tElementOrds.size();
 
         // create surface area functor
         Plato::SurfaceArea<ElementType> tComputeSurfaceArea;
 
         // get integration points and weights
-        auto tForceCoeff = ForceBaseType::mForceCoeff;
+        auto tCoefficients = BaseClassType::mCoefficients;
         auto tCubatureWeights = ElementType::Face::getCubWeights();
         auto tCubaturePoints  = ElementType::Face::getCubPoints();
         auto tNumPoints = tCubatureWeights.size();
@@ -502,7 +502,7 @@ public:
               for( Plato::OrdinalType tDof=0; tDof<ElementType::mNumDofsPerNode; tDof++)
               {
                   auto tElementDofOrdinal = ( tLocalNodeOrds[tNode] * ElementType::mNumDofsPerNode ) + tDof;
-                  ResultScalarType tResult = tBasisValues(tNode)*tForceCoeff[tDof]*tSurfaceArea;
+                  ResultScalarType tResult = tBasisValues(tNode)*tCoefficients[tDof]*tSurfaceArea;
                   Kokkos::atomic_add(&tResultWS(tElementOrdinal,tElementDofOrdinal), tResult);
               }
           }
@@ -521,28 +521,28 @@ private:
     static constexpr auto mNumDofsPerNode = ElementType::mNumDofsPerNode;
 
     /*!< map from input force type string to supported enum */
-    std::map<std::string,surface_force_t> mSupportedForces =
+    std::map<std::string,boundary_condition_t> mSupportedForces =
         {
-            {"uniform",surface_force_t::UNIFORM},
-            {"pressure",surface_force_t::PRESSURE}
+            {"uniform",boundary_condition_t::UNIFORM_FORCE},
+            {"pressure",boundary_condition_t::PRESSURE_FORCE}
         };
 
 public:
     FactoryNaturalBC(){}
     ~FactoryNaturalBC(){}
 
-    std::shared_ptr<NaturalBCBase<EvaluationType>>
+    std::shared_ptr<BoundaryConditionBase<EvaluationType>>
     create(const std::string & aName, Teuchos::ParameterList &aSubList)
     {
         this->parseCoefficients(aName,aSubList);
         auto tType = this->type(aSubList);
         switch(tType)
         {
-            case surface_force_t::UNIFORM:
+            case boundary_condition_t::UNIFORM_FORCE:
             {
                 return std::make_shared<NaturalBCUniform<EvaluationType>>(aName, aSubList);
             }
-            case surface_force_t::PRESSURE:
+            case boundary_condition_t::PRESSURE_FORCE:
             {
                 return std::make_shared<NaturalBCPressure<EvaluationType>>(aName, aSubList);
             }
@@ -554,7 +554,7 @@ public:
     }
 
 private:
-    surface_force_t type(Teuchos::ParameterList & aSubList)
+    boundary_condition_t type(Teuchos::ParameterList & aSubList)
     {
         std::string tType = aSubList.get<std::string>("Type");
         tType = Plato::tolower(tType);
@@ -650,12 +650,12 @@ class NaturalBCs
 private:
     FactoryNaturalBC<EvaluationType> mFactory;
     /*!< list of natural boundary condition */
-    std::unordered_map<surface_force_t,std::vector<std::shared_ptr<NaturalBCBase<EvaluationType> > > > mBCs;
+    std::unordered_map<boundary_condition_t,std::vector<std::shared_ptr<BoundaryConditionBase<EvaluationType> > > > mNaturalBCs;
 
 // public member functions
 public:
     NaturalBCs(Teuchos::ParameterList &aParams) :
-        mBCs()
+        mNaturalBCs()
     {
         this->parse(aParams);
     }
@@ -666,11 +666,11 @@ public:
      const Plato::Scalar       & aScale,
      const Plato::Scalar       & aCycle)
     {
-        for (const auto &tPair : mBCs)
+        for (const auto &tPair : mNaturalBCs)
         {
-            for(const auto &tBC : tPair.second)
+            for(const auto &tNaturalBC : tPair.second)
             {
-                tBC->evaluate(aSpatialModel, aWorkSets, aScale, aCycle);
+                tNaturalBC->evaluate(aSpatialModel, aWorkSets, aScale, aCycle);
             }
         }
     }
@@ -704,9 +704,9 @@ private:
                      << tName.c_str() << "'";
                 ANALYZE_THROWERR(tMsg.str().c_str())
             }
-            std::shared_ptr<NaturalBCBase<EvaluationType>> tBC = mFactory.create(tName, tSubList);
-            surface_force_t tType = tBC->type();
-            mBCs[tType].push_back(tBC);
+            std::shared_ptr<BoundaryConditionBase<EvaluationType>> tBC = mFactory.create(tName, tSubList);
+            boundary_condition_t tType = tBC->type();
+            mNaturalBCs[tType].push_back(tBC);
         }
     }
 };
