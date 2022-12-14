@@ -328,7 +328,7 @@ private:
 
 
 template<typename EvaluationType>
-class NaturalBCPressure : public BoundaryConditionBase<EvaluationType>
+class BoundaryConditionPressure : public BoundaryConditionBase<EvaluationType>
 {
 private:
     // set local element type definition
@@ -346,12 +346,12 @@ private:
     using ConfigScalarType = typename EvaluationType::ConfigScalarType;
 
 public:
-    NaturalBCPressure
+    BoundaryConditionPressure
     (const std::string            & aLoadName,
            Teuchos::ParameterList & aSubList) :
         BaseClassType(aLoadName,aSubList)
     {}
-    ~NaturalBCPressure()
+    ~BoundaryConditionPressure()
     {}
 
     boundary_condition_t type() const
@@ -418,12 +418,12 @@ public:
                     Kokkos::atomic_add(&tResultWS(tElementOrdinal, tElementDofOrdinal), tVal);
                 }
             }
-        }, "uniform surface pressure");
+        }, "pressure force");
     }
 };
 
 template<typename EvaluationType>
-class NaturalFluxBC : public BoundaryConditionBase<EvaluationType>
+class BoundaryConditionFlux : public BoundaryConditionBase<EvaluationType>
 {
 private:
     // set local element type definition
@@ -437,12 +437,12 @@ private:
     using ConfigScalarType = typename EvaluationType::ConfigScalarType;
 
 public:
-    NaturalFluxBC
+    BoundaryConditionFlux
     (const std::string            & aLoadName,
            Teuchos::ParameterList & aSubList) :
         BaseClassType(aLoadName,aSubList)
     {}
-    ~NaturalFluxBC(){}
+    ~BoundaryConditionFlux(){}
 
     boundary_condition_t type() const
     {
@@ -507,7 +507,7 @@ public:
                   Kokkos::atomic_add(&tResultWS(tElementOrdinal,tElementDofOrdinal), tResult);
               }
           }
-        }, "uniform surface force");
+        }, "flux force");
     }
 };
 
@@ -541,11 +541,11 @@ public:
         {
             case boundary_condition_t::FLUX:
             {
-                return std::make_shared<NaturalFluxBC<EvaluationType>>(aName, aSubList);
+                return std::make_shared<BoundaryConditionFlux<EvaluationType>>(aName, aSubList);
             }
             case boundary_condition_t::PRESSURE:
             {
-                return std::make_shared<NaturalBCPressure<EvaluationType>>(aName, aSubList);
+                return std::make_shared<BoundaryConditionPressure<EvaluationType>>(aName, aSubList);
             }
             default:
             {
