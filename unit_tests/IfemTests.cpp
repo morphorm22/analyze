@@ -242,8 +242,9 @@ private:
 
 enum class boundary_condition_t
 {
-    UNIFORM_FORCE,
-    PRESSURE_FORCE,
+    FLUX,
+    PRESSURE,
+    NITSCHE,
     UNDEFINED
 };
 
@@ -355,7 +356,7 @@ public:
 
     boundary_condition_t type() const
     {
-        return boundary_condition_t::PRESSURE_FORCE;
+        return boundary_condition_t::PRESSURE;
     }
 
     void evaluate
@@ -422,7 +423,7 @@ public:
 };
 
 template<typename EvaluationType>
-class NaturalBCUniform : public BoundaryConditionBase<EvaluationType>
+class NaturalFluxBC : public BoundaryConditionBase<EvaluationType>
 {
 private:
     // set local element type definition
@@ -436,16 +437,16 @@ private:
     using ConfigScalarType = typename EvaluationType::ConfigScalarType;
 
 public:
-    NaturalBCUniform
+    NaturalFluxBC
     (const std::string            & aLoadName,
            Teuchos::ParameterList & aSubList) :
         BaseClassType(aLoadName,aSubList)
     {}
-    ~NaturalBCUniform(){}
+    ~NaturalFluxBC(){}
 
     boundary_condition_t type() const
     {
-        return boundary_condition_t::UNIFORM_FORCE;
+        return boundary_condition_t::FLUX;
     }
 
     void evaluate
@@ -523,8 +524,8 @@ private:
     /*!< map from input force type string to supported enum */
     std::map<std::string,boundary_condition_t> mSupportedForces =
         {
-            {"uniform",boundary_condition_t::UNIFORM_FORCE},
-            {"pressure",boundary_condition_t::PRESSURE_FORCE}
+            {"uniform",boundary_condition_t::FLUX},
+            {"pressure",boundary_condition_t::PRESSURE}
         };
 
 public:
@@ -538,11 +539,11 @@ public:
         auto tType = this->type(aSubList);
         switch(tType)
         {
-            case boundary_condition_t::UNIFORM_FORCE:
+            case boundary_condition_t::FLUX:
             {
-                return std::make_shared<NaturalBCUniform<EvaluationType>>(aName, aSubList);
+                return std::make_shared<NaturalFluxBC<EvaluationType>>(aName, aSubList);
             }
-            case boundary_condition_t::PRESSURE_FORCE:
+            case boundary_condition_t::PRESSURE:
             {
                 return std::make_shared<NaturalBCPressure<EvaluationType>>(aName, aSubList);
             }
