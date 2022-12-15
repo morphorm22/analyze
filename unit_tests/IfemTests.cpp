@@ -63,12 +63,13 @@ namespace exp
 {
 
 template<Plato::OrdinalType SpatialDim>
-class ElasticMaterial : public MaterialModel<SpatialDim>
+class MaterialElastic : public MaterialModel<SpatialDim>
 {
 public:
-    ElasticMaterial(const Teuchos::ParameterList& aParamList)
+    MaterialElastic(const Teuchos::ParameterList& aParamList)
     {
         this->parse(aParamList);
+        this->computeLameConstants();
     }
 
     Plato::Scalar mu() const
@@ -86,7 +87,18 @@ private:
     void computeLameConstants()
     {
         auto tYoungsModulus = this->getScalarConstant("youngs modulus");
-        auto tPoissonsRatio = this->getScalarConstant("poissions ratio");
+        if(tYoungsModulus <= std::numeric_limits<Plato::Scalar>::epsilon())
+        {
+            ANALYZE_THROWERR(std::string("Error: The Young's Modulus is less than the machine epsilon. ")
+                + "The input material properties were not parsed properly.");
+        }
+
+        auto tPoissonsRatio = this->getScalarConstant("poissons ratio");
+        if(tPoissonsRatio <= std::numeric_limits<Plato::Scalar>::epsilon())
+        {
+            ANALYZE_THROWERR(std::string("Error: The Poisson's Ratio is less than the machine epsilon. ")
+                + "The input material properties were not parsed properly.");
+        }
 
         auto tMu = tYoungsModulus / (2.0 * (1.0 + tPoissonsRatio) );
         this->setScalarConstant("mu",tMu);
@@ -121,7 +133,7 @@ public:
     (const Plato::OrdinalType                                                    & aCellOrdinal,
       const Plato::ScalarMultiVectorT<DispScalarType>                            & aState,
       const Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, GradientScalarType> & aGradient,
-      const Plato::Matrix<mNumSpatialDims, mNumSpatialDims, StrainScalarType>    & aStrains) const
+            Plato::Matrix<mNumSpatialDims, mNumSpatialDims, StrainScalarType>    & aStrains) const
     {
         constexpr Plato::Scalar tOneOverTwo = 0.5;
         for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++)
@@ -130,8 +142,8 @@ public:
             {
                 for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
                 {
-                    auto tLocalOrdinalI = tNodeIndex * mNumSpatialDims + tDimJ;
-                    auto tLocalOrdinalJ = tNodeIndex * mNumSpatialDims + tDimI;
+                    auto tLocalOrdinalI = tNodeIndex * mNumSpatialDims + tDimI;
+                    auto tLocalOrdinalJ = tNodeIndex * mNumSpatialDims + tDimJ;
                     aStrains(tDimI,tDimJ) += tOneOverTwo *
                             ( aState(aCellOrdinal, tLocalOrdinalJ) * aGradient(tNodeIndex, tDimI)
                             + aState(aCellOrdinal, tLocalOrdinalI) * aGradient(tNodeIndex, tDimJ));
@@ -169,14 +181,24 @@ public:
     **********************************************************************************/
     StressTensor(const Plato::MaterialModel<mNumSpatialDims> & aMaterialModel)
     {
-        mMu     = aMaterialModel.getScalarConstant("mu");
+        mMu = aMaterialModel.getScalarConstant("mu");
+        if(mMu <= std::numeric_limits<Plato::Scalar>::epsilon())
+        {
+            ANALYZE_THROWERR(std::string("Error: Lame constant 'mu' is less than the machine epsilon. ")
+                + "The input material properties were not parsed properly.");
+        }
         mLambda = aMaterialModel.getScalarConstant("lambda");
+        if(mLambda <= std::numeric_limits<Plato::Scalar>::epsilon())
+        {
+            ANALYZE_THROWERR(std::string("Error: Lame constant 'lambda' is less than the machine epsilon. ")
+                + "The input material properties were not parsed properly.");
+        }
     }
 
     KOKKOS_INLINE_FUNCTION void
     operator()
     (const Plato::Matrix<mNumSpatialDims, mNumSpatialDims, StrainScalarType> & aStrainTensor,
-     const Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ResultScalarType> & aStressTensor) const
+           Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ResultScalarType> & aStressTensor) const
     {
         // compute first strain invariant
         StrainScalarType tFirstStrainInvariant(0.0);
@@ -214,7 +236,7 @@ private:
     static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
     static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
 
-private:
+public:
     template<typename ResultScalarType,
              typename StressScalarType,
            typename GradientScalarType,
@@ -229,15 +251,16 @@ private:
         const Plato::Scalar aMultiplier = 1.0) const
     {
 
-        for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++)
+        for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
         {
-            for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
+            for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++)
             {
-                Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumDofsPerNode + tDimI;
+                Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumSpatialDims + tDimI;
                 for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++)
                 {
-                    Kokkos::atomic_add(&aResult(aCellOrdinal, tLocalOrdinal),
-                        aMultiplier * aCellVolume * aStressTensor(tDimI,tDimJ) * aGradient(tNodeIndex, tDimJ));
+                    ResultScalarType tVal =
+                        aMultiplier * aCellVolume * aStressTensor(tDimI,tDimJ) * aGradient(tNodeIndex, tDimJ);
+                    Kokkos::atomic_add(&aResult(aCellOrdinal, tLocalOrdinal),tVal);
                 }
             }
         }
@@ -1166,7 +1189,7 @@ public:
     * \param [in] aModelName name of the model to be created.
     * \return Teuchos reference counter pointer to linear elastic material model
     **********************************************************************************/
-    std::shared_ptr<Plato::LinearElasticMaterial<SpatialDim>>
+    std::shared_ptr<Plato::MaterialModel<SpatialDim>>
     create(std::string aModelName) const
     {
         if (!mParamList.isSublist("Material Models"))
@@ -1186,11 +1209,7 @@ public:
             auto tModelParamList = tModelsParamList.sublist(aModelName);
             if(tModelParamList.isSublist("Isotropic Linear Elastic"))
             {
-                return std::make_shared<Plato::IsotropicLinearElasticMaterial<SpatialDim>>(tModelParamList.sublist("Isotropic Linear Elastic"));
-            }
-            else if(tModelParamList.isSublist("Orthotropic Linear Elastic"))
-            {
-                return std::make_shared<Plato::OrthotropicLinearElasticMaterial<SpatialDim>>(tModelParamList.sublist("Orthotropic Linear Elastic"));
+                return std::make_shared<MaterialElastic<SpatialDim>>(tModelParamList.sublist("Isotropic Linear Elastic"));
             }
             else
             {
@@ -1221,6 +1240,58 @@ private:
 };
 // class ElasticModelFactory
 
+template<typename EvaluationType, typename PenaltyFunction>
+class ApplyWeighting
+{
+private:
+    // set local element type
+    using ElementType = typename EvaluationType::ElementType;
+
+    // set local static types
+    static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+    static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+
+    // set local fad types
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
+
+    PenaltyFunction mPenaltyFunction; /*!< penalty model used for topology optimization - density discretization */
+
+public:
+    /******************************************************************************//**
+     * \brief Default Constructor
+     * \param [in] aPenaltyFunction penalty function interface
+    **********************************************************************************/
+    ApplyWeighting(PenaltyFunction aPenaltyFunction) :
+        mPenaltyFunction(aPenaltyFunction)
+    {
+    }
+
+    template<typename InputScalarType>
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+        const Plato::OrdinalType                                               & aCellOrdinal,
+        const Plato::ScalarMultiVectorT<ControlScalarType>                     & aControl,
+        const Plato::Array<mNumNodesPerCell>                                   & aBasisValues,
+              Plato::Matrix<mNumSpatialDims, mNumSpatialDims, InputScalarType> & aInputOutput
+    ) const
+    {
+        // apply weighting
+        //
+        ControlScalarType tCellDensity = 0.0;
+        for (Plato::OrdinalType tNode = 0; tNode < mNumNodesPerCell; tNode++)
+        {
+            tCellDensity += aControl(aCellOrdinal, tNode)*aBasisValues(tNode);
+        }
+        for (Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++)
+        {
+            for (Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++)
+            {
+                aInputOutput(tDimI,tDimJ) *= mPenaltyFunction(tCellDensity);
+            }
+        }
+    }
+};
+
 template<typename EvaluationType>
 class ResidualElastostatics : public ResidualBase
 {
@@ -1246,10 +1317,10 @@ private:
 
     std::shared_ptr<NaturalBCs<EvaluationType>> mPrescribedForces;
     std::shared_ptr<VolumeForces<EvaluationType>> mBodyForces;
-    std::shared_ptr<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterial;
+    std::shared_ptr<Plato::MaterialModel<mNumSpatialDims>> mMaterial;
 
     Plato::MSIMP mPenaltyFunction;
-    Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, Plato::MSIMP> mApplyWeighting;
+    ApplyWeighting<EvaluationType, Plato::MSIMP> mApplyWeighting;
 
 
 public:
@@ -1290,15 +1361,15 @@ public:
     {
         // create local worksets
         auto tNumCells = mSpatialDomain.numCells();
-        Plato::ScalarVectorT<ConfigScalarType> tCellVolume("volume", tNumCells);
-        Plato::ScalarMultiVectorT<StrainScalarType> tCellStrain("strain", tNumCells, mNumVoigtTerms);
-        Plato::ScalarMultiVectorT<ResultScalarType> tCellStress("stress", tNumCells, mNumVoigtTerms);
+        Plato::ScalarVectorT<ConfigScalarType> tCellVolume("volume",tNumCells);
+        Plato::ScalarArray3DT<StrainScalarType> tCellStrain("strain",tNumCells,mNumSpatialDims,mNumSpatialDims);
+        Plato::ScalarArray3DT<ResultScalarType> tCellStress("stress",tNumCells,mNumSpatialDims,mNumSpatialDims);
 
         // create local functors
-        CauchyStress<EvaluationType>                tComputeVoigtStress(mMaterial.operator*());
-        Plato::SmallStrain<ElementType>             tComputeVoigtStrain;
-        Plato::ComputeGradientMatrix<ElementType>   tComputeGradient;
-        Plato::GeneralStressDivergence<ElementType> tComputeStressDivergence;
+        StressTensor<EvaluationType>     tComputeStressTensor(mMaterial.operator*());
+        StrainTensor<EvaluationType>     tComputeStrainTensor;
+        StressDivergence<EvaluationType> tComputeStressDivergence;
+        Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
 
         // get input worksets (i.e., domain for function evaluate)
         auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>( aWorkSets.get("state"));
@@ -1318,46 +1389,52 @@ public:
             ConfigScalarType tVolume(0.0);
 
             // create local containers for stress, strains, and gradients
-            Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, ConfigScalarType> tGradient;
-            Plato::Array<ElementType::mNumVoigtTerms, StrainScalarType> tStrain(0.0);
-            Plato::Array<ElementType::mNumVoigtTerms, ResultScalarType> tStress(0.0);
+            Plato::Matrix<mNumNodesPerCell,mNumSpatialDims, ConfigScalarType> tGradient;
+            Plato::Matrix<mNumSpatialDims,mNumSpatialDims, StrainScalarType>  tStrainTensor(0.0);
+            Plato::Matrix<mNumSpatialDims,mNumSpatialDims, ResultScalarType>  tStressTensor(0.0);
 
-            // get integration
+            // get integration point
             auto tCubPoint = tCubPoints(iGpOrdinal);
 
             // compute strains and stresses for this integration point
             tComputeGradient(iCellOrdinal, tCubPoint, tConfigWS, tGradient, tVolume);
-            tComputeVoigtStrain(iCellOrdinal, tStrain, tStateWS, tGradient);
-            tComputeVoigtStress(tStress, tStrain);
+            tComputeStrainTensor(iCellOrdinal,tStateWS, tGradient, tStrainTensor);
+            tComputeStressTensor(tStrainTensor,tStressTensor);
 
             // add contribution to volume from this integration point
             tVolume *= tCubWeights(iGpOrdinal);
 
             // apply ersatz penalization
             auto tBasisValues = ElementType::basisValues(tCubPoint);
-            tApplyWeighting(iCellOrdinal, tControlWS, tBasisValues, tStress);
+            tApplyWeighting(iCellOrdinal, tControlWS, tBasisValues, tStressTensor);
 
             // apply divergence to stress
-            tComputeStressDivergence(iCellOrdinal, tResultWS, tStress, tGradient, tVolume);
+            tComputeStressDivergence(iCellOrdinal, tResultWS, tStressTensor, tGradient, tVolume);
 
             // compute cell stress and strain: aggregate stress and strain contribution from each integration point
-            for(int i=0; i<ElementType::mNumVoigtTerms; i++)
+            for(Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
             {
-                Kokkos::atomic_add(&tCellStrain(iCellOrdinal,i), tVolume*tStrain(i));
-                Kokkos::atomic_add(&tCellStress(iCellOrdinal,i), tVolume*tStress(i));
+                for(Plato::OrdinalType tDimJ=0; tDimJ<mNumSpatialDims; tDimJ++)
+                {
+                    Kokkos::atomic_add(&tCellStrain(iCellOrdinal,tDimI,tDimJ), tVolume*tStrainTensor(tDimI,tDimJ));
+                    Kokkos::atomic_add(&tCellStress(iCellOrdinal,tDimI,tDimJ), tVolume*tStressTensor(tDimI,tDimJ));
+                }
             }
             // compute cell volume: aggregate volume contribution from each integration
             Kokkos::atomic_add(&tCellVolume(iCellOrdinal), tVolume);
         });
 
-        // compute cell stress and strain values by multiplying by 1/volume factor
+        // compute cell stress and strain tensors by multiplying by 1/volume factor
         Kokkos::parallel_for("compute cell quantities", Kokkos::RangePolicy<>(0, tNumCells),
         KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal)
         {
-            for(int i=0; i<ElementType::mNumVoigtTerms; i++)
+            for(Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
             {
-                tCellStrain(iCellOrdinal,i) /= tCellVolume(iCellOrdinal);
-                tCellStress(iCellOrdinal,i) /= tCellVolume(iCellOrdinal);
+                for(Plato::OrdinalType tDimJ=0; tDimJ<mNumSpatialDims; tDimJ++)
+                {
+                    tCellStrain(iCellOrdinal,tDimI,tDimJ) /= tCellVolume(iCellOrdinal);
+                    tCellStress(iCellOrdinal,tDimI,tDimJ) /= tCellVolume(iCellOrdinal);
+                }
             }
         });
 
@@ -1770,6 +1847,40 @@ public:
     }
 };
 
+
+template<Plato::OrdinalType DimI,Plato::OrdinalType DimJ>
+class Contraction
+{
+public:
+    template<typename ProductScalarType,
+             typename Matrix1ScalarType,
+             typename Matrix2ScalarType,
+             typename VolumeScalarType>
+    KOKKOS_INLINE_FUNCTION void
+    operator()
+    (const Plato::OrdinalType                         & aCellOrdinal,
+      const Plato::ScalarVectorT<ProductScalarType>   & aTensorProduct,
+      const Plato::Matrix<DimI,DimJ,Matrix1ScalarType> & aMatrix1,
+      const Plato::Matrix<DimI,DimJ,Matrix2ScalarType> & aMatrix2,
+      const VolumeScalarType                          & aCellVolume,
+                Plato::Scalar                           aScale = 1.0
+    ) const
+    {
+      // compute tensor product
+      ProductScalarType tInc(0.0);
+      for( Plato::OrdinalType tDimI=0; tDimI<DimI; tDimI++)
+      {
+          for( Plato::OrdinalType tDimJ=0; tDimJ<DimI; tDimJ++)
+          {
+              tInc += aMatrix1(tDimI,tDimJ)*aMatrix2(tDimI,tDimJ);
+          }
+      }
+      ProductScalarType tProduct = aScale*tInc*aCellVolume;
+      Kokkos::atomic_add(&aTensorProduct(aCellOrdinal), tProduct);
+    }
+};
+
+
 template<typename EvaluationType>
 class CriterionInternalElasticEnergy : public CriterionBase
 {
@@ -1791,10 +1902,10 @@ private:
     // set local fad strain scalar type
     using StrainScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
-    std::shared_ptr<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterial;
+    std::shared_ptr<Plato::MaterialModel<mNumSpatialDims>> mMaterial;
 
     Plato::MSIMP mPenaltyFunction;
-    Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, Plato::MSIMP> mApplyWeighting;
+    ApplyWeighting<EvaluationType, Plato::MSIMP> mApplyWeighting;
 
 public:
     CriterionInternalElasticEnergy
@@ -1825,10 +1936,10 @@ public:
         auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>( aWorkSets.get("configuration") );
         auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("control") );
 
-        CauchyStress<EvaluationType>              tComputeVoigtStress(mMaterial.operator*());
-        Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
-        Plato::ScalarProduct<mNumVoigtTerms>      tComputeScalarProduct;
-        Plato::SmallStrain<ElementType>           tComputeVoigtStrain;
+        StressTensor<EvaluationType>                 tComputeStress(mMaterial.operator*());
+        StrainTensor<EvaluationType>                 tComputeStrain;
+        Plato::ComputeGradientMatrix<ElementType>    tComputeGradient;
+        Contraction<mNumSpatialDims,mNumSpatialDims> tTensorContraction;
 
         auto tCubPoints = ElementType::getCubPoints();
         auto tCubWeights = ElementType::getCubWeights();
@@ -1841,25 +1952,24 @@ public:
         {
             ConfigScalarType tVolume(0.0);
 
-            Plato::Matrix<ElementType::mNumNodesPerCell, ElementType::mNumSpatialDims, ConfigScalarType> tGradient;
-
-            Plato::Array<ElementType::mNumVoigtTerms, StrainScalarType> tStrain(0.0);
-            Plato::Array<ElementType::mNumVoigtTerms, ResultScalarType> tStress(0.0);
+            Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, ConfigScalarType> tGradient;
+            Plato::Matrix<mNumSpatialDims, mNumSpatialDims, StrainScalarType>  tStrain(0.0);
+            Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ResultScalarType>  tStress(0.0);
 
             auto tCubPoint = tCubPoints(iGpOrdinal);
 
             tComputeGradient(iCellOrdinal, tCubPoint, tConfigWS, tGradient, tVolume);
 
-            tComputeVoigtStrain(iCellOrdinal, tStrain, tStateWS, tGradient);
+            tComputeStrain(iCellOrdinal, tStateWS, tGradient, tStrain);
 
-            tComputeVoigtStress(tStress, tStrain);
+            tComputeStress(tStrain, tStress);
 
             tVolume *= tCubWeights(iGpOrdinal);
 
             auto tBasisValues = ElementType::basisValues(tCubPoint);
             tApplyWeighting(iCellOrdinal, tControlWS, tBasisValues, tStress);
 
-            tComputeScalarProduct(iCellOrdinal, tResultWS, tStress, tStrain, tVolume, 0.5);
+            tTensorContraction(iCellOrdinal, tResultWS, tStress, tStrain, tVolume, 0.5);
         });
     }
 };
@@ -3636,9 +3746,9 @@ TEUCHOS_UNIT_TEST( Morphorm, InternalElasticEnergy3D )
     -15.0767307692307710, 15.0767307692307391, -5.02557692307692072,
     10.0511538461537953, 10.0511538461537917, 15.0767307692307426};
 
-  /*for(int iNode=0; iNode<int(tGoldGradZ.size()); iNode++){
+  for(int iNode=0; iNode<int(tGoldGradZ.size()); iNode++){
     TEST_FLOATING_EQUALITY(tHostGradZ[iNode], tGoldGradZ[iNode], 1e-13);
-  }*/
+  }
 
   // compute and test criterion gradient wrt node position, x
   //

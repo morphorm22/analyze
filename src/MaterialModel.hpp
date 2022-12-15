@@ -626,8 +626,8 @@ namespace Plato {
       bool scalarConstantExists(std::string aConstantName)
       { auto tLowerConstantName = Plato::tolower(aConstantName); return mScalarConstantsMap.count(tLowerConstantName) == 1 ? true : false; }
 
-      Plato::Scalar getScalarConstant(std::string aConstantName)
-      { auto tLowerConstantName = Plato::tolower(aConstantName); return mScalarConstantsMap[tLowerConstantName]; }
+      Plato::Scalar getScalarConstant(const std::string & aConstantName) const
+      { auto tLowerConstantName = Plato::tolower(aConstantName); return mScalarConstantsMap.find(tLowerConstantName)->second; }
 
       // Tensor constant
       Plato::TensorConstant<SpatialDim> getTensorConstant(std::string aConstantName)
