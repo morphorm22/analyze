@@ -1953,23 +1953,23 @@ public:
             ConfigScalarType tVolume(0.0);
 
             Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, ConfigScalarType> tGradient;
-            Plato::Matrix<mNumSpatialDims, mNumSpatialDims, StrainScalarType>  tStrain(0.0);
-            Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ResultScalarType>  tStress(0.0);
+            Plato::Matrix<mNumSpatialDims, mNumSpatialDims, StrainScalarType>  tStrainTensor(0.0);
+            Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ResultScalarType>  tStressTensor(0.0);
 
             auto tCubPoint = tCubPoints(iGpOrdinal);
 
             tComputeGradient(iCellOrdinal, tCubPoint, tConfigWS, tGradient, tVolume);
 
-            tComputeStrain(iCellOrdinal, tStateWS, tGradient, tStrain);
+            tComputeStrain(iCellOrdinal, tStateWS, tGradient, tStrainTensor);
 
-            tComputeStress(tStrain, tStress);
+            tComputeStress(tStrainTensor, tStressTensor);
 
             tVolume *= tCubWeights(iGpOrdinal);
 
             auto tBasisValues = ElementType::basisValues(tCubPoint);
-            tApplyWeighting(iCellOrdinal, tControlWS, tBasisValues, tStress);
+            tApplyWeighting(iCellOrdinal, tControlWS, tBasisValues, tStressTensor);
 
-            tTensorContraction(iCellOrdinal, tResultWS, tStress, tStrain, tVolume, 0.5);
+            tTensorContraction(iCellOrdinal, tResultWS, tStressTensor, tStrainTensor, tVolume, 0.5);
         });
     }
 };
