@@ -62,6 +62,255 @@ namespace Plato
 namespace exp
 {
 
+template<Plato::OrdinalType SpatialDim>
+class ElasticMaterial : public MaterialModel<SpatialDim>
+{
+public:
+    ElasticMaterial(const Teuchos::ParameterList& aParamList)
+    {
+        this->parse(aParamList);
+    }
+
+    Plato::Scalar mu() const
+    { return this->getScalarConstant("mu"); }
+
+    Plato::Scalar lambda() const
+    { return this->getScalarConstant("lambda"); }
+
+private:
+    void parse(const Teuchos::ParameterList& aParamList)
+    {
+        this->parseScalarConstant("Youngs Modulus", aParamList);
+        this->parseScalarConstant("Poissons Ratio", aParamList);
+    }
+    void computeLameConstants()
+    {
+        auto tYoungsModulus = this->getScalarConstant("youngs modulus");
+        auto tPoissonsRatio = this->getScalarConstant("poissions ratio");
+
+        auto tMu = tYoungsModulus / (2.0 * (1.0 + tPoissonsRatio) );
+        this->setScalarConstant("mu",tMu);
+        auto tLambda = (tYoungsModulus * tPoissonsRatio) / ( (1.0 + tPoissonsRatio) * (1.0 - 2.0 * tPoissonsRatio) );
+        this->setScalarConstant("lambda",tLambda);
+    }
+};
+
+/******************************************************************************/
+/*! Infinitesimal strain functor.
+
+ Given a gradient matrix and displacement array, compute the strain.
+ strain tensor in Voigt notation = {e_xx, e_yy, e_zz, e_yz, e_xz, e_xy}
+
+ */
+/******************************************************************************/
+template<typename EvaluationType>
+class StrainTensor
+{
+private:
+    // set local element type
+    using ElementType = typename EvaluationType::ElementType;
+
+    // set local static parameters
+    static constexpr auto mNumSpatialDims   = ElementType::mNumSpatialDims;
+    static constexpr auto mNumNodesPerCell  = ElementType::mNumNodesPerCell; /*!< number of nodes per element */
+
+public:
+
+    template<typename StrainScalarType, typename DispScalarType, typename GradientScalarType>
+    KOKKOS_INLINE_FUNCTION void operator()
+    (const Plato::OrdinalType                                                    & aCellOrdinal,
+      const Plato::ScalarMultiVectorT<DispScalarType>                            & aState,
+      const Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, GradientScalarType> & aGradient,
+      const Plato::Matrix<mNumSpatialDims, mNumSpatialDims, StrainScalarType>    & aStrains) const
+    {
+        constexpr Plato::Scalar tOneOverTwo = 0.5;
+        for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++)
+        {
+            for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++)
+            {
+                for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
+                {
+                    auto tLocalOrdinalI = tNodeIndex * mNumSpatialDims + tDimJ;
+                    auto tLocalOrdinalJ = tNodeIndex * mNumSpatialDims + tDimI;
+                    aStrains(tDimI,tDimJ) += tOneOverTwo *
+                            ( aState(aCellOrdinal, tLocalOrdinalJ) * aGradient(tNodeIndex, tDimI)
+                            + aState(aCellOrdinal, tLocalOrdinalI) * aGradient(tNodeIndex, tDimJ));
+                }
+            }
+        }
+    }
+};
+// class StrainTensor
+
+template< typename EvaluationType>
+class StressTensor
+{
+private:
+    // set local element type
+    using ElementType = typename EvaluationType::ElementType;
+
+    // set local static parameters
+    static constexpr auto mNumSpatialDims   = ElementType::mNumSpatialDims;
+    static constexpr auto mNumNodesPerCell  = ElementType::mNumNodesPerCell; /*!< number of nodes per element */
+
+    // set local fad types
+    using StateScalarType  = typename EvaluationType::StateScalarType;  /*!< state variables automatic differentiation type */
+    using ConfigScalarType = typename EvaluationType::ConfigScalarType; /*!< configuration variables automatic differentiation type */
+    using ResultScalarType = typename EvaluationType::ResultScalarType; /*!< result variables automatic differentiation type */
+    using StrainScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>; /*!< strain variables automatic differentiation type */
+
+    // set local member data
+    Plato::Scalar mMu = 1.0;
+    Plato::Scalar mLambda = 1.0;
+public:
+    /******************************************************************************//**
+     * \brief Constructor
+     * \param [in] aMaterialModel material model interface
+    **********************************************************************************/
+    StressTensor(const Plato::MaterialModel<mNumSpatialDims> & aMaterialModel)
+    {
+        mMu     = aMaterialModel.getScalarConstant("mu");
+        mLambda = aMaterialModel.getScalarConstant("lambda");
+    }
+
+    KOKKOS_INLINE_FUNCTION void
+    operator()
+    (const Plato::Matrix<mNumSpatialDims, mNumSpatialDims, StrainScalarType> & aStrainTensor,
+     const Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ResultScalarType> & aStressTensor) const
+    {
+        // compute first strain invariant
+        StrainScalarType tFirstStrainInvariant(0.0);
+        for(Plato::OrdinalType tDim = 0; tDim < mNumSpatialDims; tDim++)
+        {
+            tFirstStrainInvariant += aStrainTensor(tDim,tDim);
+        }
+
+        // add contribution from first stress invariant to the stress tensor
+        for(Plato::OrdinalType tDim = 0; tDim < mNumSpatialDims; tDim++)
+        {
+            aStressTensor(tDim,tDim) += mLambda * tFirstStrainInvariant;
+        }
+
+        // add shear stress contribution to the stress tensor
+        for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++)
+        {
+            for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++)
+            {
+                aStressTensor(tDimI,tDimJ) += 2.0 * mMu * aStrainTensor(tDimI,tDimJ);
+            }
+        }
+    }
+};
+// class StressTensor
+
+template< typename EvaluationType>
+class StressDivergence
+{
+private:
+    // set local element type
+    using ElementType = typename EvaluationType::ElementType;
+
+    static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+    static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+    static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+
+private:
+    template<typename ResultScalarType,
+             typename StressScalarType,
+           typename GradientScalarType,
+             typename VolumeScalarType>
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+        const Plato::OrdinalType & aCellOrdinal,
+        const Plato::ScalarMultiVectorT<ResultScalarType> & aResult,
+        const Plato::Matrix<mNumSpatialDims, mNumSpatialDims, StressScalarType> & aStressTensor,
+        const Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, GradientScalarType> & aGradient,
+        const VolumeScalarType & aCellVolume,
+        const Plato::Scalar aMultiplier = 1.0) const
+    {
+
+        for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++)
+        {
+            for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
+            {
+                Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumDofsPerNode + tDimI;
+                for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++)
+                {
+                    Kokkos::atomic_add(&aResult(aCellOrdinal, tLocalOrdinal),
+                        aMultiplier * aCellVolume * aStressTensor(tDimI,tDimJ) * aGradient(tNodeIndex, tDimJ));
+                }
+            }
+        }
+    }
+};
+
+/******************************************************************************/
+/*! Stress functor.
+
+ given a strain, compute the stress.
+ stress tensor in Voigt notation = {s_xx, s_yy, s_zz, s_yz, s_xz, s_xy}
+ */
+/******************************************************************************/
+template< typename EvaluationType>
+class CauchyStress
+{
+private:
+    // set local element type
+    using ElementType = typename EvaluationType::ElementType;
+
+    // set local static parameters
+    static constexpr auto mNumVoigtTerms  = ElementType::mNumVoigtTerms; /*!< number of stress/strain terms */
+    static constexpr auto mNumSpatialDims = ElementType::mNumSpatialDims;
+
+    // set local array types
+    Plato::Array<mNumVoigtTerms> mReferenceStrain; /*!< reference strain tensor */
+    const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness; /*!< material stiffness matrix */
+
+    // set local fad types
+    using StateFadType  = typename EvaluationType::StateScalarType;  /*!< state variables automatic differentiation type */
+    using ConfigFadType = typename EvaluationType::ConfigScalarType; /*!< configuration variables automatic differentiation type */
+    using ResultFadType = typename EvaluationType::ResultScalarType; /*!< result variables automatic differentiation type */
+    using StrainFadType = typename Plato::fad_type_t<ElementType, StateFadType, ConfigFadType>; /*!< strain variables automatic differentiation type */
+
+public:
+    /******************************************************************************//**
+     * \brief Constructor
+     * \param [in] aMaterialModel material model interface
+    **********************************************************************************/
+    CauchyStress(const Plato::LinearElasticMaterial<mNumSpatialDims> & aMaterial) :
+        mCellStiffness  (aMaterial.getStiffnessMatrix()),
+        mReferenceStrain(aMaterial.getReferenceStrain())
+    {}
+
+    /******************************************************************************//**
+     * \brief Compute the Cauchy stress tensor
+     * \param [out] aCauchyStress Cauchy stress tensor
+     * \param [in]  aSmallStrain Infinitesimal strain tensor
+    **********************************************************************************/
+    KOKKOS_INLINE_FUNCTION void
+    operator()
+    (      Plato::Array<mNumVoigtTerms, ResultFadType> & aCauchyStress,
+     const Plato::Array<mNumVoigtTerms, StrainFadType> & aSmallStrain) const
+    {
+        // Method used to compute the stress and called from within a
+        // Kokkos parallel_for.
+        for(Plato::OrdinalType tVoigtIndex_I = 0; tVoigtIndex_I < mNumVoigtTerms; tVoigtIndex_I++)
+        {
+            aCauchyStress(tVoigtIndex_I) = 0.0;
+
+            for(Plato::OrdinalType tVoigtIndex_J = 0; tVoigtIndex_J < mNumVoigtTerms; tVoigtIndex_J++)
+            {
+                aCauchyStress(tVoigtIndex_I) +=
+                  (aSmallStrain(tVoigtIndex_J) -
+                   this->mReferenceStrain(tVoigtIndex_J)) *
+                    this->mCellStiffness(tVoigtIndex_I, tVoigtIndex_J);
+            }
+        }
+    }
+};
+// class LinearStress
+
+
 enum class volume_force_t
 {
     BODYLOAD,
@@ -368,7 +617,6 @@ public:
         // get side set connectivity information
         auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(mEntitySetName);
         auto tNodeOrds    = aSpatialModel.Mesh->GetSideSetLocalNodes(mEntitySetName);
-        auto tFaceOrds    = aSpatialModel.Mesh->GetSideSetFaces(mEntitySetName);
 
         // local functor - calculate normal vector
         Plato::WeightedNormalVector<ElementType> tWeightedNormalVector;
@@ -390,7 +638,6 @@ public:
         KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
         {
             auto tElementOrdinal = tElementOrds(aSideOrdinal);
-            auto tElemFaceOrdinal = tFaceOrds(aSideOrdinal);
 
             Plato::Array<ElementType::mNumNodesPerFace, Plato::OrdinalType> tLocalNodeOrds;
             for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<ElementType::mNumNodesPerFace; tNodeOrd++)
@@ -511,6 +758,126 @@ public:
     }
 };
 
+
+/***************************************************************************//**
+ *
+ * \tparam EvaluationType scalar types are set based on the evaluation type
+ *
+ * \class BoundaryConditionNitsche
+ *
+ * \brief This class is responsible for imposing the Dirichlet boundary conditions
+ *          weakly via the Nitsche method. The Nitsche method is mathematically
+ *          defined as:
+ *
+ *          \f$
+ *              - \int_{\Gamma_D}\delta\mathbf{u}\cdot\left(\sigma\cdot\mathbf{n}_{\Gamma}\right)d\Gamma
+ *              + \int_{\Gamma_D}\delta\left(\sigma\mathbf{n}_{\Gamma}\right)\cdot\left(\mathbf{u}-\mathbf{u}_{D}\right)d\Gamma
+ *              + \int_{\Gamma_D}\gamma_{N}^{\mathbf{u}}\delta\mathbf{u}\cdot\left(\mathbf{u}-\mathbf{u}_{D}\right)d\Gamma
+ *          \f$
+ *
+ *          where a non-symmetric Nitsche formulation is considered, see for example
+ *          Burman (2012) and Schillinger et al. (2016a), and \f$\mathbf{u}_D\f$ is the
+ *          displacement imposed on the Dirichlet boundary \f$\Gamma_D\f$. The
+ *          parameter \f$\gamma_{N}^{\mathbf{u}}\f$ is chosen to achieve a desired
+ *          accuracy in satisfying the boundary conditions.
+ *
+*******************************************************************************/
+template<typename EvaluationType>
+class BoundaryConditionNitsche : public BoundaryConditionBase<EvaluationType>
+{
+private:
+    // set local element type definition
+    using ElementType = typename EvaluationType::ElementType;
+
+    // set local base class type
+    using BaseClassType = BoundaryConditionBase<EvaluationType>;
+
+    // set natural boundary condition base class member data
+    using BaseClassType::mCoefficients;
+    using BaseClassType::mEntitySetName;
+
+    // set local fad type definitions
+    using StateScalarType  = typename EvaluationType::StateScalarType;
+    using ResultScalarType = typename EvaluationType::ResultScalarType;
+    using ConfigScalarType = typename EvaluationType::ConfigScalarType;
+
+public:
+    BoundaryConditionNitsche
+    (const std::string            & aLoadName,
+           Teuchos::ParameterList & aSubList) :
+        BaseClassType(aLoadName,aSubList)
+    {}
+    ~BoundaryConditionNitsche()
+    {}
+
+    boundary_condition_t type() const
+    {
+        return boundary_condition_t::NITSCHE;
+    }
+
+    void evaluate
+    (const Plato::SpatialModel & aSpatialModel,
+     const Plato::WorkSets     & aWorkSets,
+     const Plato::Scalar       & aScale,
+     const Plato::Scalar       & aCycle)
+    {
+        // evaluate expression if defined
+        this->evaluateExpression(aCycle);
+
+        // get input & output worksets (i.e., domain & range for function evaluate)
+        auto tStateWS  = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("state"));
+        auto tResultWS = Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
+        auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+
+        // get side set connectivity information
+        auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(BaseClassType::mEntitySetName);
+        auto tNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(BaseClassType::mEntitySetName);
+        Plato::OrdinalType tNumFaces = tElementOrds.size();
+
+        // create surface area functor
+        Plato::SurfaceArea<ElementType> tComputeSurfaceArea;
+
+        // get integration points and weights
+        auto tCoefficients = BaseClassType::mCoefficients;
+        auto tCubatureWeights = ElementType::Face::getCubWeights();
+        auto tCubaturePoints  = ElementType::Face::getCubPoints();
+        auto tNumPoints = tCubatureWeights.size();
+
+        Kokkos::parallel_for(Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumFaces, tNumPoints}),
+         KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
+         {
+
+           Plato::Array<ElementType::mNumNodesPerFace, Plato::OrdinalType> tLocalNodeOrds;
+           for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<ElementType::mNumNodesPerFace; tNodeOrd++)
+           {
+               tLocalNodeOrds(tNodeOrd) = tNodeOrds(aSideOrdinal*ElementType::mNumNodesPerFace+tNodeOrd);
+           }
+
+           auto tCubatureWeight = tCubatureWeights(aPointOrdinal);
+           auto tCubaturePoint = tCubaturePoints(aPointOrdinal);
+           auto tBasisValues = ElementType::Face::basisValues(tCubaturePoint);
+           auto tBasisGrads  = ElementType::Face::basisGrads(tCubaturePoint);
+
+           ResultScalarType tSurfaceArea(0.0);
+           auto tElementOrdinal = tElementOrds(aSideOrdinal);
+           tComputeSurfaceArea(tElementOrdinal, tLocalNodeOrds, tBasisGrads, tConfigWS, tSurfaceArea);
+           tSurfaceArea *= aScale;
+           tSurfaceArea *= tCubatureWeight;
+
+           // project into Result workset TODO: finish
+           for( Plato::OrdinalType tNode=0; tNode<ElementType::mNumNodesPerFace; tNode++)
+           {
+               for( Plato::OrdinalType tDof=0; tDof<ElementType::mNumDofsPerNode; tDof++)
+               {
+                   auto tElementDofOrdinal = ( tLocalNodeOrds[tNode] * ElementType::mNumDofsPerNode ) + tDof;
+                   ResultScalarType tResult = tBasisValues(tNode)*tCoefficients[tDof]*tSurfaceArea;
+                   Kokkos::atomic_add(&tResultWS(tElementOrdinal,tElementDofOrdinal), tResult);
+               }
+           }
+         }, "nitsche bcs");
+    }
+};
+
 template<typename EvaluationType>
 class FactoryNaturalBC
 {
@@ -522,7 +889,7 @@ private:
     static constexpr auto mNumDofsPerNode = ElementType::mNumDofsPerNode;
 
     /*!< map from input force type string to supported enum */
-    std::map<std::string,boundary_condition_t> mSupportedForces =
+    std::map<std::string,boundary_condition_t> mSupportedBCs =
         {
             {"uniform",boundary_condition_t::FLUX},
             {"pressure",boundary_condition_t::PRESSURE}
@@ -559,11 +926,11 @@ private:
     {
         std::string tType = aSubList.get<std::string>("Type");
         tType = Plato::tolower(tType);
-        auto tItr = mSupportedForces.find(tType);
-        if( tItr == mSupportedForces.end() ){
+        auto tItr = mSupportedBCs.find(tType);
+        if( tItr == mSupportedBCs.end() ){
             std::string tMsg = std::string("Natural Boundary Condition of type '")
                 + tType + "' is not supported. " + "Supported options are: ";
-            for(const auto& tPair : mSupportedForces)
+            for(const auto& tPair : mSupportedBCs)
             {
                 tMsg = tMsg + tPair.first + ", ";
             }
@@ -712,71 +1079,6 @@ private:
     }
 };
 
-/******************************************************************************/
-/*! Stress functor.
-
- given a strain, compute the stress.
- stress tensor in Voigt notation = {s_xx, s_yy, s_zz, s_yz, s_xz, s_xy}
- */
-/******************************************************************************/
-template< typename EvaluationType>
-class CauchyStress
-{
-private:
-    // set local element type
-    using ElementType = typename EvaluationType::ElementType;
-
-    // set local static parameters
-    static constexpr auto mNumVoigtTerms  = ElementType::mNumVoigtTerms; /*!< number of stress/strain terms */
-    static constexpr auto mNumSpatialDims = ElementType::mNumSpatialDims;
-
-    // set local array types
-    Plato::Array<mNumVoigtTerms> mReferenceStrain; /*!< reference strain tensor */
-    const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> mCellStiffness; /*!< material stiffness matrix */
-
-    // set local fad types
-    using StateFadType  = typename EvaluationType::StateScalarType;  /*!< state variables automatic differentiation type */
-    using ConfigFadType = typename EvaluationType::ConfigScalarType; /*!< configuration variables automatic differentiation type */
-    using ResultFadType = typename EvaluationType::ResultScalarType; /*!< result variables automatic differentiation type */
-    using StrainFadType = typename Plato::fad_type_t<ElementType, StateFadType, ConfigFadType>; /*!< strain variables automatic differentiation type */
-
-public:
-    /******************************************************************************//**
-     * \brief Constructor
-     * \param [in] aMaterialModel material model interface
-    **********************************************************************************/
-    CauchyStress(const Plato::LinearElasticMaterial<mNumSpatialDims> & aMaterial) :
-        mCellStiffness  (aMaterial.getStiffnessMatrix()),
-        mReferenceStrain(aMaterial.getReferenceStrain())
-    {}
-
-    /******************************************************************************//**
-     * \brief Compute the Cauchy stress tensor
-     * \param [out] aCauchyStress Cauchy stress tensor
-     * \param [in]  aSmallStrain Infinitesimal strain tensor
-    **********************************************************************************/
-    KOKKOS_INLINE_FUNCTION void
-    operator()
-    (      Plato::Array<mNumVoigtTerms, ResultFadType> & aCauchyStress,
-     const Plato::Array<mNumVoigtTerms, StrainFadType> & aSmallStrain) const
-    {
-        // Method used to compute the stress and called from within a
-        // Kokkos parallel_for.
-        for(Plato::OrdinalType tVoigtIndex_I = 0; tVoigtIndex_I < mNumVoigtTerms; tVoigtIndex_I++)
-        {
-            aCauchyStress(tVoigtIndex_I) = 0.0;
-
-            for(Plato::OrdinalType tVoigtIndex_J = 0; tVoigtIndex_J < mNumVoigtTerms; tVoigtIndex_J++)
-            {
-                aCauchyStress(tVoigtIndex_I) +=
-                  (aSmallStrain(tVoigtIndex_J) -
-                   this->mReferenceStrain(tVoigtIndex_J)) *
-                    this->mCellStiffness(tVoigtIndex_I, tVoigtIndex_J);
-            }
-        }
-    }
-};
-// class LinearStress
 
 class ResidualBase
 {
