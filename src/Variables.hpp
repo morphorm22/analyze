@@ -71,10 +71,24 @@ public:
 
     /***************************************************************************//**
      * \fn bool defined
-     * \brief Returns true if element with tak/key is defined in a map.
+     * \brief Returns true if element with tag/key is defined in the collection of associative maps.
      * \return boolean (true or false)
      ******************************************************************************/
     bool defined(const std::string & aTag) const;
+
+    /***************************************************************************//**
+     * \fn bool isScalarVectorDefined
+     * \brief Returns true if element with tag/key is defined in the associative map.
+     * \return boolean (true or false)
+     ******************************************************************************/
+    bool isScalarVectorDefined(const std::string & aTag) const;
+
+    /***************************************************************************//**
+     * \fn bool isScalarDefined
+     * \brief Returns true if element with tag/key is defined in the associative map.
+     * \return boolean (true or false)
+     ******************************************************************************/
+    bool isScalarDefined(const std::string & aTag) const;
 
     /***************************************************************************//**
      * \fn void print

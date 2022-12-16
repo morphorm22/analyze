@@ -107,6 +107,84 @@ private:
     }
 };
 
+
+
+/******************************************************************************//**
+ * \brief Factory for creating linear elastic material models.
+ *
+ * \tparam SpatialDim spatial dimensions: options 1D, 2D, and 3D
+ *
+**********************************************************************************/
+template<Plato::OrdinalType SpatialDim>
+class FactoryElasticMaterial
+{
+private:
+    const Teuchos::ParameterList& mParamList; /*!< Input parameter list */
+
+public:
+    /******************************************************************************//**
+    * \brief Linear elastic material model factory constructor.
+    * \param [in] aParamList input parameter list
+    **********************************************************************************/
+    FactoryElasticMaterial(const Teuchos::ParameterList& aParamList) :
+        mParamList(aParamList){}
+
+    /******************************************************************************//**
+    * \brief Create a linear elastic material model.
+    * \param [in] aModelName name of the model to be created.
+    * \return Teuchos reference counter pointer to linear elastic material model
+    **********************************************************************************/
+    std::shared_ptr<Plato::MaterialModel<SpatialDim>>
+    create(std::string aModelName) const
+    {
+        if (!mParamList.isSublist("Material Models"))
+        {
+            ANALYZE_THROWERR("ERROR: 'Material Models' parameter list not found! Returning 'nullptr'");
+        }
+        else
+        {
+            auto tModelsParamList = mParamList.get<Teuchos::ParameterList>("Material Models");
+            if (!tModelsParamList.isSublist(aModelName))
+            {
+                std::stringstream tSS;
+                tSS << "Requested a material model ('" << aModelName << "') that isn't defined";
+                ANALYZE_THROWERR(tSS.str());
+            }
+
+            auto tModelParamList = tModelsParamList.sublist(aModelName);
+            if(tModelParamList.isSublist("Isotropic Linear Elastic"))
+            {
+                return std::make_shared<MaterialElastic<SpatialDim>>(tModelParamList.sublist("Isotropic Linear Elastic"));
+            }
+            else
+            {
+                auto tErrMsg = this->getErrorMsg();
+                ANALYZE_THROWERR(tErrMsg);
+            }
+        }
+    }
+
+private:
+    /*!< map from input force type string to supported enum */
+    std::vector<std::string> mSupportedMaterials =
+        {"isotropic linear elastic"};
+
+    std::string
+    getErrorMsg()
+    const
+    {
+        std::string tMsg = std::string("ERROR: Requested material constitutive model is not supported. ")
+            + "Supported material constitutive models for mechanical analysis are: ";
+        for(const auto& tElement : mSupportedMaterials)
+        {
+            tMsg = tMsg + "'" + tElement + "', ";
+        }
+        auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+        return tSubMsg;
+    }
+};
+// class ElasticModelFactory
+
 /******************************************************************************/
 /*! Infinitesimal strain functor.
 
@@ -123,17 +201,76 @@ private:
     using ElementType = typename EvaluationType::ElementType;
 
     // set local static parameters
-    static constexpr auto mNumSpatialDims   = ElementType::mNumSpatialDims;
-    static constexpr auto mNumNodesPerCell  = ElementType::mNumNodesPerCell; /*!< number of nodes per element */
+    static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+    static constexpr auto mNumNodesPerFace = ElementType::mNumNodesPerFace; /*!< number of nodes per face */
+    static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell; /*!< number of nodes per element */
 
 public:
+    template
+    <typename StrainScalarType,
+     typename DispScalarType,
+     typename GradientScalarType>
+    KOKKOS_INLINE_FUNCTION void
+    operator()
+    (const Plato::OrdinalType                                                  & aCellOrdinal,
+     const Plato::Array<mNumNodesPerFace, Plato::OrdinalType>                  & aLocalNodeOrdinalsOnFace,
+     const Plato::ScalarMultiVectorT<DispScalarType>                           & aStateWorkset,
+     const Plato::Matrix<mNumNodesPerFace,mNumSpatialDims, GradientScalarType> & aGradient,
+           Plato::Matrix<mNumSpatialDims,mNumSpatialDims, StrainScalarType>    & aStrainTensor) const
+    {
+        constexpr Plato::Scalar tOneOverTwo = 0.5;
+        for(Plato::OrdinalType tDim_I = 0; tDim_I < mNumSpatialDims; tDim_I++)
+        {
+            for(Plato::OrdinalType tDim_J = 0; tDim_J < mNumSpatialDims; tDim_J++)
+            {
+                for(Plato::OrdinalType tFaceNode = 0; tFaceNode < mNumNodesPerFace; tFaceNode++)
+                {
+                    auto tCellDof_I = aLocalNodeOrdinalsOnFace(tFaceNode) * mNumSpatialDims + tDim_I;
+                    auto tCellDof_J = aLocalNodeOrdinalsOnFace(tFaceNode) * mNumSpatialDims + tDim_J;
+                    aStrainTensor(tDim_I,tDim_J) += tOneOverTwo *
+                            ( aStateWorkset(aCellOrdinal, tCellDof_J) * aGradient(tFaceNode, tDim_I)
+                            + aStateWorkset(aCellOrdinal, tCellDof_I) * aGradient(tFaceNode, tDim_J));
+                }
+            }
+        }
+    }
 
-    template<typename StrainScalarType, typename DispScalarType, typename GradientScalarType>
-    KOKKOS_INLINE_FUNCTION void operator()
+    template
+    <typename StrainScalarType,
+     typename GradientScalarType>
+    KOKKOS_INLINE_FUNCTION void
+    operator()
+    (const Plato::OrdinalType                                                  & aCellOrdinal,
+     const Plato::Array<mNumNodesPerFace, Plato::OrdinalType>                  & aLocalNodeOrdinalsOnFace,
+     const Plato::Matrix<mNumNodesPerFace,mNumSpatialDims, GradientScalarType> & aGradient,
+           Plato::Matrix<mNumSpatialDims,mNumSpatialDims, StrainScalarType>    & aVirtualStrainTensor) const
+    {
+        constexpr Plato::Scalar tDeltaState = 1.0;
+        constexpr Plato::Scalar tOneOverTwo = 0.5;
+        for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++)
+        {
+            for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++)
+            {
+                for(Plato::OrdinalType tFaceNode = 0; tFaceNode < mNumNodesPerFace; tFaceNode++)
+                {
+                    aVirtualStrainTensor(tDimI,tDimJ) += tOneOverTwo *
+                        ( ( tDeltaState * aGradient(tFaceNode, tDimI) )
+                        + ( tDeltaState * aGradient(tFaceNode, tDimJ) ) );
+                }
+            }
+        }
+    }
+
+    template
+    <typename StrainScalarType,
+     typename DispScalarType,
+     typename GradientScalarType>
+    KOKKOS_INLINE_FUNCTION void
+    operator()
     (const Plato::OrdinalType                                                    & aCellOrdinal,
       const Plato::ScalarMultiVectorT<DispScalarType>                            & aState,
-      const Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, GradientScalarType> & aGradient,
-            Plato::Matrix<mNumSpatialDims, mNumSpatialDims, StrainScalarType>    & aStrains) const
+      const Plato::Matrix<mNumNodesPerCell,mNumSpatialDims, GradientScalarType> & aGradient,
+            Plato::Matrix<mNumSpatialDims,mNumSpatialDims, StrainScalarType>    & aStrains) const
     {
         constexpr Plato::Scalar tOneOverTwo = 0.5;
         for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++)
@@ -401,7 +538,7 @@ public:
         // get input worksets (i.e., domain for function evaluate)
         auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
         auto tResultWS  = Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
-        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>(aWorkSets.get("control"));
+        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>(aWorkSets.get("controls"));
 
         // get integration points and weights
         auto tCubPoints  = ElementType::getCubPoints();
@@ -516,12 +653,11 @@ enum class boundary_condition_t
 {
     FLUX,
     PRESSURE,
-    NITSCHE,
     UNDEFINED
 };
 
 template<typename EvaluationType>
-class BoundaryConditionBase
+class NaturalBoundaryConditionBase
 {
 protected:
     using ElementType = typename EvaluationType::ElementType;
@@ -537,7 +673,7 @@ protected:
     std::shared_ptr<Plato::MathExpr> mCoefficientsExpr[mNumDofsPerNode];
 
 public:
-    BoundaryConditionBase
+    NaturalBoundaryConditionBase
     (const std::string            & aLoadName,
            Teuchos::ParameterList & aSubList) :
         mName(aLoadName),
@@ -546,7 +682,7 @@ public:
     {
         this->setCoefficients(aSubList);
     }
-    virtual ~BoundaryConditionBase(){}
+    virtual ~NaturalBoundaryConditionBase(){}
 
     std::string name() const { return mName; }
     std::string entityset() const { return mEntitySetName; }
@@ -600,14 +736,14 @@ private:
 
 
 template<typename EvaluationType>
-class BoundaryConditionPressure : public BoundaryConditionBase<EvaluationType>
+class NaturalBoundaryConditionPressure : public NaturalBoundaryConditionBase<EvaluationType>
 {
 private:
     // set local element type definition
     using ElementType = typename EvaluationType::ElementType;
 
     // set local base class type
-    using BaseClassType = BoundaryConditionBase<EvaluationType>;
+    using BaseClassType = NaturalBoundaryConditionBase<EvaluationType>;
 
     // set natural boundary condition base class member data
     using BaseClassType::mCoefficients;
@@ -618,12 +754,12 @@ private:
     using ConfigScalarType = typename EvaluationType::ConfigScalarType;
 
 public:
-    BoundaryConditionPressure
+    NaturalBoundaryConditionPressure
     (const std::string            & aLoadName,
            Teuchos::ParameterList & aSubList) :
         BaseClassType(aLoadName,aSubList)
     {}
-    ~BoundaryConditionPressure()
+    ~NaturalBoundaryConditionPressure()
     {}
 
     boundary_condition_t type() const
@@ -693,26 +829,26 @@ public:
 };
 
 template<typename EvaluationType>
-class BoundaryConditionFlux : public BoundaryConditionBase<EvaluationType>
+class NaturalBoundaryConditionFlux : public NaturalBoundaryConditionBase<EvaluationType>
 {
 private:
     // set local element type definition
     using ElementType = typename EvaluationType::ElementType;
 
     // set local parent class type
-    using BaseClassType = BoundaryConditionBase<EvaluationType>;
+    using BaseClassType = NaturalBoundaryConditionBase<EvaluationType>;
 
     // set local fad type definitions
     using ResultScalarType = typename EvaluationType::ResultScalarType;
     using ConfigScalarType = typename EvaluationType::ConfigScalarType;
 
 public:
-    BoundaryConditionFlux
+    NaturalBoundaryConditionFlux
     (const std::string            & aLoadName,
            Teuchos::ParameterList & aSubList) :
         BaseClassType(aLoadName,aSubList)
     {}
-    ~BoundaryConditionFlux(){}
+    ~NaturalBoundaryConditionFlux(){}
 
     boundary_condition_t type() const
     {
@@ -767,7 +903,6 @@ public:
           tSurfaceArea *= aScale;
           tSurfaceArea *= tCubatureWeight;
 
-          // project into Result workset
           for( Plato::OrdinalType tNode=0; tNode<ElementType::mNumNodesPerFace; tNode++)
           {
               for( Plato::OrdinalType tDof=0; tDof<ElementType::mNumDofsPerNode; tDof++)
@@ -782,11 +917,60 @@ public:
 };
 
 
+enum class nitsche_t
+{
+    DISPLACEMENTS,
+    TEMPERATURE,
+    UNDEFINED
+};
+
+template<typename EvaluationType>
+class NitscheBase
+{
+protected:
+    using ElementType = typename EvaluationType::ElementType;
+
+    static constexpr auto mNumDofsPerNode = ElementType::mNumDofsPerNode;
+
+    // allocate member data
+    Plato::Scalar mGammaPenalty = 1.0; /*!< penalty parameter for the Nitsche method */
+
+    const std::string mNameNBC;        /*!< user defined Nitsche boundary condition sublist name */
+    const std::string mEntitySetName; /*!< entity set name */
+    const std::string mMaterialModelName;  /*!< name assigned to the material model used on this boundary */
+
+public:
+    NitscheBase
+    (const std::string            & aName,
+           Teuchos::ParameterList & aSubList) :
+        mNameNBC(aName),
+        mEntitySetName(aSubList.get<std::string>("Sides")),
+        mMaterialModelName(aSubList.get<std::string>("Material Model"))
+    {
+        // parse penalty parameter
+        if(aSubList.isType<Plato::Scalar>("Penalty")){
+            mGammaPenalty = aSubList.get<Plato::Scalar>("Penalty");
+        }
+    }
+    virtual ~NitscheBase(){}
+
+    virtual nitsche_t type() const = 0;
+
+    virtual void initialize
+    (Teuchos::ParameterList & aProbParams) = 0;
+
+    virtual void evaluate
+    (const Plato::SpatialModel & aSpatialModel,
+     const Plato::WorkSets     & aWorkSets,
+     const Plato::Scalar       & aScale,
+     const Plato::Scalar       & aCycle) = 0;
+};
+
 /***************************************************************************//**
  *
  * \tparam EvaluationType scalar types are set based on the evaluation type
  *
- * \class BoundaryConditionNitsche
+ * \class NitscheDisplacements
  *
  * \brief This class is responsible for imposing the Dirichlet boundary conditions
  *          weakly via the Nitsche method. The Nitsche method is mathematically
@@ -806,100 +990,348 @@ public:
  *
 *******************************************************************************/
 template<typename EvaluationType>
-class BoundaryConditionNitsche : public BoundaryConditionBase<EvaluationType>
+class NitscheDisplacements : public NitscheBase<EvaluationType>
 {
 private:
     // set local element type definition
-    using ElementType = typename EvaluationType::ElementType;
+    using BodyElementType = typename EvaluationType::ElementType;
+    using FaceElementType = typename BodyElementType::Face;
+
+    // set local constexpr members
+    static constexpr auto mNumSpatialDims  = BodyElementType::mNumSpatialDims;
+    static constexpr auto mNumDofsPerNode  = BodyElementType::mNumDofsPerNode;
+    static constexpr auto mNumNodesPerFace = BodyElementType::mNumNodesPerFace;
 
     // set local base class type
-    using BaseClassType = BoundaryConditionBase<EvaluationType>;
+    using BaseClassType = NitscheBase<EvaluationType>;
+
+    // set class type names for functors
+    using ProjectFromNodes =
+        Plato::InterpolateFromNodal<FaceElementType,mNumDofsPerNode,/*offset=*/0,mNumDofsPerNode>;
 
     // set natural boundary condition base class member data
-    using BaseClassType::mCoefficients;
     using BaseClassType::mEntitySetName;
+    using BaseClassType::mGammaPenalty;
+    using BaseClassType::mMaterialModelName;
 
     // set local fad type definitions
     using StateScalarType  = typename EvaluationType::StateScalarType;
     using ResultScalarType = typename EvaluationType::ResultScalarType;
     using ConfigScalarType = typename EvaluationType::ConfigScalarType;
 
+    // set local strain scalar type
+    using StrainScalarType = typename Plato::fad_type_t<BodyElementType, StateScalarType, ConfigScalarType>;
+
+    // set member data
+    std::shared_ptr<Plato::MaterialModel<mNumSpatialDims>> mMaterial;
+
 public:
-    BoundaryConditionNitsche
-    (const std::string            & aLoadName,
+    NitscheDisplacements
+    (const std::string            & aName,
            Teuchos::ParameterList & aSubList) :
-        BaseClassType(aLoadName,aSubList)
+        BaseClassType(aName,aSubList)
     {}
-    ~BoundaryConditionNitsche()
+    ~NitscheDisplacements()
     {}
 
-    boundary_condition_t type() const
+    nitsche_t type() const
     {
-        return boundary_condition_t::NITSCHE;
+        return nitsche_t::DISPLACEMENTS;
+    }
+
+    void initialize(Teuchos::ParameterList & aProbParams)
+    {
+        // create material model and get stiffness
+        FactoryElasticMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
+        mMaterial = tMaterialFactory.create(mMaterialModelName);
     }
 
     void evaluate
     (const Plato::SpatialModel & aSpatialModel,
      const Plato::WorkSets     & aWorkSets,
-     const Plato::Scalar       & aScale,
+     const Plato::Scalar       & aMultiplier,
      const Plato::Scalar       & aCycle)
     {
-        // evaluate expression if defined
-        this->evaluateExpression(aCycle);
-
         // get input & output worksets (i.e., domain & range for function evaluate)
-        auto tStateWS  = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("state"));
-        auto tResultWS = Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
-        auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+        auto tStateWS     = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
+        auto tResultWS    = Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
+        auto tConfigWS    = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+        auto tDirichletWS = Plato::metadata<Plato::ScalarMultiVector>(aWorkSets.get("dirichlet"));
 
         // get side set connectivity information
-        auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(BaseClassType::mEntitySetName);
-        auto tNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(BaseClassType::mEntitySetName);
-        Plato::OrdinalType tNumFaces = tElementOrds.size();
+        auto tCellOrdinals  = aSpatialModel.Mesh->GetSideSetElements(mEntitySetName);
+        auto tLocalNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(mEntitySetName);
+        Plato::OrdinalType tNumFaces = tCellOrdinals.size();
 
         // create surface area functor
-        Plato::SurfaceArea<ElementType> tComputeSurfaceArea;
+        Plato::SurfaceArea<BodyElementType> tComputeEntityArea;
+        // create calculate weighthed (by the area) normal vector functor
+        Plato::WeightedNormalVector<BodyElementType> tComputeNormalTimesEntityArea;
+        // create strain and stress tensor functors
+        StrainTensor<EvaluationType> tComputeStrainTensor;
+        StressTensor<EvaluationType> tComputeStressTensor(mMaterial.operator*());
+        // create interpolate from nodal functor
+        ProjectFromNodes tProjectFromNodes;
 
         // get integration points and weights
-        auto tCoefficients = BaseClassType::mCoefficients;
-        auto tCubatureWeights = ElementType::Face::getCubWeights();
-        auto tCubaturePoints  = ElementType::Face::getCubPoints();
+        auto tCubatureWeights = FaceElementType::getCubWeights();
+        auto tCubaturePoints  = FaceElementType::getCubPoints();
         auto tNumPoints = tCubatureWeights.size();
 
+        auto tGammaPenalty = mGammaPenalty;
         Kokkos::parallel_for(Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumFaces, tNumPoints}),
          KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
          {
+            auto tCubatureWeight = tCubatureWeights(aPointOrdinal);
+            auto tCubaturePoint = tCubaturePoints(aPointOrdinal);
+            auto tBasisValues = FaceElementType::basisValues(tCubaturePoint);
+            auto tBasisGrads  = FaceElementType::basisGrads(tCubaturePoint);
 
-           Plato::Array<ElementType::mNumNodesPerFace, Plato::OrdinalType> tLocalNodeOrds;
-           for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<ElementType::mNumNodesPerFace; tNodeOrd++)
-           {
-               tLocalNodeOrds(tNodeOrd) = tNodeOrds(aSideOrdinal*ElementType::mNumNodesPerFace+tNodeOrd);
-           }
+            Plato::Array<mNumNodesPerFace, Plato::OrdinalType> tMySideLocalNodeOrdinals;
+            for( Plato::OrdinalType tIndex=0; tIndex<mNumNodesPerFace; tIndex++)
+            {
+                tMySideLocalNodeOrdinals(tIndex) = tLocalNodeOrds(aSideOrdinal*mNumNodesPerFace+tIndex);
+            }
 
-           auto tCubatureWeight = tCubatureWeights(aPointOrdinal);
-           auto tCubaturePoint = tCubaturePoints(aPointOrdinal);
-           auto tBasisValues = ElementType::Face::basisValues(tCubaturePoint);
-           auto tBasisGrads  = ElementType::Face::basisGrads(tCubaturePoint);
+            // compute strain and stress tensors
+            auto tCellOrdinal = tCellOrdinals(aSideOrdinal);
+            Plato::Matrix<mNumSpatialDims,mNumSpatialDims,ResultScalarType> tStressTensor;
+            Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> tStrainTensor;
+            tComputeStrainTensor(tCellOrdinal,tMySideLocalNodeOrdinals,tStateWS,tBasisGrads,tStrainTensor);
+            tComputeStressTensor(tStrainTensor,tStressTensor);
 
-           ResultScalarType tSurfaceArea(0.0);
-           auto tElementOrdinal = tElementOrds(aSideOrdinal);
-           tComputeSurfaceArea(tElementOrdinal, tLocalNodeOrds, tBasisGrads, tConfigWS, tSurfaceArea);
-           tSurfaceArea *= aScale;
-           tSurfaceArea *= tCubatureWeight;
+            // compute normal vector weighted by the entity area
+            Plato::Array<mNumSpatialDims, ConfigScalarType> tNormalTimesEntityArea;
+            tComputeNormalTimesEntityArea(tCellOrdinal,tMySideLocalNodeOrdinals,
+                                         tBasisGrads,tConfigWS,tNormalTimesEntityArea);
 
-           // project into Result workset TODO: finish
-           for( Plato::OrdinalType tNode=0; tNode<ElementType::mNumNodesPerFace; tNode++)
-           {
-               for( Plato::OrdinalType tDof=0; tDof<ElementType::mNumDofsPerNode; tDof++)
-               {
-                   auto tElementDofOrdinal = ( tLocalNodeOrds[tNode] * ElementType::mNumDofsPerNode ) + tDof;
-                   ResultScalarType tResult = tBasisValues(tNode)*tCoefficients[tDof]*tSurfaceArea;
-                   Kokkos::atomic_add(&tResultWS(tElementOrdinal,tElementDofOrdinal), tResult);
-               }
-           }
-         }, "nitsche bcs");
+            // term 1: int_{\Gamma_D} \delta{u}\cdot(\sigma\cdot{n}) d\Gamma_D
+            for( Plato::OrdinalType tNode=0; tNode<mNumNodesPerFace; tNode++)
+            {
+                for( Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
+                {
+                    auto tLocalDofOrdinal = ( tMySideLocalNodeOrdinals[tNode] * mNumSpatialDims ) + tDimI;
+                    for( Plato::OrdinalType tDimJ=0; tDimJ<mNumSpatialDims; tDimJ++)
+                    {
+                        ResultScalarType tValue = aMultiplier * tBasisValues(tNode) *
+                            ( tStressTensor(tDimI,tDimJ) * tNormalTimesEntityArea[tDimJ] ) * tCubatureWeight;
+                        Kokkos::atomic_add(&tResultWS(tCellOrdinal,tLocalDofOrdinal), tValue);
+                    }
+                }
+            }
+
+            // compute virtual strain and stress tensors
+            Plato::Matrix<mNumSpatialDims,mNumSpatialDims,ResultScalarType> tVirtualStressTensor;
+            Plato::Matrix<mNumSpatialDims,mNumSpatialDims,ConfigScalarType> tVirtualStrainTensor;
+            tComputeStrainTensor(tCellOrdinal,tMySideLocalNodeOrdinals,tBasisGrads,tVirtualStrainTensor);
+            tComputeStressTensor(tVirtualStrainTensor,tVirtualStressTensor);
+
+            // interpolate state from nodes
+            Plato::Array<mNumSpatialDims,StateScalarType> tProjectedStates;
+            tProjectFromNodes(tCellOrdinal,tMySideLocalNodeOrdinals,tBasisValues,tStateWS,tProjectedStates);
+
+            // term 2: int_{\Gamma_D} \delta(\sigma\cdot{n})\cdot(u - u_D) d\Gamma_D
+            for( Plato::OrdinalType tNode=0; tNode<mNumNodesPerFace; tNode++)
+            {
+                for( Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
+                {
+                    auto tLocalDofOrdinal = ( tMySideLocalNodeOrdinals[tNode] * mNumSpatialDims ) + tDimI;
+                    for( Plato::OrdinalType tDimJ=0; tDimJ<mNumSpatialDims; tDimJ++)
+                    {
+                        ResultScalarType tValue = aMultiplier * tCubatureWeight *
+                            ( tVirtualStressTensor(tDimI,tDimJ) * tNormalTimesEntityArea[tDimJ] ) *
+                            ( tProjectedStates[tDimI] - tDirichletWS(tCellOrdinal,tLocalDofOrdinal) );
+                        Kokkos::atomic_add(&tResultWS(tCellOrdinal,tLocalDofOrdinal), tValue);
+                    }
+                }
+            }
+
+            // compute entity area
+            ResultScalarType tEntityArea(0.0);
+            tComputeEntityArea(tCellOrdinal,tMySideLocalNodeOrdinals,tBasisGrads,tConfigWS,tEntityArea);
+
+            // term 3: int_{\Gamma_D}\gamma_N^u \delta{u}\cdot(u - u_D) d\Gamma_D
+            for(Plato::OrdinalType tNode=0; tNode<mNumNodesPerFace; tNode++)
+            {
+                for(Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
+                {
+                    auto tLocalDofOrdinal = ( tMySideLocalNodeOrdinals[tNode] * mNumSpatialDims ) + tDimI;
+                    ResultScalarType tValue = aMultiplier * tGammaPenalty * tBasisValues(tNode) * tCubatureWeight *
+                        ( tProjectedStates[tDimI] - tDirichletWS(tCellOrdinal,tLocalDofOrdinal) ) * tEntityArea;
+                    Kokkos::atomic_add(&tResultWS(tCellOrdinal,tLocalDofOrdinal), tValue);
+                }
+            }
+
+         }, "nitsche displacement bcs");
     }
 };
+
+template<typename EvaluationType>
+class FactoryNitscheBC
+{
+private:
+    // set local element type definition
+    using ElementType = typename EvaluationType::ElementType;
+
+    // set local static types
+    static constexpr auto mNumDofsPerNode = ElementType::mNumDofsPerNode;
+
+    /*!< map from input Nitsche boundary condition type string to supported enum */
+    std::map<std::string,nitsche_t> mSupportedNitscheBCs =
+        {
+            {"displacements",nitsche_t::DISPLACEMENTS},
+            {"temperature"  ,nitsche_t::TEMPERATURE}
+        };
+
+public:
+    FactoryNitscheBC(){}
+    ~FactoryNitscheBC(){}
+
+    std::shared_ptr<NitscheBase<EvaluationType>>
+    create
+    (const std::string      & aName,
+     Teuchos::ParameterList & aParams)
+    {
+        this->checkValidInputs(aParams);
+        this->parseCoefficients(aParams);
+        auto tType = this->type(aParams);
+        switch(tType)
+        {
+            case nitsche_t::DISPLACEMENTS:
+            {
+                return std::make_shared<NitscheDisplacements<EvaluationType>>(aName, aParams);
+            }
+            default:
+            {
+                return {nullptr};
+            }
+        }
+    }
+
+private:
+    nitsche_t type(Teuchos::ParameterList & aParams) const
+    {
+        std::string tType = aParams.get<std::string>("Type");
+        tType = Plato::tolower(tType);
+        auto tItr = mSupportedNitscheBCs.find(tType);
+        if( tItr == mSupportedNitscheBCs.end() ){
+            std::string tMsg = std::string("Nitsche Boundary Condition of type '")
+                + tType + "' is not supported. " + "Supported options are: ";
+            for(const auto& tPair : mSupportedNitscheBCs)
+            {
+                tMsg = tMsg + tPair.first + ", ";
+            }
+            auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+            ANALYZE_THROWERR(tSubMsg)
+        }
+        return (tItr->second);
+    }
+
+    void checkValidInputs(Teuchos::ParameterList & aParams) const
+    {
+        if (aParams.isType<Teuchos::Array<Plato::Scalar>>("Values") || aParams.isType<std::string>("Function") )
+        {
+            ANALYZE_THROWERR("ERROR: Specify either 'Value' or 'Function' in the Nitsche Boundary Condition definition");
+        }
+        if (!aParams.isType<Teuchos::Array<Plato::Scalar>>("Values") && !aParams.isType<std::string>("Function") )
+        {
+            ANALYZE_THROWERR(std::string("ERROR: 'name' parameter list keyword cannot be simultaneously set to ")
+                             + "'Value' and 'Function'. You must select one of the two options.");
+        }
+    }
+
+    void parseCoefficients(Teuchos::ParameterList &aParams)
+    {
+        if(aParams.isType<Teuchos::Array<Plato::Scalar>>("Values"))
+        {
+            auto tValues = aParams.get<Teuchos::Array<Plato::Scalar>>("Values");
+            aParams.set("Vector", tValues);
+        } else
+        if(aParams.isType<Teuchos::Array<std::string>>("Function"))
+        {
+            auto tValues = aParams.get<Teuchos::Array<std::string>>("Function");
+            aParams.set("Vector", tValues);
+        } else
+        {
+            auto tErrMsg = std::string("ERROR: Unexpected type encountered. Set 'type' parameter list keyword ")
+                 + "to either 'Array(double)' for name='Values' or 'Array(string)' for name='Function'.";
+            ANALYZE_THROWERR(tErrMsg)
+        }
+    }
+};
+
+template<typename EvaluationType>
+class NitscheBCs
+{
+// private member data
+private:
+    FactoryNitscheBC<EvaluationType> mFactory;
+    /*!< list of natural boundary condition */
+    std::unordered_map<nitsche_t,std::vector<std::shared_ptr<NitscheBase<EvaluationType> > > > mNitscheBCs;
+
+// public member functions
+public:
+    NitscheBCs(Teuchos::ParameterList &aNitscheParams) :
+        mNitscheBCs()
+    {
+        this->parse(aNitscheParams);
+    }
+
+    void initialize(Teuchos::ParameterList & aProbParams)
+    {
+        for (const auto &tPair : mNitscheBCs)
+        {
+            for(const auto &tNaturalBC : tPair.second)
+            {
+                tNaturalBC->initialize(aProbParams);
+            }
+        }
+    }
+
+    void evaluate
+    (const Plato::SpatialModel & aSpatialModel,
+     const Plato::WorkSets     & aWorkSets,
+     const Plato::Scalar       & aMultiplier,
+     const Plato::Scalar       & aCycle)
+    {
+        for (const auto &tPair : mNitscheBCs)
+        {
+            for(const auto &tNaturalBC : tPair.second)
+            {
+                tNaturalBC->evaluate(aSpatialModel, aWorkSets, aMultiplier, aCycle);
+            }
+        }
+    }
+
+// private member functions
+private:
+    void parse(Teuchos::ParameterList & aSubListNBC)
+    {
+        for (Teuchos::ParameterList::ConstIterator tItr = aSubListNBC.begin(); tItr != aSubListNBC.end(); ++tItr)
+        {
+            const Teuchos::ParameterEntry &tEntry = aSubListNBC.entry(tItr);
+            if (!tEntry.isList())
+            {
+                ANALYZE_THROWERR(std::string("ERROR: Nitsche Boundary Condition block is not valid. ")
+                                 + "Constructor expects Parameter Lists only")
+            }
+
+            const std::string &tName = aSubListNBC.name(tItr);
+            if(aSubListNBC.isSublist(tName) == false)
+            {
+                std::stringstream tMsg;
+                tMsg << "ERROR: Nitsche Boundary Condition Sublist: '" << tName.c_str() << "' is NOT defined";
+                ANALYZE_THROWERR(tMsg.str().c_str())
+            }
+
+            Teuchos::ParameterList &tNitscheSubList = tNitscheSubList.sublist(tName);
+            std::shared_ptr<NitscheBase<EvaluationType>> tBC = mFactory.create(tName, tNitscheSubList);
+            nitsche_t tType = tBC->type();
+            mNitscheBCs[tType].push_back(tBC);
+        }
+    }
+};
+
 
 template<typename EvaluationType>
 class FactoryNaturalBC
@@ -922,7 +1354,7 @@ public:
     FactoryNaturalBC(){}
     ~FactoryNaturalBC(){}
 
-    std::shared_ptr<BoundaryConditionBase<EvaluationType>>
+    std::shared_ptr<NaturalBoundaryConditionBase<EvaluationType>>
     create(const std::string & aName, Teuchos::ParameterList &aSubList)
     {
         this->parseCoefficients(aName,aSubList);
@@ -931,11 +1363,11 @@ public:
         {
             case boundary_condition_t::FLUX:
             {
-                return std::make_shared<BoundaryConditionFlux<EvaluationType>>(aName, aSubList);
+                return std::make_shared<NaturalBoundaryConditionFlux<EvaluationType>>(aName, aSubList);
             }
             case boundary_condition_t::PRESSURE:
             {
-                return std::make_shared<BoundaryConditionPressure<EvaluationType>>(aName, aSubList);
+                return std::make_shared<NaturalBoundaryConditionPressure<EvaluationType>>(aName, aSubList);
             }
             default:
             {
@@ -1041,7 +1473,7 @@ class NaturalBCs
 private:
     FactoryNaturalBC<EvaluationType> mFactory;
     /*!< list of natural boundary condition */
-    std::unordered_map<boundary_condition_t,std::vector<std::shared_ptr<BoundaryConditionBase<EvaluationType> > > > mNaturalBCs;
+    std::unordered_map<boundary_condition_t,std::vector<std::shared_ptr<NaturalBoundaryConditionBase<EvaluationType> > > > mNaturalBCs;
 
 // public member functions
 public:
@@ -1095,7 +1527,7 @@ private:
                      << tName.c_str() << "'";
                 ANALYZE_THROWERR(tMsg.str().c_str())
             }
-            std::shared_ptr<BoundaryConditionBase<EvaluationType>> tBC = mFactory.create(tName, tSubList);
+            std::shared_ptr<NaturalBoundaryConditionBase<EvaluationType>> tBC = mFactory.create(tName, tSubList);
             boundary_condition_t tType = tBC->type();
             mNaturalBCs[tType].push_back(tBC);
         }
@@ -1132,7 +1564,7 @@ public:
 
     /***************************************************************************//**
      * \fn void evaluate
-     * \brief Evaluate inner domain residual, exclude boundary terms.
+     * \brief Evaluate residual within the domain, exclude boundary terms.
      * \param [in] aWorkSets holds state and control worksets
      ******************************************************************************/
     virtual void evaluate
@@ -1141,8 +1573,7 @@ public:
 
     /***************************************************************************//**
      * \fn void evaluateBoundary
-     * \brief Evaluate boundary forces, not related to any prescribed boundary force,
-     *        resulting from applying integration by part to the residual equation.
+     * \brief Evaluate residual on domain boundaries.
      * \param [in]  aSpatialModel holds mesh and entity sets (e.g. node and side sets) metadata
      * \param [in]  aWorkSets     holds input worksets (e.g. states, control, etc)
      ******************************************************************************/
@@ -1150,95 +1581,9 @@ public:
     (const Plato::SpatialModel & aSpatialModel,
      const Plato::WorkSets     & aWorkSets,
      const Plato::Scalar       & aCycle) = 0;
-
-    /***************************************************************************//**
-     * \fn void evaluatePrescribed
-     * \brief Evaluate vector function on prescribed boundaries.
-     * \param [in]  aSpatialModel holds mesh and entity sets (e.g. node and side sets) metadata
-     * \param [in]  aWorkSets     holds input worksets (e.g. states, control, etc)
-     ******************************************************************************/
-    virtual void evaluatePrescribed
-    (const Plato::SpatialModel & aSpatialModel,
-     const Plato::WorkSets     & aWorkSets,
-     const Plato::Scalar       & aCycle) = 0;
 };
 // class abstract residual
 
-/******************************************************************************//**
- * \brief Factory for creating linear elastic material models.
- *
- * \tparam SpatialDim spatial dimensions: options 1D, 2D, and 3D
- *
-**********************************************************************************/
-template<Plato::OrdinalType SpatialDim>
-class FactoryElasticMaterial
-{
-private:
-    const Teuchos::ParameterList& mParamList; /*!< Input parameter list */
-
-public:
-    /******************************************************************************//**
-    * \brief Linear elastic material model factory constructor.
-    * \param [in] aParamList input parameter list
-    **********************************************************************************/
-    FactoryElasticMaterial(const Teuchos::ParameterList& aParamList) :
-        mParamList(aParamList){}
-
-    /******************************************************************************//**
-    * \brief Create a linear elastic material model.
-    * \param [in] aModelName name of the model to be created.
-    * \return Teuchos reference counter pointer to linear elastic material model
-    **********************************************************************************/
-    std::shared_ptr<Plato::MaterialModel<SpatialDim>>
-    create(std::string aModelName) const
-    {
-        if (!mParamList.isSublist("Material Models"))
-        {
-            ANALYZE_THROWERR("ERROR: 'Material Models' parameter list not found! Returning 'nullptr'");
-        }
-        else
-        {
-            auto tModelsParamList = mParamList.get<Teuchos::ParameterList>("Material Models");
-            if (!tModelsParamList.isSublist(aModelName))
-            {
-                std::stringstream tSS;
-                tSS << "Requested a material model ('" << aModelName << "') that isn't defined";
-                ANALYZE_THROWERR(tSS.str());
-            }
-
-            auto tModelParamList = tModelsParamList.sublist(aModelName);
-            if(tModelParamList.isSublist("Isotropic Linear Elastic"))
-            {
-                return std::make_shared<MaterialElastic<SpatialDim>>(tModelParamList.sublist("Isotropic Linear Elastic"));
-            }
-            else
-            {
-                auto tErrMsg = this->getErrorMsg();
-                ANALYZE_THROWERR(tErrMsg);
-            }
-        }
-    }
-
-private:
-    /*!< map from input force type string to supported enum */
-    std::vector<std::string> mSupportedMaterials =
-        {"isotropic linear elastic"};
-
-    std::string
-    getErrorMsg()
-    const
-    {
-        std::string tMsg = std::string("ERROR: Requested material constitutive model is not supported. ")
-            + "Supported material constitutive models for mechanical analysis are: ";
-        for(const auto& tElement : mSupportedMaterials)
-        {
-            tMsg = tMsg + "'" + tElement + "', ";
-        }
-        auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
-        return tSubMsg;
-    }
-};
-// class ElasticModelFactory
 
 template<typename EvaluationType, typename PenaltyFunction>
 class ApplyWeighting
@@ -1315,7 +1660,7 @@ private:
     // set strain fad type
     using StrainScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
-    std::shared_ptr<NaturalBCs<EvaluationType>> mPrescribedForces;
+    std::shared_ptr<NaturalBCs<EvaluationType>> mNaturalForces;
     std::shared_ptr<VolumeForces<EvaluationType>> mBodyForces;
     std::shared_ptr<Plato::MaterialModel<mNumSpatialDims>> mMaterial;
 
@@ -1351,7 +1696,7 @@ public:
         // parse natural boundary conditions
         if(aProbParams.isSublist("Natural Boundary Conditions"))
         {
-            mPrescribedForces = std::make_shared<NaturalBCs<EvaluationType>>(aProbParams.sublist("Natural Boundary Conditions"));
+            mNaturalForces = std::make_shared<NaturalBCs<EvaluationType>>(aProbParams.sublist("Natural Boundary Conditions"));
         }
     }
 
@@ -1372,10 +1717,10 @@ public:
         Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
 
         // get input worksets (i.e., domain for function evaluate)
-        auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>( aWorkSets.get("state"));
+        auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>( aWorkSets.get("states"));
         auto tResultWS  = Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>( aWorkSets.get("result"));
         auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>( aWorkSets.get("configuration"));
-        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("control"));
+        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("controls"));
 
         // get element integration points and weights
         auto tCubPoints = ElementType::getCubPoints();
@@ -1449,16 +1794,10 @@ public:
     (const Plato::SpatialModel & aSpatialModel,
      const Plato::WorkSets     & aWorkSets,
      const Plato::Scalar       & aCycle)
-    { return; }
-
-    void evaluatePrescribed
-    (const Plato::SpatialModel & aSpatialModel,
-     const Plato::WorkSets     & aWorkSets,
-     const Plato::Scalar       & aCycle)
     {
-        if( mPrescribedForces != nullptr )
+        if( mNaturalForces != nullptr )
         {
-            mPrescribedForces->evaluate(aSpatialModel,aWorkSets,-1.0 /*scale*/,aCycle);
+            mNaturalForces->evaluate(aSpatialModel,aWorkSets,-1.0 /*scale*/,aCycle);
         }
     }
 };
@@ -1557,7 +1896,7 @@ private:
     using GradScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
     std::shared_ptr<VolumeForces<EvaluationType>> mBodyForces;
-    std::shared_ptr<NaturalBCs<EvaluationType>>   mPrescribedForces;
+    std::shared_ptr<NaturalBCs<EvaluationType>>   mNaturalForces;
 
     std::shared_ptr<Plato::MaterialModel<mNumSpatialDims>> mMaterial;
 
@@ -1590,7 +1929,7 @@ public:
         // parse natural boundary conditions
         if(aProbParams.isSublist("Natural Boundary Conditions"))
         {
-            mPrescribedForces = std::make_shared<NaturalBCs<EvaluationType>>(aProbParams.sublist("Natural Boundary Conditions"));
+            mNaturalForces = std::make_shared<NaturalBCs<EvaluationType>>(aProbParams.sublist("Natural Boundary Conditions"));
         }
     }
 
@@ -1613,10 +1952,10 @@ public:
         Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode> tInterpolateFromNodal;
 
         // get input worksets (i.e., domain for function evaluate)
-        auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>( aWorkSets.get("state"));
+        auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>( aWorkSets.get("states"));
         auto tResultWS  = Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>( aWorkSets.get("result"));
         auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>( aWorkSets.get("configuration"));
-        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("control"));
+        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("controls"));
 
         // get cubature weights and points
         auto tCubPoints = ElementType::getCubPoints();
@@ -1665,24 +2004,19 @@ public:
 
         if( mBodyForces != nullptr )
         {
-            mBodyForces->evaluate( mSpatialDomain,aWorkSets,1.0 /*scale*/,aCycle );
+            mBodyForces->evaluate( mSpatialDomain,aWorkSets,/*multiplier=*/-1.0,aCycle );
         }
     }
+
 
     void evaluateBoundary
     (const Plato::SpatialModel & aSpatialModel,
      const Plato::WorkSets     & aWorkSets,
      const Plato::Scalar       & aCycle)
-    { return; }
-
-    void evaluatePrescribed
-    (const Plato::SpatialModel & aSpatialModel,
-     const Plato::WorkSets     & aWorkSets,
-     const Plato::Scalar       & aCycle)
     {
-        if( mPrescribedForces != nullptr )
+        if( mNaturalForces != nullptr )
         {
-            mPrescribedForces->evaluate(aSpatialModel,aWorkSets,/*multiplier=*/ 1.0,aCycle);
+            mNaturalForces->evaluate(aSpatialModel,aWorkSets,/*multiplier=*/-1.0,aCycle);
         }
     }
 };
@@ -1826,7 +2160,7 @@ public:
         // get input worksets (i.e., domain for function evaluate)
         auto tResultWS  = Plato::metadata<Plato::ScalarVectorT<ResultScalarType>>( aWorkSets.get("result") );
         auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>( aWorkSets.get("configuration") );
-        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("control") );
+        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("controls") );
 
         auto& tApplyWeighting  = mApplyWeighting;
         Kokkos::parallel_for("compute volume", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
@@ -1931,10 +2265,10 @@ public:
      const Plato::Scalar   & aCycle)
     {
         // get input worksets (i.e., domain for function evaluate)
-        auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>( aWorkSets.get("state") );
+        auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>( aWorkSets.get("states") );
         auto tResultWS  = Plato::metadata<Plato::ScalarVectorT<ResultScalarType>>( aWorkSets.get("result") );
         auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>( aWorkSets.get("configuration") );
-        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("control") );
+        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("controls") );
 
         StressTensor<EvaluationType>                 tComputeStress(mMaterial.operator*());
         StrainTensor<EvaluationType>                 tComputeStrain;
@@ -2027,10 +2361,10 @@ public:
      const Plato::Scalar   & aCycle)
     {
         // get input worksets (i.e., domain for function evaluate)
-        auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>( aWorkSets.get("state") );
+        auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>( aWorkSets.get("states") );
         auto tResultWS  = Plato::metadata<Plato::ScalarVectorT<ResultScalarType>>( aWorkSets.get("result") );
         auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>( aWorkSets.get("configuration") );
-        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("control") );
+        auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("controls") );
 
         Plato::ScalarGrad<ElementType>            tComputeScalarGrad;
         Plato::ThermalFlux<ElementType>           tComputeThermalFlux(mMaterial.operator*());
@@ -2311,15 +2645,15 @@ public:
         using StateScalarType = typename EvaluationType::StateScalarType;
         auto tStateWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<StateScalarType> > >
             ( Plato::ScalarMultiVectorT<StateScalarType>("State Workset", tNumCells, mNumDofsPerCell) );
-        mWorksetFuncs.worksetState(aDatabase.vector("state"), tStateWS->mData, aDomain);
-        aWorkSets.set("state", tStateWS);
+        mWorksetFuncs.worksetState(aDatabase.vector("states"), tStateWS->mData, aDomain);
+        aWorkSets.set("states", tStateWS);
 
         // build control workset
         using ControlScalarType = typename EvaluationType::ControlScalarType;
         auto tControlWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ControlScalarType> > >
             ( Plato::ScalarMultiVectorT<ControlScalarType>("Control Workset", tNumCells, mNumNodesPerCell) );
-        mWorksetFuncs.worksetControl(aDatabase.vector("control"), tControlWS->mData, aDomain);
-        aWorkSets.set("control", tControlWS);
+        mWorksetFuncs.worksetControl(aDatabase.vector("controls"), tControlWS->mData, aDomain);
+        aWorkSets.set("controls", tControlWS);
 
         // build configuration workset
         using ConfigScalarType = typename EvaluationType::ConfigScalarType;
@@ -2338,15 +2672,15 @@ public:
         using StateScalarType = typename EvaluationType::StateScalarType;
         auto tStateWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<StateScalarType> > >
             ( Plato::ScalarMultiVectorT<StateScalarType>("State Workset", tNumCells, mNumDofsPerCell) );
-        mWorksetFuncs.worksetState(aDatabase.vector("state"), tStateWS->mData);
-        aWorkSets.set("state", tStateWS);
+        mWorksetFuncs.worksetState(aDatabase.vector("states"), tStateWS->mData);
+        aWorkSets.set("states", tStateWS);
 
         // build control workset
         using ControlScalarType = typename EvaluationType::ControlScalarType;
         auto tControlWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ControlScalarType> > >
             ( Plato::ScalarMultiVectorT<ControlScalarType>("Control Workset", tNumCells, mNumNodesPerCell) );
-        mWorksetFuncs.worksetControl(aDatabase.vector("control"), tControlWS->mData);
-        aWorkSets.set("control", tControlWS);
+        mWorksetFuncs.worksetControl(aDatabase.vector("controls"), tControlWS->mData);
+        aWorkSets.set("controls", tControlWS);
 
         // build configuration workset
         using ConfigScalarType = typename EvaluationType::ConfigScalarType;
@@ -2354,6 +2688,15 @@ public:
             ( Plato::ScalarArray3DT<ConfigScalarType>("Config Workset", tNumCells, mNumNodesPerCell, mNumSpatialDims) );
         mWorksetFuncs.worksetConfig(tConfigWS->mData);
         aWorkSets.set("configuration", tConfigWS);
+
+        // set essential states workset if essential boundary conditions are enforced weakly
+        if( aDatabase.isScalarVectorDefined("essential_states") )
+        {
+            auto tEssentialStateWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVector > >
+                ( Plato::ScalarMultiVector("Essential States Workset", tNumCells, mNumDofsPerCell) );
+            mWorksetFuncs.worksetState(aDatabase.vector("essential_states"), tEssentialStateWS->mData);
+            aWorkSets.set("essential_states", tEssentialStateWS);
+        }
     }
 };
 
@@ -2495,7 +2838,7 @@ public:
 
             // evaluate prescribed forces
             auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
-            mResiduals.at(tFirstBlockName)->evaluatePrescribed(mSpatialModel, tWorksets, aCycle );
+            mResiduals.at(tFirstBlockName)->evaluateBoundary(mSpatialModel, tWorksets, aCycle );
 
             // create and assemble to return view
             mWorksetFuncs.assembleResidual(tResultWS->mData, tResidual);
@@ -2558,7 +2901,7 @@ public:
 
             // evaluate prescribed forces
             auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
-            mJacobiansU.at(tFirstBlockName)->evaluatePrescribed(mSpatialModel, tWorksets, aCycle );
+            mJacobiansU.at(tFirstBlockName)->evaluateBoundary(mSpatialModel, tWorksets, aCycle );
 
             // assembly to return matrix
             Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumDofsPerNode, mNumDofsPerNode> tJacEntryOrdinal( tJacobianU, tMesh );
@@ -2629,7 +2972,7 @@ public:
 
             // evaluate prescribed forces
             auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
-            mJacobiansX.at(tFirstBlockName)->evaluatePrescribed(mSpatialModel, tWorksets, aCycle );
+            mJacobiansX.at(tFirstBlockName)->evaluateBoundary(mSpatialModel, tWorksets, aCycle );
 
             // assembly to return matrix
             Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumSpatialDims, mNumDofsPerNode>
@@ -2704,7 +3047,7 @@ public:
 
             // evaluate prescribed forces
             auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
-            mJacobiansZ.at(tFirstBlockName)->evaluatePrescribed(mSpatialModel, tWorksets, aCycle );
+            mJacobiansZ.at(tFirstBlockName)->evaluateBoundary(mSpatialModel, tWorksets, aCycle );
 
             // assembly to return matrix
             Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumControl, mNumDofsPerNode> tJacEntryOrdinal( tJacobianZ, tMesh );
@@ -3079,6 +3422,21 @@ public:
     }
 };
 
+
+void set_essential_state_values
+(const Plato::OrdinalVector & aBcDofs,
+ const Plato::ScalarVector  & aBcValues,
+       Plato::ScalarVector  & aEssentialStates)
+{
+    const Plato::OrdinalType tNumEssentialDofs = aBcDofs.size();
+    Kokkos::parallel_for(Kokkos::RangePolicy<Plato::OrdinalType>(0,tNumEssentialDofs),
+                        KOKKOS_LAMBDA(const Plato::OrdinalType & aDofOrdinal)
+    {
+        aEssentialStates( aBcDofs(aDofOrdinal) ) = aBcValues(aDofOrdinal);
+    }, "Set Essential State Values");
+}
+
+
 template<typename PhysicsType>
 class Problem : public Plato::AbstractProblem
 {
@@ -3088,13 +3446,19 @@ private:
     using Criterion = std::shared_ptr<ScalarFunctionBase>;
 
     bool mSaveState;
+    bool mIsStrongEssentialBoundaryCondition = true;
 
-    std::string mPDEType;
-    std::string mPhysicsType;
+    std::string mPDE; /*!< Partial Differential Equation (PDE) type */
+    std::string mPhysics; /*!< problem physics type */
+    std::string mEssentialBC; /*!< essential boundary condition type: 'strong' or 'weak' */
 
     Plato::ScalarVector mResidual;
+    Plato::ScalarVector mEssentialStates;
+    Plato::ScalarVector mEssentialAdjointStates;
+
     Plato::ScalarMultiVector mStates;
     Plato::ScalarMultiVector mAdjoints;
+
     Teuchos::RCP<Plato::CrsMatrixType> mJacobianState; /*!< Jacobian with respect to state variables */
 
     Plato::OrdinalVector mBcDofs;  /*!< list of essential boundary condition degrees of freedom */
@@ -3118,16 +3482,17 @@ public:
             mResidual(),
             mStates(),
             mJacobianState(Teuchos::null),
-            mPDEType(aProbParams.get < std::string > ("PDE Constraint")),
-            mPhysicsType(aProbParams.get < std::string > ("Physics"))
+            mPDE(aProbParams.get < std::string > ("PDE Constraint")),
+            mPhysics(aProbParams.get < std::string > ("Physics"))
     {
-        this->initializeEvaluators(aProbParams);
         this->initializeSolver(aMesh,aProbParams,aMachine);
+        this->initializeEvaluators(aProbParams);
+        this->initializeEssentialBoundaryConditions(aProbParams);
     }
 
     Plato::Solutions getSolution() const
     {
-        Plato::Solutions tSolution(mPhysicsType, mPDEType);
+        Plato::Solutions tSolution(mPhysics, mPDE);
         tSolution.set("state", mStates, mResidualEvaluator->getDofNames());
         return tSolution;
     }
@@ -3156,17 +3521,20 @@ public:
         this->buildDatabase(aControl,tDatabase);
 
         // initializa state vector
-        Plato::ScalarVector tStateVector = tDatabase.vector("state");
+        Plato::ScalarVector tStateVector = tDatabase.vector("states");
         Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tStateVector);
 
         mDataMap.clearStates();
-        mDataMap.scalarNodeFields["Topology"] = tDatabase.vector("control");
+        mDataMap.scalarNodeFields["Topology"] = tDatabase.vector("controls");
 
         constexpr Plato::Scalar tCYCLE = 0.0;
         mResidual = mResidualEvaluator->value(tDatabase,tCYCLE);
         Plato::blas1::scale(-1.0, mResidual);
         mJacobianState = mResidualEvaluator->jacobianState(tDatabase, tCYCLE, /*transpose=*/ false);
-        this->applyStateConstraints(mJacobianState, mResidual, 1.0);
+        if(mIsStrongEssentialBoundaryCondition)
+        { this->enforceStrongEssentialBoundaryConditions(mJacobianState,mResidual,1.0); }
+        else
+        { this->enforceWeakEssentialBoundaryConditions(tDatabase); }
 
         Plato::ScalarVector tDeltaState("increment", tStateVector.extent(0));
         Plato::blas1::fill(0.0, tDeltaState);
@@ -3306,9 +3674,9 @@ private:
      Teuchos::ParameterList &aProbParams,
      Comm::Machine          &aMachine)
     {
-        mPhysicsType = Plato::tolower(mPhysicsType);
+        mPhysics = Plato::tolower(mPhysics);
         auto tSystemType = LinearSystemType::SYMMETRIC_POSITIVE_DEFINITE;
-        if(mPhysicsType == "electromechanical" || mPhysicsType == "thermomechanical")
+        if(mPhysics == "electromechanical" || mPhysics == "thermomechanical")
         {
             tSystemType = LinearSystemType::SYMMETRIC_INDEFINITE;
         }
@@ -3321,7 +3689,7 @@ private:
     initializeEvaluators
     (Teuchos::ParameterList& aProbParams)
     {
-        mResidualEvaluator = std::make_shared<VectorFunction<PhysicsType>>(mPhysicsType,mSpatialModel,mDataMap,aProbParams);
+        mResidualEvaluator = std::make_shared<VectorFunction<PhysicsType>>(mPhysics,mSpatialModel,mDataMap,aProbParams);
         mStates = Plato::ScalarMultiVector("States", 1, mResidualEvaluator->numDofs());
 
         if(aProbParams.isSublist("Criteria"))
@@ -3349,12 +3717,28 @@ private:
                 mAdjoints = Plato::ScalarMultiVector("Adjoint Vector", 1, tNumDofs);
             }
         }
-
-        this->readEssentialBCs(aProbParams);
     }
 
     void
-    readEssentialBCs
+    initializeEssentialBoundaryConditions
+    (Teuchos::ParameterList& aProbParams)
+    {
+        auto tEssentialBC = aProbParams.get<std::string>("Essential BC Enforcement","strong");
+        if(Plato::tolower(tEssentialBC) == "weak")
+        { mIsStrongEssentialBoundaryCondition = false; }
+        this->readEssentialBoundaryConditions(aProbParams);
+
+        if( !mIsStrongEssentialBoundaryCondition )
+        {
+            mEssentialStates = Plato::ScalarVector("Essential States", mResidualEvaluator->numDofs());
+            set_essential_state_values(mBcDofs,mBcValues,mEssentialStates);
+            mEssentialAdjointStates = Plato::ScalarVector("Essential Adjoint States", mResidualEvaluator->numDofs());
+            Kokkos::deep_copy(mEssentialAdjointStates, 0.0);
+        }
+    }
+
+    void
+    readEssentialBoundaryConditions
     (Teuchos::ParameterList& aProbParams)
     {
         if(aProbParams.isSublist("Essential Boundary Conditions") == false)
@@ -3373,34 +3757,46 @@ private:
     {
         constexpr size_t tCYCLE_INDEX = 0;
         auto tStateVector = Kokkos::subview(mStates, tCYCLE_INDEX, Kokkos::ALL());
-        aDatabase.vector("state"  , tStateVector);
-        aDatabase.vector("control", aControl);
+        aDatabase.vector("states"  , tStateVector);
+        aDatabase.vector("controls", aControl);
     }
 
-    void
-    applyStateConstraints
+    void enforceWeakEssentialBoundaryConditions
+    (Plato::Database & aDatabase)
+    {
+        aDatabase.vector("essential_states", mEssentialStates);
+    }
+
+    void enforceStrongEssentialBoundaryConditions
     (const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
      const Plato::ScalarVector                & aVector,
-           Plato::Scalar                        aScale)
+     const Plato::Scalar                      & aMultiplier)
     {
-        if(mJacobianState->isBlockMatrix())
+        if(aMatrix->isBlockMatrix())
         {
-            Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, mBcValues, aScale);
+            Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>
+            (aMatrix, aVector, mBcDofs, mBcValues, aMultiplier);
         }
         else
         {
-            Plato::applyConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, mBcValues, aScale);
+            Plato::applyConstraints<ElementType::mNumDofsPerNode>
+            (aMatrix, aVector, mBcDofs, mBcValues, aMultiplier);
         }
     }
 
-    void
-    applyAdjointConstraints
+    void enforceWeakAdjointEssentialBoundaryConditions
+    (Plato::Database & aDatabase)
+    {
+        aDatabase.vector("essential_states", mEssentialAdjointStates);
+    }
+
+    void enforceStrongAdjointEssentialBoundaryConditions
     (const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
      const Plato::ScalarVector                & aVector)
     {
         Plato::ScalarVector tDirichletValues("Essential Boundary Conditions for Adjoint Problem", mBcValues.size());
         Plato::blas1::scale(static_cast<Plato::Scalar>(0.0), tDirichletValues);
-        if(mJacobianState->isBlockMatrix())
+        if(aMatrix->isBlockMatrix())
         {
             Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(aMatrix, aVector, mBcDofs, tDirichletValues);
         }
@@ -3412,7 +3808,7 @@ private:
 
     Plato::ScalarVector
     computeCriterionGradientControl
-    (const Plato::Database & aDatabase,
+    (Plato::Database & aDatabase,
            Criterion       & aCriterion)
     {
         if(aCriterion == nullptr)
@@ -3438,7 +3834,10 @@ private:
 
             // compute jacobian with respect to state variables
             mJacobianState = mResidualEvaluator->jacobianState(aDatabase, tCYCLE, /*transpose=*/ true);
-            this->applyAdjointConstraints(mJacobianState, tGradientState);
+            if( mIsStrongEssentialBoundaryCondition )
+            { this->enforceStrongAdjointEssentialBoundaryConditions(mJacobianState, tGradientState); }
+            else
+            { this->enforceWeakAdjointEssentialBoundaryConditions(aDatabase); }
 
             // solve adjoint system of equations
             constexpr size_t tCYCLE_INDEX = 0;
@@ -3457,8 +3856,8 @@ private:
 
     Plato::ScalarVector
     computeCriterionGradientConfig
-    (const Plato::Database & aDatabase,
-           Criterion       & aCriterion)
+    (Plato::Database & aDatabase,
+     Criterion       & aCriterion)
     {
         if(aCriterion == nullptr)
         {
@@ -3482,8 +3881,11 @@ private:
             Plato::blas1::scale(static_cast<Plato::Scalar>(-1), tGradientState);
 
             // compute jacobian with respect to state variables
-            mJacobianState = mResidualEvaluator->jacobianState(aDatabase, tCYCLE, /*transpose=*/ true);
-            this->applyAdjointConstraints(mJacobianState, tGradientState);
+            mJacobianState = mResidualEvaluator->jacobianState(aDatabase, tCYCLE, /*transpose=*/true);
+            if( mIsStrongEssentialBoundaryCondition )
+            { this->enforceStrongAdjointEssentialBoundaryConditions(mJacobianState, tGradientState); }
+            else
+            { this->enforceWeakAdjointEssentialBoundaryConditions(aDatabase); }
 
             // solve adjoint system of equations
             constexpr size_t tCYCLE_INDEX = 0;
@@ -3671,7 +4073,7 @@ TEUCHOS_UNIT_TEST( Morphorm, InternalElasticEnergy3D )
   // create mesh based displacement from host data
   //
   auto tNumDofs = tMesh->NumDimensions()*tMesh->NumNodes();
-  Plato::ScalarVector tState("state", tNumDofs);
+  Plato::ScalarVector tState("states", tNumDofs);
   auto tHostState = Kokkos::create_mirror_view( tState );
   Plato::Scalar tDisp = 0.0, tDval = 0.0001;
   for(decltype(tNumDofs) i=0; i<tNumDofs; i++)
@@ -3692,8 +4094,8 @@ TEUCHOS_UNIT_TEST( Morphorm, InternalElasticEnergy3D )
   // set database
   //
   Plato::Database tDatabase;
-  tDatabase.vector("state"  , tState);
-  tDatabase.vector("control", tControl);
+  tDatabase.vector("states"  , tState);
+  tDatabase.vector("controls", tControl);
 
   // compute and test criterion value
   //
@@ -4102,8 +4504,8 @@ TEUCHOS_UNIT_TEST( Morphorm, ThermostaticResidual3D )
   // create database
   //
   Plato::Database tDatabase;
-  tDatabase.vector("state"  , tState);
-  tDatabase.vector("control", tControl);
+  tDatabase.vector("states"  , tState);
+  tDatabase.vector("controls", tControl);
 
   // create residual evaluator
   //
@@ -4273,7 +4675,7 @@ TEUCHOS_UNIT_TEST( Morphorm, InternalThermalEnergy3D )
   // create mesh based temperature from host data
   //
   Plato::OrdinalType tNumDofs = tMesh->NumNodes();
-  Plato::ScalarVector tState("state", tNumDofs);
+  Plato::ScalarVector tState("states", tNumDofs);
   auto tHostState = Kokkos::create_mirror_view( tState );
   Plato::Scalar tTemp = 0.0, tDval = 0.1;
   for(Plato::OrdinalType i=0; i<tNumDofs; i++)
@@ -4285,8 +4687,8 @@ TEUCHOS_UNIT_TEST( Morphorm, InternalThermalEnergy3D )
   // create database
   //
   Plato::Database tDatabase;
-  tDatabase.vector("state"  , tState);
-  tDatabase.vector("control", tControl);
+  tDatabase.vector("states"  , tState);
+  tDatabase.vector("controls", tControl);
 
   // create criterion
   //

@@ -55,6 +55,30 @@ bool Variables::isScalarMapEmpty() const
     return mScalars.empty();
 }
 
+bool Variables::isScalarVectorDefined(const std::string & aTag) const
+{
+    auto tLowerTag = Plato::tolower(aTag);
+    auto tVectorMapItr = mVectors.find(tLowerTag);
+    auto tFoundTag = tVectorMapItr != mVectors.end();
+
+    if(tFoundTag)
+    { return true; }
+    else
+    { return false; }
+}
+
+bool Variables::isScalarDefined(const std::string & aTag) const
+{
+    auto tLowerTag = Plato::tolower(aTag);
+    auto tScalarMapItr = mScalars.find(tLowerTag);
+    auto tFoundTag = tScalarMapItr != mScalars.end();
+
+    if(tFoundTag)
+    { return true; }
+    else
+    { return false; }
+}
+
 bool Variables::defined(const std::string & aTag) const
 {
     auto tLowerTag = Plato::tolower(aTag);

@@ -121,6 +121,26 @@ public:
             }
         }
     }
+
+    template<typename InStateType, typename OutStateType>
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+        const Plato::OrdinalType                     & aCellOrdinal,
+        const Plato::Array<mNumNodesPerCell, Plato::OrdinalType> & aLocalNodeOrdinalsOnFace,
+        const Plato::Array<mNumNodesPerCell>         & aBasisFunctions,
+        const Plato::ScalarMultiVectorT<InStateType> & aNodalCellStates,
+              Plato::Array<NumDofs, OutStateType>    & aStateValues) const
+    {
+        for(Plato::OrdinalType tDofIndex = 0; tDofIndex < NumDofs; tDofIndex++)
+        {
+            aStateValues(tDofIndex) = 0.0;
+            for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
+            {
+                auto tCellDof_I = ( aLocalNodeOrdinalsOnFace(tNodeIndex) * NumDofsPerNode ) + DofOffset + tDofIndex;
+                aStateValues(tDofIndex) += aBasisFunctions(tNodeIndex) * aNodalCellStates(aCellOrdinal, tCellDof_I);
+            }
+        }
+    }
 };
 // class InterpolateFromNodal
 
