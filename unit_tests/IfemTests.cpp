@@ -1153,7 +1153,7 @@ public:
         // get side set connectivity information
         auto tCellOrdinals  = aSpatialModel.Mesh->GetSideSetElements(mEntitySetName);
         auto tLocalNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(mEntitySetName);
-        Plato::OrdinalType tNumFaces = tCellOrdinals.size();
+        Plato::OrdinalType tNumSideEntities = tCellOrdinals.size();
 
         // create surface area functor
         Plato::SurfaceArea<BodyElementType> tComputeFaceArea;
@@ -1170,11 +1170,15 @@ public:
         auto tFaceCubPoints  = FaceElementType::getCubPoints();
         auto tNumCubPointsOnFace = tFaceCubWeights.size();
 
-        // TODO: Compute characteristic length
+        // compute characteristic length
+        Plato::exp::CharacteristicLength<EvaluationType> tComputeCharacteristicLength;
+        Plato::ScalarVectorT<ConfigScalarType> tCharacteristicLength("characteristic length",tNumSideEntities);
+        tComputeCharacteristicLength(mEntitySetName, aSpatialModel, aWorkSets, tCharacteristicLength);
+
         auto tNitschePenalty = mNitschePenalty;
         auto tYoungsModulus  = mMaterial->getScalarConstant("youngs modulus");
         Kokkos::parallel_for("nitsche essential displacements", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},
-          {tNumFaces, tNumCubPointsOnFace}),
+          {tNumSideEntities, tNumCubPointsOnFace}),
           KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
          {
             auto tFaceCubWeight = tFaceCubWeights(aPointOrdinal);
