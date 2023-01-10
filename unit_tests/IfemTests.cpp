@@ -1175,8 +1175,8 @@ public:
         Plato::ScalarVectorT<ConfigScalarType> tCharacteristicLength("characteristic length",tNumSideEntities);
         tComputeCharacteristicLength(mEntitySetName, aSpatialModel, aWorkSets, tCharacteristicLength);
 
-        auto tNitschePenalty = mNitschePenalty;
         auto tYoungsModulus  = mMaterial->getScalarConstant("youngs modulus");
+        auto tNitschePenalty = mNitschePenalty * tYoungsModulus;
         Kokkos::parallel_for("nitsche essential displacements", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},
           {tNumSideEntities, tNumCubPointsOnFace}),
           KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
@@ -1250,6 +1250,7 @@ public:
             tComputeFaceArea(tCellOrdinal,tFaceLocalNodeOrdinals,tFaceBasisGrads,tConfigWS,tFaceArea);
 
             // term 3: int_{\Gamma_D}\gamma_N^u \delta{u}\cdot(u - u_D) d\Gamma_D
+            tNitschePenalty /= tCharacteristicLength(aSideOrdinal);
             for(Plato::OrdinalType tNode=0; tNode<mNumNodesPerFace; tNode++)
             {
                 for(Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
