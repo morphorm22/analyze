@@ -1176,7 +1176,7 @@ public:
         tComputeCharacteristicLength(mEntitySetName, aSpatialModel, aWorkSets, tCharacteristicLength);
 
         auto tYoungsModulus  = mMaterial->getScalarConstant("youngs modulus");
-        auto tNitschePenalty = mNitschePenalty * tYoungsModulus;
+        auto tNitschePenaltyTimesModulus = mNitschePenalty * tYoungsModulus;
         Kokkos::parallel_for("nitsche essential displacements", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},
           {tNumSideEntities, tNumCubPointsOnFace}),
           KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
@@ -1250,13 +1250,13 @@ public:
             tComputeFaceArea(tCellOrdinal,tFaceLocalNodeOrdinals,tFaceBasisGrads,tConfigWS,tFaceArea);
 
             // term 3: int_{\Gamma_D}\gamma_N^u \delta{u}\cdot(u - u_D) d\Gamma_D
-            tNitschePenalty /= tCharacteristicLength(aSideOrdinal);
+            ConfigScalarType tGamma = tNitschePenaltyTimesModulus / tCharacteristicLength(aSideOrdinal);
             for(Plato::OrdinalType tNode=0; tNode<mNumNodesPerFace; tNode++)
             {
                 for(Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
                 {
                     auto tLocalDofOrdinal = ( tFaceLocalNodeOrdinals[tNode] * mNumSpatialDims ) + tDimI;
-                    ResultScalarType tValue = aMultiplier * tNitschePenalty * tFaceBasisValues(tNode) * tFaceCubWeight *
+                    ResultScalarType tValue = aMultiplier * tGamma * tFaceBasisValues(tNode) * tFaceCubWeight *
                         ( tProjectedStates[tDimI] - tDirichletWS(tCellOrdinal,tLocalDofOrdinal) ) * tFaceArea;
                     Kokkos::atomic_add(&tResultWS(tCellOrdinal,tLocalDofOrdinal), tValue);
                 }
