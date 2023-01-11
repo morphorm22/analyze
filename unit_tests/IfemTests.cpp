@@ -1346,7 +1346,7 @@ public:
 
         auto tYoungsModulus  = mMaterial->getScalarConstant("youngs modulus");
         auto tNitschePenaltyTimesModulus = mNitschePenalty * tYoungsModulus;
-        Kokkos::parallel_for("nitsche essential displacements", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},
+        Kokkos::parallel_for("nitsche displacement bcs", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},
           {tNumSideCells, tNumCubPointsOnFace}),
           KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
          {
@@ -1417,7 +1417,6 @@ public:
                     Kokkos::atomic_add(&tResultWS(tCellOrdinal,tLocalDofOrdinal), tValue);
                 }
             }
-
          });
     }
 };
