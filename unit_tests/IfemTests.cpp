@@ -2964,7 +2964,7 @@ public:
         mWorksetFuncs.worksetConfig(tConfigWS->mData);
         aWorkSets.set("configuration", tConfigWS);
 
-        // set essential states workset if essential boundary conditions are enforced weakly
+        // if essential boundary conditions are enforced weakly, set essential states workset
         if( aDatabase.isScalarVectorDefined("essential_states") )
         {
             auto tEssentialStateWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVector > >
@@ -3729,7 +3729,7 @@ private:
 
     Plato::ScalarVector mResidual;
     Plato::ScalarVector mEssentialStates;
-    Plato::ScalarVector mEssentialAdjointStates;
+    Plato::ScalarVector mEssentialAdjoints;
 
     Plato::ScalarMultiVector mStates;
     Plato::ScalarMultiVector mAdjoints;
@@ -3762,7 +3762,7 @@ public:
     {
         this->initializeSolver(aMesh,aProbParams,aMachine);
         this->initializeEvaluators(aProbParams);
-        this->initializeEssentialBoundaryConditions(aProbParams);
+        this->readEssentialBoundaryConditions(aProbParams);
     }
 
     Plato::Solutions getSolution() const
@@ -3995,24 +3995,6 @@ private:
     }
 
     void
-    initializeEssentialBoundaryConditions
-    (Teuchos::ParameterList& aProbParams)
-    {
-        auto tEssentialBC = aProbParams.get<std::string>("Essential BC Enforcement","strong");
-        if(Plato::tolower(tEssentialBC) == "weak")
-        { mIsStrongEssentialBoundaryCondition = false; }
-        this->readEssentialBoundaryConditions(aProbParams);
-
-        if( !mIsStrongEssentialBoundaryCondition )
-        {
-            mEssentialStates = Plato::ScalarVector("Essential States", mResidualEvaluator->numDofs());
-            set_essential_state_values(mBcDofs,mBcValues,mEssentialStates);
-            mEssentialAdjointStates = Plato::ScalarVector("Essential Adjoint States", mResidualEvaluator->numDofs());
-            Kokkos::deep_copy(mEssentialAdjointStates, 0.0);
-        }
-    }
-
-    void
     readEssentialBoundaryConditions
     (Teuchos::ParameterList& aProbParams)
     {
@@ -4020,9 +4002,14 @@ private:
         {
             ANALYZE_THROWERR("ERROR: Essential boundary conditions parameter list is not defined")
         }
+
         Plato::EssentialBCs<ElementType>
         tEssentialBoundaryConditions(aProbParams.sublist("Essential Boundary Conditions", false), mSpatialModel.Mesh);
         tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
+
+        auto tEnforcement = aProbParams.get<std::string>("Enforcement", "strong");
+        if(Plato::tolower(tEnforcement) == "weak")
+        { mIsStrongEssentialBoundaryCondition = false; }
     }
 
     void
@@ -4039,6 +4026,9 @@ private:
     void enforceWeakEssentialBoundaryConditions
     (Plato::Database & aDatabase)
     {
+        // Essential Boundary Conditions (EBCs)
+        mEssentialStates = Plato::ScalarVector("State EBCs", mResidualEvaluator->numDofs());
+        set_essential_state_values(mBcDofs, mBcValues, mEssentialStates);
         aDatabase.vector("essential_states", mEssentialStates);
     }
 
@@ -4059,17 +4049,21 @@ private:
         }
     }
 
-    void enforceWeakAdjointEssentialBoundaryConditions
+    void enforceWeakEssentialAdjointBoundaryConditions
     (Plato::Database & aDatabase)
     {
-        aDatabase.vector("essential_states", mEssentialAdjointStates);
+        // Essential Boundary Conditions (EBCs)
+        mEssentialAdjoints = Plato::ScalarVector("Adjoint EBCs", mResidualEvaluator->numDofs());
+        Kokkos::deep_copy(mEssentialAdjoints, 0.0);
+        aDatabase.vector("essential_states", mEssentialAdjoints);
     }
 
-    void enforceStrongAdjointEssentialBoundaryConditions
+    void enforceStrongEssentialAdjointBoundaryConditions
     (const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
      const Plato::ScalarVector                & aVector)
     {
-        Plato::ScalarVector tDirichletValues("Essential Boundary Conditions for Adjoint Problem", mBcValues.size());
+        // Essential Boundary Conditions (EBCs)
+        Plato::ScalarVector tDirichletValues("Adjoint EBCs", mBcValues.size());
         Plato::blas1::scale(static_cast<Plato::Scalar>(0.0), tDirichletValues);
         if(aMatrix->isBlockMatrix())
         {
@@ -4110,9 +4104,9 @@ private:
             // compute jacobian with respect to state variables
             mJacobianState = mResidualEvaluator->jacobianState(aDatabase, tCYCLE, /*transpose=*/ true);
             if( mIsStrongEssentialBoundaryCondition )
-            { this->enforceStrongAdjointEssentialBoundaryConditions(mJacobianState, tGradientState); }
+            { this->enforceStrongEssentialAdjointBoundaryConditions(mJacobianState, tGradientState); }
             else
-            { this->enforceWeakAdjointEssentialBoundaryConditions(aDatabase); }
+            { this->enforceWeakEssentialAdjointBoundaryConditions(aDatabase); }
 
             // solve adjoint system of equations
             constexpr size_t tCYCLE_INDEX = 0;
@@ -4158,9 +4152,9 @@ private:
             // compute jacobian with respect to state variables
             mJacobianState = mResidualEvaluator->jacobianState(aDatabase, tCYCLE, /*transpose=*/true);
             if( mIsStrongEssentialBoundaryCondition )
-            { this->enforceStrongAdjointEssentialBoundaryConditions(mJacobianState, tGradientState); }
+            { this->enforceStrongEssentialAdjointBoundaryConditions(mJacobianState, tGradientState); }
             else
-            { this->enforceWeakAdjointEssentialBoundaryConditions(aDatabase); }
+            { this->enforceWeakEssentialAdjointBoundaryConditions(aDatabase); }
 
             // solve adjoint system of equations
             constexpr size_t tCYCLE_INDEX = 0;
