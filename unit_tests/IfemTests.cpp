@@ -2965,12 +2965,12 @@ public:
         aWorkSets.set("configuration", tConfigWS);
 
         // if essential boundary conditions are enforced weakly, set essential states workset
-        if( aDatabase.isScalarVectorDefined("essential_states") )
+        if( aDatabase.isScalarVectorDefined("dirichlet") )
         {
             auto tEssentialStateWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVector > >
-                ( Plato::ScalarMultiVector("Essential States Workset", tNumCells, mNumDofsPerCell) );
-            mWorksetFuncs.worksetState(aDatabase.vector("essential_states"), tEssentialStateWS->mData);
-            aWorkSets.set("essential_states", tEssentialStateWS);
+                ( Plato::ScalarMultiVector("Dirichlet BCs Workset", tNumCells, mNumDofsPerCell) );
+            mWorksetFuncs.worksetState(aDatabase.vector("dirichlet"), tEssentialStateWS->mData);
+            aWorkSets.set("dirichlet", tEssentialStateWS);
         }
     }
 };
@@ -3099,7 +3099,7 @@ public:
             mWorksetFuncs.assembleResidual(tResultWS->mData, tResidual, tDomain );
         }
 
-        // prescribed forces
+        // prescribed boundary conditions
         {
             // build residual domain worksets
             Plato::WorkSets tWorksets;
@@ -4029,7 +4029,7 @@ private:
         // Essential Boundary Conditions (EBCs)
         mEssentialStates = Plato::ScalarVector("State EBCs", mResidualEvaluator->numDofs());
         set_essential_state_values(mBcDofs, mBcValues, mEssentialStates);
-        aDatabase.vector("essential_states", mEssentialStates);
+        aDatabase.vector("dirichlet", mEssentialStates);
     }
 
     void enforceStrongEssentialBoundaryConditions
@@ -4055,7 +4055,7 @@ private:
         // Essential Boundary Conditions (EBCs)
         mEssentialAdjoints = Plato::ScalarVector("Adjoint EBCs", mResidualEvaluator->numDofs());
         Kokkos::deep_copy(mEssentialAdjoints, 0.0);
-        aDatabase.vector("essential_states", mEssentialAdjoints);
+        aDatabase.vector("dirichlet", mEssentialAdjoints);
     }
 
     void enforceStrongEssentialAdjointBoundaryConditions
