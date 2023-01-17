@@ -752,7 +752,7 @@ protected:
 
     // allocate local member data
     const std::string mName;        /*!< boundary condition sublist name */
-    const std::string mEntitySetName; /*!< entity set name */
+    const std::string mSideSetName; /*!< entity set name */
 
     // allocate local member instances
     Plato::Array<mNumDofsPerNode> mCoefficients; /*!< natural boundary condition coefficients */
@@ -763,7 +763,7 @@ public:
     (const std::string            & aLoadName,
            Teuchos::ParameterList & aSubList) :
         mName(aLoadName),
-        mEntitySetName(aSubList.get<std::string>("Sides")),
+        mSideSetName(aSubList.get<std::string>("Sides")),
         mCoefficientsExpr{nullptr}
     {
         this->setCoefficients(aSubList);
@@ -771,7 +771,7 @@ public:
     virtual ~NaturalBoundaryConditionBase(){}
 
     std::string name() const { return mName; }
-    std::string entityset() const { return mEntitySetName; }
+    std::string sideset() const { return mSideSetName; }
     Plato::Array<mNumDofsPerNode> coefficients() const { return mCoefficients; }
 
     virtual boundary_condition_t type() const = 0;
@@ -833,7 +833,7 @@ private:
 
     // set natural boundary condition base class member data
     using BaseClassType::mCoefficients;
-    using BaseClassType::mEntitySetName;
+    using BaseClassType::mSideSetName;
 
     // set local fad type definitions
     using ResultScalarType = typename EvaluationType::ResultScalarType;
@@ -860,8 +860,8 @@ public:
      const Plato::Scalar       & aCycle)
     {
         // get side set connectivity information
-        auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(mEntitySetName);
-        auto tNodeOrds    = aSpatialModel.Mesh->GetSideSetLocalNodes(mEntitySetName);
+        auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
+        auto tNodeOrds    = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
 
         // local functor - calculate normal vector
         Plato::WeightedNormalVector<ElementType> tWeightedNormalVector;
@@ -955,8 +955,8 @@ public:
         auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
 
         // get side set connectivity
-        auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(BaseClassType::mEntitySetName);
-        auto tNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(BaseClassType::mEntitySetName);
+        auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(BaseClassType::mSideSetName);
+        auto tNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(BaseClassType::mSideSetName);
         Plato::OrdinalType tNumFaces = tElementOrds.size();
 
         // create surface area functor
@@ -1021,16 +1021,16 @@ protected:
     // allocate member data
     Plato::Scalar mNitschePenalty = 1.0; /*!< penalty parameter for the Nitsche method */
 
-    const std::string mNameNBC;        /*!< user defined Nitsche boundary condition sublist name */
-    const std::string mEntitySetName; /*!< entity set name */
+    const std::string mName;        /*!< user defined essential boundary condition sublist name */
+    const std::string mSideSetName; /*!< entity set name */
     const std::string mMaterialModelName;  /*!< name assigned to the material model used on this boundary */
 
 public:
     NitscheBase
     (const std::string            & aName,
            Teuchos::ParameterList & aSubList) :
-        mNameNBC(aName),
-        mEntitySetName(aSubList.get<std::string>("Sides")),
+        mName(aName),
+        mSideSetName(aSubList.get<std::string>("Sides")),
         mMaterialModelName(aSubList.get<std::string>("Material Model"))
     {
         // parse penalty parameter
@@ -1040,10 +1040,12 @@ public:
     }
     virtual ~NitscheBase(){}
 
+    std::string name() const { return mName; }
+    std::string sideset() const { return mSideSetName; }
+
     virtual nitsche_t type() const = 0;
 
-    virtual void initialize
-    (Teuchos::ParameterList & aProbParams) = 0;
+    virtual void initialize(Teuchos::ParameterList & aProbParams) = 0;
 
     virtual void evaluate
     (const Plato::SpatialModel & aSpatialModel,
@@ -1064,11 +1066,11 @@ private:
     using ConfigScalarType = typename EvaluationType::ConfigScalarType;
 
     // set local member data
-    std::string mEntitySetName;
+    std::string mSideSetName;
 
 public:
     ComputeSideCellVolumes(const std::string& aEntitySetName) :
-        mEntitySetName(aEntitySetName)
+        mSideSetName(aEntitySetName)
     {}
 
     void operator()
@@ -1077,7 +1079,7 @@ public:
          Plato::ScalarVectorT<ConfigScalarType> & aSideCellVolumes)
     {
         // get side set connectivity information
-        auto tSideCellOrdinals = aSpatialModel.Mesh->GetSideSetElements(mEntitySetName);
+        auto tSideCellOrdinals = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
         Plato::OrdinalType tNumSideCells = tSideCellOrdinals.size();
 
         // get input workset
@@ -1121,11 +1123,11 @@ private:
     using ConfigScalarType = typename EvaluationType::ConfigScalarType;
 
     // set local member data
-    std::string mEntitySetName;
+    std::string mSideSetName;
 
 public:
     ComputeSideCellFaceAreas(const std::string& aEntitySetName) :
-        mEntitySetName(aEntitySetName)
+        mSideSetName(aEntitySetName)
     {}
 
     void operator()
@@ -1134,8 +1136,8 @@ public:
          Plato::ScalarVectorT<ConfigScalarType> & aSideCellFaceAreas)
     {
         // get side set connectivity information
-        auto tSideCellOrdinals = aSpatialModel.Mesh->GetSideSetElements(mEntitySetName);
-        auto tLocalNodeOrds    = aSpatialModel.Mesh->GetSideSetLocalNodes(mEntitySetName);
+        auto tSideCellOrdinals = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
+        auto tLocalNodeOrds    = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
         Plato::OrdinalType tNumSideCells = tSideCellOrdinals.size();
 
         // get input workset
@@ -1186,11 +1188,11 @@ private:
     using ConfigScalarType = typename EvaluationType::ConfigScalarType;
 
     // set local member data
-    std::string mEntitySetName;
+    std::string mSideSetName;
 
 public:
     ComputeCharacteristicLength(const std::string& aEntitySetName) :
-        mEntitySetName(aEntitySetName)
+        mSideSetName(aEntitySetName)
     {}
 
     void operator()
@@ -1199,18 +1201,18 @@ public:
            Plato::ScalarVectorT<ConfigScalarType> & aCharLength)
     {
         // get side set connectivity information
-        auto tSideCellOrdinals  = aSpatialModel.Mesh->GetSideSetElements(mEntitySetName);
-        auto tLocalNodeOrds     = aSpatialModel.Mesh->GetSideSetLocalNodes(mEntitySetName);
+        auto tSideCellOrdinals  = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
+        auto tLocalNodeOrds     = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
         Plato::OrdinalType tNumSideCells = tSideCellOrdinals.size();
 
         // compute volumes of cells in side
         Plato::ScalarVectorT<ConfigScalarType> tSideCellVolumes("volume",tNumSideCells);
-        ComputeSideCellVolumes<EvaluationType> tComputeSideCellVolumes(mEntitySetName);
+        ComputeSideCellVolumes<EvaluationType> tComputeSideCellVolumes(mSideSetName);
         tComputeSideCellVolumes(aSpatialModel,aWorkSets,tSideCellVolumes);
 
         // compute face areas of cells in side
         Plato::ScalarVectorT<ConfigScalarType> tSideCellFaceAreas("area",tNumSideCells);
-        ComputeSideCellFaceAreas<EvaluationType> tComputeSideCellFaceAreas(mEntitySetName);
+        ComputeSideCellFaceAreas<EvaluationType> tComputeSideCellFaceAreas(mSideSetName);
         tComputeSideCellFaceAreas(aSpatialModel,aWorkSets,tSideCellFaceAreas);
 
         // compute characteristic length of each cell in the entity set
@@ -1223,7 +1225,7 @@ public:
 };
 
 /***************************************************************************//**
- *
+ *NitscheBase
  * \tparam EvaluationType scalar types are set based on the evaluation type
  *
  * \class NitscheDisplacements
@@ -1266,7 +1268,7 @@ private:
         Plato::InterpolateFromNodal<FaceElementType,mNumDofsPerNode,/*offset=*/0,mNumDofsPerNode>;
 
     // set natural boundary condition base class member data
-    using BaseClassType::mEntitySetName;
+    using BaseClassType::mSideSetName;
     using BaseClassType::mNitschePenalty;
     using BaseClassType::mMaterialModelName;
 
@@ -1315,12 +1317,12 @@ public:
         auto tDirichletWS = Plato::metadata<Plato::ScalarMultiVector>(aWorkSets.get("dirichlet"));
 
         // get side set connectivity information
-        auto tSideCellOrdinals  = aSpatialModel.Mesh->GetSideSetElements(mEntitySetName);
-        auto tLocalNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(mEntitySetName);
+        auto tSideCellOrdinals  = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
+        auto tLocalNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
         Plato::OrdinalType tNumSideCells = tSideCellOrdinals.size();
 
         // compute characteristic length
-        ComputeCharacteristicLength<EvaluationType> tComputeCharacteristicLength(mEntitySetName);
+        ComputeCharacteristicLength<EvaluationType> tComputeCharacteristicLength(mSideSetName);
         Plato::ScalarVectorT<ConfigScalarType> tCharacteristicLength("characteristic length",tNumSideCells);
         tComputeCharacteristicLength(aSpatialModel, aWorkSets, tCharacteristicLength);
 
@@ -1346,7 +1348,7 @@ public:
 
         auto tYoungsModulus  = mMaterial->getScalarConstant("youngs modulus");
         auto tNitschePenaltyTimesModulus = mNitschePenalty * tYoungsModulus;
-        Kokkos::parallel_for("nitsche displacement bcs", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},
+        Kokkos::parallel_for("nitsche bcs", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},
           {tNumSideCells, tNumCubPointsOnFace}),
           KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
          {
@@ -1425,92 +1427,26 @@ template<typename EvaluationType>
 class FactoryNitscheBC
 {
 private:
-    // set local element type definition
-    using ElementType = typename EvaluationType::ElementType;
-
-    // set local static types
-    static constexpr auto mNumDofsPerNode = ElementType::mNumDofsPerNode;
-
-    /*!< map from input Nitsche boundary condition type string to supported enum */
-    std::map<std::string,nitsche_t> mSupportedNitscheBCs =
-        {
-            {"displacements",nitsche_t::DISPLACEMENTS},
-            {"temperature"  ,nitsche_t::TEMPERATURE}
-        };
+    nitsche_t mVariable = nitsche_t::UNDEFINED;
 
 public:
-    FactoryNitscheBC(){}
+    FactoryNitscheBC(const nitsche_t& aVariable) : mVariable(aVariable) {}
     ~FactoryNitscheBC(){}
 
     std::shared_ptr<NitscheBase<EvaluationType>>
     create
-    (const std::string      & aName,
-     Teuchos::ParameterList & aParams)
+    (const std::string            & aName,
+           Teuchos::ParameterList & aParams)
     {
-        this->checkValidInputs(aParams);
-        this->parseCoefficients(aParams);
-        auto tType = this->type(aParams);
-        switch(tType)
+        switch(mVariable)
         {
             case nitsche_t::DISPLACEMENTS:
-            {
-                return std::make_shared<NitscheDisplacements<EvaluationType>>(aName, aParams);
-            }
+            { return std::make_shared<NitscheDisplacements<EvaluationType>>(aName, aParams); }
+            case nitsche_t::TEMPERATURE:
             default:
             {
                 return {nullptr};
             }
-        }
-    }
-
-private:
-    nitsche_t type(Teuchos::ParameterList & aParams) const
-    {
-        std::string tType = aParams.get<std::string>("Type");
-        tType = Plato::tolower(tType);
-        auto tItr = mSupportedNitscheBCs.find(tType);
-        if( tItr == mSupportedNitscheBCs.end() ){
-            std::string tMsg = std::string("Nitsche Boundary Condition of type '")
-                + tType + "' is not supported. " + "Supported options are: ";
-            for(const auto& tPair : mSupportedNitscheBCs)
-            {
-                tMsg = tMsg + tPair.first + ", ";
-            }
-            auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
-            ANALYZE_THROWERR(tSubMsg)
-        }
-        return (tItr->second);
-    }
-
-    void checkValidInputs(Teuchos::ParameterList & aParams) const
-    {
-        if (aParams.isType<Teuchos::Array<Plato::Scalar>>("Values") || aParams.isType<std::string>("Function") )
-        {
-            ANALYZE_THROWERR("ERROR: Specify either 'Value' or 'Function' in the Nitsche Boundary Condition definition");
-        }
-        if (!aParams.isType<Teuchos::Array<Plato::Scalar>>("Values") && !aParams.isType<std::string>("Function") )
-        {
-            ANALYZE_THROWERR(std::string("ERROR: 'name' parameter list keyword cannot be simultaneously set to ")
-                             + "'Value' and 'Function'. You must select one of the two options.");
-        }
-    }
-
-    void parseCoefficients(Teuchos::ParameterList &aParams)
-    {
-        if(aParams.isType<Teuchos::Array<Plato::Scalar>>("Values"))
-        {
-            auto tValues = aParams.get<Teuchos::Array<Plato::Scalar>>("Values");
-            aParams.set("Vector", tValues);
-        } else
-        if(aParams.isType<Teuchos::Array<std::string>>("Function"))
-        {
-            auto tValues = aParams.get<Teuchos::Array<std::string>>("Function");
-            aParams.set("Vector", tValues);
-        } else
-        {
-            auto tErrMsg = std::string("ERROR: Unexpected type encountered. Set 'type' parameter list keyword ")
-                 + "to either 'Array(double)' for name='Values' or 'Array(string)' for name='Function'.";
-            ANALYZE_THROWERR(tErrMsg)
         }
     }
 };
@@ -1520,27 +1456,27 @@ class NitscheBCs
 {
 // private member data
 private:
-    FactoryNitscheBC<EvaluationType> mFactory;
-    /*!< list of natural boundary condition */
+    /*!< list of essential boundary conditions (EBCs) enforced using Nitsche's method */
     std::unordered_map<nitsche_t,std::vector<std::shared_ptr<NitscheBase<EvaluationType> > > > mNitscheBCs;
+
+    /*!< map from input Nitsche boundary condition type string to supported enum */
+    std::map<std::string,nitsche_t> mSupportedNitscheBCs =
+        {
+            {"displacements",nitsche_t::DISPLACEMENTS},
+            {"temperature"  ,nitsche_t::TEMPERATURE}
+        };
 
 // public member functions
 public:
-    NitscheBCs(Teuchos::ParameterList &aNitscheParams) :
+    NitscheBCs
+    (const std::string&            aVariable,
+     const std::string&            aNameSublist,
+           Teuchos::ParameterList& aProbParams) :
         mNitscheBCs()
     {
-        this->parse(aNitscheParams);
-    }
-
-    void initialize(Teuchos::ParameterList & aProbParams)
-    {
-        for (const auto &tPair : mNitscheBCs)
-        {
-            for(const auto &tNitscheBC : tPair.second)
-            {
-                tNitscheBC->initialize(aProbParams);
-            }
-        }
+        auto tNitscheSubLists = aProbParams.sublist(aNameSublist);
+        this->parse(aVariable, tNitscheSubLists);
+        this->initialize(aProbParams);
     }
 
     void evaluate
@@ -1560,30 +1496,62 @@ public:
 
 // private member functions
 private:
-    void parse(Teuchos::ParameterList & aSubListNBC)
+    void parse
+    (const std::string&            aVariable,
+           Teuchos::ParameterList& aNitscheSublists)
     {
-        for (Teuchos::ParameterList::ConstIterator tItr = aSubListNBC.begin(); tItr != aSubListNBC.end(); ++tItr)
+        // create nitsche boundary conditions factory
+        auto tVariableType = this->type(aVariable);
+        FactoryNitscheBC<EvaluationType> tFactory(tVariableType);
+
+        auto tNameNitscheSublists = aNitscheSublists.name();
+        for (Teuchos::ParameterList::ConstIterator tItr = aNitscheSublists.begin(); tItr != aNitscheSublists.end(); ++tItr)
         {
-            const Teuchos::ParameterEntry &tEntry = aSubListNBC.entry(tItr);
+            const Teuchos::ParameterEntry &tEntry = aNitscheSublists.entry(tItr);
             if (!tEntry.isList())
             {
-                ANALYZE_THROWERR(std::string("ERROR: Nitsche Boundary Condition block is not valid. ")
+                ANALYZE_THROWERR(std::string("ERROR: ") + tNameNitscheSublists + " block is not valid. "
                                  + "Constructor expects Parameter Lists only")
             }
 
-            const std::string &tName = aSubListNBC.name(tItr);
-            if(aSubListNBC.isSublist(tName) == false)
+            const std::string &tName = aNitscheSublists.name(tItr);
+            if(aNitscheSublists.isSublist(tName) == false)
             {
-                std::stringstream tMsg;
-                tMsg << "ERROR: Nitsche Boundary Condition Sublist: '" << tName.c_str() << "' is NOT defined";
-                ANALYZE_THROWERR(tMsg.str().c_str())
+                ANALYZE_THROWERR(std::string("ERROR: Parameter sublist: '") + tName.c_str() + "' is NOT defined")
             }
 
-            Teuchos::ParameterList &tNitscheSubList = tNitscheSubList.sublist(tName);
-            std::shared_ptr<NitscheBase<EvaluationType>> tBC = mFactory.create(tName, tNitscheSubList);
-            nitsche_t tType = tBC->type();
-            mNitscheBCs[tType].push_back(tBC);
+            Teuchos::ParameterList &tMyNitscheSublist = aNitscheSublists.sublist(tName);
+            std::shared_ptr<NitscheBase<EvaluationType>> tBC = tFactory.create(tName, tMyNitscheSublist);
+            mNitscheBCs[tVariableType].push_back(tBC);
         }
+    }
+
+    void initialize(Teuchos::ParameterList & aProbParams)
+    {
+        for (const auto &tPair : mNitscheBCs)
+        {
+            for(const auto &tNitscheBC : tPair.second)
+            {
+                tNitscheBC->initialize(aProbParams);
+            }
+        }
+    }
+
+    nitsche_t type(const std::string& aVariable) const
+    {
+        auto tVariable = Plato::tolower(aVariable);
+        auto tItr = mSupportedNitscheBCs.find(tVariable);
+        if( tItr == mSupportedNitscheBCs.end() ){
+            std::string tMsg = std::string("Nitsche's method cannot be applied to variable '")
+                + tVariable + "'. " + "Supported variables are: ";
+            for(const auto& tPair : mSupportedNitscheBCs)
+            {
+                tMsg = tMsg + tPair.first + ", ";
+            }
+            auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+            ANALYZE_THROWERR(tSubMsg)
+        }
+        return (tItr->second);
     }
 };
 
@@ -2060,19 +2028,22 @@ private:
         // parse body loads
         if(aProbParams.isSublist("Body Loads"))
         {
-            mVolumeForces = std::make_shared<VolumeForces<EvaluationType>>(aProbParams.sublist("Body Loads"));
+            mVolumeForces = std::make_shared<VolumeForces<EvaluationType>>
+                    (aProbParams.sublist("Body Loads"));
         }
 
         // parse natural boundary conditions
         if(aProbParams.isSublist("Natural Boundary Conditions"))
         {
-            mNaturalBCs = std::make_shared<NaturalBCs<EvaluationType>>(aProbParams.sublist("Natural Boundary Conditions"));
+            mNaturalBCs = std::make_shared<NaturalBCs<EvaluationType>>
+                    (aProbParams.sublist("Natural Boundary Conditions"));
         }
 
-        // parse nitsche boundary conditions
+        // if essential boundary conditions are enforced weakly, allocate nitsche residual
         if(aProbParams.isSublist("Nitsche Boundary Conditions"))
         {
-            mNitscheBCs = std::make_shared<NitscheBCs<EvaluationType>>(aProbParams.sublist("Nitsche Boundary Conditions"));
+            mNitscheBCs = std::make_shared<NitscheBCs<EvaluationType>>
+                    ("displacement", "Nitsche Boundary Conditions", aProbParams);
         }
     }
 };
