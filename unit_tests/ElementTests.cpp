@@ -20,6 +20,111 @@ using ordType = typename Plato::ScalarMultiVector::size_type;
 
 /******************************************************************************/
 /*! 
+  \brief Check the Tet4 constants
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Tet4, Tet4_Constants )
+{
+    constexpr auto tSpaceDims      = Plato::Tet4::mNumSpatialDims;
+    constexpr auto tNodesPerCell   = Plato::Tet4::mNumNodesPerCell;
+    constexpr auto tNumGaussPoints = Plato::Tet4::mNumGaussPoints;
+
+    TEST_ASSERT(tSpaceDims      == 3 );
+    TEST_ASSERT(tNodesPerCell   == 4);
+    TEST_ASSERT(tNumGaussPoints ==1 );
+
+    constexpr auto tNodesPerFace          = Plato::Tet4::mNumNodesPerFace;
+    constexpr auto tNumFacesPerCell       = Plato::Tet4::mNumFacesPerCell;
+    constexpr auto tNumGaussPointsPerFace = Plato::Tet4::mNumGaussPointsPerFace;
+    constexpr auto tNumSpatialDimsOnFace  = Plato::Tet4::mNumSpatialDimsOnFace;
+
+    TEST_ASSERT(tNodesPerFace          == 3 );
+    TEST_ASSERT(tNumFacesPerCell       == 4 );
+    TEST_ASSERT(tNumGaussPointsPerFace == 1 );
+    TEST_ASSERT(tNumSpatialDimsOnFace  == 2 );
+}
+
+/******************************************************************************/
+/*!
+  \brief Check the Tet4 cubature point on parent element surfaces
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Tet4, Tet4_FaceCubPoints )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Tet4>;
+
+    auto tFaceCubPoints = ElementType::getFaceCubPoints();
+
+    constexpr Plato::Scalar tZero = 0.0;
+    constexpr Plato::Scalar tPt = 1.0/3.0;
+    std::vector<std::vector<Plato::Scalar>> tGold =
+        {
+            {/*GP1=*/tPt,tZero,tPt},
+            {/*GP1=*/tPt,tPt,tPt},
+            {/*GP1=*/tZero,tPt,tPt},
+            {/*GP1=*/tPt,tPt,tZero}
+        };
+
+    Plato::ScalarMultiVector tValuesView("cubature points",
+                                         Plato::Tet4::mNumFacesPerCell,
+                                         Plato::Tet4::mNumGaussPointsPerFace*Plato::Tet4::mNumSpatialDims);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int tOrdinal)
+    {
+        for(ordType I=0; I<Plato::Tet4::mNumFacesPerCell; I++)
+        {
+            for(ordType J=0; J<Plato::Tet4::mNumGaussPointsPerFace*Plato::Tet4::mNumSpatialDims; J++)
+            {
+                tValuesView(I,J) = tFaceCubPoints(I,J);
+            }
+        }
+    }, "surface cubature points");
+
+    auto tValuesViewHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesViewHost, tValuesView );
+
+    for(int i=0; i<Plato::Tet4::mNumFacesPerCell; i++)
+    {
+        for(int j=0; j<Plato::Tet4::mNumGaussPointsPerFace*Plato::Tet4::mNumSpatialDims; j++)
+        {
+            TEST_ASSERT( tValuesViewHost(i,j) == tGold[i][j] );
+        }
+    }
+}
+
+/*!
+  \brief Check the Tet4 cubature weights on parent element surfaces
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Tet4, Tet4_FaceCubWeights )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Tet4>;
+
+    auto tFaceCubWeights = ElementType::getFaceCubWeights();
+
+    std::vector<Plato::Scalar> tGold = {1.0/2.0};
+
+    Plato::ScalarVector tValuesView("cubature weights",ElementType::mNumGaussPointsPerFace);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int tOrdinal)
+    {
+        for(ordType J=0; J<ElementType::mNumGaussPointsPerFace; J++)
+        {
+            tValuesView(J) = tFaceCubWeights(J);
+        }
+    }, "cubature weights");
+
+    auto tValuesViewHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesViewHost, tValuesView );
+
+    for(int i=0; i<ElementType::mNumGaussPointsPerFace; i++)
+    {
+        TEST_ASSERT( tValuesViewHost(i) == tGold[i] );
+    }
+}
+
+/******************************************************************************/
+/*!
   \brief Check the MechanicsElement<Tet4> cubature weights
 */
 /******************************************************************************/
@@ -46,13 +151,23 @@ TEUCHOS_UNIT_TEST( Tet4, MechanicsTet4_CubWeightsSum )
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( Hex27, Hex27_Constants )
 { 
-    constexpr auto tNodesPerCell  = Plato::Hex27::mNumNodesPerCell;
-    constexpr auto tNodesPerFace  = Plato::Hex27::mNumNodesPerFace;
-    constexpr auto tSpaceDims     = Plato::Hex27::mNumSpatialDims;
+    constexpr auto tSpaceDims      = Plato::Hex27::mNumSpatialDims;
+    constexpr auto tNodesPerCell   = Plato::Hex27::mNumNodesPerCell;
+    constexpr auto tNumGaussPoints = Plato::Hex27::mNumGaussPoints;
 
-    TEST_ASSERT(tNodesPerCell  == 27);
-    TEST_ASSERT(tNodesPerFace  == 9 );
-    TEST_ASSERT(tSpaceDims     == 3 );
+    TEST_ASSERT(tSpaceDims      == 3 );
+    TEST_ASSERT(tNodesPerCell   == 27);
+    TEST_ASSERT(tNumGaussPoints == 27 );
+
+    constexpr auto tNodesPerFace          = Plato::Hex27::mNumNodesPerFace;
+    constexpr auto tNumFacesPerCell       = Plato::Hex27::mNumFacesPerCell;
+    constexpr auto tNumGaussPointsPerFace = Plato::Hex27::mNumGaussPointsPerFace;
+    constexpr auto tNumSpatialDimsOnFace  = Plato::Hex27::mNumSpatialDimsOnFace;
+
+    TEST_ASSERT(tNodesPerFace          == 9 );
+    TEST_ASSERT(tNumFacesPerCell       == 6 );
+    TEST_ASSERT(tNumGaussPointsPerFace == 9 );
+    TEST_ASSERT(tNumSpatialDimsOnFace  == 2 );
 }
 
 /******************************************************************************/
@@ -101,6 +216,105 @@ TEUCHOS_UNIT_TEST( Hex27, MechanicsHex27_CubWeightsSum )
 
 /******************************************************************************/
 /*! 
+  \brief Check the MechanicsElement<Hex27> integration points on a face
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Hex27, MechanicsHex27_FaceCubPoints )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Hex27>;
+
+    auto tFaceCubPoints = ElementType::getFaceCubPoints();
+
+    constexpr Plato::Scalar tOne  = 1.0;
+    constexpr Plato::Scalar tZero = 0.0;
+    constexpr Plato::Scalar tPt   = 0.77459666924148340427791481488384; // sqrt(3.0/5.0)
+    std::vector<std::vector<Plato::Scalar>> tGold =
+        {
+            {/*GP1=*/-tPt,tOne,-tPt,    /*GP2=*/tZero,tOne,-tPt,  /*GP3=*/tPt,tOne,-tPt,
+              /*GP4=*/-tPt,tOne,tZero,  /*GP5=*/tZero,tOne,tZero, /*GP6=*/tPt,tOne,tZero,
+              /*GP7=*/-tPt,tOne,tPt,    /*GP8=*/tZero,tOne,tPt,   /*GP9=*/tPt,tOne,tPt},
+            {/*GP1=*/-tOne,-tPt,-tPt,    /*GP2=*/-tOne,tZero,-tPt,  /*GP3=*/-tOne,tPt,-tPt,
+              /*GP4=*/-tOne,-tPt,tZero,  /*GP5=*/-tOne,tZero,tZero, /*GP6=*/-tOne,tPt,tZero,
+              /*GP7=*/-tOne,-tPt,tPt,    /*GP8=*/-tOne,tZero,tPt,   /*GP9=*/-tOne,tPt,tPt},
+            {/*GP1=*/-tPt,-tOne,-tPt,    /*GP2=*/tZero,-tOne,-tPt,  /*GP3=*/tPt,-tOne,-tPt,
+              /*GP4=*/-tPt,-tOne,tZero,  /*GP5=*/tZero,-tOne,tZero, /*GP6=*/tPt,-tOne,tZero,
+              /*GP7=*/-tPt,-tOne,tPt,    /*GP8=*/tZero,-tOne,tPt,   /*GP9=*/tPt,-tOne,tPt},
+            {/*GP1=*/tOne,-tPt,-tPt,    /*GP2=*/tOne,tZero,-tPt,  /*GP3=*/tOne,tPt,-tPt,
+              /*GP4=*/tOne,-tPt,tZero,  /*GP5=*/tOne,tZero,tZero, /*GP6=*/tOne,tPt,tZero,
+              /*GP7=*/tOne,-tPt,tPt,    /*GP8=*/tOne,tZero,tPt,   /*GP9=*/tOne,tPt,tPt},
+            {/*GP1=*/-tPt,-tPt,tOne,    /*GP2=*/tZero,-tPt,tOne,  /*GP3=*/tPt,-tPt,tOne,
+              /*GP4=*/-tPt,tZero,tOne,  /*GP5=*/tZero,tZero,tOne, /*GP6=*/tPt,tZero,tOne,
+              /*GP7=*/-tPt,tPt,tOne,    /*GP8=*/tZero,tPt,tOne,   /*GP9=*/tPt,tPt,tOne},
+            {/*GP1=*/-tPt,-tPt,-tOne,    /*GP2=*/tZero,-tPt,-tOne,  /*GP3=*/tPt,-tPt,-tOne,
+              /*GP4=*/-tPt,tZero,-tOne,  /*GP5=*/tZero,tZero,-tOne, /*GP6=*/tPt,tZero,-tOne,
+              /*GP7=*/-tPt,tPt,-tOne,    /*GP8=*/tZero,tPt,-tOne,   /*GP9=*/tPt,tPt,-tOne}
+        };
+
+    Plato::ScalarMultiVector tValuesView("cubature points",
+                                         Plato::Hex27::mNumFacesPerCell,
+                                         Plato::Hex27::mNumGaussPointsPerFace*Plato::Hex27::mNumSpatialDims);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int tOrdinal)
+    {
+        for(ordType I=0; I<Plato::Hex27::mNumFacesPerCell; I++)
+        {
+            for(ordType J=0; J<Plato::Hex27::mNumGaussPointsPerFace*Plato::Hex27::mNumSpatialDims; J++)
+            {
+                tValuesView(I,J) = tFaceCubPoints(I,J);
+            }
+        }
+    }, "surface cubature points");
+
+    auto tValuesViewHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesViewHost, tValuesView );
+
+    for(int i=0; i<Plato::Hex27::mNumFacesPerCell; i++)
+    {
+        for(int j=0; j<Plato::Hex27::mNumGaussPointsPerFace*Plato::Hex27::mNumSpatialDims; j++)
+        {
+            TEST_ASSERT( tValuesViewHost(i,j) == tGold[i][j] );
+        }
+    }
+}
+
+/******************************************************************************/
+/*!
+  \brief Check the Hex27 cubature weights on parent element surfaces
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Hex27, Hex27_FaceCubWeights )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Hex27>;
+
+    auto tFaceCubWeights = ElementType::getFaceCubWeights();
+
+    constexpr Plato::Scalar tW1 = 0.30864197530864195817557060763647; // 25/81
+    constexpr Plato::Scalar tW2 = 0.49382716049382713308091297221836; // 40/81
+    constexpr Plato::Scalar tW3 = 0.79012345679012341292946075554937; // 64/81
+
+    std::vector<Plato::Scalar> tGold = {tW1, tW2, tW1, tW2, tW3, tW2, tW1, tW2, tW1};
+
+    Plato::ScalarVector tValuesView("cubature weights",ElementType::mNumGaussPointsPerFace);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int tOrdinal)
+    {
+        for(ordType J=0; J<ElementType::mNumGaussPointsPerFace; J++)
+        {
+            tValuesView(J) = tFaceCubWeights(J);
+        }
+    }, "cubature weights");
+
+    auto tValuesViewHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesViewHost, tValuesView );
+
+    for(int i=0; i<ElementType::mNumGaussPointsPerFace; i++)
+    {
+        TEST_ASSERT( tValuesViewHost(i) == tGold[i] );
+    }
+}
+
+/******************************************************************************/
+/*!
   \brief Evaluate the Hex27 basis functions at each node location.
 */
 /******************************************************************************/
@@ -273,10 +487,99 @@ TEUCHOS_UNIT_TEST( Hex8, MechanicsHex8_Constants )
     TEST_ASSERT(tDofsPerNode   == 3 );
     TEST_ASSERT(tSpaceDims     == 3 );
     TEST_ASSERT(tNumVoigtTerms == 6 );
+
+    constexpr auto tNumFacesPerCell = ElementType::mNumFacesPerCell;
+    constexpr auto tNumGaussPointsPerFace = ElementType::mNumGaussPointsPerFace;
+
+    TEST_ASSERT(tNumFacesPerCell == 6 );
+    TEST_ASSERT(tNumGaussPointsPerFace == 4 );
 }
 
 /******************************************************************************/
 /*! 
+  \brief Check the MechanicsElement<Hex8> cubature points on the parent
+   element surfaces
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Hex27, MechanicsHex8_FaceCubPoints )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Hex8>;
+
+    auto tFaceCubPoints = ElementType::getFaceCubPoints();
+
+    constexpr Plato::Scalar tOne  = 1.0;
+    constexpr Plato::Scalar tPt   = 0.57735026918962584208117050366127; // sqrt(1.0/3.0)
+    std::vector<std::vector<Plato::Scalar>> tGold =
+        {
+            {/*GP1=*/-tPt,tOne,-tPt,  /*GP2=*/tPt,tOne,-tPt,  /*GP3=*/tPt,tOne,tPt,  /*GP4=*/-tPt,tOne,tPt},
+            {/*GP1=*/-tOne,-tPt,-tPt, /*GP2=*/-tOne,tPt,-tPt, /*GP3=*/-tOne,tPt,tPt, /*GP4=*/-tOne,-tPt,tPt},
+            {/*GP1=*/-tPt,-tOne,-tPt, /*GP2=*/tPt,-tOne,-tPt, /*GP3=*/tPt,-tOne,tPt, /*GP4=*/-tPt,-tOne,tPt},
+            {/*GP1=*/tOne,-tPt,-tPt,  /*GP2=*/tOne,tPt,-tPt,  /*GP3=*/tOne,tPt,tPt,  /*GP4=*/tOne,-tPt,tPt},
+            {/*GP1=*/-tPt,-tPt,tOne,  /*GP2=*/tPt,-tPt,tOne,  /*GP3=*/tPt,tPt,tOne,  /*GP4=*/-tPt,tPt,tOne},
+            {/*GP1=*/-tPt,-tPt,-tOne, /*GP2=*/tPt,-tPt,-tOne, /*GP3=*/tPt,tPt,-tOne, /*GP4=*/-tPt,tPt,-tOne}
+        };
+
+    Plato::ScalarMultiVector tValuesView("cubature points",
+                                         Plato::Hex8::mNumFacesPerCell,
+                                         Plato::Hex8::mNumGaussPointsPerFace*Plato::Hex27::mNumSpatialDims);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int tOrdinal)
+    {
+        for(ordType I=0; I<Plato::Hex8::mNumFacesPerCell; I++)
+        {
+            for(ordType J=0; J<Plato::Hex8::mNumGaussPointsPerFace*Plato::Hex8::mNumSpatialDims; J++)
+            {
+                tValuesView(I,J) = tFaceCubPoints(I,J);
+            }
+        }
+    }, "cubature point on surface");
+
+    auto tValuesViewHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesViewHost, tValuesView );
+
+    for(int i=0; i<Plato::Hex8::mNumFacesPerCell; i++)
+    {
+        for(int j=0; j<Plato::Hex8::mNumGaussPointsPerFace*Plato::Hex8::mNumSpatialDims; j++)
+        {
+            TEST_ASSERT( tValuesViewHost(i,j) == tGold[i][j] );
+        }
+    }
+}
+
+/******************************************************************************/
+/*!
+  \brief Check the Hex8 cubature weights on parent element surfaces
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Hex8, Hex8_FaceCubWeights )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Hex8>;
+
+    auto tFaceCubWeights = ElementType::getFaceCubWeights();
+
+    std::vector<Plato::Scalar> tGold = {1.0,1.0,1.0,1.0};
+
+    Plato::ScalarVector tValuesView("cubature weights",ElementType::mNumGaussPointsPerFace);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int tOrdinal)
+    {
+        for(ordType J=0; J<ElementType::mNumGaussPointsPerFace; J++)
+        {
+            tValuesView(J) = tFaceCubWeights(J);
+        }
+    }, "cubature weights");
+
+    auto tValuesViewHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesViewHost, tValuesView );
+
+    for(int i=0; i<ElementType::mNumGaussPointsPerFace; i++)
+    {
+        TEST_ASSERT( tValuesViewHost(i) == tGold[i] );
+    }
+}
+
+/******************************************************************************/
+/*!
   \brief Check the MechanicsElement<Hex8> cubature weights
 */
 /******************************************************************************/
@@ -469,7 +772,6 @@ TEUCHOS_UNIT_TEST( Hex8, JacobianParentCoords )
     }
 }
 
-
 /******************************************************************************/
 /*! 
   \brief Check the Quad9 constants
@@ -484,10 +786,99 @@ TEUCHOS_UNIT_TEST( Quad9, Quad9_Constants )
     TEST_ASSERT(tNodesPerCell  == 9 );
     TEST_ASSERT(tNodesPerFace  == 3 );
     TEST_ASSERT(tSpaceDims     == 2 );
+
+    constexpr auto tNumFacesPerCell = Plato::Quad9::mNumFacesPerCell;
+    constexpr auto tNumGaussPointsPerFace = Plato::Quad9::mNumGaussPointsPerFace;
+
+    TEST_ASSERT(tNumFacesPerCell == 4 );
+    TEST_ASSERT(tNumGaussPointsPerFace == 3 );
 }
 
 /******************************************************************************/
 /*! 
+  \brief Check the Quad9 cubature points on the parent element surfaces
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Quad9, Quad9_FaceCubPoints )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Quad9>;
+
+    auto tFaceCubPoints = ElementType::getFaceCubPoints();
+
+    constexpr Plato::Scalar tPt1 = 0.77459666924148340427791481488384; // +/- sqrt(3.0/5.0)
+    constexpr Plato::Scalar tPt2 = 0.0;
+    constexpr Plato::Scalar tOne = 1.0;
+    std::vector<std::vector<Plato::Scalar>> tGold =
+        {
+            {/*GP1=*/ tPt1,-tOne, /*GP2=*/-tPt1,-tOne, /*GP3=*/tPt2,-tOne},
+            {/*GP1=*/ tOne,tPt1 , /*GP2=*/tOne,-tPt1 , /*GP3=*/tOne,tPt2 },
+            {/*GP1=*/ tPt1,tOne , /*GP2=*/-tPt1,tOne , /*GP3=*/tPt2 ,tOne},
+            {/*GP1=*/-tOne,tPt1 , /*GP2=*/-tOne,-tPt1, /*GP3=*/-tOne,tPt2}
+        };
+
+    Plato::ScalarMultiVector tValuesView("cubature points",
+                                         Plato::Quad9::mNumFacesPerCell,
+                                         Plato::Quad9::mNumGaussPointsPerFace*Plato::Quad9::mNumSpatialDims);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int tOrdinal)
+    {
+        for(ordType I=0; I<Plato::Quad9::mNumFacesPerCell; I++)
+        {
+            for(ordType J=0; J<Plato::Quad9::mNumGaussPointsPerFace*Plato::Quad9::mNumSpatialDims; J++)
+            {
+                tValuesView(I,J) = tFaceCubPoints(I,J);
+            }
+        }
+    }, "cubature points on the parent element surface");
+
+    auto tValuesViewHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesViewHost, tValuesView );
+
+    for(int i=0; i<Plato::Quad9::mNumFacesPerCell; i++)
+    {
+        for(int j=0; j<Plato::Quad9::mNumGaussPointsPerFace*Plato::Quad9::mNumSpatialDims; j++)
+        {
+            TEST_ASSERT( tValuesViewHost(i,j) == tGold[i][j] );
+        }
+    }
+}
+
+/******************************************************************************/
+/*!
+  \brief Check the Quad9 cubature weights on parent element surfaces
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Quad9, Quad9_FaceCubWeights )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Quad9>;
+
+    auto tFaceCubWeights = ElementType::getFaceCubWeights();
+
+    constexpr Plato::Scalar tW1 = Plato::Scalar(5.0)/9;
+    constexpr Plato::Scalar tW2 = Plato::Scalar(8.0)/9;
+    std::vector<Plato::Scalar> tGold = {tW1,tW1,tW2};
+
+    Plato::ScalarVector tValuesView("cubature weights",ElementType::mNumGaussPointsPerFace);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int tOrdinal)
+    {
+        for(ordType J=0; J<ElementType::mNumGaussPointsPerFace; J++)
+        {
+            tValuesView(J) = tFaceCubWeights(J);
+        }
+    }, "cubature weights");
+
+    auto tValuesViewHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesViewHost, tValuesView );
+
+    for(int i=0; i<ElementType::mNumGaussPointsPerFace; i++)
+    {
+        TEST_ASSERT( tValuesViewHost(i) == tGold[i] );
+    }
+}
+
+/******************************************************************************/
+/*!
   \brief Check the MechanicsElement<Quad9> constants
 */
 /******************************************************************************/
@@ -623,6 +1014,14 @@ TEUCHOS_UNIT_TEST( Quad4, Quad4_Constants )
     TEST_ASSERT(tNodesPerCell  == 4 );
     TEST_ASSERT(tNodesPerFace  == 2 );
     TEST_ASSERT(tSpaceDims     == 2 );
+
+    constexpr auto tNumFacesPerCell = Plato::Quad4::mNumFacesPerCell;
+    constexpr auto tNumSpatialDimsOnFace = Plato::Quad4::mNumSpatialDimsOnFace;
+    constexpr auto tNumGaussPointsPerFace = Plato::Quad4::mNumGaussPointsPerFace;
+
+    TEST_ASSERT(tNumFacesPerCell  == 4 );
+    TEST_ASSERT(tNumSpatialDimsOnFace  == 1 );
+    TEST_ASSERT(tNumGaussPointsPerFace == 2 );
 }
 
 /******************************************************************************/
@@ -651,6 +1050,87 @@ TEUCHOS_UNIT_TEST( Quad4, MechanicsQuad4_Constants )
 
 /******************************************************************************/
 /*! 
+  \brief Check the MechanicsElement<Quad4> cubature points on the
+      parent element surfaces
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Quad4, MechanicsQuad4_FaceCubPoints )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Quad4>;
+
+    auto tFaceCubPoints = ElementType::getFaceCubPoints();
+
+    constexpr Plato::Scalar tPt1 = 0.57735026918962584208117050366127; // sqrt(1.0/3.0)
+    constexpr Plato::Scalar tOne = 1.0;
+    std::vector<std::vector<Plato::Scalar>> tGold =
+        {
+            {/*GP1=*/-tPt1,  tOne, /*GP2=*/ tPt1,tOne  },
+            {/*GP1=*/-tOne,-tPt1 , /*GP2=*/-tOne,tPt1  },
+            {/*GP1=*/-tPt1, -tOne, /*GP2=*/ tPt1,-tOne },
+            {/*GP1=*/ tOne,-tPt1 , /*GP2=*/ tOne,tPt1  }
+        };
+
+    Plato::ScalarMultiVector tValuesView("cubature points",
+                                         Plato::Quad4::mNumFacesPerCell,
+                                         Plato::Quad4::mNumGaussPointsPerFace*Plato::Quad4::mNumSpatialDims);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int tOrdinal)
+    {
+        for(ordType I=0; I<Plato::Quad4::mNumFacesPerCell; I++)
+        {
+            for(ordType J=0; J<Plato::Quad4::mNumGaussPointsPerFace*Plato::Quad4::mNumSpatialDims; J++)
+            {
+                tValuesView(I,J) = tFaceCubPoints(I,J);
+            }
+        }
+    }, "cubature points on the parent element surface");
+
+    auto tValuesViewHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesViewHost, tValuesView );
+
+    for(int i=0; i<Plato::Quad4::mNumFacesPerCell; i++)
+    {
+        for(int j=0; j<Plato::Quad4::mNumGaussPointsPerFace*Plato::Quad4::mNumSpatialDims; j++)
+        {
+            TEST_ASSERT( tValuesViewHost(i,j) == tGold[i][j] );
+        }
+    }
+}
+
+/******************************************************************************/
+/*!
+  \brief Check the Quad4 cubature weights on parent element surfaces
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Quad4, Quad4_FaceCubWeights )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Quad4>;
+
+    auto tFaceCubWeights = ElementType::getFaceCubWeights();
+
+    std::vector<Plato::Scalar> tGold = {1.0,1.0};
+
+    Plato::ScalarVector tValuesView("cubature weights",ElementType::mNumGaussPointsPerFace);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int tOrdinal)
+    {
+        for(ordType J=0; J<ElementType::mNumGaussPointsPerFace; J++)
+        {
+            tValuesView(J) = tFaceCubWeights(J);
+        }
+    }, "cubature weights");
+
+    auto tValuesViewHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesViewHost, tValuesView );
+
+    for(int i=0; i<ElementType::mNumGaussPointsPerFace; i++)
+    {
+        TEST_ASSERT( tValuesViewHost(i) == tGold[i] );
+    }
+}
+
+/******************************************************************************/
+/*!
   \brief Evaluate the Quad4 basis functions at each node location.
 */
 /******************************************************************************/
@@ -873,10 +1353,98 @@ TEUCHOS_UNIT_TEST( Tet10, Tet10_Constants )
     TEST_ASSERT(tNodesPerCell  == 10);
     TEST_ASSERT(tNodesPerFace  == 6 );
     TEST_ASSERT(tSpaceDims     == 3 );
+
+    constexpr auto tNumFacesPerCell = Plato::Tet10::mNumFacesPerCell;
+    constexpr auto tNumGaussPointsPerFace = Plato::Tet10::mNumGaussPointsPerFace;
+    constexpr auto tNumSpatialDimsOnFace = Plato::Tet10::mNumSpatialDimsOnFace;
+
+    TEST_ASSERT(tNumFacesPerCell == 4);
+    TEST_ASSERT(tNumSpatialDimsOnFace == 2 );
+    TEST_ASSERT(tNumGaussPointsPerFace == 3 );
 }
 
 /******************************************************************************/
 /*! 
+  \brief Check the Tet10 cubature points on parent element faces
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Tet10, Tet10_FaceCubPoints )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Tet10>;
+
+    auto tFaceCubPoints = ElementType::getFaceCubPoints();
+
+    constexpr Plato::Scalar tZero = Plato::Scalar(0.0);
+    constexpr Plato::Scalar tPt1 = Plato::Scalar(1.0)/6;
+    constexpr Plato::Scalar tPt2 = Plato::Scalar(2.0)/3;
+    std::vector<std::vector<Plato::Scalar>> tGold =
+        {
+            {/*GP1=*/tPt2  ,tZero,tPt1  , /*GP2=*/tPt1  ,tZero,tPt1  , /*GP3=*/tPt1  ,tZero,tPt2  },
+            {/*GP1=*/tPt2  ,tPt1  ,tPt1  , /*GP2=*/tPt1  ,tPt2  ,tPt1  , /*GP3=*/tPt1  ,tPt1  ,tPt2  },
+            {/*GP1=*/tZero,tPt2  ,tPt1  , /*GP2=*/tZero,tPt1  ,tPt1  , /*GP3=*/tZero,tPt1  ,tPt2  },
+            {/*GP1=*/tPt2  ,tPt1  ,tZero, /*GP2=*/tPt1  ,tPt1  ,tZero, /*GP3=*/tPt1  ,tPt2  ,tZero}
+        };
+
+    Plato::ScalarMultiVector tValuesView("cubature points",
+                                         ElementType::mNumFacesPerCell,
+                                         ElementType::mNumGaussPointsPerFace*ElementType::mNumSpatialDims);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int tOrdinal)
+    {
+        for(ordType I=0; I<ElementType::mNumFacesPerCell; I++)
+        {
+            for(ordType J=0; J<ElementType::mNumGaussPointsPerFace*ElementType::mNumSpatialDims; J++)
+            {
+                tValuesView(I,J) = tFaceCubPoints(I,J);
+            }
+        }
+    }, "cubature points on the parent element surface");
+
+    auto tValuesViewHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesViewHost, tValuesView );
+
+    for(int i=0; i<ElementType::mNumFacesPerCell; i++)
+    {
+        for(int j=0; j<ElementType::mNumGaussPointsPerFace*ElementType::mNumSpatialDims; j++)
+        {
+            TEST_ASSERT( tValuesViewHost(i,j) == tGold[i][j] );
+        }
+    }
+}
+
+/*!
+  \brief Check the Tet10 cubature weights on parent element surfaces
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Tet10, Tet10_FaceCubWeights )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Tet10>;
+
+    auto tFaceCubWeights = ElementType::getFaceCubWeights();
+
+    std::vector<Plato::Scalar> tGold = {1.0/6,1.0/6,1.0/6};
+
+    Plato::ScalarVector tValuesView("cubature weights",ElementType::mNumGaussPointsPerFace);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int tOrdinal)
+    {
+        for(ordType J=0; J<ElementType::mNumGaussPointsPerFace; J++)
+        {
+            tValuesView(J) = tFaceCubWeights(J);
+        }
+    }, "cubature weights");
+
+    auto tValuesViewHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesViewHost, tValuesView );
+
+    for(int i=0; i<ElementType::mNumGaussPointsPerFace; i++)
+    {
+        TEST_ASSERT( tValuesViewHost(i) == tGold[i] );
+    }
+}
+
+/******************************************************************************/
+/*!
   \brief Check the MechanicsElement<Tet10> constants
 */
 /******************************************************************************/
@@ -933,10 +1501,98 @@ TEUCHOS_UNIT_TEST( Tri3, Tri3_Constants )
     TEST_ASSERT(tNodesPerCell  == 3 );
     TEST_ASSERT(tNodesPerFace  == 2 );
     TEST_ASSERT(tSpaceDims     == 2 );
+
+    constexpr auto tNumFacesPerCell = Plato::Tri3::mNumFacesPerCell;
+    constexpr auto tNumSpatialDimsOnFace = Plato::Tri3::mNumSpatialDimsOnFace;
+    constexpr auto tNumGaussPointsPerFace = Plato::Tri3::mNumGaussPointsPerFace;
+
+    TEST_ASSERT(tNumFacesPerCell == 3 );
+    TEST_ASSERT(tNumGaussPointsPerFace == 2 );
+    TEST_ASSERT(tNumSpatialDimsOnFace == 1 );
 }
 
 /******************************************************************************/
 /*! 
+  \brief Check the Tri3 cubature points on parent element surfaces
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Tri3, Tri3_FaceCubPoints )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
+
+    auto tFaceCubPoints = ElementType::getFaceCubPoints();
+
+    constexpr Plato::Scalar tZero = 0.0;
+    constexpr Plato::Scalar tPt1 = 0.21132486540518707895941474816937; // -0.5*sqrt(1.0/3.0)+0.5
+    constexpr Plato::Scalar tPt2 = 0.78867513459481292104058525183063; //  0.5*sqrt(1.0/3.0)+0.5
+
+    std::vector<std::vector<Plato::Scalar>> tGold =
+        {
+            {/*GP1=*/tPt1  ,tZero, /*GP2=*/tPt2  ,tZero },
+            {/*GP1=*/tPt1  ,tPt2  , /*GP2=*/tPt2  ,tPt1   },
+            {/*GP1=*/tZero,tPt1  , /*GP2=*/tZero,tPt2   }
+        };
+
+    Plato::ScalarMultiVector tValuesView("cubature points",
+                                         ElementType::mNumFacesPerCell,
+                                         ElementType::mNumGaussPointsPerFace*ElementType::mNumSpatialDims);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int tOrdinal)
+    {
+        for(ordType I=0; I<ElementType::mNumFacesPerCell; I++)
+        {
+            for(ordType J=0; J<ElementType::mNumGaussPointsPerFace*ElementType::mNumSpatialDims; J++)
+            {
+                tValuesView(I,J) = tFaceCubPoints(I,J);
+            }
+        }
+    }, "cubature points on the parent element surface");
+
+    auto tValuesViewHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesViewHost, tValuesView );
+
+    for(int i=0; i<ElementType::mNumFacesPerCell; i++)
+    {
+        for(int j=0; j<ElementType::mNumGaussPointsPerFace*ElementType::mNumSpatialDims; j++)
+        {
+            TEST_ASSERT( tValuesViewHost(i,j) == tGold[i][j] );
+        }
+    }
+}
+
+/*!
+  \brief Check the Tri3 cubature weights on parent element surfaces
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Tri3, Tri3_FaceCubWeights )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
+
+    auto tFaceCubWeights = ElementType::getFaceCubWeights();
+
+    std::vector<Plato::Scalar> tGold = {0.5,0.5};
+
+    Plato::ScalarVector tValuesView("cubature weights",ElementType::mNumGaussPointsPerFace);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int tOrdinal)
+    {
+        for(ordType J=0; J<ElementType::mNumGaussPointsPerFace; J++)
+        {
+            tValuesView(J) = tFaceCubWeights(J);
+        }
+    }, "cubature weights");
+
+    auto tValuesViewHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesViewHost, tValuesView );
+
+    for(int i=0; i<ElementType::mNumGaussPointsPerFace; i++)
+    {
+        TEST_ASSERT( tValuesViewHost(i) == tGold[i] );
+    }
+}
+
+/******************************************************************************/
+/*!
   \brief Check the MechanicsElement<Tri3> constants
 */
 /******************************************************************************/
@@ -1057,10 +1713,98 @@ TEUCHOS_UNIT_TEST( Tri6, Tri6_Constants )
     TEST_ASSERT(tNodesPerCell  == 6 );
     TEST_ASSERT(tNodesPerFace  == 3 );
     TEST_ASSERT(tSpaceDims     == 2 );
+
+    constexpr auto tNumFacesPerCell = Plato::Tri6::mNumFacesPerCell;
+    constexpr auto tNumSpatialDimsOnFace = Plato::Tri6::mNumSpatialDimsOnFace;
+    constexpr auto tNumGaussPointsPerFace = Plato::Tri6::mNumGaussPointsPerFace;
+
+    TEST_ASSERT(tNumFacesPerCell == 3 );
+    TEST_ASSERT(tNumSpatialDimsOnFace  == 1 );
+    TEST_ASSERT(tNumGaussPointsPerFace == 3 );
 }
 
 /******************************************************************************/
 /*! 
+  \brief Check the Tri3 cubature points on parent element surfaces
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Tri6, Tri6_FaceCubPoints )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Tri6>;
+
+    auto tFaceCubPoints = ElementType::getFaceCubPoints();
+
+    constexpr Plato::Scalar tZero = 0.0;
+    constexpr Plato::Scalar tPt1 = 0.11270166537925829786104259255808; // -0.5*sqrt(1.0/3.0) + 0.5
+    constexpr Plato::Scalar tPt2 = 0.5; // -0.5*0.0 + 0.5
+    constexpr Plato::Scalar tPt3 = 0.88729833462074170213895740744192; // 0.5*sqrt(1.0/3.0) + 0.5
+    std::vector<std::vector<Plato::Scalar>> tGold =
+        {
+            {/*GP1=*/tPt1  ,tZero, /*GP2=*/tPt2  ,tZero, /*GP3=*/tPt3  ,tZero  },
+            {/*GP1=*/tPt1  ,tPt3  , /*GP2=*/tPt2  ,tPt2  , /*GP3=*/tPt3  ,tPt1    },
+            {/*GP1=*/tZero,tPt1  , /*GP2=*/tZero,tPt2  , /*GP3=*/tZero,tPt3    }
+        };
+
+    Plato::ScalarMultiVector tValuesView("cubature points",
+                                         ElementType::mNumFacesPerCell,
+                                         ElementType::mNumGaussPointsPerFace*ElementType::mNumSpatialDims);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int tOrdinal)
+    {
+        for(ordType I=0; I<ElementType::mNumFacesPerCell; I++)
+        {
+            for(ordType J=0; J<ElementType::mNumGaussPointsPerFace*ElementType::mNumSpatialDims; J++)
+            {
+                tValuesView(I,J) = tFaceCubPoints(I,J);
+            }
+        }
+    }, "cubature points on the parent element surface");
+
+    auto tValuesViewHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesViewHost, tValuesView );
+
+    for(int i=0; i<ElementType::mNumFacesPerCell; i++)
+    {
+        for(int j=0; j<ElementType::mNumGaussPointsPerFace*ElementType::mNumSpatialDims; j++)
+        {
+            TEST_ASSERT( tValuesViewHost(i,j) == tGold[i][j] );
+        }
+    }
+}
+
+/*!
+  \brief Check the Tri6 cubature weights on parent element surfaces
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Tri6, Tri6_FaceCubWeights )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Tri6>;
+
+    auto tFaceCubWeights = ElementType::getFaceCubWeights();
+
+    std::vector<Plato::Scalar> tGold = {5.0/18,5.0/18,8.0/18};
+
+    Plato::ScalarVector tValuesView("cubature weights",ElementType::mNumGaussPointsPerFace);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int tOrdinal)
+    {
+        for(ordType J=0; J<ElementType::mNumGaussPointsPerFace; J++)
+        {
+            tValuesView(J) = tFaceCubWeights(J);
+        }
+    }, "cubature weights");
+
+    auto tValuesViewHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesViewHost, tValuesView );
+
+    for(int i=0; i<ElementType::mNumGaussPointsPerFace; i++)
+    {
+        TEST_ASSERT( tValuesViewHost(i) == tGold[i] );
+    }
+}
+
+/******************************************************************************/
+/*!
   \brief Check the MechanicsElement<Tri6> constants
 */
 /******************************************************************************/

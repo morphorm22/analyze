@@ -7,6 +7,10 @@ namespace Plato {
 
 /******************************************************************************/
 /*! Tet4 Element
+ *
+ * \brief Gauss point coordinates and weights are derived on integration
+ *     domain 0<=t<=1.
+ *
 */
 /******************************************************************************/
 class Tet4
@@ -18,8 +22,11 @@ class Tet4
 
     static constexpr Plato::OrdinalType mNumSpatialDims  = 3;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 4;
-    static constexpr Plato::OrdinalType mNumNodesPerFace = 3;
     static constexpr Plato::OrdinalType mNumGaussPoints  = 1;
+
+    static constexpr Plato::OrdinalType mNumFacesPerCell       = 4;
+    static constexpr Plato::OrdinalType mNumNodesPerFace       = Face::mNumNodesPerCell;
+    static constexpr Plato::OrdinalType mNumGaussPointsPerFace = Face::mNumGaussPoints;
 
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
 
@@ -32,6 +39,23 @@ class Tet4
         return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>({
             Plato::Scalar(1.0)/4, Plato::Scalar(1.0)/4, Plato::Scalar(1.0)/4
         });
+    }
+
+    static inline Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>
+    getFaceCubPoints()
+    {
+        return Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>({
+            Plato::Scalar(1.0)/3, Plato::Scalar(0.0), Plato::Scalar(1.0)/3,
+            Plato::Scalar(1.0)/3, Plato::Scalar(1.0)/3, Plato::Scalar(1.0)/3,
+            Plato::Scalar(0.0), Plato::Scalar(1.0)/3, Plato::Scalar(1.0)/3,
+            Plato::Scalar(1.0)/3, Plato::Scalar(1.0)/3, Plato::Scalar(0.0)
+        });
+    }
+
+    static inline Plato::Array<mNumGaussPointsPerFace>
+    getFaceCubWeights()
+    {
+        return Face::getCubWeights();
     }
 
     KOKKOS_INLINE_FUNCTION static Plato::Array<mNumNodesPerCell>

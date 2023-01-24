@@ -3,10 +3,15 @@
 #include "Bar2.hpp"
 #include "PlatoMathTypes.hpp"
 
-namespace Plato {
+namespace Plato
+{
 
 /******************************************************************************/
 /*! Tri3 Element
+ *
+ * \brief Gauss point coordinates and weights are derived on integration
+ *     domain 0<=t<=1.
+ *
 */
 /******************************************************************************/
 class Tri3
@@ -16,8 +21,11 @@ class Tri3
 
     static constexpr Plato::OrdinalType mNumSpatialDims  = 2;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 3;
-    static constexpr Plato::OrdinalType mNumNodesPerFace = 2;
     static constexpr Plato::OrdinalType mNumGaussPoints  = 1;
+
+    static constexpr Plato::OrdinalType mNumFacesPerCell       = 3;
+    static constexpr Plato::OrdinalType mNumNodesPerFace       = Face::mNumNodesPerCell;
+    static constexpr Plato::OrdinalType mNumGaussPointsPerFace = Face::mNumGaussPoints;
 
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
 
@@ -29,6 +37,49 @@ class Tri3
     {
         return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>({
             Plato::Scalar(1)/3, Plato::Scalar(1)/3
+        });
+    }
+
+    /******************************************************************************/
+    /*! \fn getFaceCubPoints
+     *
+     * \brief Gauss point coordinates and weights are derived on integration
+     *     domain 0<=t<=1, which requires the following linear mapping
+     *
+     *     \hat{\xi}=\left(\frac{b-a}{2}\right)\xi + \left(\frac{b+a}{2}\right)
+     *
+     *     to map the Gauss points for a Bar2 element from domain -1<=t<=1 to
+     *     domain 0<=t<=1.
+    */
+    /******************************************************************************/
+    static inline Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>
+    getFaceCubPoints()
+    {
+        constexpr Plato::Scalar tZero = 0.0;
+        constexpr Plato::Scalar tPt1 = 0.21132486540518707895941474816937; // -0.5*sqrt(1.0/3.0)+0.5
+        constexpr Plato::Scalar tPt2 = 0.78867513459481292104058525183063; //  0.5*sqrt(1.0/3.0)+0.5
+        return Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>({
+            /*GP1=*/tPt1  ,tZero, /*GP2=*/tPt2  ,tZero,
+            /*GP1=*/tPt1  ,tPt2  , /*GP2=*/tPt2  ,tPt1,
+            /*GP1=*/tZero,tPt1  , /*GP2=*/tZero,tPt2
+        });
+    }
+
+    /******************************************************************************/
+    /*! \fn getFaceCubPoints
+     *
+     * \brief Returns the Gauss point weights associated with Gauss points along
+     *     the element edge defined on integration domain 0<=t<=1. The length
+     *     of the edge equals one. Therefore, the Gauss weights are derived by
+     *     applying a factor of 0.5 to the Gauss weights for a Bar2 element defined
+     *     on integration domain -1<=t<=1.
+    */
+    /******************************************************************************/
+    static inline Plato::Array<mNumGaussPointsPerFace>
+    getFaceCubWeights()
+    {
+        return Plato::Array<mNumGaussPointsPerFace>({
+            Plato::Scalar(0.5), Plato::Scalar(0.5)
         });
     }
 

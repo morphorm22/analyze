@@ -6,6 +6,9 @@ namespace Plato {
 
 /******************************************************************************/
 /*! Bar2 Element
+ *
+ * \brief Gauss point coordinates and weights are derived on integration
+ *     domain -1<=t<=1.
 */
 /******************************************************************************/
 class Bar2
@@ -38,7 +41,6 @@ class Bar2
     basisValues( const Plato::Array<mNumSpatialDims>& aCubPoint )
     {
         auto x=aCubPoint(0);
-        auto y=aCubPoint(1);
 
         Plato::Array<mNumNodesPerCell> tN;
 
@@ -87,5 +89,6 @@ class Bar2
         return tReturnVec;
     }
 };
+// class Bar2
 
 } // end namespace Plato

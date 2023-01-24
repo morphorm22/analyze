@@ -7,6 +7,10 @@ namespace Plato {
 
 /******************************************************************************/
 /*! Hex8 Element
+ *
+ * \brief Gauss point coordinates and weights are derived on integration
+ *     domain -1<=t<=1.
+ *
 */
 /******************************************************************************/
 class Hex8
@@ -18,8 +22,11 @@ class Hex8
 
     static constexpr Plato::OrdinalType mNumSpatialDims  = 3;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 8;
-    static constexpr Plato::OrdinalType mNumNodesPerFace = 4;
     static constexpr Plato::OrdinalType mNumGaussPoints  = 8;
+
+    static constexpr Plato::OrdinalType mNumFacesPerCell        = 6;
+    static constexpr Plato::OrdinalType mNumNodesPerFace       = Face::mNumNodesPerCell;
+    static constexpr Plato::OrdinalType mNumGaussPointsPerFace = Face::mNumGaussPoints;
 
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
 
@@ -35,7 +42,7 @@ class Hex8
     static inline Plato::Matrix<mNumGaussPoints,mNumSpatialDims>
     getCubPoints()
     {
-        const Plato::Scalar sqt = 0.57735026918962584208117050366127; // sqrt(1.0/3.0)
+        constexpr Plato::Scalar sqt = 0.57735026918962584208117050366127; // sqrt(1.0/3.0)
         return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>({
             -sqt, -sqt, -sqt,
              sqt, -sqt, -sqt,
@@ -46,6 +53,27 @@ class Hex8
              sqt,  sqt,  sqt,
             -sqt,  sqt,  sqt,
         });
+    }
+
+    static inline Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>
+    getFaceCubPoints()
+    {
+        constexpr Plato::Scalar tOne = 1.0;
+        constexpr Plato::Scalar tSqt  = 0.57735026918962584208117050366127; // sqrt(1.0/3.0)
+        return Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>({
+            /*GP1=*/-tSqt,tOne,-tSqt,  /*GP2=*/tSqt,tOne,-tSqt,  /*GP3=*/tSqt,tOne,tSqt,  /*GP4=*/-tSqt,tOne,tSqt ,
+            /*GP1=*/-tOne,-tSqt,-tSqt, /*GP2=*/-tOne,tSqt,-tSqt, /*GP3=*/-tOne,tSqt,tSqt, /*GP4=*/-tOne,-tSqt,tSqt,
+            /*GP1=*/-tSqt,-tOne,-tSqt, /*GP2=*/tSqt,-tOne,-tSqt, /*GP3=*/tSqt,-tOne,tSqt, /*GP4=*/-tSqt,-tOne,tSqt,
+            /*GP1=*/tOne,-tSqt,-tSqt,  /*GP2=*/tOne,tSqt,-tSqt,  /*GP3=*/tOne,tSqt,tSqt,  /*GP4=*/tOne,-tSqt,tSqt ,
+            /*GP1=*/-tSqt,-tSqt,tOne,  /*GP2=*/tSqt,-tSqt,tOne,  /*GP3=*/tSqt,tSqt,tOne,  /*GP4=*/-tSqt,tSqt,tOne ,
+            /*GP1=*/-tSqt,-tSqt,-tOne, /*GP2=*/tSqt,-tSqt,-tOne, /*GP3=*/tSqt,tSqt,-tOne, /*GP4=*/-tSqt,tSqt,-tOne
+        });
+    }
+
+    static inline Plato::Array<mNumGaussPointsPerFace>
+    getFaceCubWeights()
+    {
+        return Face::getCubWeights();
     }
 
     KOKKOS_INLINE_FUNCTION static Plato::Array<mNumNodesPerCell>

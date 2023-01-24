@@ -26,6 +26,11 @@ namespace Plato
             return {{0},{1}};
         }
         else
+        if (tElemType == "bar3")
+        {
+            return {{0},{1}};
+        }
+        else
         if (tElemType == "tri3")
         {
             return {{0,1},{1,2},{2,0}};
@@ -279,9 +284,11 @@ namespace Plato
                     mSideSets[i].numNPF = tNodesPerFace[0];
 
                     // switch from one-based to zero-based indexing
+                    // printf("SideSetName %s : NumberSides:%d\n", mSideSets[i].name.c_str(), tNumSidesInSet);
                     for(Int iside=0; iside<tNumSidesInSet; iside++)
                     {
                         tSides[iside] -= 1;
+                        // printf("  Side Index=%d : Local Side ID=%d\n",iside,tSides[iside]);
                         tElems[iside] -= 1;
                         for(Int inode=0; inode<mSideSets[i].numNPF; inode++)
                             tNodes[iside*mSideSets[i].numNPF+inode] -= 1;

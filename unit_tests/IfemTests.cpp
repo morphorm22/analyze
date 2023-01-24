@@ -108,8 +108,6 @@ private:
     }
 };
 
-
-
 /******************************************************************************//**
  * \brief Factory for creating linear elastic material models.
  *
@@ -1225,14 +1223,14 @@ public:
 };
 
 /***************************************************************************//**
- *NitscheBase
+ *
  * \tparam EvaluationType scalar types are set based on the evaluation type
  *
- * \class NitscheDisplacements
+ * \class NitscheLinearFormMechanics
  *
- * \brief This class is responsible for imposing the Dirichlet boundary conditions
- *          weakly via the Nitsche method. The Nitsche method is mathematically
- *          defined as:
+ * \brief This class is responsible for evaluating the linear form derived by
+ *          enforcing the Dirichlet boundary conditions in linear mechanics
+ *          problem via Nitsche's method. The resulting linear form is given by:
  *
  *          \f$
  *              - \int_{\Gamma_D}\delta\mathbf{u}\cdot\left(\sigma\cdot\mathbf{n}_{\Gamma}\right)d\Gamma
@@ -1248,7 +1246,7 @@ public:
  *
 *******************************************************************************/
 template<typename EvaluationType>
-class NitscheDisplacements : public NitscheBase<EvaluationType>
+class NitscheLinearMechanics : public NitscheBase<EvaluationType>
 {
 private:
     // set local element type definition
@@ -1277,19 +1275,16 @@ private:
     using ResultScalarType = typename EvaluationType::ResultScalarType;
     using ConfigScalarType = typename EvaluationType::ConfigScalarType;
 
-    // set local strain scalar type
-    using StrainScalarType = typename Plato::fad_type_t<BodyElementType, StateScalarType, ConfigScalarType>;
-
     // set member data
     std::shared_ptr<Plato::MaterialModel<mNumSpatialDims>> mMaterial;
 
 public:
-    NitscheDisplacements
+    NitscheLinearMechanics
     (const std::string            & aName,
            Teuchos::ParameterList & aSubList) :
         BaseClassType(aName,aSubList)
     {}
-    ~NitscheDisplacements()
+    ~NitscheLinearMechanics()
     {}
 
     nitsche_t type() const
@@ -1342,25 +1337,28 @@ public:
         ProjectFromNodes tProjectFromNodes;
 
         // get integration points and weights
-        auto tFaceCubWeights = FaceElementType::getCubWeights();
-        auto tFaceCubPoints  = FaceElementType::getCubPoints();
-        auto tNumCubPointsOnFace = tFaceCubWeights.size();
+        auto tFaceCubPoints  = BodyElementType::getFaceCubPoints();
+        auto tFaceCubWeights = BodyElementType::getFaceCubWeights();
+        auto tNumCubPointsPerFace = BodyElementType::mNumGaussPointsPerFace;
 
         auto tYoungsModulus  = mMaterial->getScalarConstant("youngs modulus");
         auto tNitschePenaltyTimesModulus = mNitschePenalty * tYoungsModulus;
         Kokkos::parallel_for("nitsche bcs", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},
-          {tNumSideCells, tNumCubPointsOnFace}),
+          {tNumSideCells, tNumCubPointsPerFace}),
           KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
          {
-            auto tFaceCubWeight = tFaceCubWeights(aPointOrdinal);
-            auto tFaceCubPoint = tFaceCubPoints(aPointOrdinal);
-            auto tFaceBasisValues = FaceElementType::basisValues(tFaceCubPoint);
-            auto tFaceBasisGrads  = FaceElementType::basisGrads(tFaceCubPoint);
+            auto tFaceCubPoint      = tFaceCubPoints(aPointOrdinal);
+            auto tFaceCubWeight   = tFaceCubWeights(aPointOrdinal);
+            auto tFaceBasisValues  = FaceElementType::basisValues(tFaceCubPoint);
+            auto tFaceBasisGrads   = FaceElementType::basisGrads(tFaceCubPoint);
+            auto tBodyBasisValues = BodyElementType::basisValues(tFaceCubPoint);
+            auto tBodyBasisGrads  = BodyElementType::basisGrads(tFaceCubPoint);
 
             Plato::Array<mNumNodesPerFace, Plato::OrdinalType> tFaceLocalNodeOrds;
             for( Plato::OrdinalType tIndex=0; tIndex<mNumNodesPerFace; tIndex++)
             {
                 tFaceLocalNodeOrds(tIndex) = tLocalNodeOrds(aSideOrdinal*mNumNodesPerFace+tIndex);
+                printf("Side Ordinal: %d - Local Node Ordinal: %d\n",aSideOrdinal,tFaceLocalNodeOrds(tIndex));
             }
 
             // compute normal vector weighted by the entity area
@@ -1369,26 +1367,26 @@ public:
             tComputeNormalTimesEntityArea(tCellOrdinal,tFaceLocalNodeOrds,tFaceBasisGrads,tConfigWS,tNormalTimesArea);
 
             // term 1: int_{\Gamma_D} \delta{u}\cdot(\sigma\cdot{n}) d\Gamma_D
-            for( Plato::OrdinalType tNode=0; tNode<mNumNodesPerFace; tNode++)
+            /*for( Plato::OrdinalType tNode=0; tNode<mNumNodesPerFace; tNode++)
             {
                 for( Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
                 {
                     auto tLocalDofOrdinal = ( tFaceLocalNodeOrds[tNode] * mNumSpatialDims ) + tDimI;
                     for( Plato::OrdinalType tDimJ=0; tDimJ<mNumSpatialDims; tDimJ++)
                     {
-                        ResultScalarType tValue = aMultiplier * tFaceBasisValues(tNode) *
+                        ResultScalarType tValue = -aMultiplier * tFaceBasisValues(tNode) *
                             ( tStresses(tCellOrdinal,tDimI,tDimJ) * tNormalTimesArea[tDimJ] ) * tFaceCubWeight;
                         Kokkos::atomic_add(&tResultWS(tCellOrdinal,tLocalDofOrdinal), tValue);
                     }
                 }
-            }
+            }*/
 
             // interpolate state from nodes
             Plato::Array<mNumSpatialDims,StateScalarType> tProjectedStates;
             tProjectFromNodes(tCellOrdinal,tFaceLocalNodeOrds,tFaceBasisValues,tStateWS,tProjectedStates);
 
             // term 2: int_{\Gamma_D} \delta(\sigma\cdot{n})\cdot(u - u_D) d\Gamma_D
-            for( Plato::OrdinalType tNode=0; tNode<mNumNodesPerFace; tNode++)
+            /*for( Plato::OrdinalType tNode=0; tNode<mNumNodesPerFace; tNode++)
             {
                 for( Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
                 {
@@ -1401,7 +1399,7 @@ public:
                         Kokkos::atomic_add(&tResultWS(tCellOrdinal,tLocalDofOrdinal), tValue);
                     }
                 }
-            }
+            }*/
 
             // compute entity area
             ConfigScalarType tFaceArea(0.0);
@@ -1427,10 +1425,15 @@ template<typename EvaluationType>
 class FactoryNitscheBC
 {
 private:
-    nitsche_t mVariable = nitsche_t::UNDEFINED;
+    /*!< map from input Nitsche boundary condition type string to supported enum */
+    std::map<std::string,nitsche_t> mSupportedNitscheBCs =
+        {
+            {"displacements",nitsche_t::DISPLACEMENTS},
+            {"temperature"  ,nitsche_t::TEMPERATURE}
+        };
 
 public:
-    FactoryNitscheBC(const nitsche_t& aVariable) : mVariable(aVariable) {}
+    FactoryNitscheBC(){}
     ~FactoryNitscheBC(){}
 
     std::shared_ptr<NitscheBase<EvaluationType>>
@@ -1438,16 +1441,36 @@ public:
     (const std::string            & aName,
            Teuchos::ParameterList & aParams)
     {
-        switch(mVariable)
+        auto tStringVariableType = aParams.get<std::string>("Variable");
+        auto tVariableType = this->type(tStringVariableType);
+        switch(tVariableType)
         {
             case nitsche_t::DISPLACEMENTS:
-            { return std::make_shared<NitscheDisplacements<EvaluationType>>(aName, aParams); }
+            { return std::make_shared<NitscheLinearMechanics<EvaluationType>>(aName, aParams); }
             case nitsche_t::TEMPERATURE:
             default:
             {
                 return {nullptr};
             }
         }
+    }
+
+private:
+    nitsche_t type(const std::string& aVariable) const
+    {
+        auto tVariable = Plato::tolower(aVariable);
+        auto tItr = mSupportedNitscheBCs.find(tVariable);
+        if( tItr == mSupportedNitscheBCs.end() ){
+            std::string tMsg = std::string("Nitsche's method cannot be applied to variable '")
+                + tVariable + "'. " + "Supported variables are: ";
+            for(const auto& tPair : mSupportedNitscheBCs)
+            {
+                tMsg = tMsg + tPair.first + ", ";
+            }
+            auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+            ANALYZE_THROWERR(tSubMsg)
+        }
+        return (tItr->second);
     }
 };
 
@@ -1459,23 +1482,15 @@ private:
     /*!< list of essential boundary conditions (EBCs) enforced using Nitsche's method */
     std::unordered_map<nitsche_t,std::vector<std::shared_ptr<NitscheBase<EvaluationType> > > > mNitscheBCs;
 
-    /*!< map from input Nitsche boundary condition type string to supported enum */
-    std::map<std::string,nitsche_t> mSupportedNitscheBCs =
-        {
-            {"displacements",nitsche_t::DISPLACEMENTS},
-            {"temperature"  ,nitsche_t::TEMPERATURE}
-        };
-
 // public member functions
 public:
     NitscheBCs
-    (const std::string&            aVariable,
-     const std::string&            aNameSublist,
+    (const std::string&            aNameSublist,
            Teuchos::ParameterList& aProbParams) :
         mNitscheBCs()
     {
         auto tNitscheSubLists = aProbParams.sublist(aNameSublist);
-        this->parse(aVariable, tNitscheSubLists);
+        this->parse(tNitscheSubLists);
         this->initialize(aProbParams);
     }
 
@@ -1497,13 +1512,9 @@ public:
 // private member functions
 private:
     void parse
-    (const std::string&            aVariable,
-           Teuchos::ParameterList& aNitscheSublists)
+    (Teuchos::ParameterList& aNitscheSublists)
     {
-        // create nitsche boundary conditions factory
-        auto tVariableType = this->type(aVariable);
-        FactoryNitscheBC<EvaluationType> tFactory(tVariableType);
-
+        FactoryNitscheBC<EvaluationType> tFactory;
         auto tNameNitscheSublists = aNitscheSublists.name();
         for (Teuchos::ParameterList::ConstIterator tItr = aNitscheSublists.begin(); tItr != aNitscheSublists.end(); ++tItr)
         {
@@ -1522,6 +1533,7 @@ private:
 
             Teuchos::ParameterList &tMyNitscheSublist = aNitscheSublists.sublist(tName);
             std::shared_ptr<NitscheBase<EvaluationType>> tBC = tFactory.create(tName, tMyNitscheSublist);
+             auto tVariableType = tBC->type();
             mNitscheBCs[tVariableType].push_back(tBC);
         }
     }
@@ -1535,23 +1547,6 @@ private:
                 tNitscheBC->initialize(aProbParams);
             }
         }
-    }
-
-    nitsche_t type(const std::string& aVariable) const
-    {
-        auto tVariable = Plato::tolower(aVariable);
-        auto tItr = mSupportedNitscheBCs.find(tVariable);
-        if( tItr == mSupportedNitscheBCs.end() ){
-            std::string tMsg = std::string("Nitsche's method cannot be applied to variable '")
-                + tVariable + "'. " + "Supported variables are: ";
-            for(const auto& tPair : mSupportedNitscheBCs)
-            {
-                tMsg = tMsg + tPair.first + ", ";
-            }
-            auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
-            ANALYZE_THROWERR(tSubMsg)
-        }
-        return (tItr->second);
     }
 };
 
@@ -2043,7 +2038,7 @@ private:
         if(aProbParams.isSublist("Nitsche Boundary Conditions"))
         {
             mNitscheBCs = std::make_shared<NitscheBCs<EvaluationType>>
-                    ("displacement", "Nitsche Boundary Conditions", aProbParams);
+                    ("Nitsche Boundary Conditions", aProbParams);
         }
     }
 };
@@ -3692,7 +3687,7 @@ private:
     using Criterion = std::shared_ptr<ScalarFunctionBase>;
 
     bool mSaveState;
-    bool mIsStrongEssentialBoundaryCondition = true;
+    bool mWeakEssentialBoundaryConditions = false;
 
     std::string mPDE; /*!< Partial Differential Equation (PDE) type */
     std::string mPhysics; /*!< problem physics type */
@@ -3777,11 +3772,10 @@ public:
         mResidual = mResidualEvaluator->value(tDatabase,tCYCLE);
         Plato::blas1::scale(-1.0, mResidual);
         mJacobianState = mResidualEvaluator->jacobianState(tDatabase, tCYCLE, /*transpose=*/ false);
-        if(mIsStrongEssentialBoundaryCondition)
-        { this->enforceStrongEssentialBoundaryConditions(mJacobianState,mResidual,1.0); }
-        else
-        { this->enforceWeakEssentialBoundaryConditions(tDatabase); }
 
+        // solve linear system of equations
+        if( !mWeakEssentialBoundaryConditions )
+        { this->enforceStrongEssentialBoundaryConditions(mJacobianState,mResidual,1.0); }
         Plato::ScalarVector tDeltaState("increment", tStateVector.extent(0));
         Plato::blas1::fill(0.0, tDeltaState);
         mSolver->solve(*mJacobianState, tDeltaState, mResidual);
@@ -3978,9 +3972,8 @@ private:
         tEssentialBoundaryConditions(aProbParams.sublist("Essential Boundary Conditions", false), mSpatialModel.Mesh);
         tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
 
-        auto tEnforcement = aProbParams.get<std::string>("Enforcement", "strong");
-        if(Plato::tolower(tEnforcement) == "weak")
-        { mIsStrongEssentialBoundaryCondition = false; }
+        if(aProbParams.isSublist("Nitsche Boundary Conditions") == true)
+        { mWeakEssentialBoundaryConditions = true; }
     }
 
     void
@@ -3992,6 +3985,9 @@ private:
         auto tStateVector = Kokkos::subview(mStates, tCYCLE_INDEX, Kokkos::ALL());
         aDatabase.vector("states"  , tStateVector);
         aDatabase.vector("controls", aControl);
+
+        if(mWeakEssentialBoundaryConditions)
+        { this->enforceWeakEssentialBoundaryConditions(aDatabase); }
     }
 
     void enforceWeakEssentialBoundaryConditions
@@ -4074,10 +4070,10 @@ private:
 
             // compute jacobian with respect to state variables
             mJacobianState = mResidualEvaluator->jacobianState(aDatabase, tCYCLE, /*transpose=*/ true);
-            if( mIsStrongEssentialBoundaryCondition )
-            { this->enforceStrongEssentialAdjointBoundaryConditions(mJacobianState, tGradientState); }
-            else
+            if( mWeakEssentialBoundaryConditions )
             { this->enforceWeakEssentialAdjointBoundaryConditions(aDatabase); }
+            else
+            { this->enforceStrongEssentialAdjointBoundaryConditions(mJacobianState, tGradientState); }
 
             // solve adjoint system of equations
             constexpr size_t tCYCLE_INDEX = 0;
@@ -4122,10 +4118,10 @@ private:
 
             // compute jacobian with respect to state variables
             mJacobianState = mResidualEvaluator->jacobianState(aDatabase, tCYCLE, /*transpose=*/true);
-            if( mIsStrongEssentialBoundaryCondition )
-            { this->enforceStrongEssentialAdjointBoundaryConditions(mJacobianState, tGradientState); }
-            else
+            if( mWeakEssentialBoundaryConditions )
             { this->enforceWeakEssentialAdjointBoundaryConditions(aDatabase); }
+            else
+            { this->enforceStrongEssentialAdjointBoundaryConditions(mJacobianState, tGradientState); }
 
             // solve adjoint system of equations
             constexpr size_t tCYCLE_INDEX = 0;
@@ -4229,6 +4225,7 @@ TEUCHOS_UNIT_TEST(Morphorm, Elastostatics)
     Plato::ScalarVector tControl("Control", tNumVerts);
     Plato::blas1::fill(1.0, tControl);
     auto tElasticitySolution = tElasticityProblem.solution(tControl);
+    tElasticityProblem.output("output_strong");
 
     // TEST RESULTS
     constexpr Plato::OrdinalType tTimeStep = 0;
@@ -5092,6 +5089,117 @@ TEUCHOS_UNIT_TEST( Morphorm, InternalThermalEnergyGrad_3D_TET4 )
     TEST_ASSERT(tError < 1e-4);
 }
 
+
+TEUCHOS_UNIT_TEST(Morphorm, Elastostatics_Nitsche)
+{
+    // create test mesh
+    //
+    constexpr int tMeshWidth=2;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
+
+    // create input
+    //
+    Teuchos::RCP<Teuchos::ParameterList> tParamList =
+    Teuchos::getParametersFromXmlString(
+      "<ParameterList name='Plato Problem'>                                             \n"
+      "  <ParameterList name='Spatial Model'>                                           \n"
+      "    <ParameterList name='Domains'>                                               \n"
+      "      <ParameterList name='Design Volume'>                                       \n"
+      "        <Parameter name='Element Block' type='string' value='body'/>             \n"
+      "        <Parameter name='Material Model' type='string' value='Unobtainium'/>     \n"
+      "      </ParameterList>                                                           \n"
+      "    </ParameterList>                                                             \n"
+      "  </ParameterList>                                                               \n"
+      "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>              \n"
+      "  <Parameter name='Physics' type='string' value='Mechanical'/>                   \n"
+      "  <Parameter name='Self-Adjoint' type='bool' value='true'/>                      \n"
+      "  <ParameterList name='Elliptic'>                                                \n"
+      "    <ParameterList name='Penalty Function'>                                      \n"
+      "      <Parameter name='Exponent' type='double' value='1.0'/>                     \n"
+      "      <Parameter name='Minimum Value' type='double' value='0.0'/>                \n"
+      "      <Parameter name='Type' type='string' value='SIMP'/>                        \n"
+      "    </ParameterList>                                                             \n"
+      "  </ParameterList>                                                               \n"
+      "  <ParameterList name='Material Models'>                                         \n"
+      "    <ParameterList name='Unobtainium'>                                           \n"
+      "      <ParameterList name='Isotropic Linear Elastic'>                            \n"
+      "        <Parameter name='Poissons Ratio' type='double' value='0.3'/>             \n"
+      "        <Parameter name='Youngs Modulus' type='double' value='1.0e6'/>           \n"
+      "      </ParameterList>                                                           \n"
+      "    </ParameterList>                                                             \n"
+      "  </ParameterList>                                                               \n"
+      "  <ParameterList  name='Natural Boundary Conditions'>                            \n"
+      "    <ParameterList  name='Traction Vector Boundary Condition'>                   \n"
+      "      <Parameter  name='Type'     type='string'        value='Uniform'/>         \n"
+      "      <Parameter  name='Values'   type='Array(double)' value='{1.0, 0.0, 0.0}'/> \n"
+      "      <Parameter  name='Sides'    type='string'        value='x+'/>              \n"
+      "    </ParameterList>                                                             \n"
+      "  </ParameterList>                                                               \n"
+      "  <ParameterList  name='Essential Boundary Conditions'>                          \n"
+      "    <ParameterList  name='X Fixed Displacement Boundary Condition'>              \n"
+      "      <Parameter  name='Type'     type='string' value='Zero Value'/>             \n"
+      "      <Parameter  name='Index'    type='int'    value='0'/>                      \n"
+      "      <Parameter  name='Sides'    type='string' value='x-'/>                     \n"
+      "    </ParameterList>                                                             \n"
+      "    <ParameterList  name='Y Fixed Displacement Boundary Condition'>              \n"
+      "      <Parameter  name='Type'     type='string' value='Zero Value'/>             \n"
+      "      <Parameter  name='Index'    type='int'    value='1'/>                      \n"
+      "      <Parameter  name='Sides'    type='string' value='x-'/>                     \n"
+      "    </ParameterList>                                                             \n"
+      "    <ParameterList  name='Z Fixed Displacement Boundary Condition'>              \n"
+      "      <Parameter  name='Type'     type='string' value='Zero Value'/>             \n"
+      "      <Parameter  name='Index'    type='int'    value='2'/>                      \n"
+      "      <Parameter  name='Sides'    type='string' value='x-'/>                     \n"
+      "    </ParameterList>                                                             \n"
+      "  </ParameterList>                                                               \n"
+      "  <ParameterList  name='Nitsche Boundary Conditions'>                            \n"
+      "    <ParameterList  name='Mechanical Nitsche Boundary Conditions'>                   \n"
+      "      <Parameter  name='Material Model'   type='string' value='Unobtainium'/> \n"
+      "      <Parameter  name='Variable'   type='string' value='displacements'/> \n"
+      "      <Parameter  name='Sides'    type='string'        value='x-'/>              \n"
+      "    </ParameterList>                                                             \n"
+      "  </ParameterList>                                                               \n"
+      "</ParameterList>                                                                 \n"
+    );
+
+    MPI_Comm tMyComm;
+    MPI_Comm_dup(MPI_COMM_WORLD, &tMyComm);
+    Plato::Comm::Machine tMachine(tMyComm);
+
+    Plato::exp::Problem<Plato::exp::PhysicsMechanics<Plato::Tet4>>
+        tElasticityProblem(tMesh, *tParamList, tMachine);
+
+    // SOLVE ELASTOSTATICS EQUATIONS
+    auto tNumVerts = tMesh->NumNodes();
+    Plato::ScalarVector tControl("Control", tNumVerts);
+    Plato::blas1::fill(1.0, tControl);
+    auto tElasticitySolution = tElasticityProblem.solution(tControl);
+    tElasticityProblem.output("output_weak");
+
+    // TEST RESULTS
+    constexpr Plato::OrdinalType tTimeStep = 0;
+    auto tState = tElasticitySolution.get("State");
+    auto tSolution = Kokkos::subview(tState, tTimeStep, Kokkos::ALL());
+    auto tHostSolution = Kokkos::create_mirror_view(tSolution);
+    Kokkos::deep_copy(tHostSolution, tSolution);
+
+    std::vector<Plato::Scalar> tGold =
+        {8.44215e-8, 9.58193e-7, -7.30424e-8, 4.50125e-9,
+         9.61752e-7, -7.46016e-8, -7.46016e-8,
+         9.68308e-7, -7.43541e-8, -1.50715e-7,
+         9.67836e-7, -1.47979e-7, 1.60339e-7,
+         9.65735e-7, -1.47873e-7, 8.41994e-8,
+         9.6498e-7, -1.49664e-7, 4.12353e-9,
+         9.68308e-7, -1.50715e-7, -7.43541e-8,
+         9.79216e-7, -1.52588e-7, -1.52588e-7};
+
+    constexpr Plato::Scalar tTolerance = 1e-4;
+    constexpr Plato::OrdinalType tDofOffset = 350; // comparing only the last 25 dofs
+    for(Plato::OrdinalType tDofIndex=0; tDofIndex < tGold.size(); tDofIndex++)
+    {
+        TEST_FLOATING_EQUALITY(tHostSolution(tDofOffset+tDofIndex), tGold[tDofIndex], tTolerance);
+    }
+}
 
 }
 // namespace IfemTests
