@@ -300,6 +300,8 @@ public:
         }
     }
 
+    template<typename ResultScalarType,
+             typename StrainScalarType>
     KOKKOS_INLINE_FUNCTION void
     operator()
     (const Plato::Matrix<mNumSpatialDims, mNumSpatialDims, StrainScalarType> & aStrainTensor,
@@ -1277,6 +1279,9 @@ private:
     using ResultScalarType = typename EvaluationType::ResultScalarType;
     using ConfigScalarType = typename EvaluationType::ConfigScalarType;
 
+    /*!< strain variables automatic differentiation type */
+    using StrainScalarType = typename Plato::fad_type_t<BodyElementBase,StateScalarType,ConfigScalarType>;
+
     // set member data
     std::shared_ptr<Plato::MaterialModel<mNumSpatialDims>> mMaterial;
 
@@ -1328,14 +1333,6 @@ public:
         ComputeStrainTensor<EvaluationType> tComputeStrainTensor;
         ComputeStressTensor<EvaluationType> tComputeStressTensor(mMaterial.operator*());
         Plato::ComputeGradientMatrix<BodyElementBase> tComputeGradient;
-        /*
-        ComputeSideStressTensors<EvaluationType> tComputeSideStressTensors(mMaterial.operator*());
-        Plato::ScalarArray3DT<ResultScalarType>
-            tStresses("stress",tNumSideCells,mNumSpatialDims,mNumSpatialDims);
-        Plato::ScalarArray3DT<ResultScalarType>
-            tVirtualStresses("virtual stress",tNumSideCells,mNumSpatialDims,mNumSpatialDims);
-        tComputeSideStressTensors(aWorkSets,tSideCellOrdinals,aCycle,tStresses,tVirtualStresses);
-        */
 
         // create surface area functor
         Plato::SurfaceArea<BodyElementBase> tComputeFaceArea;
@@ -1375,28 +1372,47 @@ public:
             for( Plato::OrdinalType tIndex=0; tIndex<mNumNodesPerFace; tIndex++)
             {
                 tFaceLocalNodeOrds(tIndex) = tSideLocalNodeOrds(aSideOrdinal*mNumNodesPerFace+tIndex);
-                //printf("Side Ordinal: %d - Local Node Ordinal: %d\n",aSideOrdinal,tFaceLocalNodeOrds(tIndex));
             }
+
+            // TERM 1
+            //
 
             // compute normal vector weighted by the entity area
             auto tCellOrdinal = tSideCellOrdinals(aSideOrdinal);
             Plato::Array<mNumSpatialDims, ConfigScalarType> tNormalVector;
             tComputeNormalVector(tCellOrdinal,tFaceLocalNodeOrds,tBasisGradsInFaceParentElem,tConfigWS,tNormalVector);
 
+            // compute entity area
+            ConfigScalarType tFaceArea(0.0);
+            tComputeFaceArea(tCellOrdinal,tFaceLocalNodeOrds,tBasisGradsInFaceParentElem,tConfigWS,tFaceArea);
+
+            // compute strains and stresses for this integration point
+            ConfigScalarType tVolume(0.0);
+            Plato::Matrix<mNumNodesPerCell,mNumSpatialDims, ConfigScalarType> tGradient;
+            tComputeGradient(tCellOrdinal,tCubPointOnBodyParentElemSurface,tConfigWS,tGradient,tVolume);
+            Plato::Matrix<mNumSpatialDims,mNumSpatialDims, StrainScalarType>  tStrainTensor(0.0);
+            tComputeStrainTensor(tCellOrdinal,tStateWS, tGradient, tStrainTensor);
+            Plato::Matrix<mNumSpatialDims,mNumSpatialDims, ResultScalarType>  tStressTensor(0.0);
+            tComputeStressTensor(tStrainTensor,tStressTensor);
+
             // term 1: int_{\Gamma_D} \delta{u}\cdot(\sigma\cdot{n}) d\Gamma_D
-            /*for( Plato::OrdinalType tNode=0; tNode<mNumNodesPerFace; tNode++)
+            for( Plato::OrdinalType tNode=0; tNode<mNumNodesPerCell; tNode++)
             {
                 for( Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
                 {
-                    auto tLocalDofOrdinal = ( tFaceLocalNodeOrds[tNode] * mNumSpatialDims ) + tDimI;
+                    auto tLocalDofOrdinal = ( tNode * mNumSpatialDims ) + tDimI;
                     for( Plato::OrdinalType tDimJ=0; tDimJ<mNumSpatialDims; tDimJ++)
                     {
-                        ResultScalarType tValue = -aMultiplier * tFaceBasisValues(tNode) *
-                            ( tStresses(tCellOrdinal,tDimI,tDimJ) * tNormalTimesArea[tDimJ] ) * tFaceCubWeight;
+                        ResultScalarType tValue = -aMultiplier * tBasisValuesOnBodyParentElemSurface(tNode)
+                            * ( tStressTensor(tDimI,tDimJ) * tNormalVector[tDimJ] )
+                            * tCubWeightOnBodyParentElemSurface * tFaceArea;
                         Kokkos::atomic_add(&tResultWS(tCellOrdinal,tLocalDofOrdinal), tValue);
                     }
                 }
-            }*/
+            }
+
+            // TERM 2
+            //
 
             // interpolate state from nodes
             Plato::Array<mNumSpatialDims,StateScalarType> tProjectedStates;
@@ -1411,25 +1427,29 @@ public:
                 }
             }
 
+            Plato::Matrix<mNumSpatialDims,mNumSpatialDims, ConfigScalarType>  tVirtualStrainTensor(0.0);
+            tComputeStrainTensor(tCellOrdinal,tGradient,tVirtualStrainTensor);
+            Plato::Matrix<mNumSpatialDims,mNumSpatialDims, ConfigScalarType>  tVirtualStressTensor(0.0);
+            tComputeStressTensor(tVirtualStrainTensor,tVirtualStressTensor);
+
             // term 2: int_{\Gamma_D} \delta(\sigma\cdot{n})\cdot(u - u_D) d\Gamma_D
-            /*for( Plato::OrdinalType tNode=0; tNode<mNumNodesPerFace; tNode++)
+            for( Plato::OrdinalType tNode=0; tNode<mNumNodesPerCell; tNode++)
             {
                 for( Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
                 {
-                    auto tLocalDofOrdinal = ( tFaceLocalNodeOrds[tNode] * mNumSpatialDims ) + tDimI;
+                    auto tLocalDofOrdinal = ( tNode * mNumSpatialDims ) + tDimI;
                     for( Plato::OrdinalType tDimJ=0; tDimJ<mNumSpatialDims; tDimJ++)
                     {
-                        ResultScalarType tValue = aMultiplier * tFaceCubWeight *
-                            ( tVirtualStresses(tCellOrdinal,tDimI,tDimJ) * tNormalTimesArea[tDimJ] ) *
-                            ( tProjectedStates[tDimI] - tDirichletWS(tCellOrdinal,tLocalDofOrdinal) );
+                        ResultScalarType tValue = aMultiplier * tCubWeightOnBodyParentElemSurface
+                            * tFaceArea * ( tVirtualStressTensor(tDimI,tDimJ) * tNormalVector[tDimJ] )
+                            * ( tProjectedStates[tDimI] - tDirichletWS(tCellOrdinal,tLocalDofOrdinal) );
                         Kokkos::atomic_add(&tResultWS(tCellOrdinal,tLocalDofOrdinal), tValue);
                     }
                 }
-            }*/
+            }
 
-            // compute entity area
-            ConfigScalarType tFaceArea(0.0);
-            tComputeFaceArea(tCellOrdinal,tFaceLocalNodeOrds,tBasisGradsInFaceParentElem,tConfigWS,tFaceArea);
+            // TERM 3
+            //
 
             // term 3: int_{\Gamma_D}\gamma_N^u \delta{u}\cdot(u - u_D) d\Gamma_D
             ConfigScalarType tGamma = tNitschePenaltyTimesModulus / tCharacteristicLength(aSideOrdinal);
