@@ -1221,6 +1221,142 @@ TEUCHOS_UNIT_TEST( Quad4, BasisFunctionGradients )
 
 /******************************************************************************/
 /*! 
+  \brief Check the Bar3 constants
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Bar3, Bar3_Constants )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Bar3>;
+
+    constexpr auto tSpaceDims     = ElementType::mNumSpatialDims;
+    constexpr auto tNodesPerCell  = ElementType::mNumNodesPerCell;
+    constexpr auto tNodesPerFace = ElementType::mNumNodesPerFace;
+    constexpr auto tNumGaussPoints = ElementType::mNumGaussPoints;
+    constexpr auto mNumSpatialDimsOnFace = ElementType::mNumSpatialDimsOnFace;
+
+    TEST_ASSERT(tNodesPerCell == 3 );
+    TEST_ASSERT(tNodesPerFace == 1 );
+    TEST_ASSERT(tSpaceDims     == 1 );
+    TEST_ASSERT(tNumGaussPoints == 3 );
+    TEST_ASSERT(mNumSpatialDimsOnFace == 0 );
+}
+
+/******************************************************************************/
+/*!
+  \brief Check the MechanicsElement<Bar3> constants
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Bar3, MechanicsBar3_Constants )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Bar3>;
+
+    constexpr auto tNodesPerCell  = ElementType::mNumNodesPerCell;
+    constexpr auto tNodesPerFace  = ElementType::mNumNodesPerFace;
+    constexpr auto tDofsPerCell   = ElementType::mNumDofsPerCell;
+    constexpr auto tDofsPerNode   = ElementType::mNumDofsPerNode;
+    constexpr auto tSpaceDims     = ElementType::mNumSpatialDims;
+    constexpr auto tNumVoigtTerms = ElementType::mNumVoigtTerms;
+
+    TEST_ASSERT(tNodesPerCell  == 3 );
+    TEST_ASSERT(tNodesPerFace  == 1 );
+    TEST_ASSERT(tDofsPerCell   == 3 );
+    TEST_ASSERT(tDofsPerNode   == 1 );
+    TEST_ASSERT(tSpaceDims     == 1 );
+    TEST_ASSERT(tNumVoigtTerms == 1 );
+}
+
+/******************************************************************************/
+/*!
+  \brief Evaluate the Bar3 basis functions at each node location.
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Bar3, Bar3_BasisFunctions )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Bar3>;
+
+    Plato::ScalarMultiVector tValuesView("basis values",
+                                         ElementType::mNumNodesPerCell,
+                                         ElementType::mNumNodesPerCell);
+
+    Plato::Matrix<ElementType::mNumNodesPerCell,ElementType::mNumSpatialDims>
+        tPoints = { -1.0, 0.0, 1.0 };
+
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int ordinal)
+    {
+        for(ordType I=0; I<ElementType::mNumNodesPerCell; I++)
+        {
+            auto tValues = ElementType::basisValues(tPoints(I));
+            for(ordType i=0; i<ElementType::mNumNodesPerCell; i++)
+            {
+                tValuesView(I,i) = tValues(i);
+            }
+        }
+    }, "basis functions");
+
+    auto tValuesHost = Kokkos::create_mirror_view( tValuesView );
+    Kokkos::deep_copy( tValuesHost, tValuesView );
+
+    for(int i=0; i<ElementType::mNumNodesPerCell; i++)
+    {
+        for(int j=0; j<ElementType::mNumNodesPerCell; j++)
+        {
+            if ( i==j )
+            {
+                TEST_ASSERT(tValuesHost(i,j) == 1);
+            } else {
+                TEST_ASSERT(tValuesHost(i,j) == 0);
+            }
+        }
+    }
+}
+/******************************************************************************/
+/*!
+  \brief Evaluate the Bar2 basis function gradients at (0.25, 0.25)
+*/
+/******************************************************************************/
+TEUCHOS_UNIT_TEST( Bar3, Bar3_BasisFunctionGradients )
+{
+    using ElementType = typename Plato::MechanicsElement<Plato::Bar3>;
+
+    Plato::ScalarMultiVector tGradsView("basis grads",
+                                        ElementType::mNumNodesPerCell,
+                                        ElementType::mNumSpatialDims);
+
+    Kokkos::parallel_for(Kokkos::RangePolicy<int>(0,1), KOKKOS_LAMBDA(int ordinal)
+    {
+        Plato::Array<ElementType::mNumSpatialDims> tPoint;
+
+        tPoint(0) = 0.25;
+        auto tGrads = ElementType::basisGrads(tPoint);
+        for(ordType i=0; i<ElementType::mNumNodesPerCell; i++)
+        {
+            for(ordType j=0; j<ElementType::mNumSpatialDims; j++)
+            {
+                tGradsView(i,j) = tGrads(i,j);
+            }
+        }
+    }, "basis function derivatives");
+
+    auto tGradsHost = Kokkos::create_mirror_view( tGradsView );
+    Kokkos::deep_copy( tGradsHost, tGradsView );
+
+    std::vector<std::vector<Plato::Scalar>> tGradsGold =
+            { {Plato::Scalar(-1.0)/4}, { Plato::Scalar(-1.0)/2} , {Plato::Scalar(3.0)/4}};
+
+    int tNumGold_I=tGradsGold.size();
+    for(int i=0; i<tNumGold_I; i++)
+    {
+        int tNumGold_J=tGradsGold[0].size();
+        for(int j=0; j<tNumGold_J; j++)
+        {
+            TEST_FLOATING_EQUALITY(tGradsHost(i,j), tGradsGold[i][j], 1e-13);
+        }
+    }
+}
+
+/******************************************************************************/
+/*!
   \brief Check the Bar2 constants
 */
 /******************************************************************************/

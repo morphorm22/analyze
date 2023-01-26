@@ -34,7 +34,7 @@ class Bar3
     {
         constexpr Plato::Scalar tW1 = Plato::Scalar(5.0)/9;
         constexpr Plato::Scalar tW2 = Plato::Scalar(8.0)/9;
-        return Plato::Array<mNumGaussPoints>( {tW1, tW1, tW2} );
+        return Plato::Array<mNumGaussPoints>( {tW1, tW2, tW1} );
     }
 
     static inline Plato::Matrix<mNumGaussPoints,mNumSpatialDims>
@@ -42,7 +42,7 @@ class Bar3
     {
         constexpr Plato::Scalar tPt1 = 0.77459666924148340427791481488384; // sqrt(3.0/5.0)
         constexpr Plato::Scalar tPt2 = 0.0;
-        return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>( {tPt1, -tPt1, tPt2} );
+        return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>( {-tPt1, tPt2, tPt1} );
     }
 
     KOKKOS_INLINE_FUNCTION static Plato::Array<mNumNodesPerCell>
@@ -55,8 +55,8 @@ class Bar3
         constexpr Plato::Scalar tHalf = 0.5;
         constexpr Plato::Scalar tOne  = 1.0;
         tN(0) = tHalf * ( x*x - x );
-        tN(1) = tHalf * ( x*x + x );
-        tN(2) = ( tOne - x*x );
+        tN(1) = ( tOne - x*x );
+        tN(2) = tHalf * ( x*x + x );
 
         return tN;
     }
@@ -72,8 +72,8 @@ class Bar3
         constexpr Plato::Scalar tOne  = 1.0;
         constexpr Plato::Scalar tTwo  = 2.0;
         tG(0,0) = tHalf * ( tTwo*x - tOne );
-        tG(1,0) = tHalf * ( tTwo*x + tOne );
-        tG(2,0) = -tTwo*x;
+        tG(1,0) = -tTwo*x;
+        tG(2,0) = tHalf * ( tTwo*x + tOne );
 
         return tG;
     }

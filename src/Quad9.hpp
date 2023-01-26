@@ -58,10 +58,10 @@ class Quad9
         constexpr Plato::Scalar tPt2 = 0.0;
         constexpr Plato::Scalar tOne = 1.0;
         return Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>({
-            /*GP1=*/tPt1,-tOne, /*GP2=*/-tPt1,-tOne, /*GP3=*/tPt2,-tOne,
-            /*GP1=*/tOne,tPt1,  /*GP2=*/tOne,-tPt1,  /*GP3=*/tOne,tPt2,
-            /*GP1=*/tPt1,tOne,  /*GP2=*/-tPt1,tOne,  /*GP3=*/tPt2,tOne,
-            /*GP1=*/-tOne,tPt1, /*GP2=*/-tOne,-tPt1, /*GP3=*/-tOne,tPt2
+            /*GP1=*/-tPt1,-tOne, /*GP2=*/ tPt2,-tOne, /*GP3=*/ tPt1,-tOne,
+            /*GP1=*/ tOne,-tPt1, /*GP2=*/ tOne, tPt2, /*GP3=*/ tOne,tPt1,
+            /*GP1=*/-tPt1,tOne , /*GP2=*/ tPt2, tOne, /*GP3=*/ tPt1,tOne,
+            /*GP1=*/-tOne,-tPt1, /*GP2=*/-tOne, tPt2, /*GP3=*/-tOne,tPt1
         });
     }
 
