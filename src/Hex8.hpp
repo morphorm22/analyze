@@ -61,12 +61,12 @@ class Hex8
         constexpr Plato::Scalar tOne = 1.0;
         constexpr Plato::Scalar tSqt  = 0.57735026918962584208117050366127; // sqrt(1.0/3.0)
         return Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>({
-            /*GP1=*/-tSqt,tOne,-tSqt,  /*GP2=*/tSqt,tOne,-tSqt,  /*GP3=*/tSqt,tOne,tSqt,  /*GP4=*/-tSqt,tOne,tSqt ,
-            /*GP1=*/-tOne,-tSqt,-tSqt, /*GP2=*/-tOne,tSqt,-tSqt, /*GP3=*/-tOne,tSqt,tSqt, /*GP4=*/-tOne,-tSqt,tSqt,
             /*GP1=*/-tSqt,-tOne,-tSqt, /*GP2=*/tSqt,-tOne,-tSqt, /*GP3=*/tSqt,-tOne,tSqt, /*GP4=*/-tSqt,-tOne,tSqt,
             /*GP1=*/tOne,-tSqt,-tSqt,  /*GP2=*/tOne,tSqt,-tSqt,  /*GP3=*/tOne,tSqt,tSqt,  /*GP4=*/tOne,-tSqt,tSqt ,
-            /*GP1=*/-tSqt,-tSqt,tOne,  /*GP2=*/tSqt,-tSqt,tOne,  /*GP3=*/tSqt,tSqt,tOne,  /*GP4=*/-tSqt,tSqt,tOne ,
-            /*GP1=*/-tSqt,-tSqt,-tOne, /*GP2=*/tSqt,-tSqt,-tOne, /*GP3=*/tSqt,tSqt,-tOne, /*GP4=*/-tSqt,tSqt,-tOne
+            /*GP1=*/-tSqt,tOne,-tSqt,  /*GP2=*/tSqt,tOne,-tSqt,  /*GP3=*/tSqt,tOne,tSqt,  /*GP4=*/-tSqt,tOne,tSqt ,
+            /*GP1=*/-tOne,-tSqt,-tSqt, /*GP2=*/-tOne,tSqt,-tSqt, /*GP3=*/-tOne,tSqt,tSqt, /*GP4=*/-tOne,-tSqt,tSqt,
+            /*GP1=*/-tSqt,-tSqt,-tOne, /*GP2=*/tSqt,-tSqt,-tOne, /*GP3=*/tSqt,tSqt,-tOne, /*GP4=*/-tSqt,tSqt,-tOne,
+            /*GP1=*/-tSqt,-tSqt,tOne,  /*GP2=*/tSqt,-tSqt,tOne,  /*GP3=*/tSqt,tSqt,tOne,  /*GP4=*/-tSqt,tSqt,tOne
         });
     }
 

@@ -54,10 +54,10 @@ class Quad4
         constexpr Plato::Scalar tOne = 1.0;
         constexpr Plato::Scalar tSqt  = 0.57735026918962584208117050366127; // sqrt(1.0/3.0)
         return Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>({
-            /*GP1=*/-tSqt,tOne , /*GP2=*/tSqt,tOne ,
-            /*GP1=*/-tOne,-tSqt, /*GP2=*/-tOne,tSqt,
             /*GP1=*/-tSqt,-tOne, /*GP2=*/tSqt,-tOne,
-            /*GP1=*/tOne,-tSqt , /*GP2=*/tOne,tSqt
+            /*GP1=*/ tOne,-tSqt, /*GP2=*/ tOne,tSqt,
+            /*GP1=*/-tSqt, tOne, /*GP2=*/ tSqt, tOne,
+            /*GP1=*/-tOne,-tSqt, /*GP2=*/-tOne,tSqt
         });
     }
 

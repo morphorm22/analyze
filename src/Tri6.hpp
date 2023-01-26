@@ -87,7 +87,7 @@ class Tri6
     {
         constexpr Plato::Scalar tW1 = Plato::Scalar(5.0)/18;
         constexpr Plato::Scalar tW2 = Plato::Scalar(8.0)/18;
-        return Plato::Array<mNumGaussPointsPerFace>( {tW1, tW1, tW2} );
+        return Plato::Array<mNumGaussPointsPerFace>( {tW1, tW2, tW1} );
     }
 
     KOKKOS_INLINE_FUNCTION static Plato::Array<mNumNodesPerCell>

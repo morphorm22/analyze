@@ -230,24 +230,24 @@ TEUCHOS_UNIT_TEST( Hex27, MechanicsHex27_FaceCubPoints )
     constexpr Plato::Scalar tPt   = 0.77459666924148340427791481488384; // sqrt(3.0/5.0)
     std::vector<std::vector<Plato::Scalar>> tGold =
         {
-            {/*GP1=*/-tPt,tOne,-tPt,    /*GP2=*/tZero,tOne,-tPt,  /*GP3=*/tPt,tOne,-tPt,
-              /*GP4=*/-tPt,tOne,tZero,  /*GP5=*/tZero,tOne,tZero, /*GP6=*/tPt,tOne,tZero,
-              /*GP7=*/-tPt,tOne,tPt,    /*GP8=*/tZero,tOne,tPt,   /*GP9=*/tPt,tOne,tPt},
-            {/*GP1=*/-tOne,-tPt,-tPt,    /*GP2=*/-tOne,tZero,-tPt,  /*GP3=*/-tOne,tPt,-tPt,
-              /*GP4=*/-tOne,-tPt,tZero,  /*GP5=*/-tOne,tZero,tZero, /*GP6=*/-tOne,tPt,tZero,
-              /*GP7=*/-tOne,-tPt,tPt,    /*GP8=*/-tOne,tZero,tPt,   /*GP9=*/-tOne,tPt,tPt},
             {/*GP1=*/-tPt,-tOne,-tPt,    /*GP2=*/tZero,-tOne,-tPt,  /*GP3=*/tPt,-tOne,-tPt,
               /*GP4=*/-tPt,-tOne,tZero,  /*GP5=*/tZero,-tOne,tZero, /*GP6=*/tPt,-tOne,tZero,
               /*GP7=*/-tPt,-tOne,tPt,    /*GP8=*/tZero,-tOne,tPt,   /*GP9=*/tPt,-tOne,tPt},
             {/*GP1=*/tOne,-tPt,-tPt,    /*GP2=*/tOne,tZero,-tPt,  /*GP3=*/tOne,tPt,-tPt,
               /*GP4=*/tOne,-tPt,tZero,  /*GP5=*/tOne,tZero,tZero, /*GP6=*/tOne,tPt,tZero,
               /*GP7=*/tOne,-tPt,tPt,    /*GP8=*/tOne,tZero,tPt,   /*GP9=*/tOne,tPt,tPt},
+            {/*GP1=*/-tPt,tOne,-tPt,    /*GP2=*/tZero,tOne,-tPt,  /*GP3=*/tPt,tOne,-tPt,
+              /*GP4=*/-tPt,tOne,tZero,  /*GP5=*/tZero,tOne,tZero, /*GP6=*/tPt,tOne,tZero,
+              /*GP7=*/-tPt,tOne,tPt,    /*GP8=*/tZero,tOne,tPt,   /*GP9=*/tPt,tOne,tPt},
+            {/*GP1=*/-tOne,-tPt,-tPt,    /*GP2=*/-tOne,tZero,-tPt,  /*GP3=*/-tOne,tPt,-tPt,
+              /*GP4=*/-tOne,-tPt,tZero,  /*GP5=*/-tOne,tZero,tZero, /*GP6=*/-tOne,tPt,tZero,
+              /*GP7=*/-tOne,-tPt,tPt,    /*GP8=*/-tOne,tZero,tPt,   /*GP9=*/-tOne,tPt,tPt},
+            {/*GP1=*/-tPt,-tPt,-tOne,    /*GP2=*/tZero,-tPt,-tOne,  /*GP3=*/tPt,-tPt,-tOne,
+              /*GP4=*/-tPt,tZero,-tOne,  /*GP5=*/tZero,tZero,-tOne, /*GP6=*/tPt,tZero,-tOne,
+              /*GP7=*/-tPt,tPt,-tOne,    /*GP8=*/tZero,tPt,-tOne,   /*GP9=*/tPt,tPt,-tOne},
             {/*GP1=*/-tPt,-tPt,tOne,    /*GP2=*/tZero,-tPt,tOne,  /*GP3=*/tPt,-tPt,tOne,
               /*GP4=*/-tPt,tZero,tOne,  /*GP5=*/tZero,tZero,tOne, /*GP6=*/tPt,tZero,tOne,
               /*GP7=*/-tPt,tPt,tOne,    /*GP8=*/tZero,tPt,tOne,   /*GP9=*/tPt,tPt,tOne},
-            {/*GP1=*/-tPt,-tPt,-tOne,    /*GP2=*/tZero,-tPt,-tOne,  /*GP3=*/tPt,-tPt,-tOne,
-              /*GP4=*/-tPt,tZero,-tOne,  /*GP5=*/tZero,tZero,-tOne, /*GP6=*/tPt,tZero,-tOne,
-              /*GP7=*/-tPt,tPt,-tOne,    /*GP8=*/tZero,tPt,-tOne,   /*GP9=*/tPt,tPt,-tOne}
         };
 
     Plato::ScalarMultiVector tValuesView("cubature points",
@@ -501,7 +501,7 @@ TEUCHOS_UNIT_TEST( Hex8, MechanicsHex8_Constants )
    element surfaces
 */
 /******************************************************************************/
-TEUCHOS_UNIT_TEST( Hex27, MechanicsHex8_FaceCubPoints )
+TEUCHOS_UNIT_TEST( Hex8, MechanicsHex8_FaceCubPoints )
 {
     using ElementType = typename Plato::MechanicsElement<Plato::Hex8>;
 
@@ -511,12 +511,12 @@ TEUCHOS_UNIT_TEST( Hex27, MechanicsHex8_FaceCubPoints )
     constexpr Plato::Scalar tPt   = 0.57735026918962584208117050366127; // sqrt(1.0/3.0)
     std::vector<std::vector<Plato::Scalar>> tGold =
         {
-            {/*GP1=*/-tPt,tOne,-tPt,  /*GP2=*/tPt,tOne,-tPt,  /*GP3=*/tPt,tOne,tPt,  /*GP4=*/-tPt,tOne,tPt},
-            {/*GP1=*/-tOne,-tPt,-tPt, /*GP2=*/-tOne,tPt,-tPt, /*GP3=*/-tOne,tPt,tPt, /*GP4=*/-tOne,-tPt,tPt},
             {/*GP1=*/-tPt,-tOne,-tPt, /*GP2=*/tPt,-tOne,-tPt, /*GP3=*/tPt,-tOne,tPt, /*GP4=*/-tPt,-tOne,tPt},
             {/*GP1=*/tOne,-tPt,-tPt,  /*GP2=*/tOne,tPt,-tPt,  /*GP3=*/tOne,tPt,tPt,  /*GP4=*/tOne,-tPt,tPt},
-            {/*GP1=*/-tPt,-tPt,tOne,  /*GP2=*/tPt,-tPt,tOne,  /*GP3=*/tPt,tPt,tOne,  /*GP4=*/-tPt,tPt,tOne},
-            {/*GP1=*/-tPt,-tPt,-tOne, /*GP2=*/tPt,-tPt,-tOne, /*GP3=*/tPt,tPt,-tOne, /*GP4=*/-tPt,tPt,-tOne}
+            {/*GP1=*/-tPt,tOne,-tPt,  /*GP2=*/tPt,tOne,-tPt,  /*GP3=*/tPt,tOne,tPt,  /*GP4=*/-tPt,tOne,tPt},
+            {/*GP1=*/-tOne,-tPt,-tPt, /*GP2=*/-tOne,tPt,-tPt, /*GP3=*/-tOne,tPt,tPt, /*GP4=*/-tOne,-tPt,tPt},
+            {/*GP1=*/-tPt,-tPt,-tOne, /*GP2=*/tPt,-tPt,-tOne, /*GP3=*/tPt,tPt,-tOne, /*GP4=*/-tPt,tPt,-tOne},
+            {/*GP1=*/-tPt,-tPt,tOne,  /*GP2=*/tPt,-tPt,tOne,  /*GP3=*/tPt,tPt,tOne,  /*GP4=*/-tPt,tPt,tOne}
         };
 
     Plato::ScalarMultiVector tValuesView("cubature points",
@@ -810,10 +810,10 @@ TEUCHOS_UNIT_TEST( Quad9, Quad9_FaceCubPoints )
     constexpr Plato::Scalar tOne = 1.0;
     std::vector<std::vector<Plato::Scalar>> tGold =
         {
-            {/*GP1=*/ tPt1,-tOne, /*GP2=*/-tPt1,-tOne, /*GP3=*/tPt2,-tOne},
-            {/*GP1=*/ tOne,tPt1 , /*GP2=*/tOne,-tPt1 , /*GP3=*/tOne,tPt2 },
-            {/*GP1=*/ tPt1,tOne , /*GP2=*/-tPt1,tOne , /*GP3=*/tPt2 ,tOne},
-            {/*GP1=*/-tOne,tPt1 , /*GP2=*/-tOne,-tPt1, /*GP3=*/-tOne,tPt2}
+            {/*GP1=*/-tPt1,-tOne, /*GP2=*/tPt2,-tOne, /*GP3=*/ tPt1,-tOne},
+            {/*GP1=*/ tOne,-tPt1, /*GP2=*/tOne,tPt2 , /*GP3=*/ tOne, tPt1},
+            {/*GP1=*/-tPt1, tOne, /*GP2=*/tPt2 ,tOne, /*GP3=*/ tPt1, tOne},
+            {/*GP1=*/-tOne,-tPt1, /*GP2=*/-tOne,tPt2, /*GP3=*/-tOne, tPt1}
         };
 
     Plato::ScalarMultiVector tValuesView("cubature points",
@@ -856,7 +856,7 @@ TEUCHOS_UNIT_TEST( Quad9, Quad9_FaceCubWeights )
 
     constexpr Plato::Scalar tW1 = Plato::Scalar(5.0)/9;
     constexpr Plato::Scalar tW2 = Plato::Scalar(8.0)/9;
-    std::vector<Plato::Scalar> tGold = {tW1,tW1,tW2};
+    std::vector<Plato::Scalar> tGold = {tW1,tW2,tW1};
 
     Plato::ScalarVector tValuesView("cubature weights",ElementType::mNumGaussPointsPerFace);
 
@@ -1064,10 +1064,10 @@ TEUCHOS_UNIT_TEST( Quad4, MechanicsQuad4_FaceCubPoints )
     constexpr Plato::Scalar tOne = 1.0;
     std::vector<std::vector<Plato::Scalar>> tGold =
         {
-            {/*GP1=*/-tPt1,  tOne, /*GP2=*/ tPt1,tOne  },
-            {/*GP1=*/-tOne,-tPt1 , /*GP2=*/-tOne,tPt1  },
-            {/*GP1=*/-tPt1, -tOne, /*GP2=*/ tPt1,-tOne },
-            {/*GP1=*/ tOne,-tPt1 , /*GP2=*/ tOne,tPt1  }
+            { /*GP1=*/-tPt1,-tOne, /*GP2=*/ tPt1,-tOne },
+            { /*GP1=*/ tOne,-tPt1, /*GP2=*/ tOne, tPt1 },
+            { /*GP1=*/-tPt1, tOne, /*GP2=*/ tPt1, tOne },
+            { /*GP1=*/-tOne,-tPt1, /*GP2=*/-tOne, tPt1 }
         };
 
     Plato::ScalarMultiVector tValuesView("cubature points",
@@ -1918,7 +1918,7 @@ TEUCHOS_UNIT_TEST( Tri6, Tri6_FaceCubWeights )
 
     auto tFaceCubWeights = ElementType::getFaceCubWeights();
 
-    std::vector<Plato::Scalar> tGold = {5.0/18,5.0/18,8.0/18};
+    std::vector<Plato::Scalar> tGold = {5.0/18,8.0/18,5.0/18};
 
     Plato::ScalarVector tValuesView("cubature weights",ElementType::mNumGaussPointsPerFace);
 

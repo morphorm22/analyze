@@ -70,24 +70,24 @@ class Hex27
         constexpr Plato::Scalar tZero = 0.0;
         constexpr Plato::Scalar tPt   = 0.77459666924148340427791481488384; // sqrt(3.0/5.0)
         return Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>({
-            /*GP1=*/-tPt,tOne,-tPt,       /*GP2=*/tZero,tOne,-tPt,   /*GP3=*/tPt,tOne,-tPt,
-                /*GP4=*/-tPt,tOne,tZero,  /*GP5=*/tZero,tOne,tZero,  /*GP6=*/tPt,tOne,tZero,
-                /*GP7=*/-tPt,tOne,tPt,    /*GP8=*/tZero,tOne,tPt,    /*GP9=*/tPt,tOne,tPt,
-            /*GP1=*/-tOne,-tPt,-tPt,      /*GP2=*/-tOne,tZero,-tPt,  /*GP3=*/-tOne,tPt,-tPt,
-                /*GP4=*/-tOne,-tPt,tZero, /*GP5=*/-tOne,tZero,tZero, /*GP6=*/-tOne,tPt,tZero,
-                /*GP7=*/-tOne,-tPt,tPt,   /*GP8=*/-tOne,tZero,tPt,   /*GP9=*/-tOne,tPt,tPt,
             /*GP1=*/-tPt,-tOne,-tPt,      /*GP2=*/tZero,-tOne,-tPt,  /*GP3=*/tPt,-tOne,-tPt,
                 /*GP4=*/-tPt,-tOne,tZero, /*GP5=*/tZero,-tOne,tZero, /*GP6=*/tPt,-tOne,tZero,
                 /*GP7=*/-tPt,-tOne,tPt,   /*GP8=*/tZero,-tOne,tPt,   /*GP9=*/tPt,-tOne,tPt,
             /*GP1=*/tOne,-tPt,-tPt,       /*GP2=*/tOne,tZero,-tPt,   /*GP3=*/tOne,tPt,-tPt,
                 /*GP4=*/tOne,-tPt,tZero,  /*GP5=*/tOne,tZero,tZero,  /*GP6=*/tOne,tPt,tZero,
                 /*GP7=*/tOne,-tPt,tPt,    /*GP8=*/tOne,tZero,tPt,    /*GP9=*/tOne,tPt,tPt,
-            /*GP1=*/-tPt,-tPt,tOne,       /*GP2=*/tZero,-tPt,tOne,   /*GP3=*/tPt,-tPt,tOne,
-                /*GP4=*/-tPt,tZero,tOne,  /*GP5=*/tZero,tZero,tOne,  /*GP6=*/tPt,tZero,tOne,
-                /*GP7=*/-tPt,tPt,tOne,    /*GP8=*/tZero,tPt,tOne,    /*GP9=*/tPt,tPt,tOne,
+            /*GP1=*/-tPt,tOne,-tPt,       /*GP2=*/tZero,tOne,-tPt,   /*GP3=*/tPt,tOne,-tPt,
+                /*GP4=*/-tPt,tOne,tZero,  /*GP5=*/tZero,tOne,tZero,  /*GP6=*/tPt,tOne,tZero,
+                /*GP7=*/-tPt,tOne,tPt,    /*GP8=*/tZero,tOne,tPt,    /*GP9=*/tPt,tOne,tPt,
+            /*GP1=*/-tOne,-tPt,-tPt,      /*GP2=*/-tOne,tZero,-tPt,  /*GP3=*/-tOne,tPt,-tPt,
+                /*GP4=*/-tOne,-tPt,tZero, /*GP5=*/-tOne,tZero,tZero, /*GP6=*/-tOne,tPt,tZero,
+                /*GP7=*/-tOne,-tPt,tPt,   /*GP8=*/-tOne,tZero,tPt,   /*GP9=*/-tOne,tPt,tPt,
             /*GP1=*/-tPt,-tPt,-tOne,      /*GP2=*/tZero,-tPt,-tOne,  /*GP3=*/tPt,-tPt,-tOne,
                 /*GP4=*/-tPt,tZero,-tOne, /*GP5=*/tZero,tZero,-tOne, /*GP6=*/tPt,tZero,-tOne,
-                /*GP7=*/-tPt,tPt,-tOne,   /*GP8=*/tZero,tPt,-tOne,   /*GP9=*/tPt,tPt,-tOne
+                /*GP7=*/-tPt,tPt,-tOne,   /*GP8=*/tZero,tPt,-tOne,   /*GP9=*/tPt,tPt,-tOne,
+            /*GP1=*/-tPt,-tPt,tOne,       /*GP2=*/tZero,-tPt,tOne,   /*GP3=*/tPt,-tPt,tOne,
+                /*GP4=*/-tPt,tZero,tOne,  /*GP5=*/tZero,tZero,tOne,  /*GP6=*/tPt,tZero,tOne,
+                /*GP7=*/-tPt,tPt,tOne,    /*GP8=*/tZero,tPt,tOne,    /*GP9=*/tPt,tPt,tOne
         });
     }
 

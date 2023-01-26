@@ -72,7 +72,8 @@ class Tri3
      *     the element edge defined on integration domain 0<=t<=1. The length
      *     of the edge equals one. Therefore, the Gauss weights are derived by
      *     applying a factor of 0.5 to the Gauss weights for a Bar2 element defined
-     *     on integration domain -1<=t<=1.
+     *     on integration domain -1<=t<=1. The sum of the weights must equal
+     *     the length of the bar element, i.e., 1.0.
     */
     /******************************************************************************/
     static inline Plato::Array<mNumGaussPointsPerFace>

@@ -36,19 +36,20 @@ class Tet4
     static inline Plato::Matrix<mNumGaussPoints,mNumSpatialDims>
     getCubPoints()
     {
-        return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>({
-            Plato::Scalar(1.0)/4, Plato::Scalar(1.0)/4, Plato::Scalar(1.0)/4
-        });
+        constexpr Plato::Scalar tPt = Plato::Scalar(1.0)/4;
+        return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>( {tPt, tPt, tPt} );
     }
 
     static inline Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>
     getFaceCubPoints()
     {
+        constexpr Plato::Scalar tZero = 0.0;
+        constexpr Plato::Scalar tPt = Plato::Scalar(1.0)/3;
         return Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>({
-            Plato::Scalar(1.0)/3, Plato::Scalar(0.0), Plato::Scalar(1.0)/3,
-            Plato::Scalar(1.0)/3, Plato::Scalar(1.0)/3, Plato::Scalar(1.0)/3,
-            Plato::Scalar(0.0), Plato::Scalar(1.0)/3, Plato::Scalar(1.0)/3,
-            Plato::Scalar(1.0)/3, Plato::Scalar(1.0)/3, Plato::Scalar(0.0)
+            /*GP1=*/tPt  , tZero, tPt,/*Face 1*/
+            /*GP1=*/tPt  , tPt  , tPt,/*Face 2*/
+            /*GP1=*/tZero, tPt  , tPt,/*Face 3*/
+            /*GP1=*/tPt  , tPt  , tZero/*Face 4*/
         });
     }
 
