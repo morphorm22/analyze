@@ -427,7 +427,7 @@ public:
         auto tStateWS   = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>( aWorkSets.get("states"));
         auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>( aWorkSets.get("configuration"));
 
-        // get element integration points and weights
+        // get element quadrature points and weights
         auto tCubPoints = ElementType::getCubPoints();
         auto tCubWeights = ElementType::getCubWeights();
         auto tNumPoints = tCubWeights.size();
@@ -435,33 +435,33 @@ public:
         Kokkos::parallel_for("compute elastostatic residual", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumSideCells, tNumPoints}),
         KOKKOS_LAMBDA(const Plato::OrdinalType aSideOrdinal, const Plato::OrdinalType aGpOrdinal)
         {
-            // get integration point
+            // get quadrature point
             auto tCubPoint = tCubPoints(aGpOrdinal);
 
             // get cell ordinal
             auto tCellOrdinal = aSideCellOrdinals(aSideOrdinal);
 
-            // compute cell gradients and volume at this integration point
+            // compute cell gradients and volume at this quadrature point
             ConfigScalarType tVolume(0.0);
             Plato::Matrix<mNumNodesPerCell,mNumSpatialDims, ConfigScalarType> tGradient;
             tComputeGradient(tCellOrdinal,tCubPoint,tConfigWS,tGradient,tVolume);
 
-            // compute strains and stresses at this integration point
+            // compute strains and stresses at this quadrature point
             Plato::Matrix<mNumSpatialDims,mNumSpatialDims, StrainScalarType>  tStrainTensor(0.0);
             Plato::Matrix<mNumSpatialDims,mNumSpatialDims, ResultScalarType>  tStressTensor(0.0);
             tComputeStrainTensor(tCellOrdinal,tStateWS,tGradient,tStrainTensor);
             tComputeStressTensor(tStrainTensor,tStressTensor);
 
-            // compute virtual strains and stresses at this integration point
+            // compute virtual strains and stresses at this quadrature point
             Plato::Matrix<mNumSpatialDims,mNumSpatialDims, StrainScalarType>  tVirtualStrainTensor(0.0);
             Plato::Matrix<mNumSpatialDims,mNumSpatialDims, ResultScalarType>  tVirtualStressTensor(0.0);
             tComputeStrainTensor(tCellOrdinal,tGradient,tVirtualStrainTensor);
             tComputeStressTensor(tVirtualStrainTensor,tVirtualStressTensor);
 
-            // add contribution to volume from this integration point
+            // add contribution to volume from this quadrature point
             tVolume *= tCubWeights(aGpOrdinal);
 
-            // compute cell stress and strain: aggregate stress and strain contribution from each integration point
+            // compute cell stress and strain: aggregate stress and strain contribution from each quadrature point
             for(Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
             {
                 for(Plato::OrdinalType tDimJ=0; tDimJ<mNumSpatialDims; tDimJ++)
@@ -626,7 +626,7 @@ public:
         auto tResultWS  = Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
         auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>(aWorkSets.get("controls"));
 
-        // get integration points and weights
+        // get quadrature points and weights
         auto tCubPoints  = ElementType::getCubPoints();
         auto tCubWeights = ElementType::getCubWeights();
         auto tNumPoints  = tCubWeights.size();
@@ -866,7 +866,7 @@ public:
         // local functor - calculate normal vector
         Plato::WeightedNormalVector<ElementType> tWeightedNormalVector;
 
-        // get integration point and weights
+        // get quadrature point and weights
         auto tCoefficients = mCoefficients;
         auto tCubatureWeights = ElementType::Face::getCubWeights();
         auto tCubaturePoints  = ElementType::Face::getCubPoints();
@@ -962,7 +962,7 @@ public:
         // create surface area functor
         Plato::SurfaceArea<ElementType> tComputeSurfaceArea;
 
-        // get integration points and weights
+        // get quadrature points and weights
         auto tCoefficients = BaseClassType::mCoefficients;
         auto tCubatureWeights = ElementType::Face::getCubWeights();
         auto tCubaturePoints  = ElementType::Face::getCubPoints();
@@ -1069,7 +1069,7 @@ public:
         // get input workset
         auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
 
-        // get body integration points and weights
+        // get body quadrature points and weights
         auto tCubPoints  = ElementType::getCubPoints();
         auto tCubWeights = ElementType::getCubWeights();
         auto tNumPoints  = tCubWeights.size();
@@ -1130,7 +1130,7 @@ public:
         // create surface area functor
         Plato::SurfaceArea<BodyElementType> tComputeFaceArea;
 
-        // get face integration points and weights
+        // get face quadrature points and weights
         auto tFaceCubPoints    = FaceElementType::getCubPoints();
         auto tFaceCubWeights   = FaceElementType::getCubWeights();
         auto tFaceNumCubPoints = tFaceCubWeights.size();
@@ -1139,7 +1139,7 @@ public:
         Kokkos::parallel_for("compute volume", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumSideCells, tFaceNumCubPoints}),
         KOKKOS_LAMBDA(const Plato::OrdinalType aSideOrdinal, const Plato::OrdinalType aGpOrdinal)
         {
-            // get integration point and weight
+            // get quadrature point and weight
             auto tFaceCubPoint   = tFaceCubPoints(aGpOrdinal);
             auto tFaceCubWeight  = tFaceCubWeights(aGpOrdinal);
             auto tFaceBasisGrads = FaceElementType::basisGrads(tFaceCubPoint);
@@ -1157,7 +1157,7 @@ public:
             tComputeFaceArea(tCellOrdinal,tFaceLocalNodeOrdinals,tFaceBasisGrads,tConfigWS,tFaceArea);
             tFaceArea *= tFaceCubWeight;
 
-            // add characteristic length contribution from this integration point, i.e. Gauss point
+            // add characteristic length contribution from this quadrature point, i.e. Gauss point
             Kokkos::atomic_add(&aSideCellFaceAreas(aSideOrdinal), tFaceArea);
         });
     }
@@ -1249,10 +1249,6 @@ private:
     // set local base class type
     using BaseClassType = NitscheBase<EvaluationType>;
 
-    // set class type names for functors
-    using ProjectFromNodes =
-        Plato::InterpolateFromNodal<FaceElementBase,mNumDofsPerNode,/*offset=*/0,mNumDofsPerNode>;
-
     // set natural boundary condition base class member data
     using BaseClassType::mSideSetName;
     using BaseClassType::mNitschePenalty;
@@ -1275,7 +1271,7 @@ public:
      const Teuchos::ParameterList& aNitscheParams) :
         BaseClassType(aNitscheParams)
     {
-        // create material model and get stiffness
+        // create material model
         FactoryElasticMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
         mMaterial = tMaterialFactory.create(mMaterialModelName);
     }
@@ -1314,13 +1310,10 @@ public:
         Plato::SurfaceArea<BodyElementBase> tComputeFaceArea;
         // create calculate weighted (by the area) normal vector functor
         Plato::WeightedNormalVector<BodyElementBase> tComputeNormalVector;
-        // create interpolate from nodal functor
-        ProjectFromNodes tProjectFromNodes;
 
-        // get integration points and weights
+        // get quadrature points and weights
         auto tCubPointsInFaceParentElem = FaceElementBase::getCubPoints();
         auto tCubPointsOnBodyParentElemSurfaces = BodyElementBase::getFaceCubPoints();
-
         auto tCubWeightsOnBodyParentElemSurface = BodyElementBase::getFaceCubWeights();
 
         auto tYoungsModulus  = mMaterial->getScalarConstant("youngs modulus");
@@ -1362,7 +1355,7 @@ public:
             ConfigScalarType tFaceArea(0.0);
             tComputeFaceArea(tCellOrdinal,tFaceLocalNodeOrds,tBasisGradsInFaceParentElem,tConfigWS,tFaceArea);
 
-            // compute strains and stresses for this integration point
+            // compute strains and stresses for this quadrature point
             ConfigScalarType tVolume(0.0);
             Plato::Matrix<mNumNodesPerCell,mNumSpatialDims, ConfigScalarType> tGradient;
             tComputeGradient(tCellOrdinal,tCubPointOnBodyParentElemSurface,tConfigWS,tGradient,tVolume);
@@ -1390,7 +1383,7 @@ public:
             // TERM 2
             //
 
-            // interpolate state from nodes
+            // project state from nodes to quadrature/cubature point
             Plato::Array<mNumSpatialDims,StateScalarType> tProjectedStates;
             for(Plato::OrdinalType tDof = 0; tDof < mNumDofsPerNode; tDof++)
             {
@@ -1443,6 +1436,7 @@ public:
          });
     }
 };
+
 
 
 template<typename EvaluationType>
@@ -1750,7 +1744,7 @@ public:
 };
 
 inline std::vector<std::string>
-get_essential_bcs_side_set_names
+get_unique_essential_bcs_side_set_names
 (Teuchos::ParameterList& aProbParams)
 {
     std::vector<std::string> tSideSetNames;
@@ -1846,7 +1840,7 @@ public:
         auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>( aWorkSets.get("configuration"));
         auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlScalarType>>( aWorkSets.get("controls"));
 
-        // get element integration points and weights
+        // get element quadrature points and weights
         auto tCubPoints = ElementType::getCubPoints();
         auto tCubWeights = ElementType::getCubWeights();
         auto tNumPoints = tCubWeights.size();
@@ -1862,15 +1856,15 @@ public:
             Plato::Matrix<mNumSpatialDims,mNumSpatialDims, StrainScalarType>  tStrainTensor(0.0);
             Plato::Matrix<mNumSpatialDims,mNumSpatialDims, ResultScalarType>  tStressTensor(0.0);
 
-            // get integration point
+            // get quadrature point
             auto tCubPoint = tCubPoints(iGpOrdinal);
 
-            // compute strains and stresses for this integration point
+            // compute strains and stresses for this quadrature point
             tComputeGradient(iCellOrdinal, tCubPoint, tConfigWS, tGradient, tVolume);
             tComputeStrainTensor(iCellOrdinal,tStateWS, tGradient, tStrainTensor);
             tComputeStressTensor(tStrainTensor,tStressTensor);
 
-            // add contribution to volume from this integration point
+            // add contribution to volume from this quadrature point
             tVolume *= tCubWeights(iGpOrdinal);
 
             // apply ersatz penalization
@@ -1880,7 +1874,7 @@ public:
             // apply divergence to stress
             tComputeStressDivergence(iCellOrdinal, tResultWS, tStressTensor, tGradient, tVolume);
 
-            // compute cell stress and strain: aggregate stress and strain contribution from each integration point
+            // compute cell stress and strain: aggregate stress and strain contribution from each quadrature point
             for(Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
             {
                 for(Plato::OrdinalType tDimJ=0; tDimJ<mNumSpatialDims; tDimJ++)
@@ -1965,7 +1959,8 @@ private:
     (const Plato::SpatialDomain&   aDomain,
            Teuchos::ParameterList& aProbParams)
     {
-        std::vector<std::string> tSideSetNames = get_essential_bcs_side_set_names(aProbParams);
+        std::vector<std::string> tSideSetNames =
+                get_unique_essential_bcs_side_set_names(aProbParams);
         for(auto tSideSetName : tSideSetNames)
         {
             Teuchos::ParameterList  tNitscheParams;
@@ -2048,6 +2043,240 @@ public:
     }
 };
 
+
+
+
+
+
+/***************************************************************************//**
+ *
+ * \tparam EvaluationType scalar types are set based on the evaluation type
+ *
+ * \class NitscheLinearThermal
+ *
+ * \brief This class is responsible for evaluating the linear form derived by
+ *          enforcing the Dirichlet boundary conditions in linear thermal problems
+ *          via Nitsche's method. The resulting linear form is given by:
+ *
+ *          \f$
+ *              - \int_{\Gamma_D}\delta\mathbf{T}\cdot\left(q\cdot\mathbf{n}_{\Gamma}\right)d\Gamma
+ *              + \int_{\Gamma_D}\delta\left(q\mathbf{n}_{\Gamma}\right)\cdot\left(\mathbf{T}-\mathbf{T}_{D}\right)d\Gamma
+ *              + \int_{\Gamma_D}\gamma_{N}^{\mathbf{T}}\delta\mathbf{T}\cdot\left(\mathbf{T}-\mathbf{T}_{D}\right)d\Gamma
+ *          \f$
+ *
+ *          where a non-symmetric Nitsche formulation is considered, see for example
+ *          Burman (2012) and Schillinger et al. (2016a), and \f$\mathbf{T}_D\f$ is
+ *          the temperature field imposed on Dirichlet boundary \f$\Gamma_D\f$. The
+ *          parameter \f$\gamma_{N}^{\mathbf{T}}\f$ is chosen to achieve a desired
+ *          accuracy in satisfying the Dirichlet boundary conditions. \mathbf{T} is the
+ *          temperature field (i.e., state field), \mathbf{n}_{\Gamma} is the normal
+ *          vector to the surface where Dirichlet boundary conditions are applied, and
+ *          q is the heat flux.
+ *
+*******************************************************************************/
+template<typename EvaluationType>
+class NitscheLinearThermal : public NitscheBase<EvaluationType>
+{
+private:
+    // set local element type definition
+    using BodyElementBase = typename EvaluationType::ElementType;
+    using FaceElementBase = typename BodyElementBase::Face;
+
+    // set local constexpr members
+    static constexpr auto mNumSpatialDims  = BodyElementBase::mNumSpatialDims;
+    static constexpr auto mNumDofsPerNode  = BodyElementBase::mNumDofsPerNode;
+    static constexpr auto mNumNodesPerCell  = BodyElementBase::mNumNodesPerCell;
+    static constexpr auto mNumNodesPerFace = BodyElementBase::mNumNodesPerFace;
+    static constexpr auto mNumGaussPointsPerFace = BodyElementBase::mNumGaussPointsPerFace;
+
+    // set local base class type
+    using BaseClassType = NitscheBase<EvaluationType>;
+
+    // set natural boundary condition base class member data
+    using BaseClassType::mSideSetName;
+    using BaseClassType::mNitschePenalty;
+    using BaseClassType::mMaterialModelName;
+
+    // set local fad type definitions
+    using StateScalarType  = typename EvaluationType::StateScalarType;
+    using ResultScalarType = typename EvaluationType::ResultScalarType;
+    using ConfigScalarType = typename EvaluationType::ConfigScalarType;
+
+    /*!< strain variables automatic differentiation type */
+    using GradScalarType = typename Plato::fad_type_t<BodyElementBase,StateScalarType,ConfigScalarType>;
+
+    // set member data
+    std::shared_ptr<Plato::MaterialModel<mNumSpatialDims>> mMaterial;
+
+public:
+    NitscheLinearThermal
+    (const Teuchos::ParameterList& aProbParams,
+     const Teuchos::ParameterList& aNitscheParams) :
+        BaseClassType(aNitscheParams)
+    {
+        // create material model
+        FactoryThermalMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
+        mMaterial = tMaterialFactory.create(mMaterialModelName);
+    }
+    ~NitscheLinearThermal()
+    {}
+
+    void evaluate
+    (const Plato::SpatialModel & aSpatialModel,
+     const Plato::WorkSets     & aWorkSets,
+     const Plato::Scalar       & aMultiplier,
+     const Plato::Scalar       & aCycle)
+    {
+        // get input & output worksets (i.e., domain & range for function evaluate)
+        auto tStateWS     = Plato::metadata<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
+        auto tResultWS    = Plato::metadata<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
+        auto tConfigWS    = Plato::metadata<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+        auto tDirichletWS = Plato::metadata<Plato::ScalarMultiVector>(aWorkSets.get("dirichlet"));
+
+        // get side set connectivity information
+        auto tSideCellOrdinals  = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
+        auto tSideLocalFaceOrds = aSpatialModel.Mesh->GetSideSetFaces(mSideSetName);
+        auto tSideLocalNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
+        Plato::OrdinalType tNumCellsOnSideSet = tSideCellOrdinals.size();
+
+        // compute characteristic length
+        ComputeCharacteristicLength<EvaluationType> tComputeCharacteristicLength(mSideSetName);
+        Plato::ScalarVectorT<ConfigScalarType> tCharacteristicLength("characteristic length",tNumCellsOnSideSet);
+        tComputeCharacteristicLength(aSpatialModel, aWorkSets, tCharacteristicLength);
+
+        // compute trial and test stresses
+        Plato::ScalarGrad<BodyElementBase> tScalarGrad;
+        Plato::ThermalFlux<BodyElementBase> tThermalFlux(mMaterial.operator*());
+        Plato::ComputeGradientMatrix<BodyElementBase> tComputeGradient;
+
+        // create surface area functor
+        Plato::SurfaceArea<BodyElementBase> tComputeFaceArea;
+        // create calculate weighted (by the area) normal vector functor
+        Plato::WeightedNormalVector<BodyElementBase> tComputeNormalVector;
+        // create interpolate from nodal functor
+        Plato::InterpolateFromNodal<BodyElementBase,mNumDofsPerNode> tProjectFromNodes;
+
+        // get quadrature points and weights
+        auto tCubPointsInFaceParentElem = FaceElementBase::getCubPoints();
+        auto tCubPointsOnBodyParentElemSurfaces = BodyElementBase::getFaceCubPoints();
+        auto tCubWeightsOnBodyParentElemSurface = BodyElementBase::getFaceCubWeights();
+
+        auto tYoungsModulus  = mMaterial->getScalarConstant("youngs modulus");
+        auto tNitschePenaltyTimesModulus = mNitschePenalty * tYoungsModulus;
+        Kokkos::parallel_for("nitsche bcs", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},
+          {tNumCellsOnSideSet, mNumGaussPointsPerFace}),
+          KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
+         {
+            auto tCubPointInFaceParentElem = tCubPointsInFaceParentElem(aPointOrdinal);
+            auto tBasisGradsFaceParentElem = FaceElementBase::basisGrads(tCubPointInFaceParentElem);
+
+            // quadrature data to evaluate integral on the body surface of interest
+            Plato::Array<mNumSpatialDims> tCubPointOnBodyParentElemSurface;
+            Plato::OrdinalType tLocalFaceOrdinal = tSideLocalFaceOrds(aSideOrdinal);
+            auto tCubPointsOnBodyParentElemSurface = tCubPointsOnBodyParentElemSurfaces(tLocalFaceOrdinal);
+            for( Plato::OrdinalType tDim=0; tDim < mNumSpatialDims; tDim++ ){
+                Plato::OrdinalType tIndex = mNumGaussPointsPerFace * aPointOrdinal + tDim;
+                tCubPointOnBodyParentElemSurface(tDim) = tCubPointsOnBodyParentElemSurface(tIndex);
+            }
+            auto tCubWeightOnBodyParentElemSurface = tCubWeightsOnBodyParentElemSurface(aPointOrdinal);
+            auto tBasisGradsOnBodyParentElemSurface  = BodyElementBase::basisGrads(tCubPointOnBodyParentElemSurface);
+            auto tBasisValuesOnBodyParentElemSurface = BodyElementBase::basisValues(tCubPointOnBodyParentElemSurface);
+
+            Plato::Array<mNumNodesPerFace, Plato::OrdinalType> tFaceLocalNodeOrds;
+            for( Plato::OrdinalType tIndex=0; tIndex<mNumNodesPerFace; tIndex++)
+            {
+                tFaceLocalNodeOrds(tIndex) = tSideLocalNodeOrds(aSideOrdinal*mNumNodesPerFace+tIndex);
+            }
+
+            // TERM 1
+            //
+
+            // compute normal vector weighted by the entity area
+            auto tCellOrdinal = tSideCellOrdinals(aSideOrdinal);
+            Plato::Array<mNumSpatialDims, ConfigScalarType> tNormalVector;
+            tComputeNormalVector(tCellOrdinal,tFaceLocalNodeOrds,tBasisGradsFaceParentElem,tConfigWS,tNormalVector);
+
+            // compute entity area
+            ConfigScalarType tFaceArea(0.0);
+            tComputeFaceArea(tCellOrdinal,tFaceLocalNodeOrds,tBasisGradsFaceParentElem,tConfigWS,tFaceArea);
+
+            // compute configuration gradient for this quadrature point
+            ConfigScalarType tVolume(0.0);
+            Plato::Matrix<mNumNodesPerCell,mNumSpatialDims, ConfigScalarType> tGradient;
+            tComputeGradient(tCellOrdinal, tCubPointOnBodyParentElemSurface, tConfigWS, tGradient, tVolume);
+
+            // compute temperature gradient for this quadrature point
+            Plato::Array <mNumSpatialDims,GradScalarType> tTempGrad(0.0);
+            tScalarGrad(tCellOrdinal, tTempGrad, tStateWS, tGradient);
+
+            // compute heat flux for this quadrature point
+            StateScalarType tProjectedTemp =
+                    tProjectFromNodes(tCellOrdinal, tBasisValuesOnBodyParentElemSurface, tStateWS);
+            Plato::Array <mNumSpatialDims,ResultScalarType> tFlux(0.0);
+            tThermalFlux(tFlux, tTempGrad, tProjectedTemp);
+
+            // term 1: int_{\Gamma_D} \delta{T}\cdot(q\cdot{n}) d\Gamma_D
+            for( Plato::OrdinalType tNode=0; tNode<mNumNodesPerCell; tNode++)
+            {
+                Plato::OrdinalType tLocalDofOrdinal = tNode * mNumDofsPerNode;
+                for( Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
+                {
+                    ResultScalarType tValue = -aMultiplier * tBasisValuesOnBodyParentElemSurface(tNode)
+                        * ( tFlux(tDimI) * tNormalVector(tDimI) ) * tCubWeightOnBodyParentElemSurface * tFaceArea;
+                    Kokkos::atomic_add(&tResultWS(tCellOrdinal,tLocalDofOrdinal), tValue);
+                }
+            }
+
+            // TERM 2
+            //
+
+            Plato::Array<mNumSpatialDims, ConfigScalarType>  tVirtualTempGrad(0.0);
+            tScalarGrad(tVirtualTempGrad,tGradient);
+            Plato::Array<mNumSpatialDims, ResultScalarType>  tVirtualFlux(0.0);
+            tThermalFlux(tVirtualFlux,tVirtualTempGrad,tProjectedTemp);
+
+            // term 2: int_{\Gamma_D} \delta(q\cdot{n})\cdot(T - T_D) d\Gamma_D
+            for( Plato::OrdinalType tNode=0; tNode<mNumNodesPerCell; tNode++)
+            {
+                Plato::OrdinalType tLocalDofOrdinal = tNode * mNumDofsPerNode;
+                for( Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
+                {
+                    ResultScalarType tValue = aMultiplier * tCubWeightOnBodyParentElemSurface
+                        * tFaceArea * ( tVirtualFlux(tDimI) * tNormalVector(tDimI) )
+                        * ( tProjectedTemp - tDirichletWS(tCellOrdinal,tLocalDofOrdinal) );
+                    Kokkos::atomic_add(&tResultWS(tCellOrdinal,tLocalDofOrdinal), tValue);
+                }
+            }
+
+            // TERM 3
+            //
+
+            // term 3: int_{\Gamma_D}\gamma_N^T \delta{T}\cdot(T - T_D) d\Gamma_D
+            ConfigScalarType tGamma = tNitschePenaltyTimesModulus / tCharacteristicLength(aSideOrdinal);
+            for(Plato::OrdinalType tNode=0; tNode<mNumNodesPerCell; tNode++)
+            {
+                Plato::OrdinalType tLocalDofOrdinal = tNode * mNumDofsPerNode;
+                for(Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
+                {
+                    ResultScalarType tValue = aMultiplier * tGamma * tBasisValuesOnBodyParentElemSurface(tNode)
+                        * ( tProjectedTemp - tDirichletWS(tCellOrdinal,tLocalDofOrdinal) )
+                        * tCubWeightOnBodyParentElemSurface * tFaceArea;
+                    Kokkos::atomic_add(&tResultWS(tCellOrdinal,tLocalDofOrdinal), tValue);
+                }
+            }
+         });
+    }
+};
+
+
+
+
+
+
+
+
+
+
 template<typename EvaluationType>
 class ResidualThermostatics : public ResidualBase
 {
@@ -2069,10 +2298,12 @@ private:
 
     using GradScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
-    std::shared_ptr<VolumeForces<EvaluationType>> mBodyForces;
-    std::shared_ptr<NaturalBCs<EvaluationType>>   mNaturalForces;
+    std::shared_ptr<VolumeForces<EvaluationType>> mVolumeForces;
+    std::shared_ptr<NaturalBCs<EvaluationType>>   mNaturalBCs;
 
     std::shared_ptr<Plato::MaterialModel<mNumSpatialDims>> mMaterial;
+
+    std::vector<std::shared_ptr<NitscheLinearThermal<EvaluationType>>> mNitscheBCs;
 
     Plato::MSIMP mPenaltyFunction;
     Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, Plato::MSIMP> mApplyWeighting;
@@ -2090,21 +2321,12 @@ public:
         // obligatory: define dof names in order
         mDofNames.push_back("temperature");
 
-        // create material model and get stiffness
+        // create material model
         FactoryThermalMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
         mMaterial = tMaterialFactory.create(aDomain.getMaterialName());
 
-        // parse body loads
-        if(aProbParams.isSublist("Body Loads"))
-        {
-            mBodyForces = std::make_shared<VolumeForces<EvaluationType>>(aProbParams.sublist("Body Loads"));
-        }
-
-        // parse natural boundary conditions
-        if(aProbParams.isSublist("Natural Boundary Conditions"))
-        {
-            mNaturalForces = std::make_shared<NaturalBCs<EvaluationType>>(aProbParams.sublist("Natural Boundary Conditions"));
-        }
+        // initialize boundary conditions
+        this->initialize(aDomain, aProbParams);
     }
 
     void evaluate
@@ -2142,17 +2364,17 @@ public:
         {
             ConfigScalarType tVolume(0.0);
 
-            Plato::Array <mNumSpatialDims,GradScalarType> tGrad(0.0);
             Plato::Array <mNumSpatialDims,ResultScalarType> tFlux(0.0);
+            Plato::Array <mNumSpatialDims,GradScalarType> tTempGrad(0.0);
             Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient;
 
             auto tCubPoint = tCubPoints(iGpOrdinal);
             auto tBasisValues = ElementType::basisValues(tCubPoint);
 
             tComputeGradient(iCellOrdinal, tCubPoint, tConfigWS, tGradient, tVolume);
-            tScalarGrad(iCellOrdinal, tGrad, tStateWS, tGradient);
+            tScalarGrad(iCellOrdinal, tTempGrad, tStateWS, tGradient);
             StateScalarType tTemperature = tInterpolateFromNodal(iCellOrdinal, tBasisValues, tStateWS);
-            tThermalFlux(tFlux, tGrad, tTemperature);
+            tThermalFlux(tFlux, tTempGrad, tTemperature);
 
             tVolume *= tCubWeights(iGpOrdinal);
             tApplyWeighting(iCellOrdinal, tControlWS, tBasisValues, tFlux);
@@ -2160,7 +2382,7 @@ public:
 
             for(Plato::OrdinalType tDim=0; tDim < mNumSpatialDims; tDim++)
             {
-                Kokkos::atomic_add(&tCellGrad(iCellOrdinal,tDim), tVolume*tGrad(tDim));
+                Kokkos::atomic_add(&tCellGrad(iCellOrdinal,tDim), tVolume*tTempGrad(tDim));
                 Kokkos::atomic_add(&tCellFlux(iCellOrdinal,tDim), tVolume*tFlux(tDim));
             }
             Kokkos::atomic_add(&tCellVolume(iCellOrdinal), tVolume);
@@ -2176,21 +2398,61 @@ public:
             }
         });
 
-        if( mBodyForces != nullptr )
+        if( mVolumeForces != nullptr )
         {
-            mBodyForces->evaluate( mSpatialDomain,aWorkSets,/*multiplier=*/-1.0,aCycle );
+            mVolumeForces->evaluate( mSpatialDomain,aWorkSets,/*multiplier=*/-1.0,aCycle );
         }
     }
-
 
     void evaluateBoundary
     (const Plato::SpatialModel & aSpatialModel,
      const Plato::WorkSets     & aWorkSets,
      const Plato::Scalar       & aCycle)
     {
-        if( mNaturalForces != nullptr )
+        if( mNaturalBCs != nullptr )
         {
-            mNaturalForces->evaluate(aSpatialModel,aWorkSets,/*multiplier=*/-1.0,aCycle);
+            mNaturalBCs->evaluate(aSpatialModel,aWorkSets,/*multiplier=*/-1.0,aCycle);
+        }
+    }
+
+private:
+    void initialize
+    (const Plato::SpatialDomain   & aDomain,
+           Teuchos::ParameterList & aProbParams)
+    {
+        // parse body loads
+        if(aProbParams.isSublist("Body Loads"))
+        {
+            mVolumeForces = std::make_shared<VolumeForces<EvaluationType>>
+                    (aProbParams.sublist("Body Loads"));
+        }
+
+        // parse natural boundary conditions
+        if(aProbParams.isSublist("Natural Boundary Conditions"))
+        {
+            mNaturalBCs = std::make_shared<NaturalBCs<EvaluationType>>
+                    (aProbParams.sublist("Natural Boundary Conditions"));
+        }
+
+        if(aProbParams.isType<bool>("Weak Essential Boundary Conditions"))
+        {
+            if(aProbParams.get<bool>("Weak Essential Boundary Conditions",true))
+            { this->buildNitscheBCs(aDomain,aProbParams); }
+        }
+    }
+
+    void buildNitscheBCs
+    (const Plato::SpatialDomain&   aDomain,
+           Teuchos::ParameterList& aProbParams)
+    {
+        std::vector<std::string> tSideSetNames =
+                get_unique_essential_bcs_side_set_names(aProbParams);
+        for(auto tSideSetName : tSideSetNames)
+        {
+            Teuchos::ParameterList  tNitscheParams;
+            tNitscheParams.set("Sides",tSideSetName);
+            tNitscheParams.set("Material Model",aDomain.getMaterialName());
+            mNitscheBCs.push_back(std::make_shared<NitscheLinearThermal<EvaluationType>>(aProbParams,tNitscheParams));
         }
     }
 };
@@ -5021,6 +5283,88 @@ TEUCHOS_UNIT_TEST( Morphorm, InternalThermalEnergyGrad_3D_TET4 )
     TEST_ASSERT(tError < 1e-4);
 }
 
+TEUCHOS_UNIT_TEST( Morphorm, Thermostatics_Tet10 )
+{
+    // create test mesh
+    //
+    constexpr int tMeshWidth=2;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", tMeshWidth);
+
+    // create input
+    //
+    Teuchos::RCP<Teuchos::ParameterList> tParams =
+      Teuchos::getParametersFromXmlString(
+      "<ParameterList name='Plato Problem'>                                          \n"
+      "  <ParameterList name='Spatial Model'>                                        \n"
+      "    <ParameterList name='Domains'>                                            \n"
+      "      <ParameterList name='Design Volume'>                                     \n"
+      "        <Parameter name='Element Block' type='string' value='body'/>          \n"
+      "        <Parameter name='Material Model' type='string' value='Unobtainium'/>  \n"
+      "      </ParameterList>                                                        \n"
+      "    </ParameterList>                                                          \n"
+      "  </ParameterList>                                                            \n"
+      "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>           \n"
+      "  <Parameter name='Physics' type='string' value='Thermostatics'/>             \n"
+      "  <ParameterList name='Material Models'>                                      \n"
+      "    <ParameterList name='Unobtainium'>                                        \n"
+      "      <ParameterList name='Thermal Conduction'>                               \n"
+      "        <Parameter name='Thermal Conductivity' type='double' value='100.0'/>  \n"
+      "      </ParameterList>                                                        \n"
+      "    </ParameterList>                                                          \n"
+      "  </ParameterList>                                                            \n"
+      "  <ParameterList  name='Natural Boundary Conditions'>                         \n"
+      "    <ParameterList  name='Flux Boundary Condition'>                           \n"
+      "      <Parameter  name='Type'     type='string'   value='Uniform'/>           \n"
+      "      <Parameter  name='Value'    type='double'   value='1.0'/>               \n"
+      "      <Parameter  name='Sides'    type='string'   value='x+'/>                \n"
+      "    </ParameterList>                                                          \n"
+      "  </ParameterList>                                                            \n"
+      "  <ParameterList  name='Essential Boundary Conditions'>                       \n"
+      "    <ParameterList  name='Fixed Temperature Boundary Condition'>              \n"
+      "      <Parameter  name='Type'     type='string' value='Zero Value'/>          \n"
+      "      <Parameter  name='Sides'    type='string' value='x-'/>                  \n"
+      "    </ParameterList>                                                          \n"
+      "  </ParameterList>                                                            \n"
+      "</ParameterList>                                                              \n"
+    );
+
+    // create problem
+    MPI_Comm tMyComm;
+    MPI_Comm_dup(MPI_COMM_WORLD, &tMyComm);
+    Plato::Comm::Machine tMachine(tMyComm);
+    Plato::exp::Problem<Plato::exp::PhysicsThermal<Plato::Tet10>>
+        tThermalProblem(tMesh, *tParams, tMachine);
+
+    // SOLVE ELASTOSTATICS EQUATIONS
+    auto tNumVerts = tMesh->NumNodes();
+    Plato::ScalarVector tControl("Control", tNumVerts);
+    Plato::blas1::fill(1.0, tControl);
+    auto tThermalSolution = tThermalProblem.solution(tControl);
+    tThermalProblem.output("output_strong");
+
+    // TEST RESULTS
+    constexpr Plato::OrdinalType tTimeStep = 0;
+    auto tState = tThermalSolution.get("State");
+    auto tSolution = Kokkos::subview(tState, tTimeStep, Kokkos::ALL());
+    auto tHostSolution = Kokkos::create_mirror_view(tSolution);
+    Kokkos::deep_copy(tHostSolution, tSolution);
+    TEST_EQUALITY(125u,tHostSolution.size());
+
+    std::vector<Plato::Scalar> tGold =
+            {0.0075, 0.0075, 0.0075, 0.0075, 0.0075,
+             0.01  , 0.01  , 0.01  , 0.01  , 0.01,
+             0.01  , 0.01  , 0.01  , 0.01  , 0.01,
+             0.01  , 0.01  , 0.01  , 0.01  , 0.01,
+             0.01  , 0.01  , 0.01  , 0.01  , 0.01,
+             0.01  , 0.01  , 0.01  , 0.01  , 0.01};
+
+    constexpr Plato::Scalar tTolerance = 1e-4;
+    constexpr Plato::OrdinalType tDofOffset = 95; // comparing only the last 25 dofs
+    for(Plato::OrdinalType tDofIndex=0; tDofIndex < tGold.size(); tDofIndex++)
+    {
+        TEST_FLOATING_EQUALITY(tHostSolution(tDofOffset+tDofIndex), tGold[tDofIndex], tTolerance);
+    }
+}
 
 TEUCHOS_UNIT_TEST(Morphorm, Elastostatics_Nitsche)
 {
