@@ -1526,8 +1526,11 @@ class NitscheBCs
 {
 // private member data
 private:
+    // set class type names for functors
+    using NitscheBoundaryConditions = std::vector< std::shared_ptr< NitscheBase< EvaluationType> > >;
+
     /*!< list of essential boundary conditions (EBCs) enforced using Nitsche's method */
-    std::unordered_map<nitsche_t,std::vector<std::shared_ptr<NitscheBase<EvaluationType> > > > mNitscheBCs;
+    std::unordered_map<nitsche_t,NitscheBoundaryConditions> mNitscheBCs;
 
 // public member functions
 public:
@@ -1539,6 +1542,16 @@ public:
         auto tNitscheSubLists = aProbParams.sublist(aNameSublist);
         this->parse(tNitscheSubLists);
         this->initialize(aProbParams);
+    }
+
+    NitscheBoundaryConditions&
+    get(const nitsche_t& aType) const
+    {
+        auto tItr = mNitscheBCs.find(aType);
+        if( tItr == mNitscheBCs.end() ){
+            ANALYZE_THROWERR("ERROR: Did not find requested Nitsche boundary condition")
+        }
+        return tItr->second;
     }
 
     void evaluate
