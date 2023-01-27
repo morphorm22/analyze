@@ -1002,14 +1002,6 @@ public:
     }
 };
 
-
-enum class nitsche_t
-{
-    DISPLACEMENTS,
-    TEMPERATURE,
-    UNDEFINED
-};
-
 template<typename EvaluationType>
 class NitscheBase
 {
@@ -1021,15 +1013,12 @@ protected:
     // allocate member data
     Plato::Scalar mNitschePenalty = 1.0; /*!< penalty parameter for the Nitsche method */
 
-    const std::string mName;        /*!< user defined essential boundary condition sublist name */
     const std::string mSideSetName; /*!< entity set name */
     const std::string mMaterialModelName;  /*!< name assigned to the material model used on this boundary */
 
 public:
     NitscheBase
-    (const std::string            & aName,
-           Teuchos::ParameterList & aSubList) :
-        mName(aName),
+    (const Teuchos::ParameterList& aSubList) :
         mSideSetName(aSubList.get<std::string>("Sides")),
         mMaterialModelName(aSubList.get<std::string>("Material Model"))
     {
@@ -1040,12 +1029,7 @@ public:
     }
     virtual ~NitscheBase(){}
 
-    std::string name() const { return mName; }
     std::string sideset() const { return mSideSetName; }
-
-    virtual nitsche_t type() const = 0;
-
-    virtual void initialize(Teuchos::ParameterList & aProbParams) = 0;
 
     virtual void evaluate
     (const Plato::SpatialModel & aSpatialModel,
@@ -1287,24 +1271,16 @@ private:
 
 public:
     NitscheLinearMechanics
-    (const std::string            & aName,
-           Teuchos::ParameterList & aSubList) :
-        BaseClassType(aName,aSubList)
-    {}
-    ~NitscheLinearMechanics()
-    {}
-
-    nitsche_t type() const
-    {
-        return nitsche_t::DISPLACEMENTS;
-    }
-
-    void initialize(Teuchos::ParameterList & aProbParams)
+    (const Teuchos::ParameterList& aProbParams,
+     const Teuchos::ParameterList& aNitscheParams) :
+        BaseClassType(aNitscheParams)
     {
         // create material model and get stiffness
         FactoryElasticMaterial<mNumSpatialDims> tMaterialFactory(aProbParams);
         mMaterial = tMaterialFactory.create(mMaterialModelName);
     }
+    ~NitscheLinearMechanics()
+    {}
 
     void evaluate
     (const Plato::SpatialModel & aSpatialModel,
@@ -1465,148 +1441,6 @@ public:
                 }
             }
          });
-    }
-};
-
-template<typename EvaluationType>
-class FactoryNitscheBC
-{
-private:
-    /*!< map from input Nitsche boundary condition type string to supported enum */
-    std::map<std::string,nitsche_t> mSupportedNitscheBCs =
-        {
-            {"displacements",nitsche_t::DISPLACEMENTS},
-            {"temperature"  ,nitsche_t::TEMPERATURE}
-        };
-
-public:
-    FactoryNitscheBC(){}
-    ~FactoryNitscheBC(){}
-
-    std::shared_ptr<NitscheBase<EvaluationType>>
-    create
-    (const std::string            & aName,
-           Teuchos::ParameterList & aParams)
-    {
-        auto tStringVariableType = aParams.get<std::string>("Variable");
-        auto tVariableType = this->type(tStringVariableType);
-        switch(tVariableType)
-        {
-            case nitsche_t::DISPLACEMENTS:
-            { return std::make_shared<NitscheLinearMechanics<EvaluationType>>(aName, aParams); }
-            case nitsche_t::TEMPERATURE:
-            default:
-            {
-                return {nullptr};
-            }
-        }
-    }
-
-private:
-    nitsche_t type(const std::string& aVariable) const
-    {
-        auto tVariable = Plato::tolower(aVariable);
-        auto tItr = mSupportedNitscheBCs.find(tVariable);
-        if( tItr == mSupportedNitscheBCs.end() ){
-            std::string tMsg = std::string("Nitsche's method cannot be applied to variable '")
-                + tVariable + "'. " + "Supported variables are: ";
-            for(const auto& tPair : mSupportedNitscheBCs)
-            {
-                tMsg = tMsg + tPair.first + ", ";
-            }
-            auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
-            ANALYZE_THROWERR(tSubMsg)
-        }
-        return (tItr->second);
-    }
-};
-
-template<typename EvaluationType>
-class NitscheBCs
-{
-// private member data
-private:
-    // set class type names for functors
-    using NitscheBoundaryConditions = std::vector< std::shared_ptr< NitscheBase< EvaluationType> > >;
-
-    /*!< list of essential boundary conditions (EBCs) enforced using Nitsche's method */
-    std::unordered_map<nitsche_t,NitscheBoundaryConditions> mNitscheBCs;
-
-// public member functions
-public:
-    NitscheBCs
-    (const std::string&            aNameSublist,
-           Teuchos::ParameterList& aProbParams) :
-        mNitscheBCs()
-    {
-        auto tNitscheSubLists = aProbParams.sublist(aNameSublist);
-        this->parse(tNitscheSubLists);
-        this->initialize(aProbParams);
-    }
-
-    NitscheBoundaryConditions&
-    get(const nitsche_t& aType) const
-    {
-        auto tItr = mNitscheBCs.find(aType);
-        if( tItr == mNitscheBCs.end() ){
-            ANALYZE_THROWERR("ERROR: Did not find requested Nitsche boundary condition")
-        }
-        return tItr->second;
-    }
-
-    void evaluate
-    (const Plato::SpatialModel & aSpatialModel,
-     const Plato::WorkSets     & aWorkSets,
-     const Plato::Scalar       & aMultiplier,
-     const Plato::Scalar       & aCycle)
-    {
-        for (const auto &tPair : mNitscheBCs)
-        {
-            for(const auto &tNitscheBC : tPair.second)
-            {
-                tNitscheBC->evaluate(aSpatialModel, aWorkSets, aMultiplier, aCycle);
-            }
-        }
-    }
-
-// private member functions
-private:
-    void parse
-    (Teuchos::ParameterList& aNitscheSublists)
-    {
-        FactoryNitscheBC<EvaluationType> tFactory;
-        auto tNameNitscheSublists = aNitscheSublists.name();
-        for (Teuchos::ParameterList::ConstIterator tItr = aNitscheSublists.begin(); tItr != aNitscheSublists.end(); ++tItr)
-        {
-            const Teuchos::ParameterEntry &tEntry = aNitscheSublists.entry(tItr);
-            if (!tEntry.isList())
-            {
-                ANALYZE_THROWERR(std::string("ERROR: ") + tNameNitscheSublists + " block is not valid. "
-                                 + "Constructor expects Parameter Lists only")
-            }
-
-            const std::string &tName = aNitscheSublists.name(tItr);
-            if(aNitscheSublists.isSublist(tName) == false)
-            {
-                ANALYZE_THROWERR(std::string("ERROR: Parameter sublist: '") + tName.c_str() + "' is NOT defined")
-            }
-
-            Teuchos::ParameterList &tMyNitscheSublist = aNitscheSublists.sublist(tName);
-            std::shared_ptr<NitscheBase<EvaluationType>> tBC = tFactory.create(tName, tMyNitscheSublist);
-             auto tVariableType = tBC->type();
-            mNitscheBCs[tVariableType].push_back(tBC);
-        }
-    }
-
-    void initialize(Teuchos::ParameterList & aProbParams)
-    {
-        for (const auto &tPair : mNitscheBCs)
-        {
-            for(const auto &tNitscheBC : tPair.second)
-            {
-                tNitscheBC->initialize(aProbParams);
-            }
-        }
     }
 };
 
@@ -1915,6 +1749,26 @@ public:
     }
 };
 
+inline std::vector<std::string>
+get_essential_bcs_side_set_names
+(Teuchos::ParameterList& aProbParams)
+{
+    std::vector<std::string> tSideSetNames;
+    auto tParams = aProbParams.sublist("Essential Boundary Conditions");
+    for(Teuchos::ParameterList::ConstIterator tIndex = tParams.begin(); tIndex != tParams.end(); ++tIndex)
+    {
+        const Teuchos::ParameterEntry & tEntry = tParams.entry(tIndex);
+        const std::string & tMyName = tParams.name(tIndex);
+        Teuchos::ParameterList& tSublist = tParams.sublist(tMyName);
+        const std::string tSide = tSublist.get<std::string>("Sides");
+        tSideSetNames.push_back(tSide);
+    }
+    std::sort(tSideSetNames.begin(), tSideSetNames.end());
+    tSideSetNames.erase(std::unique(tSideSetNames.begin(), tSideSetNames.end()), tSideSetNames.end());
+    return tSideSetNames;
+}
+
+
 template<typename EvaluationType>
 class ResidualElastostatics : public ResidualBase
 {
@@ -1939,9 +1793,10 @@ private:
     using StrainScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
     std::shared_ptr<NaturalBCs<EvaluationType>> mNaturalBCs;
-    std::shared_ptr<NitscheBCs<EvaluationType>> mNitscheBCs;
     std::shared_ptr<VolumeForces<EvaluationType>> mVolumeForces;
     std::shared_ptr<Plato::MaterialModel<mNumSpatialDims>> mMaterial;
+
+    std::vector<std::shared_ptr<NitscheLinearMechanics<EvaluationType>>> mNitscheBCs;
 
     Plato::MSIMP mPenaltyFunction;
     ApplyWeighting<EvaluationType, Plato::MSIMP> mApplyWeighting;
@@ -1966,7 +1821,7 @@ public:
         mMaterial = tMaterialFactory.create(aDomain.getMaterialName());
 
         // initialize boundary condition and load functors
-        this->initialize(aProbParams);
+        this->initialize(aDomain,aProbParams);
     }
 
     void evaluate
@@ -2067,18 +1922,23 @@ public:
         // add contributions from natural boundary conditions
         if( mNaturalBCs != nullptr )
         {
-            mNaturalBCs->evaluate(aSpatialModel,aWorkSets,/*scale=*/-1.0,aCycle);
+            mNaturalBCs->evaluate(aSpatialModel,aWorkSets,/*multiplier=*/-1.0,aCycle);
         }
 
         // add contributions from nitsche boundary conditions
-        if( mNitscheBCs != nullptr )
+        if( !mNitscheBCs.empty() )
         {
-            mNitscheBCs->evaluate(aSpatialModel,aWorkSets,/*scale=*/1.0,aCycle);
+            for(auto& tBC : mNitscheBCs)
+            {
+                tBC->evaluate(aSpatialModel,aWorkSets,/*multiplier=*/1.0,aCycle);
+            }
         }
     }
 
 private:
-    void initialize(Teuchos::ParameterList & aProbParams)
+    void initialize
+    (const Plato::SpatialDomain   & aDomain,
+           Teuchos::ParameterList & aProbParams)
     {
         // parse body loads
         if(aProbParams.isSublist("Body Loads"))
@@ -2094,11 +1954,24 @@ private:
                     (aProbParams.sublist("Natural Boundary Conditions"));
         }
 
-        // if essential boundary conditions are enforced weakly, allocate nitsche residual
-        if(aProbParams.isSublist("Nitsche Boundary Conditions"))
+        if(aProbParams.isType<bool>("Weak Essential Boundary Conditions"))
         {
-            mNitscheBCs = std::make_shared<NitscheBCs<EvaluationType>>
-                    ("Nitsche Boundary Conditions", aProbParams);
+            if(aProbParams.get<bool>("Weak Essential Boundary Conditions",true))
+            { this->buildNitscheBCs(aDomain,aProbParams); }
+        }
+    }
+
+    void buildNitscheBCs
+    (const Plato::SpatialDomain&   aDomain,
+           Teuchos::ParameterList& aProbParams)
+    {
+        std::vector<std::string> tSideSetNames = get_essential_bcs_side_set_names(aProbParams);
+        for(auto tSideSetName : tSideSetNames)
+        {
+            Teuchos::ParameterList  tNitscheParams;
+            tNitscheParams.set("Sides",tSideSetName);
+            tNitscheParams.set("Material Model",aDomain.getMaterialName());
+            mNitscheBCs.push_back(std::make_shared<NitscheLinearMechanics<EvaluationType>>(aProbParams,tNitscheParams));
         }
     }
 };
@@ -4032,8 +3905,8 @@ private:
         tEssentialBoundaryConditions(aProbParams.sublist("Essential Boundary Conditions", false), mSpatialModel.Mesh);
         tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
 
-        if(aProbParams.isSublist("Nitsche Boundary Conditions") == true)
-        { mWeakEssentialBoundaryConditions = true; }
+        if(aProbParams.isType<bool>("Weak Essential Boundary Conditions"))
+        { mWeakEssentialBoundaryConditions = aProbParams.get<bool>("Weak Essential Boundary Conditions",true); }
     }
 
     void
@@ -4230,7 +4103,6 @@ TEUCHOS_UNIT_TEST(Morphorm, Elastostatics)
       "  </ParameterList>                                                               \n"
       "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>              \n"
       "  <Parameter name='Physics' type='string' value='Mechanical'/>                   \n"
-      "  <Parameter name='Self-Adjoint' type='bool' value='true'/>                      \n"
       "  <ParameterList name='Elliptic'>                                                \n"
       "    <ParameterList name='Penalty Function'>                                      \n"
       "      <Parameter name='Exponent' type='double' value='1.0'/>                     \n"
@@ -5162,6 +5034,9 @@ TEUCHOS_UNIT_TEST(Morphorm, Elastostatics_Nitsche)
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(
       "<ParameterList name='Plato Problem'>                                             \n"
+      "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>              \n"
+      "  <Parameter name='Physics' type='string' value='Mechanical'/>                   \n"
+      "  <Parameter name='Weak Essential Boundary Conditions' type='bool' value='true'/> \n"
       "  <ParameterList name='Spatial Model'>                                           \n"
       "    <ParameterList name='Domains'>                                               \n"
       "      <ParameterList name='Design Volume'>                                       \n"
@@ -5170,9 +5045,6 @@ TEUCHOS_UNIT_TEST(Morphorm, Elastostatics_Nitsche)
       "      </ParameterList>                                                           \n"
       "    </ParameterList>                                                             \n"
       "  </ParameterList>                                                               \n"
-      "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>              \n"
-      "  <Parameter name='Physics' type='string' value='Mechanical'/>                   \n"
-      "  <Parameter name='Self-Adjoint' type='bool' value='true'/>                      \n"
       "  <ParameterList name='Elliptic'>                                                \n"
       "    <ParameterList name='Penalty Function'>                                      \n"
       "      <Parameter name='Exponent' type='double' value='1.0'/>                     \n"
@@ -5210,13 +5082,6 @@ TEUCHOS_UNIT_TEST(Morphorm, Elastostatics_Nitsche)
       "      <Parameter  name='Type'     type='string' value='Zero Value'/>             \n"
       "      <Parameter  name='Index'    type='int'    value='2'/>                      \n"
       "      <Parameter  name='Sides'    type='string' value='x-'/>                     \n"
-      "    </ParameterList>                                                             \n"
-      "  </ParameterList>                                                               \n"
-      "  <ParameterList  name='Nitsche Boundary Conditions'>                            \n"
-      "    <ParameterList  name='Mechanical Nitsche Boundary Conditions'>                   \n"
-      "      <Parameter  name='Material Model'   type='string' value='Unobtainium'/> \n"
-      "      <Parameter  name='Variable'   type='string' value='displacements'/> \n"
-      "      <Parameter  name='Sides'    type='string'        value='x-'/>              \n"
       "    </ParameterList>                                                             \n"
       "  </ParameterList>                                                               \n"
       "</ParameterList>                                                                 \n"
