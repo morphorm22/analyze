@@ -2161,8 +2161,8 @@ public:
         auto tCubPointsOnBodyParentElemSurfaces = BodyElementBase::getFaceCubPoints();
         auto tCubWeightsOnBodyParentElemSurface = BodyElementBase::getFaceCubWeights();
 
-        auto tYoungsModulus  = mMaterial->getScalarConstant("youngs modulus");
-        auto tNitschePenaltyTimesModulus = mNitschePenalty * tYoungsModulus;
+        auto tConductivity  = 100.0;
+        auto tNitschePenaltyTimesConductivity = mNitschePenalty * tConductivity;
         Kokkos::parallel_for("nitsche bcs", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},
           {tNumCellsOnSideSet, mNumGaussPointsPerFace}),
           KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
@@ -2252,7 +2252,7 @@ public:
             //
 
             // term 3: int_{\Gamma_D}\gamma_N^T \delta{T}\cdot(T - T_D) d\Gamma_D
-            ConfigScalarType tGamma = tNitschePenaltyTimesModulus / tCharacteristicLength(aSideOrdinal);
+            ConfigScalarType tGamma = tNitschePenaltyTimesConductivity / tCharacteristicLength(aSideOrdinal);
             for(Plato::OrdinalType tNode=0; tNode<mNumNodesPerCell; tNode++)
             {
                 Plato::OrdinalType tLocalDofOrdinal = tNode * mNumDofsPerNode;
@@ -2398,6 +2398,7 @@ public:
             }
         });
 
+        // adds contribution from volume forces
         if( mVolumeForces != nullptr )
         {
             mVolumeForces->evaluate( mSpatialDomain,aWorkSets,/*multiplier=*/-1.0,aCycle );
@@ -2409,9 +2410,19 @@ public:
      const Plato::WorkSets     & aWorkSets,
      const Plato::Scalar       & aCycle)
     {
+        // adds contribution from natural boundary conditions
         if( mNaturalBCs != nullptr )
         {
             mNaturalBCs->evaluate(aSpatialModel,aWorkSets,/*multiplier=*/-1.0,aCycle);
+        }
+
+        // adds contributions from nitsche boundary conditions
+        if( !mNitscheBCs.empty() )
+        {
+            for(auto& tBC : mNitscheBCs)
+            {
+                tBC->evaluate(aSpatialModel,aWorkSets,/*multiplier=*/1.0,aCycle);
+            }
         }
     }
 
@@ -5464,6 +5475,90 @@ TEUCHOS_UNIT_TEST(Morphorm, Elastostatics_Nitsche)
 
     constexpr Plato::Scalar tTolerance = 1e-4;
     constexpr Plato::OrdinalType tDofOffset = 350; // comparing only the last 25 dofs
+    for(Plato::OrdinalType tDofIndex=0; tDofIndex < tGold.size(); tDofIndex++)
+    {
+        TEST_FLOATING_EQUALITY(tHostSolution(tDofOffset+tDofIndex), tGold[tDofIndex], tTolerance);
+    }
+}
+
+TEUCHOS_UNIT_TEST( Morphorm, Thermostatics_Tet10_Nitsche )
+{
+    // create test mesh
+    //
+    constexpr int tMeshWidth=2;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", tMeshWidth);
+
+    // create input
+    //
+    Teuchos::RCP<Teuchos::ParameterList> tParams =
+      Teuchos::getParametersFromXmlString(
+      "<ParameterList name='Plato Problem'>                                          \n"
+      "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>           \n"
+      "  <Parameter name='Physics' type='string' value='Thermostatics'/>             \n"
+      "  <Parameter name='Weak Essential Boundary Conditions' type='bool' value='true'/> \n"
+      "  <ParameterList name='Spatial Model'>                                        \n"
+      "    <ParameterList name='Domains'>                                            \n"
+      "      <ParameterList name='Design Volume'>                                     \n"
+      "        <Parameter name='Element Block' type='string' value='body'/>          \n"
+      "        <Parameter name='Material Model' type='string' value='Unobtainium'/>  \n"
+      "      </ParameterList>                                                        \n"
+      "    </ParameterList>                                                          \n"
+      "  </ParameterList>                                                            \n"
+      "  <ParameterList name='Material Models'>                                      \n"
+      "    <ParameterList name='Unobtainium'>                                        \n"
+      "      <ParameterList name='Thermal Conduction'>                               \n"
+      "        <Parameter name='Thermal Conductivity' type='double' value='100.0'/>  \n"
+      "      </ParameterList>                                                        \n"
+      "    </ParameterList>                                                          \n"
+      "  </ParameterList>                                                            \n"
+      "  <ParameterList  name='Natural Boundary Conditions'>                         \n"
+      "    <ParameterList  name='Flux Boundary Condition'>                           \n"
+      "      <Parameter  name='Type'     type='string'   value='Uniform'/>           \n"
+      "      <Parameter  name='Value'    type='double'   value='1.0'/>               \n"
+      "      <Parameter  name='Sides'    type='string'   value='x+'/>                \n"
+      "    </ParameterList>                                                          \n"
+      "  </ParameterList>                                                            \n"
+      "  <ParameterList  name='Essential Boundary Conditions'>                       \n"
+      "    <ParameterList  name='Fixed Temperature Boundary Condition'>              \n"
+      "      <Parameter  name='Type'     type='string' value='Zero Value'/>          \n"
+      "      <Parameter  name='Sides'    type='string' value='x-'/>                  \n"
+      "    </ParameterList>                                                          \n"
+      "  </ParameterList>                                                            \n"
+      "</ParameterList>                                                              \n"
+    );
+
+    // create problem
+    MPI_Comm tMyComm;
+    MPI_Comm_dup(MPI_COMM_WORLD, &tMyComm);
+    Plato::Comm::Machine tMachine(tMyComm);
+    Plato::exp::Problem<Plato::exp::PhysicsThermal<Plato::Tet10>>
+        tThermalProblem(tMesh, *tParams, tMachine);
+
+    // SOLVE ELASTOSTATICS EQUATIONS
+    auto tNumVerts = tMesh->NumNodes();
+    Plato::ScalarVector tControl("Control", tNumVerts);
+    Plato::blas1::fill(1.0, tControl);
+    auto tThermalSolution = tThermalProblem.solution(tControl);
+    tThermalProblem.output("output_weak");
+
+    // TEST RESULTS
+    constexpr Plato::OrdinalType tTimeStep = 0;
+    auto tState = tThermalSolution.get("State");
+    auto tSolution = Kokkos::subview(tState, tTimeStep, Kokkos::ALL());
+    auto tHostSolution = Kokkos::create_mirror_view(tSolution);
+    Kokkos::deep_copy(tHostSolution, tSolution);
+    TEST_EQUALITY(125u,tHostSolution.size());
+
+    std::vector<Plato::Scalar> tGold =
+            {0.0075, 0.0075, 0.0075, 0.0075, 0.0075,
+             0.01  , 0.01  , 0.01  , 0.01  , 0.01,
+             0.01  , 0.01  , 0.01  , 0.01  , 0.01,
+             0.01  , 0.01  , 0.01  , 0.01  , 0.01,
+             0.01  , 0.01  , 0.01  , 0.01  , 0.01,
+             0.01  , 0.01  , 0.01  , 0.01  , 0.01};
+
+    constexpr Plato::Scalar tTolerance = 1e-4;
+    constexpr Plato::OrdinalType tDofOffset = 95; // comparing only the last 25 dofs
     for(Plato::OrdinalType tDofIndex=0; tDofIndex < tGold.size(); tDofIndex++)
     {
         TEST_FLOATING_EQUALITY(tHostSolution(tDofOffset+tDofIndex), tGold[tDofIndex], tTolerance);
