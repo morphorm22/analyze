@@ -4272,7 +4272,7 @@ TEUCHOS_UNIT_TEST(Morphorm, Elastostatics)
     Plato::ScalarVector tControl("Control", tNumVerts);
     Plato::blas1::fill(1.0, tControl);
     auto tElasticitySolution = tElasticityProblem.solution(tControl);
-    tElasticityProblem.output("output_strong");
+    //tElasticityProblem.output("output_strong");
 
     // TEST RESULTS
     constexpr Plato::OrdinalType tTimeStep = 0;
@@ -5084,7 +5084,7 @@ TEUCHOS_UNIT_TEST( Morphorm, InternalThermalEnergyGrad_3D_TET4 )
       "<ParameterList name='Plato Problem'>                                          \n"
       "  <ParameterList name='Spatial Model'>                                        \n"
       "    <ParameterList name='Domains'>                                            \n"
-      "      <ParameterList name='Design Volume'>                                    \n"
+      "      <ParameterList name='Design Volume'>                                     \n"
       "        <Parameter name='Element Block' type='string' value='body'/>          \n"
       "        <Parameter name='Material Model' type='string' value='Unobtainium'/>  \n"
       "      </ParameterList>                                                        \n"
@@ -5142,7 +5142,7 @@ TEUCHOS_UNIT_TEST(Morphorm, Elastostatics_Nitsche)
     // create test mesh
     //
     constexpr int tMeshWidth=2;
-    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", tMeshWidth);
 
     // create input
     //
@@ -5213,7 +5213,7 @@ TEUCHOS_UNIT_TEST(Morphorm, Elastostatics_Nitsche)
     MPI_Comm_dup(MPI_COMM_WORLD, &tMyComm);
     Plato::Comm::Machine tMachine(tMyComm);
 
-    Plato::exp::Problem<Plato::exp::PhysicsMechanics<Plato::Tet4>>
+    Plato::exp::Problem<Plato::exp::PhysicsMechanics<Plato::Tet10>>
         tElasticityProblem(tMesh, *tParamList, tMachine);
 
     // SOLVE ELASTOSTATICS EQUATIONS
@@ -5221,7 +5221,7 @@ TEUCHOS_UNIT_TEST(Morphorm, Elastostatics_Nitsche)
     Plato::ScalarVector tControl("Control", tNumVerts);
     Plato::blas1::fill(1.0, tControl);
     auto tElasticitySolution = tElasticityProblem.solution(tControl);
-    tElasticityProblem.output("output_weak");
+    //tElasticityProblem.output("output_weak");
 
     // TEST RESULTS
     constexpr Plato::OrdinalType tTimeStep = 0;
@@ -5231,14 +5231,14 @@ TEUCHOS_UNIT_TEST(Morphorm, Elastostatics_Nitsche)
     Kokkos::deep_copy(tHostSolution, tSolution);
 
     std::vector<Plato::Scalar> tGold =
-        {8.44215e-8, 9.58193e-7, -7.30424e-8, 4.50125e-9,
-         9.61752e-7, -7.46016e-8, -7.46016e-8,
-         9.68308e-7, -7.43541e-8, -1.50715e-7,
-         9.67836e-7, -1.47979e-7, 1.60339e-7,
-         9.65735e-7, -1.47873e-7, 8.41994e-8,
-         9.6498e-7, -1.49664e-7, 4.12353e-9,
-         9.68308e-7, -1.50715e-7, -7.43541e-8,
-         9.79216e-7, -1.52588e-7, -1.52588e-7};
+        {9.22995e-8, 1.0634e-6, -6.65862e-08, 1.18648e-8,
+         1.06597e-6, -6.93321e-8, -6.76512e-8,
+         1.07269e-6, -6.88842e-8, -1.44575e-7,
+         1.06555e-6, -1.37668e-7, 1.69763e-7,
+         1.06655e-6, -1.39516e-7, 9.30324e-8,
+         1.07056e-6, -1.44331e-7, 1.14471e-8,
+         1.07329e-6, -1.46262e-7, -6.73653e-8,
+         1.08639e-6, -1.49161e-7, -1.47672e-7};
 
     constexpr Plato::Scalar tTolerance = 1e-4;
     constexpr Plato::OrdinalType tDofOffset = 350; // comparing only the last 25 dofs
