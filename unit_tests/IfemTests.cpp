@@ -2161,8 +2161,8 @@ public:
         auto tCubPointsOnBodyParentElemSurfaces = BodyElementBase::getFaceCubPoints();
         auto tCubWeightsOnBodyParentElemSurface = BodyElementBase::getFaceCubWeights();
 
-        auto tConductivity  = 100.0;
-        auto tNitschePenaltyTimesConductivity = mNitschePenalty * tConductivity;
+        auto tNitschePenalty = mNitschePenalty;
+        auto tConductivityTensor = mMaterial->getTensorConstant("Thermal Conductivity");
         Kokkos::parallel_for("nitsche bcs", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},
           {tNumCellsOnSideSet, mNumGaussPointsPerFace}),
           KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
@@ -2252,12 +2252,14 @@ public:
             //
 
             // term 3: int_{\Gamma_D}\gamma_N^T \delta{T}\cdot(T - T_D) d\Gamma_D
-            ConfigScalarType tGamma = tNitschePenaltyTimesConductivity / tCharacteristicLength(aSideOrdinal);
             for(Plato::OrdinalType tNode=0; tNode<mNumNodesPerCell; tNode++)
             {
                 Plato::OrdinalType tLocalDofOrdinal = tNode * mNumDofsPerNode;
                 for(Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
                 {
+
+                    ConfigScalarType tGamma = ( tNitschePenalty * tConductivityTensor(tDimI,tDimI) )
+                            / tCharacteristicLength(aSideOrdinal);
                     ResultScalarType tValue = aMultiplier * tGamma * tBasisValuesOnBodyParentElemSurface(tNode)
                         * ( tProjectedTemp - tDirichletWS(tCellOrdinal,tLocalDofOrdinal) )
                         * tCubWeightOnBodyParentElemSurface * tFaceArea;
@@ -4430,7 +4432,7 @@ TEUCHOS_UNIT_TEST(Morphorm, Elastostatics)
     Plato::ScalarVector tControl("Control", tNumVerts);
     Plato::blas1::fill(1.0, tControl);
     auto tElasticitySolution = tElasticityProblem.solution(tControl);
-    //tElasticityProblem.output("output_strong");
+    tElasticityProblem.output("output_strong");
 
     // TEST RESULTS
     constexpr Plato::OrdinalType tTimeStep = 0;
@@ -5454,7 +5456,7 @@ TEUCHOS_UNIT_TEST(Morphorm, Elastostatics_Nitsche)
     Plato::ScalarVector tControl("Control", tNumVerts);
     Plato::blas1::fill(1.0, tControl);
     auto tElasticitySolution = tElasticityProblem.solution(tControl);
-    //tElasticityProblem.output("output_weak");
+    tElasticityProblem.output("output_weak");
 
     // TEST RESULTS
     constexpr Plato::OrdinalType tTimeStep = 0;
