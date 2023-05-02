@@ -36,7 +36,6 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     TensileEnergyDensityLocalMeasure.cpp
     Plato_AugLagStressCriterionQuadratic.cpp
     Plato_AugLagStressCriterionGeneral.cpp
-    Plato_AugLagStressCriterion.cpp
     VonMisesLocalMeasure.cpp
     ThermalVonMisesLocalMeasure.cpp
 )

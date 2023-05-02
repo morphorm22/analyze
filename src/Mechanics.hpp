@@ -15,7 +15,6 @@
 #include "TensileEnergyDensityLocalMeasure.hpp"
 #include "VonMisesLocalMeasure.hpp"
 #include "elliptic/VolAvgStressPNormDenominator.hpp"
-#include "Plato_AugLagStressCriterion.hpp"
 #include "Plato_AugLagStressCriterionGeneral.hpp"
 #include "Plato_AugLagStressCriterionQuadratic.hpp"
 #include "AbstractLocalMeasure.hpp"
@@ -65,28 +64,6 @@ namespace MechanicsFactory
           ANALYZE_THROWERR("Unknown 'Local Measure' specified in 'Plato Problem' ParameterList")
       }
   }
-
-
-/******************************************************************************//**
- * \brief Create augmented Lagrangian stress constraint criterion tailored for linear problems
- * \param [in] aSpatialDomain Plato Analyze spatial domain
- * \param [in] aDataMap Plato Analyze physics-based database
- * \param [in] aProblemParams input parameters
-**********************************************************************************/
-template<typename EvaluationType>
-inline std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<EvaluationType>>
-stress_constraint_linear(
-    const Plato::SpatialDomain   & aSpatialDomain,
-          Plato::DataMap         & aDataMap,
-          Teuchos::ParameterList & aProblemParams,
-    const std::string            & aFuncName
-)
-{
-    std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<EvaluationType>> tOutput;
-    tOutput = std::make_shared< Plato::AugLagStressCriterion<EvaluationType> >
-                (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
-    return (tOutput);
-}
 
 /******************************************************************************//**
  * \brief Create augmented Lagrangian stress constraint criterion tailored for general problems
@@ -288,11 +265,6 @@ struct FunctionFactory
         else if(tLowerFuncType == "vol avg stress p-norm denominator")
         {
             return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::VolAvgStressPNormDenominator>
-                (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
-        }
-        else if(tLowerFuncType == "stress constraint")
-        {
-            return Plato::MechanicsFactory::stress_constraint_linear<EvaluationType>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else if(tLowerFuncType == "stress constraint general")
