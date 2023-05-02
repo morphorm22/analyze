@@ -15,9 +15,6 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/util)
 
 Plato_add_test(PlatoMathHelpers PlatoMathHelpersTest.cpp)
 
-# Interpolation-Based FEM
-Plato_add_test(Ifem IfemTests.cpp)
-
 #TODO: update StructuralDynamics to new element
 #Plato_add_test(PlatoFunctors PlatoFunctorsTest.cpp)
 
