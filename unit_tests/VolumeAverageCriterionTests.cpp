@@ -113,7 +113,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressAxial_
     constexpr Plato::Scalar tTolerance = 1e-4;
     std::string tCriterionName("VolAvgMisesStress");
     auto tCriterionValue = tProblem.criterionValue(tControls, tCriterionName);
-    TEST_FLOATING_EQUALITY(tCriterionValue, 1000.0, tTolerance);
+    TEST_FLOATING_EQUALITY(tCriterionValue, 1000.00, tTolerance);
 
     auto tCriterionGrad = tProblem.criterionGradient(tControls, tSolution, tCriterionName);
     std::vector<Plato::Scalar> tGold = {
