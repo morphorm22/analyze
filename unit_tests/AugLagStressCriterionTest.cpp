@@ -7,15 +7,23 @@
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
+#include "util/PlatoTestHelpers.hpp"
+
 #include "Simp.hpp"
+#include "Tri3.hpp"
 #include "ToMap.hpp"
 #include "BLAS1.hpp"
+#include "Mechanics.hpp"
 #include "AnalyzeMacros.hpp"
 #include "PlatoMathTypes.hpp"
+#include "MechanicsElement.hpp"
 #include "Plato_TopOptFunctors.hpp"
 #include "AbstractLocalMeasure.hpp"
+
 #include "elliptic/EvaluationTypes.hpp"
+#include "elliptic/WeightedSumFunction.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
+#include "elliptic/PhysicsScalarFunction.hpp"
 
 namespace Plato
 {
@@ -199,9 +207,9 @@ private:
     void initialize(Teuchos::ParameterList & aParams)
     {
         this->parseNumerics(aParams);
+        this->parseLimits(aParams); 
         auto tNumCells = mSpatialDomain.Mesh->NumElements();
         mAugLagDataMng.allocateContainers(tNumCells);
-        this->parseLimits(aParams); 
         mAugLagDataMng.initialize();
     }
 
@@ -265,7 +273,7 @@ private:
                 // evaluate local inequality constraint 
                 auto tLocalIndex = (iCellOrdinal * tNumLocalConstraints) + tConstraintIndex;
                 const Plato::Scalar tLocalMeasureValueOverLimit = 
-                    tLocalMeasureValues(tLocalIndex) / tLocalMeasureLimits(tLocalIndex);
+                    tLocalMeasureValues(tLocalIndex) / tLocalMeasureLimits(tConstraintIndex);
                 const Plato::Scalar tLocalMeasureValueOverLimitMinusOne = 
                     tLocalMeasureValueOverLimit - static_cast<Plato::Scalar>(1.0);
                 const Plato::Scalar tConstraintValue = pow(tLocalMeasureValueOverLimitMinusOne, 2.0);
@@ -293,6 +301,16 @@ public:
         this->initialize(aParams);
     }
     ~AugLagStressCriterion(){}
+
+    void
+    setLocalMeasure(
+        const std::shared_ptr<AbstractLocalMeasure<EvaluationType>> & aInputEvaluationType,
+        const std::shared_ptr<AbstractLocalMeasure<Residual>>       & aInputPODType
+    )
+    {
+        mLocalMeasurePODType        = aInputPODType;
+        mLocalMeasureEvaluationType = aInputEvaluationType;
+    }
 
     void
     updateProblem(
@@ -339,7 +357,7 @@ public:
             Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
             KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
-                        // evaluate material penalty model
+            // evaluate material penalty model
             auto tCubPoint = tCubPoints(iGpOrdinal);
             auto tBasisValues = ElementType::basisValues(tCubPoint);
             ControlT tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal, aControlWS, tBasisValues);
@@ -351,7 +369,7 @@ public:
                 const Plato::OrdinalType tLocalIndex = 
                     (iCellOrdinal * tNumLocalConstraints) + tConstraintIndex;
                 const ResultT tLocalMeasureValueOverLimit = 
-                    tLocalMeasureValues(tLocalIndex) / tLocalMeasureLimits(tLocalIndex);
+                    tLocalMeasureValues(tLocalIndex) / tLocalMeasureLimits(tConstraintIndex);
                 const ResultT tLocalMeasureValueOverLimitMinusOne = 
                     tLocalMeasureValueOverLimit - static_cast<Plato::Scalar>(1.0);
                 const ResultT tConstraintValue = pow(tLocalMeasureValueOverLimitMinusOne, 2.0);
@@ -384,7 +402,7 @@ public:
 namespace AugLagStressCriterionTest
 {
 
-   Teuchos::RCP<Teuchos::ParameterList> tGenericParamList = Teuchos::getParametersFromXmlString(
+   Teuchos::RCP<Teuchos::ParameterList> tGenericParamListOne = Teuchos::getParametersFromXmlString(
   "<ParameterList name='Plato Problem'>                                                                  \n"
     "<ParameterList name='Spatial Model'>                                                                \n"
       "<ParameterList name='Domains'>                                                                    \n"
@@ -430,11 +448,58 @@ namespace AugLagStressCriterionTest
   "</ParameterList>                                                                                      \n"
   );
 
+   Teuchos::RCP<Teuchos::ParameterList> tGenericParamListTwo = Teuchos::getParametersFromXmlString(
+  "<ParameterList name='Plato Problem'>                                                                  \n"
+    "<ParameterList name='Spatial Model'>                                                                \n"
+      "<ParameterList name='Domains'>                                                                    \n"
+        "<ParameterList name='Design Volume'>                                                            \n"
+          "<Parameter name='Element Block' type='string' value='body'/>                                  \n"
+          "<Parameter name='Material Model' type='string' value='Mystic'/>                               \n"
+        "</ParameterList>                                                                                \n"
+      "</ParameterList>                                                                                  \n"
+    "</ParameterList>                                                                                    \n"
+    "<ParameterList name='Material Models'>                                                              \n"
+      "<ParameterList name='Mystic'>                                                                     \n"
+        "<ParameterList name='Isotropic Linear Elastic'>                                                 \n"
+          "<Parameter  name='Poissons Ratio' type='double' value='0.35'/>                                \n"
+          "<Parameter  name='Youngs Modulus' type='double' value='1.0e11'/>                              \n"
+        "</ParameterList>                                                                                \n"
+      "</ParameterList>                                                                                  \n"
+    "</ParameterList>                                                                                    \n"
+    "<ParameterList name='Criteria'>                                                                     \n"
+    "  <ParameterList name='Objective'>                                                                  \n"
+    "    <Parameter name='Type' type='string' value='Weighted Sum'/>                                     \n"
+    "    <Parameter name='Functions' type='Array(string)' value='{My Volume,My Stress}'/>                \n"
+    "    <Parameter name='Weights' type='Array(double)' value='{1.0,1.0}'/>                              \n"
+    "  </ParameterList>                                                                                  \n"
+    "  <ParameterList name='My Volume'>                                                                  \n"
+    "    <Parameter name='Type'                 type='string' value='Scalar Function'/>                  \n"
+    "    <Parameter name='Scalar Function Type' type='string' value='Volume'/>                           \n"
+    "    <Parameter name='Exponent'             type='double' value='2.0'/>                              \n"
+    "    <Parameter name='Minimum Value'        type='double' value='1.0e-9'/>                           \n"
+    "  </ParameterList>                                                                                  \n"
+    "  <ParameterList name='My Stress'>                                                                  \n"
+    "    <Parameter name='Type'                        type='string'        value='Scalar Function'/>    \n"
+    "    <Parameter name='Scalar Function Type'        type='string'        value='Stress Constraints'/> \n"
+    "    <Parameter name='Local Measure'               type='string'        value='VonMises'/>           \n"
+    "    <Parameter name='Exponent'                    type='double'        value='2.0'/>                \n"
+    "    <Parameter name='Minimum Value'               type='double'        value='1.0e-6'/>             \n"
+    "    <Parameter name='Maximum Penalty'             type='double'        value='100'/>                \n"
+    "    <Parameter name='Initial Penalty'             type='double'        value='2.0'/>                \n"
+    "    <Parameter name='Penalty Increment'           type='double'        value='1.5'/>                \n"
+    "    <Parameter name='Penalty Update Parameter'    type='double'        value='0.15'/>               \n"
+    "    <Parameter name='Initial Lagrange Multiplier' type='double'        value='0.1'/>                \n"
+    "    <Parameter name='Limits'                      type='Array(double)' value='{1.0}'/>          \n"
+    "  </ParameterList>                                                                                  \n"
+    "</ParameterList>                                                                                    \n"
+  "</ParameterList>                                                                                      \n"
+  );
+
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagDataMng_ParseInputs)
 {
     Plato::AugLagDataMng tDataMng;
     Teuchos::ParameterList & tParams = 
-        tGenericParamList->sublist("Criteria").get<Teuchos::ParameterList>("My Stress");
+        tGenericParamListOne->sublist("Criteria").get<Teuchos::ParameterList>("My Stress");
     // parse numerics
     tDataMng.parseNumerics(tParams);
     // test floating data
@@ -477,7 +542,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagDataMng_Initialize)
 {
     Plato::AugLagDataMng tDataMng;
     Teuchos::ParameterList & tParams = 
-        tGenericParamList->sublist("Criteria").get<Teuchos::ParameterList>("My Stress");
+        tGenericParamListOne->sublist("Criteria").get<Teuchos::ParameterList>("My Stress");
     // parse numerics
     tDataMng.parseNumerics(tParams);
     tDataMng.parseLimits(tParams);
@@ -500,7 +565,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagDataMng_UpdateLagrangeMultipliers
 {
     Plato::AugLagDataMng tDataMng;
     Teuchos::ParameterList & tParams = 
-        tGenericParamList->sublist("Criteria").get<Teuchos::ParameterList>("My Stress");
+        tGenericParamListOne->sublist("Criteria").get<Teuchos::ParameterList>("My Stress");
     // parse numeric inputs
     tDataMng.parseNumerics(tParams);
     tDataMng.parseLimits(tParams);
@@ -523,7 +588,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagDataMng_UpdatePenaltyValues_1)
 {
     Plato::AugLagDataMng tDataMng;
     Teuchos::ParameterList & tParams = 
-        tGenericParamList->sublist("Criteria").get<Teuchos::ParameterList>("My Stress");
+        tGenericParamListOne->sublist("Criteria").get<Teuchos::ParameterList>("My Stress");
     // parse numeric inputs
     tDataMng.parseNumerics(tParams);
     tDataMng.parseLimits(tParams);
@@ -547,7 +612,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagDataMng_UpdatePenaltyValues_2)
 {
     Plato::AugLagDataMng tDataMng;
     Teuchos::ParameterList & tParams = 
-        tGenericParamList->sublist("Criteria").get<Teuchos::ParameterList>("My Stress");
+        tGenericParamListOne->sublist("Criteria").get<Teuchos::ParameterList>("My Stress");
     // parse numeric inputs
     tDataMng.parseNumerics(tParams);
     tDataMng.parseLimits(tParams);
@@ -565,6 +630,82 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagDataMng_UpdatePenaltyValues_2)
     {
         TEST_FLOATING_EQUALITY(2.0,tHostPV(tIndex),tTolerance);
     }
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagStressCriterion_VonMises2D)
+{
+    // create mesh
+    constexpr Plato::OrdinalType tSpaceDim = 2;
+    constexpr Plato::OrdinalType tMeshWidth = 1;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+    using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
+
+    //set ad-types
+    using Residual = typename Plato::Elliptic::Evaluation<Plato::MechanicsElement<Plato::Tri3>>::Residual;
+    using StateT = typename Residual::StateScalarType;
+    using ConfigT = typename Residual::ConfigScalarType;
+    using ResultT = typename Residual::ResultScalarType;
+    using ControlT = typename Residual::ControlScalarType;
+
+    // create configuration workset
+    Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
+    constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
+    Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
+    tWorksetBase.worksetConfig(tConfigWS);
+    // create control workset
+    Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+    Plato::ScalarVector tControl("Controls", tNumVerts);
+    Plato::blas1::fill(1.0, tControl);
+    tWorksetBase.worksetControl(tControl, tControlWS);
+    // create state workset
+    const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+    Plato::ScalarVector tState("States", tNumDofs);
+    Plato::blas1::fill(0.1, tState);
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+            {   tState(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal);}, "fill state");
+    constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
+    Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
+    tWorksetBase.worksetState(tState, tStateWS);
+    // create result/output workset
+    Plato::ScalarVectorT<ResultT> tResultWS("result", tNumCells);
+    
+    // create spatial model
+    Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
+
+    // create criterion
+    auto tOnlyDomain = tSpatialModel.Domains.front();
+    Plato::AugLagStressCriterion<Residual> tCriterion(tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+    
+    // create material model
+    constexpr Plato::Scalar tYoungsModulus = 1;
+    constexpr Plato::Scalar tPoissonRatio = 0.3;
+    Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
+    auto tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    
+    // create local measure
+    const auto tLocalMeasure = 
+        std::make_shared<Plato::VonMisesLocalMeasure<Residual>>(tOnlyDomain,tDataMap,tCellStiffMatrix,"VonMises");
+    tCriterion.setLocalMeasure(tLocalMeasure, tLocalMeasure); 
+    
+    // evaluate criterion
+    tCriterion.evaluate(tStateWS, tControlWS, tConfigWS, tResultWS);
+
+    // test result/output
+    constexpr Plato::Scalar tTolerance = 1e-4;
+    std::vector<Plato::Scalar> tGold = {0.00740563, 0.00740563};
+    auto tHostResultWS = Kokkos::create_mirror(tResultWS);
+    Kokkos::deep_copy(tHostResultWS, tResultWS);
+    for(Plato::OrdinalType tIndex = 0; tIndex < tNumCells; tIndex++)
+    {
+        TEST_FLOATING_EQUALITY(tGold[tIndex], tHostResultWS(tIndex), tTolerance);
+    }
+
+    // ****** TEST GLOBAL SUM ******
+    auto tObjFuncVal = Plato::local_result_sum<Plato::Scalar>(tNumCells, tResultWS);
+    TEST_FLOATING_EQUALITY(0.0148113, tObjFuncVal, tTolerance);
 }
 
 }
