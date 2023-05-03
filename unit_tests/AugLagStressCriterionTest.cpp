@@ -11,6 +11,7 @@
 
 #include "Simp.hpp"
 #include "Tri3.hpp"
+#include "Tet4.hpp"
 #include "ToMap.hpp"
 #include "BLAS1.hpp"
 #include "Mechanics.hpp"
@@ -702,11 +703,88 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagStressCriterion_VonMises2D)
     {
         TEST_FLOATING_EQUALITY(tGold[tIndex], tHostResultWS(tIndex), tTolerance);
     }
-
-    // ****** TEST GLOBAL SUM ******
+    // test sum over cell contributions
     auto tObjFuncVal = Plato::local_result_sum<Plato::Scalar>(tNumCells, tResultWS);
     TEST_FLOATING_EQUALITY(0.0148113, tObjFuncVal, tTolerance);
 }
+
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagStressCriterion_VonMises3D)
+{
+    // create mesh
+    constexpr Plato::OrdinalType tSpaceDim = 3;
+    constexpr Plato::OrdinalType tMeshWidth = 1;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
+    using ElementType = typename Plato::MechanicsElement<Plato::Tet4>;
+
+    //set ad-types
+    using Residual = typename Plato::Elliptic::Evaluation<Plato::MechanicsElement<Plato::Tet4>>::Residual;
+    using StateT = typename Residual::StateScalarType;
+    using ConfigT = typename Residual::ConfigScalarType;
+    using ResultT = typename Residual::ResultScalarType;
+    using ControlT = typename Residual::ControlScalarType;
+
+    // create configuration workset
+    Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
+    TEST_EQUALITY(6,tNumCells);
+    constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
+    Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
+    tWorksetBase.worksetConfig(tConfigWS);
+    // create control workset
+    Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+    Plato::ScalarVector tControl("Controls", tNumVerts);
+    Plato::blas1::fill(1.0, tControl);
+    tWorksetBase.worksetControl(tControl, tControlWS);
+    // create state workset
+    const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+    Plato::ScalarVector tState("States", tNumDofs);
+    Plato::blas1::fill(0.1, tState);
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+            {   tState(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal);}, "fill state");
+    constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
+    Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
+    tWorksetBase.worksetState(tState, tStateWS);
+    // create result/output workset
+    Plato::ScalarVectorT<ResultT> tResultWS("result", tNumCells);
+    
+    // create spatial model
+    Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
+
+    // create criterion
+    auto tOnlyDomain = tSpatialModel.Domains.front();
+    Plato::AugLagStressCriterion<Residual> tCriterion(tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+    
+    // create material model
+    constexpr Plato::Scalar tYoungsModulus = 1;
+    constexpr Plato::Scalar tPoissonRatio = 0.3;
+    Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
+    auto tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    
+    // create local measure
+    const auto tLocalMeasure = 
+        std::make_shared<Plato::VonMisesLocalMeasure<Residual>>(tOnlyDomain,tDataMap,tCellStiffMatrix,"VonMises");
+    tCriterion.setLocalMeasure(tLocalMeasure, tLocalMeasure); 
+    
+    // evaluate criterion
+    tCriterion.evaluate(tStateWS, tControlWS, tConfigWS, tResultWS);
+
+    // test result/output
+    constexpr Plato::Scalar tTolerance = 1e-4;
+    std::vector<Plato::Scalar> tGold = {0.0718548,0.0718548,0.0718548,0.0718548,0.0718548,0.0718548};
+    auto tHostResultWS = Kokkos::create_mirror(tResultWS);
+    Kokkos::deep_copy(tHostResultWS, tResultWS);
+    for(Plato::OrdinalType tIndex = 0; tIndex < tNumCells; tIndex++)
+    {
+        TEST_FLOATING_EQUALITY(tGold[tIndex], tHostResultWS(tIndex), tTolerance);
+    }
+    // test sum over cell contributions
+    auto tObjFuncVal = Plato::local_result_sum<Plato::Scalar>(tNumCells, tResultWS);
+    TEST_FLOATING_EQUALITY(0.431129, tObjFuncVal, tTolerance);
+}
+
 
 }
 // namespace AugLagStressCriterionTest
