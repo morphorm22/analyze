@@ -7,6 +7,7 @@
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
+#include "Analyze_Diagnostics.hpp"
 #include "util/PlatoTestHelpers.hpp"
 
 #include "Simp.hpp"
@@ -785,6 +786,209 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagStressCriterion_VonMises3D)
     TEST_FLOATING_EQUALITY(0.431129, tObjFuncVal, tTolerance);
 }
 
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StressConstraintVonMises_GradZ_2D)
+{
+    // create mesh
+    constexpr Plato::OrdinalType tSpaceDim = 2;
+    constexpr Plato::OrdinalType tMeshWidth = 1;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+
+    // create weighthed sum scalar function
+    Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
+    auto tOnlyDomain = tSpatialModel.Domains.front();
+    Plato::Elliptic::WeightedSumFunction<Plato::Mechanics<Plato::Tri3>> tWeightedSum(tSpatialModel, tDataMap);
+
+    // set ad-types
+    using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
+    using Residual  = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+    using GradientZ = typename Plato::Elliptic::Evaluation<ElementType>::GradientZ;
+  
+    // create material model
+    constexpr Plato::Scalar tYoungsModulus = 1.0;
+    constexpr Plato::Scalar tPoissonRatio = 0.3;
+    Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
+
+    // create von mises local measure
+    constexpr Plato::OrdinalType tNumVoigtTerms = ElementType::mNumVoigtTerms;
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    const auto tLocalMeasureGradZ = std::make_shared<Plato::VonMisesLocalMeasure<GradientZ>> 
+                                      (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+    const auto tLocalMeasurePODType = std::make_shared<Plato::VonMisesLocalMeasure<Residual>> 
+                                        (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+
+    // create stress criterion
+    const auto tCriterionResidual = std::make_shared<Plato::AugLagStressCriterion<Residual>>(
+                                      tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+    tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
+    const auto tCriterionGradZ = std::make_shared<Plato::AugLagStressCriterion<GradientZ>>(
+                                    tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+    tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
+
+    // append stress criterion to weighthed scalar function
+    const auto tPhysicsScalarFuncVonMises =
+       std::make_shared<Plato::Elliptic::PhysicsScalarFunction<Plato::Mechanics<Plato::Tri3>>>(tSpatialModel,tDataMap);
+    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionResidual, tOnlyDomain.getDomainName());
+    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionGradZ, tOnlyDomain.getDomainName());
+    const Plato::Scalar tVonMisesFunctionWeight = 1.0;
+    tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncVonMises);
+    tWeightedSum.appendFunctionWeight(tVonMisesFunctionWeight);
+    // test partial wrt control variables
+    Plato::test_partial_control<GradientZ,ElementType>(tMesh, tWeightedSum);
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StressConstraintVonMises_GradZ_3D)
+{
+    // create mesh
+    constexpr Plato::OrdinalType tSpaceDim = 3;
+    constexpr Plato::OrdinalType tMeshWidth = 1;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
+
+    // create weighthed sum scalar function
+    Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
+    auto tOnlyDomain = tSpatialModel.Domains.front();
+    Plato::Elliptic::WeightedSumFunction<Plato::Mechanics<Plato::Tet4>> tWeightedSum(tSpatialModel, tDataMap);
+
+    // set ad-types
+    using ElementType = typename Plato::MechanicsElement<Plato::Tet4>;
+    using Residual  = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+    using GradientZ = typename Plato::Elliptic::Evaluation<ElementType>::GradientZ;
+  
+    // create material model
+    constexpr Plato::Scalar tYoungsModulus = 1.0;
+    constexpr Plato::Scalar tPoissonRatio = 0.3;
+    Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
+
+    // create von mises local measure
+    constexpr Plato::OrdinalType tNumVoigtTerms = ElementType::mNumVoigtTerms;
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    const auto tLocalMeasureGradZ = std::make_shared<Plato::VonMisesLocalMeasure<GradientZ>> 
+                                      (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+    const auto tLocalMeasurePODType = std::make_shared<Plato::VonMisesLocalMeasure<Residual>> 
+                                        (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+
+    // create stress criterion
+    const auto tCriterionResidual = std::make_shared<Plato::AugLagStressCriterion<Residual>>(
+                                      tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+    tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
+    const auto tCriterionGradZ = std::make_shared<Plato::AugLagStressCriterion<GradientZ>>(
+                                    tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+    tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
+
+    // append stress criterion to weighthed scalar function
+    const auto tPhysicsScalarFuncVonMises =
+       std::make_shared<Plato::Elliptic::PhysicsScalarFunction<Plato::Mechanics<Plato::Tet4>>>(tSpatialModel,tDataMap);
+    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionResidual, tOnlyDomain.getDomainName());
+    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionGradZ, tOnlyDomain.getDomainName());
+    const Plato::Scalar tVonMisesFunctionWeight = 1.0;
+    tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncVonMises);
+    tWeightedSum.appendFunctionWeight(tVonMisesFunctionWeight);
+    // test partial wrt control variables
+    Plato::test_partial_control<GradientZ,ElementType>(tMesh, tWeightedSum);
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StressConstraintVonMises_GradU_2D)
+{
+    // create mesh
+    constexpr Plato::OrdinalType tSpaceDim = 2;
+    constexpr Plato::OrdinalType tMeshWidth = 1;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+
+    // create weighthed sum scalar function
+    Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
+    auto tOnlyDomain = tSpatialModel.Domains.front();
+    Plato::Elliptic::WeightedSumFunction<Plato::Mechanics<Plato::Tri3>> tWeightedSum(tSpatialModel, tDataMap);
+
+    // set ad-types
+    using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
+    using Residual  = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+    using GradientU = typename Plato::Elliptic::Evaluation<ElementType>::Jacobian;
+  
+    // create material model
+    constexpr Plato::Scalar tYoungsModulus = 1.0;
+    constexpr Plato::Scalar tPoissonRatio = 0.3;
+    Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
+
+    // create von mises local measure
+    constexpr Plato::OrdinalType tNumVoigtTerms = ElementType::mNumVoigtTerms;
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    const auto tLocalMeasureGradZ = std::make_shared<Plato::VonMisesLocalMeasure<GradientU>> 
+                                      (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+    const auto tLocalMeasurePODType = std::make_shared<Plato::VonMisesLocalMeasure<Residual>> 
+                                        (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+
+    // create stress criterion
+    const auto tCriterionResidual = std::make_shared<Plato::AugLagStressCriterion<Residual>>(
+                                      tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+    tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
+    const auto tCriterionGradZ = std::make_shared<Plato::AugLagStressCriterion<GradientU>>(
+                                    tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+    tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
+
+    // append stress criterion to weighthed scalar function
+    const auto tPhysicsScalarFuncVonMises =
+       std::make_shared<Plato::Elliptic::PhysicsScalarFunction<Plato::Mechanics<Plato::Tri3>>>(tSpatialModel,tDataMap);
+    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionResidual, tOnlyDomain.getDomainName());
+    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionGradZ, tOnlyDomain.getDomainName());
+    const Plato::Scalar tVonMisesFunctionWeight = 1.0;
+    tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncVonMises);
+    tWeightedSum.appendFunctionWeight(tVonMisesFunctionWeight);
+    // test partial wrt control variables
+    Plato::test_partial_state<GradientU,ElementType>(tMesh, tWeightedSum);
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StressConstraintVonMises_GradU_3D)
+{
+    // create mesh
+    constexpr Plato::OrdinalType tSpaceDim = 3;
+    constexpr Plato::OrdinalType tMeshWidth = 1;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tMeshWidth);
+
+    // create weighthed sum scalar function
+    Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
+    auto tOnlyDomain = tSpatialModel.Domains.front();
+    Plato::Elliptic::WeightedSumFunction<Plato::Mechanics<Plato::Tet4>> tWeightedSum(tSpatialModel, tDataMap);
+
+    // set ad-types
+    using ElementType = typename Plato::MechanicsElement<Plato::Tet4>;
+    using Residual  = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+    using GradientU = typename Plato::Elliptic::Evaluation<ElementType>::Jacobian;
+  
+    // create material model
+    constexpr Plato::Scalar tYoungsModulus = 1.0;
+    constexpr Plato::Scalar tPoissonRatio = 0.3;
+    Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
+
+    // create von mises local measure
+    constexpr Plato::OrdinalType tNumVoigtTerms = ElementType::mNumVoigtTerms;
+    Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
+    const auto tLocalMeasureGradZ = std::make_shared<Plato::VonMisesLocalMeasure<GradientU>> 
+                                      (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+    const auto tLocalMeasurePODType = std::make_shared<Plato::VonMisesLocalMeasure<Residual>> 
+                                        (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+
+    // create stress criterion
+    const auto tCriterionResidual = std::make_shared<Plato::AugLagStressCriterion<Residual>>(
+                                      tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+    tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
+    const auto tCriterionGradZ = std::make_shared<Plato::AugLagStressCriterion<GradientU>>(
+                                    tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+    tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
+
+    // append stress criterion to weighthed scalar function
+    const auto tPhysicsScalarFuncVonMises =
+       std::make_shared<Plato::Elliptic::PhysicsScalarFunction<Plato::Mechanics<Plato::Tet4>>>(tSpatialModel,tDataMap);
+    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionResidual, tOnlyDomain.getDomainName());
+    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionGradZ, tOnlyDomain.getDomainName());
+    const Plato::Scalar tVonMisesFunctionWeight = 1.0;
+    tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncVonMises);
+    tWeightedSum.appendFunctionWeight(tVonMisesFunctionWeight);
+    // test partial wrt control variables
+    Plato::test_partial_state<GradientU,ElementType>(tMesh, tWeightedSum);
+}
 
 }
 // namespace AugLagStressCriterionTest
