@@ -10,6 +10,7 @@
 #include "elliptic/StressPNorm.hpp"
 #include "elliptic/EffectiveEnergy.hpp"
 #include "elliptic/Volume.hpp"
+#include "elliptic/MassMoment.hpp"
 #include "elliptic/VolumeIntegralCriterion.hpp"
 #include "elliptic/VolumeAverageCriterionDenominator.hpp"
 #include "TensileEnergyDensityLocalMeasure.hpp"
@@ -163,8 +164,27 @@ vol_avg_criterion_denominator(
 }
 // function vol_avg_criterion_denominator
 
-
-
+/******************************************************************************//**
+ * \brief Create mass criterion
+ * \param [in] aSpatialDomain Plato Analyze spatial domain
+ * \param [in] aDataMap Plato Analyze physics-based database
+ * \param [in] aProblemParams input parameters
+ * \return shared pointer
+**********************************************************************************/
+template<typename EvaluationType>
+inline std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<EvaluationType>>
+mass_criterion(
+    const Plato::SpatialDomain   & aSpatialDomain,
+          Plato::DataMap         & aDataMap,
+          Teuchos::ParameterList & aProblemParams
+)
+{
+    auto tCriterion = std::make_shared<Plato::Elliptic::MassMoment<EvaluationType>>
+                        (aSpatialDomain, aDataMap, aProblemParams);
+    tCriterion->setCalculationType("Mass");
+    return tCriterion;
+}
+// function vol_avg_criterion_denominator
 
 /******************************************************************************//**
  * \brief Factory for linear mechanics problem
@@ -251,6 +271,11 @@ struct FunctionFactory
         {
             return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::Volume>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
+        }
+        else if(tLowerFuncType == "mass")
+        {
+            return Plato::MechanicsFactory::mass_criterion<EvaluationType>
+                (aSpatialDomain, aDataMap, aProblemParams);
         }
         else if (tLowerFuncType == "volume average criterion numerator")
         {
