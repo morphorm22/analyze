@@ -436,7 +436,7 @@ namespace AugLagStressCriterionTest
     "  </ParameterList>                                                                                  \n"
     "  <ParameterList name='My Stress'>                                                                  \n"
     "    <Parameter name='Type'                        type='string'        value='Scalar Function'/>    \n"
-    "    <Parameter name='Scalar Function Type'        type='string'        value='Stress Constraints'/> \n"
+    "    <Parameter name='Scalar Function Type'        type='string'        value='Strength Constraint'/>\n"
     "    <Parameter name='Exponent'                    type='double'        value='2.0'/>                \n"
     "    <Parameter name='Minimum Value'               type='double'        value='1.0e-6'/>             \n"
     "    <Parameter name='Maximum Penalty'             type='double'        value='100'/>                \n"
@@ -482,7 +482,7 @@ namespace AugLagStressCriterionTest
     "  </ParameterList>                                                                                  \n"
     "  <ParameterList name='My Stress'>                                                                  \n"
     "    <Parameter name='Type'                        type='string'        value='Scalar Function'/>    \n"
-    "    <Parameter name='Scalar Function Type'        type='string'        value='Stress Constraints'/> \n"
+    "    <Parameter name='Scalar Function Type'        type='string'        value='Strength Constraint'/>\n"
     "    <Parameter name='Local Measure'               type='string'        value='VonMises'/>           \n"
     "    <Parameter name='Exponent'                    type='double'        value='2.0'/>                \n"
     "    <Parameter name='Minimum Value'               type='double'        value='1.0e-6'/>             \n"
@@ -491,11 +491,53 @@ namespace AugLagStressCriterionTest
     "    <Parameter name='Penalty Increment'           type='double'        value='1.5'/>                \n"
     "    <Parameter name='Penalty Update Parameter'    type='double'        value='0.15'/>               \n"
     "    <Parameter name='Initial Lagrange Multiplier' type='double'        value='0.1'/>                \n"
-    "    <Parameter name='Limits'                      type='Array(double)' value='{1.0}'/>          \n"
+    "    <Parameter name='Limits'                      type='Array(double)' value='{1.0}'/>              \n"
     "  </ParameterList>                                                                                  \n"
     "</ParameterList>                                                                                    \n"
   "</ParameterList>                                                                                      \n"
   );
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagDataMng_ParseDefaults)
+{
+    Teuchos::RCP<Teuchos::ParameterList> tGenericParamList = 
+        Teuchos::getParametersFromXmlString(
+            "<ParameterList name='Plato Problem'>                                                            \n"
+              "<ParameterList name='Spatial Model'>                                                          \n"
+                "<ParameterList name='Domains'>                                                              \n"
+                  "<ParameterList name='Design Volume'>                                                      \n"
+                    "<Parameter name='Element Block' type='string' value='body'/>                            \n"
+                    "<Parameter name='Material Model' type='string' value='Mystic'/>                         \n"
+                  "</ParameterList>                                                                          \n"
+                "</ParameterList>                                                                            \n"
+              "</ParameterList>                                                                              \n"
+              "<ParameterList name='Criteria'>                                                               \n"
+              "  <ParameterList name='Objective'>                                                            \n"
+              "    <Parameter name='Type' type='string' value='Weighted Sum'/>                               \n"
+              "    <Parameter name='Functions' type='Array(string)' value='{My Stress}'/>                    \n"
+              "    <Parameter name='Weights' type='Array(double)' value='{1.0}'/>                            \n"
+              "  </ParameterList>                                                                            \n"
+              "  <ParameterList name='My Stress'>                                                            \n"
+              "    <Parameter name='Type'                 type='string'        value='Scalar Function'/>     \n"
+              "    <Parameter name='Scalar Function Type' type='string'        value='Strength Constraint'/> \n"
+              "    <Parameter name='Local Measure'        type='string'        value='VonMises'/>            \n"
+              "    <Parameter name='Limits'               type='Array(double)' value='{1.0}'/>               \n"
+              "  </ParameterList>                                                                            \n"
+              "</ParameterList>                                                                              \n"
+            "</ParameterList>                                                                                \n"
+        );
+    Plato::AugLagDataMng tDataMng;
+    Teuchos::ParameterList & tParams = 
+        tGenericParamList->sublist("Criteria").get<Teuchos::ParameterList>("My Stress");
+    // parse numerics
+    tDataMng.parseNumerics(tParams);
+    // test floating data
+    constexpr Plato::Scalar tTolerance = 1e-4;
+    TEST_FLOATING_EQUALITY(10000., tDataMng.mMaxPenalty               , tTolerance);
+    TEST_FLOATING_EQUALITY(1.0   , tDataMng.mInitiaPenalty            , tTolerance);
+    TEST_FLOATING_EQUALITY(1.1   , tDataMng.mPenaltyIncrement         , tTolerance);
+    TEST_FLOATING_EQUALITY(0.25  , tDataMng.mPenaltyUpdateParameter   , tTolerance);
+    TEST_FLOATING_EQUALITY(0.0   , tDataMng.mInitialLagrangeMultiplier, tTolerance);
+}
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagDataMng_ParseInputs)
 {
@@ -634,7 +676,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagDataMng_UpdatePenaltyValues_2)
     }
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagStressCriterion_VonMises2D)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_Evaluate_VonMises2D)
 {
     // create mesh
     constexpr Plato::OrdinalType tSpaceDim = 2;
@@ -710,7 +752,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagStressCriterion_VonMises2D)
 }
 
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagStressCriterion_VonMises3D)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_Evaluate_VonMises3D)
 {
     // create mesh
     constexpr Plato::OrdinalType tSpaceDim = 3;
@@ -786,7 +828,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagStressCriterion_VonMises3D)
     TEST_FLOATING_EQUALITY(0.431129, tObjFuncVal, tTolerance);
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StressConstraintVonMises_GradZ_2D)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_GradZ_2D)
 {
     // create mesh
     constexpr Plato::OrdinalType tSpaceDim = 2;
@@ -837,7 +879,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StressConstraintVonMises_GradZ_2D)
     Plato::test_partial_control<GradientZ,ElementType>(tMesh, tWeightedSum);
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StressConstraintVonMises_GradZ_3D)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_GradZ_3D)
 {
     // create mesh
     constexpr Plato::OrdinalType tSpaceDim = 3;
@@ -888,7 +930,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StressConstraintVonMises_GradZ_3D)
     Plato::test_partial_control<GradientZ,ElementType>(tMesh, tWeightedSum);
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StressConstraintVonMises_GradU_2D)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_GradU_2D)
 {
     // create mesh
     constexpr Plato::OrdinalType tSpaceDim = 2;
@@ -939,7 +981,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StressConstraintVonMises_GradU_2D)
     Plato::test_partial_state<GradientU,ElementType>(tMesh, tWeightedSum);
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StressConstraintVonMises_GradU_3D)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_GradU_3D)
 {
     // create mesh
     constexpr Plato::OrdinalType tSpaceDim = 3;
