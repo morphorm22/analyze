@@ -1,13 +1,13 @@
-#include "alg/PlatoSolverFactory.hpp"
+#include "solver/PlatoSolverFactory.hpp"
 #include "PlatoUtilities.hpp"
 
-#include "alg/AmgXLinearSolver.hpp"
-#include "alg/EpetraLinearSolver.hpp"
+#include "solver/AmgXLinearSolver.hpp"
+#include "solver/EpetraLinearSolver.hpp"
 #ifdef PLATO_TPETRA
-#include "alg/TpetraLinearSolver.hpp"
+#include "solver/TpetraLinearSolver.hpp"
 #endif
 #ifdef PLATO_TACHO
-#include "alg/TachoLinearSolver.hpp"
+#include "solver/TachoLinearSolver.hpp"
 #endif
 
 namespace Plato {

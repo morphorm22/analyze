@@ -15,7 +15,7 @@
 #include "AnalyzeMacros.hpp"
 #include "ApplyConstraints.hpp"
 #include "VectorFunctionVMS.hpp"
-#include "alg/PlatoAbstractSolver.hpp"
+#include "solver/PlatoAbstractSolver.hpp"
 #include "LocalScalarFunctionInc.hpp"
 #include "LocalVectorFunctionInc.hpp"
 #include "GlobalVectorFunctionInc.hpp"

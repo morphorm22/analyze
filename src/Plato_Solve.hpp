@@ -5,7 +5,7 @@
 
 #include "PlatoMathFunctors.hpp"
 #include "PlatoStaticsTypes.hpp"
-#include "alg/ParallelComm.hpp"
+#include "solver/ParallelComm.hpp"
 
 namespace Plato {
 

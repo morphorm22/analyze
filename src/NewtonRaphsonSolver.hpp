@@ -14,7 +14,7 @@
 #include "AnalyzeMacros.hpp"
 #include "PlatoUtilities.hpp"
 #include "ApplyConstraints.hpp"
-#include "alg/PlatoAbstractSolver.hpp"
+#include "solver/PlatoAbstractSolver.hpp"
 #include "NewtonRaphsonUtilities.hpp"
 #include "LocalVectorFunctionInc.hpp"
 #include "GlobalVectorFunctionInc.hpp"

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "alg/CrsMatrix.hpp"
+#include "solver/CrsMatrix.hpp"
 #include <Kokkos_Core.hpp>
 
 namespace Plato {

@@ -9,7 +9,7 @@
 #include "elliptic/VectorFunction.hpp"
 #include "ApplyConstraints.hpp"
 #include "LinearElasticMaterial.hpp"
-#include "alg/PlatoSolverFactory.hpp"
+#include "solver/PlatoSolverFactory.hpp"
 #include "MultipointConstraints.hpp"
 
 #include "PlatoStaticsTypes.hpp"
@@ -21,7 +21,7 @@
 #include "Tet4.hpp"
 
 #ifdef HAVE_AMGX
-#include <alg/AmgXSparseLinearProblem.hpp>
+#include <solver/AmgXSparseLinearProblem.hpp>
 #endif
 
 #include <memory>

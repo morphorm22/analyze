@@ -2,7 +2,7 @@
 #define PLATO_EPETRA_SOLVER_HPP
 
 #include "PlatoAbstractSolver.hpp"
-#include "alg/ParallelComm.hpp"
+#include "solver/ParallelComm.hpp"
 
 #include <AztecOO.h>
 #include <Epetra_Map.h>

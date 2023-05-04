@@ -1,5 +1,5 @@
 #ifdef HAVE_AMGX
-#include "alg/AmgXLinearSolver.hpp"
+#include "solver/AmgXLinearSolver.hpp"
 #include "AnalyzeMacros.hpp"
 #include <amgx_c.h>
 #include <string>

@@ -15,10 +15,10 @@
 #include "Hex27.hpp"
 #include "BLAS1.hpp"
 #include "PlatoMathHelpers.hpp"
-#include "alg/PlatoSolverFactory.hpp"
+#include "solver/PlatoSolverFactory.hpp"
 
 #ifdef HAVE_AMGX
-#include <alg/AmgXSparseLinearProblem.hpp>
+#include <solver/AmgXSparseLinearProblem.hpp>
 #endif
 
 #include <memory>

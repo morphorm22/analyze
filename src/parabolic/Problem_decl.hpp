@@ -5,7 +5,7 @@
 #include "SpatialModel.hpp"
 #include "ComputedField.hpp"
 #include "PlatoAbstractProblem.hpp"
-#include "alg/PlatoSolverFactory.hpp"
+#include "solver/PlatoSolverFactory.hpp"
 #include "parabolic/VectorFunction.hpp"
 #include "elliptic/ScalarFunctionBase.hpp"
 #include "parabolic/ScalarFunctionBase.hpp"

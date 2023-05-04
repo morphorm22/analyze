@@ -188,8 +188,8 @@ endif()
 
 add_executable(
     analyze
-    src/alg/Run.cpp
-    src/alg/Analyze.cpp
+    src/solver/Run.cpp
+    src/solver/Analyze.cpp
   )
 
 if( CMAKE_INSTALL_PREFIX )

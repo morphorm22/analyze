@@ -41,7 +41,7 @@
 #ifndef ANALYZE_RUN_HPP
 #define ANALYZE_RUN_HPP
 
-#include "alg/ParallelComm.hpp"
+#include "solver/ParallelComm.hpp"
 #include <Teuchos_ParameterList.hpp>
 
 //----------------------------------------------------------------------------

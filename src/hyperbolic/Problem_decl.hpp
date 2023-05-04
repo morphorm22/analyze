@@ -5,7 +5,7 @@
 #include "EssentialBCs.hpp"
 #include "SpatialModel.hpp"
 #include "PlatoAbstractProblem.hpp"
-#include "alg/PlatoSolverFactory.hpp"
+#include "solver/PlatoSolverFactory.hpp"
 #include "ComputedField.hpp"
 
 #include "hyperbolic/Newmark.hpp"

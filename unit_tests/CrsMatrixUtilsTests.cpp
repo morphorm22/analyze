@@ -1,4 +1,4 @@
-#include <alg/CrsMatrixUtils.hpp>
+#include <solver/CrsMatrixUtils.hpp>
 
 #include <Teuchos_UnitTestHarness.hpp>
 

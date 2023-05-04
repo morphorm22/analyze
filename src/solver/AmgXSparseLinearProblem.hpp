@@ -15,8 +15,8 @@
 #include <Teuchos_DefaultMpiComm.hpp>
 #endif
 
-#include "alg/CrsLinearProblem.hpp"
-#include "alg/AmgXConfigs.hpp"
+#include "solver/CrsLinearProblem.hpp"
+#include "solver/AmgXConfigs.hpp"
 #include <PlatoTypes.hpp>
 #include "AnalyzeMacros.hpp"
 

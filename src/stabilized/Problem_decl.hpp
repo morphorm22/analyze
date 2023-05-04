@@ -5,7 +5,7 @@
 #include "EssentialBCs.hpp"
 #include "PlatoStaticsTypes.hpp"
 #include "PlatoAbstractProblem.hpp"
-#include "alg/PlatoSolverFactory.hpp"
+#include "solver/PlatoSolverFactory.hpp"
 #include "stabilized/VectorFunction.hpp"
 
 #include "Geometrical.hpp"

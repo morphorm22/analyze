@@ -10,7 +10,7 @@
 #include <map>
 #include <vector>
 
-#include "alg/CrsMatrix.hpp"
+#include "solver/CrsMatrix.hpp"
 #include "AnalyzeMacros.hpp"
 #include "PlatoTypes.hpp"
 

@@ -10,7 +10,7 @@
 #include "PlatoUtilities.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "ApplyConstraints.hpp"
-#include "alg/PlatoSolverFactory.hpp"
+#include "solver/PlatoSolverFactory.hpp"
 #include "geometric/ScalarFunctionBaseFactory.hpp"
 #include "elliptic/hatching/ScalarFunctionBaseFactory.hpp"
 

@@ -52,7 +52,7 @@
 #include <Teuchos_Time.hpp>
 #include <PlatoTypes.hpp>
 
-#include "alg/ParseInput.hpp"
+#include "solver/ParseInput.hpp"
 
 namespace Plato {
 

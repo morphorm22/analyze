@@ -4,7 +4,7 @@
 
 #include "Tri3.hpp"
 #include "Mechanics.hpp"
-#include "alg/ParallelComm.hpp"
+#include "solver/ParallelComm.hpp"
 #include "elliptic/SolutionFunction.hpp"
 
 

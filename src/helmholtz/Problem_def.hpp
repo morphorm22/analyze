@@ -1,6 +1,6 @@
 #pragma once
 
-#include "alg/PlatoAbstractSolver.hpp"
+#include "solver/PlatoAbstractSolver.hpp"
 #include "helmholtz/Problem_decl.hpp"
 
 namespace Plato

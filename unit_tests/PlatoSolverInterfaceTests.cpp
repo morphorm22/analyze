@@ -9,15 +9,15 @@
 #include "elliptic/VectorFunction.hpp"
 #include "ApplyConstraints.hpp"
 #include "LinearElasticMaterial.hpp"
-#include "alg/PlatoSolverFactory.hpp"
-#include "alg/EpetraLinearSolver.hpp"
+#include "solver/PlatoSolverFactory.hpp"
+#include "solver/EpetraLinearSolver.hpp"
 
 #ifdef PLATO_TPETRA
-#include "alg/TpetraLinearSolver.hpp"
+#include "solver/TpetraLinearSolver.hpp"
 #endif
 
 #ifdef HAVE_AMGX
-#include <alg/AmgXSparseLinearProblem.hpp>
+#include <solver/AmgXSparseLinearProblem.hpp>
 #endif
 
 #include "Tri3.hpp"

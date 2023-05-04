@@ -51,17 +51,17 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     EngineMeshIO.cpp
     PlatoMathHelpers.cpp
     mesh/ExodusIO.cpp
-    alg/ParseInput.cpp
-    alg/ParallelComm.cpp
-    alg/AmgXConfigs.cpp
-    alg/AmgXLinearSolver.cpp
-    alg/PlatoSolverFactory.cpp
-    alg/PlatoAbstractSolver.cpp
+    solver/ParseInput.cpp
+    solver/ParallelComm.cpp
+    solver/AmgXConfigs.cpp
+    solver/AmgXLinearSolver.cpp
+    solver/PlatoSolverFactory.cpp
+    solver/PlatoAbstractSolver.cpp
 )
 
 if (PLATOANALYZE_ENABLE_EPETRA)
 set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    alg/EpetraLinearSolver.cpp
+    solver/EpetraLinearSolver.cpp
 )
 endif()
 
@@ -246,11 +246,11 @@ if(HELMHOLTZ)
 endif()
 
 if (PLATOANALYZE_ENABLE_TPETRA)
-  set(ANALYZE_SOURCES ${ANALYZE_SOURCES} alg/TpetraLinearSolver.cpp)
+  set(ANALYZE_SOURCES ${ANALYZE_SOURCES} solver/TpetraLinearSolver.cpp)
 endif()
 
 if (PLATOANALYZE_ENABLE_TACHO)
-  set(ANALYZE_SOURCES ${ANALYZE_SOURCES} alg/TachoLinearSolver.cpp)
+  set(ANALYZE_SOURCES ${ANALYZE_SOURCES} solver/TachoLinearSolver.cpp)
 endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/src)

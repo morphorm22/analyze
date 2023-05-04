@@ -9,7 +9,7 @@
 #include "AnalyzeOutput.hpp"
 #include "AnalyzeMacros.hpp"
 #include "ApplyConstraints.hpp"
-#include "alg/PlatoAbstractSolver.hpp"
+#include "solver/PlatoAbstractSolver.hpp"
 #include "elliptic/ScalarFunctionBaseFactory.hpp"
 #include "parabolic/ScalarFunctionBaseFactory.hpp"
 #include "geometric/ScalarFunctionBaseFactory.hpp"

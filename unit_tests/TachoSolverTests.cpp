@@ -2,7 +2,7 @@
 #include <array>
 #include <math.h>
 
-#include "alg/TachoLinearSolver.hpp"
+#include "solver/TachoLinearSolver.hpp"
 
 #include "Teuchos_UnitTestHarness.hpp"
 

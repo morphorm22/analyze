@@ -19,7 +19,7 @@
 #include "PlatoUtilities.hpp"
 #include "PlatoMesh.hpp"
 #include "PlatoAbstractProblem.hpp"
-#include "alg/ParseInput.hpp"
+#include "solver/ParseInput.hpp"
 
 
 #ifdef PLATO_GEOMETRY

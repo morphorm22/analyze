@@ -2,7 +2,7 @@
 
 #include "Teuchos_ParameterList.hpp"
 #include "PlatoAbstractSolver.hpp"
-#include "alg/ParallelComm.hpp"
+#include "solver/ParallelComm.hpp"
 
 namespace Plato {
 

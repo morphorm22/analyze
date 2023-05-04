@@ -39,7 +39,7 @@
 // Must be included first on Intel-Phi systems due to
 // redefinition of SEEK_SET in <mpi.h>.
 
-#include "alg/ParallelComm.hpp"
+#include "solver/ParallelComm.hpp"
 #include <Teuchos_ParameterList.hpp>
 #include <Teuchos_Time.hpp>
 

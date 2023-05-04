@@ -4,7 +4,7 @@
 
 
 #ifdef HAVE_AMGX
-#include "alg/AmgXSparseLinearProblem.hpp"
+#include "solver/AmgXSparseLinearProblem.hpp"
 #endif
 
 #include <sstream>
@@ -25,10 +25,10 @@
 #include "ProjectToNode.hpp"
 #include "ThermalContent.hpp"
 #include "GradientMatrix.hpp"
-#include "alg/ParallelComm.hpp"
+#include "solver/ParallelComm.hpp"
 #include "ThermalMassMaterial.hpp"
 #include "InterpolateFromNodal.hpp"
-#include "alg/CrsLinearProblem.hpp"
+#include "solver/CrsLinearProblem.hpp"
 #include "GeneralFluxDivergence.hpp"
 #include "parabolic/VectorFunction.hpp"
 #include "parabolic/PhysicsScalarFunction.hpp"

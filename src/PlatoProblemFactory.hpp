@@ -20,7 +20,7 @@
 #include "Tet4.hpp"
 #include "Electromechanics.hpp"
 #include "Thermomechanics.hpp"
-#include "alg/ParallelComm.hpp"
+#include "solver/ParallelComm.hpp"
 
 #ifdef PLATO_HEX_ELEMENTS
 #include "Hex8.hpp"

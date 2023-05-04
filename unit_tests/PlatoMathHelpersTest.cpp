@@ -26,8 +26,8 @@
 #include "ApplyProjection.hpp"
 #include "AnalyzeMacros.hpp"
 #include "HyperbolicTangentProjection.hpp"
-#include "alg/CrsMatrix.hpp"
-#include "alg/PlatoSolverFactory.hpp"
+#include "solver/CrsMatrix.hpp"
+#include "solver/PlatoSolverFactory.hpp"
 
 #include "KokkosBatched_LU_Decl.hpp"
 #include "KokkosBatched_LU_Serial_Impl.hpp"

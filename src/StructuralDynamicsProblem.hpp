@@ -28,7 +28,7 @@
 #include "SimplexStructuralDynamics.hpp"
 
 #ifdef HAVE_AMGX
-#include "alg/AmgXSparseLinearProblem.hpp"
+#include "solver/AmgXSparseLinearProblem.hpp"
 #endif
 
 namespace Plato

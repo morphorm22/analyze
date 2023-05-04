@@ -2,7 +2,7 @@
 #define AMGX_LINEAR_SOLVER_HPP
 
 #ifdef HAVE_AMGX
-#include "alg/PlatoAbstractSolver.hpp"
+#include "solver/PlatoAbstractSolver.hpp"
 
 #include <Teuchos_ParameterList.hpp>
 #include <Teuchos_TimeMonitor.hpp>

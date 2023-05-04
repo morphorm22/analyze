@@ -2,9 +2,9 @@
 
 #include "PlatoMesh.hpp"
 #include "SpatialModel.hpp"
-#include "alg/ParallelComm.hpp"
+#include "solver/ParallelComm.hpp"
 #include "PlatoAbstractProblem.hpp"
-#include "alg/PlatoSolverFactory.hpp"
+#include "solver/PlatoSolverFactory.hpp"
 #include "elliptic/VectorFunction.hpp"
 #include "elliptic/ScalarFunctionBase.hpp"
 #include "geometric/ScalarFunctionBase.hpp"

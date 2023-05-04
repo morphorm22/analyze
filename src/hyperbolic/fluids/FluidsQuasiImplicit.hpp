@@ -24,7 +24,7 @@
 #include "ApplyConstraints.hpp"
 #include "PlatoAbstractProblem.hpp"
 
-#include "alg/PlatoSolverFactory.hpp"
+#include "solver/PlatoSolverFactory.hpp"
 
 #include "hyperbolic/fluids/FluidsUtils.hpp"
 #include "hyperbolic/fluids/FluidsCriterionBase.hpp"

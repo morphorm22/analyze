@@ -12,14 +12,14 @@
 
 #include "Solutions.hpp"
 #include "AnalyzeOutput.hpp"
-#include "alg/PlatoAbstractSolver.hpp"
+#include "solver/PlatoAbstractSolver.hpp"
+#include "solver/PlatoSolverFactory.hpp"
 #include "stabilized/VectorFunction.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "PlatoStaticsTypes.hpp"
 #include "PlatoAbstractProblem.hpp"
 #include "ParseTools.hpp"
 #include "Plato_Solve.hpp"
-#include "alg/PlatoSolverFactory.hpp"
 
 #include "Geometrical.hpp"
 #include "geometric/ScalarFunctionBase.hpp"

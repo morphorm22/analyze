@@ -2,7 +2,7 @@
 #define PLATO_TPETRA_SOLVER_HPP
 
 #include "PlatoAbstractSolver.hpp"
-#include "alg/ParallelComm.hpp"
+#include "solver/ParallelComm.hpp"
 
 #include <Teuchos_ParameterList.hpp>
 #include <Teuchos_Comm.hpp>

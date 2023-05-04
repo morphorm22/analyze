@@ -6,7 +6,7 @@
 #include "ImplicitFunctors.hpp"
 
 #ifdef HAVE_AMGX
-#include "alg/AmgXSparseLinearProblem.hpp"
+#include "solver/AmgXSparseLinearProblem.hpp"
 #endif
 
 #include <sstream>
@@ -15,8 +15,8 @@
 #include <type_traits>
 #include <Sacado.hpp>
 
-#include "alg/CrsLinearProblem.hpp"
-#include "alg/ParallelComm.hpp"
+#include "solver/CrsLinearProblem.hpp"
+#include "solver/ParallelComm.hpp"
 
 #include "Tri3.hpp"
 #include "Tet4.hpp"

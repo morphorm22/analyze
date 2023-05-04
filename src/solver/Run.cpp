@@ -40,9 +40,9 @@
 #include <Kokkos_Core.hpp>
 
 #include "AnalyzeConfig.hpp"
-#include "alg/Run.hpp"
+#include "solver/Run.hpp"
 
-#include "alg/ErrorHandling.hpp"
+#include "solver/ErrorHandling.hpp"
 #include "PlatoDriver.hpp"
 
 namespace Plato

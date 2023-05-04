@@ -8,7 +8,7 @@
 #include "EssentialBCs.hpp"
 #include "AnalyzeOutput.hpp"
 #include "AnalyzeMacros.hpp"
-#include "alg/PlatoSolverFactory.hpp"
+#include "solver/PlatoSolverFactory.hpp"
 #include "Plato_Solve.hpp"
 #include "ComputedField.hpp"
 

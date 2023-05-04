@@ -21,8 +21,8 @@
 
 #include "helmholtz/VectorFunction.hpp"
 
-#include "alg/ParallelComm.hpp"
-#include "alg/PlatoSolverFactory.hpp"
+#include "solver/ParallelComm.hpp"
+#include "solver/PlatoSolverFactory.hpp"
 
 namespace Plato
 {

@@ -44,10 +44,10 @@
 #include <Teuchos_Time.hpp>
 #include <fstream>
 
-#include "alg/ErrorHandling.hpp"
-#include "alg/ParallelComm.hpp"
-#include "alg/ParseInput.hpp"
-#include "alg/Run.hpp"
+#include "solver/ErrorHandling.hpp"
+#include "solver/ParallelComm.hpp"
+#include "solver/ParseInput.hpp"
+#include "solver/Run.hpp"
 
 #include "PlatoMesh.hpp"
 
