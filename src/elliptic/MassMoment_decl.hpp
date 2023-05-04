@@ -155,6 +155,17 @@ class MassMoment :
         const Plato::ScalarArray3DT <ConfigScalarType> & aConfig,
               Plato::ScalarArray3DT <ConfigScalarType> & aMappedPoints
     ) const;
+  private:
+
+    /******************************************************************************//**
+     * \brief Initialize member data
+     * \param [in] aSpatialDomain spatial domain; e.g., element block, information
+     * \param [in] aInputParams   input parameters database
+     **********************************************************************************/
+    void initialize(
+      const Plato::SpatialDomain   & aSpatialDomain,
+            Teuchos::ParameterList & aInputParams
+    );
 };
 // class MassMoment
 

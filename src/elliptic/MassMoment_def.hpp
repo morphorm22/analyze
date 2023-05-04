@@ -4,6 +4,7 @@
 
 #include "FadTypes.hpp"
 #include "AnalyzeMacros.hpp"
+#include "PlatoUtilities.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "PlatoStaticsTypes.hpp"
 #include "Plato_TopOptFunctors.hpp"
@@ -13,7 +14,6 @@ namespace Plato
 
 namespace Elliptic
 {
-
     /******************************************************************************//**
      * \brief Primary constructor
      * \param [in] aSpatialDomain Plato Analyze spatial domain 
@@ -31,8 +31,7 @@ namespace Elliptic
        mCalculationType("")
     /**************************************************************************/
     {
-      auto tMaterialModelInputs = aInputParams.get<Teuchos::ParameterList>("Material Model");
-      mCellMaterialDensity = tMaterialModelInputs.get<Plato::Scalar>("Density", 1.0);
+      this->initialize(aSpatialDomain,aInputParams);
     }
 
     /******************************************************************************//**
@@ -47,6 +46,48 @@ namespace Elliptic
         Plato::Elliptic::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, "MassMoment"),
         mCellMaterialDensity(1.0),
         mCalculationType(""){}
+    /**************************************************************************/
+
+    /**************************************************************************/    
+    template<typename EvaluationType>
+    void MassMoment<EvaluationType>::initialize(
+      const Plato::SpatialDomain   & aSpatialDomain,
+            Teuchos::ParameterList & aInputParams
+    )
+    {
+      auto tMaterialName = aSpatialDomain.getMaterialName();
+      auto tMaterialModels = aInputParams.get<Teuchos::ParameterList>("Material Models");
+      const Teuchos::ParameterList &tMaterialInputs = tMaterialModels.sublist(tMaterialName);
+      if(tMaterialInputs.isSublist(tMaterialName))
+      {
+        auto tMsg = std::string("Parameter list for material with name '") 
+          + tMaterialName + "' is not defined";
+        ANALYZE_THROWERR(tMsg)
+      }
+      Teuchos::ParameterList::ConstIterator tMaterialItr = tMaterialInputs.begin();
+      const std::string &tMaterialModelType = tMaterialInputs.name(tMaterialItr);
+      const Teuchos::ParameterEntry &tMaterialEntry = tMaterialInputs.entry(tMaterialItr);
+      if(!tMaterialEntry.isList())
+      {
+        auto tMsg = std::string("Parameter entry in Material Models block is invalid. Parameter ") 
+          + tMaterialModelType + "' is not a parameter list.";
+        ANALYZE_THROWERR(tMsg)
+      }
+      const Teuchos::ParameterList& tMaterialModelInputs = tMaterialInputs.sublist(tMaterialModelType);
+      if( !tMaterialModelInputs.isParameter("Density") )
+      {
+        auto tMsg = std::string("Material density is not defined for material with name '")
+          + tMaterialName + "' is not defined";
+        ANALYZE_THROWERR(tMsg)
+      }
+      mCellMaterialDensity = tMaterialModelInputs.get<Plato::Scalar>("Density");
+      if(mCellMaterialDensity <= 0.)
+      {
+        auto tMsg = std::string("Unphysical material density, density value is set to '") 
+          + std::to_string(mCellMaterialDensity) + ".";
+        ANALYZE_THROWERR(tMsg)
+      }
+    }
     /**************************************************************************/
 
     /******************************************************************************//**
@@ -68,7 +109,7 @@ namespace Elliptic
     void MassMoment<EvaluationType>::setCalculationType(const std::string & aCalculationType)
     /**************************************************************************/
     {
-      mCalculationType = aCalculationType;
+      mCalculationType = Plato::tolower(aCalculationType);
     }
 
     /******************************************************************************//**
@@ -90,25 +131,25 @@ namespace Elliptic
     ) const
     /**************************************************************************/
     {
-      if (mCalculationType == "Mass")
+      if (mCalculationType == "mass")
         computeStructuralMass(aControl, aConfig, aResult, aTimeStep);
-      else if (mCalculationType == "FirstX")
+      else if (mCalculationType == "firstx")
         computeFirstMoment(aControl, aConfig, aResult, 0, aTimeStep);
-      else if (mCalculationType == "FirstY")
+      else if (mCalculationType == "firsty")
         computeFirstMoment(aControl, aConfig, aResult, 1, aTimeStep);
-      else if (mCalculationType == "FirstZ")
+      else if (mCalculationType == "firstz")
         computeFirstMoment(aControl, aConfig, aResult, 2, aTimeStep);
-      else if (mCalculationType == "SecondXX")
+      else if (mCalculationType == "secondxx")
         computeSecondMoment(aControl, aConfig, aResult, 0, 0, aTimeStep);
-      else if (mCalculationType == "SecondYY")
+      else if (mCalculationType == "secondyy")
         computeSecondMoment(aControl, aConfig, aResult, 1, 1, aTimeStep);
-      else if (mCalculationType == "SecondZZ")
+      else if (mCalculationType == "secondzz")
         computeSecondMoment(aControl, aConfig, aResult, 2, 2, aTimeStep);
-      else if (mCalculationType == "SecondXY")
+      else if (mCalculationType == "secondxy")
         computeSecondMoment(aControl, aConfig, aResult, 0, 1, aTimeStep);
-      else if (mCalculationType == "SecondXZ")
+      else if (mCalculationType == "secondxz")
         computeSecondMoment(aControl, aConfig, aResult, 0, 2, aTimeStep);
-      else if (mCalculationType == "SecondYZ")
+      else if (mCalculationType == "secondyz")
         computeSecondMoment(aControl, aConfig, aResult, 1, 2, aTimeStep);
       else {
         ANALYZE_THROWERR("Specified mass moment calculation type not implemented.")
@@ -140,7 +181,7 @@ namespace Elliptic
       auto tCubWeights = ElementType::getCubWeights();
       auto tNumPoints = tCubWeights.size();
 
-      Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+      Kokkos::parallel_for("structural mass", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
       KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
         auto tCubPoint  = tCubPoints(iGpOrdinal);

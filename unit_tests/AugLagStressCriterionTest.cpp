@@ -22,9 +22,9 @@
 #include "Plato_TopOptFunctors.hpp"
 #include "AbstractLocalMeasure.hpp"
 
+#include "elliptic/MassMoment.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/WeightedSumFunction.hpp"
-#include "elliptic/AbstractScalarFunction.hpp"
 #include "elliptic/PhysicsScalarFunction.hpp"
 
 namespace Plato
@@ -425,14 +425,12 @@ namespace AugLagStressCriterionTest
     "<ParameterList name='Criteria'>                                                                     \n"
     "  <ParameterList name='Objective'>                                                                  \n"
     "    <Parameter name='Type' type='string' value='Weighted Sum'/>                                     \n"
-    "    <Parameter name='Functions' type='Array(string)' value='{My Volume,My Stress}'/>                \n"
+    "    <Parameter name='Functions' type='Array(string)' value='{My Mass,My Stress}'/>                  \n"
     "    <Parameter name='Weights' type='Array(double)' value='{1.0,1.0}'/>                              \n"
     "  </ParameterList>                                                                                  \n"
-    "  <ParameterList name='My Volume'>                                                                  \n"
+    "  <ParameterList name='My Mass'>                                                                    \n"
     "    <Parameter name='Type'                 type='string' value='Scalar Function'/>                  \n"
-    "    <Parameter name='Scalar Function Type' type='string' value='Volume'/>                           \n"
-    "    <Parameter name='Exponent'             type='double' value='2.0'/>                              \n"
-    "    <Parameter name='Minimum Value'        type='double' value='1.0e-9'/>                           \n"
+    "    <Parameter name='Scalar Function Type' type='string' value='Mass'/>                             \n"
     "  </ParameterList>                                                                                  \n"
     "  <ParameterList name='My Stress'>                                                                  \n"
     "    <Parameter name='Type'                        type='string'        value='Scalar Function'/>    \n"
@@ -464,21 +462,20 @@ namespace AugLagStressCriterionTest
       "<ParameterList name='Mystic'>                                                                     \n"
         "<ParameterList name='Isotropic Linear Elastic'>                                                 \n"
           "<Parameter  name='Poissons Ratio' type='double' value='0.35'/>                                \n"
-          "<Parameter  name='Youngs Modulus' type='double' value='1.0e11'/>                              \n"
+          "<Parameter  name='Youngs Modulus' type='double' value='4.0'/>                                 \n"
+          "<Parameter  name='Density'        type='double' value='0.5'/>                                 \n"
         "</ParameterList>                                                                                \n"
       "</ParameterList>                                                                                  \n"
     "</ParameterList>                                                                                    \n"
     "<ParameterList name='Criteria'>                                                                     \n"
     "  <ParameterList name='Objective'>                                                                  \n"
     "    <Parameter name='Type' type='string' value='Weighted Sum'/>                                     \n"
-    "    <Parameter name='Functions' type='Array(string)' value='{My Volume,My Stress}'/>                \n"
+    "    <Parameter name='Functions' type='Array(string)' value='{My Mass,My Stress}'/>                  \n"
     "    <Parameter name='Weights' type='Array(double)' value='{1.0,1.0}'/>                              \n"
     "  </ParameterList>                                                                                  \n"
-    "  <ParameterList name='My Volume'>                                                                  \n"
+    "  <ParameterList name='My Mass'>                                                                    \n"
     "    <Parameter name='Type'                 type='string' value='Scalar Function'/>                  \n"
-    "    <Parameter name='Scalar Function Type' type='string' value='Volume'/>                           \n"
-    "    <Parameter name='Exponent'             type='double' value='2.0'/>                              \n"
-    "    <Parameter name='Minimum Value'        type='double' value='1.0e-9'/>                           \n"
+    "    <Parameter name='Scalar Function Type' type='string' value='Mass'/>                             \n"
     "  </ParameterList>                                                                                  \n"
     "  <ParameterList name='My Stress'>                                                                  \n"
     "    <Parameter name='Type'                        type='string'        value='Scalar Function'/>    \n"
@@ -720,8 +717,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_Evaluate_Vo
     Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
 
     // create criterion
-    auto tOnlyDomain = tSpatialModel.Domains.front();
-    Plato::AugLagStressCriterion<Residual> tCriterion(tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+    auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+    Plato::AugLagStressCriterion<Residual> tCriterion(tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     
     // create material model
     constexpr Plato::Scalar tYoungsModulus = 1;
@@ -730,8 +727,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_Evaluate_Vo
     auto tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     
     // create local measure
-    const auto tLocalMeasure = 
-        std::make_shared<Plato::VonMisesLocalMeasure<Residual>>(tOnlyDomain,tDataMap,tCellStiffMatrix,"VonMises");
+    const auto tLocalMeasure = std::make_shared<Plato::VonMisesLocalMeasure<Residual>>(
+                                 tOnlyDomainDefined,tDataMap,tCellStiffMatrix,"VonMises");
     tCriterion.setLocalMeasure(tLocalMeasure, tLocalMeasure); 
     
     // evaluate criterion
@@ -751,6 +748,67 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_Evaluate_Vo
     TEST_FLOATING_EQUALITY(0.0148113, tObjFuncVal, tTolerance);
 }
 
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassCriterion_Evaluate)
+{
+    // create mesh
+    constexpr Plato::OrdinalType tSpaceDim = 2;
+    constexpr Plato::OrdinalType tMeshWidth = 1;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+    using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
+
+    //set ad-types
+    using Residual = typename Plato::Elliptic::Evaluation<Plato::MechanicsElement<Plato::Tri3>>::Residual;
+    using StateT   = typename Residual::StateScalarType;
+    using ConfigT  = typename Residual::ConfigScalarType;
+    using ResultT  = typename Residual::ResultScalarType;
+    using ControlT = typename Residual::ControlScalarType;
+
+    // Create control workset
+    const Plato::Scalar tPseudoDensity = 1.0;
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+    Plato::ScalarVector tControl("Controls", tNumVerts);
+    Plato::blas1::fill(tPseudoDensity, tControl);
+
+    // Create state workset
+    const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+    Plato::ScalarMultiVector tStates("States", /*numStates=*/ 1, tNumDofs);
+    Kokkos::deep_copy(tStates, 0.1);
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+            { tStates(0, aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal) * 2; }, "fill state");
+    
+    // create spatial model
+    Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
+
+    // create criterion
+    auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+    const auto tCriterion =
+      std::make_shared<Plato::Elliptic::MassMoment<Residual>>(tOnlyDomainDefined,tDataMap,*tGenericParamListTwo);
+    tCriterion->setCalculationType("Mass");
+
+    // Append mass function
+    const auto tPhysicsScalarFuncMass =
+      std::make_shared<Plato::Elliptic::PhysicsScalarFunction<Plato::Mechanics<Plato::Tri3>>>(tSpatialModel, tDataMap);
+    tPhysicsScalarFuncMass->setEvaluator(tCriterion, tOnlyDomainDefined.getDomainName());
+
+    // create weighted sum function
+    Plato::Elliptic::WeightedSumFunction<Plato::Mechanics<Plato::Tri3>> tWeightedSum(tSpatialModel, tDataMap);
+    const Plato::Scalar tMassFunctionWeight = 0.75;
+    tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncMass);
+    tWeightedSum.appendFunctionWeight(tMassFunctionWeight);
+
+    // evaluate function
+    Plato::Solutions tSolution;
+    tSolution.set("State", tStates);
+    auto tObjFuncVal = tWeightedSum.value(tSolution, tControl, 0.0);
+
+    // gold mass
+    Plato::Scalar tMaterialDensity = 0.5;
+    Plato::Scalar tMassGoldValue = pow(static_cast<Plato::Scalar>(tMeshWidth), tSpaceDim)
+                                   * tPseudoDensity * tMassFunctionWeight * tMaterialDensity;
+    constexpr Plato::Scalar tTolerance = 1e-4;
+    TEST_FLOATING_EQUALITY(0.375, tObjFuncVal, tTolerance);
+}
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_Evaluate_VonMises3D)
 {
@@ -797,8 +855,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_Evaluate_Vo
     Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
 
     // create criterion
-    auto tOnlyDomain = tSpatialModel.Domains.front();
-    Plato::AugLagStressCriterion<Residual> tCriterion(tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+    auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+    Plato::AugLagStressCriterion<Residual> tCriterion(tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     
     // create material model
     constexpr Plato::Scalar tYoungsModulus = 1;
@@ -807,8 +865,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_Evaluate_Vo
     auto tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     
     // create local measure
-    const auto tLocalMeasure = 
-        std::make_shared<Plato::VonMisesLocalMeasure<Residual>>(tOnlyDomain,tDataMap,tCellStiffMatrix,"VonMises");
+    const auto tLocalMeasure = std::make_shared<Plato::VonMisesLocalMeasure<Residual>>
+                               (tOnlyDomainDefined,tDataMap,tCellStiffMatrix,"VonMises");
     tCriterion.setLocalMeasure(tLocalMeasure, tLocalMeasure); 
     
     // evaluate criterion
@@ -838,7 +896,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
     // create weighthed sum scalar function
     Plato::DataMap tDataMap;
     Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
-    auto tOnlyDomain = tSpatialModel.Domains.front();
+    auto tOnlyDomainDefined = tSpatialModel.Domains.front();
     Plato::Elliptic::WeightedSumFunction<Plato::Mechanics<Plato::Tri3>> tWeightedSum(tSpatialModel, tDataMap);
 
     // set ad-types
@@ -855,23 +913,23 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
     constexpr Plato::OrdinalType tNumVoigtTerms = ElementType::mNumVoigtTerms;
     Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     const auto tLocalMeasureGradZ = std::make_shared<Plato::VonMisesLocalMeasure<GradientZ>> 
-                                      (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+                                      (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
     const auto tLocalMeasurePODType = std::make_shared<Plato::VonMisesLocalMeasure<Residual>> 
-                                        (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+                                        (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
 
     // create stress criterion
     const auto tCriterionResidual = std::make_shared<Plato::AugLagStressCriterion<Residual>>(
-                                      tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+                                      tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
     const auto tCriterionGradZ = std::make_shared<Plato::AugLagStressCriterion<GradientZ>>(
-                                    tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+                                    tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
 
     // append stress criterion to weighthed scalar function
     const auto tPhysicsScalarFuncVonMises =
        std::make_shared<Plato::Elliptic::PhysicsScalarFunction<Plato::Mechanics<Plato::Tri3>>>(tSpatialModel,tDataMap);
-    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionResidual, tOnlyDomain.getDomainName());
-    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionGradZ, tOnlyDomain.getDomainName());
+    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionResidual, tOnlyDomainDefined.getDomainName());
+    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionGradZ, tOnlyDomainDefined.getDomainName());
     const Plato::Scalar tVonMisesFunctionWeight = 1.0;
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncVonMises);
     tWeightedSum.appendFunctionWeight(tVonMisesFunctionWeight);
@@ -889,7 +947,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
     // create weighthed sum scalar function
     Plato::DataMap tDataMap;
     Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
-    auto tOnlyDomain = tSpatialModel.Domains.front();
+    auto tOnlyDomainDefined = tSpatialModel.Domains.front();
     Plato::Elliptic::WeightedSumFunction<Plato::Mechanics<Plato::Tet4>> tWeightedSum(tSpatialModel, tDataMap);
 
     // set ad-types
@@ -906,23 +964,23 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
     constexpr Plato::OrdinalType tNumVoigtTerms = ElementType::mNumVoigtTerms;
     Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     const auto tLocalMeasureGradZ = std::make_shared<Plato::VonMisesLocalMeasure<GradientZ>> 
-                                      (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+                                      (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
     const auto tLocalMeasurePODType = std::make_shared<Plato::VonMisesLocalMeasure<Residual>> 
-                                        (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+                                        (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
 
     // create stress criterion
     const auto tCriterionResidual = std::make_shared<Plato::AugLagStressCriterion<Residual>>(
-                                      tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+                                      tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
     const auto tCriterionGradZ = std::make_shared<Plato::AugLagStressCriterion<GradientZ>>(
-                                    tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+                                    tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
 
     // append stress criterion to weighthed scalar function
     const auto tPhysicsScalarFuncVonMises =
        std::make_shared<Plato::Elliptic::PhysicsScalarFunction<Plato::Mechanics<Plato::Tet4>>>(tSpatialModel,tDataMap);
-    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionResidual, tOnlyDomain.getDomainName());
-    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionGradZ, tOnlyDomain.getDomainName());
+    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionResidual, tOnlyDomainDefined.getDomainName());
+    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionGradZ, tOnlyDomainDefined.getDomainName());
     const Plato::Scalar tVonMisesFunctionWeight = 1.0;
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncVonMises);
     tWeightedSum.appendFunctionWeight(tVonMisesFunctionWeight);
@@ -940,7 +998,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
     // create weighthed sum scalar function
     Plato::DataMap tDataMap;
     Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
-    auto tOnlyDomain = tSpatialModel.Domains.front();
+    auto tOnlyDomainDefined = tSpatialModel.Domains.front();
     Plato::Elliptic::WeightedSumFunction<Plato::Mechanics<Plato::Tri3>> tWeightedSum(tSpatialModel, tDataMap);
 
     // set ad-types
@@ -957,23 +1015,23 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
     constexpr Plato::OrdinalType tNumVoigtTerms = ElementType::mNumVoigtTerms;
     Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     const auto tLocalMeasureGradZ = std::make_shared<Plato::VonMisesLocalMeasure<GradientU>> 
-                                      (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+                                      (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
     const auto tLocalMeasurePODType = std::make_shared<Plato::VonMisesLocalMeasure<Residual>> 
-                                        (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+                                        (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
 
     // create stress criterion
     const auto tCriterionResidual = std::make_shared<Plato::AugLagStressCriterion<Residual>>(
-                                      tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+                                      tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
     const auto tCriterionGradZ = std::make_shared<Plato::AugLagStressCriterion<GradientU>>(
-                                    tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+                                    tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
 
     // append stress criterion to weighthed scalar function
     const auto tPhysicsScalarFuncVonMises =
        std::make_shared<Plato::Elliptic::PhysicsScalarFunction<Plato::Mechanics<Plato::Tri3>>>(tSpatialModel,tDataMap);
-    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionResidual, tOnlyDomain.getDomainName());
-    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionGradZ, tOnlyDomain.getDomainName());
+    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionResidual, tOnlyDomainDefined.getDomainName());
+    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionGradZ, tOnlyDomainDefined.getDomainName());
     const Plato::Scalar tVonMisesFunctionWeight = 1.0;
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncVonMises);
     tWeightedSum.appendFunctionWeight(tVonMisesFunctionWeight);
@@ -991,7 +1049,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
     // create weighthed sum scalar function
     Plato::DataMap tDataMap;
     Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
-    auto tOnlyDomain = tSpatialModel.Domains.front();
+    auto tOnlyDomainDefined = tSpatialModel.Domains.front();
     Plato::Elliptic::WeightedSumFunction<Plato::Mechanics<Plato::Tet4>> tWeightedSum(tSpatialModel, tDataMap);
 
     // set ad-types
@@ -1008,23 +1066,23 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
     constexpr Plato::OrdinalType tNumVoigtTerms = ElementType::mNumVoigtTerms;
     Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     const auto tLocalMeasureGradZ = std::make_shared<Plato::VonMisesLocalMeasure<GradientU>> 
-                                      (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+                                      (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
     const auto tLocalMeasurePODType = std::make_shared<Plato::VonMisesLocalMeasure<Residual>> 
-                                        (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+                                        (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
 
     // create stress criterion
     const auto tCriterionResidual = std::make_shared<Plato::AugLagStressCriterion<Residual>>(
-                                      tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+                                      tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
     const auto tCriterionGradZ = std::make_shared<Plato::AugLagStressCriterion<GradientU>>(
-                                    tOnlyDomain,tDataMap,*tGenericParamListTwo,"My Stress");
+                                    tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
 
     // append stress criterion to weighthed scalar function
     const auto tPhysicsScalarFuncVonMises =
        std::make_shared<Plato::Elliptic::PhysicsScalarFunction<Plato::Mechanics<Plato::Tet4>>>(tSpatialModel,tDataMap);
-    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionResidual, tOnlyDomain.getDomainName());
-    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionGradZ, tOnlyDomain.getDomainName());
+    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionResidual, tOnlyDomainDefined.getDomainName());
+    tPhysicsScalarFuncVonMises->setEvaluator(tCriterionGradZ, tOnlyDomainDefined.getDomainName());
     const Plato::Scalar tVonMisesFunctionWeight = 1.0;
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncVonMises);
     tWeightedSum.appendFunctionWeight(tVonMisesFunctionWeight);
