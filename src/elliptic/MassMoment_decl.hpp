@@ -37,10 +37,11 @@ class MassMoment :
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
-    Plato::Scalar mCellMaterialDensity;
+    Plato::Scalar mCellMaterialDensity = 1.0; /*!< material density */
+    Plato::Scalar mTotalStructuralMass = 1.0; /*!< total structural mass, used for criterion normalization purposes*/
 
-    /*!< calculation type = Mass, CGx, CGy, CGz, Ixx, Iyy, Izz, Ixy, Ixz, Iyz */
-    std::string mCalculationType;
+    std::string mCalculationType;     /*!< calculation type = Mass, CGx, CGy, CGz, Ixx, Iyy, Izz, Ixy, Ixz, Iyz */
+    bool mNormalizeCriterion = false; /*!< normalize criterion */
 
   public:
     /******************************************************************************//**
@@ -48,11 +49,13 @@ class MassMoment :
      * \param [in] aSpatialDomain Plato Analyze spatial domain 
      * \param [in] aDataMap Plato Analyze data map
      * \param [in] aInputParams input parameters database
+     * \param [in] aFuncName function name
      **********************************************************************************/
     MassMoment(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap, 
-              Teuchos::ParameterList & aInputParams
+              Teuchos::ParameterList & aInputParams,
+              std::string             aFuncName = "MassMoment"
     );
 
     /******************************************************************************//**
@@ -166,6 +169,27 @@ class MassMoment :
       const Plato::SpatialDomain   & aSpatialDomain,
             Teuchos::ParameterList & aInputParams
     );
+
+    /******************************************************************************//**
+     * \brief Parse material density
+     * \param [in] aSpatialDomain spatial domain; e.g., element block, information
+     * \param [in] aInputParams   input parameters database
+     **********************************************************************************/
+    void parseMaterialDensity(
+      const Plato::SpatialDomain   & aSpatialDomain,
+            Teuchos::ParameterList & aInputParams
+    );
+
+    void
+    parseNormalizeCriterion(
+      const Plato::SpatialDomain   & aSpatialDomain,
+            Teuchos::ParameterList & aInputParams
+    );
+
+    /******************************************************************************//**
+     * \brief Compute total structural mass
+     **********************************************************************************/
+    void computeTotalStructuralMass();
 };
 // class MassMoment
 

@@ -97,6 +97,7 @@ namespace AugLagStressCriterionTest
     "  <ParameterList name='My Mass'>                                                                    \n"
     "    <Parameter name='Type'                 type='string' value='Scalar Function'/>                  \n"
     "    <Parameter name='Scalar Function Type' type='string' value='Mass'/>                             \n"
+    "    <Parameter name='Normalize Criterion'  type='bool'   value='true'/>                             \n"    
     "  </ParameterList>                                                                                  \n"
     "  <ParameterList name='My Stress'>                                                                  \n"
     "    <Parameter name='Type'                        type='string'        value='Scalar Function'/>    \n"
@@ -369,7 +370,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_Evaluate_Vo
     TEST_FLOATING_EQUALITY(0.0148113, tObjFuncVal, tTolerance);
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassCriterion_Evaluate)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassCriterion_Normalized_Evaluate)
 {
     // create mesh
     constexpr Plato::OrdinalType tSpaceDim = 2;
@@ -404,7 +405,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassCriterion_Evaluate)
     // create criterion
     auto tOnlyDomainDefined = tSpatialModel.Domains.front();
     const auto tCriterion =
-      std::make_shared<Plato::Elliptic::MassMoment<Residual>>(tOnlyDomainDefined,tDataMap,*tGenericParamListTwo);
+      std::make_shared<Plato::Elliptic::MassMoment<Residual>>(
+        tOnlyDomainDefined,tDataMap,*tGenericParamListTwo);
     tCriterion->setCalculationType("Mass");
 
     // Append mass function
@@ -429,6 +431,69 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassCriterion_Evaluate)
                                    * tPseudoDensity * tMassFunctionWeight * tMaterialDensity;
     constexpr Plato::Scalar tTolerance = 1e-4;
     TEST_FLOATING_EQUALITY(0.375, tObjFuncVal, tTolerance);
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassCriterion_NotNormalized_Evaluate)
+{
+    // create mesh
+    constexpr Plato::OrdinalType tSpaceDim = 2;
+    constexpr Plato::OrdinalType tMeshWidth = 1;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+    using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
+
+    //set ad-types
+    using Residual = typename Plato::Elliptic::Evaluation<Plato::MechanicsElement<Plato::Tri3>>::Residual;
+    using StateT   = typename Residual::StateScalarType;
+    using ConfigT  = typename Residual::ConfigScalarType;
+    using ResultT  = typename Residual::ResultScalarType;
+    using ControlT = typename Residual::ControlScalarType;
+
+    // Create control workset
+    const Plato::Scalar tPseudoDensity = 1.0;
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+    Plato::ScalarVector tControl("Controls", tNumVerts);
+    Plato::blas1::fill(tPseudoDensity, tControl);
+
+    // Create state workset
+    const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+    Plato::ScalarMultiVector tStates("States", /*numStates=*/ 1, tNumDofs);
+    Kokkos::deep_copy(tStates, 0.1);
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+            { tStates(0, aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal) * 2; }, "fill state");
+    
+    // create spatial model
+    Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
+
+    // create criterion
+    auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+    const auto tCriterion =
+      std::make_shared<Plato::Elliptic::MassMoment<Residual>>(
+        tOnlyDomainDefined,tDataMap,*tGenericParamListTwo, "My Mass");
+    tCriterion->setCalculationType("Mass");
+
+    // Append mass function
+    const auto tPhysicsScalarFuncMass =
+      std::make_shared<Plato::Elliptic::PhysicsScalarFunction<Plato::Mechanics<Plato::Tri3>>>(tSpatialModel, tDataMap);
+    tPhysicsScalarFuncMass->setEvaluator(tCriterion, tOnlyDomainDefined.getDomainName());
+
+    // create weighted sum function
+    Plato::Elliptic::WeightedSumFunction<Plato::Mechanics<Plato::Tri3>> tWeightedSum(tSpatialModel, tDataMap);
+    const Plato::Scalar tMassFunctionWeight = 0.75;
+    tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncMass);
+    tWeightedSum.appendFunctionWeight(tMassFunctionWeight);
+
+    // evaluate function
+    Plato::Solutions tSolution;
+    tSolution.set("State", tStates);
+    auto tObjFuncVal = tWeightedSum.value(tSolution, tControl, 0.0);
+
+    // gold mass
+    Plato::Scalar tMaterialDensity = 0.5;
+    Plato::Scalar tMassGoldValue = pow(static_cast<Plato::Scalar>(tMeshWidth), tSpaceDim)
+                                   * tPseudoDensity * tMassFunctionWeight * tMaterialDensity;
+    constexpr Plato::Scalar tTolerance = 1e-4;
+    TEST_FLOATING_EQUALITY(0.75, tObjFuncVal, tTolerance);
 }
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_Evaluate_VonMises3D)

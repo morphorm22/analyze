@@ -2,7 +2,9 @@
 
 #include "elliptic/MassMoment.hpp"
 
+#include "BLAS1.hpp"
 #include "FadTypes.hpp"
+#include "Assembly.hpp"
 #include "AnalyzeMacros.hpp"
 #include "PlatoUtilities.hpp"
 #include "PlatoMathHelpers.hpp"
@@ -19,14 +21,17 @@ namespace Elliptic
      * \param [in] aSpatialDomain Plato Analyze spatial domain 
      * \param [in] aDataMap Plato Analyze data map
      * \param [in] aInputParams input parameters database
+     * \param [in] aFuncName function name
      **********************************************************************************/
     template<typename EvaluationType>
-    MassMoment<EvaluationType>::MassMoment(
+    MassMoment<EvaluationType>::
+    MassMoment(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap, 
-              Teuchos::ParameterList & aInputParams
+              Teuchos::ParameterList & aInputParams,
+              std::string              aFuncName
     ) :
-       FunctionBaseType(aSpatialDomain, aDataMap, aInputParams, "MassMoment"),
+       FunctionBaseType(aSpatialDomain, aDataMap, aInputParams, aFuncName),
        mCellMaterialDensity(1.0),
        mCalculationType("")
     /**************************************************************************/
@@ -39,7 +44,8 @@ namespace Elliptic
      * \param [in] aDataMap PLATO Engine and Analyze data map
      **********************************************************************************/
     template<typename EvaluationType>
-    MassMoment<EvaluationType>::MassMoment(
+    MassMoment<EvaluationType>::
+    MassMoment(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap& aDataMap
     ) :
@@ -50,7 +56,21 @@ namespace Elliptic
 
     /**************************************************************************/    
     template<typename EvaluationType>
-    void MassMoment<EvaluationType>::initialize(
+    void MassMoment<EvaluationType>::
+    initialize(
+      const Plato::SpatialDomain   & aSpatialDomain,
+            Teuchos::ParameterList & aInputParams
+    )
+    {
+      this->parseMaterialDensity(aSpatialDomain,aInputParams);
+      this->parseNormalizeCriterion(aSpatialDomain,aInputParams);
+      this->computeTotalStructuralMass();
+    }
+    /**************************************************************************/
+
+    template<typename EvaluationType>
+    void MassMoment<EvaluationType>::
+    parseMaterialDensity(
       const Plato::SpatialDomain   & aSpatialDomain,
             Teuchos::ParameterList & aInputParams
     )
@@ -83,19 +103,74 @@ namespace Elliptic
       mCellMaterialDensity = tMaterialModelInputs.get<Plato::Scalar>("Density");
       if(mCellMaterialDensity <= 0.)
       {
-        auto tMsg = std::string("Unphysical material density, density value is set to '") 
+        auto tMsg = std::string("Unphysical material density specified, density value is set to '") 
           + std::to_string(mCellMaterialDensity) + ".";
         ANALYZE_THROWERR(tMsg)
-      }
+      }      
     }
-    /**************************************************************************/
+
+    template<typename EvaluationType>
+    void MassMoment<EvaluationType>::
+    parseNormalizeCriterion(
+      const Plato::SpatialDomain   & aSpatialDomain,
+            Teuchos::ParameterList & aInputParams
+    )
+    {
+      const std::string tFunctionName = this->getName();
+      Teuchos::ParameterList &tProblemParams = aInputParams.sublist("Criteria").sublist(tFunctionName);
+      mNormalizeCriterion = tProblemParams.get<bool>("Normalize Criterion",false);
+    }
+
+    /******************************************************************************//**
+     * \brief Compute total structural mass, used for criterion normalization purposes
+    **********************************************************************************/
+    template<typename EvaluationType>
+    void
+    MassMoment<EvaluationType>::
+    computeTotalStructuralMass()
+    {
+        if( !mNormalizeCriterion )
+        { return; }
+
+        auto tNumCells = mSpatialDomain.numCells();
+        Plato::NodeCoordinate<mNumSpatialDims, mNumNodesPerCell> tCoordinates(mSpatialDomain.Mesh);
+        Plato::ScalarArray3D tConfig("configuration", tNumCells, mNumNodesPerCell, mNumSpatialDims);
+        Plato::workset_config_scalar<mNumSpatialDims, mNumNodesPerCell>(tNumCells, tCoordinates, tConfig);
+
+        Plato::ScalarVector tTotalStructuralMass("total mass", tNumCells);
+        Plato::ScalarMultiVector tDensities("densities", tNumCells, mNumNodesPerCell);
+        Kokkos::deep_copy(tDensities, 1.0);
+
+        auto tCubPoints = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints = tCubWeights.size();
+
+        auto tCellMaterialDensity = mCellMaterialDensity;
+        Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        {
+            auto tCubPoint  = tCubPoints(iGpOrdinal);
+            auto tCubWeight = tCubWeights(iGpOrdinal);
+
+            auto tJacobian = ElementType::jacobian(tCubPoint, tConfig, iCellOrdinal);
+
+            auto tVolume = Plato::determinant(tJacobian);
+
+            auto tBasisValues = ElementType::basisValues(tCubPoint);
+            auto tCellMass = Plato::cell_mass<mNumNodesPerCell>(iCellOrdinal, tBasisValues, tDensities);
+            auto tLocalCellMass = tCellMass * tCellMaterialDensity * tVolume * tCubWeight;
+            Kokkos::atomic_add(&tTotalStructuralMass(iCellOrdinal), tLocalCellMass);
+        });
+        Plato::blas1::local_sum(tTotalStructuralMass, mTotalStructuralMass);
+    }
 
     /******************************************************************************//**
      * \brief set material density
      * \param [in] aMaterialDensity material density
      **********************************************************************************/
     template<typename EvaluationType>
-    void MassMoment<EvaluationType>::setMaterialDensity(const Plato::Scalar aMaterialDensity)
+    void MassMoment<EvaluationType>::
+    setMaterialDensity(const Plato::Scalar aMaterialDensity)
     /**************************************************************************/
     {
       mCellMaterialDensity = aMaterialDensity;
@@ -106,7 +181,8 @@ namespace Elliptic
      * \param [in] aCalculationType calculation type string
      **********************************************************************************/
     template<typename EvaluationType>
-    void MassMoment<EvaluationType>::setCalculationType(const std::string & aCalculationType)
+    void MassMoment<EvaluationType>::
+    setCalculationType(const std::string & aCalculationType)
     /**************************************************************************/
     {
       mCalculationType = Plato::tolower(aCalculationType);
@@ -122,7 +198,8 @@ namespace Elliptic
     **********************************************************************************/
     template<typename EvaluationType>
     void
-    MassMoment<EvaluationType>::evaluate_conditional(
+    MassMoment<EvaluationType>::
+    evaluate_conditional(
         const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
@@ -165,7 +242,8 @@ namespace Elliptic
     **********************************************************************************/
     template<typename EvaluationType>
     void
-    MassMoment<EvaluationType>::computeStructuralMass(
+    MassMoment<EvaluationType>::
+    computeStructuralMass(
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
               Plato::ScalarVectorT      <ResultScalarType>  & aResult,
@@ -196,7 +274,8 @@ namespace Elliptic
         auto tBasisValues = ElementType::basisValues(tCubPoint);
         auto tCellMass = Plato::cell_mass<mNumNodesPerCell>(iCellOrdinal, tBasisValues, aControl);
 
-        Kokkos::atomic_add(&aResult(iCellOrdinal), tCellMass * tCellMaterialDensity * tVolume);
+        auto tNormalizedCellMass = (tCellMass / mTotalStructuralMass) * tCellMaterialDensity * tVolume;
+        Kokkos::atomic_add(&aResult(iCellOrdinal), tNormalizedCellMass);
 
       });
     }
@@ -211,7 +290,8 @@ namespace Elliptic
     **********************************************************************************/
     template<typename EvaluationType>
     void
-    MassMoment<EvaluationType>::computeFirstMoment(
+    MassMoment<EvaluationType>::
+    computeFirstMoment(
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
               Plato::ScalarVectorT      <ResultScalarType>  & aResult,
@@ -266,7 +346,8 @@ namespace Elliptic
     **********************************************************************************/
     template<typename EvaluationType>
     void
-    MassMoment<EvaluationType>::computeSecondMoment(
+    MassMoment<EvaluationType>::
+    computeSecondMoment(
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
               Plato::ScalarVectorT      <ResultScalarType>  & aResult,
@@ -321,7 +402,8 @@ namespace Elliptic
     **********************************************************************************/
     template<typename EvaluationType>
     void
-    MassMoment<EvaluationType>::mapQuadraturePoints(
+    MassMoment<EvaluationType>::
+    mapQuadraturePoints(
         const Plato::ScalarArray3DT <ConfigScalarType> & aConfig,
               Plato::ScalarArray3DT <ConfigScalarType> & aMappedPoints
     ) const

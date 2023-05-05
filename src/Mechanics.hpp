@@ -11,13 +11,13 @@
 #include "elliptic/EffectiveEnergy.hpp"
 #include "elliptic/Volume.hpp"
 #include "elliptic/MassMoment.hpp"
+#include "elliptic/AugLagStrengthCriterion.hpp"
 #include "elliptic/VolumeIntegralCriterion.hpp"
 #include "elliptic/VolumeAverageCriterionDenominator.hpp"
 #include "TensileEnergyDensityLocalMeasure.hpp"
 #include "VonMisesLocalMeasure.hpp"
 #include "elliptic/VolAvgStressPNormDenominator.hpp"
 #include "Plato_AugLagStressCriterionGeneral.hpp"
-#include "Plato_AugLagStressCriterionQuadratic.hpp"
 #include "AbstractLocalMeasure.hpp"
 #include "IntermediateDensityPenalty.hpp"
 
@@ -62,7 +62,9 @@ namespace MechanicsFactory
       }
       else
       {
-          ANALYZE_THROWERR("Unknown 'Local Measure' specified in 'Plato Problem' ParameterList")
+          auto tMsg = std::string("Local measgure of type '") + tLocalMeasure + "' is not supported. " 
+            + "Supported options are: VonMises and TensileEnergyDensity";
+          ANALYZE_THROWERR(tMsg)
       }
   }
 
@@ -96,21 +98,22 @@ stress_constraint_general(
 **********************************************************************************/
 template<typename EvaluationType>
 inline std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<EvaluationType>>
-stress_constraint_quadratic(
+strength_constraint(
     const Plato::SpatialDomain   & aSpatialDomain,
           Plato::DataMap         & aDataMap,
           Teuchos::ParameterList & aProblemParams,
     const std::string            & aFuncName
 )
 {
-    auto EvalMeasure = Plato::MechanicsFactory::create_local_measure<EvaluationType>(aSpatialDomain, aDataMap, aProblemParams, aFuncName);
+    auto EvalMeasure = Plato::MechanicsFactory::create_local_measure<EvaluationType>(
+                            aSpatialDomain, aDataMap, aProblemParams, aFuncName);
     using Residual = typename Plato::Elliptic::ResidualTypes<typename EvaluationType::ElementType>;
-    auto PODMeasure = Plato::MechanicsFactory::create_local_measure<Residual>(aSpatialDomain, aDataMap, aProblemParams, aFuncName);
+    auto PODMeasure = Plato::MechanicsFactory::create_local_measure<Residual>
+                            (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
 
-    std::shared_ptr<Plato::AugLagStressCriterionQuadratic<EvaluationType>> tOutput;
-    tOutput = std::make_shared< Plato::AugLagStressCriterionQuadratic<EvaluationType> >
-        (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
-
+    std::shared_ptr<Plato::AugLagStrengthCriterion<EvaluationType>> tOutput;
+    tOutput = std::make_shared< Plato::AugLagStrengthCriterion<EvaluationType> >
+                            (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
     tOutput->setLocalMeasure(EvalMeasure, PODMeasure);
     return (tOutput);
 }
@@ -148,7 +151,7 @@ volume_integral_criterion_for_volume_average(
  * \param [in] aSpatialDomain Plato Analyze spatial domain
  * \param [in] aDataMap Plato Analyze physics-based database
  * \param [in] aProblemParams input parameters
- * \param [in] aFuncName vector function name
+ * \param [in] aFuncName function name
 **********************************************************************************/
 template<typename EvaluationType>
 inline std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<EvaluationType>>
@@ -169,6 +172,7 @@ vol_avg_criterion_denominator(
  * \param [in] aSpatialDomain Plato Analyze spatial domain
  * \param [in] aDataMap Plato Analyze physics-based database
  * \param [in] aProblemParams input parameters
+ * \param [in] aFuncName function name
  * \return shared pointer
 **********************************************************************************/
 template<typename EvaluationType>
@@ -176,7 +180,8 @@ inline std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<EvaluationType>>
 mass_criterion(
     const Plato::SpatialDomain   & aSpatialDomain,
           Plato::DataMap         & aDataMap,
-          Teuchos::ParameterList & aProblemParams
+          Teuchos::ParameterList & aProblemParams,
+          std::string            & aFuncName
 )
 {
     auto tCriterion = std::make_shared<Plato::Elliptic::MassMoment<EvaluationType>>
@@ -275,7 +280,7 @@ struct FunctionFactory
         else if(tLowerFuncType == "mass")
         {
             return Plato::MechanicsFactory::mass_criterion<EvaluationType>
-                (aSpatialDomain, aDataMap, aProblemParams);
+                (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else if (tLowerFuncType == "volume average criterion numerator")
         {
@@ -297,9 +302,9 @@ struct FunctionFactory
             return Plato::MechanicsFactory::stress_constraint_general<EvaluationType>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
-        else if(tLowerFuncType == "stress constraint quadratic")
+        else if(tLowerFuncType == "strength constraint")
         {
-            return Plato::MechanicsFactory::stress_constraint_quadratic<EvaluationType>
+            return Plato::MechanicsFactory::strength_constraint<EvaluationType>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else if(tLowerFuncType == "density penalty")

@@ -151,7 +151,8 @@ namespace Elliptic
         for (Plato::OrdinalType tFunctionIndex = 0; tFunctionIndex < mScalarFunctionBaseContainer.size(); ++tFunctionIndex)
         {
             const Plato::Scalar tFunctionWeight = mFunctionWeights[tFunctionIndex];
-            Plato::Scalar tFunctionValue = mScalarFunctionBaseContainer[tFunctionIndex]->value(aSolution, aControl, aTimeStep);
+            Plato::Scalar tFunctionValue = 
+              mScalarFunctionBaseContainer[tFunctionIndex]->value(aSolution, aControl, aTimeStep);
             tResult += tFunctionWeight * tFunctionValue;
         }
         return tResult;
