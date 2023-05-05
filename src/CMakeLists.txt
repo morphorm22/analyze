@@ -36,8 +36,10 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     TensileEnergyDensityLocalMeasure.cpp
     Plato_AugLagStressCriterionQuadratic.cpp
     Plato_AugLagStressCriterionGeneral.cpp
+    elliptic/AugLagStrengthCriterion.cpp
     VonMisesLocalMeasure.cpp
     ThermalVonMisesLocalMeasure.cpp
+    optimizer/AugLagDataMng.cpp
 )
 
 ## core sources

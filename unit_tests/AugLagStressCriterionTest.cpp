@@ -10,396 +10,17 @@
 #include "Analyze_Diagnostics.hpp"
 #include "util/PlatoTestHelpers.hpp"
 
-#include "Simp.hpp"
 #include "Tri3.hpp"
 #include "Tet4.hpp"
-#include "ToMap.hpp"
-#include "BLAS1.hpp"
 #include "Mechanics.hpp"
-#include "AnalyzeMacros.hpp"
-#include "PlatoMathTypes.hpp"
 #include "MechanicsElement.hpp"
-#include "Plato_TopOptFunctors.hpp"
-#include "AbstractLocalMeasure.hpp"
 
 #include "elliptic/MassMoment.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/WeightedSumFunction.hpp"
 #include "elliptic/PhysicsScalarFunction.hpp"
+#include "elliptic/AugLagStrengthCriterion.hpp"
 
-namespace Plato
-{
-
-class AugLagDataMng
-{
-public:
-    Plato::OrdinalType mNumCells = 0;               /*!< number of cells */
-    Plato::OrdinalType mNumLocalConstraints = 0;    /*!< number of local constraints */
- 
-    Plato::Scalar mMaxPenalty = 10000.0;            /*!< maximum penalty value allowed for AL formulation */
-    Plato::Scalar mInitiaPenalty = 1.0;             /*!< initial Lagrange multipliers */
-    Plato::Scalar mPenaltyIncrement = 1.1;          /*!< increment multiplier for penalty values */
-    Plato::Scalar mPenaltyUpdateParameter = 0.25;   /*!< previous constraint multiplier used for penaly update */
-    Plato::Scalar mInitialLagrangeMultiplier = 0.0; /*!< initial Lagrange multipliers */
-
-    Plato::ScalarVector mPenaltyValues;             /*!< penalty values for augmented Largangian formulation */
-    Plato::ScalarVector mLocalMeasureLimits;        /*!< local constraint limit */
-    Plato::ScalarVector mLagrangeMultipliers;       /*!< Lagrange multipliers for augmented Lagragian formulation */
-    Plato::ScalarVector mCurrentConstraintValues;   /*!< current contraint values */
-    Plato::ScalarVector mPreviousConstraintValues;  /*!< previous contraint values */
-
-public:
-    AugLagDataMng(){}
-    ~AugLagDataMng(){}
-    
-    void initialize()
-    {
-        Plato::blas1::fill(mInitiaPenalty, mPenaltyValues);
-        Plato::blas1::fill(mInitialLagrangeMultiplier, mLagrangeMultipliers);
-    }
-
-    void updateLagrangeMultipliers()
-    {
-        // copy global member data to local scope
-        Plato::ScalarVector tPenaltyValues = mPenaltyValues;
-        Plato::ScalarVector tLagrangeMultipliers  = mLagrangeMultipliers;
-        Plato::ScalarVector tCurrentConstraintValues = mCurrentConstraintValues;
-        // update lagrange multipliers
-        const Plato::OrdinalType tNumCells = mNumCells;
-        Plato::OrdinalType tNumLocalConstraints = mNumLocalConstraints;
-        Kokkos::parallel_for("update lagrange multipliers",Kokkos::RangePolicy<>(0,tNumCells),
-        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal)
-        {
-            for(Plato::OrdinalType tConstraintIndex = 0; tConstraintIndex < tNumLocalConstraints; tConstraintIndex++)
-            {
-                Plato::OrdinalType tLocalIndex = (iCellOrdinal * tNumLocalConstraints) + tConstraintIndex;
-                tLagrangeMultipliers(tLocalIndex) = tLagrangeMultipliers(tLocalIndex) 
-                    + ( tPenaltyValues(tLocalIndex) * tCurrentConstraintValues(tLocalIndex) );
-            }
-        });
-    }
-
-    void updatePenaltyValues()
-    {
-        // copy member containers to local scope
-        Plato::ScalarVector tPenaltyValues  = mPenaltyValues;
-        Plato::ScalarVector tCurrentConstraintValues = mCurrentConstraintValues;
-        Plato::ScalarVector tPreviousConstraintValues = mPreviousConstraintValues;
-        // update penalty values
-        const Plato::OrdinalType tNumCells = mNumCells;
-        Plato::OrdinalType tNumLocalConstraints = mNumLocalConstraints;
-        Kokkos::parallel_for("update penalty values",Kokkos::RangePolicy<>(0,tNumCells),
-        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal)
-        {
-            for(Plato::OrdinalType tConstraintIndex = 0; tConstraintIndex < tNumLocalConstraints; tConstraintIndex++)
-            {
-                Plato::OrdinalType tLocalIndex = (iCellOrdinal * tNumLocalConstraints) + tConstraintIndex;   
-                // evaluate condition
-                Plato::Scalar tCondition = mPenaltyUpdateParameter * tPreviousConstraintValues(tLocalIndex);
-                Plato::Scalar tTrialPenalty = tCurrentConstraintValues(tLocalIndex) > tCondition ? 
-                    mPenaltyIncrement * tPenaltyValues(tLocalIndex) : tPenaltyValues(tLocalIndex); 
-                tPenaltyValues(tLocalIndex) = tTrialPenalty < mMaxPenalty ? tTrialPenalty : mMaxPenalty;
-            }
-        });
-    }
-
-    void parseNumerics(Teuchos::ParameterList &aParams)
-    {
-        mMaxPenalty = aParams.get<Plato::Scalar>("Maximum Penalty", 10000.0);
-        mInitiaPenalty = aParams.get<Plato::Scalar>("Initial Penalty", 1.0);
-        mPenaltyIncrement = aParams.get<Plato::Scalar>("Penalty Increment", 1.1);
-        mPenaltyUpdateParameter = aParams.get<Plato::Scalar>("Penalty Update Parameter", 0.25);
-        mInitialLagrangeMultiplier = aParams.get<Plato::Scalar>("Initial Lagrange Multiplier", 0.0);
-    }
-    
-    void parseLimits(Teuchos::ParameterList &aParams)
-    {
-        bool tIsArray = aParams.isType<Teuchos::Array<Plato::Scalar>>("Limits");
-        if (tIsArray)
-        {
-            // parse inputs
-            Teuchos::Array<Plato::Scalar> tLimits = aParams.get<Teuchos::Array<Plato::Scalar>>("Limits");
-            // create mirror 
-            mNumLocalConstraints = tLimits.size();
-            mLocalMeasureLimits  = Plato::ScalarVector("Limits",mNumLocalConstraints);
-            auto tHostArray = Kokkos::create_mirror_view(mLocalMeasureLimits);
-            for( Plato::OrdinalType tIndex = 0; tIndex < mNumLocalConstraints; tIndex++)
-            {
-                tHostArray(tIndex) = tLimits[tIndex];
-            }
-            Kokkos::deep_copy(mLocalMeasureLimits,tHostArray);
-        }
-        else
-        {
-            auto tMsg = std::string("Local constraints limits are not defined in criterion block. ") 
-                + "Constraint limits are required to properly enforce the local constraints.";
-            ANALYZE_THROWERR(tMsg)
-        }
-    }
-
-    void allocateContainers(const Plato::OrdinalType &aNumCells)
-    {
-        if(mNumLocalConstraints <= 0)
-        {
-            auto tMsg = std::string("Number of local constraints is not defined; i.e., ") 
-                + "number of local constraints is set to " + std::to_string(mNumLocalConstraints) + ".";
-            ANALYZE_THROWERR(tMsg)
-        }
-        mNumCells = aNumCells;
-        if(mNumCells <= 0)
-        {
-            auto tMsg = std::string("Number of cells is not defined; i.e., ") 
-                + "number of cells is set to " + std::to_string(mNumCells) + ".";
-            ANALYZE_THROWERR(tMsg)
-        }
-
-        auto tNumConstraints = mNumLocalConstraints * mNumCells;
-        mPenaltyValues = Plato::ScalarVector("Penalty Values",tNumConstraints);
-        mLagrangeMultipliers = Plato::ScalarVector("Lagrange Multipliers",tNumConstraints);
-        mCurrentConstraintValues = Plato::ScalarVector("Current Constraints",tNumConstraints);
-        mPreviousConstraintValues = Plato::ScalarVector("Previous Constraints",tNumConstraints);
-    }
-};
-
-/******************************************************************************//**
- * \brief Apply augmented Lagragian method to model local constraints.
- * \tparam EvaluationType evaluation type for automatic differentiation tools; e.g., 
- *         type for scalar function (e.g. Residual, Jacobian, GradientZ, etc.)
-**********************************************************************************/
-template<typename EvaluationType>
-class AugLagStressCriterion :
-    public EvaluationType::ElementType,
-    public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
-{
-private:
-    using ElementType = typename EvaluationType::ElementType;
-
-    using ElementType::mNumVoigtTerms;
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumSpatialDims;
-
-    using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
-
-    using FunctionBaseType::mSpatialDomain;
-    using FunctionBaseType::mDataMap;
-
-    using StateT   = typename EvaluationType::StateScalarType;
-    using ConfigT  = typename EvaluationType::ConfigScalarType;
-    using ResultT  = typename EvaluationType::ResultScalarType;
-    using ControlT = typename EvaluationType::ControlScalarType;
-
-    using Residual = typename Plato::Elliptic::ResidualTypes<ElementType>;
-
-    Plato::Scalar mMaterialPenalty = 3.0;         /*!< penalty for material penalty model */
-    Plato::Scalar mMinErsatzMaterialValue = 1e-9; /*!< minimum ersatz material stiffness for material penalty model*/
-
-    Plato::AugLagDataMng mAugLagDataMng;    /*!< contains all relevant data associated with the AL method*/
-
-    /*!< Local measure with FAD evaluation type */
-    std::shared_ptr<Plato::AbstractLocalMeasure<EvaluationType>> mLocalMeasureEvaluationType;
-
-    /*!< Local measure with POD type */
-    std::shared_ptr<Plato::AbstractLocalMeasure<Residual>> mLocalMeasurePODType;
-
-private:
-    /******************************************************************************//**
-     * \brief Allocate member data
-     * \param [in] aParams input parameters database
-    **********************************************************************************/
-    void initialize(Teuchos::ParameterList & aParams)
-    {
-        this->parseNumerics(aParams);
-        this->parseLimits(aParams); 
-        auto tNumCells = mSpatialDomain.Mesh->NumElements();
-        mAugLagDataMng.allocateContainers(tNumCells);
-        mAugLagDataMng.initialize();
-    }
-
-    /******************************************************************************//**
-     * \brief Read user inputs
-     * \param [in] aParams input parameters database
-    **********************************************************************************/
-    void parseNumerics(Teuchos::ParameterList & aParams)
-    {
-        Teuchos::ParameterList & tParams = 
-            aParams.sublist("Criteria").get<Teuchos::ParameterList>(this->getName());
-        mMaterialPenalty = tParams.get<Plato::Scalar>("Exponent", 3.0);
-        mMinErsatzMaterialValue = tParams.get<Plato::Scalar>("Minimum Value", 1e-9);
-        mAugLagDataMng.parseNumerics(tParams);
-    }
-
-    void parseLimits(Teuchos::ParameterList & aParams)
-    {
-        Teuchos::ParameterList &tParams = 
-            aParams.sublist("Criteria").get<Teuchos::ParameterList>(this->getName());
-        mAugLagDataMng.parseLimits(tParams);
-    }
-
-    void 
-    evaluateCurrentConstraints(
-        const Plato::ScalarMultiVector &aStateWS,
-        const Plato::ScalarMultiVector &aControlWS,
-        const Plato::ScalarArray3D     &aConfigWS
-    )
-    {
-        // update previous constraint container
-        Plato::blas1::copy(mAugLagDataMng.mCurrentConstraintValues,mAugLagDataMng.mPreviousConstraintValues);
-        // evaluate local measure
-        auto tNumCells = mAugLagDataMng.mNumCells;
-        auto tNumConstraints = tNumCells * mAugLagDataMng.mNumLocalConstraints;
-        Plato::ScalarVector tLocalMeasureValues("local measure values", tNumConstraints);
-        (*mLocalMeasurePODType)(aStateWS, aControlWS, aConfigWS, tLocalMeasureValues);
-        // copy global member data to local scope
-        auto tLocalMeasureLimits  = mAugLagDataMng.mLocalMeasureLimits;
-        auto tCurrentConstraints  = mAugLagDataMng.mCurrentConstraintValues;
-        auto tPenaltyValues = mAugLagDataMng.mPenaltyValues;
-        auto tLagrangeMultipliers = mAugLagDataMng.mLagrangeMultipliers;
-        // gather integration rule data
-        auto tCubPoints = ElementType::getCubPoints();
-        auto tCubWeights = ElementType::getCubWeights();
-        auto tNumPoints = tCubWeights.size();
-        // evaluate local constraints
-        Plato::MSIMP tSIMP(mMaterialPenalty,mMinErsatzMaterialValue);
-        auto tNumLocalConstraints = mAugLagDataMng.mNumLocalConstraints;
-        Kokkos::parallel_for("local constraints",Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumCells,tNumPoints}),
-        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal,const Plato::OrdinalType iGpOrdinal)
-        {
-            // evaluate material penalty model
-            auto tCubPoint = tCubPoints(iGpOrdinal);
-            auto tBasisValues = ElementType::basisValues(tCubPoint);
-            Plato::Scalar tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal, aControlWS, tBasisValues);
-            Plato::Scalar tStiffnessPenalty = tSIMP(tDensity);
-            // evaluate local equality constraint
-            for(Plato::OrdinalType tConstraintIndex = 0; tConstraintIndex < tNumLocalConstraints; tConstraintIndex++)
-            {
-                // evaluate local inequality constraint 
-                auto tLocalIndex = (iCellOrdinal * tNumLocalConstraints) + tConstraintIndex;
-                const Plato::Scalar tLocalMeasureValueOverLimit = 
-                    tLocalMeasureValues(tLocalIndex) / tLocalMeasureLimits(tConstraintIndex);
-                const Plato::Scalar tLocalMeasureValueOverLimitMinusOne = 
-                    tLocalMeasureValueOverLimit - static_cast<Plato::Scalar>(1.0);
-                const Plato::Scalar tConstraintValue = pow(tLocalMeasureValueOverLimitMinusOne, 2.0);
-                // penalized local inequality constraint
-                const Plato::Scalar tPenalizedConstraintValue = tStiffnessPenalty * tConstraintValue;
-                // evaluate condition: \frac{-\lambda}{\theta}
-                const Plato::Scalar tLagMultOverPenalty = ( static_cast<Plato::Scalar>(-1.0) * 
-                    tLagrangeMultipliers(tLocalIndex) ) / tPenaltyValues(tLocalIndex);
-                // evaluate equality constraint
-                tCurrentConstraints(tLocalIndex) = tPenalizedConstraintValue > tLagMultOverPenalty ?
-                    tPenalizedConstraintValue : tLagMultOverPenalty;
-            }
-        });
-    }
-
-public:
-    AugLagStressCriterion(
-        const Plato::SpatialDomain   & aSpatialDomain,
-              Plato::DataMap         & aDataMap,
-              Teuchos::ParameterList & aParams,
-        const std::string            & aFuncName
-    ) :
-        FunctionBaseType(aSpatialDomain, aDataMap, aParams, aFuncName)
-    {
-        this->initialize(aParams);
-    }
-    ~AugLagStressCriterion(){}
-
-    void
-    setLocalMeasure(
-        const std::shared_ptr<AbstractLocalMeasure<EvaluationType>> & aInputEvaluationType,
-        const std::shared_ptr<AbstractLocalMeasure<Residual>>       & aInputPODType
-    )
-    {
-        mLocalMeasurePODType        = aInputPODType;
-        mLocalMeasureEvaluationType = aInputEvaluationType;
-    }
-
-    void
-    updateProblem(
-        const Plato::ScalarMultiVector & aStateWS,
-        const Plato::ScalarMultiVector & aControlWS,
-        const Plato::ScalarArray3D     & aConfigWS
-    )
-    {
-        this->evaluateCurrentConstraints(aStateWS,aControlWS,aConfigWS);
-        mAugLagDataMng.updateLagrangeMultipliers();
-        mAugLagDataMng.updatePenaltyValues();
-    }
-
-    void
-    evaluate_conditional(
-        const Plato::ScalarMultiVectorT <StateT>   & aStateWS,
-        const Plato::ScalarMultiVectorT <ControlT> & aControlWS,
-        const Plato::ScalarArray3DT     <ConfigT>  & aConfigWS,
-              Plato::ScalarVectorT      <ResultT>  & aResultWS,
-              Plato::Scalar aTimeStep
-    ) const
-    {
-        using StrainT = typename Plato::fad_type_t<ElementType, StateT, ConfigT>;
-        // compute local measure and store on device
-        const Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
-        const Plato::OrdinalType tNumConstraints = tNumCells * mAugLagDataMng.mNumLocalConstraints;
-        Plato::ScalarVectorT<ResultT> tLocalMeasureValues("local measure values", tNumConstraints);
-        (*mLocalMeasureEvaluationType)(aStateWS, aControlWS, aConfigWS, tLocalMeasureValues);
-        Plato::ScalarVectorT<ResultT> 
-            tOutputPenalizedLocalMeasure("output penalized local measure values",tNumConstraints);
-        // transfer member data to local scope
-        auto tPenaltyMultipliers = mAugLagDataMng.mPenaltyValues;
-        auto tLocalMeasureLimits = mAugLagDataMng.mLocalMeasureLimits;
-        auto tLagrangeMultipliers = mAugLagDataMng.mLagrangeMultipliers;
-        // access cubature/integration rule data
-        auto tCubPoints = ElementType::getCubPoints();
-        auto tCubWeights = ElementType::getCubWeights();
-        auto tNumPoints = tCubWeights.size();
-        // evaluate augmented lagrangian penalty term 
-        Plato::MSIMP tSIMP(mMaterialPenalty,mMinErsatzMaterialValue);
-        auto tNumLocalConstraints = mAugLagDataMng.mNumLocalConstraints;
-        Plato::Scalar tNormalization = static_cast<Plato::Scalar>(1.0/tNumCells);
-        Kokkos::parallel_for("augmented lagrangian penalty", 
-            Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-            KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
-        {
-            // evaluate material penalty model
-            auto tCubPoint = tCubPoints(iGpOrdinal);
-            auto tBasisValues = ElementType::basisValues(tCubPoint);
-            ControlT tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal, aControlWS, tBasisValues);
-            ControlT tStiffnessPenalty = tSIMP(tDensity);
-            // evaluate local equality constraint
-            for(Plato::OrdinalType tConstraintIndex = 0; tConstraintIndex < tNumLocalConstraints; tConstraintIndex++)
-            {
-                // evaluate local inequality constraint 
-                const Plato::OrdinalType tLocalIndex = 
-                    (iCellOrdinal * tNumLocalConstraints) + tConstraintIndex;
-                const ResultT tLocalMeasureValueOverLimit = 
-                    tLocalMeasureValues(tLocalIndex) / tLocalMeasureLimits(tConstraintIndex);
-                const ResultT tLocalMeasureValueOverLimitMinusOne = 
-                    tLocalMeasureValueOverLimit - static_cast<Plato::Scalar>(1.0);
-                const ResultT tConstraintValue = pow(tLocalMeasureValueOverLimitMinusOne, 2.0);
-                // penalized local inequality constraint
-                const ResultT tPenalizedConstraintValue = tStiffnessPenalty * tConstraintValue;
-                // evaluate condition: \frac{-\lambda}{\theta}
-                const Plato::Scalar tLagMultOverPenalty = ( static_cast<Plato::Scalar>(-1.0) * 
-                    tLagrangeMultipliers(tLocalIndex) ) / tPenaltyMultipliers(tLocalIndex);
-                // evaluate augmented Lagrangian equality constraint
-                const ResultT tConstraint = tPenalizedConstraintValue > tLagMultOverPenalty ?
-                    tPenalizedConstraintValue : static_cast<ResultT>(tLagMultOverPenalty);
-                // evaluate augmented Lagrangian penalty term
-                const ResultT tResult = tNormalization * ( ( tLagrangeMultipliers(tLocalIndex) *
-                    tConstraint ) + ( static_cast<Plato::Scalar>(0.5) * tPenaltyMultipliers(tLocalIndex) *
-                    tConstraint * tConstraint ) );
-                Kokkos::atomic_add(&aResultWS(iCellOrdinal), tResult);
-                // evaluate outputs
-                const ResultT tOutput = mMaterialPenalty * tLocalMeasureValues(iCellOrdinal);
-                Kokkos::atomic_add(&tOutputPenalizedLocalMeasure(iCellOrdinal),tOutput);
-            }
-        });
-        // save penalized output local measure values to output data map 
-        Plato::toMap(mDataMap,tOutputPenalizedLocalMeasure,mLocalMeasureEvaluationType->getName(),mSpatialDomain);
-    }
-};
-
-}
-// namespace Plato
 
 namespace AugLagStressCriterionTest
 {
@@ -718,7 +339,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_Evaluate_Vo
 
     // create criterion
     auto tOnlyDomainDefined = tSpatialModel.Domains.front();
-    Plato::AugLagStressCriterion<Residual> tCriterion(tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
+    Plato::AugLagStrengthCriterion<Residual> tCriterion(tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     
     // create material model
     constexpr Plato::Scalar tYoungsModulus = 1;
@@ -856,7 +477,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_Evaluate_Vo
 
     // create criterion
     auto tOnlyDomainDefined = tSpatialModel.Domains.front();
-    Plato::AugLagStressCriterion<Residual> tCriterion(tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
+    Plato::AugLagStrengthCriterion<Residual> tCriterion(tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     
     // create material model
     constexpr Plato::Scalar tYoungsModulus = 1;
@@ -918,10 +539,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
                                         (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
 
     // create stress criterion
-    const auto tCriterionResidual = std::make_shared<Plato::AugLagStressCriterion<Residual>>(
+    const auto tCriterionResidual = std::make_shared<Plato::AugLagStrengthCriterion<Residual>>(
                                       tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
-    const auto tCriterionGradZ = std::make_shared<Plato::AugLagStressCriterion<GradientZ>>(
+    const auto tCriterionGradZ = std::make_shared<Plato::AugLagStrengthCriterion<GradientZ>>(
                                     tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
 
@@ -969,10 +590,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
                                         (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
 
     // create stress criterion
-    const auto tCriterionResidual = std::make_shared<Plato::AugLagStressCriterion<Residual>>(
+    const auto tCriterionResidual = std::make_shared<Plato::AugLagStrengthCriterion<Residual>>(
                                       tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
-    const auto tCriterionGradZ = std::make_shared<Plato::AugLagStressCriterion<GradientZ>>(
+    const auto tCriterionGradZ = std::make_shared<Plato::AugLagStrengthCriterion<GradientZ>>(
                                     tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
 
@@ -1020,10 +641,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
                                         (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
 
     // create stress criterion
-    const auto tCriterionResidual = std::make_shared<Plato::AugLagStressCriterion<Residual>>(
+    const auto tCriterionResidual = std::make_shared<Plato::AugLagStrengthCriterion<Residual>>(
                                       tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
-    const auto tCriterionGradZ = std::make_shared<Plato::AugLagStressCriterion<GradientU>>(
+    const auto tCriterionGradZ = std::make_shared<Plato::AugLagStrengthCriterion<GradientU>>(
                                     tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
 
@@ -1071,10 +692,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
                                         (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
 
     // create stress criterion
-    const auto tCriterionResidual = std::make_shared<Plato::AugLagStressCriterion<Residual>>(
+    const auto tCriterionResidual = std::make_shared<Plato::AugLagStrengthCriterion<Residual>>(
                                       tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
-    const auto tCriterionGradZ = std::make_shared<Plato::AugLagStressCriterion<GradientU>>(
+    const auto tCriterionGradZ = std::make_shared<Plato::AugLagStrengthCriterion<GradientU>>(
                                     tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
 
