@@ -66,7 +66,7 @@ namespace Plato
         mMaxPenalty = aParams.get<Plato::Scalar>("Maximum Penalty", 10000.0);
         mInitiaPenalty = aParams.get<Plato::Scalar>("Initial Penalty", 1.0);
         mPenaltyIncrement = aParams.get<Plato::Scalar>("Penalty Increment", 1.1);
-        mPenaltyUpdateParameter = aParams.get<Plato::Scalar>("Penalty Update Parameter", 0.25);
+        mPenaltyUpdateParameter = aParams.get<Plato::Scalar>("Penalty Update Constant", 0.25);
         mInitialLagrangeMultiplier = aParams.get<Plato::Scalar>("Initial Lagrange Multiplier", 0.0);
     }
 
