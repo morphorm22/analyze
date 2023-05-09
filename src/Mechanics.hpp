@@ -185,7 +185,7 @@ mass_criterion(
 )
 {
     auto tCriterion = std::make_shared<Plato::Elliptic::MassMoment<EvaluationType>>
-                        (aSpatialDomain, aDataMap, aProblemParams);
+                        (aSpatialDomain,aDataMap,aProblemParams,aFuncName);
     tCriterion->setCalculationType("Mass");
     return tCriterion;
 }

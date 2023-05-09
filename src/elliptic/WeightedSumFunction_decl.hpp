@@ -32,6 +32,7 @@ private:
     using Plato::WorksetBase<ElementType>::mNumNodes;
     using Plato::WorksetBase<ElementType>::mNumCells;
 
+    std::vector<std::string> mFunctionNames;
     std::vector<Plato::Scalar> mFunctionWeights;
     std::vector<std::shared_ptr<Plato::Elliptic::ScalarFunctionBase>> mScalarFunctionBaseContainer;
 

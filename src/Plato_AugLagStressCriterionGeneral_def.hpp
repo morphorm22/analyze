@@ -361,8 +361,7 @@ namespace Plato
             aResultWS(iCellOrdinal) = (tMassCriterionWeight * tObjective)
                     + (tStressCriterionWeight * tConstraint);
         });
-
-       Plato::toMap(mDataMap, tOutputVonMises, "Vonmises", mSpatialDomain);
+       Plato::toMap(mDataMap, tOutputVonMises, "vonmises", mSpatialDomain);
     }
 
     /******************************************************************************//**

@@ -50,6 +50,7 @@ namespace Elliptic
                 tFactory.create(
                     mSpatialModel, mDataMap, aProblemParams, tFunctionNames[tFunctionIndex]));
             mFunctionWeights.push_back(tFunctionWeights[tFunctionIndex]);
+            mFunctionNames.push_back(tFunctionNames[tFunctionIndex]);
         }
 
     }
@@ -148,11 +149,15 @@ namespace Elliptic
         assert(mScalarFunctionBaseContainer.size() == mFunctionWeights.size());
 
         Plato::Scalar tResult = 0.0;
-        for (Plato::OrdinalType tFunctionIndex = 0; tFunctionIndex < mScalarFunctionBaseContainer.size(); ++tFunctionIndex)
+        for (Plato::OrdinalType tFunctionIndex = 0; 
+             tFunctionIndex < mScalarFunctionBaseContainer.size(); 
+             ++tFunctionIndex)
         {
             const Plato::Scalar tFunctionWeight = mFunctionWeights[tFunctionIndex];
             Plato::Scalar tFunctionValue = 
               mScalarFunctionBaseContainer[tFunctionIndex]->value(aSolution, aControl, aTimeStep);
+            std::cout << "Function " << mFunctionNames[tFunctionIndex] 
+              << " Value: " << std::to_string(tFunctionValue) << "\n";
             tResult += tFunctionWeight * tFunctionValue;
         }
         return tResult;

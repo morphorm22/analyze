@@ -120,12 +120,12 @@ evaluate_conditional(
                 tConstraint * tConstraint ) );
             Kokkos::atomic_add(&aResultWS(iCellOrdinal), tResult);
             // evaluate outputs
-            const ResultT tOutput = mMaterialPenalty * tLocalMeasureValues(iCellOrdinal);
+            const ResultT tOutput = tStiffnessPenalty * tLocalMeasureValues(iCellOrdinal);
             Kokkos::atomic_add(&tOutputPenalizedLocalMeasure(iCellOrdinal),tOutput);
         }
     });
     // save penalized output local measure values to output data map 
-    Plato::toMap(mDataMap,tOutputPenalizedLocalMeasure,mLocalMeasureEvaluationType->getName(),mSpatialDomain);
+    Plato::toMap(mDataMap,tOutputPenalizedLocalMeasure,"p-vonmises",mSpatialDomain);
 }
 
 template<typename EvaluationType>

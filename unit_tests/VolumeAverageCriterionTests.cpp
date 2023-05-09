@@ -46,7 +46,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressAxial_
       "    </ParameterList>                                                                     \n"
       "  </ParameterList>                                                                       \n"
       "  <ParameterList name='Elliptic'>                                                        \n"
-      "    <Parameter name='Plottable' type='Array(string)' value='{Vonmises}'/>                \n"
+      "    <Parameter name='Plottable' type='Array(string)' value='{vonmises}'/>                \n"
       "    <ParameterList name='Penalty Function'>                                              \n"
       "      <Parameter name='Type' type='string' value='SIMP'/>                                \n"
       "      <Parameter name='Exponent' type='double' value='3.0'/>                             \n"

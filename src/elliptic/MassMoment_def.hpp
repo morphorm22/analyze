@@ -31,9 +31,7 @@ namespace Elliptic
               Teuchos::ParameterList & aInputParams,
               std::string              aFuncName
     ) :
-       FunctionBaseType(aSpatialDomain, aDataMap, aInputParams, aFuncName),
-       mCellMaterialDensity(1.0),
-       mCalculationType("")
+       FunctionBaseType(aSpatialDomain, aDataMap, aInputParams, aFuncName)
     /**************************************************************************/
     {
       this->initialize(aSpatialDomain,aInputParams);
@@ -49,9 +47,8 @@ namespace Elliptic
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap& aDataMap
     ) :
-        Plato::Elliptic::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, "MassMoment"),
-        mCellMaterialDensity(1.0),
-        mCalculationType(""){}
+      Plato::Elliptic::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, "MassMoment")
+    {}
     /**************************************************************************/
 
     /**************************************************************************/    
@@ -94,17 +91,17 @@ namespace Elliptic
         ANALYZE_THROWERR(tMsg)
       }
       const Teuchos::ParameterList& tMaterialModelInputs = tMaterialInputs.sublist(tMaterialModelType);
-      if( !tMaterialModelInputs.isParameter("Density") )
+      if( !tMaterialModelInputs.isParameter("Mass Density") )
       {
-        auto tMsg = std::string("Material density is not defined for material with name '")
-          + tMaterialName + "' is not defined";
+        auto tMsg = std::string("Parameter 'Mass Density' is not defined for material with name '")
+          + tMaterialName + "' is not defined. Total structural mass cannot be computed.";
         ANALYZE_THROWERR(tMsg)
       }
-      mCellMaterialDensity = tMaterialModelInputs.get<Plato::Scalar>("Density");
-      if(mCellMaterialDensity <= 0.)
+      mMassDensity = tMaterialModelInputs.get<Plato::Scalar>("Mass Density");
+      if(mMassDensity <= 0.)
       {
-        auto tMsg = std::string("Unphysical material density specified, density value is set to '") 
-          + std::to_string(mCellMaterialDensity) + ".";
+        auto tMsg = std::string("Unphysical 'Mass Density' parameter specified, 'Mass Density' is set to '") 
+          + std::to_string(mMassDensity) + ".";
         ANALYZE_THROWERR(tMsg)
       }      
     }
@@ -145,7 +142,7 @@ namespace Elliptic
         auto tCubWeights = ElementType::getCubWeights();
         auto tNumPoints = tCubWeights.size();
 
-        auto tCellMaterialDensity = mCellMaterialDensity;
+        auto tMassDensity = mMassDensity;
         Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
         KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
@@ -158,7 +155,7 @@ namespace Elliptic
 
             auto tBasisValues = ElementType::basisValues(tCubPoint);
             auto tCellMass = Plato::cell_mass<mNumNodesPerCell>(iCellOrdinal, tBasisValues, tDensities);
-            auto tLocalCellMass = tCellMass * tCellMaterialDensity * tVolume * tCubWeight;
+            auto tLocalCellMass = tCellMass * tMassDensity * tVolume * tCubWeight;
             Kokkos::atomic_add(&tTotalStructuralMass(iCellOrdinal), tLocalCellMass);
         });
         Plato::blas1::local_sum(tTotalStructuralMass, mTotalStructuralMass);
@@ -173,7 +170,7 @@ namespace Elliptic
     setMaterialDensity(const Plato::Scalar aMaterialDensity)
     /**************************************************************************/
     {
-      mCellMaterialDensity = aMaterialDensity;
+      mMassDensity = aMaterialDensity;
     }
 
     /******************************************************************************//**
@@ -253,12 +250,11 @@ namespace Elliptic
     {
       auto tNumCells = mSpatialDomain.numCells();
 
-      auto tCellMaterialDensity = mCellMaterialDensity;
+      auto tMassDensity = mMassDensity;
 
       auto tCubPoints = ElementType::getCubPoints();
       auto tCubWeights = ElementType::getCubWeights();
       auto tNumPoints = tCubWeights.size();
-
       Kokkos::parallel_for("structural mass", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
       KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
@@ -274,7 +270,7 @@ namespace Elliptic
         auto tBasisValues = ElementType::basisValues(tCubPoint);
         auto tCellMass = Plato::cell_mass<mNumNodesPerCell>(iCellOrdinal, tBasisValues, aControl);
 
-        auto tNormalizedCellMass = (tCellMass / mTotalStructuralMass) * tCellMaterialDensity * tVolume;
+        ResultScalarType tNormalizedCellMass = (tCellMass / mTotalStructuralMass) * tMassDensity * tVolume;
         Kokkos::atomic_add(&aResult(iCellOrdinal), tNormalizedCellMass);
 
       });
@@ -304,7 +300,7 @@ namespace Elliptic
 
       auto tNumCells = mSpatialDomain.numCells();
 
-      auto tCellMaterialDensity = mCellMaterialDensity;
+      auto tMassDensity = mMassDensity;
 
       auto tCubPoints  = ElementType::getCubPoints();
       auto tCubWeights = ElementType::getCubWeights();
@@ -330,7 +326,7 @@ namespace Elliptic
 
         ConfigScalarType tMomentArm = tMappedPoints(iCellOrdinal, iGpOrdinal, aComponent);
 
-        Kokkos::atomic_add(&aResult(iCellOrdinal), tCellMass * tCellMaterialDensity * tVolume *tMomentArm);
+        Kokkos::atomic_add(&aResult(iCellOrdinal), tCellMass * tMassDensity * tVolume *tMomentArm);
       });
     }
 
@@ -362,7 +358,7 @@ namespace Elliptic
 
       auto tNumCells = mSpatialDomain.numCells();
 
-      auto tCellMaterialDensity = mCellMaterialDensity;
+      auto tMassDensity = mMassDensity;
 
       auto tCubPoints  = ElementType::getCubPoints();
       auto tCubWeights = ElementType::getCubWeights();
@@ -390,7 +386,7 @@ namespace Elliptic
         ConfigScalarType tMomentArm2 = tMappedPoints(iCellOrdinal, iGpOrdinal, aComponent2);
         ConfigScalarType tSecondMoment  = tMomentArm1 * tMomentArm2;
 
-        Kokkos::atomic_add(&aResult(iCellOrdinal), tCellMass * tCellMaterialDensity * tVolume * tSecondMoment);
+        Kokkos::atomic_add(&aResult(iCellOrdinal), tCellMass * tMassDensity * tVolume * tSecondMoment);
       });
     }
 

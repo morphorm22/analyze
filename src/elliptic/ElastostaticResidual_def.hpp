@@ -185,9 +185,12 @@ namespace Elliptic
           mBodyLoads->get( mSpatialDomain, aState, aControl, aConfig, aResult, -1.0 );
       }
 
-      if(std::count(mPlotTable.begin(), mPlotTable.end(), "strain")) { Plato::toMap(mDataMap, tCellStrain, "strain", mSpatialDomain); }
-      if(std::count(mPlotTable.begin(), mPlotTable.end(), "stress")) { Plato::toMap(mDataMap, tCellStress, "stress", mSpatialDomain); }
-      if(std::count(mPlotTable.begin(), mPlotTable.end(), "Vonmises")) { this->outputVonMises(tCellStress, mSpatialDomain); }
+      if(std::count(mPlotTable.begin(), mPlotTable.end(), "strain")) 
+      { Plato::toMap(mDataMap, tCellStrain, "strain", mSpatialDomain); }
+      if(std::count(mPlotTable.begin(), mPlotTable.end(), "stress")) 
+      { Plato::toMap(mDataMap, tCellStress, "stress", mSpatialDomain); }
+      if(std::count(mPlotTable.begin(), mPlotTable.end(), "vonmises")) 
+      { this->outputVonMises(tCellStress, mSpatialDomain); }
     }
     /******************************************************************************//**
      * \brief Evaluate vector function
@@ -241,7 +244,7 @@ namespace Elliptic
                 tVonMises(aCellOrdinal) = tCellVonMises;
             }, "Compute VonMises Stress");
 
-            Plato::toMap(mDataMap, tVonMises, "Vonmises", aSpatialDomain);
+            Plato::toMap(mDataMap, tVonMises, "vonmises", aSpatialDomain);
     }
 
 } // namespace Elliptic

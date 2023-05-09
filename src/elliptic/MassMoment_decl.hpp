@@ -37,11 +37,11 @@ class MassMoment :
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
-    Plato::Scalar mCellMaterialDensity = 1.0; /*!< material density */
+    Plato::Scalar mMassDensity = 1.0;         /*!< material density */
     Plato::Scalar mTotalStructuralMass = 1.0; /*!< total structural mass, used for criterion normalization purposes*/
 
-    std::string mCalculationType;     /*!< calculation type = Mass, CGx, CGy, CGz, Ixx, Iyy, Izz, Ixy, Ixz, Iyz */
-    bool mNormalizeCriterion = false; /*!< normalize criterion */
+    std::string mCalculationType = "";  /*!< calculation type = Mass, CGx, CGy, CGz, Ixx, Iyy, Izz, Ixy, Ixz, Iyz */
+    bool mNormalizeCriterion = false;   /*!< normalize criterion */
 
   public:
     /******************************************************************************//**
