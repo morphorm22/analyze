@@ -104,6 +104,19 @@ public:
               Plato::Scalar aTimeStep
     ) const;
 
+    /******************************************************************************//**
+     * \brief Evaluate current local strength constraints
+     * \param [in] aStateWS   state workset
+     * \param [in] aControlWS control workset
+     * \param [in] aConfigWS  configuration workset
+    **********************************************************************************/
+    void 
+    evaluateCurrentConstraints(
+        const Plato::ScalarMultiVector &aStateWS,
+        const Plato::ScalarMultiVector &aControlWS,
+        const Plato::ScalarArray3D     &aConfigWS
+    );
+
 private:
     /******************************************************************************//**
      * \brief Allocate member data
@@ -130,19 +143,6 @@ private:
     void 
     parseLimits(
         Teuchos::ParameterList & aParams
-    );
-
-    /******************************************************************************//**
-     * \brief Evaluate current local strength constraints
-     * \param [in] aStateWS   state workset
-     * \param [in] aControlWS control workset
-     * \param [in] aConfigWS  configuration workset
-    **********************************************************************************/
-    void 
-    evaluateCurrentConstraints(
-        const Plato::ScalarMultiVector &aStateWS,
-        const Plato::ScalarMultiVector &aControlWS,
-        const Plato::ScalarArray3D     &aConfigWS
     );
 };
 
