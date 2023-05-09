@@ -40,6 +40,10 @@ namespace Plato
     void AugLagDataMng::updatePenaltyValues()
     {
         // copy member containers to local scope
+        Plato::Scalar tMaxPenalty = mMaxPenalty;
+        Plato::Scalar tPenaltyIncrement = mPenaltyIncrement;
+        Plato::Scalar tPenaltyUpdateParameter = mPenaltyUpdateParameter;
+
         Plato::ScalarVector tPenaltyValues  = mPenaltyValues;
         Plato::ScalarVector tCurrentConstraintValues = mCurrentConstraintValues;
         Plato::ScalarVector tPreviousConstraintValues = mPreviousConstraintValues;
@@ -53,10 +57,10 @@ namespace Plato
             {
                 Plato::OrdinalType tLocalIndex = (iCellOrdinal * tNumLocalConstraints) + tConstraintIndex;   
                 // evaluate condition
-                Plato::Scalar tCondition = mPenaltyUpdateParameter * tPreviousConstraintValues(tLocalIndex);
+                Plato::Scalar tCondition = tPenaltyUpdateParameter * tPreviousConstraintValues(tLocalIndex);
                 Plato::Scalar tTrialPenalty = tCurrentConstraintValues(tLocalIndex) > tCondition ? 
-                    mPenaltyIncrement * tPenaltyValues(tLocalIndex) : tPenaltyValues(tLocalIndex); 
-                tPenaltyValues(tLocalIndex) = tTrialPenalty < mMaxPenalty ? tTrialPenalty : mMaxPenalty;
+                    tPenaltyIncrement * tPenaltyValues(tLocalIndex) : tPenaltyValues(tLocalIndex); 
+                tPenaltyValues(tLocalIndex) = tTrialPenalty < mMaxPenalty ? tTrialPenalty : tMaxPenalty;
             }
         });
     }
