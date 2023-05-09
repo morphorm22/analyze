@@ -60,7 +60,7 @@ namespace Plato
                 Plato::Scalar tCondition = tPenaltyUpdateParameter * tPreviousConstraintValues(tLocalIndex);
                 Plato::Scalar tTrialPenalty = tCurrentConstraintValues(tLocalIndex) > tCondition ? 
                     tPenaltyIncrement * tPenaltyValues(tLocalIndex) : tPenaltyValues(tLocalIndex); 
-                tPenaltyValues(tLocalIndex) = tTrialPenalty < mMaxPenalty ? tTrialPenalty : tMaxPenalty;
+                tPenaltyValues(tLocalIndex) = tTrialPenalty < tMaxPenalty ? tTrialPenalty : tMaxPenalty;
             }
         });
     }
