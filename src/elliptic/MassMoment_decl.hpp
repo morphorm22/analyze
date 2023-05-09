@@ -158,6 +158,12 @@ class MassMoment :
         const Plato::ScalarArray3DT <ConfigScalarType> & aConfig,
               Plato::ScalarArray3DT <ConfigScalarType> & aMappedPoints
     ) const;
+
+    /******************************************************************************//**
+     * \brief Compute total structural mass
+     **********************************************************************************/
+    void computeTotalStructuralMass();
+
   private:
 
     /******************************************************************************//**
@@ -185,11 +191,6 @@ class MassMoment :
       const Plato::SpatialDomain   & aSpatialDomain,
             Teuchos::ParameterList & aInputParams
     );
-
-    /******************************************************************************//**
-     * \brief Compute total structural mass
-     **********************************************************************************/
-    void computeTotalStructuralMass();
 };
 // class MassMoment
 
