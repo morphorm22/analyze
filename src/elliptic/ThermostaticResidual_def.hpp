@@ -40,7 +40,8 @@ namespace Elliptic
         // 
         if(aProblemParams.isSublist("Body Loads"))
         {
-            mBodyLoads = std::make_shared<Plato::BodyLoads<EvaluationType, ElementType>>(aProblemParams.sublist("Body Loads"));
+            mBodyLoads = 
+                std::make_shared<Plato::BodyLoads<EvaluationType, ElementType>>(aProblemParams.sublist("Body Loads"));
         }
 
         // parse boundary Conditions
