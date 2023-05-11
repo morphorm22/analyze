@@ -173,7 +173,7 @@ namespace Elliptic
     {
         if( mBoundaryLoads != nullptr )
         {
-            mBoundaryLoads->get(aSpatialModel, aState, aControl, aConfig, aResult,  1.0 );
+            mBoundaryLoads->get(aSpatialModel,aState,aControl,aConfig,aResult,1.0);
         }
     }
 } // namespace Elliptic

@@ -2,6 +2,7 @@
 
 #include <Teuchos_ParameterList.hpp>
 #include "PlatoStaticsTypes.hpp"
+#include "PlatoUtilities.hpp"
 #include "ParseTools.hpp"
 
 namespace Plato {
@@ -623,59 +624,68 @@ namespace Plato {
 
       // scalar constant
       bool scalarConstantExists(std::string aConstantName)
-      { return mScalarConstantsMap.count(aConstantName) == 1 ? true : false; }
+      { 
+        auto tLowerName = Plato::tolower(aConstantName); 
+        auto tExist = mScalarConstantsMap.find(tLowerName) != mScalarConstantsMap.end() ? true : false; 
+        return tExist;
+      }
 
       Plato::Scalar getScalarConstant(std::string aConstantName)
-      { return mScalarConstantsMap[aConstantName]; }
+      { auto tLowerName = Plato::tolower(aConstantName); return mScalarConstantsMap[tLowerName]; }
 
       // Tensor constant
+      bool tensorConstantExists(std::string aConstantName)
+      { 
+        auto tLowerName = Plato::tolower(aConstantName); 
+        auto tExist = mTensorConstantsMap.find(tLowerName) != mTensorConstantsMap.end() ? true : false; 
+        return tExist;
+      }
+
       Plato::TensorConstant<SpatialDim> getTensorConstant(std::string aConstantName)
-      { return mTensorConstantsMap[aConstantName]; }
+      { auto tLowerName = Plato::tolower(aConstantName); return mTensorConstantsMap[tLowerName]; }
 
       // Rank4Voigt constant
       Plato::Rank4VoigtConstant<SpatialDim> getRank4VoigtConstant(std::string aConstantName)
-      { return mRank4VoigtConstantsMap[aConstantName]; }
+      { auto tLowerName = Plato::tolower(aConstantName); return mRank4VoigtConstantsMap[tLowerName]; }
 
       // scalar functor
       Plato::ScalarFunctor getScalarFunctor(std::string aFunctorName)
-      { return mScalarFunctorsMap[aFunctorName]; }
+      { auto tLowerName = Plato::tolower(aFunctorName); return mScalarFunctorsMap[tLowerName]; }
 
       // tensor functor
       Plato::TensorFunctor<SpatialDim> getTensorFunctor(std::string aFunctorName)
-      { return mTensorFunctorsMap[aFunctorName]; }
+      { auto tLowerName = Plato::tolower(aFunctorName); return mTensorFunctorsMap[tLowerName]; }
 
       // Rank4Voigt functor
       Plato::Rank4VoigtFunctor<SpatialDim> getRank4VoigtFunctor(std::string aFunctorName)
-      { return mRank4VoigtFunctorsMap[aFunctorName]; }
-
-
+      { auto tLowerName = Plato::tolower(aFunctorName); return mRank4VoigtFunctorsMap[tLowerName]; }
 
       // setters
       //
 
       // scalar constant
       void setScalarConstant(std::string aConstantName, Plato::Scalar aConstantValue)
-      { mScalarConstantsMap[aConstantName] = aConstantValue; }
+      { auto tLowerName = Plato::tolower(aConstantName); mScalarConstantsMap[tLowerName] = aConstantValue; }
 
       // tensor constant
       void setTensorConstant(std::string aConstantName, Plato::TensorConstant<SpatialDim> aConstantValue)
-      { mTensorConstantsMap[aConstantName] = aConstantValue; }
+      { auto tLowerName = Plato::tolower(aConstantName); mTensorConstantsMap[tLowerName] = aConstantValue; }
 
       // Rank4Voigt constant
       void setRank4VoigtConstant(std::string aConstantName, Plato::Rank4VoigtConstant<SpatialDim> aConstantValue)
-      { mRank4VoigtConstantsMap[aConstantName] = aConstantValue; }
+      { auto tLowerName = Plato::tolower(aConstantName); mRank4VoigtConstantsMap[tLowerName] = aConstantValue; }
 
       // scalar functor
       void setScalarFunctor(std::string aFunctorName, Plato::ScalarFunctor aFunctorValue)
-      { mScalarFunctorsMap[aFunctorName] = aFunctorValue; }
+      { auto tLowerName = Plato::tolower(aFunctorName); mScalarFunctorsMap[tLowerName] = aFunctorValue; }
 
       // tensor functor
       void setTensorFunctor(std::string aFunctorName, Plato::TensorFunctor<SpatialDim> aFunctorValue)
-      { mTensorFunctorsMap[aFunctorName] = aFunctorValue; }
+      { auto tLowerName = Plato::tolower(aFunctorName); mTensorFunctorsMap[tLowerName] = aFunctorValue; }
 
       // Rank4Voigt functor
       void setRank4VoigtFunctor(std::string aFunctorName, Plato::Rank4VoigtFunctor<SpatialDim> aFunctorValue)
-      { mRank4VoigtFunctorsMap[aFunctorName] = aFunctorValue; }
+      { auto tLowerName = Plato::tolower(aFunctorName); mRank4VoigtFunctorsMap[tLowerName] = aFunctorValue; }
 
 
       /******************************************************************************/

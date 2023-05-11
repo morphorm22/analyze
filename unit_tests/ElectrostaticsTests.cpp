@@ -17,8 +17,13 @@
 #include "Solutions.hpp"
 #include "BodyLoads.hpp"
 #include "NaturalBCs.hpp"
+#include "ScalarGrad.hpp"
 #include "SpatialModel.hpp"
 #include "MaterialModel.hpp"
+#include "GradientMatrix.hpp"
+#include "InterpolateFromNodal.hpp"
+#include "GeneralFluxDivergence.hpp"
+#include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/AbstractVectorFunction.hpp"
 
 namespace Plato
@@ -26,30 +31,52 @@ namespace Plato
 
 /******************************************************************************/
 /*!
- \brief Base class for Linear Electric Conduction models
+ \brief Base class for linear electric conductivity material model
  */
 template<int SpatialDim>
-class MaterialElectricConduction : public MaterialModel<SpatialDim>
+class MaterialElectricConductivity : public MaterialModel<SpatialDim>
 /******************************************************************************/
 {
 public:
-    MaterialElectricConduction(const Teuchos::ParameterList & aParamList)
+    MaterialElectricConductivity(const Teuchos::ParameterList & aParamList)
     {
-        this->parseTensor("Electric Conductivity", aParamList);   
+        this->parseScalar("Electric Conductivity", aParamList);   
+        auto tElectricConductivity = this->getScalarConstant("Electric Conductivity");
+        this->setTensorConstant("material tensor",Plato::TensorConstant<SpatialDim>(tElectricConductivity));
     }
 };
 
 /******************************************************************************/
 /*!
- \brief Factory for creating material models
+ \brief Base class for linear dielectric material model
  */
 template<int SpatialDim>
-class FactoryElectricConductionMaterial
+class MaterialDielectric : public MaterialModel<SpatialDim>
 /******************************************************************************/
 {
 public:
-    FactoryElectricConductionMaterial(const Teuchos::ParameterList& aParamList) :
-            mParamList(aParamList)
+    MaterialDielectric(const Teuchos::ParameterList & aParamList)
+    {
+        this->parseScalar("Electric Constant", aParamList);
+        this->parseScalar("Relative Static Permittivity", aParamList);
+        auto tElectricConstant = this->getScalarConstant("Electric Constant");
+        auto tRelativeStaticPermittivity = this->getScalarConstant("Relative Static Permittivity");
+        auto tValue = tElectricConstant * tRelativeStaticPermittivity;
+        this->setTensorConstant("material tensor",Plato::TensorConstant<SpatialDim>(tValue));
+    }
+};
+
+/******************************************************************************/
+/*!
+ \brief Factory for creating electric material models
+ */
+template<int SpatialDim>
+class FactoryElectricMaterial
+/******************************************************************************/
+{
+public:
+    FactoryElectricMaterial(const Teuchos::ParameterList& aParamList) :
+        mParamList(aParamList)
     {
     }
 
@@ -70,10 +97,17 @@ public:
             }
     
             auto tModelParamList = tModelsParamList.sublist(aModelName);
-            if(tModelParamList.isSublist("Electric Conduction"))
+            if(tModelParamList.isSublist("Electric Conductivity"))
             {
-                auto tMaterial = std::make_shared<Plato::MaterialElectricConduction<SpatialDim>>
-                                 (tModelParamList.sublist("Electric Conduction"));
+                auto tMaterial = std::make_shared<Plato::MaterialElectricConductivity<SpatialDim>>
+                                 (tModelParamList.sublist("Electric Conductivity"));
+                return tMaterial;
+            }
+            else 
+            if(tModelParamList.isSublist("Dielectric"))
+            {
+                auto tMaterial = std::make_shared<Plato::MaterialDielectric<SpatialDim>>
+                                (tModelParamList.sublist("Dielectric"));
                 return tMaterial;
             }
             else
@@ -102,8 +136,48 @@ private:
 private:
     const Teuchos::ParameterList& mParamList;
     
-    std::vector<std::string> mSupportedMaterials = {"Electric Conduction"};
+    std::vector<std::string> mSupportedMaterials = {"Electric Conductivity", "Dielectric"};
 };
+
+template<typename EvaluationType>
+class CurrentDensity
+{
+private:
+    using ElementType = typename EvaluationType::ElementType; /*<! local element type */
+
+    using ElementType::mNumSpatialDims;
+    
+    Plato::TensorConstant<mNumSpatialDims> mMaterialTensor; /*<! electric conductivity tensor */
+    
+public:
+    CurrentDensity(const Plato::MaterialModel<ElementType::mNumSpatialDims> aMaterialModel)
+    {
+        mMaterialTensor = aMaterialModel.getTensorConstant("material tensor");
+    }
+
+    template<
+      typename TScalarType, 
+      typename TGradScalarType, 
+      typename TOutScalarType>
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+            Plato::Array<mNumSpatialDims, TOutScalarType>  & aCurrentDensity,
+      const Plato::Array<mNumSpatialDims, TGradScalarType> & aStateGradient,
+      const TScalarType                                                 & aElecPotential
+    ) const
+    {
+        // compute thermal flux - linear case
+        for (Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++) 
+        {
+            aCurrentDensity(tDimI) = 0.0;
+            for (Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++) 
+            {
+                aCurrentDensity(tDimJ) += mMaterialTensor(tDimI,tDimJ) * aStateGradient(tDimJ);
+            }
+        }
+    }
+};
+// class CurrentDensity
 
 namespace Elliptic
 {
@@ -114,6 +188,7 @@ class ElectrostaticsResidual : public Plato::Elliptic::AbstractVectorFunction<Ev
 /******************************************************************************/
 {
 private:
+    // set local element type
     using ElementType = typename EvaluationType::ElementType;
 
     using ElementType::mNumNodesPerCell;
@@ -149,7 +224,7 @@ public:
         // obligatory: define dof names in order
         mDofNames.push_back("electric_potential");
         // create material constitutive model
-        Plato::FactoryElectricConductionMaterial<mNumSpatialDims> tMaterialFactory(aProblemParams);
+        Plato::FactoryElectricMaterial<mNumSpatialDims> tMaterialFactory(aProblemParams);
         mMaterialModel = tMaterialFactory.create(aSpatialDomain.getMaterialName());
         // TODO: create body loads
         // TODO: create surface loads
@@ -173,7 +248,75 @@ public:
               Plato::ScalarMultiVectorT <ResultScalarType > & aResult,
               Plato::Scalar aTimeStep = 0.0
     ) const override
-    {}
+    {
+        using GradScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
+        
+        // inline functors
+        Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
+        Plato::GeneralFluxDivergence<ElementType> tComputeDivergence;
+        Plato::ScalarGrad<ElementType>            tComputeScalarGrad;
+        Plato::CurrentDensity<EvaluationType>     tComputeCurrentDensity(mMaterialModel.operator*());  
+
+        // interpolate nodal values to integration points
+        Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
+
+        // quantity of interests
+        auto tNumCells = mSpatialDomain.numCells();
+        Plato::ScalarVectorT<ConfigScalarType>      
+          tVolume("InterpolateFromNodalvolume",tNumCells);
+        Plato::ScalarMultiVectorT<GradScalarType>   
+          tElectricField("electric field", tNumCells, mNumSpatialDims);
+        Plato::ScalarMultiVectorT<ResultScalarType> 
+          tCurrentDensity("current density", tNumCells, mNumSpatialDims);
+
+        // evaluate residual    
+        auto tCubPoints  = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints  = tCubWeights.size();      
+        Kokkos::parallel_for("evaluate electrostatics residual", 
+          Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+          KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        {
+            ConfigScalarType tCellVolume(0.0);
+  
+            Plato::Array<mNumSpatialDims,GradScalarType>   tCellElectricField(0.0);
+            Plato::Array<mNumSpatialDims,ResultScalarType> tCellCurrentDensity(0.0);
+            Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient;
+  
+            auto tCubPoint = tCubPoints(iGpOrdinal);
+            auto tBasisValues = ElementType::basisValues(tCubPoint);
+            tComputeGradient(iCellOrdinal,tCubPoint,aConfig,tGradient,tCellVolume);
+            tComputeScalarGrad(iCellOrdinal,tCellElectricField,aState,tGradient);
+            StateScalarType tCellElectricPotential = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
+            tComputeCurrentDensity(tCellCurrentDensity,tCellElectricField,tCellElectricPotential);
+      
+            tCellVolume *= tCubWeights(iGpOrdinal);
+            tComputeDivergence(iCellOrdinal,aResult,tCellCurrentDensity,tGradient,tCellVolume,-1.0);
+          
+            for(Plato::OrdinalType tIndex=0; tIndex<mNumSpatialDims; tIndex++)
+            {
+                Kokkos::atomic_add(&tElectricField(iCellOrdinal,tIndex),  -1.0*tCellVolume*tCellElectricField(tIndex));
+                Kokkos::atomic_add(&tCurrentDensity(iCellOrdinal,tIndex), tCellVolume*tCellCurrentDensity(tIndex));
+            }
+            Kokkos::atomic_add(&tVolume(iCellOrdinal),tCellVolume);
+        });
+
+        Kokkos::parallel_for("compute cell quantities", 
+          Kokkos::RangePolicy<>(0, tNumCells),
+          KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal)
+        {
+            for(Plato::OrdinalType tIndex=0; tIndex<mNumSpatialDims; tIndex++)
+            {
+                tElectricField(iCellOrdinal,tIndex)  /= tVolume(iCellOrdinal);
+                tCurrentDensity(iCellOrdinal,tIndex) /= tVolume(iCellOrdinal);
+            }
+        });
+
+        if( std::count(mPlottable.begin(),mPlottable.end(),"electric field") ) 
+        { toMap(mDataMap, tElectricField, "electric field", mSpatialDomain); }
+        if( std::count(mPlottable.begin(),mPlottable.end(),"current density" ) )
+        { toMap(mDataMap, tCurrentDensity, "current density" , mSpatialDomain); }
+    }
 
     void
     evaluate_boundary(
@@ -184,7 +327,13 @@ public:
               Plato::ScalarMultiVectorT <ResultScalarType > & aResult,
               Plato::Scalar aTimeStep = 0.0
     ) const override
-    {}
+    {
+        // add contributions from natural boundary conditions
+        if( mSurfaceLoads != nullptr )
+        {
+            mSurfaceLoads->get(aSpatialModel,aState,aControl,aConfig,aResult,1.0);
+        }
+    }
 };
 
 }
