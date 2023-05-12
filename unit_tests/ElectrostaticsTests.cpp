@@ -163,7 +163,7 @@ public:
     operator()(
             Plato::Array<mNumSpatialDims, TOutScalarType>  & aCurrentDensity,
       const Plato::Array<mNumSpatialDims, TGradScalarType> & aStateGradient,
-      const TScalarType                                                 & aElecPotential
+      const TScalarType                                    & aElecPotential
     ) const
     {
         // compute thermal flux - linear case
@@ -178,6 +178,91 @@ public:
     }
 };
 // class CurrentDensity
+
+template<typename EvaluationType>
+class DarkCurrent
+{
+private:
+    // set local element type
+    using ElementType = typename EvaluationType::ElementType;
+
+    using ElementType::mNumSpatialDims;  /*!< spatial dimensions */
+    using ElementType::mNumDofsPerNode;  /*!< number of degrees of freedom per node */
+    using ElementType::mNumNodesPerCell; /*!< number of nodes per cell/element */
+
+    using StateScalarType   = typename EvaluationType::StateScalarType;
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
+    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+
+    std::unordered_map<std::string,Plato::Scalar> mParameters;
+
+public:
+    DarkCurrent(Teuchos::ParameterList &aParamList)
+    {
+        if( !aParamList.isSublist("Dark Current") )
+        { ANALYZE_THROWERR("Parameter in Body Loads block is not valid. Expects a Parameter lists only."); }
+        Teuchos::ParameterList& tSublist = aParamList.sublist("Dark Current");
+
+        mParameters["a"]  = tSublist.get<Plato::Scalar>("a",0.);
+        mParameters["b"]  = tSublist.get<Plato::Scalar>("b",1.27e-6);
+        mParameters["c"]  = tSublist.get<Plato::Scalar>("c",25.94253);
+        mParameters["m1"] = tSublist.get<Plato::Scalar>("m1",0.38886);
+        mParameters["b1"] = tSublist.get<Plato::Scalar>("b1",0.);
+        mParameters["m2"] = tSublist.get<Plato::Scalar>("m2",30.);
+        mParameters["b2"] = tSublist.get<Plato::Scalar>("b2",6.520373);
+    }
+    ~DarkCurrent(){}
+
+    void
+    get(
+        const Plato::SpatialDomain                         & aSpatialDomain,
+        const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
+        const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
+        const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
+        const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
+              Plato::Scalar                                  aScale
+    ) const
+    {
+        auto tCubPoints  = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints  = tCubWeights.size();
+
+        // interpolate nodal values to integration points
+        Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
+
+        // parameters for dark current model
+        Plato::Scalar tCoefA  = mParameters.find("a");
+        Plato::Scalar tCoefB  = mParameters.find("b");
+        Plato::Scalar tCoefC  = mParameters.find("c");
+        Plato::Scalar tCoefM1 = mParameters.find("m1");
+        Plato::Scalar tCoefB1 = mParameters.find("b1");
+        Plato::Scalar tCoefM2 = mParameters.find("m2");
+        Plato::Scalar tCoefB2 = mParameters.find("b2");
+
+        // integrate and assemble
+        Plato::OrdinalType tNumCells = aSpatialDomain.numCells();
+        Kokkos::parallel_for("compute dark current", 
+          Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+          KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        {
+            auto tCubPoint = tCubPoints(iGpOrdinal);
+            auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal));
+
+            auto tBasisValues = ElementType::basisValues(tCubPoint);
+            ControlScalarType tErsatzDensity = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aControl);
+            StateScalarType tCellElectricPotential = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
+
+            auto tWeight = aScale * tCubWeights(iGpOrdinal) * tDetJ;
+            for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < ElementType::mNumNodesPerCell; tFieldOrdinal++)
+            {
+                // TODO: tFxnValue
+                //ResultScalarType tCellResult = tWeight * tFxnValue * tBasisValues(tFieldOrdinal); 
+                //Kokkos::atomic_add( &aResult(iCellOrdinal,tFieldOrdinal*mNumDofsPerNode),tCellResult );
+            }
+        });
+    }
+};
 
 namespace Elliptic
 {
@@ -233,6 +318,7 @@ public:
         {
             mPlottable = tResidualParams.get<Teuchos::Array<std::string>>("Plottable").toVector();
         }
+        this->parseBodyLoads();
     }
     ~ElectrostaticsResidual(){}
 
@@ -332,6 +418,16 @@ public:
         if( mSurfaceLoads != nullptr )
         {
             mSurfaceLoads->get(aSpatialModel,aState,aControl,aConfig,aResult,1.0);
+        }
+    }
+
+private:
+    void parseBodyLoads(Teuchos::ParameterList & aParamList)
+    {
+        if(aParamList.isSublist("Body Loads"))
+        {
+            mBodyLoads = 
+                std::make_shared<Plato::BodyLoads<EvaluationType, ElementType>>(aParamList.sublist("Body Loads"));
         }
     }
 };
