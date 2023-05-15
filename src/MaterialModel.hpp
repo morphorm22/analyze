@@ -3,6 +3,7 @@
 #include <Teuchos_ParameterList.hpp>
 #include "PlatoStaticsTypes.hpp"
 #include "PlatoUtilities.hpp"
+#include "ElementBase.hpp"
 #include "ParseTools.hpp"
 
 namespace Plato {
@@ -533,23 +534,28 @@ namespace Plato {
   /*!
     \brief Base class for material models
   */
-    template<int SpatialDim>
+    template<typename EvaluationType>
     class MaterialModel
   /******************************************************************************/
   {
-      std::map<std::string, Plato::Scalar>                         mScalarConstantsMap;
-      std::map<std::string, Plato::TensorConstant<SpatialDim>>     mTensorConstantsMap;
-      std::map<std::string, Plato::Rank4VoigtConstant<SpatialDim>> mRank4VoigtConstantsMap;
+    private:
+      // set local element type
+      using ElementType = typename EvaluationType::ElementType;
+      static constexpr Plato::OrdinalType mNumSpatialDims = ElementType::mNumSpatialDims;
 
-      std::map<std::string, Plato::ScalarFunctor>                 mScalarFunctorsMap;
-      std::map<std::string, Plato::TensorFunctor<SpatialDim>>     mTensorFunctorsMap;
-      std::map<std::string, Plato::Rank4VoigtFunctor<SpatialDim>> mRank4VoigtFunctorsMap;
+      std::map<std::string, Plato::Scalar>                              mScalarConstantsMap;
+      std::map<std::string, Plato::TensorConstant<mNumSpatialDims>>     mTensorConstantsMap;
+      std::map<std::string, Plato::Rank4VoigtConstant<mNumSpatialDims>> mRank4VoigtConstantsMap;
+
+      std::map<std::string, Plato::ScalarFunctor>                      mScalarFunctorsMap;
+      std::map<std::string, Plato::TensorFunctor<mNumSpatialDims>>     mTensorFunctorsMap;
+      std::map<std::string, Plato::Rank4VoigtFunctor<mNumSpatialDims>> mRank4VoigtFunctorsMap;
 
       Plato::MaterialModelType mType;
       std::string mExpression;
 
       bool mHasBasis;
-      Plato::Matrix<SpatialDim, SpatialDim> mCartesianBasis;
+      Plato::Matrix<mNumSpatialDims, mNumSpatialDims> mCartesianBasis;
 
     public:
 
@@ -597,6 +603,16 @@ namespace Plato {
           parseCartesianBasis(aParamList);
       }
 
+      Plato::OrdinalType getNumSpaceDims() const
+      { return mNumSpatialDims; }
+
+      Plato::OrdinalType getNumVoigtTerms() const
+      { return ElementType::mNumVoigtTerms; }
+
+      virtual void
+      computeMaterialTensor() const
+    { return; }
+
       void parseCartesianBasis(const Teuchos::ParameterList& aParamList)
       {
           if (aParamList.isSublist("Basis")) 
@@ -617,7 +633,7 @@ namespace Plato {
       // getters
       //
 
-      Plato::Matrix<SpatialDim, SpatialDim>
+      Plato::Matrix<mNumSpatialDims, mNumSpatialDims>
       getCartesianBasis() const { return mCartesianBasis; }
 
       bool hasCartesianBasis() const { return mHasBasis; }
@@ -641,11 +657,11 @@ namespace Plato {
         return tExist;
       }
 
-      Plato::TensorConstant<SpatialDim> getTensorConstant(std::string aConstantName)
+      Plato::TensorConstant<mNumSpatialDims> getTensorConstant(std::string aConstantName)
       { auto tLowerName = Plato::tolower(aConstantName); return mTensorConstantsMap[tLowerName]; }
 
       // Rank4Voigt constant
-      Plato::Rank4VoigtConstant<SpatialDim> getRank4VoigtConstant(std::string aConstantName)
+      Plato::Rank4VoigtConstant<mNumSpatialDims> getRank4VoigtConstant(std::string aConstantName)
       { auto tLowerName = Plato::tolower(aConstantName); return mRank4VoigtConstantsMap[tLowerName]; }
 
       // scalar functor
@@ -653,11 +669,11 @@ namespace Plato {
       { auto tLowerName = Plato::tolower(aFunctorName); return mScalarFunctorsMap[tLowerName]; }
 
       // tensor functor
-      Plato::TensorFunctor<SpatialDim> getTensorFunctor(std::string aFunctorName)
+      Plato::TensorFunctor<mNumSpatialDims> getTensorFunctor(std::string aFunctorName)
       { auto tLowerName = Plato::tolower(aFunctorName); return mTensorFunctorsMap[tLowerName]; }
 
       // Rank4Voigt functor
-      Plato::Rank4VoigtFunctor<SpatialDim> getRank4VoigtFunctor(std::string aFunctorName)
+      Plato::Rank4VoigtFunctor<mNumSpatialDims> getRank4VoigtFunctor(std::string aFunctorName)
       { auto tLowerName = Plato::tolower(aFunctorName); return mRank4VoigtFunctorsMap[tLowerName]; }
 
       // setters
@@ -668,11 +684,11 @@ namespace Plato {
       { auto tLowerName = Plato::tolower(aConstantName); mScalarConstantsMap[tLowerName] = aConstantValue; }
 
       // tensor constant
-      void setTensorConstant(std::string aConstantName, Plato::TensorConstant<SpatialDim> aConstantValue)
+      void setTensorConstant(std::string aConstantName, Plato::TensorConstant<mNumSpatialDims> aConstantValue)
       { auto tLowerName = Plato::tolower(aConstantName); mTensorConstantsMap[tLowerName] = aConstantValue; }
 
       // Rank4Voigt constant
-      void setRank4VoigtConstant(std::string aConstantName, Plato::Rank4VoigtConstant<SpatialDim> aConstantValue)
+      void setRank4VoigtConstant(std::string aConstantName, Plato::Rank4VoigtConstant<mNumSpatialDims> aConstantValue)
       { auto tLowerName = Plato::tolower(aConstantName); mRank4VoigtConstantsMap[tLowerName] = aConstantValue; }
 
       // scalar functor
@@ -680,11 +696,11 @@ namespace Plato {
       { auto tLowerName = Plato::tolower(aFunctorName); mScalarFunctorsMap[tLowerName] = aFunctorValue; }
 
       // tensor functor
-      void setTensorFunctor(std::string aFunctorName, Plato::TensorFunctor<SpatialDim> aFunctorValue)
+      void setTensorFunctor(std::string aFunctorName, Plato::TensorFunctor<mNumSpatialDims> aFunctorValue)
       { auto tLowerName = Plato::tolower(aFunctorName); mTensorFunctorsMap[tLowerName] = aFunctorValue; }
 
       // Rank4Voigt functor
-      void setRank4VoigtFunctor(std::string aFunctorName, Plato::Rank4VoigtFunctor<SpatialDim> aFunctorValue)
+      void setRank4VoigtFunctor(std::string aFunctorName, Plato::Rank4VoigtFunctor<mNumSpatialDims> aFunctorValue)
       { auto tLowerName = Plato::tolower(aFunctorName); mRank4VoigtFunctorsMap[tLowerName] = aFunctorValue; }
 
 
@@ -784,11 +800,11 @@ namespace Plato {
             auto tValue= aParamList.get<Plato::Scalar>(aName);
             if (this->mType == Plato::MaterialModelType::Nonlinear)
             {
-                this->setTensorFunctor(aName, Plato::TensorFunctor<SpatialDim>(tValue));
+                this->setTensorFunctor(aName, Plato::TensorFunctor<mNumSpatialDims>(tValue));
             }
             else
             {
-                this->setTensorConstant(aName, Plato::TensorConstant<SpatialDim>(tValue));
+                this->setTensorConstant(aName, Plato::TensorConstant<mNumSpatialDims>(tValue));
             }
           }
           else
@@ -797,11 +813,11 @@ namespace Plato {
             auto tList = aParamList.sublist(aName);
             if (this->mType == Plato::MaterialModelType::Nonlinear)
             {
-                this->setTensorFunctor(aName, Plato::TensorFunctor<SpatialDim>(tList));
+                this->setTensorFunctor(aName, Plato::TensorFunctor<mNumSpatialDims>(tList));
             }
             else
             {
-                this->setTensorConstant(aName, Plato::TensorConstant<SpatialDim>(tList));
+                this->setTensorConstant(aName, Plato::TensorConstant<mNumSpatialDims>(tList));
             }
           }
           else
@@ -826,11 +842,11 @@ namespace Plato {
               auto tList = aParamList.sublist(aName);
               if (this->mType == Plato::MaterialModelType::Linear)
               {
-                  this->setRank4VoigtConstant(aName, Plato::Rank4VoigtConstant<SpatialDim>(tList));
+                  this->setRank4VoigtConstant(aName, Plato::Rank4VoigtConstant<mNumSpatialDims>(tList));
               }
               else
               {
-                  this->setRank4VoigtFunctor(aName, Plato::Rank4VoigtFunctor<SpatialDim>(tList));
+                  this->setRank4VoigtFunctor(aName, Plato::Rank4VoigtFunctor<mNumSpatialDims>(tList));
               }
           }
           else

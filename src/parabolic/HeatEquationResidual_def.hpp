@@ -36,12 +36,12 @@ namespace Parabolic
         mDofDotNames.push_back("temperature rate");
 
         {
-            Plato::ThermalConductionModelFactory<mNumSpatialDims> mmfactory(problemParams);
+            Plato::ThermalConductionModelFactory<EvaluationType> mmfactory(problemParams);
             mThermalConductivityMaterialModel = mmfactory.create(aSpatialDomain.getMaterialName());
         }
 
         {
-            Plato::ThermalMassModelFactory<mNumSpatialDims> mmfactory(problemParams);
+            Plato::ThermalMassModelFactory<EvaluationType> mmfactory(problemParams);
             mThermalMassMaterialModel = mmfactory.create(aSpatialDomain.getMaterialName());
         }
 
@@ -81,13 +81,13 @@ namespace Parabolic
 
       Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
       Plato::ScalarGrad<ElementType>            tScalarGrad;
-      Plato::ThermalFlux<ElementType>           tThermalFlux(mThermalConductivityMaterialModel);
+      Plato::ThermalFlux<EvaluationType>        tThermalFlux(mThermalConductivityMaterialModel);
       Plato::GeneralFluxDivergence<ElementType> tFluxDivergence;
       Plato::ProjectToNode<ElementType>         tProjectThermalEnergyRate;
 
       Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode> tInterpolateFromNodal;
 
-      Plato::ThermalContent<mNumSpatialDims> tThermalContent(mThermalMassMaterialModel);
+      Plato::ThermalContent<EvaluationType> tThermalContent(mThermalMassMaterialModel);
       
       auto tCubPoints = ElementType::getCubPoints();
       auto tCubWeights = ElementType::getCubWeights();

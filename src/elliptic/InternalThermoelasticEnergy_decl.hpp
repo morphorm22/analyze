@@ -47,7 +47,7 @@ class InternalThermoelasticEnergy :
     Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms,  IndicatorFunctionType> mApplyStressWeighting;
     Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyFluxWeighting;
 
-    Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mMaterialModel;
+    Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
   public:
     /**************************************************************************/

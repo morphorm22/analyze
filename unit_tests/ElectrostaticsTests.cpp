@@ -33,12 +33,16 @@ namespace Plato
 /*!
  \brief Base class for linear electric conductivity material model
  */
-template<Plato::OrdinalType SpatialDim>
-class MaterialElectricConductivity : public MaterialModel<SpatialDim>
+template<typename EvaluationType>
+class MaterialElectricConductivity : public MaterialModel<EvaluationType>
 /******************************************************************************/
 {
 private:
+    using ElementType = typename EvaluationType::ElementType; // set local element type
+    using ElementType::mNumSpatialDims;  /*!< spatial dimensions */
+
     std::string mName = "";
+    
 public:
     MaterialElectricConductivity(
         const std::string            & aMaterialName,
@@ -48,7 +52,7 @@ public:
     {
         this->parseScalar("Electric Conductivity", aParamList);   
         auto tElectricConductivity = this->getScalarConstant("Electric Conductivity");
-        this->setTensorConstant("material tensor",Plato::TensorConstant<SpatialDim>(tElectricConductivity));
+        this->setTensorConstant("material tensor",Plato::TensorConstant<mNumSpatialDims>(tElectricConductivity));
     }
     ~MaterialElectricConductivity(){}
 };
@@ -57,11 +61,14 @@ public:
 /*!
  \brief Base class for linear electric conductivity material model
  */
-template<Plato::OrdinalType  SpatialDim>
-class MaterialElectricConductivityTwoPhaseAlloy : public MaterialModel<SpatialDim>
+template<typename EvaluationType>
+class MaterialElectricConductivityTwoPhaseAlloy : public MaterialModel<EvaluationType>
 /******************************************************************************/
 {
 private:
+    using ElementType = typename EvaluationType::ElementType; // set local element type
+    using ElementType::mNumSpatialDims;  /*!< spatial dimensions */
+
     std::string mMaterialName = "";
     Plato::OrdinalType mNumMaterials = 0;
     std::vector<Plato::Scalar> mConductivities;
@@ -108,7 +115,7 @@ private:
         for(const auto& tConductivity : mConductivities){
             Plato::OrdinalType tIndex = &tConductivity - &mConductivities[0];
             auto tName = std::string("material tensor ") + std::to_string(tIndex);
-            this->setTensorConstant(tName,Plato::TensorConstant<SpatialDim>(tConductivity));
+            this->setTensorConstant(tName,Plato::TensorConstant<mNumSpatialDims>(tConductivity));
         }
     }
 
@@ -119,12 +126,16 @@ private:
 /*!
  \brief Base class for linear dielectric material model
  */
-template<Plato::OrdinalType  SpatialDim>
-class MaterialDielectric : public MaterialModel<SpatialDim>
+template<typename EvaluationType>
+class MaterialDielectric : public MaterialModel<EvaluationType>
 /******************************************************************************/
 {
 private:
+    using ElementType = typename EvaluationType::ElementType; // set local element type
+    using ElementType::mNumSpatialDims;  /*!< spatial dimensions */
+    
     std::string mName = "";
+
 public:
     MaterialDielectric(
         const std::string            & aModelName, 
@@ -137,7 +148,7 @@ public:
         auto tElectricConstant = this->getScalarConstant("Electric Constant");
         auto tRelativeStaticPermittivity = this->getScalarConstant("Relative Static Permittivity");
         auto tValue = tElectricConstant * tRelativeStaticPermittivity;
-        this->setTensorConstant("material tensor",Plato::TensorConstant<SpatialDim>(tValue));
+        this->setTensorConstant("material tensor",Plato::TensorConstant<mNumSpatialDims>(tValue));
     }
     ~MaterialDielectric(){}
 };
@@ -146,7 +157,7 @@ public:
 /*!
  \brief Factory for creating electric material models
  */
-template<Plato::OrdinalType  SpatialDim>
+template<typename EvaluationType>
 class FactoryElectricMaterial
 /******************************************************************************/
 {
@@ -158,7 +169,7 @@ public:
     {
     }
 
-    std::shared_ptr<MaterialModel<SpatialDim>> create(std::string aModelName)
+    std::shared_ptr<MaterialModel<EvaluationType>> create(std::string aModelName)
     {
         if (!mParamList.isSublist("Material Models"))
         {
@@ -177,14 +188,14 @@ public:
             auto tModelParamList = tModelsParamList.sublist(aModelName);
             if(tModelParamList.isSublist("Electric Conductivity"))
             {
-                auto tMaterial = std::make_shared<Plato::MaterialElectricConductivity<SpatialDim>>
+                auto tMaterial = std::make_shared<Plato::MaterialElectricConductivity<EvaluationType>>
                                  (aModelName, tModelParamList.sublist("Electric Conductivity"));
                 return tMaterial;
             }
             else 
             if(tModelParamList.isSublist("Dielectric"))
             {
-                auto tMaterial = std::make_shared<Plato::MaterialDielectric<SpatialDim>>
+                auto tMaterial = std::make_shared<Plato::MaterialDielectric<EvaluationType>>
                                 (aModelName, tModelParamList.sublist("Dielectric"));
                 return tMaterial;
             }
@@ -380,7 +391,7 @@ private:
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
-    std::shared_ptr<Plato::MaterialModel<mNumSpatialDims>> mMaterialModel;
+    std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
     std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>>   mBodyLoads;
     std::shared_ptr<Plato::NaturalBCs<ElementType, mNumDofsPerNode>> mSurfaceLoads;
@@ -397,7 +408,7 @@ public:
         // obligatory: define dof names in order
         mDofNames.push_back("electric_potential");
         // create material constitutive model
-        Plato::FactoryElectricMaterial<mNumSpatialDims> tMaterialFactory(aProblemParams);
+        Plato::FactoryElectricMaterial<EvaluationType> tMaterialFactory(aProblemParams);
         mMaterialModel = tMaterialFactory.create(aSpatialDomain.getMaterialName());
         // TODO: create body loads
         // TODO: create surface loads

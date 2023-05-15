@@ -29,7 +29,7 @@ namespace Elliptic
         mApplyWeighting(mIndicatorFunction)
     /**************************************************************************/
     {
-      Plato::ThermalConductionModelFactory<mNumSpatialDims> mmfactory(aProblemParams);
+      Plato::ThermalConductionModelFactory<EvaluationType> mmfactory(aProblemParams);
       mMaterialModel = mmfactory.create(mSpatialDomain.getMaterialName());
 
       auto params = aProblemParams.sublist("Criteria").get<Teuchos::ParameterList>(aFunctionName);
@@ -54,7 +54,7 @@ namespace Elliptic
 
       Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
       Plato::ScalarGrad<ElementType>            tScalarGrad;
-      Plato::ThermalFlux<ElementType>           thermalFlux(mMaterialModel);
+      Plato::ThermalFlux<EvaluationType>        thermalFlux(mMaterialModel);
       Plato::VectorPNorm<mNumSpatialDims>       tVectorPNorm;
 
       Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode> tInterpolateFromNodal;

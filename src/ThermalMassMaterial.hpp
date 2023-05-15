@@ -10,8 +10,8 @@ namespace Plato {
   /*!
     \brief Base class for ThermalMass material models
   */
-    template<int SpatialDim>
-    class ThermalMassMaterial : public MaterialModel<SpatialDim>
+    template<typename EvaluationType>
+    class ThermalMassMaterial : public MaterialModel<EvaluationType>
   /******************************************************************************/
   {
   
@@ -20,9 +20,10 @@ namespace Plato {
   };
 
   /******************************************************************************/
-  template<int SpatialDim>
-  ThermalMassMaterial<SpatialDim>::
-  ThermalMassMaterial(const Teuchos::ParameterList& paramList) : MaterialModel<SpatialDim>(paramList)
+  template<typename EvaluationType>
+  ThermalMassMaterial<EvaluationType>::
+  ThermalMassMaterial(const Teuchos::ParameterList& paramList) : 
+    MaterialModel<EvaluationType>(paramList)
   /******************************************************************************/
   {
       this->parseScalar("Mass Density", paramList);
@@ -33,27 +34,27 @@ namespace Plato {
   /*!
     \brief Factory for creating material models
   */
-    template<int SpatialDim>
+    template<typename EvaluationType>
     class ThermalMassModelFactory
   /******************************************************************************/
   {
     public:
       ThermalMassModelFactory(const Teuchos::ParameterList& paramList) : mParamList(paramList) {}
-      Teuchos::RCP<Plato::MaterialModel<SpatialDim>> create(std::string aModelName);
+      Teuchos::RCP<Plato::MaterialModel<EvaluationType>> create(std::string aModelName);
     private:
       const Teuchos::ParameterList& mParamList;
   };
 
   /******************************************************************************/
-  template<int SpatialDim>
-  Teuchos::RCP<MaterialModel<SpatialDim>>
-  ThermalMassModelFactory<SpatialDim>::create(std::string aModelName)
+  template<typename EvaluationType>
+  Teuchos::RCP<MaterialModel<EvaluationType>>
+  ThermalMassModelFactory<EvaluationType>::create(std::string aModelName)
   /******************************************************************************/
   {
       if (!mParamList.isSublist("Material Models"))
       {
           REPORT("'Material Models' list not found! Returning 'nullptr'");
-          return Teuchos::RCP<Plato::MaterialModel<SpatialDim>>(nullptr);
+          return Teuchos::RCP<Plato::MaterialModel<EvaluationType>>(nullptr);
       }
       else
       {
@@ -70,7 +71,8 @@ namespace Plato {
 
           if( tModelParamList.isSublist("Thermal Mass") )
           {
-              return Teuchos::rcp(new Plato::ThermalMassMaterial<SpatialDim>(tModelParamList.sublist("Thermal Mass")));
+              return Teuchos::rcp(new Plato::ThermalMassMaterial<EvaluationType>
+                     (tModelParamList.sublist("Thermal Mass")));
           }
           else
           {

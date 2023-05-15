@@ -10,11 +10,14 @@ namespace Plato {
   /*!
     \brief Base class for Thermoelastic material models
   */
-    template<int SpatialDim>
-    class ThermoelasticMaterial : public MaterialModel<SpatialDim>
+    template<typename EvaluationType>
+    class ThermoelasticMaterial : public MaterialModel<EvaluationType>
   /******************************************************************************/
   {
-  
+    private:
+      using ElementType = typename EvaluationType::ElementType; // set local element type
+      static constexpr int SpatialDim = ElementType::mNumSpatialDims;
+    
     public:
       ThermoelasticMaterial(const Teuchos::ParameterList& paramList);
 
@@ -23,9 +26,10 @@ namespace Plato {
   };
 
   /******************************************************************************/
-  template<int SpatialDim>
-  ThermoelasticMaterial<SpatialDim>::
-  ThermoelasticMaterial(const Teuchos::ParameterList& paramList) : MaterialModel<SpatialDim>(paramList)
+  template<typename EvaluationType>
+  ThermoelasticMaterial<EvaluationType>::
+  ThermoelasticMaterial(const Teuchos::ParameterList& paramList) : 
+    MaterialModel<EvaluationType>(paramList)
   /******************************************************************************/
   {
       this->parseElasticStiffness(paramList);
@@ -37,8 +41,8 @@ namespace Plato {
   }
 
   /******************************************************************************/
-  template<int SpatialDim>
-  void ThermoelasticMaterial<SpatialDim>::
+  template<typename EvaluationType>
+  void ThermoelasticMaterial<EvaluationType>::
   parseElasticStiffness(const Teuchos::ParameterList& aParamList)
   /******************************************************************************/
   {
@@ -47,12 +51,14 @@ namespace Plato {
           auto tParams = aParamList.sublist("Elastic Stiffness");
           if (tParams.isSublist("Youngs Modulus"))
           {
-              this->setRank4VoigtFunctor("Elastic Stiffness", Plato::IsotropicStiffnessFunctor<SpatialDim>(tParams));
+              this->setRank4VoigtFunctor(
+                "Elastic Stiffness", Plato::IsotropicStiffnessFunctor<SpatialDim>(tParams));
           }
           else
           if (tParams.isType<Plato::Scalar>("Youngs Modulus"))
           {
-              this->setRank4VoigtConstant("Elastic Stiffness", Plato::IsotropicStiffnessConstant<SpatialDim>(tParams));
+              this->setRank4VoigtConstant(
+                "Elastic Stiffness", Plato::IsotropicStiffnessConstant<SpatialDim>(tParams));
           }
           else
           {
@@ -65,27 +71,31 @@ namespace Plato {
   /*!
     \brief Factory for creating material models
   */
-    template<int SpatialDim>
+    template<typename EvaluationType>
     class ThermoelasticModelFactory
   /******************************************************************************/
   {
+    private:
+      using ElementType = typename EvaluationType::ElementType; // set local element type
+      static constexpr int SpatialDim = ElementType::mNumSpatialDims;
+
     public:
       ThermoelasticModelFactory(const Teuchos::ParameterList& paramList) : mParamList(paramList) {}
-      Teuchos::RCP<Plato::MaterialModel<SpatialDim>> create(std::string aModelName);
+      Teuchos::RCP<Plato::MaterialModel<EvaluationType>> create(std::string aModelName);
     private:
       const Teuchos::ParameterList& mParamList;
   };
 
   /******************************************************************************/
-  template<int SpatialDim>
-  Teuchos::RCP<MaterialModel<SpatialDim>>
-  ThermoelasticModelFactory<SpatialDim>::create(std::string aModelName)
+  template<typename EvaluationType>
+  Teuchos::RCP<MaterialModel<EvaluationType>>
+  ThermoelasticModelFactory<EvaluationType>::create(std::string aModelName)
   /******************************************************************************/
   {
       if (!mParamList.isSublist("Material Models"))
       {
           REPORT("'Material Models' list not found! Returning 'nullptr'");
-          return Teuchos::RCP<Plato::MaterialModel<SpatialDim>>(nullptr);
+          return Teuchos::RCP<Plato::MaterialModel<EvaluationType>>(nullptr);
       }
       else
       {
@@ -102,7 +112,8 @@ namespace Plato {
 
           if( tModelParamList.isSublist("Thermoelastic") )
           {
-            return Teuchos::rcp(new Plato::ThermoelasticMaterial<SpatialDim>(tModelParamList.sublist("Thermoelastic")));
+            return Teuchos::rcp(new Plato::ThermoelasticMaterial<EvaluationType>(
+                                tModelParamList.sublist("Thermoelastic")));
           }
           else
           ANALYZE_THROWERR("Expected 'Thermoelastic' ParameterList");

@@ -40,7 +40,7 @@ class InternalThermalEnergy :
     IndicatorFunctionType mIndicatorFunction; /*!< penalty function */
     Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyWeighting; /*!< applies penalty function */
     
-    Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mMaterialModel;
+    Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
   public:
     /******************************************************************************//**

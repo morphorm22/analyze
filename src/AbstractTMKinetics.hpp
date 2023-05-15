@@ -37,13 +37,13 @@ public:
      * \param [in] aMaterialModel material model
     **********************************************************************************/
     AbstractTMKinetics(
-        Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> const   aMaterialModel,
+        Teuchos::RCP<Plato::MaterialModel<EvaluationType>> const    aMaterialModel,
         Plato::SpatialDomain                                const & aSpatialDomain,
         Plato::DataMap                                      const & aDataMap
     )
     {
         UniformMaterialBasisFactory tUniformFactory;
-        mUniformMaterialBasis = tUniformFactory.create(aMaterialModel, aSpatialDomain);
+        mUniformMaterialBasis = tUniformFactory.create<mNumSpatialDims>(aMaterialModel, aSpatialDomain);
 
         VaryingMaterialBasisFactory tVaryingFactory;
         mVaryingMaterialBasis = tVaryingFactory.create<mNumSpatialDims>(aDataMap, aSpatialDomain);

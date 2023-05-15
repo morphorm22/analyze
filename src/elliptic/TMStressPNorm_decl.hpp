@@ -43,7 +43,7 @@ class TMStressPNorm :
     IndicatorFunctionType mIndicatorFunction;
     Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, IndicatorFunctionType> mApplyStressWeighting;
 
-    Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mMaterialModel;
+    Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
     Teuchos::RCP<TensorNormBase<mNumVoigtTerms, EvaluationType>> mNorm;
 

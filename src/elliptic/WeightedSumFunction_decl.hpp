@@ -81,6 +81,12 @@ public:
     void appendFunctionWeight(Plato::Scalar aWeight);
 
     /******************************************************************************//**
+     * \brief Add function name to list of function names
+     * \param [in] aName function weight
+    **********************************************************************************/
+    void appendFunctionName(const std::string & aName);
+
+    /******************************************************************************//**
      * \brief Allocate scalar function base using the residual automatic differentiation type
      * \param [in] aInput scalar function
     **********************************************************************************/

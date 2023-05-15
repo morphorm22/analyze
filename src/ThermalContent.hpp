@@ -13,10 +13,11 @@ namespace Plato
     given a temperature value, compute the thermal content
 */
 /******************************************************************************/
-template<int SpatialDim>
+template<typename EvaluationType>
 class ThermalContent
 {
   private:
+
     Plato::MaterialModelType mModelType;
 
     // in case functor is nonlinear
@@ -28,7 +29,7 @@ class ThermalContent
     Plato::Scalar mSpecificHeat;
 
   public:
-    ThermalContent(const Teuchos::RCP<Plato::MaterialModel<SpatialDim>> aMaterialModel)
+    ThermalContent(const Teuchos::RCP<Plato::MaterialModel<EvaluationType>> aMaterialModel)
     {
         mModelType = aMaterialModel->type();
         if (mModelType == Plato::MaterialModelType::Nonlinear)

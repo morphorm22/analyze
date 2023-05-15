@@ -30,7 +30,7 @@ private:
     using ControlT = typename EvaluationType::ControlScalarType;
     using ResultT  = typename EvaluationType::ResultScalarType;
 
-    Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mMaterialModel;
+    Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
     static constexpr Plato::OrdinalType TDofOffset = mNumSpatialDims;
 

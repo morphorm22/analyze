@@ -15,12 +15,5 @@ PLATO_ELEMENT_DEF(Plato::Elliptic::ScalarFunctionBaseFactory, Plato::Mechanics)
 PLATO_ELEMENT_DEF(Plato::Elliptic::ScalarFunctionBaseFactory, Plato::Thermomechanics)
 PLATO_ELEMENT_DEF(Plato::Elliptic::ScalarFunctionBaseFactory, Plato::Electromechanics)
 
-#ifdef PLATO_STABILIZED
-  #include "stabilized/Mechanics.hpp"
-  #include "stabilized/Thermomechanics.hpp"
-  PLATO_ELEMENT_DEF(Plato::Elliptic::ScalarFunctionBaseFactory, Plato::Stabilized::Mechanics)
-  PLATO_ELEMENT_DEF(Plato::Elliptic::ScalarFunctionBaseFactory, Plato::Stabilized::Thermomechanics)
-#endif
-
 
 #endif

@@ -41,7 +41,7 @@ public:
      * \param [in] aMaterialModel material model
     **********************************************************************************/
     LinearTMKinetics(
-      const Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>>   aMaterialModel,
+      const Teuchos::RCP<Plato::MaterialModel<EvaluationType>>  & aMaterialModel,
       const Plato::SpatialDomain                                & aSpatialDomain,
       const Plato::DataMap                                      & aDataMap
     ) :

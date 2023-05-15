@@ -251,6 +251,7 @@ namespace Elliptic
       auto tNumCells = mSpatialDomain.numCells();
 
       auto tMassDensity = mMassDensity;
+      auto tTotalStructuralMass = mTotalStructuralMass;
 
       auto tCubPoints = ElementType::getCubPoints();
       auto tCubWeights = ElementType::getCubWeights();
@@ -270,7 +271,7 @@ namespace Elliptic
         auto tBasisValues = ElementType::basisValues(tCubPoint);
         auto tCellMass = Plato::cell_mass<mNumNodesPerCell>(iCellOrdinal, tBasisValues, aControl);
 
-        ResultScalarType tNormalizedCellMass = (tCellMass / mTotalStructuralMass) * tMassDensity * tVolume;
+        ResultScalarType tNormalizedCellMass = (tCellMass / tTotalStructuralMass) * tMassDensity * tVolume;
         Kokkos::atomic_add(&aResult(iCellOrdinal), tNormalizedCellMass);
 
       });

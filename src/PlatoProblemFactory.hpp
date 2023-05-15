@@ -55,18 +55,10 @@
   #endif
 #endif
 
-#ifdef PLATO_STABILIZED
-#include "stabilized/Problem.hpp"
-#include "stabilized/Mechanics.hpp"
-#include "stabilized/Thermomechanics.hpp"
-#endif
-
 #ifdef PLATO_HELMHOLTZ
 #include "helmholtz/Helmholtz.hpp"
 #include "helmholtz/Problem.hpp"
 #endif
-
-//#include "StructuralDynamicsProblem.hpp"
 
 namespace Plato
 {
@@ -254,35 +246,6 @@ create_thermoplasticity_problem
  // function create_thermoplasticity_problem
 
 /******************************************************************************//**
-* \brief Create a abstract problem of type stabilized mechanical.
-* \param [in] aMesh      mesh metadata
-* \param [in] aPlatoProb input xml metadata
-* \param [in] aMachine   mpi communicator interface
-* \returns shared pointer to abstract problem of type stabilized mechanical
-**********************************************************************************/
-inline
-std::shared_ptr<Plato::AbstractProblem>
-create_stabilized_mechanical_problem
-(Plato::Mesh              aMesh,
- Teuchos::ParameterList & aPlatoProb,
- Comm::Machine            aMachine)
- {
-     auto tLowerPDE = Plato::is_pde_constraint_supported(aPlatoProb);
-#ifdef PLATO_ELLIPTIC
-#ifdef PLATO_STABILIZED
-    if(tLowerPDE == "elliptic")
-    {
-        return makeProblem<Plato::Stabilized::Problem, Plato::Stabilized::Mechanics>(aMesh, aPlatoProb, aMachine);
-    }
-#endif
-#endif
-    {
-        ANALYZE_THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
-    }
-}
- // function create_stabilized_mechanical_problem
-
-/******************************************************************************//**
 * \brief Create a abstract problem of type thermal.
 * \param [in] aMesh      mesh metadata
 * \param [in] aPlatoProb input xml metadata
@@ -343,36 +306,6 @@ create_electromechanical_problem
     }
  }
  // function create_electromechanical_problem
-
-/******************************************************************************//**
-* \brief Create a abstract problem of type stabilized thermomechanical.
-* \param [in] aMesh      mesh metadata
-* \param [in] aPlatoProb input xml metadata
-* \param [in] aMachine   mpi communicator interface
-* \returns shared pointer to abstract problem of type stabilized thermomechanical
-**********************************************************************************/
-inline
-std::shared_ptr<Plato::AbstractProblem>
-create_stabilized_thermomechanical_problem
-(Plato::Mesh              aMesh,
- Teuchos::ParameterList & aPlatoProb,
- Comm::Machine            aMachine)
- {
-    auto tLowerPDE = Plato::is_pde_constraint_supported(aPlatoProb);
-
-#ifdef PLATO_ELLIPTIC
-#ifdef PLATO_STABILIZED
-    if(tLowerPDE == "elliptic")
-    {
-        return makeProblem<Plato::Stabilized::Problem, Plato::Stabilized::Thermomechanics>(aMesh, aPlatoProb, aMachine);
-    }
-#endif
-#endif
-    {
-        ANALYZE_THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
-    }
- }
- // function create_stabilized_thermomechanical_problem
 
 /******************************************************************************//**
 * \brief Create a abstract problem of type thermomechanical.
@@ -505,10 +438,6 @@ public:
         {
             return ( Plato::create_thermoplasticity_problem(aMesh, tInputData, aMachine) );
         }
-        if(tLowerPhysics == "stabilized mechanical")
-        {
-            return ( Plato::create_stabilized_mechanical_problem(aMesh, tInputData, aMachine) );
-        }
         if(tLowerPhysics == "thermal")
         {
             return ( Plato::create_thermal_problem(aMesh, tInputData, aMachine) );
@@ -516,10 +445,6 @@ public:
         if(tLowerPhysics == "electromechanical")
         {
             return ( Plato::create_electromechanical_problem(aMesh, tInputData, aMachine) );
-        }
-        if(tLowerPhysics == "stabilized thermomechanical")
-        {
-            return ( Plato::create_stabilized_thermomechanical_problem(aMesh, tInputData, aMachine) );
         }
         if(tLowerPhysics == "thermomechanical")
         {

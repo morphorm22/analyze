@@ -44,7 +44,7 @@ namespace Elliptic
 
         // create material model and get stiffness
         //
-        Plato::ThermoelasticModelFactory<mNumSpatialDims> mmfactory(aProblemParams);
+        Plato::ThermoelasticModelFactory<EvaluationType> mmfactory(aProblemParams);
         mMaterialModel = mmfactory.create(aSpatialDomain.getMaterialName());
 
         // parse body loads

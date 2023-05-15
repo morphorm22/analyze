@@ -54,12 +54,12 @@ namespace Parabolic
         mDofDotNames.push_back("temperature rate");
 
         {
-            Plato::ThermoelasticModelFactory<mNumSpatialDims> mmfactory(aProblemParams);
+            Plato::ThermoelasticModelFactory<EvaluationType> mmfactory(aProblemParams);
             mMaterialModel = mmfactory.create(aSpatialDomain.getMaterialName());
         }
 
         {
-            Plato::ThermalMassModelFactory<mNumSpatialDims> mmfactory(aProblemParams);
+            Plato::ThermalMassModelFactory<EvaluationType> mmfactory(aProblemParams);
             mThermalMassMaterialModel = mmfactory.create(aSpatialDomain.getMaterialName());
         }
 
@@ -132,7 +132,7 @@ namespace Parabolic
       Plato::GeneralFluxDivergence  <ElementType, mNumDofsPerNode, TDofOffset> tFluxDivergence;
       Plato::GeneralStressDivergence<ElementType, mNumDofsPerNode, MDofOffset> tStressDivergence;
 
-      Plato::ThermalContent<mNumSpatialDims> tComputeHeatRate(mThermalMassMaterialModel);
+      Plato::ThermalContent<EvaluationType> tComputeHeatRate(mThermalMassMaterialModel);
 
       Plato::ProjectToNode<ElementType, mNumDofsPerNode, TDofOffset> tProjectHeatRate;
 

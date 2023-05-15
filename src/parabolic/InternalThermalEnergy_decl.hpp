@@ -44,7 +44,7 @@ class InternalThermalEnergy :
     IndicatorFunctionType mIndicatorFunction;
     ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyWeighting;
 
-    Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mThermalConductivityMaterialModel;
+    Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mThermalConductivityMaterialModel;
 
   public:
     /**************************************************************************/

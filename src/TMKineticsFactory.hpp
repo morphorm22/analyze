@@ -27,9 +27,9 @@ public:
     * \return Teuchos reference counter pointer to the linear stress functor
     **********************************************************************************/
     Teuchos::RCP<Plato::AbstractTMKinetics<EvaluationType, ElementType> > create(
-        const Teuchos::RCP<Plato::MaterialModel<ElementType::mNumSpatialDims>>   aMaterialModel,
-        const Plato::SpatialDomain                                             & aSpatialDomain,
-        const Plato::DataMap                                                   & aDataMap
+        const Teuchos::RCP<Plato::MaterialModel<EvaluationType>> & aMaterialModel,
+        const Plato::SpatialDomain                               & aSpatialDomain,
+        const Plato::DataMap                                     & aDataMap
     )
     {
         Plato::MaterialModelType tModelType = aMaterialModel->type();

@@ -9,7 +9,10 @@
 #include <Teuchos_UnitTestHarness.hpp>
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
+#include "Tri3.hpp"
 #include "MaterialModel.hpp"
+#include "MechanicsElement.hpp"
+#include "elliptic/EvaluationTypes.hpp"
 
 namespace PlatoUnitTests
 {
@@ -893,6 +896,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_IsotropicStiffnessCo
 /******************************************************************************/
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_MaterialModel)
 {
+    using Residual = typename Plato::Elliptic::Evaluation<Plato::MechanicsElement<Plato::Tri3>>::Residual;
     // create new with empty parameter list.  type() should return Linear.
     //
     {
@@ -901,7 +905,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_MaterialModel)
                 "<ParameterList name='Material Model'> \n"
                 "</ParameterList>                      \n"
             );
-        Plato::MaterialModel<3> tModel(*tParams);
+        Plato::MaterialModel<Residual> tModel(*tParams);
         TEST_ASSERT(tModel.type() == Plato::MaterialModelType::Linear);
     }
 
@@ -915,7 +919,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_MaterialModel)
                 "  <Parameter name='Temperature Dependent' type='bool' value='true'/> \n"
                 "</ParameterList>                                                     \n"
             );
-        Plato::MaterialModel<3> tModel(*tParams);
+        Plato::MaterialModel<Residual> tModel(*tParams);
         TEST_ASSERT(tModel.type() == Plato::MaterialModelType::Nonlinear);
     }
 
@@ -930,7 +934,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_MaterialModel)
                 "  <Parameter name='Some Scalar' type='double' value='1.234'/>        \n"
                 "</ParameterList>                                                     \n"
             );
-        Plato::MaterialModel<3> tModel(*tParams);
+        Plato::MaterialModel<Residual> tModel(*tParams);
         tModel.parseScalar("Some Scalar", *tParams);
         auto tFunctor = tModel.getScalarFunctor("Some Scalar");
         Plato::ScalarVector tResult("result", 1);
@@ -955,7 +959,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_MaterialModel)
                 "  <Parameter name='Some Scalar' type='double' value='1.234'/> \n"
                 "</ParameterList>                                              \n"
             );
-        Plato::MaterialModel<3> tModel(*tParams);
+        Plato::MaterialModel<Residual> tModel(*tParams);
         tModel.parseScalar("Some Scalar", *tParams);
         auto tConstant = tModel.getScalarConstant("Some Scalar");
         Plato::ScalarVector tResult("result", 1);
@@ -995,12 +999,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_MaterialModel)
                 "  <ParameterList name='Rank4Voigt Constant'>                        \n"
                 "    <Parameter name='c11' type='double' value='100.0'/>             \n"
                 "    <Parameter name='c12' type='double' value='80.0'/>              \n"
-                "    <Parameter name='c13' type='double' value='80.0'/>              \n"
-                "    <Parameter name='c44' type='double' value='90.0'/>              \n"
+                "    <Parameter name='c33' type='double' value='90.0'/>              \n"
                 "  </ParameterList>                                                  \n"
                 "</ParameterList>                                                    \n"
             );
-        Plato::MaterialModel<3> tLinearModel(*tParams);
+        Plato::MaterialModel<Residual> tLinearModel(*tParams);
         tLinearModel.parseScalarConstant("Some Scalar", *tParams, -1.234);
         tLinearModel.parseScalarConstant("Defined Scalar", *tParams);
         tLinearModel.parseTensor("Tensor Constant 1", *tParams);
@@ -1018,13 +1021,15 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_MaterialModel)
         Plato::ScalarArray3D tTensorResult("result", 3, 3, 3);
         Plato::ScalarArray3D tRank4VoigtResult("result", 3, 6, 6);
 
+        auto tNumSpaceDims = tLinearModel.getNumSpaceDims();
+        auto tNumVoigtTerms = tLinearModel.getNumVoigtTerms();
         Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             tScalarResult(0) = tDefaultConstant;
             tScalarResult(1) = tDefinedConstant;
 
-            for (int i=0; i<3; i++)
-                for (int j=0; j<3; j++)
+            for (int i=0; i<tNumSpaceDims; i++)
+                for (int j=0; j<tNumSpaceDims; j++)
                 {
                     tTensorResult(0, i, j) = tTensorConstant1(i, j);
                     tTensorResult(1, i, j) = tTensorConstant2(i, j);
@@ -1047,30 +1052,26 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_MaterialModel)
         TEST_ASSERT(tScalarResult_Host(0) == -1.234);
         TEST_ASSERT(tScalarResult_Host(1) ==  1.234);
 
-        std::vector<std::vector<Plato::Scalar>> tTensorGold1 = {{2.345,0,0},{0,2.345,0},{0,0,2.345}};
-        std::vector<std::vector<Plato::Scalar>> tTensorGold2 = {{2.345,0,0},{0,3.456,0},{0,0,2.345}};
-        std::vector<std::vector<Plato::Scalar>> tTensorGold3 = {{4.567,0,0},{0,4.567,0},{0,0,4.567}};
+        std::vector<std::vector<Plato::Scalar>> tTensorGold1 = {{2.345,0},{0,2.345}};
+        std::vector<std::vector<Plato::Scalar>> tTensorGold2 = {{2.345,0},{0,3.456}};
+        std::vector<std::vector<Plato::Scalar>> tTensorGold3 = {{4.567,0},{0,4.567}};
 
-        for (int i=0; i<3; i++)
-            for (int j=0; j<3; j++)
+        for (int i=0; i<tNumSpaceDims; i++)
+            for (int j=0; j<tNumSpaceDims; j++)
             {
-                TEST_ASSERT(tTensorResult_Host(0, i, j) == tTensorGold1[i][j]);
-                TEST_ASSERT(tTensorResult_Host(1, i, j) == tTensorGold2[i][j]);
-                TEST_ASSERT(tTensorResult_Host(2, i, j) == tTensorGold3[i][j]);
+                TEST_FLOATING_EQUALITY(tTensorResult_Host(0, i, j),tTensorGold1[i][j],1e-6);
+                TEST_FLOATING_EQUALITY(tTensorResult_Host(1, i, j),tTensorGold2[i][j],1e-6);
+                TEST_FLOATING_EQUALITY(tTensorResult_Host(2, i, j),tTensorGold3[i][j],1e-6);
             }
-
         std::vector<std::vector<Plato::Scalar>>
         tRank4VoigtGold = {
-            {100,  80,  80,  0,  0,  0},
-            { 80, 100,  80,  0,  0,  0},
-            { 80,  80, 100,  0,  0,  0},
-            {  0,   0,   0, 90,  0,  0},
-            {  0,   0,   0,  0, 90,  0},
-            {  0,   0,   0,  0,  0, 90}
+            {100,  80,  0},
+            { 80, 100,  0},
+            {  0,   0, 90}
         };
 
-        for (int i=0; i<6; i++)
-            for (int j=0; j<6; j++)
+        for (int i=0; i<tNumVoigtTerms; i++)
+            for (int j=0; j<tNumVoigtTerms; j++)
             {
                 TEST_ASSERT(tRank4VoigtResult_Host(0, i, j) == tRank4VoigtGold[i][j]);
             }
@@ -1099,7 +1100,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_MaterialModel)
                 "  <Parameter name='Tensor Functor 3' type='double' value='4.567'/>   \n"
                 "</ParameterList>                                                     \n"
             );
-        Plato::MaterialModel<3> tNonlinearModel(*tParams);
+        Plato::MaterialModel<Residual> tNonlinearModel(*tParams);
         tNonlinearModel.parseScalar("Scalar", *tParams);
         tNonlinearModel.parseTensor("Tensor Functor 1", *tParams);
         tNonlinearModel.parseTensor("Tensor Functor 2", *tParams);
@@ -1112,12 +1113,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_MaterialModel)
         Plato::ScalarVector tScalarResult("result", 1);
         Plato::ScalarArray3D tTensorResult("result", 3, 3, 3);
 
+        auto tNumSpaceDims  = tNonlinearModel.getNumSpaceDims();
         Kokkos::parallel_for(Kokkos::RangePolicy<>(0,1), KOKKOS_LAMBDA(const int aOrd)
         {
             tScalarResult(0) = tScalarFunctor(0.0);
 
-            for (int i=0; i<3; i++)
-                for (int j=0; j<3; j++)
+            for (int i=0; i<tNumSpaceDims; i++)
+                for (int j=0; j<tNumSpaceDims; j++)
                 {
                     tTensorResult(0, i, j) = tTensorFunctor1(0.0, i, j);
                     tTensorResult(1, i, j) = tTensorFunctor2(0.0, i, j);
@@ -1131,16 +1133,16 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_MaterialModel)
 
         TEST_ASSERT(tScalarResult_Host(0) == 1.234);
 
-        std::vector<std::vector<Plato::Scalar>> tTensorGold1 = {{2.345,0,0},{0,2.345,0},{0,0,2.345}};
-        std::vector<std::vector<Plato::Scalar>> tTensorGold2 = {{2.345,0,0},{0,3.456,0},{0,0,2.345}};
-        std::vector<std::vector<Plato::Scalar>> tTensorGold3 = {{4.567,0,0},{0,4.567,0},{0,0,4.567}};
+        std::vector<std::vector<Plato::Scalar>> tTensorGold1 = {{2.345,0},{0,2.345}};
+        std::vector<std::vector<Plato::Scalar>> tTensorGold2 = {{2.345,0},{0,3.456}};
+        std::vector<std::vector<Plato::Scalar>> tTensorGold3 = {{4.567,0},{0,4.567}};
 
-        for (int i=0; i<3; i++)
-            for (int j=0; j<3; j++)
+        for (int i=0; i<tNumSpaceDims; i++)
+            for (int j=0; j<tNumSpaceDims; j++)
             {
-                TEST_ASSERT(tTensorResult_Host(0, i, j) == tTensorGold1[i][j]);
-                TEST_ASSERT(tTensorResult_Host(1, i, j) == tTensorGold2[i][j]);
-                TEST_ASSERT(tTensorResult_Host(2, i, j) == tTensorGold3[i][j]);
+                TEST_FLOATING_EQUALITY(tTensorResult_Host(0, i, j),tTensorGold1[i][j],1e-6);
+                TEST_FLOATING_EQUALITY(tTensorResult_Host(1, i, j),tTensorGold2[i][j],1e-6);
+                TEST_FLOATING_EQUALITY(tTensorResult_Host(2, i, j),tTensorGold3[i][j],1e-6);
             }
     }
 }

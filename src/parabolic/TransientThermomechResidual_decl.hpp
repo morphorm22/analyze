@@ -56,8 +56,8 @@ class TransientThermomechResidual :
     std::shared_ptr<Plato::NaturalBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>> mBoundaryLoads;
     std::shared_ptr<Plato::NaturalBCs<ElementType, NThrmDims, mNumDofsPerNode, TDofOffset>> mBoundaryFluxes;
 
-    Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mMaterialModel;
-    Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mThermalMassMaterialModel;
+    Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
+    Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mThermalMassMaterialModel;
 
     std::vector<std::string> mPlottable;
 

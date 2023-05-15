@@ -47,8 +47,8 @@ class HeatEquationResidual :
 
     std::shared_ptr<Plato::NaturalBCs<ElementType, mNumDofsPerNode>> mBoundaryLoads;
 
-    Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mThermalMassMaterialModel;
-    Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mThermalConductivityMaterialModel;
+    Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mThermalMassMaterialModel;
+    Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mThermalConductivityMaterialModel;
 
   public:
     /**************************************************************************/

@@ -25,7 +25,7 @@ namespace Plato
     ) : 
         AbstractLocalMeasure<EvaluationType>(aSpatialDomain, aDataMap, aInputParams, aName)
     {
-        Plato::ThermoelasticModelFactory<mNumSpatialDims> tFactory(aInputParams);
+        Plato::ThermoelasticModelFactory<EvaluationType> tFactory(aInputParams);
         mMaterialModel = tFactory.create(mSpatialDomain.getMaterialName());
     }
 

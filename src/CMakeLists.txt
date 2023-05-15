@@ -74,17 +74,6 @@ IF(OMEGA_H_PREFIX)
   )
 ENDIF()
 
-## Stabilized VMS sources
-if(STABILIZED)
-  set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    stabilized/Problem.cpp
-    stabilized/ElastostaticEnergy.cpp
-    stabilized/ElastostaticResidual.cpp
-    stabilized/ThermoelastostaticResidual.cpp
-    stabilized/PressureGradientProjectionResidual.cpp
-  )
-endif()
-
 ## plasticity sources
 if(PLASTICITY)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}

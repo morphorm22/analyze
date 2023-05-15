@@ -28,7 +28,7 @@ namespace Parabolic
         mApplyWeighting    (mIndicatorFunction)
     /**************************************************************************/
     {
-      Plato::ThermalConductionModelFactory<mNumSpatialDims> mmfactory(aProblemParams);
+      Plato::ThermalConductionModelFactory<EvaluationType> mmfactory(aProblemParams);
       mThermalConductivityMaterialModel = mmfactory.create(aSpatialDomain.getMaterialName());
     }
 
@@ -53,7 +53,7 @@ namespace Parabolic
       Plato::ComputeGradientMatrix<ElementType> computeGradient;
       Plato::ScalarGrad<ElementType>            scalarGrad;
       Plato::ScalarProduct<mNumSpatialDims>     scalarProduct;
-      Plato::ThermalFlux<ElementType>           thermalFlux(mThermalConductivityMaterialModel);
+      Plato::ThermalFlux<EvaluationType>        thermalFlux(mThermalConductivityMaterialModel);
 
       Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode> tInterpolateFromNodal;
 

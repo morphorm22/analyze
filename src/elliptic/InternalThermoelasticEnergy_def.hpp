@@ -57,7 +57,7 @@ namespace Elliptic
            tMaterialParams.sublist("Cubic Linear Thermoelastic").set("a33",0.0);
         }
 
-        Plato::ThermoelasticModelFactory<mNumSpatialDims> mmfactory(tProblemParams);
+        Plato::ThermoelasticModelFactory<EvaluationType> mmfactory(tProblemParams);
         mMaterialModel = mmfactory.create(tMaterialName);
     }
 

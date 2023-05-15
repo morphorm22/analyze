@@ -36,7 +36,7 @@ class FluxPNorm :
     IndicatorFunctionType mIndicatorFunction;
     Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyWeighting;
 
-    Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mMaterialModel;
+    Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
     Plato::OrdinalType mExponent;
 

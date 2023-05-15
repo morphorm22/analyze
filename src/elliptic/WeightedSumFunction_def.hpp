@@ -96,7 +96,7 @@ namespace Elliptic
     }
 
     /******************************************************************************//**
-     * \brief Add function weight
+     * \brief Add function weight to list of function weights
      * \param [in] aWeight function weight
     **********************************************************************************/
     template<typename PhysicsType>
@@ -104,6 +104,17 @@ namespace Elliptic
     appendFunctionWeight(Plato::Scalar aWeight)
     {
         mFunctionWeights.push_back(aWeight);
+    }
+
+    /******************************************************************************//**
+     * \brief Add function name to list of function names
+     * \param [in] aName function weight
+    **********************************************************************************/
+    template<typename PhysicsType>
+    void WeightedSumFunction<PhysicsType>::
+    appendFunctionName(const std::string & aName)
+    {
+        mFunctionNames.push_back(aName);
     }
 
     /******************************************************************************//**
@@ -140,6 +151,25 @@ namespace Elliptic
      * \param [in] aTimeStep time step (default = 0.0)
      * \return scalar function evaluation
     **********************************************************************************/
+    namespace Private
+    {
+      inline std::string name(
+          const Plato::OrdinalType       & aIndex,
+          const std::vector<std::string> & aList)
+      {
+        std::string tOut = "";
+        try 
+        {
+          // Set element 6
+          tOut = aList.at(aIndex);
+          return tOut;
+        }catch (std::out_of_range const& exc) 
+        {
+          return tOut;
+        }
+      }
+    }
+
     template<typename PhysicsType>
     Plato::Scalar WeightedSumFunction<PhysicsType>::
     value(const Plato::Solutions    & aSolution,
@@ -156,8 +186,9 @@ namespace Elliptic
             const Plato::Scalar tFunctionWeight = mFunctionWeights[tFunctionIndex];
             Plato::Scalar tFunctionValue = 
               mScalarFunctionBaseContainer[tFunctionIndex]->value(aSolution, aControl, aTimeStep);
-            std::cout << "Function " << mFunctionNames[tFunctionIndex] 
-              << " Value: " << std::to_string(tFunctionValue) << "\n";
+            std::string tFuncName = Plato::Elliptic::Private::name(tFunctionIndex, mFunctionNames);
+            tFuncName = tFuncName.empty() ? std::string("F-") + std::to_string(tFunctionIndex) : tFuncName;
+            std::cout << "Function: " << tFuncName << " Value: " << std::to_string(tFunctionValue) << "\n";
             tResult += tFunctionWeight * tFunctionValue;
         }
         return tResult;

@@ -19,10 +19,8 @@
 #include "PlatoMathHelpers.hpp"
 #include "PlatoMathFunctors.hpp"
 #include "Mechanics.hpp"
-#include "stabilized/Mechanics.hpp"
 #include "elliptic/PhysicsScalarFunction.hpp"
 #include "elliptic/VectorFunction.hpp"
-#include "stabilized/VectorFunction.hpp"
 #include "ApplyProjection.hpp"
 #include "AnalyzeMacros.hpp"
 #include "HyperbolicTangentProjection.hpp"
@@ -140,25 +138,6 @@ Teuchos::RCP<Plato::CrsMatrixType> createSquareMatrix()
   return tVectorFunction.gradient_u(u,z);
 }
 
-template <typename PhysicsType>
-Teuchos::RCP<Plato::Stabilized::VectorFunction<PhysicsType>>
-createStabilizedResidual(const Plato::SpatialModel & aSpatialModel)
-{
-  const Teuchos::RCP<Teuchos::ParameterList> elastostaticsParams = test_elastostatics_params();
-  Plato::DataMap tDataMap;
-  return Teuchos::rcp( new Plato::Stabilized::VectorFunction<PhysicsType>
-         (aSpatialModel, tDataMap, *elastostaticsParams, elastostaticsParams->get<std::string>("PDE Constraint")));
-}
-
-template <typename PhysicsType>
-Teuchos::RCP<Plato::Stabilized::VectorFunction<typename PhysicsType::ProjectorType>>
-createStabilizedProjector(const Plato::SpatialModel & aSpatialModel)
-{
-  const Teuchos::RCP<Teuchos::ParameterList> elastostaticsParams = test_elastostatics_params();
-  Plato::DataMap tDataMap;
-  return Teuchos::rcp( new Plato::Stabilized::VectorFunction<typename PhysicsType::ProjectorType>
-         (aSpatialModel, tDataMap, *elastostaticsParams, std::string("State Gradient Projection")));
-}
 }
 
 /******************************************************************************/
@@ -798,72 +777,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_CondenseMatrix_1)
   TEST_ASSERT(pth::is_equivalent(tA->rowMap(),
                             tA->columnIndices(), tA->entries(),
                             tA_SlowDumb->columnIndices(), tA_SlowDumb->entries()));
-}
-/******************************************************************************/
-/*! 
-  \brief Create a stabilized residual, g, and a projector, P, then compute
- derivatives dg/du^T, dg/dn^T, dP/du^T, and dP/dn and the condensed matrix:
-
- A = dg/du^T - dP/du^T . RowSum(dP/dn)^{-1} . dg/dn^T
-
-*/
-/******************************************************************************/
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_CondenseMatrix_2)
-{
-  constexpr int cMeshWidth = 2;
-  auto tMesh = pth::get_box_mesh("TET4", cMeshWidth);
-  
-  Plato::DataMap tDataMap;
-  const Teuchos::RCP<Teuchos::ParameterList> elastostaticsParams = test_elastostatics_params();
-  Plato::SpatialModel tSpatialModel(tMesh, *elastostaticsParams, tDataMap);
-
-  using PhysicsType = Plato::Stabilized::Mechanics<Plato::Tet4>;
-  auto tResidual = createStabilizedResidual<PhysicsType>(tSpatialModel);
-  auto tProjector = createStabilizedProjector<PhysicsType>(tSpatialModel);
-
-  auto tNverts = tMesh->NumNodes();
-  Plato::ScalarVector U("state",          tResidual->size());
-  Plato::ScalarVector N("project p grad", tProjector->size());
-  Plato::ScalarVector z("control",        tNverts);
-  Plato::ScalarVector p("nodal pressure", tNverts);
-  Plato::blas1::fill(1.0, z);
-
-  //                                        u, n, z
-  auto t_dg_du_T = tResidual->gradient_u_T (U, N, z);
-  auto t_dg_dn_T = tResidual->gradient_n_T (U, N, z);
-  auto t_dP_dn_T = tProjector->gradient_n_T(N, p, z);
-  auto t_dP_du   = tProjector->gradient_u  (N, p, z);
-
-  auto t_dg_du_T_sd = tResidual->gradient_u_T (U, N, z);
-  auto t_dg_dn_T_sd = tResidual->gradient_n_T (U, N, z);
-  auto t_dP_dn_T_sd = tProjector->gradient_n_T(N, p, z);
-  auto t_dP_du_sd   = tProjector->gradient_u  (N, p, z);
-  
-  auto tNumRows = t_dP_dn_T->numRows();
-  auto tNumCols = t_dg_dn_T->numCols();
-  auto tNumRowsPerBlock = t_dP_dn_T->numRowsPerBlock();
-  auto tNumColsPerBlock = t_dg_dn_T->numColsPerBlock();
-
-  // Nn x Nf
-  auto tMatrixProduct    = Teuchos::rcp( new Plato::CrsMatrixType(tNumRows, tNumCols, tNumRowsPerBlock, tNumColsPerBlock) );
-  auto tMatrixProduct_sd = Teuchos::rcp( new Plato::CrsMatrixType(tNumRows, tNumCols, tNumRowsPerBlock, tNumColsPerBlock) );
-
-  // Nm x Nm . Nm x Nf => Nm x Nf
-  Plato::RowSummedInverseMultiply              ( t_dP_du,    t_dg_dn_T    );
-  pth::slow_dumb_row_summed_inverse_multiply ( t_dP_du_sd, t_dg_dn_T_sd );
-
-  // Nn x Nm . Nm x Nf => Nn x Nf
-  Plato::MatrixMatrixMultiply              ( t_dP_dn_T,    t_dg_dn_T,    tMatrixProduct    );
-  pth::slow_dumb_matrix_matrix_multiply ( t_dP_dn_T_sd, t_dg_dn_T_sd, tMatrixProduct_sd );
-
-  auto tOffset = PhysicsType::ProjectorType::ElementType::mProjectionDof;
-  // Nf x Nf - O( Nn x Nf ) => Nf x Nf
-  Plato::MatrixMinusMatrix              ( t_dg_du_T,    tMatrixProduct,    tOffset );
-  pth::slow_dumb_matrix_minus_matrix ( t_dg_du_T_sd, tMatrixProduct_sd, tOffset );
-
-  TEST_ASSERT(pth::is_equivalent(t_dg_du_T->rowMap(),
-                            t_dg_du_T->columnIndices(), t_dg_du_T->entries(),
-                            t_dg_du_T_sd->columnIndices(), t_dg_du_T_sd->entries()));
 }
 
 /******************************************************************************/

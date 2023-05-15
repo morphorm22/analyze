@@ -12,21 +12,21 @@ namespace Plato {
 /*!
   \brief Base class for Linear Thermoelastic material models
 */
-  template<int SpatialDim>
+  template<Plato::OrdinalType NumSpaceDims>
   class LinearThermoelasticMaterial
 /******************************************************************************/
 {
   protected:
-    static constexpr auto mNumVoigtTerms = (SpatialDim == 3) ? 6 : 
-                                           ((SpatialDim == 2) ? 3 :
-                                          (((SpatialDim == 1) ? 1 : 0)));
-    static_assert(mNumVoigtTerms, "SpatialDim must be 1, 2, or 3.");
+    static constexpr auto mNumVoigtTerms = (NumSpaceDims == 3) ? 6 : 
+                                           ((NumSpaceDims == 2) ? 3 :
+                                          (((NumSpaceDims == 1) ? 1 : 0)));
+    static_assert(mNumVoigtTerms, "NumSpaceDims must be 1, 2, or 3.");
 
     Plato::Scalar mCellDensity;
     Plato::Scalar mCellSpecificHeat;
     Plato::Matrix<mNumVoigtTerms,mNumVoigtTerms> mCellStiffness;
-    Plato::Array<SpatialDim> mCellThermalExpansionCoef;
-    Plato::Matrix<SpatialDim, SpatialDim> mCellThermalConductivity;
+    Plato::Array<NumSpaceDims> mCellThermalExpansionCoef;
+    Plato::Matrix<NumSpaceDims, NumSpaceDims> mCellThermalConductivity;
     Plato::Scalar mCellReferenceTemperature;
 
     Plato::Scalar mTemperatureScaling;
@@ -45,8 +45,8 @@ namespace Plato {
 };
 
 /******************************************************************************/
-template<int SpatialDim>
-LinearThermoelasticMaterial<SpatialDim>::
+template<Plato::OrdinalType NumSpaceDims>
+LinearThermoelasticMaterial<NumSpaceDims>::
 LinearThermoelasticMaterial(const Teuchos::ParameterList& paramList)
 /******************************************************************************/
 {
@@ -54,11 +54,11 @@ LinearThermoelasticMaterial(const Teuchos::ParameterList& paramList)
       for(int j=0; j<mNumVoigtTerms; j++)
         mCellStiffness(i,j) = 0.0;
 
-    for(int i=0; i<SpatialDim; i++)
+    for(int i=0; i<NumSpaceDims; i++)
       mCellThermalExpansionCoef(i) = 0.0;
 
-    for(int i=0; i<SpatialDim; i++)
-      for(int j=0; j<SpatialDim; j++)
+    for(int i=0; i<NumSpaceDims; i++)
+      for(int j=0; j<NumSpaceDims; j++)
         mCellThermalConductivity(i,j) = 0.0;
 
     Plato::Scalar t = paramList.get<Plato::Scalar>("Reference Temperature");
@@ -90,8 +90,8 @@ LinearThermoelasticMaterial(const Teuchos::ParameterList& paramList)
 /*!
   \brief Derived class for isotropic linear thermoelastic material model
 */
-  template<int SpatialDim>
-  class IsotropicLinearThermoelasticMaterial : public LinearThermoelasticMaterial<SpatialDim>
+  template<int NumSpaceDims>
+  class IsotropicLinearThermoelasticMaterial : public LinearThermoelasticMaterial<NumSpaceDims>
 /******************************************************************************/
 {
   public:
@@ -103,8 +103,8 @@ LinearThermoelasticMaterial(const Teuchos::ParameterList& paramList)
 /*!
   \brief Derived class for cubic linear thermoelastic material model
 */
-  template<int SpatialDim>
-  class CubicLinearThermoelasticMaterial : public LinearThermoelasticMaterial<SpatialDim>
+  template<int NumSpaceDims>
+  class CubicLinearThermoelasticMaterial : public LinearThermoelasticMaterial<NumSpaceDims>
 /******************************************************************************/
 {
   public:
@@ -116,27 +116,27 @@ LinearThermoelasticMaterial(const Teuchos::ParameterList& paramList)
 /*!
   \brief Factory for creating material models
 */
-  template<int SpatialDim>
+  template<Plato::OrdinalType NumSpaceDims>
   class LinearThermoelasticModelFactory
 /******************************************************************************/
 {
   public:
     LinearThermoelasticModelFactory(const Teuchos::ParameterList& paramList) : mParamList(paramList) {}
-    Teuchos::RCP<Plato::LinearThermoelasticMaterial<SpatialDim>> create(std::string aModelName);
+    Teuchos::RCP<Plato::LinearThermoelasticMaterial<NumSpaceDims>> create(std::string aModelName);
   private:
     const Teuchos::ParameterList& mParamList;
 };
 
 /******************************************************************************/
-template<int SpatialDim>
-Teuchos::RCP<LinearThermoelasticMaterial<SpatialDim>>
-LinearThermoelasticModelFactory<SpatialDim>::create(std::string aModelName)
+template<Plato::OrdinalType NumSpaceDims>
+Teuchos::RCP<LinearThermoelasticMaterial<NumSpaceDims>>
+LinearThermoelasticModelFactory<NumSpaceDims>::create(std::string aModelName)
 /******************************************************************************/
 {
     if (!mParamList.isSublist("Material Models"))
     {
         REPORT("'Material Models' list not found! Returning 'nullptr'");
-        return Teuchos::RCP<Plato::LinearThermoelasticMaterial<SpatialDim>>(nullptr);
+        return Teuchos::RCP<Plato::LinearThermoelasticMaterial<NumSpaceDims>>(nullptr);
     }
     else
     {
@@ -152,14 +152,14 @@ LinearThermoelasticModelFactory<SpatialDim>::create(std::string aModelName)
         auto tModelParamList = tModelsParamList.sublist(aModelName);
         if( tModelParamList.isSublist("Isotropic Linear Thermoelastic") )
         {
-            return Teuchos::rcp(new Plato::IsotropicLinearThermoelasticMaterial<SpatialDim>(tModelParamList.sublist("Isotropic Linear Thermoelastic")));
+            return Teuchos::rcp(new Plato::IsotropicLinearThermoelasticMaterial<NumSpaceDims>(tModelParamList.sublist("Isotropic Linear Thermoelastic")));
         }
         else
         if( tModelParamList.isSublist("Cubic Linear Thermoelastic") )
         {
-            return Teuchos::rcp(new Plato::CubicLinearThermoelasticMaterial<SpatialDim>(tModelParamList.sublist("Cubic Linear Thermoelastic")));
+            return Teuchos::rcp(new Plato::CubicLinearThermoelasticMaterial<NumSpaceDims>(tModelParamList.sublist("Cubic Linear Thermoelastic")));
         }
-        return Teuchos::RCP<Plato::LinearThermoelasticMaterial<SpatialDim>>(nullptr);
+        return Teuchos::RCP<Plato::LinearThermoelasticMaterial<NumSpaceDims>>(nullptr);
     }
 }
 

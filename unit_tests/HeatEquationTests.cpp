@@ -121,16 +121,17 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, 3D )
 
   Plato::InterpolateFromNodal<ElementType, ElementType::mNumDofsPerNode> tInterpolateFromNodal;
 
-  Plato::ThermalMassModelFactory<spaceDim> mmmfactory(*tParamList);
+  using Residual = typename Plato::Parabolic::Evaluation<ElementType>::Residual;
+  Plato::ThermalMassModelFactory<Residual> mmmfactory(*tParamList);
   auto thermalMassMaterialModel = mmmfactory.create("Unobtainium");
 
-  Plato::ThermalContent<spaceDim> computeThermalContent(thermalMassMaterialModel);
+  Plato::ThermalContent<Residual> computeThermalContent(thermalMassMaterialModel);
   Plato::ProjectToNode<ElementType> projectThermalContent;
 
-  Plato::ThermalConductionModelFactory<spaceDim> mmfactory(*tParamList);
+  Plato::ThermalConductionModelFactory<Residual> mmfactory(*tParamList);
   auto tMaterialModel = mmfactory.create("Unobtainium");
 
-  Plato::ThermalFlux<ElementType>           thermalFlux(tMaterialModel);
+  Plato::ThermalFlux<Residual> thermalFlux(tMaterialModel);
   Plato::GeneralFluxDivergence<ElementType> fluxDivergence;
 
   Plato::ScalarVectorT<Plato::Scalar> cellVolume("cell volume",numCells);

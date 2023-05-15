@@ -14,10 +14,13 @@ namespace Plato
     given a strain, temperature gradient, and temperature, compute the stress and flux
 */
 /******************************************************************************/
-template<typename ElementType>
-class TMKinetics : public ElementType
+template<typename EvaluationType>
+class TMKinetics
 {
   private:
+      // set local element type
+    using ElementType = typename EvaluationType::ElementType;
+    
     Plato::MaterialModelType mModelType;
 
     using ElementType::mNumSpatialDims;
@@ -44,7 +47,7 @@ class TMKinetics : public ElementType
 
   public:
 
-    TMKinetics(const Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> aMaterialModel) :
+    TMKinetics(const Teuchos::RCP<Plato::MaterialModel<EvaluationType>> & aMaterialModel) :
       mRefTemperature(aMaterialModel->getScalarConstant("Reference Temperature")),
       mScaling(aMaterialModel->getScalarConstant("Temperature Scaling")),
       mScaling2(mScaling*mScaling)

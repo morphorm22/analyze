@@ -49,11 +49,6 @@ if(HATCHING)
   Plato_add_test(EllipticHatching EllipticHatchingTests.cpp)
 endif()
 
-if(STABILIZED)
-  Plato_add_test(TwoField TwoFieldTests.cpp)
-  Plato_add_test(StabilizedMechanics StabilizedMechanicsTests.cpp)
-endif()
-
 if(PLASTICITY)
   Plato_add_test(Plasticity PlasticityTests.cpp)
   Plato_add_test(ElastoPlasticity ElastoPlasticityTests.cpp SKIP_MATH)

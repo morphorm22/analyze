@@ -1,6 +1,7 @@
 #include "MaterialModel.hpp"
 
-namespace Plato {
+namespace Plato 
+{
 
   template<>
   TensorFunctor<1>::TensorFunctor(Teuchos::ParameterList& aParams) : c0{{0.0}}, c1{{0.0}}, c2{{0.0}}

@@ -30,7 +30,7 @@ namespace Elliptic
         mApplyStressWeighting (mIndicatorFunction)
     /**************************************************************************/
     {
-      Plato::ThermoelasticModelFactory<mNumSpatialDims> tFactory(aProblemParams);
+      Plato::ThermoelasticModelFactory<EvaluationType> tFactory(aProblemParams);
       mMaterialModel = tFactory.create(aSpatialDomain.getMaterialName());
 
       auto tParams = aProblemParams.sublist("Criteria").get<Teuchos::ParameterList>(aFunctionName);

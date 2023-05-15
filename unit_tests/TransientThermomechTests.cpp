@@ -120,10 +120,11 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
     "</ParameterList>                                                               \n"
   );
 
-  Plato::ThermalMassModelFactory<numSpaceDims> mmmfactory(*params);
+  using Residual = typename Plato::Elliptic::Evaluation<Plato::ThermomechanicsElement<Plato::Tet4>>::Residual;
+  Plato::ThermalMassModelFactory<Residual> mmmfactory(*params);
   auto massMaterialModel = mmmfactory.create("Cookie Dough");
 
-  Plato::ThermoelasticModelFactory<numSpaceDims> mmfactory(*params);
+  Plato::ThermoelasticModelFactory<Residual> mmfactory(*params);
   auto materialModel = mmfactory.create("Cookie Dough");
 
   Plato::DataMap tDataMap;
@@ -132,7 +133,6 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
 
   Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
   Plato::TMKinematics<ElementType>          tKinematics;
-  using Residual = typename Plato::Elliptic::Evaluation<Plato::ThermomechanicsElement<Plato::Tet4>>::Residual;
   Plato::TMKineticsFactory< Residual, ElementType > tTMKineticsFactory;
   auto pkinetics = tTMKineticsFactory.create(materialModel, tOnlyDomain, tDataMap);
   auto & kinetics = *pkinetics;
@@ -142,7 +142,7 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, 3D )
   Plato::GeneralFluxDivergence  <ElementType, dofsPerNode, TDofOffset> fluxDivergence;
   Plato::GeneralStressDivergence<ElementType, dofsPerNode> stressDivergence;
 
-  Plato::ThermalContent<numSpaceDims> computeThermalContent(massMaterialModel);
+  Plato::ThermalContent<Residual> computeThermalContent(massMaterialModel);
   Plato::ProjectToNode<ElementType, dofsPerNode, TDofOffset> projectThermalContent;
 
   Plato::Scalar tTimeStep = 1.0;

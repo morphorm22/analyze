@@ -6,13 +6,14 @@
 
 namespace Plato {
 
-  template<int SpatialDim>
+  template<Plato::OrdinalType NumSpaceDims>
   class UniformMaterialBasis
   {
-    const Plato::Matrix<SpatialDim,SpatialDim> mBasis;
+    private:
+      const Plato::Matrix<NumSpaceDims,NumSpaceDims> mBasis;
     public:
       UniformMaterialBasis(
-        Plato::Matrix<SpatialDim,SpatialDim> const & aBasis
+        Plato::Matrix<NumSpaceDims,NumSpaceDims> const & aBasis
     ) : mBasis(aBasis) { }
 
     /******************************************************************************
@@ -62,18 +63,19 @@ namespace Plato {
       Kokkos::parallel_for("to material basis", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
       KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-        Plato::Matrix<SpatialDim,SpatialDim,T> tTensor = Plato::FromVoigt<SpatialDim,T>(aVoigtTensor, iCellOrdinal, iGpOrdinal);
-        Plato::Matrix<SpatialDim,SpatialDim,T> tToTensor(0.0);
-        for(int i=0; i<SpatialDim; i++) {
-          for(int j=0; j<SpatialDim; j++) {
-            for(int k=0; k<SpatialDim; k++) {
-              for(int l=0; l<SpatialDim; l++) {
+        Plato::Matrix<NumSpaceDims,NumSpaceDims,T> tTensor = 
+          Plato::FromVoigt<NumSpaceDims,T>(aVoigtTensor, iCellOrdinal, iGpOrdinal);
+        Plato::Matrix<NumSpaceDims,NumSpaceDims,T> tToTensor(0.0);
+        for(int i=0; i<NumSpaceDims; i++) {
+          for(int j=0; j<NumSpaceDims; j++) {
+            for(int k=0; k<NumSpaceDims; k++) {
+              for(int l=0; l<NumSpaceDims; l++) {
                 tToTensor(i,l) += tBasis(j,i) * tTensor(j,k) * tBasis(k,l); // S' = B^T S B
               }
             }
           }
         }
-        Plato::ToVoigt<SpatialDim,T>(tToTensor, aVoigtTensor, iCellOrdinal, iGpOrdinal);
+        Plato::ToVoigt<NumSpaceDims,T>(tToTensor, aVoigtTensor, iCellOrdinal, iGpOrdinal);
       });
     }
     template<typename T>
@@ -83,21 +85,23 @@ namespace Plato {
       auto tNumCells = aVoigtTensor.extent(0);
       auto tNumPoints = aVoigtTensor.extent(1);
       auto& tBasis = mBasis;
-      Kokkos::parallel_for("from material basis", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      Kokkos::parallel_for("from material basis",
+        Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-        Plato::Matrix<SpatialDim,SpatialDim,T> tTensor = Plato::FromVoigt<SpatialDim,T>(aVoigtTensor, iCellOrdinal, iGpOrdinal);
-        Plato::Matrix<SpatialDim,SpatialDim,T> tFromTensor(0.0);
-        for(int i=0; i<SpatialDim; i++) {
-          for(int j=0; j<SpatialDim; j++) {
-            for(int k=0; k<SpatialDim; k++) {
-              for(int l=0; l<SpatialDim; l++) {
+        Plato::Matrix<NumSpaceDims,NumSpaceDims,T> tTensor = 
+          Plato::FromVoigt<NumSpaceDims,T>(aVoigtTensor, iCellOrdinal, iGpOrdinal);
+        Plato::Matrix<NumSpaceDims,NumSpaceDims,T> tFromTensor(0.0);
+        for(int i=0; i<NumSpaceDims; i++) {
+          for(int j=0; j<NumSpaceDims; j++) {
+            for(int k=0; k<NumSpaceDims; k++) {
+              for(int l=0; l<NumSpaceDims; l++) {
                 tFromTensor(i,l) += tBasis(i,j) * tTensor(j,k) * tBasis(l,k); // S = B S' B^T
               }
             }
           }
         }
-        Plato::ToVoigt<SpatialDim,T>(tFromTensor, aVoigtTensor, iCellOrdinal, iGpOrdinal);
+        Plato::ToVoigt<NumSpaceDims,T>(tFromTensor, aVoigtTensor, iCellOrdinal, iGpOrdinal);
       });
     }
 
@@ -127,18 +131,19 @@ namespace Plato {
       auto tNumCells = aVector.extent(0);
       auto tNumPoints = aVector.extent(1);
       auto& tBasis = mBasis;
-      Kokkos::parallel_for("to material basis", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      Kokkos::parallel_for("to material basis", 
+        Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-        Plato::Array<SpatialDim,T> tInMatBasis(0.0);
-        for(int i=0; i<SpatialDim; i++)
+        Plato::Array<NumSpaceDims,T> tInMatBasis(0.0);
+        for(int i=0; i<NumSpaceDims; i++)
         {
-          for(int j=0; j<SpatialDim; j++)
+          for(int j=0; j<NumSpaceDims; j++)
           {
             tInMatBasis(i) += tBasis(j,i) * aVector(iCellOrdinal, iGpOrdinal, j); // v' = B^T v
           }
         }
-        for(int i=0; i<SpatialDim; i++)
+        for(int i=0; i<NumSpaceDims; i++)
         {
           aVector(iCellOrdinal, iGpOrdinal, i) = tInMatBasis(i);
         }
@@ -151,26 +156,28 @@ namespace Plato {
       auto tNumCells = aVector.extent(0);
       auto tNumPoints = aVector.extent(1);
       auto& tBasis = mBasis;
-      Kokkos::parallel_for("to material basis", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      Kokkos::parallel_for("to material basis", 
+        Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-        Plato::Array<SpatialDim,T> tInGlobalBasis(0.0);
-        for(int i=0; i<SpatialDim; i++)
+        Plato::Array<NumSpaceDims,T> tInGlobalBasis(0.0);
+        for(int i=0; i<NumSpaceDims; i++)
         {
-          for(int j=0; j<SpatialDim; j++)
+          for(int j=0; j<NumSpaceDims; j++)
           {
             tInGlobalBasis(i) += tBasis(i,j) * aVector(iCellOrdinal, iGpOrdinal, j); // v = B v'
           }
         }
-        for(int i=0; i<SpatialDim; i++)
+        for(int i=0; i<NumSpaceDims; i++)
         {
           aVector(iCellOrdinal, iGpOrdinal, i) = tInGlobalBasis(i);
         }
       });
     }
   };
+  // class UniformMaterialBasis
 
-  template<int SpatialDim>
+  template<int NumSpaceDims>
   class VaryingMaterialBasis
   {
     const Plato::ScalarArray3D mBasis;
@@ -223,21 +230,23 @@ namespace Plato {
       auto tNumCells = aVoigtTensor.extent(0);
       auto tNumPoints = aVoigtTensor.extent(1);
       auto& tBasis = mBasis;
-      Kokkos::parallel_for("to material basis", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      Kokkos::parallel_for("to material basis", 
+        Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-        Plato::Matrix<SpatialDim,SpatialDim,T> tTensor = Plato::FromVoigt<SpatialDim,T>(aVoigtTensor, iCellOrdinal, iGpOrdinal);
-        Plato::Matrix<SpatialDim,SpatialDim,T> tToTensor(0.0);
-        for(int i=0; i<SpatialDim; i++) {
-          for(int j=0; j<SpatialDim; j++) {
-            for(int k=0; k<SpatialDim; k++) {
-              for(int l=0; l<SpatialDim; l++) {
+        Plato::Matrix<NumSpaceDims,NumSpaceDims,T> tTensor = 
+          Plato::FromVoigt<NumSpaceDims,T>(aVoigtTensor, iCellOrdinal, iGpOrdinal);
+        Plato::Matrix<NumSpaceDims,NumSpaceDims,T> tToTensor(0.0);
+        for(int i=0; i<NumSpaceDims; i++) {
+          for(int j=0; j<NumSpaceDims; j++) {
+            for(int k=0; k<NumSpaceDims; k++) {
+              for(int l=0; l<NumSpaceDims; l++) {
                 tToTensor(i,l) += tBasis(iCellOrdinal,j,i) * tTensor(j,k) * tBasis(iCellOrdinal,k,l); // S' = B^T S B
               }
             }
           }
         }
-        Plato::ToVoigt<SpatialDim,T>(tToTensor, aVoigtTensor, iCellOrdinal, iGpOrdinal);
+        Plato::ToVoigt<NumSpaceDims,T>(tToTensor, aVoigtTensor, iCellOrdinal, iGpOrdinal);
       });
     }
     template<typename T>
@@ -247,21 +256,23 @@ namespace Plato {
       auto tNumCells = aVoigtTensor.extent(0);
       auto tNumPoints = aVoigtTensor.extent(1);
       auto& tBasis = mBasis;
-      Kokkos::parallel_for("from material basis", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      Kokkos::parallel_for("from material basis", 
+        Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-        Plato::Matrix<SpatialDim,SpatialDim,T> tTensor = Plato::FromVoigt<SpatialDim,T>(aVoigtTensor, iCellOrdinal, iGpOrdinal);
-        Plato::Matrix<SpatialDim,SpatialDim,T> tFromTensor(0.0);
-        for(int i=0; i<SpatialDim; i++) {
-          for(int j=0; j<SpatialDim; j++) {
-            for(int k=0; k<SpatialDim; k++) {
-              for(int l=0; l<SpatialDim; l++) {
+        Plato::Matrix<NumSpaceDims,NumSpaceDims,T> tTensor = 
+          Plato::FromVoigt<NumSpaceDims,T>(aVoigtTensor, iCellOrdinal, iGpOrdinal);
+        Plato::Matrix<NumSpaceDims,NumSpaceDims,T> tFromTensor(0.0);
+        for(int i=0; i<NumSpaceDims; i++) {
+          for(int j=0; j<NumSpaceDims; j++) {
+            for(int k=0; k<NumSpaceDims; k++) {
+              for(int l=0; l<NumSpaceDims; l++) {
                 tFromTensor(i,l) += tBasis(iCellOrdinal,i,j) * tTensor(j,k) * tBasis(iCellOrdinal,l,k); // S = B S' B^T
               }
             }
           }
         }
-        Plato::ToVoigt<SpatialDim,T>(tFromTensor, aVoigtTensor, iCellOrdinal, iGpOrdinal);
+        Plato::ToVoigt<NumSpaceDims,T>(tFromTensor, aVoigtTensor, iCellOrdinal, iGpOrdinal);
       });
     }
 
@@ -291,18 +302,19 @@ namespace Plato {
       auto tNumCells = aVector.extent(0);
       auto tNumPoints = aVector.extent(1);
       auto& tBasis = mBasis;
-      Kokkos::parallel_for("to material basis", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      Kokkos::parallel_for("to material basis", 
+        Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-        Plato::Array<SpatialDim,T> tInMatBasis(0.0);
-        for(int i=0; i<SpatialDim; i++)
+        Plato::Array<NumSpaceDims,T> tInMatBasis(0.0);
+        for(int i=0; i<NumSpaceDims; i++)
         {
-          for(int j=0; j<SpatialDim; j++)
+          for(int j=0; j<NumSpaceDims; j++)
           {
             tInMatBasis(i) += tBasis(iCellOrdinal,j,i) * aVector(iCellOrdinal, iGpOrdinal, j); // v' = B^T v
           }
         }
-        for(int i=0; i<SpatialDim; i++)
+        for(int i=0; i<NumSpaceDims; i++)
         {
           aVector(iCellOrdinal, iGpOrdinal, i) = tInMatBasis(i);
         }
@@ -315,82 +327,86 @@ namespace Plato {
       auto tNumCells = aVector.extent(0);
       auto tNumPoints = aVector.extent(1);
       auto& tBasis = mBasis;
-      Kokkos::parallel_for("to material basis", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      Kokkos::parallel_for("to material basis", 
+        Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
-        Plato::Array<SpatialDim,T> tInGlobalBasis(0.0);
-        for(int i=0; i<SpatialDim; i++)
+        Plato::Array<NumSpaceDims,T> tInGlobalBasis(0.0);
+        for(int i=0; i<NumSpaceDims; i++)
         {
-          for(int j=0; j<SpatialDim; j++)
+          for(int j=0; j<NumSpaceDims; j++)
           {
             tInGlobalBasis(i) += tBasis(iCellOrdinal,i,j) * aVector(iCellOrdinal, iGpOrdinal, j); // v = B v'
           }
         }
-        for(int i=0; i<SpatialDim; i++)
+        for(int i=0; i<NumSpaceDims; i++)
         {
           aVector(iCellOrdinal, iGpOrdinal, i) = tInGlobalBasis(i);
         }
       });
     }
   };
-
+  // class VaryingMaterialBasis
+  
   class UniformMaterialBasisFactory
   {
     public:
-
-    template <int SpatialDim>
-    std::shared_ptr<Plato::UniformMaterialBasis<SpatialDim>>
-    create(
-      Teuchos::RCP<Plato::MaterialModel<SpatialDim>> const   aMaterialModel,
-      Plato::SpatialDomain                           const & aSpatialDomain
-    )
-    {
-      bool tHasMaterialBasis = aMaterialModel->hasCartesianBasis();
-      bool tHasBlockBasis = aSpatialDomain.hasUniformCartesianBasis();
-
-      if( !tHasBlockBasis && !tHasMaterialBasis )
+      template<
+        Plato::OrdinalType NumSpaceDims,
+        typename          EvaluationType>
+      std::shared_ptr<Plato::UniformMaterialBasis<NumSpaceDims>>
+      create(
+        Teuchos::RCP<Plato::MaterialModel<EvaluationType>> const & aMaterialModel,
+        Plato::SpatialDomain                               const & aSpatialDomain
+      )
       {
-        return nullptr;
-      }
-
-      Plato::Matrix<SpatialDim,SpatialDim> tUniformBasis;
-      if( tHasMaterialBasis && tHasBlockBasis )
-      {
-        auto tMaterialBasis = aMaterialModel->getCartesianBasis();
-
-        Plato::Matrix<SpatialDim,SpatialDim> tBlockBasis;
-        aSpatialDomain.getUniformCartesianBasis(tBlockBasis);
-
-        for(int i=0; i<SpatialDim; i++){
-          for(int j=0; j<SpatialDim; j++){
-            tUniformBasis(i,j) = 0.0;
-            for(int k=0; k<SpatialDim; k++){
-              tUniformBasis(i,j) += tBlockBasis(i,k)*tMaterialBasis(k,j);
+        bool tHasMaterialBasis = aMaterialModel->hasCartesianBasis();
+        bool tHasBlockBasis = aSpatialDomain.hasUniformCartesianBasis();
+  
+        if( !tHasBlockBasis && !tHasMaterialBasis )
+        {
+          return nullptr;
+        }
+  
+        Plato::Matrix<NumSpaceDims,NumSpaceDims> tUniformBasis;
+        if( tHasMaterialBasis && tHasBlockBasis )
+        {
+          auto tMaterialBasis = aMaterialModel->getCartesianBasis();
+  
+          Plato::Matrix<NumSpaceDims,NumSpaceDims> tBlockBasis;
+          aSpatialDomain.getUniformCartesianBasis(tBlockBasis);
+  
+          for(int i=0; i<NumSpaceDims; i++){
+            for(int j=0; j<NumSpaceDims; j++){
+              tUniformBasis(i,j) = 0.0;
+              for(int k=0; k<NumSpaceDims; k++){
+                tUniformBasis(i,j) += tBlockBasis(i,k)*tMaterialBasis(k,j);
+              }
             }
           }
         }
+        else 
+        if( tHasMaterialBasis )
+        {
+          tUniformBasis = aMaterialModel->getCartesianBasis();
+        }
+        else 
+        if( tHasBlockBasis )
+        {
+          aSpatialDomain.getUniformCartesianBasis(tUniformBasis);
+        }
+  
+        return std::make_shared<UniformMaterialBasis<NumSpaceDims>>(tUniformBasis);
       }
-      else 
-      if( tHasMaterialBasis )
-      {
-        tUniformBasis = aMaterialModel->getCartesianBasis();
-      }
-      else 
-      if( tHasBlockBasis )
-      {
-        aSpatialDomain.getUniformCartesianBasis(tUniformBasis);
-      }
-
-      return std::make_shared<UniformMaterialBasis<SpatialDim>>(tUniformBasis);
-    }
   };
+  // class UniformMaterialBasisFactory
 
   class VaryingMaterialBasisFactory
   {
     public:
 
-    template <int SpatialDim>
-    std::shared_ptr<Plato::VaryingMaterialBasis<SpatialDim>>
+    template <Plato::OrdinalType NumSpaceDims>
+    std::shared_ptr<Plato::VaryingMaterialBasis<NumSpaceDims>>
     create(
       Plato::DataMap       const & aDataMap,
       Plato::SpatialDomain const & aSpatialDomain
@@ -403,7 +419,7 @@ namespace Plato {
       }
 
       auto tBasis = aSpatialDomain.getVaryingCartesianBasis();
-      return std::make_shared<VaryingMaterialBasis<SpatialDim>>(tBasis);
+      return std::make_shared<VaryingMaterialBasis<NumSpaceDims>>(tBasis);
     }
   };
 

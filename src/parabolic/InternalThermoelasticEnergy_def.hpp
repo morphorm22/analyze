@@ -30,7 +30,7 @@ namespace Parabolic
         mApplyFluxWeighting   (mIndicatorFunction)
     /**************************************************************************/
     {
-        Plato::ThermoelasticModelFactory<mNumSpatialDims> mmfactory(aProblemParams);
+        Plato::ThermoelasticModelFactory<EvaluationType> mmfactory(aProblemParams);
         mMaterialModel = mmfactory.create(aSpatialDomain.getMaterialName());
 
         if( aProblemParams.isType<Teuchos::Array<std::string>>("Plottable") )

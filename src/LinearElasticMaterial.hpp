@@ -61,12 +61,6 @@ public:
     decltype(mCellStiffness)   getStiffnessMatrix() const {return mCellStiffness;}
 
     /******************************************************************************//**
-     * \brief Return pressure term scaling. Used in the stabilized finite element formulation
-     * \return pressure term scaling
-    **********************************************************************************/
-    decltype(mPressureScaling) getPressureScaling() const {return mPressureScaling;}
-
-    /******************************************************************************//**
      * \brief Return reference strain tensor, i.e. homogenized strain tensor.
      * \return reference strain tensor
     **********************************************************************************/

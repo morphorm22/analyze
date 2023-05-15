@@ -62,6 +62,9 @@ private:
     /*!< Local measure with POD type */
     std::shared_ptr<Plato::AbstractLocalMeasure<Residual>> mLocalMeasurePODType;
 
+    /*!< plot table with output quantities of interests */
+    std::vector<std::string> mPlotTable;
+
 public:
     /******************************************************************************//**
      * \brief Constructor

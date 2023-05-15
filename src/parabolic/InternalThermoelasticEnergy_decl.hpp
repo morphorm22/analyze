@@ -45,7 +45,7 @@ class InternalThermoelasticEnergy :
     using ConfigScalarType   = typename EvaluationType::ConfigScalarType;
     using ResultScalarType   = typename EvaluationType::ResultScalarType;
 
-    Teuchos::RCP<Plato::MaterialModel<mNumSpatialDims>> mMaterialModel;
+    Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
     IndicatorFunctionType mIndicatorFunction;
     ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms,  IndicatorFunctionType> mApplyStressWeighting;

@@ -33,7 +33,7 @@ namespace Elliptic
         // obligatory: define dof names in order
         mDofNames.push_back("temperature");
 
-        Plato::ThermalConductionModelFactory<mNumSpatialDims> tMaterialFactory(aProblemParams);
+        Plato::ThermalConductionModelFactory<EvaluationType> tMaterialFactory(aProblemParams);
         mMaterialModel = tMaterialFactory.create(aSpatialDomain.getMaterialName());
 
         // parse body loads
@@ -90,7 +90,7 @@ namespace Elliptic
       Plato::ScalarGrad<ElementType>             scalarGrad;
       Plato::GeneralFluxDivergence<ElementType>  fluxDivergence;
 
-      Plato::ThermalFlux<ElementType>            thermalFlux(mMaterialModel);
+      Plato::ThermalFlux<EvaluationType>            thermalFlux(mMaterialModel);
 
       Plato::ScalarVectorT<ConfigScalarType> tCellVolume("cell weight",tNumCells);
 
