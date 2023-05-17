@@ -14,6 +14,7 @@
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
 // plato
+#include "Simp.hpp"
 #include "Solutions.hpp"
 #include "BodyLoads.hpp"
 #include "NaturalBCs.hpp"
@@ -23,103 +24,309 @@
 #include "GradientMatrix.hpp"
 #include "InterpolateFromNodal.hpp"
 #include "GeneralFluxDivergence.hpp"
+
 #include "elliptic/EvaluationTypes.hpp"
+#include "elliptic/AbstractScalarFunction.hpp"
 #include "elliptic/AbstractVectorFunction.hpp"
 
 namespace Plato
 {
 
-/******************************************************************************/
-/*!
- \brief Base class for linear electric conductivity material model
- */
-template<typename EvaluationType>
-class MaterialElectricConductivity : public MaterialModel<EvaluationType>
-/******************************************************************************/
+namespace electrical 
+{
+
+enum struct property
+{
+    ELECTRICAL_CONDUCTIVITY=0, 
+    OUT_OF_PLANE_THICKNESS=1, 
+    MATERIAL_NAMES=2, 
+    ELECTRICAL_CONSTANT=3, 
+    RELATIVE_STATIC_PERMITTIVITY=4,
+    TO_ERSATZ_MATERIAL_EXPONENT=5,
+    TO_MIN_ERSATZ_MATERIAL_VALUE=6
+};
+
+struct PropEnum
 {
 private:
-    using ElementType = typename EvaluationType::ElementType; // set local element type
-    using ElementType::mNumSpatialDims;  /*!< spatial dimensions */
+    std::unordered_map<std::string,Plato::electrical::property> s2e = {
+        {"electrical conductivity"     ,Plato::electrical::property::ELECTRICAL_CONDUCTIVITY},
+        {"out-of-plane thickness"      ,Plato::electrical::property::OUT_OF_PLANE_THICKNESS},
+        {"material names"              ,Plato::electrical::property::MATERIAL_NAMES},
+        {"electrical constant"         ,Plato::electrical::property::ELECTRICAL_CONSTANT},
+        {"relative static permittivity",Plato::electrical::property::RELATIVE_STATIC_PERMITTIVITY},
+        {"penalty exponent"            ,Plato::electrical::property::TO_ERSATZ_MATERIAL_EXPONENT},
+        {"minimum value"               ,Plato::electrical::property::TO_MIN_ERSATZ_MATERIAL_VALUE}    
+    };
 
-    std::string mName = "";
-    
 public:
-    MaterialElectricConductivity(
-        const std::string            & aMaterialName,
-        const Teuchos::ParameterList & aParamList
-    ) : 
-      mName(aMaterialName)
+    Plato::electrical::property get(const std::string &aInput) const
     {
-        this->parseScalar("Electric Conductivity", aParamList);   
-        auto tElectricConductivity = this->getScalarConstant("Electric Conductivity");
-        this->setTensorConstant("material tensor",Plato::TensorConstant<mNumSpatialDims>(tElectricConductivity));
+        auto tLower = Plato::tolower(aInput);
+        auto tItr = s2e.find(tLower);
+        if( tItr == s2e.end() ){
+            ANALYZE_THROWERR(std::string("Did not find matching enum for electrical property ('") + tLower + "')")
+        }
+        return tItr->second;
     }
-    ~MaterialElectricConductivity(){}
+};
+
 };
 
 /******************************************************************************/
 /*!
- \brief Base class for linear electric conductivity material model
+ \brief Base class for linear electrical conductivity material model
  */
 template<typename EvaluationType>
-class MaterialElectricConductivityTwoPhaseAlloy : public MaterialModel<EvaluationType>
+class MaterialElectricalConductivity : public MaterialModel<EvaluationType>
 /******************************************************************************/
 {
 private:
     using ElementType = typename EvaluationType::ElementType; // set local element type
     using ElementType::mNumSpatialDims;  /*!< spatial dimensions */
-
-    std::string mMaterialName = "";
-    Plato::OrdinalType mNumMaterials = 0;
-    std::vector<Plato::Scalar> mConductivities;
+    
+    Plato::electrical::PropEnum mS2E; /*!< map string to supported enum */
+    std::unordered_map<Plato::electrical::property,std::vector<std::string>> mProperties;
 
 public:
-    MaterialElectricConductivityTwoPhaseAlloy(
-        const std::string            & aModelName, 
-        const Teuchos::ParameterList & aParamList
-    ) : 
-      mMaterialName(aModelName)
-    {
-        this->parseProperties(aParamList);
-        this->setTensors();
-    }
-    ~MaterialElectricConductivityTwoPhaseAlloy(){}
-
-private:
-    void parseProperties(
+    MaterialElectricalConductivity(
+        const std::string            & aMaterialName,
         const Teuchos::ParameterList & aParamList
     )
     {
-        bool tIsArray = aParamList.isType<Teuchos::Array<Plato::Scalar>>("Electric Conductivity");
+        this->name(aMaterialName);
+        this->parseScalar("Electrical Conductivity", aParamList);
+        auto tElectricConductivity = this->getScalarConstant("Electrical Conductivity");
+        this->setTensorConstant("material tensor",Plato::TensorConstant<mNumSpatialDims>(tElectricConductivity));
+        mProperties[mS2E.get("Electrical Conductivity")].push_back( std::to_string(tElectricConductivity) );
+    }
+    ~MaterialElectricalConductivity(){}
+
+    std::vector<std::string> 
+    property(const std::string & aPropertyID)
+    const override
+    {
+        auto tEnum = mS2E.get(aPropertyID);
+        auto tItr = mProperties.find(tEnum);
+        if( tItr == mProperties.end() ){
+            return {};
+        }
+        return tItr->second;
+    }
+};
+
+/******************************************************************************/
+/*!
+ \brief Base class for linear electrical conductivity material model
+ */
+template<typename EvaluationType>
+class MaterialElectricalConductivityTwoPhaseAlloy : public MaterialModel<EvaluationType>
+/******************************************************************************/
+{
+private:
+    using ElementType = typename EvaluationType::ElementType; // set local element type
+    using ElementType::mNumSpatialDims;  /*!< spatial dimensions */
+    using ElementType::mNumNodesPerCell; /*!< number of nodes per cell */
+
+    // define ad types
+    using StateScalarType   = typename EvaluationType::StateScalarType;
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
+    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+    
+    Plato::Scalar mPenaltyExponent = 3.0;
+    Plato::Scalar mMinErsatzMaterialValue = 0.0;
+
+    std::vector<std::string>   mMaterialNames;
+    std::vector<Plato::Scalar> mConductivities;
+    std::vector<Plato::Scalar> mOutofPlaneThickness;
+
+    Plato::electrical::PropEnum mS2E; /*!< map string to supported enum */
+    std::unordered_map<Plato::electrical::property,std::vector<std::string>> mProperties;
+
+public:
+    MaterialElectricalConductivityTwoPhaseAlloy(
+        const std::string            & aMaterialName, 
+        const Teuchos::ParameterList & aParamList
+    )
+    {
+        this->name(aMaterialName);
+        this->initialize(aParamList);
+    }
+    ~MaterialElectricalConductivityTwoPhaseAlloy(){}
+
+    void 
+    computeMaterialTensor(
+        const Plato::SpatialDomain                         & aSpatialDomain,
+        const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
+        const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
+        const Plato::ScalarArray4DT<ResultScalarType>      & aResult
+    ) 
+    const override
+    { 
+        // get material tensor for each phase
+        Plato::TensorConstant<mNumSpatialDims> tTensorOne = this->getTensorConstant(mMaterialNames.front());
+        Plato::TensorConstant<mNumSpatialDims> tTensorTwo = this->getTensorConstant(mMaterialNames.back());
+
+        // create material penalty model
+        Plato::MSIMP tSIMP(mPenaltyExponent,mMinErsatzMaterialValue);
+
+        // evaluate residual    
+        auto tCubPoints  = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumCells   = aSpatialDomain.numCells();
+        auto tNumPoints  = tCubWeights.size();     
+
+        Kokkos::parallel_for("evaluate material tensor for 2-phase alloy", 
+          Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+          KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        {
+            auto tCubPoint = tCubPoints(iGpOrdinal);
+            auto tBasisValues = ElementType::basisValues(tCubPoint);
+            ControlScalarType tDensity = 
+              Plato::cell_density<mNumNodesPerCell>(iCellOrdinal, aControl, tBasisValues);
+            ControlScalarType tMaterialPenalty = tSIMP(tDensity);
+            for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
+                for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
+                    aResult(iCellOrdinal,iGpOrdinal,tDimI,tDimJ) = tTensorTwo(tDimI,tDimJ) + 
+                      ( ( tTensorOne(tDimI,tDimJ) - tTensorTwo(tDimI,tDimJ) ) * tMaterialPenalty );
+                }
+            }
+        });
+    }
+
+    std::vector<std::string> 
+    property(const std::string & aPropertyID)
+    const override
+    {
+        auto tEnum = mS2E.get(aPropertyID);
+        auto tItr = mProperties.find(tEnum);
+        if( tItr == mProperties.end() ){
+            return {};
+        }
+        return tItr->second;
+    }
+
+private:
+    void initialize(
+        const Teuchos::ParameterList & aParamList
+    )
+    {
+        this->parsePhysicalProperties(aParamList);
+        this->parseOutofPlaneThickness(aParamList);
+        this->parseMaterialNames(aParamList);
+        this->parsePenaltyModel(aParamList);
+        this->setTensors();
+    }
+
+    void parsePhysicalProperties(
+        const Teuchos::ParameterList & aParamList
+    )
+    {
+        bool tIsArray = aParamList.isType<Teuchos::Array<Plato::Scalar>>("Electrical Conductivity");
         if (tIsArray)
         {
             // parse inputs
             Teuchos::Array<Plato::Scalar> tConductivities = 
-              aParamList.get<Teuchos::Array<Plato::Scalar>>("Electric Conductivity");
+              aParamList.get<Teuchos::Array<Plato::Scalar>>("Electrical Conductivity");
             // create mirror 
-            mNumMaterials = tConductivities.size();
-            for( Plato::OrdinalType tIndex = 0; tIndex < mNumMaterials; tIndex++)
+            for(size_t tIndex = 0; tIndex < tConductivities.size(); tIndex++)
             {
-                mConductivities.push_back(tConductivities[tIndex]);
+              mProperties[mS2E.get("Electrical Conductivity")].push_back( std::to_string(tConductivities[tIndex]) );
+              mConductivities.push_back(tConductivities[tIndex]);
             }
         }
         else
         {
-            auto tMsg = std::string("Array of electric conductivities is not defined in material block with name '") 
-                + mMaterialName + "'. Material tensor for the two-phase alloy material cannnot be computed.";
+            auto tMaterialName = this->name();
+            auto tMsg = std::string("Array of electrical conductivities is not defined in material block with name '") 
+              + tMaterialName + "'. Material tensor for the two-phase alloy material cannnot be computed.";
             ANALYZE_THROWERR(tMsg)
         }
     }
-    void setTensors()
+    
+    void 
+    parseMaterialNames(
+        const Teuchos::ParameterList & aParamList
+    )
     {
-        for(const auto& tConductivity : mConductivities){
-            Plato::OrdinalType tIndex = &tConductivity - &mConductivities[0];
-            auto tName = std::string("material tensor ") + std::to_string(tIndex);
-            this->setTensorConstant(tName,Plato::TensorConstant<mNumSpatialDims>(tConductivity));
+        bool tIsArray = aParamList.isType<Teuchos::Array<Plato::Scalar>>("Material Name");
+        if (tIsArray)
+        {
+            // parse inputs
+            Teuchos::Array<std::string> tMaterialNames = 
+              aParamList.get<Teuchos::Array<std::string>>("Material Name");
+            // create mirror 
+            for(size_t tIndex = 0; tIndex < mMaterialNames.size(); tIndex++){
+                mMaterialNames.push_back(tMaterialNames[tIndex]);
+            }
+            if( mConductivities.size() > mMaterialNames.size() ){
+                // assume default values for missing names
+                for(Plato::OrdinalType tIndex = mMaterialNames.size() - 1u; tIndex < mConductivities.size(); tIndex++){
+                    auto tName = std::string("material ") + std::to_string(tIndex);
+                    mProperties[mS2E.get("Material Name")].push_back(tName);
+                    mMaterialNames.push_back(tName);
+                }
+            }
+        }
+        else
+        {
+            // assuming default names
+            for(Plato::OrdinalType tIndex = 0; tIndex < mConductivities.size(); tIndex++)
+            {
+                auto tName = std::string("material ") + std::to_string(tIndex);
+                mProperties[mS2E.get("Material Name")].push_back(tName);
+                mMaterialNames.push_back(tName);
+            }
         }
     }
 
-    
+    void 
+    parseOutofPlaneThickness(
+        Teuchos::ParameterList &aParamList
+    )
+    {
+        bool tIsArray = aParamList.isType<Teuchos::Array<Plato::Scalar>>("Out-of-Plane Thickness");
+        if (tIsArray)
+        {
+            // parse inputs
+            Teuchos::Array<Plato::Scalar> tOutofPlaneThickness = 
+              aParamList.get<Teuchos::Array<Plato::Scalar>>("Out-of-Plane Thickness");
+            // create mirror 
+            mOutofPlaneThickness.clear();
+            for(size_t tIndex = 0; tIndex < tOutofPlaneThickness.size(); tIndex++)
+            {
+              mProperties[mS2E.get("Out-of-Plane Thickness")].push_back(std::to_string(tOutofPlaneThickness[tIndex]));
+              mOutofPlaneThickness.push_back(tOutofPlaneThickness[tIndex]);
+            }
+        }
+        else
+        {
+            auto tMsg = std::string("Array of out-of-plane thicknesses is not defined in Single Diode block. ") 
+              + "Current density for two-phase alloy cannnot be computed.";
+            ANALYZE_THROWERR(tMsg)
+        }
+    }
+
+    void 
+    parsePenaltyModel(
+        Teuchos::ParameterList & aParamList
+    )
+    {
+        mPenaltyExponent = aParamList.get<Plato::Scalar>("Penalty Exponent", 3.0);
+        mProperties[mS2E.get("Penalty Exponent")].push_back( std::to_string(mPenaltyExponent) );
+        mMinErsatzMaterialValue = aParamList.get<Plato::Scalar>("Minimum Value", 0.0);
+        mProperties[mS2E.get("Minimum Value")].push_back( std::to_string(mMinErsatzMaterialValue) );
+    }
+
+    void 
+    setTensors()
+    {
+        for(const auto& tConductivity : mConductivities){
+            Plato::OrdinalType tIndex = &tConductivity - &mConductivities[0];
+            this->setTensorConstant(mMaterialNames[tIndex],Plato::TensorConstant<mNumSpatialDims>(tConductivity));
+        }
+    }
 };
 
 /******************************************************************************/
@@ -133,36 +340,61 @@ class MaterialDielectric : public MaterialModel<EvaluationType>
 private:
     using ElementType = typename EvaluationType::ElementType; // set local element type
     using ElementType::mNumSpatialDims;  /*!< spatial dimensions */
-    
-    std::string mName = "";
+
+    Plato::electrical::PropEnum mS2E; /*!< map string to supported enum */
+    std::unordered_map<Plato::electrical::property,std::vector<std::string>> mProperties;
 
 public:
     MaterialDielectric(
-        const std::string            & aModelName, 
-        const Teuchos::ParameterList & aParamList
-    ) : 
-      mName(aModelName)
+        const std::string            & aMaterialName, 
+              Teuchos::ParameterList & aParamList
+    )
     {
-        this->parseScalar("Electric Constant", aParamList);
+        this->name(aMaterialName);
+        this->initialize(aParamList);
+    }
+    ~MaterialDielectric(){}
+
+    std::vector<std::string> 
+    property(const std::string & aPropertyID)
+    const override
+    {
+        auto tEnum = mS2E.get(aPropertyID);
+        auto tItr = mProperties.find(tEnum);
+        if( tItr == mProperties.end() ){
+            return {};
+        }
+        return tItr->second;
+    }
+
+private:
+    void 
+    initialize(
+        Teuchos::ParameterList & aParamList
+    )
+    {
+        this->parseScalar("Electrical Constant", aParamList);
         this->parseScalar("Relative Static Permittivity", aParamList);
-        auto tElectricConstant = this->getScalarConstant("Electric Constant");
+        auto tElectricConstant = this->getScalarConstant("Electrical Constant");
         auto tRelativeStaticPermittivity = this->getScalarConstant("Relative Static Permittivity");
         auto tValue = tElectricConstant * tRelativeStaticPermittivity;
         this->setTensorConstant("material tensor",Plato::TensorConstant<mNumSpatialDims>(tValue));
+
+        mProperties[mS2E.get("Electrical Constant")].push_back(std::to_string(tElectricConstant));
+        mProperties[mS2E.get("Relative Static Permittivity")].push_back(std::to_string(tRelativeStaticPermittivity));
     }
-    ~MaterialDielectric(){}
 };
 
 /******************************************************************************/
 /*!
- \brief Factory for creating electric material models
+ \brief Factory for creating electrical material constitutive models
  */
 template<typename EvaluationType>
-class FactoryElectricMaterial
+class FactoryElectricalMaterial
 /******************************************************************************/
 {
 public:
-    FactoryElectricMaterial(
+    FactoryElectricalMaterial(
         const Teuchos::ParameterList& aParamList
     ) :
       mParamList(aParamList)
@@ -186,10 +418,19 @@ public:
             }
     
             auto tModelParamList = tModelsParamList.sublist(aModelName);
-            if(tModelParamList.isSublist("Electric Conductivity"))
+            if(tModelParamList.isSublist("Electrical Conductivity 2-Phase Alloy"))
             {
-                auto tMaterial = std::make_shared<Plato::MaterialElectricConductivity<EvaluationType>>
-                                 (aModelName, tModelParamList.sublist("Electric Conductivity"));
+                auto tMaterial = std::make_shared<Plato::MaterialElectricalConductivityTwoPhaseAlloy<EvaluationType>>
+                                 (aModelName, tModelParamList.sublist("Electrical Conductivity 2-Phase Alloy"));
+                tMaterial->model("Electrical Conductivity 2-Phase Alloy");
+                return tMaterial;
+            }
+            else
+            if(tModelParamList.isSublist("Electrical Conductivity"))
+            {
+                auto tMaterial = std::make_shared<Plato::MaterialElectricalConductivity<EvaluationType>>
+                                 (aModelName, tModelParamList.sublist("Electrical Conductivity"));
+                tMaterial->model("Electrical Conductivity");
                 return tMaterial;
             }
             else 
@@ -197,6 +438,7 @@ public:
             {
                 auto tMaterial = std::make_shared<Plato::MaterialDielectric<EvaluationType>>
                                 (aModelName, tModelParamList.sublist("Dielectric"));
+                tMaterial->model("Dielectric");
                 return tMaterial;
             }
             else
@@ -225,48 +467,13 @@ private:
 private:
     const Teuchos::ParameterList& mParamList;
     
-    std::vector<std::string> mSupportedMaterials = {"Electric Conductivity", "Dielectric"};
+    std::vector<std::string> mSupportedMaterials = 
+      {"Electrical Conductivity", "Dielectric", "Electrical Conductivity 2-Phase Alloy"};
 };
 
-template<typename EvaluationType>
-class CurrentDensity
-{
-private:
-    using ElementType = typename EvaluationType::ElementType; /*<! local element type */
-    using ElementType::mNumSpatialDims;
-    
-public:
-    CurrentDensity(){}
-    ~CurrentDensity(){}
-
-    template<
-      typename TScalarType, 
-      typename TGradScalarType, 
-      typename TMatScalarType,
-      typename TOutScalarType>
-    KOKKOS_INLINE_FUNCTION void
-    operator()(
-            Plato::Array<mNumSpatialDims,TOutScalarType>                  & aCurrentDensity,
-      const Plato::Array<mNumSpatialDims,TGradScalarType>                 & aStateGradient,
-      const Plato::Matrix<mNumSpatialDims,mNumSpatialDims,TMatScalarType> & aMaterialTensor,
-      const TScalarType                                                   & aElecPotential
-    ) const
-    {
-        // compute thermal flux - linear case
-        for (Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++) 
-        {
-            aCurrentDensity(tDimI) = 0.0;
-            for (Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++) 
-            {
-                aCurrentDensity(tDimJ) += aMaterialTensor(tDimI,tDimJ) * aStateGradient(tDimJ);
-            }
-        }
-    }
-};
-// class CurrentDensity
 
 template<typename EvaluationType>
-class DarkCurrent
+class LightCurrentDensityTwoPhaseAlloy
 {
 private:
     // set local element type
@@ -281,26 +488,161 @@ private:
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
+    Plato::Scalar mGenerationRate = -0.40914; /*!< generation rate */
+    Plato::Scalar mPenaltyExponent = 3.0; /*!< penalty exponent for material penalty model */
+    Plato::Scalar mMinErsatzMaterialValue = 0.0; /*!< minimum value for the ersatz material density */
+    Plato::Scalar mIlluminationPower = 1000.0; /*!< solar illumination power */
+
+    std::vector<Plato::Scalar> mOutofPlaneThickness; /*!< list of out-of-plane material thickness */
+
+public:
+    LightCurrentDensityTwoPhaseAlloy(
+      Teuchos::ParameterList               & aParamList,
+      Plato::MaterialModel<EvaluationType> & aMaterial
+    )
+    {
+        this->initialize(aParamList);
+        this->setOutofPlaneThickness(aMaterial);
+    }
+    ~LightCurrentDensityTwoPhaseAlloy(){}
+
+    void 
+    evaluate(
+        const Plato::SpatialDomain                         & aSpatialDomain,
+        const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
+        const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
+        const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
+        const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
+              Plato::Scalar                                  aScale
+    ) 
+    const
+    {
+        // integration rule
+        auto tCubPoints  = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints  = tCubWeights.size();
+
+        // interpolate nodal values to integration points
+        Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
+
+        // out-of-plane thicknesses
+        Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
+        Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
+
+        // evaluate light-generated current density
+        Plato::OrdinalType tNumCells = aSpatialDomain.numCells();
+        Kokkos::parallel_for("light-generated current density", 
+          Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+          KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        {
+            auto tCubPoint = tCubPoints(iGpOrdinal);
+            auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal));
+            auto tBasisValues = ElementType::basisValues(tCubPoint);
+
+            // material interpolation
+            ControlScalarType tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
+            ControlScalarType tMaterialFraction = static_cast<Plato::Scalar>(1.0) - tDensity;
+            ControlScalarType tMaterialPenalty = pow(tMaterialFraction, mPenaltyExponent);
+
+            // out-of-plane thickness interpolation
+            ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
+            ControlScalarType tThicknessInterpolation = tThicknessTwo + 
+              ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
+
+            auto tWeight = aScale * tCubWeights(iGpOrdinal) * tDetJ;
+            for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
+            {
+                ResultScalarType tCellResult = ( tBasisValues(tFieldOrdinal) * mGenerationRate 
+                  * (tMaterialPenalty * mIlluminationPower) * tWeight ) / tThicknessInterpolation; 
+                Kokkos::atomic_add( &aResult(iCellOrdinal,tFieldOrdinal*mNumDofsPerNode),tCellResult );
+            }
+        });
+    }
+
+private:
+    void 
+    initialize(
+        Teuchos::ParameterList &aParamList
+    )
+    {
+        auto tParamListName = std::string("Light-Generated Current Density");
+        if( !aParamList.isSublist(tParamListName) )
+        { 
+            auto tMsg = std::string("Parameter is not valid. Argument ") + "('" + tParamListName + "') " 
+              + "is expected to be a parameter list.";
+            ANALYZE_THROWERR(tMsg) 
+        }
+        Teuchos::ParameterList& tSublist = aParamList.sublist(tParamListName);
+
+        this->parseParameters(tSublist);
+    }
+
+    void 
+    parseParameters(
+        Teuchos::ParameterList &aParamList
+    )
+    {
+        mGenerationRate = aParamList.get<Plato::Scalar>("Generation Rate",-0.40914);
+        mIlluminationPower = aParamList.get<Plato::Scalar>("Illumination Power",1000.0);
+        mPenaltyExponent = aParamList.get<Plato::Scalar>("Penalty Exponent", 3.0);
+        mMinErsatzMaterialValue = aParamList.get<Plato::Scalar>("Minimum Value", 0.0);
+    }
+
+    void 
+    setOutofPlaneThickness(
+        Plato::MaterialModel<EvaluationType> & aMaterialModel
+    )
+    {
+        std::vector<std::string> tThickness = aMaterialModel.property("out-of-plane thickness");
+        if ( tThickness.empty() )
+        {
+            auto tMsg = std::string("Array of out-of-plane thicknesses is empty. ") 
+              + "Light-generated current density cannnot be computed.";
+            ANALYZE_THROWERR(tMsg)
+        }
+        else
+        {
+            mOutofPlaneThickness.clear();
+            for(size_t tIndex = 0; tIndex < tThickness.size(); tIndex++)
+            {
+              Plato::Scalar tMyThickness = std::stod(tThickness[tIndex]);
+              mOutofPlaneThickness.push_back(tMyThickness);
+            }
+        }
+    }
+};
+
+template<typename EvaluationType>
+class DarkCurrentDensityTwoPhaseAlloy
+{
+private:
+    // set local element type
+    using ElementType = typename EvaluationType::ElementType;
+
+    using ElementType::mNumSpatialDims;  /*!< spatial dimensions */
+    using ElementType::mNumDofsPerNode;  /*!< number of degrees of freedom per node */
+    using ElementType::mNumNodesPerCell; /*!< number of nodes per cell/element */
+
+    using StateScalarType   = typename EvaluationType::StateScalarType;
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
+    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+
+    Plato::Scalar mPenaltyExponent = 3.0;
+
+    std::vector<Plato::Scalar> mOutofPlaneThickness;
     std::unordered_map<std::string,Plato::Scalar> mParameters;
 
 public:
-    DarkCurrent(Teuchos::ParameterList &aParamList)
+    DarkCurrentDensityTwoPhaseAlloy(
+      Teuchos::ParameterList               & aParamList,
+      Plato::MaterialModel<EvaluationType> & aMaterial
+    )
     {
-        if( !aParamList.isSublist("Dark Current") )
-        { ANALYZE_THROWERR("Parameter in Body Loads block is not valid. Expects a Parameter lists only."); }
-        Teuchos::ParameterList& tSublist = aParamList.sublist("Dark Current");
-
-        mParameters["a"]  = tSublist.get<Plato::Scalar>("a",0.);
-        mParameters["b"]  = tSublist.get<Plato::Scalar>("b",1.27e-6);
-        mParameters["c"]  = tSublist.get<Plato::Scalar>("c",25.94253);
-        mParameters["m1"] = tSublist.get<Plato::Scalar>("m1",0.38886);
-        mParameters["b1"] = tSublist.get<Plato::Scalar>("b1",0.);
-        mParameters["m2"] = tSublist.get<Plato::Scalar>("m2",30.);
-        mParameters["b2"] = tSublist.get<Plato::Scalar>("b2",6.520373);
-
-        mParameters["limit"] = tSublist.get<Plato::Scalar>("limit",-0.22);
+        this->initialize(aParamList);
+        this->setOutofPlaneThickness(aMaterial);
     }
-    ~DarkCurrent(){}
+    ~DarkCurrentDensityTwoPhaseAlloy(){}
 
     void
     get(
@@ -312,14 +654,19 @@ public:
               Plato::Scalar                                  aScale
     ) const
     {
+        // integration rule
         auto tCubPoints  = ElementType::getCubPoints();
         auto tCubWeights = ElementType::getCubWeights();
         auto tNumPoints  = tCubWeights.size();
 
+        // out-of-plane thicknesses
+        Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
+        Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
+
         // interpolate nodal values to integration points
         Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
 
-        // parameters for dark current model
+        // parameters for dark current fit model
         Plato::Scalar tCoefA  = mParameters.find("a");
         Plato::Scalar tCoefB  = mParameters.find("b");
         Plato::Scalar tCoefC  = mParameters.find("c");
@@ -329,19 +676,27 @@ public:
         Plato::Scalar tCoefB2 = mParameters.find("b2");
         Plato::Scalar tPerformanceLimit = mParameters.find("limit");
 
-        // integrate and assemble
+        // evaluate dark current density
         Plato::OrdinalType tNumCells = aSpatialDomain.numCells();
-        Kokkos::parallel_for("compute dark current", 
+        Kokkos::parallel_for("dark current density", 
           Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
           KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
+            // get basis functions and weights for this integration point
             auto tCubPoint = tCubPoints(iGpOrdinal);
             auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal));
-
             auto tBasisValues = ElementType::basisValues(tCubPoint);
-            ControlScalarType tErsatzDensity = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aControl);
+
+            // compute electrical potential
             StateScalarType tCellElectricPotential = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
 
+            // out-of-plane thickness interpolation
+            ControlScalarType tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
+            ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
+            ControlScalarType tThicknessInterpolation = tThicknessTwo + 
+              ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
+
+            // compute dark current density
             StateScalarType tDarkCurrentDensity = 0.0;
             if( tCellElectricPotential > 0.0 )
               { tDarkCurrentDensity = tCoefA + tCoefB * exp(tCoefC * tCellElectricPotential); }
@@ -355,16 +710,243 @@ public:
             auto tWeight = aScale * tCubWeights(iGpOrdinal) * tDetJ;
             for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
             {
-                ResultScalarType tCellResult = 
-                  tWeight * tDarkCurrentDensity * tBasisValues(tFieldOrdinal) * tErsatzDensity; 
-                Kokkos::atomic_add( &aResult(iCellOrdinal,tFieldOrdinal*mNumDofsPerNode),tCellResult );
+                ResultScalarType tCellResult = ( tBasisValues(tFieldOrdinal) * 
+                  tDarkCurrentDensity * tWeight ) / tThicknessInterpolation; 
+                Kokkos::atomic_add( &aResult(iCellOrdinal,tFieldOrdinal*mNumDofsPerNode), tCellResult );
             }
         });
+    }
+
+private:
+    void 
+    initialize(
+        Teuchos::ParameterList &aParamList
+    )
+    {
+        if( !aParamList.isSublist("Dark Current Density") )
+        { 
+            auto tMsg = std::string("Parameter in ('Dark Current Density') block is not valid. ")
+              + "Expects a Parameter lists only.";
+            ANALYZE_THROWERR(tMsg)
+        }
+        Teuchos::ParameterList& tSublist = aParamList.sublist("Dark Current Density");
+
+        this->parseParameters(tSublist);
+    }
+    
+    void 
+    parseParameters(
+        Teuchos::ParameterList & aParamList
+    )
+    {
+        mParameters["a"]     = aParamList.get<Plato::Scalar>("a",0.);
+        mParameters["b"]     = aParamList.get<Plato::Scalar>("b",1.27e-6);
+        mParameters["c"]     = aParamList.get<Plato::Scalar>("c",25.94253);
+        mParameters["m1"]    = aParamList.get<Plato::Scalar>("m1",0.38886);
+        mParameters["b1"]    = aParamList.get<Plato::Scalar>("b1",0.);
+        mParameters["m2"]    = aParamList.get<Plato::Scalar>("m2",30.);
+        mParameters["b2"]    = aParamList.get<Plato::Scalar>("b2",6.520373);
+        mParameters["limit"] = aParamList.get<Plato::Scalar>("limit",-0.22);
+
+        mPenaltyExponent = aParamList.get<Plato::Scalar>("Penalty Exponent", 3.0);
+    }
+
+    void 
+    setOutofPlaneThickness(
+        Plato::MaterialModel<EvaluationType> & aMaterialModel
+    )
+    {
+        std::vector<std::string> tThickness = aMaterialModel.property("out-of-plane thickness");
+        if ( tThickness.empty() )
+        {
+            auto tMsg = std::string("Array of out-of-plane thicknesses is empty. ") 
+              + "Dark current density cannnot be computed.";
+            ANALYZE_THROWERR(tMsg)
+        }
+        else
+        {
+            mOutofPlaneThickness.clear();
+            for(size_t tIndex = 0; tIndex < tThickness.size(); tIndex++)
+            {
+              Plato::Scalar tMyThickness = std::stod(tThickness[tIndex]);
+              mOutofPlaneThickness.push_back(tMyThickness);
+            }
+        }
+    }
+};
+
+// TODO: create factory to allocate volume forces. it will require refactoring the interfaces 
+// to take workset metadata; e.g., similar to how it is done in the Ifem unit test. 
+template<typename EvaluationType>
+class SingleDiodeTwoPhaseAlloy
+{
+private:
+    // set local element type
+    using ElementType = typename EvaluationType::ElementType;
+
+    using ElementType::mNumSpatialDims;  /*!< spatial dimensions */
+    using ElementType::mNumDofsPerNode;  /*!< number of degrees of freedom per node */
+    using ElementType::mNumNodesPerCell; /*!< number of nodes per cell/element */
+
+    using StateScalarType   = typename EvaluationType::StateScalarType;
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
+    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+
+    std::shared_ptr<Plato::DarkCurrentDensityTwoPhaseAlloy<EvaluationType>>  mDarkCurrentDensity;
+    std::shared_ptr<Plato::LightCurrentDensityTwoPhaseAlloy<EvaluationType>> mLightCurrentDensity;
+
+public:
+    SingleDiodeTwoPhaseAlloy(
+      Teuchos::ParameterList & aParamList
+    )
+    {
+        this->initialize(aParamList);
+    }
+    ~SingleDiodeTwoPhaseAlloy(){}
+
+    void 
+    evaluate(
+        const Plato::SpatialDomain                         & aSpatialDomain,
+        const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
+        const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
+        const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
+        const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
+              Plato::Scalar                                  aScale
+    ) 
+    const
+    {
+        // evaluate light-generated and dark current densities for a two-phase alloy model
+        mLightCurrentDensity->get(aSpatialDomain,aState,aControl,aConfig,aResult,1.0*aScale);
+        mDarkCurrentDensity->get(aSpatialDomain,aState,aControl,aConfig,aResult,-1.0*aScale);
     }
 };
 
 namespace Elliptic
 {
+
+template<typename EvaluationType>
+class VolumeTwoPhaseAlloy : 
+    public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+{
+private:
+    using ElementType = typename EvaluationType::ElementType;
+
+    using ElementType::mNumNodesPerCell;
+    using ElementType::mNumDofsPerNode;
+    using ElementType::mNumDofsPerCell;
+    using ElementType::mNumSpatialDims;
+
+    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mSpatialDomain;
+    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mDataMap;
+ 
+    using StateScalarType   = typename EvaluationType::StateScalarType;
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
+    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+
+    using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
+
+    Plato::Scalar mPenaltyExponent = 3.0;
+    std::vector<Plato::Scalar> mOutofPlaneThickness;
+
+public:
+    VolumeTwoPhaseAlloy(
+        const Plato::SpatialDomain   & aSpatialDomain,
+              Plato::DataMap         & aDataMap,
+              Teuchos::ParameterList & aParamList,
+        const std::string            & aFuncName
+    ) :
+        FunctionBaseType(aSpatialDomain, aDataMap, aParamList, aFuncName)
+    {
+        this->initialize(aParamList);
+    }
+
+    void
+    evaluate_conditional(
+        const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
+        const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
+        const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
+              Plato::ScalarVectorT      <ResultScalarType>  & aResult,
+              Plato::Scalar aTimeStep = 0.0
+    ) const override
+    {
+        // out-of-plane thicknesses for two-phase electrical material
+        Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
+        Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
+
+        // get basis functions and weights associated with the integration rule
+        auto tCubPoints  = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints  = tCubWeights.size();
+
+        // evaluate volume for a two-phase electrical material
+        auto tNumCells = mSpatialDomain.numCells();
+        Kokkos::parallel_for("compute volume", 
+          Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+          KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        {
+            // evaluate cell jacobian
+            auto tCubPoint  = tCubPoints(iGpOrdinal);
+            auto tCubWeight = tCubWeights(iGpOrdinal);
+            auto tJacobian = ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal);
+
+            // compute cell volume
+            ResultScalarType tCellVolume = Plato::determinant(tJacobian);
+            tCellVolume *= tCubWeight;
+
+            // evaluate out-of-plane thickness interpolation function
+            auto tBasisValues = ElementType::basisValues(tCubPoint);
+            ControlScalarType tDensity = 
+                Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
+            ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
+            ControlScalarType tThicknessInterpolation = tThicknessTwo + 
+              ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
+            
+            // apply penalty to volume
+            ResultScalarType tPenalizedVolume = tThicknessInterpolation * tCellVolume;
+
+            Kokkos::atomic_add(&aResult(iCellOrdinal), tPenalizedVolume);
+        });
+    }
+
+private:
+    void 
+    initialize(
+        Teuchos::ParameterList & aParamList
+    )
+    {
+        auto tName = mSpatialDomain.getMaterialName();
+        Plato::FactoryElectricalMaterial<EvaluationType> tMaterialFactory(aParamList);
+        auto tMaterialModel = tMaterialFactory.create(mSpatialDomain.getMaterialName());
+        this->setOutofPlaneThickness(tMaterialModel.operator*());
+
+        mPenaltyExponent = aParamList.get<Plato::Scalar>("Penalty Exponent", 3.0);
+    }
+
+    void 
+    setOutofPlaneThickness(
+        Plato::MaterialModel<EvaluationType> & aMaterialModel
+    )
+    {
+        std::vector<std::string> tThickness = aMaterialModel.property("out-of-plane thickness");
+        if ( tThickness.empty() )
+        {
+            auto tMsg = std::string("Array of out-of-plane thicknesses is empty. ") 
+              + "Volume criterion for two-phase material alloy cannnot be computed.";
+            ANALYZE_THROWERR(tMsg)
+        }
+        else
+        {
+            mOutofPlaneThickness.clear();
+            for(size_t tIndex = 0; tIndex < tThickness.size(); tIndex++)
+            {
+              Plato::Scalar tMyThickness = std::stod(tThickness[tIndex]);
+              mOutofPlaneThickness.push_back(tMyThickness);
+            }
+        }
+    }
+};
 
 /******************************************************************************/
 template<typename EvaluationType>
@@ -393,7 +975,10 @@ private:
 
     std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
-    std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>>   mBodyLoads;
+    // to be derived from a new body load class in the future
+    std::shared_ptr<Plato::SingleDiodeTwoPhaseAlloy<EvaluationType>> mSingleDiode; 
+
+    std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>>   mVolumeSource;
     std::shared_ptr<Plato::NaturalBCs<ElementType, mNumDofsPerNode>> mSurfaceLoads;
 
     std::vector<std::string> mPlottable;
@@ -408,16 +993,16 @@ public:
         // obligatory: define dof names in order
         mDofNames.push_back("electric_potential");
         // create material constitutive model
-        Plato::FactoryElectricMaterial<EvaluationType> tMaterialFactory(aProblemParams);
+        Plato::FactoryElectricalMaterial<EvaluationType> tMaterialFactory(aProblemParams);
         mMaterialModel = tMaterialFactory.create(aSpatialDomain.getMaterialName());
-        // TODO: create body loads
+        // parse external loads
+        this->parseBodyLoads();
         // TODO: create surface loads
         auto tResidualParams = aProblemParams.sublist("Elliptic");
         if( tResidualParams.isType<Teuchos::Array<std::string>>("Plottable") )
         {
             mPlottable = tResidualParams.get<Teuchos::Array<std::string>>("Plottable").toVector();
         }
-        this->parseBodyLoads();
     }
     ~ElectrostaticsResidual(){}
 
@@ -440,24 +1025,30 @@ public:
         Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
         Plato::GeneralFluxDivergence<ElementType> tComputeDivergence;
         Plato::ScalarGrad<ElementType>            tComputeScalarGrad;
-        Plato::CurrentDensity<EvaluationType>     tComputeCurrentDensity;  
 
         // interpolate nodal values to integration points
         Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
+
+        // integration rules
+        auto tCubPoints  = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints  = tCubWeights.size();   
 
         // quantity of interests
         auto tNumCells = mSpatialDomain.numCells();
         Plato::ScalarVectorT<ConfigScalarType>      
           tVolume("InterpolateFromNodalvolume",tNumCells);
         Plato::ScalarMultiVectorT<GradScalarType>   
-          tElectricField("electric field", tNumCells, mNumSpatialDims);
+          tElectricField("electrical field", tNumCells, mNumSpatialDims);
         Plato::ScalarMultiVectorT<ResultScalarType> 
           tCurrentDensity("current density", tNumCells, mNumSpatialDims);
+        Plato::ScalarArray4DT<ResultScalarType> 
+          tMaterialTensor("material tensor", tNumCells, tNumPoints, mNumSpatialDims, mNumSpatialDims);
+        
+        // evaluate material tensor
+        mMaterialModel->computeMaterialTensor(mSpatialDomain,aState,aControl,tMaterialTensor);
 
-        // evaluate residual    
-        auto tCubPoints  = ElementType::getCubPoints();
-        auto tCubWeights = ElementType::getCubWeights();
-        auto tNumPoints  = tCubWeights.size();      
+        // evaluate internal forces       
         Kokkos::parallel_for("evaluate electrostatics residual", 
           Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
           KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
@@ -470,11 +1061,21 @@ public:
   
             auto tCubPoint = tCubPoints(iGpOrdinal);
             auto tBasisValues = ElementType::basisValues(tCubPoint);
+
+            // compute electrical field 
             tComputeGradient(iCellOrdinal,tCubPoint,aConfig,tGradient,tCellVolume);
             tComputeScalarGrad(iCellOrdinal,tCellElectricField,aState,tGradient);
-            StateScalarType tCellElectricPotential = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
-            //tComputeCurrentDensity(tCellCurrentDensity,tCellElectricField,tCellElectricPotential);
-      
+
+            // compute current density
+            for (Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
+              tCellCurrentDensity(tDimI) = 0.0;
+              for (Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
+                tCellCurrentDensity(tDimI) += tMaterialTensor(iCellOrdinal,iGpOrdinal,tDimI,tDimJ) 
+                  * tCellElectricField(tDimJ);
+              }
+            }
+
+            // apply divergence operator to current density
             tCellVolume *= tCubWeights(iGpOrdinal);
             tComputeDivergence(iCellOrdinal,aResult,tCellCurrentDensity,tGradient,tCellVolume,-1.0);
           
@@ -485,6 +1086,16 @@ public:
             }
             Kokkos::atomic_add(&tVolume(iCellOrdinal),tCellVolume);
         });
+
+        // evaluate volume forces
+        if( mVolumeSource != nullptr )
+        {
+          mVolumeSource->get( mSpatialDomain, aState, aControl, aConfig, aResult, -1.0 );
+        }
+        if( mSingleDiode != nullptr )
+        {
+          mSingleDiode->get( mSpatialDomain, aState, aControl, aConfig, aResult, -1.0 );
+        }
 
         Kokkos::parallel_for("compute cell quantities", 
           Kokkos::RangePolicy<>(0, tNumCells),
@@ -497,8 +1108,8 @@ public:
             }
         });
 
-        if( std::count(mPlottable.begin(),mPlottable.end(),"electric field") ) 
-        { toMap(mDataMap, tElectricField, "electric field", mSpatialDomain); }
+        if( std::count(mPlottable.begin(),mPlottable.end(),"electrical field") ) 
+        { toMap(mDataMap, tElectricField, "electrical field", mSpatialDomain); }
         if( std::count(mPlottable.begin(),mPlottable.end(),"current density" ) )
         { toMap(mDataMap, tCurrentDensity, "current density" , mSpatialDomain); }
     }
@@ -525,8 +1136,19 @@ private:
     {
         if(aParamList.isSublist("Body Loads"))
         {
-            mBodyLoads = 
+            mVolumeSource = 
                 std::make_shared<Plato::BodyLoads<EvaluationType, ElementType>>(aParamList.sublist("Body Loads"));
+        }
+    }
+    void parseDarkCurrent(
+        Teuchos::ParameterList & aParamList
+    )
+    {
+        if(aParamList.isSublist("Dark Current Density"))
+        {
+            // to be derived from a volume force class in the future
+            mSingleDiode = std::make_shared<Plato::DarkCurrentDensityTwoPhaseAlloy<EvaluationType>>(
+                aParamList.sublist("Single Diode"));
         }
     }
 };
@@ -537,5 +1159,9 @@ private:
 
 namespace ElectrostaticsTest
 {
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassCriterion_NotNormalized_Evaluate)
+{
+}
 
 }

@@ -69,8 +69,8 @@ public:
             aOutput(aCellOrdinal, tDimIndex) = 0.0;
             for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
             {
-                aOutput(aCellOrdinal, tDimIndex) += aScalarField(aCellOrdinal, tNodeIndex)
-                        * aConfigGrad[tNodeIndex][tDimIndex];
+                aOutput(aCellOrdinal, tDimIndex) += aScalarField(aCellOrdinal, tNodeIndex) 
+                  * aConfigGrad[tNodeIndex][tDimIndex];
             }
         }
     }
@@ -94,8 +94,8 @@ public:
             aOutput(aCellOrdinal, tDimIndex) = 0.0;
             for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
             {
-                aOutput(aCellOrdinal, tDimIndex) += aScalarField(aCellOrdinal, tNodeIndex)
-                        * aGradient(aCellOrdinal, tNodeIndex, tDimIndex);
+                aOutput(aCellOrdinal, tDimIndex) += aScalarField(aCellOrdinal, tNodeIndex) 
+                  * aGradient(aCellOrdinal, tNodeIndex, tDimIndex);
             }
         }
     }

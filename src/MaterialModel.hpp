@@ -3,6 +3,7 @@
 #include <Teuchos_ParameterList.hpp>
 #include "PlatoStaticsTypes.hpp"
 #include "PlatoUtilities.hpp"
+#include "SpatialModel.hpp"
 #include "ElementBase.hpp"
 #include "ParseTools.hpp"
 
@@ -543,6 +544,12 @@ namespace Plato {
       using ElementType = typename EvaluationType::ElementType;
       static constexpr Plato::OrdinalType mNumSpatialDims = ElementType::mNumSpatialDims;
 
+      // define ad types
+      using StateScalarType   = typename EvaluationType::StateScalarType;
+      using ControlScalarType = typename EvaluationType::ControlScalarType;
+      using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+      using ResultScalarType  = typename EvaluationType::ResultScalarType;
+
       std::map<std::string, Plato::Scalar>                              mScalarConstantsMap;
       std::map<std::string, Plato::TensorConstant<mNumSpatialDims>>     mTensorConstantsMap;
       std::map<std::string, Plato::Rank4VoigtConstant<mNumSpatialDims>> mRank4VoigtConstantsMap;
@@ -553,6 +560,9 @@ namespace Plato {
 
       Plato::MaterialModelType mType;
       std::string mExpression;
+
+      std::string mName = "";
+      std::string mConstitutiveModel = "";
 
       bool mHasBasis;
       Plato::Matrix<mNumSpatialDims, mNumSpatialDims> mCartesianBasis;
@@ -603,15 +613,34 @@ namespace Plato {
           parseCartesianBasis(aParamList);
       }
 
+      void name(const std::string & aName){ mName = aName; }
+      decltype(mName) name() const { return mName; }
+
+      void model(const std::string & aModel) { mConstitutiveModel = aModel; }
+      decltype(mConstitutiveModel) model() const { return mConstitutiveModel; }
+
       Plato::OrdinalType getNumSpaceDims() const
       { return mNumSpatialDims; }
 
       Plato::OrdinalType getNumVoigtTerms() const
       { return ElementType::mNumVoigtTerms; }
 
-      virtual void
-      computeMaterialTensor() const
-    { return; }
+      virtual 
+      void
+      computeMaterialTensor(
+        const Plato::SpatialDomain                         & aSpatialDomain,
+        const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
+        const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
+        const Plato::ScalarArray4DT<ResultScalarType>       & aResult
+      ) 
+      const
+      { return; }
+
+      virtual 
+      std::vector<std::string> 
+      property(const std::string & aProperty)
+      const
+      { return {}; }
 
       void parseCartesianBasis(const Teuchos::ParameterList& aParamList)
       {

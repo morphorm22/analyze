@@ -370,7 +370,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_Evaluate_Vo
     TEST_FLOATING_EQUALITY(0.0148113, tObjFuncVal, tTolerance);
 }
 
-/*
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassCriterion_Normalized_Evaluate)
 {
     // create mesh
@@ -433,7 +432,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassCriterion_Normalized_Evaluate)
     constexpr Plato::Scalar tTolerance = 1e-4;
     TEST_FLOATING_EQUALITY(0.375, tObjFuncVal, tTolerance);
 }
-*/
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassCriterion_NotNormalized_Evaluate)
 {
