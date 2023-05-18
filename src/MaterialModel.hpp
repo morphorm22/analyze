@@ -539,10 +539,12 @@ namespace Plato {
     class MaterialModel
   /******************************************************************************/
   {
-    private:
+    public:
       // set local element type
       using ElementType = typename EvaluationType::ElementType;
       static constexpr Plato::OrdinalType mNumSpatialDims = ElementType::mNumSpatialDims;
+
+    private:
 
       // define ad types
       using StateScalarType   = typename EvaluationType::StateScalarType;
@@ -633,7 +635,6 @@ namespace Plato {
         const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
         const Plato::ScalarArray4DT<ResultScalarType>       & aResult
       ) 
-      const
       { return; }
 
       virtual 
