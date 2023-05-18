@@ -40,7 +40,7 @@ enum struct property
 {
     ELECTRICAL_CONDUCTIVITY=0, 
     OUT_OF_PLANE_THICKNESS=1, 
-    MATERIAL_NAMES=2, 
+    MATERIAL_NAME=2, 
     ELECTRICAL_CONSTANT=3, 
     RELATIVE_STATIC_PERMITTIVITY=4,
     TO_ERSATZ_MATERIAL_EXPONENT=5,
@@ -53,7 +53,7 @@ private:
     std::unordered_map<std::string,Plato::electrical::property> s2e = {
         {"electrical conductivity"     ,Plato::electrical::property::ELECTRICAL_CONDUCTIVITY},
         {"out-of-plane thickness"      ,Plato::electrical::property::OUT_OF_PLANE_THICKNESS},
-        {"material names"              ,Plato::electrical::property::MATERIAL_NAMES},
+        {"material name"               ,Plato::electrical::property::MATERIAL_NAME},
         {"electrical constant"         ,Plato::electrical::property::ELECTRICAL_CONSTANT},
         {"relative static permittivity",Plato::electrical::property::RELATIVE_STATIC_PERMITTIVITY},
         {"penalty exponent"            ,Plato::electrical::property::TO_ERSATZ_MATERIAL_EXPONENT},
@@ -248,7 +248,7 @@ private:
             // parse inputs
             Teuchos::Array<Plato::Scalar> tConductivities = 
               aParamList.get<Teuchos::Array<Plato::Scalar>>("Electrical Conductivity");
-            if(tConductivities.size() == 2){
+            if(tConductivities.size() != 2){
               auto tMaterialName = this->name();
               auto tMsg = std::string("Size of electrical conductivity array must equal two. ") 
                 + "Check electrical conductivity inputs in material block with name '" + tMaterialName
@@ -322,7 +322,7 @@ private:
             // parse inputs
             Teuchos::Array<Plato::Scalar> tOutofPlaneThickness = 
               aParamList.get<Teuchos::Array<Plato::Scalar>>("Out-of-Plane Thickness");
-            if(tOutofPlaneThickness.size() == 2){
+            if(tOutofPlaneThickness.size() != 2){
               auto tMaterialName = this->name();
               auto tMsg = std::string("Size of out-of-plane thickness array must equal two. ") 
                 + "Check out-of-plane thickness inputs in material block with name '" + tMaterialName
@@ -563,20 +563,35 @@ public:
         const StateScalarType & aCellElectricPotential
     )
     {
-        OutputScalarType aDarkCurrentDensity = 0.0;
+        OutputScalarType tDarkCurrentDensity = 0.0;
         if( aCellElectricPotential > 0.0 )
-          { aDarkCurrentDensity = mCoefA + mCoefB * exp(mCoefC * aCellElectricPotential); }
+          { tDarkCurrentDensity = mCoefA + mCoefB * exp(mCoefC * aCellElectricPotential); }
         else 
         if( (mPerformanceLimit < aCellElectricPotential) && (aCellElectricPotential < 0.0) )
-          { aDarkCurrentDensity = mCoefM1 * aCellElectricPotential + mCoefB1; }
+          { tDarkCurrentDensity = mCoefM1 * aCellElectricPotential + mCoefB1; }
         else 
         if( aCellElectricPotential < mPerformanceLimit )
-          { aDarkCurrentDensity = mCoefM2 * aCellElectricPotential + mCoefB2; }
+          { tDarkCurrentDensity = mCoefM2 * aCellElectricPotential + mCoefB2; }
+        return tDarkCurrentDensity;
     }
 
 private:
     void 
     initialize(
+        Teuchos::ParameterList & aParamList
+    )
+    {
+        if( !aParamList.isSublist("Dark Current Density") )
+        { 
+            auto tMsg = std::string("Parameter in ('Dark Current Density') block is not valid. ")
+              + "Expects a Parameter lists only.";
+            ANALYZE_THROWERR(tMsg)
+        }
+        Teuchos::ParameterList& tSublist = aParamList.sublist("Dark Current Density");
+        this->parseParameters(tSublist);
+    }
+    void 
+    parseParameters(
         Teuchos::ParameterList & aParamList
     )
     {
@@ -637,8 +652,8 @@ private:
         }
         Teuchos::ParameterList& tSublist = aParamList.sublist(tParamListName);
 
-        mGenerationRate = aParamList.get<Plato::Scalar>("Generation Rate",-0.40914);
-        mIlluminationPower = aParamList.get<Plato::Scalar>("Illumination Power",1000.0);
+        mGenerationRate = tSublist.get<Plato::Scalar>("Generation Rate",-0.40914);
+        mIlluminationPower = tSublist.get<Plato::Scalar>("Illumination Power",1000.);
     }
 };
 
@@ -660,7 +675,6 @@ private:
     std::string mMaterialName = "";
     Plato::Scalar mPenaltyExponent = 3.0; /*!< penalty exponent for material penalty model */
     Plato::Scalar mMinErsatzMaterialValue = 0.0; /*!< minimum value for the ersatz material density */
-
     std::vector<Plato::Scalar> mOutofPlaneThickness; /*!< list of out-of-plane material thickness */
 
     const Teuchos::ParameterList mParamList;
@@ -801,8 +815,6 @@ private:
     Plato::Scalar mPenaltyExponent = 3.0;
     const Teuchos::ParameterList mParamList;
     std::vector<Plato::Scalar> mOutofPlaneThickness;
-
-    // std::unordered_map<std::string,Plato::Scalar> mParameters;
 
 public:
     DarkCurrentDensityTwoPhaseAlloy(
@@ -1585,8 +1597,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MaterialElectricalConductivityTwoPhaseA
         "<ParameterList name='Material Models'>                                                        \n"
           "<ParameterList name='Mystic'>                                                               \n"
             "<ParameterList name='Electrical Conductivity 2-Phase Alloy'>                              \n"
-              "<Parameter  name='Electrical Conductivity'  type='Array(double)' value='{0.15,0.25}'/>  \n"
-              "<Parameter  name='Out-of-Plane Thickness'   type='Array(double)' value='{0.12,0.22}'/>  \n"
+              "<Parameter  name='Electrical Conductivity'  type='Array(double)' value='{0.15, 0.25}'/> \n"
+              "<Parameter  name='Out-of-Plane Thickness'   type='Array(double)' value='{0.12, 0.22}'/> \n"
             "</ParameterList>                                                                          \n"
           "</ParameterList>                                                                            \n"
         "</ParameterList>                                                                              \n"
@@ -1596,6 +1608,90 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MaterialElectricalConductivityTwoPhaseA
     using Residual = typename Plato::Elliptic::Evaluation<Plato::ElementElectrical<Plato::Tri3>>::Residual;
     Plato::FactoryElectricalMaterial<Residual> tFactoryMaterial(tParamList.operator*());
     auto tMaterial = tFactoryMaterial.create("Mystic");
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, DarkCurrentDensityQuadraticFit)
+{
+    Teuchos::RCP<Teuchos::ParameterList> tParamList = Teuchos::getParametersFromXmlString(
+      "<ParameterList name='Plato Problem'>                                                       \n"
+        "<ParameterList name='Spatial Model'>                                                     \n"
+          "<ParameterList name='Domains'>                                                         \n"
+            "<ParameterList name='Design Volume'>                                                 \n"
+              "<Parameter name='Element Block' type='string' value='body'/>                       \n"
+              "<Parameter name='Material Model' type='string' value='Mystic'/>                    \n"
+            "</ParameterList>                                                                     \n"
+          "</ParameterList>                                                                       \n"
+        "</ParameterList>                                                                         \n"
+        "<ParameterList name='Source Terms'>                                                      \n"
+          "<ParameterList name='Dark Current Density'>                                            \n"
+            "<Parameter  name='Model'              type='string'   value='Custom Quadratic Fit'/> \n"
+            "<Parameter  name='Performance Limit'  type='double'   value='-0.22'/>                \n"
+            "<Parameter  name='a'                  type='double'   value='0.0'/>                  \n"
+            "<Parameter  name='b'                  type='double'   value='1.27E-06'/>             \n"
+            "<Parameter  name='c'                  type='double'   value='25.94253'/>             \n"
+            "<Parameter  name='m1'                 type='double'   value='0.38886'/>              \n"
+            "<Parameter  name='b1'                 type='double'   value='0.0'/>                  \n"
+            "<Parameter  name='m2'                 type='double'   value='30.0'/>                 \n"
+            "<Parameter  name='b2'                 type='double'   value='6.520373'/>             \n"
+          "</ParameterList>                                                                       \n"
+        "</ParameterList>                                                                         \n"
+       "</ParameterList>                                                                          \n"
+      );
+
+    // TEST ONE: V > 0
+    using Residual = typename Plato::Elliptic::Evaluation<Plato::ElementElectrical<Plato::Tri3>>::Residual;
+    auto tSublist = tParamList->get<Teuchos::ParameterList>("Source Terms");
+    Plato::DarkCurrentDensityQuadraticFit<Residual,Plato::Scalar> tCurrentDensityModel(tSublist);
+    Residual::StateScalarType tElectricPotential = 0.67186;
+    Plato::Scalar tDarkCurrentDensity = tCurrentDensityModel.evaluate(tElectricPotential);
+    Plato::Scalar tTol = 1e-4;
+    TEST_FLOATING_EQUALITY(47.1463,tDarkCurrentDensity,tTol);
+
+    // TEST 2: V = 0
+    tElectricPotential = 0.;
+    tDarkCurrentDensity = tCurrentDensityModel.evaluate(tElectricPotential);
+    TEST_FLOATING_EQUALITY(0.,tDarkCurrentDensity,tTol);
+    
+    // TEST 3: -0.22 < V < 0 
+    tElectricPotential = -0.06189;
+    tDarkCurrentDensity = tCurrentDensityModel.evaluate(tElectricPotential);
+    TEST_FLOATING_EQUALITY(-0.0240665,tDarkCurrentDensity,tTol);
+
+    // TEST 4: V < -0.22 
+    tElectricPotential = -0.25;
+    tDarkCurrentDensity = tCurrentDensityModel.evaluate(tElectricPotential);
+    TEST_FLOATING_EQUALITY(-0.979627,tDarkCurrentDensity,tTol);
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, LightGeneratedCurrentDensityConstant)
+{
+    Teuchos::RCP<Teuchos::ParameterList> tParamList = Teuchos::getParametersFromXmlString(
+      "<ParameterList name='Plato Problem'>                                                       \n"
+        "<ParameterList name='Spatial Model'>                                                     \n"
+          "<ParameterList name='Domains'>                                                         \n"
+            "<ParameterList name='Design Volume'>                                                 \n"
+              "<Parameter name='Element Block' type='string' value='body'/>                       \n"
+              "<Parameter name='Material Model' type='string' value='Mystic'/>                    \n"
+            "</ParameterList>                                                                     \n"
+          "</ParameterList>                                                                       \n"
+        "</ParameterList>                                                                         \n"
+        "<ParameterList name='Source Terms'>                                                      \n"
+          "<ParameterList name='Light-Generated Current Density'>                                 \n"
+            "<Parameter  name='Model'              type='string'   value='Constant'/>             \n"
+            "<Parameter  name='Generation Rate'    type='double'   value='0.5'/>                  \n"
+            "<Parameter  name='Illumination Power' type='double'   value='10.0'/>                 \n"
+          "</ParameterList>                                                                       \n"
+        "</ParameterList>                                                                         \n"
+       "</ParameterList>                                                                          \n"
+      );
+
+    using Residual = typename Plato::Elliptic::Evaluation<Plato::ElementElectrical<Plato::Tri3>>::Residual;
+    auto tSublist = tParamList->get<Teuchos::ParameterList>("Source Terms");
+    Plato::LightGeneratedCurrentDensityConstant<Residual,Plato::Scalar> tCurrentDensityModel(tSublist);
+    Residual::StateScalarType tElectricPotential = 0.67186;
+    Plato::Scalar tDarkCurrentDensity = tCurrentDensityModel.evaluate(tElectricPotential);
+    Plato::Scalar tTol = 1e-4;
+    TEST_FLOATING_EQUALITY(5.,tDarkCurrentDensity,tTol);
 }
 
 }
