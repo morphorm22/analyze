@@ -13,6 +13,9 @@
 #include <Teuchos_UnitTestHarness.hpp>
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
+// unit test includes
+#include "util/PlatoTestHelpers.hpp"
+
 // plato
 #include "Tri3.hpp"
 #include "Simp.hpp"
@@ -20,6 +23,7 @@
 #include "BodyLoads.hpp"
 #include "NaturalBCs.hpp"
 #include "ScalarGrad.hpp"
+#include "WorksetBase.hpp"
 #include "SpatialModel.hpp"
 #include "MaterialModel.hpp"
 #include "GradientMatrix.hpp"
@@ -456,11 +460,11 @@ public:
             }
     
             auto tModelParamList = tModelsParamList.sublist(aModelName);
-            if(tModelParamList.isSublist("Electrical Conductivity 2-Phase Alloy"))
+            if(tModelParamList.isSublist("Two Phase Electrical Conductivity"))
             {
                 auto tMaterial = std::make_shared<Plato::MaterialElectricalConductivityTwoPhaseAlloy<EvaluationType>>
-                                 (aModelName, tModelParamList.sublist("Electrical Conductivity 2-Phase Alloy"));
-                tMaterial->model("Electrical Conductivity 2-Phase Alloy");
+                                 (aModelName, tModelParamList.sublist("Two Phase Electrical Conductivity"));
+                tMaterial->model("Two Phase Electrical Conductivity");
                 return tMaterial;
             }
             else
@@ -506,7 +510,7 @@ private:
     const Teuchos::ParameterList& mParamList;
     
     std::vector<std::string> mSupportedMaterials = 
-      {"Electrical Conductivity", "Dielectric", "Electrical Conductivity 2-Phase Alloy"};
+      {"Electrical Conductivity", "Dielectric", "Two Phase Electrical Conductivity"};
 };
 
 template<typename EvaluationType, 
@@ -526,7 +530,7 @@ public:
     OutputScalarType 
     evaluate(
         const StateScalarType & aCellElectricPotential
-    ) = 0;
+    ) const = 0;
 };
 
 template<typename EvaluationType, 
@@ -561,7 +565,7 @@ public:
     OutputScalarType 
     evaluate(
         const StateScalarType & aCellElectricPotential
-    )
+    ) const
     {
         OutputScalarType tDarkCurrentDensity = 0.0;
         if( aCellElectricPotential > 0.0 )
@@ -613,18 +617,21 @@ class LightGeneratedCurrentDensityConstant :
 {
 private:
     using ElementType = typename EvaluationType::ElementType;
-    using StateScalarType   = typename EvaluationType::StateScalarType;
+    using StateScalarType = typename EvaluationType::StateScalarType;
 
 public:
+    std::string mCurrentDensityName = ""; /*!< input light-generated current density parameter list name */
     Plato::Scalar mGenerationRate = -0.40914; /*!< generation rate */
     Plato::Scalar mIlluminationPower = 1000.0; /*!< solar illumination power */
 
 public:
     LightGeneratedCurrentDensityConstant(
-        Teuchos::ParameterList &aParamList
-    )
+      const std::string            & aCurrentDensityName,
+      const Teuchos::ParameterList & aParamList
+    ) : 
+      mCurrentDensityName(aCurrentDensityName)
     {
-        this->initialize(aParamList);
+      this->initialize(aParamList);
     }
     virtual ~LightGeneratedCurrentDensityConstant(){}
 
@@ -632,28 +639,32 @@ public:
     OutputScalarType 
     evaluate(
         const StateScalarType & aCellElectricPotential
-    )
+    ) const
     {
-        return ( static_cast<OutputScalarType>(mGenerationRate * mIlluminationPower) );
+      Plato::Scalar tOutput = mGenerationRate * mIlluminationPower;
+      return ( tOutput );
     }
 
 private:
     void 
     initialize(
-        Teuchos::ParameterList &aParamList
+      const Teuchos::ParameterList &aParamList
     )
     {
-        auto tParamListName = std::string("Light-Generated Current Density");
-        if( !aParamList.isSublist(tParamListName) )
-        { 
-            auto tMsg = std::string("Parameter is not valid. Argument ") + "('" + tParamListName + "') " 
-              + "is expected to be a parameter list.";
-            ANALYZE_THROWERR(tMsg) 
+        if( !aParamList.isSublist("Source Terms") ){
+          auto tMsg = std::string("Parameter is not valid. Argument ('Source Terms') is not a parameter list");
+          ANALYZE_THROWERR(tMsg)
         }
-        Teuchos::ParameterList& tSublist = aParamList.sublist(tParamListName);
+        auto tSourceTermsSublist = aParamList.sublist("Source Terms");
 
-        mGenerationRate = tSublist.get<Plato::Scalar>("Generation Rate",-0.40914);
-        mIlluminationPower = tSublist.get<Plato::Scalar>("Illumination Power",1000.);
+        if( !tSourceTermsSublist.isSublist(mCurrentDensityName) ){
+          auto tMsg = std::string("Parameter is not valid. Argument ('") + mCurrentDensityName 
+            + "') is not a parameter list";
+          ANALYZE_THROWERR(tMsg)
+        }
+        auto tCurrentDensitySublist = tSourceTermsSublist.sublist(mCurrentDensityName);
+        mGenerationRate = tCurrentDensitySublist.get<Plato::Scalar>("Generation Rate",-0.40914);
+        mIlluminationPower = tCurrentDensitySublist.get<Plato::Scalar>("Illumination Power",1000.);
     }
 };
 
@@ -673,17 +684,21 @@ private:
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
     std::string mMaterialName = "";
+    std::string mCurrentDensityName = "";
     Plato::Scalar mPenaltyExponent = 3.0; /*!< penalty exponent for material penalty model */
     Plato::Scalar mMinErsatzMaterialValue = 0.0; /*!< minimum value for the ersatz material density */
     std::vector<Plato::Scalar> mOutofPlaneThickness; /*!< list of out-of-plane material thickness */
 
-    const Teuchos::ParameterList mParamList;
+    const Teuchos::ParameterList& mParamList;
+
 public:
     LightCurrentDensityTwoPhaseAlloy(
       const std::string            & aMaterialName,
+      const std::string            & aCurrentDensityName,
             Teuchos::ParameterList & aParamList
     ) : 
       mMaterialName(aMaterialName),
+      mCurrentDensityName(aCurrentDensityName),
       mParamList(aParamList)
     {
         this->initialize(aParamList);
@@ -708,7 +723,7 @@ public:
 
         // interpolate nodal values to integration points
         Plato::LightGeneratedCurrentDensityConstant<EvaluationType,Plato::Scalar> 
-          LightGeneratedCurrentDensityModel(mParamList);
+          tLightGeneratedCurrentDensityModel(mCurrentDensityName,mParamList);
         Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
 
         // out-of-plane thicknesses
@@ -737,7 +752,8 @@ public:
 
             // evaluate light-generated current density
             StateScalarType tCellElectricPotential = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
-            Plato::Scalar tLightGenCurrentDensity = LightGeneratedCurrentDensityModel(tCellElectricPotential);
+            Plato::Scalar tLightGenCurrentDensity = 
+              tLightGeneratedCurrentDensityModel.evaluate(tCellElectricPotential);
 
             auto tWeight = aScale * tCubWeights(iGpOrdinal) * tDetJ;
             for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
@@ -755,16 +771,20 @@ private:
         Teuchos::ParameterList &aParamList
     )
     {
-        auto tParamListName = std::string("Light-Generated Current Density");
-        if( !aParamList.isSublist(tParamListName) )
-        { 
-            auto tMsg = std::string("Parameter is not valid. Argument ") + "('" + tParamListName + "') " 
-              + "is expected to be a parameter list.";
-            ANALYZE_THROWERR(tMsg) 
+        if( !aParamList.isSublist("Source Terms") ){
+          auto tMsg = std::string("Parameter is not valid. Argument ('Source Terms') is not a parameter list");
+          ANALYZE_THROWERR(tMsg)
         }
-        Teuchos::ParameterList& tSublist = aParamList.sublist(tParamListName);
-        mPenaltyExponent = aParamList.get<Plato::Scalar>("Penalty Exponent", 3.0);
-        mMinErsatzMaterialValue = aParamList.get<Plato::Scalar>("Minimum Value", 0.0);
+        auto tSourceTermsSublist = aParamList.sublist("Source Terms");
+
+        if( !tSourceTermsSublist.isSublist(mCurrentDensityName) ){
+          auto tMsg = std::string("Parameter is not valid. Argument ('") + mCurrentDensityName 
+            + "') is not a parameter list";
+          ANALYZE_THROWERR(tMsg)
+        }
+        auto tCurrentDensitySublist = tSourceTermsSublist.sublist(mCurrentDensityName);
+        mPenaltyExponent = tCurrentDensitySublist.get<Plato::Scalar>("Penalty Exponent", 3.0);
+        mMinErsatzMaterialValue = tCurrentDensitySublist.get<Plato::Scalar>("Minimum Value", 0.0);
 
         // set out-of-plane thickness array
         Plato::FactoryElectricalMaterial<EvaluationType> tMaterialFactory(aParamList);
@@ -812,6 +832,7 @@ private:
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
     std::string mMaterialName = "";
+    std::string mCurrentDensityName = "";
     Plato::Scalar mPenaltyExponent = 3.0;
     const Teuchos::ParameterList mParamList;
     std::vector<Plato::Scalar> mOutofPlaneThickness;
@@ -819,6 +840,7 @@ private:
 public:
     DarkCurrentDensityTwoPhaseAlloy(
       const std::string            & aMaterialName,
+      const std::string            & aCurrentDensityName,
             Teuchos::ParameterList & aParamList
     ) : 
       mMaterialName(aMaterialName),
@@ -948,9 +970,9 @@ public:
     )
     {
         mDarkCurrentDensity = 
-            std::make_shared<Plato::DarkCurrentDensityTwoPhaseAlloy<EvaluationType>>(aMaterialName,aParamList);
+            std::make_shared<Plato::DarkCurrentDensityTwoPhaseAlloy<EvaluationType>>(aMaterialName,"",aParamList);
         mLightCurrentDensity = 
-            std::make_shared<Plato::LightCurrentDensityTwoPhaseAlloy<EvaluationType>>(aMaterialName,aParamList);
+            std::make_shared<Plato::LightCurrentDensityTwoPhaseAlloy<EvaluationType>>(aMaterialName,"",aParamList);
     }
     ~SingleDiodeTwoPhaseAlloy(){}
 
@@ -1432,10 +1454,12 @@ public:
 
     using TopoElementType = TopoElementTypeT;
 
-    static constexpr Plato::OrdinalType mNumControl     = NumControls;
-
     static constexpr Plato::OrdinalType mNumDofsPerNode = 1;
     static constexpr Plato::OrdinalType mNumDofsPerCell = mNumDofsPerNode*mNumNodesPerCell;
+
+    static constexpr Plato::OrdinalType mNumControl = NumControls;
+    static constexpr Plato::OrdinalType mNumLocalDofsPerCell = 0;
+    static constexpr Plato::OrdinalType mNumNodeStatePerNode = 0;
 };
 // class ElementElectrical 
 
@@ -1468,6 +1492,56 @@ public:
 
 namespace ElectrostaticsTest
 {
+
+   Teuchos::RCP<Teuchos::ParameterList> tGenericParamList = Teuchos::getParametersFromXmlString(
+  "<ParameterList name='Plato Problem'>                                                                  \n"
+    "<ParameterList name='Spatial Model'>                                                                \n"
+      "<ParameterList name='Domains'>                                                                    \n"
+        "<ParameterList name='Design Volume'>                                                            \n"
+          "<Parameter name='Element Block' type='string' value='body'/>                                  \n"
+          "<Parameter name='Material Model' type='string' value='Mystic'/>                               \n"
+        "</ParameterList>                                                                                \n"
+      "</ParameterList>                                                                                  \n"
+    "</ParameterList>                                                                                    \n"
+    "<ParameterList name='Material Models'>                                                              \n"
+      "<ParameterList name='Mystic'>                                                                     \n"
+        "<ParameterList name='Two Phase Electrical Conductivity'>                                        \n"
+          "<Parameter  name='Material Name'            type='Array(string)' value='{silver,aluminum}'/>  \n"
+          "<Parameter  name='Electrical Conductivity'  type='Array(double)' value='{0.15,0.25}'/>        \n"
+          "<Parameter  name='Out-of-Plane Thickness'   type='Array(double)' value='{0.12,0.22}'/>        \n"
+        "</ParameterList>                                                                                \n"
+      "</ParameterList>                                                                                  \n"
+    "</ParameterList>                                                                                    \n"
+    "<ParameterList name='Criteria'>                                                                     \n"
+    "  <ParameterList name='Objective'>                                                                  \n"
+    "    <Parameter name='Type' type='string' value='Weighted Sum'/>                                     \n"
+    "    <Parameter name='Functions' type='Array(string)' value='{My Power}'/>                           \n"
+    "    <Parameter name='Weights' type='Array(double)' value='{1.0}'/>                                  \n"
+    "  </ParameterList>                                                                                  \n"
+    "  <ParameterList name='My Power'>                                                                   \n"
+    "    <Parameter name='Type'                        type='string'        value='Scalar Function'/>    \n"
+    "    <Parameter name='Scalar Function Type'        type='string'        value='Strength Constraint'/>\n"
+    "    <Parameter name='Exponent'                    type='double'        value='2.0'/>                \n"
+    "    <Parameter name='Minimum Value'               type='double'        value='1.0e-6'/>             \n"
+    "  </ParameterList>                                                                                  \n"
+    "</ParameterList>                                                                                    \n"
+    "<ParameterList name='Source Terms'>                                                                 \n"
+    "  <ParameterList name='Single Diode'>                                                               \n"
+    "    <Parameter name='Type' type='string' value='Two Phase'/>                                        \n"
+    "    <Parameter name='Functions' type='Array(string)' value='{My Dark CD ,My Light-Generated CD}'/>  \n"
+    "    <Parameter name='Weights'   type='Array(double)' value='{1.0,1.0}'/>                            \n"
+    "  </ParameterList>                                                                                  \n"
+    "  <ParameterList name='My Dark CD'>                                                                 \n"
+    "    <Parameter  name='Type'            type='string'      value='Dark Current Density'/>            \n"
+    "    <Parameter  name='Model'           type='string'      value='Quadratic Fit'/>           ,       \n"
+    "  </ParameterList>                                                                                  \n"
+    "  <ParameterList name='My Light-Generated CD'>                                                         \n"
+    "    <Parameter  name='Type'            type='string'      value='Light-Generated Current Density'/> \n"
+    "    <Parameter  name='Model'           type='string'      value='Constant'/>                        \n"
+      "</ParameterList>                                                                                  \n"
+    "</ParameterList>                                                                                    \n"
+  "</ParameterList>                                                                                      \n"
+  );
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MaterialElectricalConductivity_Error)
 {
@@ -1596,7 +1670,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MaterialElectricalConductivityTwoPhaseA
         "</ParameterList>                                                                              \n"
         "<ParameterList name='Material Models'>                                                        \n"
           "<ParameterList name='Mystic'>                                                               \n"
-            "<ParameterList name='Electrical Conductivity 2-Phase Alloy'>                              \n"
+            "<ParameterList name='Two Phase Electrical Conductivity'>                                  \n"
               "<Parameter  name='Electrical Conductivity'  type='Array(double)' value='{0.15, 0.25}'/> \n"
               "<Parameter  name='Out-of-Plane Thickness'   type='Array(double)' value='{0.12, 0.22}'/> \n"
             "</ParameterList>                                                                          \n"
@@ -1686,12 +1760,78 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, LightGeneratedCurrentDensityConstant)
       );
 
     using Residual = typename Plato::Elliptic::Evaluation<Plato::ElementElectrical<Plato::Tri3>>::Residual;
-    auto tSublist = tParamList->get<Teuchos::ParameterList>("Source Terms");
-    Plato::LightGeneratedCurrentDensityConstant<Residual,Plato::Scalar> tCurrentDensityModel(tSublist);
+    Plato::LightGeneratedCurrentDensityConstant<Residual,Plato::Scalar> 
+      tCurrentDensityModel("Light-Generated Current Density",tParamList.operator*());
     Residual::StateScalarType tElectricPotential = 0.67186;
     Plato::Scalar tDarkCurrentDensity = tCurrentDensityModel.evaluate(tElectricPotential);
     Plato::Scalar tTol = 1e-4;
     TEST_FLOATING_EQUALITY(5.,tDarkCurrentDensity,tTol);
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, LightCurrentDensityTwoPhaseAlloy)
+{
+    // create mesh
+    constexpr Plato::OrdinalType tSpaceDim = 2;
+    constexpr Plato::OrdinalType tMeshWidth = 1;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+    using ElementType = typename Plato::ElementElectrical<Plato::Tri3>;
+
+    //set ad-types
+    using Residual = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+    using StateT   = typename Residual::StateScalarType;
+    using ConfigT  = typename Residual::ConfigScalarType;
+    using ResultT  = typename Residual::ResultScalarType;
+    using ControlT = typename Residual::ControlScalarType;
+
+    // create configuration workset
+    Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
+    constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
+    Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
+    tWorksetBase.worksetConfig(tConfigWS);
+    
+    // create control workset
+    Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+    Plato::ScalarVector tControl("Controls", tNumVerts);
+    Plato::blas1::fill(0.5, tControl);
+    tWorksetBase.worksetControl(tControl, tControlWS);
+    
+    // create state workset
+    const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+    Plato::ScalarVector tState("States", tNumDofs);
+    Plato::blas1::fill(0.1, tState);
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+            {   tState(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal);}, "fill state");
+    constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
+    Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
+    tWorksetBase.worksetState(tState, tStateWS);
+    
+    // create spatial model
+    Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
+
+    // create current density
+    auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+    TEST_ASSERT(tGenericParamList->isSublist("Source Terms") == true);
+    Plato::LightCurrentDensityTwoPhaseAlloy<Residual> 
+      tCurrentDensity("Mystic","My Light-Generated CD",tGenericParamList.operator*());
+    
+    // create result/output workset
+    Plato::ScalarMultiVectorT<Plato::Scalar> tResultWS("result workset", tNumCells, tDofsPerCell);
+    tCurrentDensity.evaluate(tOnlyDomainDefined,tStateWS,tControlWS,tConfigWS,tResultWS,1.0);
+
+    // test against gold
+    auto tHost = Kokkos::create_mirror_view(tResultWS);
+    Plato::Scalar tTol = 1e-6;
+    std::vector<std::vector<Plato::Scalar>>tGold = {{-41.078313,-41.078313,-41.078313},
+                                                    {-41.078313,-41.078313,-41.078313}};
+    Kokkos::deep_copy(tHost, tResultWS);
+    for(Plato::OrdinalType i = 0; i < tNumCells; i++){
+      for(Plato::OrdinalType j = 0; j < tDofsPerCell; j++){
+        TEST_FLOATING_EQUALITY(tGold[i][j],tHost(i,j),tTol);
+      }
+    }
 }
 
 }

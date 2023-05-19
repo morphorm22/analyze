@@ -8,6 +8,12 @@
 
 #include <Kokkos_Macros.hpp>
 #include <Kokkos_Serial.hpp>
+#include <KokkosBlas1_abs.hpp>
+#include <KokkosBlas1_dot.hpp>
+#include <KokkosBlas1_scal.hpp>
+#include <KokkosBlas1_fill.hpp>
+#include <KokkosBlas1_nrm2.hpp>
+#include <KokkosBlas1_axpby.hpp>
 
 #include "AnalyzeMacros.hpp"
 #include "PlatoStaticsTypes.hpp"
@@ -27,11 +33,7 @@ namespace blas1
 **********************************************************************************/
 inline void abs(const Plato::ScalarVector & aVector)
 {
-    Plato::OrdinalType tLength = aVector.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tLength), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
-    {
-        aVector(aOrdinal) = fabs(aVector(aOrdinal));
-    }, "calculate absolute value");
+    KokkosBlas::abs(aVector,aVector);
 }
 // function abs
 
@@ -72,15 +74,8 @@ inline Plato::Scalar dot(const VecOneT & aVec1, const VecTwoT & aVec2)
             << aVec2.label() << "'.\n";
         ANALYZE_THROWERR(tMsg.str().c_str())
     }
-
-    Plato::Scalar tOutput = 0.;
-    const Plato::OrdinalType tSize = aVec1.size();
-    Kokkos::parallel_reduce(Kokkos::RangePolicy<>(0, tSize),
-                            KOKKOS_LAMBDA(const Plato::OrdinalType & aIndex, Plato::Scalar & aSum)
-    {
-        aSum += aVec1(aIndex) * aVec2(aIndex);
-    }, tOutput);
-    return (tOutput);
+    const Plato::Scalar tOutput = KokkosBlas::dot(aVec1,aVec2);
+    return tOutput;
 }
 // function dot
 
@@ -98,84 +93,28 @@ inline Plato::Scalar norm(const VecOneT & aVector)
         tMsg << "BLAS 1 NORM: INPUT VECTOR WITH LABEL '" << aVector.label() << "' IS EMPTY.\n";
         ANALYZE_THROWERR(tMsg.str().c_str())
     }
-    const auto tDot = Plato::blas1::dot(aVector, aVector);
-    const auto tOutput = std::sqrt(tDot);
+    const Plato::Scalar tOutput = KokkosBlas::nrm2(aVector);
     return (tOutput);
 }
 // function norm
 
 /******************************************************************************//**
  * \brief Set all the elements to a scalar value
- * \param [in] aInput   scalar value
+ * \param [in]  aValue  scalar value
  * \param [out] aVector 1D Kokkos container
 **********************************************************************************/
 template<typename VectorT>
-inline void fill(const Plato::Scalar & aInput, const VectorT & aVector)
+inline void fill(const Plato::Scalar & aValue, const VectorT & aVector)
 {
     if(aVector.size() <= static_cast<Plato::OrdinalType>(0))
     {
-	return;
+        return;
     }
-
-    if(std::isfinite(aInput) == false)
+    if(std::isfinite(aValue) == false)
     {
         ANALYZE_THROWERR("BLAS 1 FILL: INPUT SCALAR IS NOT A FINITE NUMBER.\n")
     }
-
-    Plato::OrdinalType tNumLocalVals = aVector.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
-    {
-        aVector(aOrdinal) = aInput;
-    }, "fill vector");
-}
-// function fill
-
-/******************************************************************************//**
- * \brief Set all the elements to a scalar value
- * \param [in] aMultiplier scalar multiplier
- * \param [in] aOrdinals   list of entry ordinals
- * \param [in] aValues     list of scalar values (1D Kokkos container)
- * \param [out] aVector    1D Kokkos container
-**********************************************************************************/
-template<typename VectorT>
-inline void fill(const Plato::Scalar & aMultiplier,
-                 const Plato::OrdinalVector & aOrdinals,
-                 const Plato::ScalarVector & aValues,
-                 const VectorT & aOutput)
-{
-    if(aOutput.size() <= static_cast<Plato::OrdinalType>(0))
-    {
-        std::stringstream tMsg;
-        tMsg << "BLAS 1 FILL: OUTPUT VECTOR WITH LABEL '" << aOutput.label() << "' IS EMPTY.\n";
-        ANALYZE_THROWERR(tMsg.str().c_str())
-    }
-
-    if(aValues.size() <= static_cast<Plato::OrdinalType>(0))
-    {
-        std::stringstream tMsg;
-        tMsg << "BLAS 1 FILL: INPUT VECTOR WITH LABEL '" << aValues.label() << "' IS EMPTY.\n";
-        ANALYZE_THROWERR(tMsg.str().c_str())
-    }
-
-    if(std::isfinite(aMultiplier) == false)
-    {
-        ANALYZE_THROWERR("BLAS 1 FILL: SCALAR MULTIPLIER IS NOT A FINITE NUMBER.")
-    }
-
-    if(aOrdinals.size() != aValues.size())
-    {
-        std::ostringstream tMsg;
-        tMsg << "BLAS 1 FILL: DIMENSION MISMATCH. INPUT LIST OF ORDINALS AND VALUES HAVE DIFFERENT LENGTH. "
-                << "LIST OF ORDINALS WITH LABEL '" << aOrdinals.label() << "' HAS LENGTH '"<< aOrdinals.size()
-                << "' AND LIST OF VALUES WITH LABEL '" << aValues.label() << "' HAS LENGTH '" << aValues.size() << "'\n.";
-        ANALYZE_THROWERR(tMsg.str().c_str())
-    }
-
-    const Plato::OrdinalType tNumLocalVals = aOutput.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), KOKKOS_LAMBDA(const Plato::OrdinalType & aIndex)
-    {
-        aOutput(aOrdinals(aIndex)) = aMultiplier * aValues(aIndex);
-    }, "fill vector");
+    KokkosBlas::fill(aVector,aValue);
 }
 // function fill
 
@@ -194,12 +133,7 @@ inline void copy(const VecOneT & aInput, const VecTwoT & aOutput)
         << aInput.size() << "' AND OUTPUT VECTOR WITH LABEL '" << aOutput.label() << "' HAS LENGTH '" << aOutput.size() << "'.";
         ANALYZE_THROWERR(tMsg.str().c_str())
     }
-
-    Plato::OrdinalType tNumLocalVals = aInput.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
-    {
-        aOutput(aOrdinal) = aInput(aOrdinal);
-    }, "copy vector");
+    KokkosBlas::axpby(1.0,aInput,0.0,aOutput);
 }
 // function copy
 
@@ -222,12 +156,7 @@ inline void scale(const Plato::Scalar & aInput, const VecT & aVector)
         tMsg << "BLAS 1 SCALE: INPUT VECTOR WITH LABEL '" << aVector.label() << "' IS EMPTY.";
         ANALYZE_THROWERR(tMsg.str().c_str())
     }
-
-    Plato::OrdinalType tNumLocalVals = aVector.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
-    {
-        aVector(aOrdinal) *= aInput;
-    }, "scale vector");
+    KokkosBlas::scal(aVector, aInput, aVector);
 }
 // function scale
 
@@ -247,12 +176,7 @@ inline void axpy(const Plato::Scalar & aAlpha, const VecT & aInput, const VecT &
                 << " AND OUTPUT VECTOR HAS SIZE = " << aOutput.size() << ".\n";
         ANALYZE_THROWERR(tMsg.str().c_str())
     }
-
-    Plato::OrdinalType tNumLocalVals = aInput.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
-    {
-        aOutput(aOrdinal) += aAlpha * aInput(aOrdinal);
-    }, "Plato::axpy");
+    KokkosBlas::axpy(aAlpha,aInput,aOutput);
 }
 // function axpy
 
@@ -284,12 +208,7 @@ void update(const Plato::Scalar & aAlpha, const VecT & aInput, const Plato::Scal
                 << aOutput.size() << "'.\n";
         ANALYZE_THROWERR(tMsg.str().c_str())
     }
-
-    Plato::OrdinalType tNumLocalVals = aInput.size();
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
-    {
-        aOutput(aOrdinal) = aAlpha * aInput(aOrdinal) + aBeta * aOutput(aOrdinal);
-    }, "update vector");
+    KokkosBlas::axpby(aAlpha,aInput,aBeta,aOutput);
 }
 // function update
 
