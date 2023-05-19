@@ -552,10 +552,14 @@ public:
     Plato::Scalar mCoefB2 = 6.520373;
     Plato::Scalar mPerformanceLimit = -0.22;
 
+    std::string mCurrentDensityName = "";
+
 public:
     DarkCurrentDensityQuadraticFit(
-        Teuchos::ParameterList & aParamList
-    )
+      const std::string            & aCurrentDensityName,
+      const Teuchos::ParameterList & aParamList
+    ) : 
+      mCurrentDensityName(aCurrentDensityName)
     {
         this->initialize(aParamList);
     }
@@ -582,17 +586,22 @@ public:
 private:
     void 
     initialize(
-        Teuchos::ParameterList & aParamList
+      const Teuchos::ParameterList & aParamList
     )
     {
-        if( !aParamList.isSublist("Dark Current Density") )
-        { 
-            auto tMsg = std::string("Parameter in ('Dark Current Density') block is not valid. ")
-              + "Expects a Parameter lists only.";
-            ANALYZE_THROWERR(tMsg)
+        if( !aParamList.isSublist("Source Terms") ){
+          auto tMsg = std::string("Parameter is not valid. Argument ('Source Terms') is not a parameter list");
+          ANALYZE_THROWERR(tMsg)
         }
-        Teuchos::ParameterList& tSublist = aParamList.sublist("Dark Current Density");
-        this->parseParameters(tSublist);
+        auto tSourceTermsSublist = aParamList.sublist("Source Terms");
+
+        if( !tSourceTermsSublist.isSublist(mCurrentDensityName) ){
+          auto tMsg = std::string("Parameter is not valid. Argument ('") + mCurrentDensityName 
+            + "') is not a parameter list";
+          ANALYZE_THROWERR(tMsg)
+        }
+        auto tCurrentDensitySublist = tSourceTermsSublist.sublist(mCurrentDensityName);
+        this->parseParameters(tCurrentDensitySublist);
     }
     void 
     parseParameters(
@@ -834,7 +843,7 @@ private:
     std::string mMaterialName = "";
     std::string mCurrentDensityName = "";
     Plato::Scalar mPenaltyExponent = 3.0;
-    const Teuchos::ParameterList mParamList;
+    const Teuchos::ParameterList& mParamList;
     std::vector<Plato::Scalar> mOutofPlaneThickness;
 
 public:
@@ -844,6 +853,7 @@ public:
             Teuchos::ParameterList & aParamList
     ) : 
       mMaterialName(aMaterialName),
+      mCurrentDensityName(aCurrentDensityName),
       mParamList(aParamList)
     {
         this->initialize(aParamList);
@@ -871,7 +881,8 @@ public:
 
         // create functors: 1) compute dark current density and 2) interpolate nodal values to integration points
         Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
-        Plato::DarkCurrentDensityQuadraticFit<EvaluationType,StateScalarType> tDarkCurrentDensityModel(mParamList);
+        Plato::DarkCurrentDensityQuadraticFit<EvaluationType,StateScalarType> 
+          tDarkCurrentDensityModel(mCurrentDensityName,mParamList);
 
         // evaluate dark current density
         Plato::OrdinalType tNumCells = aSpatialDomain.numCells();
@@ -892,7 +903,7 @@ public:
 
             // compute dark current density
             StateScalarType tCellElectricPotential = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
-            StateScalarType tDarkCurrentDensity = tDarkCurrentDensityModel(tCellElectricPotential);
+            StateScalarType tDarkCurrentDensity = tDarkCurrentDensityModel.evaluate(tCellElectricPotential);
 
             auto tWeight = aScale * tCubWeights(iGpOrdinal) * tDetJ;
             for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
@@ -910,11 +921,16 @@ private:
         Teuchos::ParameterList &aParamList
     )
     {
-        if( !aParamList.isSublist("Dark Current Density") )
-        { 
-            auto tMsg = std::string("Parameter in ('Dark Current Density') block is not valid. ")
-              + "Expects a Parameter lists only.";
-            ANALYZE_THROWERR(tMsg)
+        if( !aParamList.isSublist("Source Terms") ){
+          auto tMsg = std::string("Parameter is not valid. Argument ('Source Terms') is not a parameter list");
+          ANALYZE_THROWERR(tMsg)
+        }
+        auto tSourceTermsSublist = aParamList.sublist("Source Terms");
+
+        if( !tSourceTermsSublist.isSublist(mCurrentDensityName) ){
+          auto tMsg = std::string("Parameter is not valid. Argument ('") + mCurrentDensityName 
+            + "') is not a parameter list";
+          ANALYZE_THROWERR(tMsg)
         }
         Teuchos::ParameterList& tSublist = aParamList.sublist("Dark Current Density");
         mPenaltyExponent = aParamList.get<Plato::Scalar>("Penalty Exponent", 3.0);
@@ -1714,8 +1730,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, DarkCurrentDensityQuadraticFit)
 
     // TEST ONE: V > 0
     using Residual = typename Plato::Elliptic::Evaluation<Plato::ElementElectrical<Plato::Tri3>>::Residual;
-    auto tSublist = tParamList->get<Teuchos::ParameterList>("Source Terms");
-    Plato::DarkCurrentDensityQuadraticFit<Residual,Plato::Scalar> tCurrentDensityModel(tSublist);
+    Plato::DarkCurrentDensityQuadraticFit<Residual,Plato::Scalar> 
+      tCurrentDensityModel("Dark Current Density",tParamList.operator*());
     Residual::StateScalarType tElectricPotential = 0.67186;
     Plato::Scalar tDarkCurrentDensity = tCurrentDensityModel.evaluate(tElectricPotential);
     Plato::Scalar tTol = 1e-4;
