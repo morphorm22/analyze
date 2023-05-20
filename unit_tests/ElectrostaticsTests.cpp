@@ -1131,8 +1131,8 @@ public:
     {
       for(auto& tFunction : mCurrentDensityEvaluators)
       {
-        auto tFunctionIndex = &tFunction - &mCurrentDensityEvaluators[0];
-        auto tScalarMultiplier = mFunctionWeights[tFunctionIndex] * aScale;
+        Plato::OrdinalType tFunctionIndex = &tFunction - &mCurrentDensityEvaluators[0];
+        Plato::Scalar tScalarMultiplier = mFunctionWeights[tFunctionIndex] * aScale;
         tFunction->evaluate(aSpatialDomain,aState,aControl,aConfig,aResult,tScalarMultiplier);
       }
     }
