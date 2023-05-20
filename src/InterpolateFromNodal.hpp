@@ -61,7 +61,6 @@ public:
         const Plato::ScalarMultiVectorT<StateType> & aNodalCellStates) const
     {
         StateType tStateValue = 0.0;
-
         for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
         {
             Plato::OrdinalType tCellDofIndex = (NumDofsPerNode * tNodeIndex) + DofOffset;

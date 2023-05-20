@@ -605,7 +605,7 @@ private:
     }
     void 
     parseParameters(
-        Teuchos::ParameterList & aParamList
+      Teuchos::ParameterList & aParamList
     )
     {
         mCoefA  = aParamList.get<Plato::Scalar>("a",0.);
@@ -861,7 +861,7 @@ public:
     ~DarkCurrentDensityTwoPhaseAlloy(){}
 
     void
-    get(
+    evaluate(
         const Plato::SpatialDomain                         & aSpatialDomain,
         const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
@@ -1004,8 +1004,8 @@ public:
     const
     {
         // evaluate light-generated and dark current densities for a two-phase alloy model
-        mLightCurrentDensity->get(aSpatialDomain,aState,aControl,aConfig,aResult,1.0*aScale);
-        mDarkCurrentDensity->get(aSpatialDomain,aState,aControl,aConfig,aResult,-1.0*aScale);
+        mLightCurrentDensity->evaluate(aSpatialDomain,aState,aControl,aConfig,aResult,1.0*aScale);
+        mDarkCurrentDensity->evaluate(aSpatialDomain,aState,aControl,aConfig,aResult,-1.0*aScale);
     }
 };
 
@@ -1814,7 +1814,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, LightCurrentDensityTwoPhaseAlloy)
     tWorksetBase.worksetControl(tControl, tControlWS);
     
     // create state workset
-    const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+    const Plato::OrdinalType tNumDofs = tNumVerts;
     Plato::ScalarVector tState("States", tNumDofs);
     Plato::blas1::fill(0.1, tState);
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
@@ -1842,6 +1842,69 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, LightCurrentDensityTwoPhaseAlloy)
     Plato::Scalar tTol = 1e-6;
     std::vector<std::vector<Plato::Scalar>>tGold = {{-41.078313,-41.078313,-41.078313},
                                                     {-41.078313,-41.078313,-41.078313}};
+    Kokkos::deep_copy(tHost, tResultWS);
+    for(Plato::OrdinalType i = 0; i < tNumCells; i++){
+      for(Plato::OrdinalType j = 0; j < tDofsPerCell; j++){
+        TEST_FLOATING_EQUALITY(tGold[i][j],tHost(i,j),tTol);
+      }
+    }
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, DarkCurrentDensityTwoPhaseAlloy)
+{
+    // create mesh
+    constexpr Plato::OrdinalType tSpaceDim = 2;
+    constexpr Plato::OrdinalType tMeshWidth = 1;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+    using ElementType = typename Plato::ElementElectrical<Plato::Tri3>;
+
+    //set ad-types
+    using Residual = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+    using StateT   = typename Residual::StateScalarType;
+    using ConfigT  = typename Residual::ConfigScalarType;
+    using ResultT  = typename Residual::ResultScalarType;
+    using ControlT = typename Residual::ControlScalarType;
+
+    // create configuration workset
+    Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
+    constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
+    Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
+    tWorksetBase.worksetConfig(tConfigWS);
+    
+    // create control workset
+    Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+    Plato::ScalarVector tControl("Controls", tNumVerts);
+    Plato::blas1::fill(0.5, tControl);
+    tWorksetBase.worksetControl(tControl, tControlWS);
+    
+    // create state workset
+    Plato::ScalarVector tState("States", tNumVerts);
+    Plato::blas1::fill(0.67186, tState);
+    constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
+    Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
+    tWorksetBase.worksetState(tState, tStateWS);
+    
+    // create spatial model
+    Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
+
+    // create current density
+    auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+    TEST_ASSERT(tGenericParamList->isSublist("Source Terms") == true);
+    Plato::DarkCurrentDensityTwoPhaseAlloy<Residual> 
+      tCurrentDensity("Mystic","My Dark CD",tGenericParamList.operator*());
+    
+    // create result/output workset
+    Plato::ScalarMultiVectorT<Plato::Scalar> tResultWS("result workset", tNumCells, tDofsPerCell);
+    tCurrentDensity.evaluate(tOnlyDomainDefined,tStateWS,tControlWS,tConfigWS,tResultWS,1.0);
+
+    // test against gold
+    auto tHost = Kokkos::create_mirror_view(tResultWS);
+    Plato::Scalar tTol = 1e-6;
+    std::vector<std::vector<Plato::Scalar>>tGold = {{37.8684771,37.8684771,37.8684771},
+                                                    {37.8684771,37.8684771,37.8684771}};
     Kokkos::deep_copy(tHost, tResultWS);
     for(Plato::OrdinalType i = 0; i < tNumCells; i++){
       for(Plato::OrdinalType j = 0; j < tDofsPerCell; j++){
