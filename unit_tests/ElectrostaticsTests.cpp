@@ -50,6 +50,7 @@ enum struct property
     TO_ERSATZ_MATERIAL_EXPONENT=5,
     TO_MIN_ERSATZ_MATERIAL_VALUE=6
 };
+// enum struct property
 
 struct PropEnum
 {
@@ -93,8 +94,58 @@ private:
         return tSubMsg;
     }
 };
+// struct PropEnum
+
+enum struct source
+{
+  SINGLE_DIODE=0, 
+  TWO_PHASE_DARK_CURRENT_DENSITY=1, 
+  TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY=2, 
+};
+// enum struct source 
+
+struct SourceEnum
+{
+private:
+    std::unordered_map<std::string,Plato::electrical::source> s2e = {
+      {"single diode"                   ,Plato::electrical::source::SINGLE_DIODE},
+      {"dark current density"           ,Plato::electrical::source::TWO_PHASE_DARK_CURRENT_DENSITY},
+      {"light-generated current density",Plato::electrical::source::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY}
+    };
+
+public:
+    Plato::electrical::source 
+    get(const std::string &aInput) 
+    const
+    {
+        auto tLower = Plato::tolower(aInput);
+        auto tItr = s2e.find(tLower);
+        if( tItr == s2e.end() ){
+            auto tMsg = this->getErrorMsg(tLower);
+            ANALYZE_THROWERR(tMsg)
+        }
+        return tItr->second;
+    }
+
+private:
+    std::string
+    getErrorMsg(const std::string & aInProperty)
+    const
+    {
+        auto tMsg = std::string("Did not find matching enum for input electrical source type '") 
+                + aInProperty + "'. Supported electrical source keywords are: ";
+        for(const auto& tPair : s2e)
+        {
+            tMsg = tMsg + "'" + tPair.first + "', ";
+        }
+        auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+        return tSubMsg;
+    }
+};
+// struct SourceEnum
 
 };
+// namespace electrical 
 
 /******************************************************************************/
 /*!
@@ -678,7 +729,31 @@ private:
 };
 
 template<typename EvaluationType>
-class LightCurrentDensityTwoPhaseAlloy
+class CurrentDensityEvaluator
+{
+private:
+    using StateScalarType   = typename EvaluationType::StateScalarType;
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
+    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+
+public:
+    virtual 
+    void 
+    evaluate(
+        const Plato::SpatialDomain                         & aSpatialDomain,
+        const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
+        const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
+        const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
+        const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
+              Plato::Scalar                                  aScale
+    ) 
+    const = 0;
+};
+
+template<typename EvaluationType>
+class LightCurrentDensityTwoPhaseAlloy : 
+  public Plato::CurrentDensityEvaluator<EvaluationType>
 {
 private:
     // set local element type
@@ -826,7 +901,8 @@ private:
 };
 
 template<typename EvaluationType>
-class DarkCurrentDensityTwoPhaseAlloy
+class DarkCurrentDensityTwoPhaseAlloy : 
+  public Plato::CurrentDensityEvaluator<EvaluationType>
 {
 private:
     // set local element type
@@ -965,6 +1041,56 @@ private:
     }
 };
 
+namespace FactoryCurrentDensityEvaluator
+{
+  template <typename EvaluationType>
+  inline std::shared_ptr<Plato::CurrentDensityEvaluator<EvaluationType>> 
+  create(
+    const std::string            & aMaterialName,
+    const std::string            & aFunctionName,
+          Teuchos::ParameterList & aParamList
+  )
+  {
+    if( !aParamList.isSublist("Source Terms") )
+    {
+      auto tMsg = std::string("Parameter is not valid. Argument ('Source Terms') is not a parameter list");
+      ANALYZE_THROWERR(tMsg)
+    }
+    auto tSourceTermsParamList = aParamList.sublist("Source Terms");
+    if( !tSourceTermsParamList.isSublist(aFunctionName) )
+    {
+      auto tMsg = std::string("Parameter is not valid. Argument ('") + aFunctionName + "') is not a parameter list";
+      ANALYZE_THROWERR(tMsg)
+    }
+    auto tCurrentDensityEvaluatorParamList = tSourceTermsParamList.sublist(aFunctionName);
+    if( !tCurrentDensityEvaluatorParamList.isParameter("Type") )
+    {
+      auto tMsg = std::string("Parameter ('Type') is not defined in parameter list ('") 
+        + aFunctionName + "'), current density evaluator cannot be determined";
+      ANALYZE_THROWERR(tMsg)
+    }
+    Plato::electrical::SourceEnum tS2E;
+    auto tType = tCurrentDensityEvaluatorParamList.get<std::string>("Type");
+    auto tLowerType = Plato::tolower(tType);
+    auto tSupportedSourceEnum = tS2E.get(tLowerType);
+    switch (tSupportedSourceEnum)
+    {
+      case Plato::electrical::source::TWO_PHASE_DARK_CURRENT_DENSITY:
+        return std::make_shared<Plato::DarkCurrentDensityTwoPhaseAlloy<EvaluationType>>(
+          aMaterialName,aFunctionName,aParamList);
+        break;
+      case Plato::electrical::source::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY:
+        return std::make_shared<Plato::LightCurrentDensityTwoPhaseAlloy<EvaluationType>>(
+          aMaterialName,aFunctionName,aParamList);
+        break;
+      default:
+        return nullptr;
+        break;
+    }
+  }
+}
+// namespace FactoryCurrentDensityEvaluator
+
 // TODO: create factory to allocate volume forces. it will require refactoring the interfaces 
 // to take workset metadata; e.g., similar to how it is done in the Ifem unit test. 
 template<typename EvaluationType>
@@ -976,19 +1102,19 @@ private:
     using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
-    std::shared_ptr<Plato::DarkCurrentDensityTwoPhaseAlloy<EvaluationType>>  mDarkCurrentDensity;
-    std::shared_ptr<Plato::LightCurrentDensityTwoPhaseAlloy<EvaluationType>> mLightCurrentDensity;
+    std::string mMaterialName = "";
+    std::vector<std::string>   mFunctions;
+    std::vector<Plato::Scalar> mFunctionWeights;
+    std::vector<std::shared_ptr<Plato::CurrentDensityEvaluator<EvaluationType>>> mCurrentDensityEvaluators;
 
 public:
     SingleDiodeTwoPhaseAlloy(
       const std::string            & aMaterialName,
             Teuchos::ParameterList & aParamList
-    )
+    ) : 
+      mMaterialName(aMaterialName)
     {
-        mDarkCurrentDensity = 
-            std::make_shared<Plato::DarkCurrentDensityTwoPhaseAlloy<EvaluationType>>(aMaterialName,"",aParamList);
-        mLightCurrentDensity = 
-            std::make_shared<Plato::LightCurrentDensityTwoPhaseAlloy<EvaluationType>>(aMaterialName,"",aParamList);
+      this->initialize(aParamList);
     }
     ~SingleDiodeTwoPhaseAlloy(){}
 
@@ -1003,9 +1129,83 @@ public:
     ) 
     const
     {
-        // evaluate light-generated and dark current densities for a two-phase alloy model
-        mLightCurrentDensity->evaluate(aSpatialDomain,aState,aControl,aConfig,aResult,1.0*aScale);
-        mDarkCurrentDensity->evaluate(aSpatialDomain,aState,aControl,aConfig,aResult,-1.0*aScale);
+      for(auto& tFunction : mCurrentDensityEvaluators)
+      {
+        auto tFunctionIndex = &tFunction - &mCurrentDensityEvaluators[0];
+        auto tScalarMultiplier = mFunctionWeights[tFunctionIndex] * aScale;
+        tFunction->evaluate(aSpatialDomain,aState,aControl,aConfig,aResult,tScalarMultiplier);
+      }
+    }
+
+private:
+    void initialize(
+      Teuchos::ParameterList & aParamList
+    )
+    {
+      if( !aParamList.isSublist("Source Terms") ){
+        auto tMsg = std::string("Parameter is not valid. Argument ('Source Terms') is not a parameter list");
+        ANALYZE_THROWERR(tMsg)
+      }
+      auto tSourceTermsParamList = aParamList.sublist("Source Terms");
+      if( !tSourceTermsParamList.isSublist("Single Diode") ){
+        auto tMsg = std::string("Parameter is not valid. Argument ('Single Diode') is not a parameter list");
+        ANALYZE_THROWERR(tMsg)
+      }
+      auto tSingleDiodeParamList = tSourceTermsParamList.sublist("Single Diode");
+      this->parseFunctions(tSingleDiodeParamList);
+      this->parseWeights(tSingleDiodeParamList);
+      this->createCurrentDensityEvaluators(aParamList);
+    }
+
+    void parseFunctions(
+      Teuchos::ParameterList & aParamList
+    )
+    {
+      bool tIsArray = aParamList.isType<Teuchos::Array<std::string>>("Functions");
+      if( !tIsArray)
+      {
+        auto tMsg = std::string("Argument ('Functions') is not defined in ('Single Diode') parameter list");
+        ANALYZE_THROWERR(tMsg)
+      }
+      Teuchos::Array<std::string> tFunctions = aParamList.get<Teuchos::Array<std::string>>("Functions");
+      for( Plato::OrdinalType tIndex = 0; tIndex < tFunctions.size(); tIndex++ )
+        { mFunctions.push_back(tFunctions[tIndex]); }
+    }
+
+    void parseWeights(
+      Teuchos::ParameterList & aParamList      
+    )
+    {
+      bool tIsArray = aParamList.isType<Teuchos::Array<Plato::Scalar>>("Weights");
+      if( !tIsArray)
+      {
+        if(mFunctions.size() <= 0)
+        {
+          auto tMsg = std::string("Argument ('Functions') has not been parsed, ") 
+            + "default number of weights cannot be determined";
+          ANALYZE_THROWERR(tMsg)
+        }
+        for( Plato::OrdinalType tIndex = 0; tIndex < mFunctions.size(); tIndex++ )
+          { mFunctionWeights.push_back(1.0); }
+      }
+      else
+      {
+        Teuchos::Array<Plato::Scalar> tWeights = aParamList.get<Teuchos::Array<Plato::Scalar>>("Weights");
+        for( Plato::OrdinalType tIndex = 0; tIndex < tWeights.size(); tIndex++ )
+          { mFunctionWeights.push_back(tWeights[tIndex]); }
+      }
+    }
+
+    void createCurrentDensityEvaluators(
+      Teuchos::ParameterList & aParamList  
+    )
+    {
+      for(auto& tFunctionName : mFunctions)
+      {
+        std::shared_ptr<Plato::CurrentDensityEvaluator<EvaluationType>> tEvaluator = 
+          Plato::FactoryCurrentDensityEvaluator::create<EvaluationType>(mMaterialName,tFunctionName,aParamList);
+        mCurrentDensityEvaluators.push_back(tEvaluator);
+      }
     }
 };
 
@@ -1905,6 +2105,66 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, DarkCurrentDensityTwoPhaseAlloy)
     Plato::Scalar tTol = 1e-6;
     std::vector<std::vector<Plato::Scalar>>tGold = {{37.8684771,37.8684771,37.8684771},
                                                     {37.8684771,37.8684771,37.8684771}};
+    Kokkos::deep_copy(tHost, tResultWS);
+    for(Plato::OrdinalType i = 0; i < tNumCells; i++){
+      for(Plato::OrdinalType j = 0; j < tDofsPerCell; j++){
+        TEST_FLOATING_EQUALITY(tGold[i][j],tHost(i,j),tTol);
+      }
+    }
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, SingleDiode)
+{
+    // create mesh
+    constexpr Plato::OrdinalType tSpaceDim = 2;
+    constexpr Plato::OrdinalType tMeshWidth = 1;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+    using ElementType = typename Plato::ElementElectrical<Plato::Tri3>;
+
+    //set ad-types
+    using Residual = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+    using StateT   = typename Residual::StateScalarType;
+    using ConfigT  = typename Residual::ConfigScalarType;
+    using ResultT  = typename Residual::ResultScalarType;
+    using ControlT = typename Residual::ControlScalarType;
+
+    // create configuration workset
+    Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
+    constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
+    Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
+    tWorksetBase.worksetConfig(tConfigWS);
+    
+    // create control workset
+    Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+    Plato::ScalarVector tControl("Controls", tNumVerts);
+    Plato::blas1::fill(0.5, tControl);
+    tWorksetBase.worksetControl(tControl, tControlWS);
+    
+    // create state workset
+    Plato::ScalarVector tState("States", tNumVerts);
+    Plato::blas1::fill(0.67186, tState);
+    constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
+    Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
+    tWorksetBase.worksetState(tState, tStateWS);
+    
+    // create spatial model
+    Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
+
+    // create current density
+    auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+    TEST_ASSERT(tGenericParamList->isSublist("Source Terms") == true);
+    Plato::SingleDiodeTwoPhaseAlloy<Residual> tSingleDiode("Mystic",tGenericParamList.operator*());
+    Plato::ScalarMultiVectorT<Plato::Scalar> tResultWS("result workset", tNumCells, tDofsPerCell);
+    tSingleDiode.evaluate(tOnlyDomainDefined,tStateWS,tControlWS,tConfigWS,tResultWS,1.0/*scale*/);
+
+    // test against gold
+    auto tHost = Kokkos::create_mirror_view(tResultWS);
+    Plato::Scalar tTol = 1e-6;
+    std::vector<std::vector<Plato::Scalar>>tGold = {{-3.2098359,-3.2098359,-3.2098359},
+                                                    {-3.2098359,-3.2098359,-3.2098359}};
     Kokkos::deep_copy(tHost, tResultWS);
     for(Plato::OrdinalType i = 0; i < tNumCells; i++){
       for(Plato::OrdinalType j = 0; j < tDofsPerCell; j++){
