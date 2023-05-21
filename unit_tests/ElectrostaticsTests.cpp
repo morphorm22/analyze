@@ -42,6 +42,7 @@ namespace electrical
 
 enum struct property
 {
+    /// @brief Supported material property enums for electrical materials
     ELECTRICAL_CONDUCTIVITY=0, 
     OUT_OF_PLANE_THICKNESS=1, 
     MATERIAL_NAME=2, 
@@ -98,6 +99,7 @@ private:
 
 enum struct source
 {
+  /// @brief Supported enums for current density source evaluators
   SINGLE_DIODE=0, 
   TWO_PHASE_DARK_CURRENT_DENSITY=1, 
   TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY=2, 
@@ -108,9 +110,9 @@ struct SourceEnum
 {
 private:
     std::unordered_map<std::string,Plato::electrical::source> s2e = {
-      {"single diode"                   ,Plato::electrical::source::SINGLE_DIODE},
-      {"dark current density"           ,Plato::electrical::source::TWO_PHASE_DARK_CURRENT_DENSITY},
-      {"light-generated current density",Plato::electrical::source::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY}
+      {"single diode"                             ,Plato::electrical::source::SINGLE_DIODE},
+      {"two phase dark current density"           ,Plato::electrical::source::TWO_PHASE_DARK_CURRENT_DENSITY},
+      {"two phase light-generated current density",Plato::electrical::source::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY}
     };
 
 public:
@@ -135,6 +137,109 @@ private:
         auto tMsg = std::string("Did not find matching enum for input electrical source type '") 
                 + aInProperty + "'. Supported electrical source keywords are: ";
         for(const auto& tPair : s2e)
+        {
+            tMsg = tMsg + "'" + tPair.first + "', ";
+        }
+        auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+        return tSubMsg;
+    }
+};
+// struct SourceEnum
+
+enum struct source_model
+{
+  /// @brief Supported enums for current density models
+  DARK_CURRENT_DENSITY_QUADRATIC_FIT=0, 
+  LIGHT_GENERATED_CURRENT_DENSITY_CONSTANT=1, 
+};
+// enum struct source_model 
+
+struct SourceModelEnum
+{
+private:
+  typedef std::unordered_map<Plato::electrical::source,std::unordered_map<std::string,Plato::electrical::source_model>>
+    SourceModelMap;
+
+  SourceModelMap mLinearS2E = 
+    {
+      { Plato::electrical::source::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY, 
+        {
+          { "constant",Plato::electrical::source_model::LIGHT_GENERATED_CURRENT_DENSITY_CONSTANT } 
+        }
+      }
+    };
+
+  SourceModelMap mNonlinearS2E = 
+    {
+      { Plato::electrical::source::TWO_PHASE_DARK_CURRENT_DENSITY, 
+        {
+          { "quadratic",Plato::electrical::source_model::DARK_CURRENT_DENSITY_QUADRATIC_FIT } 
+        }
+      },
+    };
+
+public:
+    Plato::electrical::source_model 
+    get(
+      const Plato::electrical::source & aSourceEnum,
+      const std::string               & aSourceModel,
+      const std::string               & aModelType
+    ) const
+    {
+      Plato::electrical::source_model tOutput;
+      auto tLowertType = Plato::tolower(aModelType);
+      if( tLowertType.compare("linear") == 0 )
+      {
+        tOutput = this->model(aSourceEnum,aSourceModel,mLinearS2E);
+      }
+      else
+      if( tLowertType.compare("nonlinear") == 0 )
+      {
+        tOutput = this->model(aSourceEnum,aSourceModel,mNonlinearS2E);
+      }
+      else
+      {
+        auto tMsg = std::string("Source models of type ('") + tLowertType + "') is not supported, " 
+          + "supported source model types are: 'linear' and 'nonlinear'";
+        ANALYZE_THROWERR(tMsg) 
+      }
+      return tOutput;
+    }
+
+private:
+    Plato::electrical::source_model 
+    model(
+      const Plato::electrical::source & aSourceEnum,
+      const std::string               & aSourceModel,
+      const SourceModelMap            & aMap
+    ) const
+    {
+      auto tItrOne = aMap.find(aSourceEnum);
+      if( tItrOne == aMap.end() )
+      {
+        auto tMsg = std::string("Requested source term does not support a current density model");
+        ANALYZE_THROWERR(tMsg)
+      }
+      auto tLower = Plato::tolower(aSourceModel);
+      auto tItrTwo = tItrOne->second.find(tLower);
+      if( tItrTwo == tItrOne->second.end() )
+      {
+        auto tMsg = this->getErrorMsg(aSourceEnum,tLower,aMap);
+        ANALYZE_THROWERR(tMsg)
+      }
+      return tItrTwo->second;
+    }
+
+    std::string
+    getErrorMsg(
+      const Plato::electrical::source & aSourceEnum,
+      const std::string               & aSourceModel,
+      const SourceModelMap            & aMap
+    ) const
+    {
+        auto tMsg = std::string("Did not find matching enum for input electrical source model '") 
+                + aSourceModel + "'. Supported electrical source model keywords for requested source term are: ";
+        for(const auto& tPair : aMap.find(aSourceEnum)->second)
         {
             tMsg = tMsg + "'" + tPair.first + "', ";
         }
@@ -585,7 +690,7 @@ public:
 };
 
 template<typename EvaluationType, 
-         typename OutputScalarType>
+         typename OutputScalarType = typename EvaluationType::StateScalarType>
 class DarkCurrentDensityQuadraticFit : 
     public Plato::CurrentDensityModel<EvaluationType,OutputScalarType>
 {
@@ -671,7 +776,7 @@ private:
 };
 
 template<typename EvaluationType, 
-         typename OutputScalarType>
+         typename OutputScalarType = Plato::Scalar>
 class LightGeneratedCurrentDensityConstant : 
     public Plato::CurrentDensityModel<EvaluationType,OutputScalarType>
 {
@@ -728,6 +833,12 @@ private:
     }
 };
 
+namespace FactoryCurrentDensityModel
+{
+// TODO: FINISH FACTORY
+}
+
+
 template<typename EvaluationType>
 class CurrentDensityEvaluator
 {
@@ -768,7 +879,10 @@ private:
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
     std::string mMaterialName = "";
-    std::string mCurrentDensityName = "";
+    std::string mCurrentDensityName  = "";
+    std::string mCurrentDensityType  = "Linear";
+    std::string mCurrentDensityModel = "Constant";
+
     Plato::Scalar mPenaltyExponent = 3.0; /*!< penalty exponent for material penalty model */
     Plato::Scalar mMinErsatzMaterialValue = 0.0; /*!< minimum value for the ersatz material density */
     std::vector<Plato::Scalar> mOutofPlaneThickness; /*!< list of out-of-plane material thickness */
@@ -806,7 +920,7 @@ public:
         auto tNumPoints  = tCubWeights.size();
 
         // interpolate nodal values to integration points
-        Plato::LightGeneratedCurrentDensityConstant<EvaluationType,Plato::Scalar> 
+        Plato::LightGeneratedCurrentDensityConstant<EvaluationType> 
           tLightGeneratedCurrentDensityModel(mCurrentDensityName,mParamList);
         Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
 
@@ -870,6 +984,10 @@ private:
         mPenaltyExponent = tCurrentDensitySublist.get<Plato::Scalar>("Penalty Exponent", 3.0);
         mMinErsatzMaterialValue = tCurrentDensitySublist.get<Plato::Scalar>("Minimum Value", 0.0);
 
+        // set current density model
+        mCurrentDensityType  = tCurrentDensitySublist.get<std::string>("Type","Linear");
+        mCurrentDensityModel = tCurrentDensitySublist.get<std::string>("Model","Constant");
+
         // set out-of-plane thickness array
         Plato::FactoryElectricalMaterial<EvaluationType> tMaterialFactory(aParamList);
         auto tMaterialModel = tMaterialFactory.create(mMaterialName);
@@ -917,8 +1035,13 @@ private:
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
     std::string mMaterialName = "";
-    std::string mCurrentDensityName = "";
+    std::string mCurrentDensityName  = "";
+    std::string mCurrentDensityType  = "Linear";
+    std::string mCurrentDensityModel = "Quadratic";
+
     Plato::Scalar mPenaltyExponent = 3.0;
+    Plato::Scalar mMinErsatzMaterialValue = 0.0;
+
     const Teuchos::ParameterList& mParamList;
     std::vector<Plato::Scalar> mOutofPlaneThickness;
 
@@ -957,7 +1080,7 @@ public:
 
         // create functors: 1) compute dark current density and 2) interpolate nodal values to integration points
         Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
-        Plato::DarkCurrentDensityQuadraticFit<EvaluationType,StateScalarType> 
+        Plato::DarkCurrentDensityQuadraticFit<EvaluationType> 
           tDarkCurrentDensityModel(mCurrentDensityName,mParamList);
 
         // evaluate dark current density
@@ -1008,8 +1131,13 @@ private:
             + "') is not a parameter list";
           ANALYZE_THROWERR(tMsg)
         }
-        Teuchos::ParameterList& tSublist = aParamList.sublist("Dark Current Density");
-        mPenaltyExponent = aParamList.get<Plato::Scalar>("Penalty Exponent", 3.0);
+        Teuchos::ParameterList& tSublist = aParamList.sublist(mCurrentDensityName);
+        mPenaltyExponent = tSublist.get<Plato::Scalar>("Penalty Exponent", 3.0);
+        mMinErsatzMaterialValue = tSublist.get<Plato::Scalar>("Minimum Value", 0.0);
+
+        // set current density model
+        mCurrentDensityType  = tSublist.get<std::string>("Type","Nonlinear");
+        mCurrentDensityModel = tSublist.get<std::string>("Model","Quadratic");
 
         // set out-of-plane thickness array
         Plato::FactoryElectricalMaterial<EvaluationType> tMaterialFactory(aParamList);
@@ -1063,14 +1191,14 @@ namespace FactoryCurrentDensityEvaluator
       ANALYZE_THROWERR(tMsg)
     }
     auto tCurrentDensityEvaluatorParamList = tSourceTermsParamList.sublist(aFunctionName);
-    if( !tCurrentDensityEvaluatorParamList.isParameter("Type") )
+    if( !tCurrentDensityEvaluatorParamList.isParameter("Function") )
     {
-      auto tMsg = std::string("Parameter ('Type') is not defined in parameter list ('") 
+      auto tMsg = std::string("Parameter ('Function') is not defined in parameter list ('") 
         + aFunctionName + "'), current density evaluator cannot be determined";
       ANALYZE_THROWERR(tMsg)
     }
     Plato::electrical::SourceEnum tS2E;
-    auto tType = tCurrentDensityEvaluatorParamList.get<std::string>("Type");
+    auto tType = tCurrentDensityEvaluatorParamList.get<std::string>("Function");
     auto tLowerType = Plato::tolower(tType);
     auto tSupportedSourceEnum = tS2E.get(tLowerType);
     switch (tSupportedSourceEnum)
@@ -1083,6 +1211,7 @@ namespace FactoryCurrentDensityEvaluator
         return std::make_shared<Plato::LightCurrentDensityTwoPhaseAlloy<EvaluationType>>(
           aMaterialName,aFunctionName,aParamList);
         break;
+      case Plato::electrical::source::SINGLE_DIODE:
       default:
         return nullptr;
         break;
@@ -1710,53 +1839,54 @@ namespace ElectrostaticsTest
 {
 
    Teuchos::RCP<Teuchos::ParameterList> tGenericParamList = Teuchos::getParametersFromXmlString(
-  "<ParameterList name='Plato Problem'>                                                                  \n"
-    "<ParameterList name='Spatial Model'>                                                                \n"
-      "<ParameterList name='Domains'>                                                                    \n"
-        "<ParameterList name='Design Volume'>                                                            \n"
-          "<Parameter name='Element Block' type='string' value='body'/>                                  \n"
-          "<Parameter name='Material Model' type='string' value='Mystic'/>                               \n"
-        "</ParameterList>                                                                                \n"
-      "</ParameterList>                                                                                  \n"
-    "</ParameterList>                                                                                    \n"
-    "<ParameterList name='Material Models'>                                                              \n"
-      "<ParameterList name='Mystic'>                                                                     \n"
-        "<ParameterList name='Two Phase Electrical Conductivity'>                                        \n"
-          "<Parameter  name='Material Name'            type='Array(string)' value='{silver,aluminum}'/>  \n"
-          "<Parameter  name='Electrical Conductivity'  type='Array(double)' value='{0.15,0.25}'/>        \n"
-          "<Parameter  name='Out-of-Plane Thickness'   type='Array(double)' value='{0.12,0.22}'/>        \n"
-        "</ParameterList>                                                                                \n"
-      "</ParameterList>                                                                                  \n"
-    "</ParameterList>                                                                                    \n"
-    "<ParameterList name='Criteria'>                                                                     \n"
-    "  <ParameterList name='Objective'>                                                                  \n"
-    "    <Parameter name='Type' type='string' value='Weighted Sum'/>                                     \n"
-    "    <Parameter name='Functions' type='Array(string)' value='{My Power}'/>                           \n"
-    "    <Parameter name='Weights' type='Array(double)' value='{1.0}'/>                                  \n"
-    "  </ParameterList>                                                                                  \n"
-    "  <ParameterList name='My Power'>                                                                   \n"
-    "    <Parameter name='Type'                        type='string'        value='Scalar Function'/>    \n"
-    "    <Parameter name='Scalar Function Type'        type='string'        value='Strength Constraint'/>\n"
-    "    <Parameter name='Exponent'                    type='double'        value='2.0'/>                \n"
-    "    <Parameter name='Minimum Value'               type='double'        value='1.0e-6'/>             \n"
-    "  </ParameterList>                                                                                  \n"
-    "</ParameterList>                                                                                    \n"
-    "<ParameterList name='Source Terms'>                                                                 \n"
-    "  <ParameterList name='Single Diode'>                                                               \n"
-    "    <Parameter name='Type' type='string' value='Two Phase'/>                                        \n"
-    "    <Parameter name='Functions' type='Array(string)' value='{My Dark CD ,My Light-Generated CD}'/>  \n"
-    "    <Parameter name='Weights'   type='Array(double)' value='{1.0,1.0}'/>                            \n"
-    "  </ParameterList>                                                                                  \n"
-    "  <ParameterList name='My Dark CD'>                                                                 \n"
-    "    <Parameter  name='Type'            type='string'      value='Dark Current Density'/>            \n"
-    "    <Parameter  name='Model'           type='string'      value='Quadratic Fit'/>           ,       \n"
-    "  </ParameterList>                                                                                  \n"
-    "  <ParameterList name='My Light-Generated CD'>                                                         \n"
-    "    <Parameter  name='Type'            type='string'      value='Light-Generated Current Density'/> \n"
-    "    <Parameter  name='Model'           type='string'      value='Constant'/>                        \n"
-      "</ParameterList>                                                                                  \n"
-    "</ParameterList>                                                                                    \n"
-  "</ParameterList>                                                                                      \n"
+  "<ParameterList name='Plato Problem'>                                                                            \n"
+    "<ParameterList name='Spatial Model'>                                                                          \n"
+      "<ParameterList name='Domains'>                                                                              \n"
+        "<ParameterList name='Design Volume'>                                                                      \n"
+          "<Parameter name='Element Block' type='string' value='body'/>                                            \n"
+          "<Parameter name='Material Model' type='string' value='Mystic'/>                                         \n"
+        "</ParameterList>                                                                                          \n"
+      "</ParameterList>                                                                                            \n"
+    "</ParameterList>                                                                                              \n"
+    "<ParameterList name='Material Models'>                                                                        \n"
+      "<ParameterList name='Mystic'>                                                                               \n"
+        "<ParameterList name='Two Phase Electrical Conductivity'>                                                  \n"
+          "<Parameter  name='Material Name'            type='Array(string)' value='{silver,aluminum}'/>            \n"
+          "<Parameter  name='Electrical Conductivity'  type='Array(double)' value='{0.15,0.25}'/>                  \n"
+          "<Parameter  name='Out-of-Plane Thickness'   type='Array(double)' value='{0.12,0.22}'/>                  \n"
+        "</ParameterList>                                                                                          \n"
+      "</ParameterList>                                                                                            \n"
+    "</ParameterList>                                                                                              \n"
+    "<ParameterList name='Criteria'>                                                                               \n"
+    "  <ParameterList name='Objective'>                                                                            \n"
+    "    <Parameter name='Type' type='string' value='Weighted Sum'/>                                               \n"
+    "    <Parameter name='Functions' type='Array(string)' value='{My Power}'/>                                     \n"
+    "    <Parameter name='Weights' type='Array(double)' value='{1.0}'/>                                            \n"
+    "  </ParameterList>                                                                                            \n"
+    "  <ParameterList name='My Power'>                                                                             \n"
+    "    <Parameter name='Type'                        type='string'        value='Scalar Function'/>              \n"
+    "    <Parameter name='Scalar Function Type'        type='string'        value='Strength Constraint'/>          \n"
+    "    <Parameter name='Exponent'                    type='double'        value='2.0'/>                          \n"
+    "    <Parameter name='Minimum Value'               type='double'        value='1.0e-6'/>                       \n"
+    "  </ParameterList>                                                                                            \n"
+    "</ParameterList>                                                                                              \n"
+    "<ParameterList name='Source Terms'>                                                                           \n"
+    "  <ParameterList name='Single Diode'>                                                                         \n"
+    "    <Parameter name='Functions' type='Array(string)' value='{My Dark CD ,My Light-Generated CD}'/>            \n"
+    "    <Parameter name='Weights'   type='Array(double)' value='{1.0,1.0}'/>                                      \n"
+    "  </ParameterList>                                                                                            \n"
+    "  <ParameterList name='My Dark CD'>                                                                           \n"
+    "    <Parameter  name='Function'        type='string'      value='Two Phase Dark Current Density'/>            \n"
+    "    <Parameter  name='Type'            type='string'      value='Nonlinear'/>                                 \n"
+    "    <Parameter  name='Model'           type='string'      value='Quadratic'/>           ,                     \n"
+    "  </ParameterList>                                                                                            \n"
+    "  <ParameterList name='My Light-Generated CD'>                                                                \n"
+    "    <Parameter  name='Function'        type='string'      value='Two Phase Light-Generated Current Density'/> \n"
+    "    <Parameter  name='Type'            type='string'      value='Linear'/>                                    \n"
+    "    <Parameter  name='Model'           type='string'      value='Constant'/>                                  \n"
+      "</ParameterList>                                                                                            \n"
+    "</ParameterList>                                                                                              \n"
+  "</ParameterList>                                                                                                \n"
   );
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MaterialElectricalConductivity_Error)
@@ -2171,6 +2301,50 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, SingleDiode)
         TEST_FLOATING_EQUALITY(tGold[i][j],tHost(i,j),tTol);
       }
     }
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PowerSurfaceDensity)
+{
+    // create mesh
+    constexpr Plato::OrdinalType tSpaceDim = 2;
+    constexpr Plato::OrdinalType tMeshWidth = 1;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+    using ElementType = typename Plato::ElementElectrical<Plato::Tri3>;
+
+    //set ad-types
+    using Residual = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+    using StateT   = typename Residual::StateScalarType;
+    using ConfigT  = typename Residual::ConfigScalarType;
+    using ResultT  = typename Residual::ResultScalarType;
+    using ControlT = typename Residual::ControlScalarType;
+
+    // create configuration workset
+    Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
+    const Plato::OrdinalType tNumCells = tMesh->NumElements();
+    constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
+    Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
+    tWorksetBase.worksetConfig(tConfigWS);
+    
+    // create control workset
+    Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+    Plato::ScalarVector tControl("Controls", tNumVerts);
+    Plato::blas1::fill(0.5, tControl);
+    tWorksetBase.worksetControl(tControl, tControlWS);
+    
+    // create state workset
+    Plato::ScalarVector tState("States", tNumVerts);
+    Plato::blas1::fill(0.67186, tState);
+    constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
+    Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
+    tWorksetBase.worksetState(tState, tStateWS);
+    
+    // create spatial model
+    Plato::DataMap tDataMap;
+    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
+
+    // create current density
+    auto tOnlyDomainDefined = tSpatialModel.Domains.front();
 }
 
 }
