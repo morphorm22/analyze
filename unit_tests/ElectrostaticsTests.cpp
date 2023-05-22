@@ -1266,7 +1266,6 @@ public:
   ) 
   const
   {
-    std::cout << "HOLA\n";
     // compute current density
     Plato::OrdinalType tNumCells = aResult.extent(0);
     Plato::ScalarMultiVectorT<StateScalarType> 
@@ -1618,7 +1617,7 @@ public:
     // build local functor
     Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
     // evaluate current density
-    Plato::Scalar tScale = 1.0;
+    Plato::Scalar tScale = aCycle;
     Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
     Plato::ScalarMultiVectorT<ResultScalarType> tCurrentDensity("current density",tNumCells,tNumPoints);
     mCurrentDensityEvaluator->evaluate(aState,aControl,aConfig,tCurrentDensity,tScale);
