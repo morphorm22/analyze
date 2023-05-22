@@ -1587,64 +1587,69 @@ public:
     }
     ~CriterionPowerSurfaceDensityTwoPhase(){}
 
-    void
-    evaluate_conditional(
-        const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-        const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-              Plato::ScalarVectorT      <ResultScalarType>  & aResult,
-              Plato::Scalar                                   aCycle
-    ) const override
+  void 
+  evaluate(
+      const Plato::ScalarMultiVectorT <typename EvaluationType::StateScalarType>   & aState,
+      const Plato::ScalarMultiVectorT <typename EvaluationType::ControlScalarType> & aControl,
+      const Plato::ScalarArray3DT     <typename EvaluationType::ConfigScalarType>  & aConfig,
+            Plato::ScalarVectorT      <typename EvaluationType::ResultScalarType>  & aResult,
+            Plato::Scalar                                                            aCycle = 1.0
+  ) 
+  { 
+    this->evaluate_conditional(aState, aControl, aConfig, aResult, aCycle);
+  }
+
+  void
+  evaluate_conditional(
+      const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
+      const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
+      const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
+            Plato::ScalarVectorT      <ResultScalarType>  & aResult,
+            Plato::Scalar                                   aCycle = 1.0
+  ) const override
+  {
+    // integration rule
+    auto tCubPoints  = ElementType::getCubPoints();
+    auto tCubWeights = ElementType::getCubWeights();
+    auto tNumPoints  = tCubWeights.size();
+    // out-of-plane thicknesses
+    Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
+    Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
+    // build local functor
+    Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
+    // evaluate current density
+    Plato::Scalar tScale = 1.0;
+    Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
+    Plato::ScalarMultiVectorT<ResultScalarType> tCurrentDensity("current density",tNumCells,tNumPoints);
+    mCurrentDensityEvaluator->evaluate(aState,aControl,aConfig,tCurrentDensity,tScale);
+    // evaluate dark current density
+    Kokkos::parallel_for("dark current density", 
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
     {
-        // integration rule
-        auto tCubPoints  = ElementType::getCubPoints();
-        auto tCubWeights = ElementType::getCubWeights();
-        auto tNumPoints  = tCubWeights.size();
-
-        // out-of-plane thicknesses
-        Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
-        Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
-
-        // build local functor
-        Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
-
-        // evaluate current density
-        Plato::Scalar tScale = 1.0;
-        Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
-        Plato::ScalarMultiVectorT<ResultScalarType> tCurrentDensity("current density",tNumCells,tNumPoints);
-        mCurrentDensityEvaluator->evaluate(aState,aControl,aConfig,tCurrentDensity,tScale);
-
-        // evaluate dark current density
-        Kokkos::parallel_for("dark current density", 
-          Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-          KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        // get basis functions and weights for this integration point
+        auto tCubPoint = tCubPoints(iGpOrdinal);
+        auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal));
+        auto tBasisValues = ElementType::basisValues(tCubPoint);
+        // out-of-plane thickness interpolation
+        ControlScalarType tDensity =
+          Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
+        ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
+        ControlScalarType tThicknessInterpolation = tThicknessTwo + 
+          ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
+        // evaluate electric potential
+        StateScalarType tCellElectricPotential = 
+          tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
+        ResultScalarType tWeightedCurrentDensity = 
+          tCurrentDensity(iCellOrdinal,iGpOrdinal) * tCubWeights(iGpOrdinal) * tDetJ;
+        for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
         {
-            // get basis functions and weights for this integration point
-            auto tCubPoint = tCubPoints(iGpOrdinal);
-            auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal));
-            auto tBasisValues = ElementType::basisValues(tCubPoint);
-
-            // out-of-plane thickness interpolation
-            ControlScalarType tDensity =
-              Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
-            ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
-            ControlScalarType tThicknessInterpolation = tThicknessTwo + 
-              ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
-
-            // evaluate electric potential
-            StateScalarType tCellElectricPotential = 
-              tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
-
-            ResultScalarType tWeightedCurrentDensity = 
-              tCurrentDensity(iCellOrdinal,iGpOrdinal) * tCubWeights(iGpOrdinal) * tDetJ;
-            for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
-            {
-                ResultScalarType tCellResult = tBasisValues(tFieldOrdinal) * 
-                  tCellElectricPotential * tWeightedCurrentDensity * tThicknessInterpolation;
-                Kokkos::atomic_add( &aResult(iCellOrdinal), tCellResult );
-            }
-        });
-    }
+            ResultScalarType tCellResult = tBasisValues(tFieldOrdinal) * 
+              tCellElectricPotential * tWeightedCurrentDensity * tThicknessInterpolation;
+            Kokkos::atomic_add( &aResult(iCellOrdinal), tCellResult );
+        }
+    });
+  }
 
 private:
   void initialize(
