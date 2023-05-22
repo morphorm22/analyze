@@ -106,7 +106,7 @@ enum struct source
 };
 // enum struct source 
 
-struct SourceEnum
+struct SourceTermEnum
 {
 private:
     std::unordered_map<std::string,Plato::electrical::source> s2e = {
@@ -144,102 +144,104 @@ private:
         return tSubMsg;
     }
 };
-// struct SourceEnum
+// struct SourceTermEnum
 
-enum struct source_model
+enum struct response
 {
-  /// @brief Supported enums for current density models
-  DARK_CURRENT_DENSITY_QUADRATIC_FIT=0, 
-  LIGHT_GENERATED_CURRENT_DENSITY_CONSTANT=1, 
+  /// @brief Supported enums for current density source evaluators
+  LINEAR=0, 
+  NONLINEAR=1
+};
+// enum struct current_density 
+
+enum struct current_density_model
+{
+  /// @brief Supported enums for current density source evaluators
+  QUADRATIC=0, 
+  CONSTANT=1, 
 };
 // enum struct source_model 
 
-struct SourceModelEnum
+enum struct current_density
+{
+  /// @brief Supported enums for current density source evaluators
+  DARK=0, 
+  LIGHT=1, 
+  SHUNT=2,
+};
+// enum struct current_density 
+
+struct CurrentDensityEnum
 {
 private:
-  typedef std::unordered_map<Plato::electrical::source,std::unordered_map<std::string,Plato::electrical::source_model>>
-    SourceModelMap;
-
-  SourceModelMap mLinearS2E = 
-    {
-      { Plato::electrical::source::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY, 
-        {
-          { "constant",Plato::electrical::source_model::LIGHT_GENERATED_CURRENT_DENSITY_CONSTANT } 
-        }
+    std::unordered_map<
+      Plato::electrical::source,
+      std::unordered_map<std::string,std::pair<Plato::electrical::current_density,Plato::electrical::response>>
+    > s2e = {
+      {
+        Plato::electrical::source::TWO_PHASE_DARK_CURRENT_DENSITY, 
+        { 
+          { "quadratic",{Plato::electrical::current_density::DARK,Plato::electrical::response::NONLINEAR} }
+        } 
+      },
+      {
+        Plato::electrical::source::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY, 
+        { 
+          { "constant",{Plato::electrical::current_density::LIGHT,Plato::electrical::response::LINEAR} }
+        } 
       }
     };
 
-  SourceModelMap mNonlinearS2E = 
-    {
-      { Plato::electrical::source::TWO_PHASE_DARK_CURRENT_DENSITY, 
-        {
-          { "quadratic",Plato::electrical::source_model::DARK_CURRENT_DENSITY_QUADRATIC_FIT } 
-        }
-      },
-    };
+    Plato::electrical::SourceTermEnum mSourceTermEnums;
 
 public:
-    Plato::electrical::source_model 
-    get(
-      const Plato::electrical::source & aSourceEnum,
-      const std::string               & aSourceModel,
-      const std::string               & aModelType
-    ) const
+    Plato::electrical::current_density 
+    current_density(
+      const std::string & aFunction,
+      const std::string & aModel
+    ) 
+    const
     {
-      Plato::electrical::source_model tOutput;
-      auto tLowertType = Plato::tolower(aModelType);
-      if( tLowertType.compare("linear") == 0 )
-      {
-        tOutput = this->model(aSourceEnum,aSourceModel,mLinearS2E);
+      Plato::electrical::source tSourceEnum = mSourceTermEnums.get(aFunction);
+      auto tLowerModel = Plato::tolower(aModel);
+      auto tItr = s2e.find(tSourceEnum)->second.find(tLowerModel);
+      if( tItr == s2e.find(tSourceEnum)->second.end() ){
+        auto tMsg = this->getErrorMsg(aFunction,aModel);
+        ANALYZE_THROWERR(tMsg)
       }
-      else
-      if( tLowertType.compare("nonlinear") == 0 )
-      {
-        tOutput = this->model(aSourceEnum,aSourceModel,mNonlinearS2E);
-      }
-      else
-      {
-        auto tMsg = std::string("Source models of type ('") + tLowertType + "') is not supported, " 
-          + "supported source model types are: 'linear' and 'nonlinear'";
-        ANALYZE_THROWERR(tMsg) 
-      }
-      return tOutput;
+      return tItr->second.first;
     }
 
+    Plato::electrical::response
+    response(
+      const std::string & aFunction,
+      const std::string & aModel
+    ) 
+    const
+    {
+      Plato::electrical::source tSourceEnum = mSourceTermEnums.get(aFunction);
+      auto tLowerModel = Plato::tolower(aModel);
+      auto tItr = s2e.find(tSourceEnum)->second.find(tLowerModel);
+      if( tItr == s2e.find(tSourceEnum)->second.end() ){
+        auto tMsg = this->getErrorMsg(aFunction,aModel);
+        ANALYZE_THROWERR(tMsg)
+      }
+      return tItr->second.second;
+    }
 private:
-    Plato::electrical::source_model 
-    model(
-      const Plato::electrical::source & aSourceEnum,
-      const std::string               & aSourceModel,
-      const SourceModelMap            & aMap
-    ) const
-    {
-      auto tItrOne = aMap.find(aSourceEnum);
-      if( tItrOne == aMap.end() )
-      {
-        auto tMsg = std::string("Requested source term does not support a current density model");
-        ANALYZE_THROWERR(tMsg)
-      }
-      auto tLower = Plato::tolower(aSourceModel);
-      auto tItrTwo = tItrOne->second.find(tLower);
-      if( tItrTwo == tItrOne->second.end() )
-      {
-        auto tMsg = this->getErrorMsg(aSourceEnum,tLower,aMap);
-        ANALYZE_THROWERR(tMsg)
-      }
-      return tItrTwo->second;
-    }
-
     std::string
     getErrorMsg(
-      const Plato::electrical::source & aSourceEnum,
-      const std::string               & aSourceModel,
-      const SourceModelMap            & aMap
-    ) const
+      const std::string & aFunction,
+      const std::string & aModel
+    )
+    const
     {
-        auto tMsg = std::string("Did not find matching enum for input electrical source model '") 
-                + aSourceModel + "'. Supported electrical source model keywords for requested source term are: ";
-        for(const auto& tPair : aMap.find(aSourceEnum)->second)
+        auto tMsg = std::string("Requested source term ('") + aFunction 
+          + "') does not support current density model of type ('" + aModel 
+          + "'), supported current density models for source term ('" 
+          + aFunction + "') are: ";
+        Plato::electrical::source tSourceEnum = mSourceTermEnums.get(aFunction);
+        for(const auto& tPair : s2e.find(tSourceEnum)->second)
         {
             tMsg = tMsg + "'" + tPair.first + "', ";
         }
@@ -247,7 +249,7 @@ private:
         return tSubMsg;
     }
 };
-// struct SourceEnum
+// struct CurrentDensityEnum
 
 };
 // namespace electrical 
@@ -675,28 +677,31 @@ class CurrentDensityModel
 {
 private:
     using ElementType = typename EvaluationType::ElementType;
-    using StateScalarType   = typename EvaluationType::StateScalarType;
+    using StateScalarType = typename EvaluationType::StateScalarType;
 
 public:
     CurrentDensityModel(){}
     virtual ~CurrentDensityModel(){}
 
-    KOKKOS_INLINE_FUNCTION
     virtual 
-    OutputScalarType 
+    void 
     evaluate(
-        const StateScalarType & aCellElectricPotential
+      const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
+      const Plato::ScalarMultiVectorT <OutputScalarType>  & aResult
     ) const = 0;
 };
 
 template<typename EvaluationType, 
          typename OutputScalarType = typename EvaluationType::StateScalarType>
-class DarkCurrentDensityQuadraticFit : 
+class DarkCurrentDensityQuadratic : 
     public Plato::CurrentDensityModel<EvaluationType,OutputScalarType>
 {
 private:
     using ElementType = typename EvaluationType::ElementType;
-    using StateScalarType   = typename EvaluationType::StateScalarType;
+    using StateScalarType = typename EvaluationType::StateScalarType;
+
+    // set local element type
+    static constexpr int mNumDofsPerNode  = ElementType::mNumDofsPerNode;
 
 public:
     Plato::Scalar mCoefA  = 0.;
@@ -711,7 +716,7 @@ public:
     std::string mCurrentDensityName = "";
 
 public:
-    DarkCurrentDensityQuadraticFit(
+    DarkCurrentDensityQuadratic(
       const std::string            & aCurrentDensityName,
       const Teuchos::ParameterList & aParamList
     ) : 
@@ -719,7 +724,7 @@ public:
     {
         this->initialize(aParamList);
     }
-    virtual ~DarkCurrentDensityQuadraticFit(){}
+    virtual ~DarkCurrentDensityQuadratic(){}
     
     KOKKOS_INLINE_FUNCTION
     OutputScalarType 
@@ -737,6 +742,32 @@ public:
         if( aCellElectricPotential < mPerformanceLimit )
           { tDarkCurrentDensity = mCoefM2 * aCellElectricPotential + mCoefB2; }
         return tDarkCurrentDensity;
+    }
+
+    void evaluate(
+      const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
+      const Plato::ScalarMultiVectorT <OutputScalarType>  & aResult
+    ) const
+    {
+        // integration rule
+        auto tCubPoints  = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints  = tCubWeights.size();
+
+        Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
+
+        // evaluate light-generated current density
+        Plato::OrdinalType tNumCells = aState.extent(0);
+        Kokkos::parallel_for("light-generated current density", 
+          Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+          KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        {
+            auto tCubPoint = tCubPoints(iGpOrdinal);
+            auto tBasisValues = ElementType::basisValues(tCubPoint);
+            // evaluate light-generated current density
+            StateScalarType tCellElectricPotential = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
+            aResult(iCellOrdinal,iGpOrdinal) = this->evaluate(tCellElectricPotential);
+        });
     }
 
 private:
@@ -784,6 +815,9 @@ private:
     using ElementType = typename EvaluationType::ElementType;
     using StateScalarType = typename EvaluationType::StateScalarType;
 
+    // set local element type
+    static constexpr int mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+
 public:
     std::string mCurrentDensityName = ""; /*!< input light-generated current density parameter list name */
     Plato::Scalar mGenerationRate = -0.40914; /*!< generation rate */
@@ -810,6 +844,32 @@ public:
       return ( tOutput );
     }
 
+    void evaluate(
+      const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
+      const Plato::ScalarMultiVectorT <OutputScalarType>  & aResult
+    ) const
+    {
+        // integration rule
+        auto tCubPoints  = ElementType::getCubPoints();
+        auto tCubWeights = ElementType::getCubWeights();
+        auto tNumPoints  = tCubWeights.size();
+        
+        Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
+
+        // evaluate light-generated current density
+        Plato::OrdinalType tNumCells = aState.extent(0);
+        Kokkos::parallel_for("light-generated current density", 
+          Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+          KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        {
+            auto tCubPoint = tCubPoints(iGpOrdinal);
+            auto tBasisValues = ElementType::basisValues(tCubPoint);
+            // evaluate light-generated current density
+            StateScalarType tCellElectricPotential = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
+            aResult(iCellOrdinal,iGpOrdinal) = this->evaluate(tCellElectricPotential);
+        });
+    }
+
 private:
     void 
     initialize(
@@ -833,10 +893,6 @@ private:
     }
 };
 
-namespace FactoryCurrentDensityModel
-{
-// TODO: FINISH FACTORY
-}
 
 
 template<typename EvaluationType>
@@ -849,17 +905,28 @@ private:
     using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
 public:
-    virtual 
-    void 
-    evaluate(
-        const Plato::SpatialDomain                         & aSpatialDomain,
-        const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
-        const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
-        const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
-              Plato::Scalar                                  aScale
-    ) 
-    const = 0;
+  virtual 
+  void 
+  evaluate(
+      const Plato::SpatialDomain                         & aSpatialDomain,
+      const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
+      const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
+      const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
+      const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
+      const Plato::Scalar                                & aScale
+  ) 
+  const = 0;
+
+  virtual
+  void 
+  evaluate(
+      const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
+      const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
+      const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
+      const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
+      const Plato::Scalar                                & aScale
+  ) 
+  const = 0;
 };
 
 template<typename EvaluationType>
@@ -869,6 +936,7 @@ class LightCurrentDensityTwoPhaseAlloy :
 private:
     // set local element type
     using ElementType = typename EvaluationType::ElementType;
+    static constexpr int mNumGaussPoints  = ElementType::mNumGaussPoints;
     static constexpr int mNumSpatialDims  = ElementType::mNumSpatialDims;
     static constexpr int mNumDofsPerNode  = ElementType::mNumDofsPerNode;
     static constexpr int mNumNodesPerCell = ElementType::mNumNodesPerCell;
@@ -880,93 +948,153 @@ private:
 
     std::string mMaterialName = "";
     std::string mCurrentDensityName  = "";
-    std::string mCurrentDensityType  = "Linear";
     std::string mCurrentDensityModel = "Constant";
 
     Plato::Scalar mPenaltyExponent = 3.0; /*!< penalty exponent for material penalty model */
     Plato::Scalar mMinErsatzMaterialValue = 0.0; /*!< minimum value for the ersatz material density */
     std::vector<Plato::Scalar> mOutofPlaneThickness; /*!< list of out-of-plane material thickness */
 
-    const Teuchos::ParameterList& mParamList;
+    std::shared_ptr<Plato::LightGeneratedCurrentDensityConstant<EvaluationType>>
+      mLightGeneratedCurrentDensity;
 
 public:
-    LightCurrentDensityTwoPhaseAlloy(
-      const std::string            & aMaterialName,
-      const std::string            & aCurrentDensityName,
-            Teuchos::ParameterList & aParamList
-    ) : 
-      mMaterialName(aMaterialName),
-      mCurrentDensityName(aCurrentDensityName),
-      mParamList(aParamList)
+  LightCurrentDensityTwoPhaseAlloy(
+    const std::string            & aMaterialName,
+    const std::string            & aCurrentDensityName,
+          Teuchos::ParameterList & aParamList
+  ) : 
+    mMaterialName(aMaterialName),
+    mCurrentDensityName(aCurrentDensityName)
+  {
+      this->initialize(aParamList);
+  }
+
+  ~LightCurrentDensityTwoPhaseAlloy(){}
+
+  void 
+  evaluate(
+      const Plato::SpatialDomain                         & aSpatialDomain,
+      const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
+      const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
+      const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
+      const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
+      const Plato::Scalar                                & aScale
+  ) 
+  const
+  {
+      // compute current density
+      Plato::OrdinalType tNumCells = aSpatialDomain.numCells();
+      Plato::ScalarMultiVectorT<Plato::Scalar> 
+        tCurrentDensity("current density",tNumCells,mNumGaussPoints);
+      mLightGeneratedCurrentDensity->evaluate(aState,tCurrentDensity);
+      this->evaluate<Plato::Scalar>(aSpatialDomain,tCurrentDensity,aState,aControl,aConfig,aResult,aScale);
+  }
+
+  template<typename CurrentDensityType>
+  void evaluate(
+      const Plato::SpatialDomain                          & aSpatialDomain,
+      const Plato::ScalarMultiVectorT<CurrentDensityType> & aCurrentDensity,
+      const Plato::ScalarMultiVectorT<StateScalarType>    & aState,
+      const Plato::ScalarMultiVectorT<ControlScalarType>  & aControl,
+      const Plato::ScalarArray3DT<ConfigScalarType>       & aConfig,
+      const Plato::ScalarMultiVectorT<ResultScalarType>   & aResult,
+      const Plato::Scalar                                 & aScale
+  ) const
+  {
+    // integration rule
+    auto tCubPoints  = ElementType::getCubPoints();
+    auto tCubWeights = ElementType::getCubWeights();
+    // out-of-plane thicknesses
+    Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
+    Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
+    // evaluate light-generated current density
+    Plato::OrdinalType tNumCells = aSpatialDomain.numCells();
+    Kokkos::parallel_for("light-generated current density", 
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, mNumGaussPoints}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
     {
-        this->initialize(aParamList);
-    }
-    ~LightCurrentDensityTwoPhaseAlloy(){}
-
-    void 
-    evaluate(
-        const Plato::SpatialDomain                         & aSpatialDomain,
-        const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
-        const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
-        const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
-              Plato::Scalar                                  aScale
-    ) 
-    const
-    {
-        // integration rule
-        auto tCubPoints  = ElementType::getCubPoints();
-        auto tCubWeights = ElementType::getCubWeights();
-        auto tNumPoints  = tCubWeights.size();
-
-        // interpolate nodal values to integration points
-        Plato::LightGeneratedCurrentDensityConstant<EvaluationType> 
-          tLightGeneratedCurrentDensityModel(mCurrentDensityName,mParamList);
-        Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
-
-        // out-of-plane thicknesses
-        Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
-        Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
-
-        // evaluate light-generated current density
-        Plato::OrdinalType tNumCells = aSpatialDomain.numCells();
-        Kokkos::parallel_for("light-generated current density", 
-          Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-          KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        auto tCubPoint = tCubPoints(iGpOrdinal);
+        auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal));
+        auto tBasisValues = ElementType::basisValues(tCubPoint);
+        // material interpolation
+        ControlScalarType tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
+        ControlScalarType tMaterialFraction = static_cast<Plato::Scalar>(1.0) - tDensity;
+        ControlScalarType tMaterialPenalty = pow(tMaterialFraction, mPenaltyExponent);
+        // out-of-plane thickness interpolation
+        ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
+        ControlScalarType tThicknessInterpolation = tThicknessTwo + 
+          ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
+        auto tWeight = aScale * tCubWeights(iGpOrdinal) * tDetJ;
+        for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
         {
-            auto tCubPoint = tCubPoints(iGpOrdinal);
-            auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal));
-            auto tBasisValues = ElementType::basisValues(tCubPoint);
+            ResultScalarType tCellResult = ( tBasisValues(tFieldOrdinal) * 
+            (tMaterialPenalty * aCurrentDensity(iCellOrdinal,iGpOrdinal)) * tWeight ) / tThicknessInterpolation; 
+            Kokkos::atomic_add( &aResult(iCellOrdinal,tFieldOrdinal*mNumDofsPerNode),tCellResult );
+        }
+    });
+  }
 
-            // material interpolation
-            ControlScalarType tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
-            ControlScalarType tMaterialFraction = static_cast<Plato::Scalar>(1.0) - tDensity;
-            ControlScalarType tMaterialPenalty = pow(tMaterialFraction, mPenaltyExponent);
-
-            // out-of-plane thickness interpolation
-            ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
-            ControlScalarType tThicknessInterpolation = tThicknessTwo + 
-              ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
-
-            // evaluate light-generated current density
-            StateScalarType tCellElectricPotential = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
-            Plato::Scalar tLightGenCurrentDensity = 
-              tLightGeneratedCurrentDensityModel.evaluate(tCellElectricPotential);
-
-            auto tWeight = aScale * tCubWeights(iGpOrdinal) * tDetJ;
-            for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
-            {
-                ResultScalarType tCellResult = ( tBasisValues(tFieldOrdinal) * 
-                (tMaterialPenalty * tLightGenCurrentDensity) * tWeight ) / tThicknessInterpolation; 
-                Kokkos::atomic_add( &aResult(iCellOrdinal,tFieldOrdinal*mNumDofsPerNode),tCellResult );
-            }
-        });
-    }
+  void 
+  evaluate(
+      const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
+      const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
+      const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
+      const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
+      const Plato::Scalar                                & aScale
+  ) 
+  const
+  {
+      // compute current density
+      Plato::OrdinalType tNumCells = aResult.extent(0);
+      Plato::ScalarMultiVectorT<Plato::Scalar> 
+        tCurrentDensity("current density",tNumCells,mNumGaussPoints);
+      mLightGeneratedCurrentDensity->evaluate(aState,tCurrentDensity);
+      this->evaluate<Plato::Scalar>(tCurrentDensity,aState,aControl,aConfig,aResult,aScale);
+  }
+  
+  template<typename CurrentDensityType>
+  void evaluate(
+      const Plato::ScalarMultiVectorT<CurrentDensityType> & aCurrentDensity,
+      const Plato::ScalarMultiVectorT<StateScalarType>    & aState,
+      const Plato::ScalarMultiVectorT<ControlScalarType>  & aControl,
+      const Plato::ScalarArray3DT<ConfigScalarType>       & aConfig,
+      const Plato::ScalarMultiVectorT<ResultScalarType>   & aResult,
+      const Plato::Scalar                                 & aScale
+  ) const
+  {
+    // integration rule
+    auto tCubPoints  = ElementType::getCubPoints();
+    auto tCubWeights = ElementType::getCubWeights();
+    // out-of-plane thicknesses
+    Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
+    Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
+    // evaluate light-generated current density
+    Plato::OrdinalType tNumCells = aResult.extent(0);
+    Kokkos::parallel_for("light-generated current density", 
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, mNumGaussPoints}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+    {
+      auto tCubPoint = tCubPoints(iGpOrdinal);
+      auto tBasisValues = ElementType::basisValues(tCubPoint);
+      // material interpolation
+      ControlScalarType tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
+      ControlScalarType tMaterialFraction = static_cast<Plato::Scalar>(1.0) - tDensity;
+      ControlScalarType tMaterialPenalty = pow(tMaterialFraction, mPenaltyExponent);
+      // out-of-plane thickness interpolation
+      ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
+      ControlScalarType tThicknessInterpolation = tThicknessTwo + 
+        ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
+      // compute penalized current density at gauss points
+      ResultScalarType tCellResult = 
+      aResult(iCellOrdinal,iGpOrdinal) = ( aScale * tMaterialPenalty * 
+        aCurrentDensity(iCellOrdinal,iGpOrdinal) ) / tThicknessInterpolation; ;
+    });
+  }
 
 private:
     void 
     initialize(
-        Teuchos::ParameterList &aParamList
+      Teuchos::ParameterList &aParamList
     )
     {
         if( !aParamList.isSublist("Source Terms") ){
@@ -985,8 +1113,8 @@ private:
         mMinErsatzMaterialValue = tCurrentDensitySublist.get<Plato::Scalar>("Minimum Value", 0.0);
 
         // set current density model
-        mCurrentDensityType  = tCurrentDensitySublist.get<std::string>("Type","Linear");
         mCurrentDensityModel = tCurrentDensitySublist.get<std::string>("Model","Constant");
+        this->buildCurrentDensityModel(aParamList);
 
         // set out-of-plane thickness array
         Plato::FactoryElectricalMaterial<EvaluationType> tMaterialFactory(aParamList);
@@ -1016,6 +1144,14 @@ private:
             }
         }
     }
+
+    void buildCurrentDensityModel(
+      Teuchos::ParameterList &aParamList
+    )
+    {
+      mLightGeneratedCurrentDensity = 
+        std::make_shared<Plato::LightGeneratedCurrentDensityConstant<EvaluationType>>(mCurrentDensityName,aParamList);
+    }
 };
 
 template<typename EvaluationType>
@@ -1025,6 +1161,7 @@ class DarkCurrentDensityTwoPhaseAlloy :
 private:
     // set local element type
     using ElementType = typename EvaluationType::ElementType;
+    static constexpr int mNumGaussPoints  = ElementType::mNumGaussPoints;
     static constexpr int mNumSpatialDims  = ElementType::mNumSpatialDims;
     static constexpr int mNumDofsPerNode  = ElementType::mNumDofsPerNode;
     static constexpr int mNumNodesPerCell = ElementType::mNumNodesPerCell;
@@ -1036,83 +1173,142 @@ private:
 
     std::string mMaterialName = "";
     std::string mCurrentDensityName  = "";
-    std::string mCurrentDensityType  = "Linear";
     std::string mCurrentDensityModel = "Quadratic";
 
     Plato::Scalar mPenaltyExponent = 3.0;
     Plato::Scalar mMinErsatzMaterialValue = 0.0;
 
-    const Teuchos::ParameterList& mParamList;
     std::vector<Plato::Scalar> mOutofPlaneThickness;
 
+    std::shared_ptr<Plato::DarkCurrentDensityQuadratic<EvaluationType>> mDarkCurrentDensity;
+
 public:
-    DarkCurrentDensityTwoPhaseAlloy(
-      const std::string            & aMaterialName,
-      const std::string            & aCurrentDensityName,
-            Teuchos::ParameterList & aParamList
-    ) : 
-      mMaterialName(aMaterialName),
-      mCurrentDensityName(aCurrentDensityName),
-      mParamList(aParamList)
+  DarkCurrentDensityTwoPhaseAlloy(
+    const std::string            & aMaterialName,
+    const std::string            & aCurrentDensityName,
+          Teuchos::ParameterList & aParamList
+  ) : 
+    mMaterialName(aMaterialName),
+    mCurrentDensityName(aCurrentDensityName)
+  {
+      this->initialize(aParamList);
+  }
+
+  ~DarkCurrentDensityTwoPhaseAlloy(){}
+
+  void
+  evaluate(
+      const Plato::SpatialDomain                         & aSpatialDomain,
+      const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
+      const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
+      const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
+      const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
+      const Plato::Scalar                                & aScale
+  ) const
+  {
+    // compute current density
+    Plato::OrdinalType tNumCells = aSpatialDomain.numCells();
+    Plato::ScalarMultiVectorT<StateScalarType> 
+      tCurrentDensity("current density",tNumCells,mNumGaussPoints);
+    mDarkCurrentDensity->evaluate(aState,tCurrentDensity);
+    this->evaluate<StateScalarType>(aSpatialDomain,tCurrentDensity,aState,aControl,aConfig,aResult,aScale);
+  }
+
+  template<typename CurrentDensityType>
+  void evaluate(
+      const Plato::SpatialDomain                          & aSpatialDomain,
+      const Plato::ScalarMultiVectorT<CurrentDensityType> & aCurrentDensity,
+      const Plato::ScalarMultiVectorT<StateScalarType>    & aState,
+      const Plato::ScalarMultiVectorT<ControlScalarType>  & aControl,
+      const Plato::ScalarArray3DT<ConfigScalarType>       & aConfig,
+      const Plato::ScalarMultiVectorT<ResultScalarType>   & aResult,
+      const Plato::Scalar                                 & aScale
+  ) const
+  {
+    // integration rule
+    auto tCubPoints  = ElementType::getCubPoints();
+    auto tCubWeights = ElementType::getCubWeights();
+    // out-of-plane thicknesses
+    Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
+    Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
+    // evaluate dark current density
+    Plato::OrdinalType tNumCells = aSpatialDomain.numCells();
+    Kokkos::parallel_for("evaluate dark current density", 
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, mNumGaussPoints}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
     {
-        this->initialize(aParamList);
-    }
-    ~DarkCurrentDensityTwoPhaseAlloy(){}
-
-    void
-    evaluate(
-        const Plato::SpatialDomain                         & aSpatialDomain,
-        const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
-        const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
-        const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
-              Plato::Scalar                                  aScale
-    ) const
-    {
-        // integration rule
-        auto tCubPoints  = ElementType::getCubPoints();
-        auto tCubWeights = ElementType::getCubWeights();
-        auto tNumPoints  = tCubWeights.size();
-
-        // out-of-plane thicknesses
-        Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
-        Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
-
-        // create functors: 1) compute dark current density and 2) interpolate nodal values to integration points
-        Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
-        Plato::DarkCurrentDensityQuadraticFit<EvaluationType> 
-          tDarkCurrentDensityModel(mCurrentDensityName,mParamList);
-
-        // evaluate dark current density
-        Plato::OrdinalType tNumCells = aSpatialDomain.numCells();
-        Kokkos::parallel_for("dark current density", 
-          Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-          KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+        // get basis functions and weights for this integration point
+        auto tCubPoint = tCubPoints(iGpOrdinal);
+        auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal));
+        auto tBasisValues = ElementType::basisValues(tCubPoint);
+        // out-of-plane thickness interpolation
+        ControlScalarType tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
+        ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
+        ControlScalarType tThicknessInterpolation = tThicknessTwo + 
+          ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
+        auto tWeight = aScale * tCubWeights(iGpOrdinal) * tDetJ;
+        for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
         {
-            // get basis functions and weights for this integration point
-            auto tCubPoint = tCubPoints(iGpOrdinal);
-            auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal));
-            auto tBasisValues = ElementType::basisValues(tCubPoint);
+          ResultScalarType tCellResult = ( tBasisValues(tFieldOrdinal) * 
+            aCurrentDensity(iCellOrdinal,iGpOrdinal) * tWeight ) / tThicknessInterpolation;
+          Kokkos::atomic_add( &aResult(iCellOrdinal,tFieldOrdinal*mNumDofsPerNode), tCellResult );
+        }
+    });
+  }
 
-            // out-of-plane thickness interpolation
-            ControlScalarType tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
-            ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
-            ControlScalarType tThicknessInterpolation = tThicknessTwo + 
-              ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
+  void 
+  evaluate(
+      const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
+      const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
+      const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
+      const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
+      const Plato::Scalar                                & aScale
+  ) 
+  const
+  {
+    std::cout << "HOLA\n";
+    // compute current density
+    Plato::OrdinalType tNumCells = aResult.extent(0);
+    Plato::ScalarMultiVectorT<StateScalarType> 
+      tCurrentDensity("current density",tNumCells,mNumGaussPoints);
+    mDarkCurrentDensity->evaluate(aState,tCurrentDensity);
+    this->evaluate<StateScalarType>(tCurrentDensity,aState,aControl,aConfig,aResult,aScale);
+  }
 
-            // compute dark current density
-            StateScalarType tCellElectricPotential = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
-            StateScalarType tDarkCurrentDensity = tDarkCurrentDensityModel.evaluate(tCellElectricPotential);
-
-            auto tWeight = aScale * tCubWeights(iGpOrdinal) * tDetJ;
-            for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
-            {
-                ResultScalarType tCellResult = 
-                    ( tBasisValues(tFieldOrdinal) * tDarkCurrentDensity * tWeight ) / tThicknessInterpolation;
-                Kokkos::atomic_add( &aResult(iCellOrdinal,tFieldOrdinal*mNumDofsPerNode), tCellResult );
-            }
-        });
-    }
+  template<typename CurrentDensityType>
+  void evaluate(
+      const Plato::ScalarMultiVectorT<CurrentDensityType> & aCurrentDensity,
+      const Plato::ScalarMultiVectorT<StateScalarType>    & aState,
+      const Plato::ScalarMultiVectorT<ControlScalarType>  & aControl,
+      const Plato::ScalarArray3DT<ConfigScalarType>       & aConfig,
+      const Plato::ScalarMultiVectorT<ResultScalarType>   & aResult,
+      const Plato::Scalar                                 & aScale
+  ) const
+  {
+    // integration rule
+    auto tCubPoints  = ElementType::getCubPoints();
+    auto tCubWeights = ElementType::getCubWeights();
+    // out-of-plane thicknesses
+    Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
+    Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
+    // evaluate dark current density
+    Plato::OrdinalType tNumCells = aResult.extent(0);
+    Kokkos::parallel_for("evaluate dark current density", 
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, mNumGaussPoints}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+    {
+      // get basis functions and weights for this integration point
+      auto tCubPoint = tCubPoints(iGpOrdinal);
+      auto tBasisValues = ElementType::basisValues(tCubPoint);
+      // out-of-plane thickness interpolation
+      ControlScalarType tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
+      ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
+      ControlScalarType tThicknessInterpolation = tThicknessTwo + 
+        ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
+      aResult(iCellOrdinal,iGpOrdinal) = 
+        ( aScale * aCurrentDensity(iCellOrdinal,iGpOrdinal) ) / tThicknessInterpolation;
+    });
+  }
 
 private:
     void 
@@ -1136,8 +1332,8 @@ private:
         mMinErsatzMaterialValue = tSublist.get<Plato::Scalar>("Minimum Value", 0.0);
 
         // set current density model
-        mCurrentDensityType  = tSublist.get<std::string>("Type","Nonlinear");
         mCurrentDensityModel = tSublist.get<std::string>("Model","Quadratic");
+        this->buildCurrentDensityModel(aParamList);
 
         // set out-of-plane thickness array
         Plato::FactoryElectricalMaterial<EvaluationType> tMaterialFactory(aParamList);
@@ -1167,6 +1363,14 @@ private:
             }
         }
     }
+
+    void buildCurrentDensityModel(
+      Teuchos::ParameterList &aParamList
+    )
+    {
+      mDarkCurrentDensity = 
+        std::make_shared<Plato::DarkCurrentDensityQuadratic<EvaluationType>>(mCurrentDensityName,aParamList);
+    }
 };
 
 namespace FactoryCurrentDensityEvaluator
@@ -1190,18 +1394,18 @@ namespace FactoryCurrentDensityEvaluator
       auto tMsg = std::string("Parameter is not valid. Argument ('") + aFunctionName + "') is not a parameter list";
       ANALYZE_THROWERR(tMsg)
     }
-    auto tCurrentDensityEvaluatorParamList = tSourceTermsParamList.sublist(aFunctionName);
-    if( !tCurrentDensityEvaluatorParamList.isParameter("Function") )
+    auto mCurrentDensityEvaluatorParamList = tSourceTermsParamList.sublist(aFunctionName);
+    if( !mCurrentDensityEvaluatorParamList.isParameter("Function") )
     {
       auto tMsg = std::string("Parameter ('Function') is not defined in parameter list ('") 
         + aFunctionName + "'), current density evaluator cannot be determined";
       ANALYZE_THROWERR(tMsg)
     }
-    Plato::electrical::SourceEnum tS2E;
-    auto tType = tCurrentDensityEvaluatorParamList.get<std::string>("Function");
+    Plato::electrical::SourceTermEnum tS2E;
+    auto tType = mCurrentDensityEvaluatorParamList.get<std::string>("Function");
     auto tLowerType = Plato::tolower(tType);
-    auto tSupportedSourceEnum = tS2E.get(tLowerType);
-    switch (tSupportedSourceEnum)
+    auto tSupportedSourceTermEnum = tS2E.get(tLowerType);
+    switch (tSupportedSourceTermEnum)
     {
       case Plato::electrical::source::TWO_PHASE_DARK_CURRENT_DENSITY:
         return std::make_shared<Plato::DarkCurrentDensityTwoPhaseAlloy<EvaluationType>>(
@@ -1254,7 +1458,7 @@ public:
         const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
         const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
         const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
-              Plato::Scalar                                  aScale
+        const Plato::Scalar                                & aScale
     ) 
     const
     {
@@ -1342,7 +1546,7 @@ namespace Elliptic
 {
 
 template<typename EvaluationType>
-class PowerSurfaceDensity : public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+class CriterionPowerSurfaceDensityTwoPhase : public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
 {
 private:
     using ElementType = typename EvaluationType::ElementType;
@@ -1361,24 +1565,27 @@ private:
 
     using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
     
-    Plato::Scalar mPenaltyExponent = 3.0;
+    std::string mCriterionFunctionName = "";
 
+    Plato::Scalar mPenaltyExponent = 3.0;
+    Plato::Scalar mMinErsatzMaterialValue = 0.0;
     std::vector<Plato::Scalar> mOutofPlaneThickness;
 
+    std::shared_ptr<Plato::CurrentDensityEvaluator<EvaluationType>> mCurrentDensityEvaluator;
+
 public:
-    PowerSurfaceDensity(
+    CriterionPowerSurfaceDensityTwoPhase(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aParamList,
         const std::string            & aFuncName
-    ) :
-        FunctionBaseType(aSpatialDomain, aDataMap, aParamList, aFuncName)
+    ) : 
+      FunctionBaseType(aSpatialDomain, aDataMap, aParamList, aFuncName),
+      mCriterionFunctionName(aFuncName)
     {
-        Plato::FactoryElectricalMaterial<EvaluationType> tMaterialFactory(aParamList);
-        auto tMaterialModel = tMaterialFactory.create(mSpatialDomain.getMaterialName());
-        this->setOutofPlaneThickness(tMaterialModel.operator*());
+      this->initialize(aParamList);
     }
-    ~PowerSurfaceDensity(){}
+    ~CriterionPowerSurfaceDensityTwoPhase(){}
 
     void
     evaluate_conditional(
@@ -1386,7 +1593,7 @@ public:
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
               Plato::ScalarVectorT      <ResultScalarType>  & aResult,
-              Plato::Scalar aTimeStep = 0.0
+              Plato::Scalar                                   aCycle
     ) const override
     {
         // integration rule
@@ -1398,13 +1605,16 @@ public:
         Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
         Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
 
-        // create functors: 1) compute dark current density and 2) interpolate nodal values to integration points
+        // build local functor
         Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
-        Plato::DarkCurrentDensityQuadraticFit<EvaluationType,StateScalarType> tDarkCurrentDensityModel;
-        Plato::LightGeneratedCurrentDensityConstant<EvaluationType,Plato::Scalar> tLightCurrentDensityModel;
+
+        // evaluate current density
+        Plato::Scalar tScale = 1.0;
+        Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
+        Plato::ScalarMultiVectorT<ResultScalarType> tCurrentDensity("current density",tNumCells,tNumPoints);
+        mCurrentDensityEvaluator->evaluate(aState,aControl,aConfig,tCurrentDensity,tScale);
 
         // evaluate dark current density
-        Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
         Kokkos::parallel_for("dark current density", 
           Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
           KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
@@ -1414,56 +1624,90 @@ public:
             auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal));
             auto tBasisValues = ElementType::basisValues(tCubPoint);
 
-            // material interpolation
-            ControlScalarType tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
-            ControlScalarType tMaterialFraction = static_cast<Plato::Scalar>(1.0) - tDensity;
-            ControlScalarType tMaterialPenalty = pow(tMaterialFraction, mPenaltyExponent);
-
             // out-of-plane thickness interpolation
+            ControlScalarType tDensity =
+              Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
             ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
             ControlScalarType tThicknessInterpolation = tThicknessTwo + 
               ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
 
-            // compute light-generated and dark current densities
-            StateScalarType tCellElectricPotential = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
-            ResultScalarType tLightCurrentDensity  = ( tMaterialPenalty * 
-                tLightCurrentDensityModel(tCellElectricPotential) ) / tThicknessInterpolation;
-            ResultScalarType tDarkCurrentDensity = 
-                tDarkCurrentDensityModel(tCellElectricPotential) / tThicknessInterpolation;
+            // evaluate electric potential
+            StateScalarType tCellElectricPotential = 
+              tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
 
-            auto tWeight = tCubWeights(iGpOrdinal) * tDetJ;
+            ResultScalarType tWeightedCurrentDensity = 
+              tCurrentDensity(iCellOrdinal,iGpOrdinal) * tCubWeights(iGpOrdinal) * tDetJ;
             for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
             {
-                ResultScalarType tCellResult = tBasisValues(tFieldOrdinal) * tWeight * tThicknessInterpolation
-                  * ( tCellElectricPotential * ( tLightCurrentDensity + tDarkCurrentDensity ) );
-                Kokkos::atomic_add( &aResult(iCellOrdinal,tFieldOrdinal), tCellResult );
+                ResultScalarType tCellResult = tBasisValues(tFieldOrdinal) * 
+                  tCellElectricPotential * tWeightedCurrentDensity * tThicknessInterpolation;
+                Kokkos::atomic_add( &aResult(iCellOrdinal), tCellResult );
             }
         });
     }
 
 private:
-    void 
-    setOutofPlaneThickness(
-        Plato::MaterialModel<EvaluationType> & aMaterialModel
-    )
-    {
-        std::vector<std::string> tThickness = aMaterialModel.property("out-of-plane thickness");
-        if ( tThickness.empty() )
-        {
-            auto tMsg = std::string("Array of out-of-plane thicknesses is empty. ") 
-              + "Dark current density cannnot be computed.";
-            ANALYZE_THROWERR(tMsg)
-        }
-        else
-        {
-            mOutofPlaneThickness.clear();
-            for(size_t tIndex = 0; tIndex < tThickness.size(); tIndex++)
-            {
-              Plato::Scalar tMyThickness = std::stod(tThickness[tIndex]);
-              mOutofPlaneThickness.push_back(tMyThickness);
-            }
-        }
+  void initialize(
+    Teuchos::ParameterList & aParamList
+  )
+  {
+    // build current density function
+    this->buildCurrentDensityFunction(aParamList);
+    // set out-of-plane thickness 
+    Plato::FactoryElectricalMaterial<EvaluationType> tMaterialFactory(aParamList);
+    auto tMaterialModel = tMaterialFactory.create(mSpatialDomain.getMaterialName());
+    this->setOutofPlaneThickness(tMaterialModel.operator*());
+  }
+
+  void buildCurrentDensityFunction(
+    Teuchos::ParameterList & aParamList
+  )
+  {
+    if( !aParamList.isSublist("Criteria") ){
+      auto tMsg = std::string("Parameter is not valid. Argument ('Criteria') is not a parameter list");
+      ANALYZE_THROWERR(tMsg)
     }
+    auto tCriteriaParamList = aParamList.sublist("Criteria");
+    if( !tCriteriaParamList.isSublist(mCriterionFunctionName) ){
+      auto tMsg = std::string("Parameter is not valid. Argument ('") 
+        + mCriterionFunctionName + "') is not a parameter list";
+      ANALYZE_THROWERR(tMsg)
+    }
+    auto tMyCriterionParamList = tCriteriaParamList.sublist(mCriterionFunctionName);
+    if( !tMyCriterionParamList.isParameter("Function") ){
+      auto tMsg = std::string("Parameter ('Function') is not defined in parameter list ('") 
+        + mCriterionFunctionName + "'), power surface density cannot be evaluated";
+      ANALYZE_THROWERR(tMsg)
+    }
+    std::string tMaterialName = mSpatialDomain.getMaterialName();
+    std::string tCurrentDensityFunctionName = tMyCriterionParamList.get<std::string>("Function");
+    mCurrentDensityEvaluator = Plato::FactoryCurrentDensityEvaluator::create<EvaluationType>(
+      tMaterialName,tCurrentDensityFunctionName,aParamList
+    );
+  }
+
+  void 
+  setOutofPlaneThickness(
+      Plato::MaterialModel<EvaluationType> & aMaterialModel
+  )
+  {
+      std::vector<std::string> tThickness = aMaterialModel.property("out-of-plane thickness");
+      if ( tThickness.empty() )
+      {
+          auto tMsg = std::string("Array of out-of-plane thicknesses is empty. ") 
+            + "Dark current density cannnot be computed.";
+          ANALYZE_THROWERR(tMsg)
+      }
+      else
+      {
+          mOutofPlaneThickness.clear();
+          for(size_t tIndex = 0; tIndex < tThickness.size(); tIndex++)
+          {
+            Plato::Scalar tMyThickness = std::stod(tThickness[tIndex]);
+            mOutofPlaneThickness.push_back(tMyThickness);
+          }
+      }
+  }
 };
 
 template<typename EvaluationType>
@@ -1860,14 +2104,18 @@ namespace ElectrostaticsTest
     "<ParameterList name='Criteria'>                                                                               \n"
     "  <ParameterList name='Objective'>                                                                            \n"
     "    <Parameter name='Type' type='string' value='Weighted Sum'/>                                               \n"
-    "    <Parameter name='Functions' type='Array(string)' value='{My Power}'/>                                     \n"
-    "    <Parameter name='Weights' type='Array(double)' value='{1.0}'/>                                            \n"
+    "    <Parameter name='Functions' type='Array(string)' value='{My Dark Power,My Light}'/>                       \n"
+    "    <Parameter name='Weights' type='Array(double)' value='{1.0,1.0}'/>                                        \n"
     "  </ParameterList>                                                                                            \n"
-    "  <ParameterList name='My Power'>                                                                             \n"
+    "  <ParameterList name='My Dark Power'>                                                                        \n"
     "    <Parameter name='Type'                        type='string'        value='Scalar Function'/>              \n"
-    "    <Parameter name='Scalar Function Type'        type='string'        value='Strength Constraint'/>          \n"
-    "    <Parameter name='Exponent'                    type='double'        value='2.0'/>                          \n"
-    "    <Parameter name='Minimum Value'               type='double'        value='1.0e-6'/>                       \n"
+    "    <Parameter name='Scalar Function Type'        type='string'        value='Power Surface Density'/>        \n"
+    "    <Parameter name='Function'                    type='string'        value='My Dark CD'/>                   \n"
+    "  </ParameterList>                                                                                            \n"
+    "  <ParameterList name='My Light Power'>                                                                       \n"
+    "    <Parameter name='Type'                        type='string'        value='Scalar Function'/>              \n"
+    "    <Parameter name='Scalar Function Type'        type='string'        value='Power Surface Density'/>        \n"
+    "    <Parameter name='Function'                    type='string'        value='My Light-Generated CD'/>        \n"
     "  </ParameterList>                                                                                            \n"
     "</ParameterList>                                                                                              \n"
     "<ParameterList name='Source Terms'>                                                                           \n"
@@ -1877,12 +2125,10 @@ namespace ElectrostaticsTest
     "  </ParameterList>                                                                                            \n"
     "  <ParameterList name='My Dark CD'>                                                                           \n"
     "    <Parameter  name='Function'        type='string'      value='Two Phase Dark Current Density'/>            \n"
-    "    <Parameter  name='Type'            type='string'      value='Nonlinear'/>                                 \n"
     "    <Parameter  name='Model'           type='string'      value='Quadratic'/>           ,                     \n"
     "  </ParameterList>                                                                                            \n"
     "  <ParameterList name='My Light-Generated CD'>                                                                \n"
     "    <Parameter  name='Function'        type='string'      value='Two Phase Light-Generated Current Density'/> \n"
-    "    <Parameter  name='Type'            type='string'      value='Linear'/>                                    \n"
     "    <Parameter  name='Model'           type='string'      value='Constant'/>                                  \n"
       "</ParameterList>                                                                                            \n"
     "</ParameterList>                                                                                              \n"
@@ -2030,7 +2276,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MaterialElectricalConductivityTwoPhaseA
     auto tMaterial = tFactoryMaterial.create("Mystic");
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, DarkCurrentDensityQuadraticFit)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, DarkCurrentDensityQuadratic)
 {
     Teuchos::RCP<Teuchos::ParameterList> tParamList = Teuchos::getParametersFromXmlString(
       "<ParameterList name='Plato Problem'>                                                       \n"
@@ -2060,7 +2306,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, DarkCurrentDensityQuadraticFit)
 
     // TEST ONE: V > 0
     using Residual = typename Plato::Elliptic::Evaluation<Plato::ElementElectrical<Plato::Tri3>>::Residual;
-    Plato::DarkCurrentDensityQuadraticFit<Residual,Plato::Scalar> 
+    Plato::DarkCurrentDensityQuadratic<Residual,Plato::Scalar> 
       tCurrentDensityModel("Dark Current Density",tParamList.operator*());
     Residual::StateScalarType tElectricPotential = 0.67186;
     Plato::Scalar tDarkCurrentDensity = tCurrentDensityModel.evaluate(tElectricPotential);
@@ -2303,7 +2549,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, SingleDiode)
     }
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PowerSurfaceDensity)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CriterionPowerSurfaceDensityTwoPhase)
 {
     // create mesh
     constexpr Plato::OrdinalType tSpaceDim = 2;
@@ -2345,6 +2591,19 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PowerSurfaceDensity)
 
     // create current density
     auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+    Plato::Elliptic::CriterionPowerSurfaceDensityTwoPhase<Residual>
+      tCriterionPowerSurfaceDensityTwoPhase(tOnlyDomainDefined,tDataMap,*tGenericParamList,"My Dark Power");
+    Plato::ScalarVectorT<ResultT> tResultWS("result workset", tNumCells);
+    tCriterionPowerSurfaceDensityTwoPhase.evaluate(tStateWS,tControlWS,tConfigWS,tResultWS);
+
+    // test against gold
+    auto tHost = Kokkos::create_mirror_view(tResultWS);
+    Plato::Scalar tTol = 1e-6;
+    std::vector<Plato::Scalar>tGold = {15.8378409629,15.8378409629};
+    Kokkos::deep_copy(tHost, tResultWS);
+    for(Plato::OrdinalType i = 0; i < tNumCells; i++){
+      TEST_FLOATING_EQUALITY(tGold[i],tHost(i),tTol);
+    }
 }
 
 }
