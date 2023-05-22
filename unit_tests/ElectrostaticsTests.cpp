@@ -1276,12 +1276,12 @@ public:
 
   template<typename CurrentDensityType>
   void evaluate(
-      const Plato::ScalarMultiVectorT<CurrentDensityType> & aCurrentDensity,
-      const Plato::ScalarMultiVectorT<StateScalarType>    & aState,
-      const Plato::ScalarMultiVectorT<ControlScalarType>  & aControl,
-      const Plato::ScalarArray3DT<ConfigScalarType>       & aConfig,
-      const Plato::ScalarMultiVectorT<ResultScalarType>   & aResult,
-      const Plato::Scalar                                 & aScale
+    const Plato::ScalarMultiVectorT<CurrentDensityType> & aCurrentDensity,
+    const Plato::ScalarMultiVectorT<StateScalarType>    & aState,
+    const Plato::ScalarMultiVectorT<ControlScalarType>  & aControl,
+    const Plato::ScalarArray3DT<ConfigScalarType>       & aConfig,
+    const Plato::ScalarMultiVectorT<ResultScalarType>   & aResult,
+    const Plato::Scalar                                 & aScale
   ) const
   {
     // integration rule
@@ -1593,7 +1593,7 @@ public:
       const Plato::ScalarArray3DT     <typename EvaluationType::ConfigScalarType>  & aConfig,
             Plato::ScalarVectorT      <typename EvaluationType::ResultScalarType>  & aResult,
             Plato::Scalar                                                            aCycle = 1.0
-  ) 
+  ) override
   { 
     this->evaluate_conditional(aState, aControl, aConfig, aResult, aCycle);
   }
@@ -1715,7 +1715,7 @@ private:
 };
 
 template<typename EvaluationType>
-class VolumeTwoPhaseAlloy : public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+class CriterionVolumeTwoPhase : public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
 {
 private:
     using ElementType = typename EvaluationType::ElementType;
@@ -1739,101 +1739,105 @@ private:
     std::vector<Plato::Scalar> mOutofPlaneThickness;
 
 public:
-    VolumeTwoPhaseAlloy(
-        const Plato::SpatialDomain   & aSpatialDomain,
-              Plato::DataMap         & aDataMap,
-              Teuchos::ParameterList & aParamList,
-        const std::string            & aFuncName
-    ) :
-        FunctionBaseType(aSpatialDomain, aDataMap, aParamList, aFuncName)
+  CriterionVolumeTwoPhase(
+      const Plato::SpatialDomain   & aSpatialDomain,
+            Plato::DataMap         & aDataMap,
+            Teuchos::ParameterList & aParamList,
+      const std::string            & aFuncName
+  ) :
+      FunctionBaseType(aSpatialDomain, aDataMap, aParamList, aFuncName)
+  {
+      this->initialize(aParamList);
+  }
+  ~CriterionVolumeTwoPhase(){}
+
+  void 
+  evaluate(
+    const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
+    const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
+    const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
+          Plato::ScalarVectorT      <ResultScalarType>  & aResult,
+          Plato::Scalar                                   aCycle = 1.0
+  ) override
+  {
+    this->evaluate_conditional(aState,aControl,aConfig,aResult,aCycle);
+  }
+  void
+  evaluate_conditional(
+      const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
+      const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
+      const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
+            Plato::ScalarVectorT      <ResultScalarType>  & aResult,
+            Plato::Scalar                                   aCycle = 1.0
+  ) const override
+  {
+    // out-of-plane thicknesses for two-phase electrical material
+    Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
+    Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
+    // get basis functions and weights associated with the integration rule
+    auto tCubPoints  = ElementType::getCubPoints();
+    auto tCubWeights = ElementType::getCubWeights();
+    auto tNumPoints  = tCubWeights.size();
+    // evaluate volume for a two-phase electrical material
+    auto tNumCells = mSpatialDomain.numCells();
+    Kokkos::parallel_for("compute volume", 
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
     {
-        this->initialize(aParamList);
-    }
-    ~VolumeTwoPhaseAlloy(){}
-
-    void
-    evaluate_conditional(
-        const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-        const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-              Plato::ScalarVectorT      <ResultScalarType>  & aResult,
-              Plato::Scalar aTimeStep = 0.0
-    ) const override
-    {
-        // out-of-plane thicknesses for two-phase electrical material
-        Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
-        Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
-
-        // get basis functions and weights associated with the integration rule
-        auto tCubPoints  = ElementType::getCubPoints();
-        auto tCubWeights = ElementType::getCubWeights();
-        auto tNumPoints  = tCubWeights.size();
-
-        // evaluate volume for a two-phase electrical material
-        auto tNumCells = mSpatialDomain.numCells();
-        Kokkos::parallel_for("compute volume", 
-          Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-          KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
-        {
-            // evaluate cell jacobian
-            auto tCubPoint  = tCubPoints(iGpOrdinal);
-            auto tCubWeight = tCubWeights(iGpOrdinal);
-            auto tJacobian = ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal);
-
-            // compute cell volume
-            ResultScalarType tCellVolume = Plato::determinant(tJacobian);
-            tCellVolume *= tCubWeight;
-
-            // evaluate out-of-plane thickness interpolation function
-            auto tBasisValues = ElementType::basisValues(tCubPoint);
-            ControlScalarType tDensity = 
-                Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
-            ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
-            ControlScalarType tThicknessInterpolation = tThicknessTwo + 
-              ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
-            
-            // apply penalty to volume
-            ResultScalarType tPenalizedVolume = tThicknessInterpolation * tCellVolume;
-
-            Kokkos::atomic_add(&aResult(iCellOrdinal), tPenalizedVolume);
-        });
-    }
+      // evaluate cell jacobian
+      auto tCubPoint  = tCubPoints(iGpOrdinal);
+      auto tCubWeight = tCubWeights(iGpOrdinal);
+      auto tJacobian = ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal);
+      // compute cell volume
+      ResultScalarType tCellVolume = Plato::determinant(tJacobian);
+      tCellVolume *= tCubWeight;
+      // evaluate out-of-plane thickness interpolation function
+      auto tBasisValues = ElementType::basisValues(tCubPoint);
+      ControlScalarType tDensity = 
+          Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
+      ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
+      ControlScalarType tThicknessInterpolation = tThicknessTwo + 
+        ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
+      // apply penalty to volume
+      ResultScalarType tPenalizedVolume = tThicknessInterpolation * tCellVolume;
+      Kokkos::atomic_add(&aResult(iCellOrdinal), tPenalizedVolume);
+    });
+  }
 
 private:
-    void 
-    initialize(
-        Teuchos::ParameterList & aParamList
-    )
-    {
-        Plato::FactoryElectricalMaterial<EvaluationType> tMaterialFactory(aParamList);
-        auto tMaterialModel = tMaterialFactory.create(mSpatialDomain.getMaterialName());
-        this->setOutofPlaneThickness(tMaterialModel.operator*());
+  void 
+  initialize(
+    Teuchos::ParameterList & aParamList
+  )
+  {
+    Plato::FactoryElectricalMaterial<EvaluationType> tMaterialFactory(aParamList);
+    auto tMaterialModel = tMaterialFactory.create(mSpatialDomain.getMaterialName());
+    this->setOutofPlaneThickness(tMaterialModel.operator*());
+    mPenaltyExponent = aParamList.get<Plato::Scalar>("Penalty Exponent", 3.0);
+  }
 
-        mPenaltyExponent = aParamList.get<Plato::Scalar>("Penalty Exponent", 3.0);
+  void 
+  setOutofPlaneThickness(
+    Plato::MaterialModel<EvaluationType> & aMaterialModel
+  )
+  {
+    std::vector<std::string> tThickness = aMaterialModel.property("out-of-plane thickness");
+    if ( tThickness.empty() )
+    {
+        auto tMsg = std::string("Array of out-of-plane thicknesses is empty. ") 
+          + "Volume criterion for two-phase material alloy cannnot be computed.";
+        ANALYZE_THROWERR(tMsg)
     }
-
-    void 
-    setOutofPlaneThickness(
-        Plato::MaterialModel<EvaluationType> & aMaterialModel
-    )
+    else
     {
-        std::vector<std::string> tThickness = aMaterialModel.property("out-of-plane thickness");
-        if ( tThickness.empty() )
+        mOutofPlaneThickness.clear();
+        for(size_t tIndex = 0; tIndex < tThickness.size(); tIndex++)
         {
-            auto tMsg = std::string("Array of out-of-plane thicknesses is empty. ") 
-              + "Volume criterion for two-phase material alloy cannnot be computed.";
-            ANALYZE_THROWERR(tMsg)
-        }
-        else
-        {
-            mOutofPlaneThickness.clear();
-            for(size_t tIndex = 0; tIndex < tThickness.size(); tIndex++)
-            {
-              Plato::Scalar tMyThickness = std::stod(tThickness[tIndex]);
-              mOutofPlaneThickness.push_back(tMyThickness);
-            }
+          Plato::Scalar tMyThickness = std::stod(tThickness[tIndex]);
+          mOutofPlaneThickness.push_back(tMyThickness);
         }
     }
+  }
 };
 
 /******************************************************************************/
@@ -2112,14 +2116,18 @@ namespace ElectrostaticsTest
     "    <Parameter name='Weights' type='Array(double)' value='{1.0,1.0}'/>                                        \n"
     "  </ParameterList>                                                                                            \n"
     "  <ParameterList name='My Dark Power'>                                                                        \n"
-    "    <Parameter name='Type'                        type='string'        value='Scalar Function'/>              \n"
-    "    <Parameter name='Scalar Function Type'        type='string'        value='Power Surface Density'/>        \n"
-    "    <Parameter name='Function'                    type='string'        value='My Dark CD'/>                   \n"
+    "    <Parameter name='Type'                   type='string'   value='Scalar Function'/>                        \n"
+    "    <Parameter name='Scalar Function Type'   type='string'   value='Power Surface Density'/>                  \n"
+    "    <Parameter name='Function'               type='string'   value='My Dark CD'/>                             \n"
     "  </ParameterList>                                                                                            \n"
     "  <ParameterList name='My Light Power'>                                                                       \n"
-    "    <Parameter name='Type'                        type='string'        value='Scalar Function'/>              \n"
-    "    <Parameter name='Scalar Function Type'        type='string'        value='Power Surface Density'/>        \n"
-    "    <Parameter name='Function'                    type='string'        value='My Light-Generated CD'/>        \n"
+    "    <Parameter name='Type'                   type='string'   value='Scalar Function'/>                        \n"
+    "    <Parameter name='Scalar Function Type'   type='string'   value='Power Surface Density'/>                  \n"
+    "    <Parameter name='Function'               type='string'   value='My Light-Generated CD'/>                  \n"
+    "  </ParameterList>                                                                                            \n"
+    "  <ParameterList name='My Volume'>                                                                            \n"
+    "    <Parameter name='Type'                   type='string'   value='Scalar Function'/>                        \n"
+    "    <Parameter name='Scalar Function Type'   type='string'   value='Two Phase Volume'/>                       \n"
     "  </ParameterList>                                                                                            \n"
     "</ParameterList>                                                                                              \n"
     "<ParameterList name='Source Terms'>                                                                           \n"
@@ -2555,59 +2563,108 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, SingleDiode)
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CriterionPowerSurfaceDensityTwoPhase)
 {
-    // create mesh
-    constexpr Plato::OrdinalType tSpaceDim = 2;
-    constexpr Plato::OrdinalType tMeshWidth = 1;
-    auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
-    using ElementType = typename Plato::ElementElectrical<Plato::Tri3>;
+  // create mesh
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  using ElementType = typename Plato::ElementElectrical<Plato::Tri3>;
+  //set ad-types
+  using Residual = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using StateT   = typename Residual::StateScalarType;
+  using ConfigT  = typename Residual::ConfigScalarType;
+  using ResultT  = typename Residual::ResultScalarType;
+  using ControlT = typename Residual::ControlScalarType;
+  // create configuration workset
+  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
+  const Plato::OrdinalType tNumCells = tMesh->NumElements();
+  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
+  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
+  tWorksetBase.worksetConfig(tConfigWS);
+  
+  // create control workset
+  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  Plato::ScalarVector tControl("Controls", tNumVerts);
+  Plato::blas1::fill(0.5, tControl);
+  tWorksetBase.worksetControl(tControl, tControlWS);
+  
+  // create state workset
+  Plato::ScalarVector tState("States", tNumVerts);
+  Plato::blas1::fill(0.67186, tState);
+  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
+  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
+  tWorksetBase.worksetState(tState, tStateWS);
+  
+  // create spatial model
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
+  // create current density
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  Plato::Elliptic::CriterionPowerSurfaceDensityTwoPhase<Residual>
+    tCriterionPowerSurfaceDensityTwoPhase(tOnlyDomainDefined,tDataMap,*tGenericParamList,"My Dark Power");
+  Plato::ScalarVectorT<ResultT> tResultWS("result workset", tNumCells);
+  tCriterionPowerSurfaceDensityTwoPhase.evaluate(tStateWS,tControlWS,tConfigWS,tResultWS);
+  // test against gold
+  auto tHost = Kokkos::create_mirror_view(tResultWS);
+  Plato::Scalar tTol = 1e-6;
+  std::vector<Plato::Scalar>tGold = {15.8378409629,15.8378409629};
+  Kokkos::deep_copy(tHost, tResultWS);
+  for(Plato::OrdinalType i = 0; i < tNumCells; i++){
+    TEST_FLOATING_EQUALITY(tGold[i],tHost(i),tTol);
+  }
+}
 
-    //set ad-types
-    using Residual = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
-    using StateT   = typename Residual::StateScalarType;
-    using ConfigT  = typename Residual::ConfigScalarType;
-    using ResultT  = typename Residual::ResultScalarType;
-    using ControlT = typename Residual::ControlScalarType;
-
-    // create configuration workset
-    Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
-    const Plato::OrdinalType tNumCells = tMesh->NumElements();
-    constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
-    Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
-    tWorksetBase.worksetConfig(tConfigWS);
-    
-    // create control workset
-    Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
-    const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
-    Plato::ScalarVector tControl("Controls", tNumVerts);
-    Plato::blas1::fill(0.5, tControl);
-    tWorksetBase.worksetControl(tControl, tControlWS);
-    
-    // create state workset
-    Plato::ScalarVector tState("States", tNumVerts);
-    Plato::blas1::fill(0.67186, tState);
-    constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
-    Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
-    tWorksetBase.worksetState(tState, tStateWS);
-    
-    // create spatial model
-    Plato::DataMap tDataMap;
-    Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
-
-    // create current density
-    auto tOnlyDomainDefined = tSpatialModel.Domains.front();
-    Plato::Elliptic::CriterionPowerSurfaceDensityTwoPhase<Residual>
-      tCriterionPowerSurfaceDensityTwoPhase(tOnlyDomainDefined,tDataMap,*tGenericParamList,"My Dark Power");
-    Plato::ScalarVectorT<ResultT> tResultWS("result workset", tNumCells);
-    tCriterionPowerSurfaceDensityTwoPhase.evaluate(tStateWS,tControlWS,tConfigWS,tResultWS);
-
-    // test against gold
-    auto tHost = Kokkos::create_mirror_view(tResultWS);
-    Plato::Scalar tTol = 1e-6;
-    std::vector<Plato::Scalar>tGold = {15.8378409629,15.8378409629};
-    Kokkos::deep_copy(tHost, tResultWS);
-    for(Plato::OrdinalType i = 0; i < tNumCells; i++){
-      TEST_FLOATING_EQUALITY(tGold[i],tHost(i),tTol);
-    }
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CriterionVolumeTwoPhase)
+{
+  // create mesh
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  using ElementType = typename Plato::ElementElectrical<Plato::Tri3>;
+  //set ad-types
+  using Residual = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using StateT   = typename Residual::StateScalarType;
+  using ConfigT  = typename Residual::ConfigScalarType;
+  using ResultT  = typename Residual::ResultScalarType;
+  using ControlT = typename Residual::ControlScalarType;
+  // create configuration workset
+  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
+  const Plato::OrdinalType tNumCells = tMesh->NumElements();
+  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
+  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
+  tWorksetBase.worksetConfig(tConfigWS);
+  
+  // create control workset
+  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  Plato::ScalarVector tControl("Controls", tNumVerts);
+  Plato::blas1::fill(0.5, tControl);
+  tWorksetBase.worksetControl(tControl, tControlWS);
+  
+  // create state workset
+  Plato::ScalarVector tState("States", tNumVerts);
+  Plato::blas1::fill(0.67186, tState);
+  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
+  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
+  tWorksetBase.worksetState(tState, tStateWS);
+  
+  // create spatial model
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
+  // create current density
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  Plato::Elliptic::CriterionVolumeTwoPhase<Residual>
+    tCriterionVolumeTwoPhase(tOnlyDomainDefined,tDataMap,*tGenericParamList,"My Volume");
+  Plato::ScalarVectorT<ResultT> tResultWS("result workset", tNumCells);
+  tCriterionVolumeTwoPhase.evaluate(tStateWS,tControlWS,tConfigWS,tResultWS);
+  // test against gold
+  auto tHost = Kokkos::create_mirror_view(tResultWS);
+  Plato::Scalar tTol = 1e-6;
+  std::vector<Plato::Scalar>tGold = {0.10375,0.10375};
+  Kokkos::deep_copy(tHost, tResultWS);
+  for(Plato::OrdinalType i = 0; i < tNumCells; i++){
+    TEST_FLOATING_EQUALITY(tGold[i],tHost(i),tTol);
+  }
 }
 
 }
