@@ -98,26 +98,22 @@ private:
 };
 // struct PropEnum
 
-enum struct source
+enum struct source_evaluator
 {
-  /// @brief Supported enums for current density source evaluators
-  SINGLE_DIODE=0, 
-  TWO_PHASE_DARK_CURRENT_DENSITY=1, 
-  TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY=2, 
+  /// @brief Supported electrical source evaluators
+  WEIGHTED_SUM=0,
 };
-// enum struct source 
+// enum struct source_evaluator
 
-struct SourceTermEnum
+struct SourceEvaluatorEnum
 {
 private:
-    std::unordered_map<std::string,Plato::electrical::source> s2e = {
-      {"single diode"                             ,Plato::electrical::source::SINGLE_DIODE},
-      {"two phase dark current density"           ,Plato::electrical::source::TWO_PHASE_DARK_CURRENT_DENSITY},
-      {"two phase light-generated current density",Plato::electrical::source::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY}
+    std::unordered_map<std::string,Plato::electrical::source_evaluator> s2e = {
+      {"weighted sum",Plato::electrical::source_evaluator::WEIGHTED_SUM}
     };
 
 public:
-    Plato::electrical::source 
+    Plato::electrical::source_evaluator 
     get(const std::string &aInput) 
     const
     {
@@ -135,8 +131,8 @@ private:
     getErrorMsg(const std::string & aInProperty)
     const
     {
-        auto tMsg = std::string("Did not find matching enum for input electrical source type '") 
-                + aInProperty + "'. Supported electrical source keywords are: ";
+        auto tMsg = std::string("Did not find matching enum for input electrical source evaluator '") 
+                + aInProperty + "'. Supported electrical source evaluator keywords are: ";
         for(const auto& tPair : s2e)
         {
             tMsg = tMsg + "'" + tPair.first + "', ";
@@ -145,7 +141,59 @@ private:
         return tSubMsg;
     }
 };
-// struct SourceTermEnum
+// struct CurrentDensityEvaluatorEnum
+
+
+enum struct current_density_evaluator
+{
+  /// @brief Supported enums for current density source evaluators
+  TWO_PHASE_DARK_CURRENT_DENSITY=0, 
+  TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY=1, 
+};
+// enum struct source 
+
+struct CurrentDensityEvaluatorEnum
+{
+private:
+    std::unordered_map<std::string,Plato::electrical::current_density_evaluator> s2e = {
+      {"two phase dark current density"           ,
+        Plato::electrical::current_density_evaluator::TWO_PHASE_DARK_CURRENT_DENSITY
+      },
+      {"two phase light-generated current density",
+        Plato::electrical::current_density_evaluator::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY
+      }
+    };
+
+public:
+    Plato::electrical::current_density_evaluator 
+    get(const std::string &aInput) 
+    const
+    {
+        auto tLower = Plato::tolower(aInput);
+        auto tItr = s2e.find(tLower);
+        if( tItr == s2e.end() ){
+            auto tMsg = this->getErrorMsg(tLower);
+            ANALYZE_THROWERR(tMsg)
+        }
+        return tItr->second;
+    }
+
+private:
+    std::string
+    getErrorMsg(const std::string & aInProperty)
+    const
+    {
+        auto tMsg = std::string("Did not find matching enum for input current density evaluator '") 
+                + aInProperty + "'. Supported current density evaluator keywords are: ";
+        for(const auto& tPair : s2e)
+        {
+            tMsg = tMsg + "'" + tPair.first + "', ";
+        }
+        auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+        return tSubMsg;
+    }
+};
+// struct CurrentDensityEvaluatorEnum
 
 enum struct response
 {
@@ -176,24 +224,24 @@ struct CurrentDensityEnum
 {
 private:
     std::unordered_map<
-      Plato::electrical::source,
+      Plato::electrical::current_density_evaluator,
       std::unordered_map<std::string,std::pair<Plato::electrical::current_density,Plato::electrical::response>>
     > s2e = {
       {
-        Plato::electrical::source::TWO_PHASE_DARK_CURRENT_DENSITY, 
+        Plato::electrical::current_density_evaluator::TWO_PHASE_DARK_CURRENT_DENSITY, 
         { 
           { "quadratic",{Plato::electrical::current_density::DARK,Plato::electrical::response::NONLINEAR} }
         } 
       },
       {
-        Plato::electrical::source::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY, 
+        Plato::electrical::current_density_evaluator::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY, 
         { 
           { "constant",{Plato::electrical::current_density::LIGHT,Plato::electrical::response::LINEAR} }
         } 
       }
     };
 
-    Plato::electrical::SourceTermEnum mSourceTermEnums;
+    Plato::electrical::CurrentDensityEvaluatorEnum mSourceTermEnums;
 
 public:
     Plato::electrical::current_density 
@@ -203,7 +251,7 @@ public:
     ) 
     const
     {
-      Plato::electrical::source tSourceEnum = mSourceTermEnums.get(aFunction);
+      Plato::electrical::current_density_evaluator tSourceEnum = mSourceTermEnums.get(aFunction);
       auto tLowerModel = Plato::tolower(aModel);
       auto tItr = s2e.find(tSourceEnum)->second.find(tLowerModel);
       if( tItr == s2e.find(tSourceEnum)->second.end() ){
@@ -220,7 +268,7 @@ public:
     ) 
     const
     {
-      Plato::electrical::source tSourceEnum = mSourceTermEnums.get(aFunction);
+      Plato::electrical::current_density_evaluator tSourceEnum = mSourceTermEnums.get(aFunction);
       auto tLowerModel = Plato::tolower(aModel);
       auto tItr = s2e.find(tSourceEnum)->second.find(tLowerModel);
       if( tItr == s2e.find(tSourceEnum)->second.end() ){
@@ -237,11 +285,11 @@ private:
     )
     const
     {
-        auto tMsg = std::string("Requested source term ('") + aFunction 
+        auto tMsg = std::string("Requested current density evaluator ('") + aFunction 
           + "') does not support current density model of type ('" + aModel 
-          + "'), supported current density models for source term ('" 
+          + "'), supported current density models for current density evaluator ('" 
           + aFunction + "') are: ";
-        Plato::electrical::source tSourceEnum = mSourceTermEnums.get(aFunction);
+        Plato::electrical::current_density_evaluator tSourceEnum = mSourceTermEnums.get(aFunction);
         for(const auto& tPair : s2e.find(tSourceEnum)->second)
         {
             tMsg = tMsg + "'" + tPair.first + "', ";
@@ -1028,9 +1076,9 @@ public:
         auto tWeight = aScale * tCubWeights(iGpOrdinal) * tDetJ;
         for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
         {
-            ResultScalarType tCellResult = ( tBasisValues(tFieldOrdinal) * 
+          ResultScalarType tCellResult = ( tBasisValues(tFieldOrdinal) * 
             (tMaterialPenalty * aCurrentDensity(iCellOrdinal,iGpOrdinal)) * tWeight ) / tThicknessInterpolation; 
-            Kokkos::atomic_add( &aResult(iCellOrdinal,tFieldOrdinal*mNumDofsPerNode),tCellResult );
+          Kokkos::atomic_add( &aResult(iCellOrdinal,tFieldOrdinal*mNumDofsPerNode),tCellResult );
         }
     });
   }
@@ -1088,7 +1136,7 @@ public:
       // compute penalized current density at gauss points
       ResultScalarType tCellResult = 
       aResult(iCellOrdinal,iGpOrdinal) = ( aScale * tMaterialPenalty * 
-        aCurrentDensity(iCellOrdinal,iGpOrdinal) ) / tThicknessInterpolation; ;
+        aCurrentDensity(iCellOrdinal,iGpOrdinal) ) / tThicknessInterpolation;
     });
   }
 
@@ -1252,7 +1300,7 @@ public:
         {
           ResultScalarType tCellResult = ( tBasisValues(tFieldOrdinal) * 
             aCurrentDensity(iCellOrdinal,iGpOrdinal) * tWeight ) / tThicknessInterpolation;
-          Kokkos::atomic_add( &aResult(iCellOrdinal,tFieldOrdinal*mNumDofsPerNode), tCellResult );
+          Kokkos::atomic_add( &aResult(iCellOrdinal,tFieldOrdinal), tCellResult );
         }
     });
   }
@@ -1401,21 +1449,20 @@ namespace FactoryCurrentDensityEvaluator
         + aFunctionName + "'), current density evaluator cannot be determined";
       ANALYZE_THROWERR(tMsg)
     }
-    Plato::electrical::SourceTermEnum tS2E;
+    Plato::electrical::CurrentDensityEvaluatorEnum tS2E;
     auto tType = mCurrentDensityEvaluatorParamList.get<std::string>("Function");
     auto tLowerType = Plato::tolower(tType);
     auto tSupportedSourceTermEnum = tS2E.get(tLowerType);
     switch (tSupportedSourceTermEnum)
     {
-      case Plato::electrical::source::TWO_PHASE_DARK_CURRENT_DENSITY:
+      case Plato::electrical::current_density_evaluator::TWO_PHASE_DARK_CURRENT_DENSITY:
         return std::make_shared<Plato::DarkCurrentDensityTwoPhaseAlloy<EvaluationType>>(
           aMaterialName,aFunctionName,aParamList);
         break;
-      case Plato::electrical::source::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY:
+      case Plato::electrical::current_density_evaluator::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY:
         return std::make_shared<Plato::LightCurrentDensityTwoPhaseAlloy<EvaluationType>>(
           aMaterialName,aFunctionName,aParamList);
         break;
-      case Plato::electrical::source::SINGLE_DIODE:
       default:
         return nullptr;
         break;
@@ -1424,10 +1471,34 @@ namespace FactoryCurrentDensityEvaluator
 }
 // namespace FactoryCurrentDensityEvaluator
 
+template<typename EvaluationType>
+class SourceEvaluator
+{
+private:
+    using StateScalarType   = typename EvaluationType::StateScalarType;
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
+    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+
+public:
+  virtual 
+  void 
+  evaluate(
+      const Plato::SpatialDomain                         & aSpatialDomain,
+      const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
+      const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
+      const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
+      const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
+      const Plato::Scalar                                & aScale
+  ) 
+  const = 0;
+};
+// class SourceEvaluator
+
 // TODO: create factory to allocate volume forces. it will require refactoring the interfaces 
 // to take workset metadata; e.g., similar to how it is done in the Ifem unit test. 
 template<typename EvaluationType>
-class SingleDiodeTwoPhaseAlloy
+class SourceWeightedSum : public Plato::SourceEvaluator<EvaluationType>
 {
 private:
     using StateScalarType   = typename EvaluationType::StateScalarType;
@@ -1441,7 +1512,7 @@ private:
     std::vector<std::shared_ptr<Plato::CurrentDensityEvaluator<EvaluationType>>> mCurrentDensityEvaluators;
 
 public:
-    SingleDiodeTwoPhaseAlloy(
+    SourceWeightedSum(
       const std::string            & aMaterialName,
             Teuchos::ParameterList & aParamList
     ) : 
@@ -1449,7 +1520,7 @@ public:
     {
       this->initialize(aParamList);
     }
-    ~SingleDiodeTwoPhaseAlloy(){}
+    ~SourceWeightedSum(){}
 
     void 
     evaluate(
@@ -1480,13 +1551,14 @@ private:
         ANALYZE_THROWERR(tMsg)
       }
       auto tSourceTermsParamList = aParamList.sublist("Source Terms");
-      if( !tSourceTermsParamList.isSublist("Single Diode") ){
-        auto tMsg = std::string("Parameter is not valid. Argument ('Single Diode') is not a parameter list");
+      if( !tSourceTermsParamList.isSublist("Source") ){
+        auto tMsg = std::string("Parameter is not valid. Argument ('Source') is not a parameter list");
         ANALYZE_THROWERR(tMsg)
       }
-      auto tSingleDiodeParamList = tSourceTermsParamList.sublist("Single Diode");
-      this->parseFunctions(tSingleDiodeParamList);
-      this->parseWeights(tSingleDiodeParamList);
+      auto tSourceParamList = tSourceTermsParamList.sublist("Source");
+      this->parseFunctions(tSourceParamList);
+      this->parseWeights(tSourceParamList);
+
       this->createCurrentDensityEvaluators(aParamList);
     }
 
@@ -1497,7 +1569,7 @@ private:
       bool tIsArray = aParamList.isType<Teuchos::Array<std::string>>("Functions");
       if( !tIsArray)
       {
-        auto tMsg = std::string("Argument ('Functions') is not defined in ('Single Diode') parameter list");
+        auto tMsg = std::string("Argument ('Functions') is not defined in ('Source') parameter list");
         ANALYZE_THROWERR(tMsg)
       }
       Teuchos::Array<std::string> tFunctions = aParamList.get<Teuchos::Array<std::string>>("Functions");
@@ -1541,6 +1613,52 @@ private:
       }
     }
 };
+
+namespace FactorySourceEvaluator
+{
+
+  template <typename EvaluationType>
+  inline std::shared_ptr<Plato::SourceEvaluator<EvaluationType>> 
+  create(
+    const std::string            & aMaterialName,
+          Teuchos::ParameterList & aParamList
+  )
+  {
+    if( !aParamList.isSublist("Source Terms") )
+    {
+      auto tMsg = std::string("Parameter is not valid. Argument ('Source Terms') is not a parameter list");
+      ANALYZE_THROWERR(tMsg)
+    }
+    auto tSourceTermsParamList = aParamList.sublist("Source Terms");
+    if( !tSourceTermsParamList.isSublist("Source") )
+    {
+      auto tMsg = std::string("Parameter is not valid. Argument ('Source') is not a parameter list");
+      ANALYZE_THROWERR(tMsg)
+    }
+    auto tSourceParamList = tSourceTermsParamList.sublist("Source");
+    if( !tSourceParamList.isParameter("Type") )
+    {
+      auto tMsg = std::string("Parameter ('Type') is not defined in parameter list ('Source'), ") 
+        + "source evaluator cannot be determined";
+      ANALYZE_THROWERR(tMsg)
+    }
+    Plato::electrical::SourceEvaluatorEnum tS2E;
+    auto tType = tSourceParamList.get<std::string>("Type");
+    auto tLowerType = Plato::tolower(tType);
+    auto tSupportedSourceEvaluatorEnum = tS2E.get(tLowerType);
+    switch (tSupportedSourceEvaluatorEnum)
+    {
+      case Plato::electrical::source_evaluator::WEIGHTED_SUM:
+        return std::make_shared<Plato::SourceWeightedSum<EvaluationType>>(aMaterialName,aParamList);
+        break;
+      default:
+        return nullptr;
+        break;
+    }
+  }
+
+}
+// namespace FactorySourceEvaluator
 
 namespace Elliptic
 {
@@ -1868,7 +1986,7 @@ private:
     std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
     // to be derived from a new body load class in the future
-    std::shared_ptr<Plato::SingleDiodeTwoPhaseAlloy<EvaluationType>> mSingleDiode; 
+    std::shared_ptr<Plato::SourceEvaluator<EvaluationType>> mSourceEvaluator; 
     std::shared_ptr<Plato::NaturalBCs<ElementType, mNumDofsPerNode>> mSurfaceLoads;
 
     std::vector<std::string> mPlottable;
@@ -1881,18 +1999,7 @@ public:
     ) : 
       FunctionBaseType(aSpatialDomain,aDataMap)
     {
-        // obligatory: define dof names in order
-        mDofNames.push_back("electric_potential");
-
-        // create material constitutive model
-        Plato::FactoryElectricalMaterial<EvaluationType> tMaterialFactory(aParamList);
-        mMaterialModel = tMaterialFactory.create(aSpatialDomain.getMaterialName());
-
-        auto tResidualParams = aParamList.sublist("Elliptic");
-        if( tResidualParams.isType<Teuchos::Array<std::string>>("Plottable") )
-        {
-            mPlottable = tResidualParams.get<Teuchos::Array<std::string>>("Plottable").toVector();
-        }
+        this->initialize(aParamList);
     }
     ~SteadyStateCurrentResidual(){}
 
@@ -1906,7 +2013,7 @@ public:
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType > & aConfig,
               Plato::ScalarMultiVectorT <ResultScalarType > & aResult,
-              Plato::Scalar aTimeStep = 0.0
+              Plato::Scalar                                   aTimeStep = 1.0
     ) const override
     {
         using GradScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
@@ -1967,20 +2074,29 @@ public:
 
             // apply divergence operator to current density
             tCellVolume *= tCubWeights(iGpOrdinal);
-            tComputeDivergence(iCellOrdinal,aResult,tCellCurrentDensity,tGradient,tCellVolume,-1.0);
+            tComputeDivergence(iCellOrdinal,aResult,tCellCurrentDensity,tGradient,tCellVolume,1.0);
+
+            for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
+            {
+              for (Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
+              }
+            }
           
             for(Plato::OrdinalType tIndex=0; tIndex<mNumSpatialDims; tIndex++)
             {
-                Kokkos::atomic_add(&tElectricField(iCellOrdinal,tIndex),  -1.0*tCellVolume*tCellElectricField(tIndex));
-                Kokkos::atomic_add(&tCurrentDensity(iCellOrdinal,tIndex), tCellVolume*tCellCurrentDensity(tIndex));
+              // compute the electric field E = -\nabla{\phi} (or -\phi_{,j}, where j=1,\dots,dims)
+              Kokkos::atomic_add(&tElectricField(iCellOrdinal,tIndex),  -1.0*tCellVolume*tCellElectricField(tIndex));
+              // Ohm constitutive law J = -\gamma_{ij}\phi_{,j}, where \phi is the scalar electric potential, 
+              // \gamma is the second order electric conductivity tensor, and J is the current density
+              Kokkos::atomic_add(&tCurrentDensity(iCellOrdinal,tIndex), -1.0*tCellVolume*tCellCurrentDensity(tIndex));
             }
             Kokkos::atomic_add(&tVolume(iCellOrdinal),tCellVolume);
         });
 
         // evaluate volume forces
-        if( mSingleDiode != nullptr )
+        if( mSourceEvaluator != nullptr )
         {
-          mSingleDiode->evaluate( mSpatialDomain, aState, aControl, aConfig, aResult, -1.0 );
+          mSourceEvaluator->evaluate( mSpatialDomain, aState, aControl, aConfig, aResult, -1.0 );
         }
 
         Kokkos::parallel_for("compute cell quantities", 
@@ -1994,8 +2110,8 @@ public:
             }
         });
 
-        if( std::count(mPlottable.begin(),mPlottable.end(),"electrical field") ) 
-        { Plato::toMap(mDataMap, tElectricField, "electrical field", mSpatialDomain); }
+        if( std::count(mPlottable.begin(),mPlottable.end(),"electric field") ) 
+        { Plato::toMap(mDataMap, tElectricField, "electric field", mSpatialDomain); }
         if( std::count(mPlottable.begin(),mPlottable.end(),"current density" ) )
         { Plato::toMap(mDataMap, tCurrentDensity, "current density" , mSpatialDomain); }
     }
@@ -2016,6 +2132,31 @@ public:
           mSurfaceLoads->get(aSpatialModel,aState,aControl,aConfig,aResult,1.0);
       }
     }
+
+private:
+  void initialize(
+    Teuchos::ParameterList & aParamList
+  )
+  {
+    // obligatory: define dof names in order
+    mDofNames.push_back("electric_potential");
+
+    // create material constitutive model
+    auto tMaterialName = mSpatialDomain.getMaterialName();
+    Plato::FactoryElectricalMaterial<EvaluationType> tMaterialFactory(aParamList);
+    mMaterialModel = tMaterialFactory.create(tMaterialName);
+
+    // create source evaluator
+    mSourceEvaluator = Plato::FactorySourceEvaluator::create<EvaluationType>(tMaterialName,aParamList);
+
+    // parse output QoI plot table
+    auto tResidualParams = aParamList.sublist("Output");
+    if( tResidualParams.isType<Teuchos::Array<std::string>>("Plottable") )
+    {
+        mPlottable = tResidualParams.get<Teuchos::Array<std::string>>("Plottable").toVector();
+    }
+  }
+    
 };
 
 }
@@ -2114,7 +2255,8 @@ namespace ElectrostaticsTest
     "  </ParameterList>                                                                                            \n"
     "</ParameterList>                                                                                              \n"
     "<ParameterList name='Source Terms'>                                                                           \n"
-    "  <ParameterList name='Single Diode'>                                                                         \n"
+    "  <ParameterList name='Source'>                                                                               \n"
+    "    <Parameter name='Type'      type='string'        value='Weighted Sum'/>                                   \n"
     "    <Parameter name='Functions' type='Array(string)' value='{My Dark CD ,My Light-Generated CD}'/>            \n"
     "    <Parameter name='Weights'   type='Array(double)' value='{1.0,1.0}'/>                                      \n"
     "  </ParameterList>                                                                                            \n"
@@ -2530,7 +2672,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, SingleDiode)
     // create current density
     auto tOnlyDomainDefined = tSpatialModel.Domains.front();
     TEST_ASSERT(tGenericParamList->isSublist("Source Terms") == true);
-    Plato::SingleDiodeTwoPhaseAlloy<Residual> tSingleDiode("Mystic",tGenericParamList.operator*());
+    Plato::SourceWeightedSum<Residual> tSingleDiode("Mystic",tGenericParamList.operator*());
     Plato::ScalarMultiVectorT<Plato::Scalar> tResultWS("result workset", tNumCells, tDofsPerCell);
     tSingleDiode.evaluate(tOnlyDomainDefined,tStateWS,tControlWS,tConfigWS,tResultWS,1.0/*scale*/);
 
@@ -2653,7 +2795,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CriterionVolumeTwoPhase)
   }
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, SteadyStateCurrentResidual)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, SteadyStateCurrentResidual_ConstantPotential)
 {
   // create mesh
   constexpr Plato::OrdinalType tSpaceDim = 2;
@@ -2696,6 +2838,81 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, SteadyStateCurrentResidual)
     tResidual(tOnlyDomainDefined,tDataMap,tGenericParamList.operator*());
   Plato::ScalarMultiVectorT<ResultT> tResultWS("result",tNumCells,tNodesPerCell);
   tResidual.evaluate(tStateWS,tControlWS,tConfigWS,tResultWS);
+
+  // test against gold - electric field is zero due to constant electric potential; 
+  // thus, internal forces are zero and the residual is equal to minus external forces
+  auto tHost = Kokkos::create_mirror_view(tResultWS);
+  Plato::Scalar tTol = 1e-6;
+  std::vector<std::vector<Plato::Scalar>>tGold = {{3.2098359,3.2098359,3.2098359},
+                                                  {3.2098359,3.2098359,3.2098359}};
+  Kokkos::deep_copy(tHost, tResultWS);
+  for(Plato::OrdinalType i = 0; i < tNumCells; i++){
+    for(Plato::OrdinalType j = 0; j < tDofsPerCell; j++){
+      TEST_FLOATING_EQUALITY(tGold[i][j],tHost(i,j),tTol);
+    }
+  }
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, SteadyStateCurrentResidual_NonConstantPotential)
+{
+  // create mesh
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  using ElementType = typename Plato::ElementElectrical<Plato::Tri3>;
+  //set ad-types
+  using Residual = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using StateT   = typename Residual::StateScalarType;
+  using ConfigT  = typename Residual::ConfigScalarType;
+  using ResultT  = typename Residual::ResultScalarType;
+  using ControlT = typename Residual::ControlScalarType;
+  // create configuration workset
+  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
+  const Plato::OrdinalType tNumCells = tMesh->NumElements();
+  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
+  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
+  tWorksetBase.worksetConfig(tConfigWS);
+  
+  // create control workset
+  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  Plato::ScalarVector tControl("Controls", tNumVerts);
+  Plato::blas1::fill(0.5, tControl);
+  tWorksetBase.worksetControl(tControl, tControlWS);
+  
+  // create state workset
+  Plato::ScalarVector tState("States", tNumVerts);
+  Plato::blas1::fill(0.67186, tState);
+  auto tHostState = Kokkos::create_mirror_view(tState);
+  for(Plato::OrdinalType i = 0; i < tNumVerts; i++)
+  { tHostState(i) = tHostState(i) + (i*1e-2); }
+  Kokkos::deep_copy(tState, tHostState);
+  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
+  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
+  tWorksetBase.worksetState(tState, tStateWS);
+  
+  // create spatial model
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
+  // create current density
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  Plato::Elliptic::SteadyStateCurrentResidual<Residual> 
+    tResidual(tOnlyDomainDefined,tDataMap,tGenericParamList.operator*());
+  Plato::ScalarMultiVectorT<ResultT> tResultWS("result",tNumCells,tNodesPerCell);
+  tResidual.evaluate(tStateWS,tControlWS,tConfigWS,tResultWS);
+
+  // test against gold - electric field is zero due to constant electric potential; 
+  // thus, internal forces are zero and the residual is equal to minus external forces
+  auto tHost = Kokkos::create_mirror_view(tResultWS);
+  Plato::Scalar tTol = 1e-6;
+  std::vector<std::vector<Plato::Scalar>>tGold = {{-17.276113,-17.272551,-17.272551},
+                                                  {-12.440948,-12.437385,-12.440948}};
+  Kokkos::deep_copy(tHost, tResultWS);
+  for(Plato::OrdinalType i = 0; i < tNumCells; i++){
+    for(Plato::OrdinalType j = 0; j < tDofsPerCell; j++){
+      TEST_FLOATING_EQUALITY(tGold[i][j],tHost(i,j),tTol);
+    }
+  }
 }
 
 }
