@@ -19,6 +19,7 @@
 // plato
 #include "Tri3.hpp"
 #include "Simp.hpp"
+#include "ToMap.hpp"
 #include "Solutions.hpp"
 #include "BodyLoads.hpp"
 #include "NaturalBCs.hpp"
@@ -1842,7 +1843,7 @@ private:
 
 /******************************************************************************/
 template<typename EvaluationType>
-class ElectrostaticsResidual : public Plato::Elliptic::AbstractVectorFunction<EvaluationType>
+class SteadyStateCurrentResidual : public Plato::Elliptic::AbstractVectorFunction<EvaluationType>
 /******************************************************************************/
 {
 private:
@@ -1873,7 +1874,7 @@ private:
     std::vector<std::string> mPlottable;
 
 public:
-    ElectrostaticsResidual(
+    SteadyStateCurrentResidual(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aParamList
@@ -1887,16 +1888,13 @@ public:
         Plato::FactoryElectricalMaterial<EvaluationType> tMaterialFactory(aParamList);
         mMaterialModel = tMaterialFactory.create(aSpatialDomain.getMaterialName());
 
-        this->parseCurrentDensity();
-        // TODO: create surface loads
-
         auto tResidualParams = aParamList.sublist("Elliptic");
         if( tResidualParams.isType<Teuchos::Array<std::string>>("Plottable") )
         {
             mPlottable = tResidualParams.get<Teuchos::Array<std::string>>("Plottable").toVector();
         }
     }
-    ~ElectrostaticsResidual(){}
+    ~SteadyStateCurrentResidual(){}
 
     Plato::Solutions 
     getSolutionStateOutputData(const Plato::Solutions &aSolutions) const override
@@ -1982,7 +1980,7 @@ public:
         // evaluate volume forces
         if( mSingleDiode != nullptr )
         {
-          mSingleDiode->get( mSpatialDomain, aState, aControl, aConfig, aResult, -1.0 );
+          mSingleDiode->evaluate( mSpatialDomain, aState, aControl, aConfig, aResult, -1.0 );
         }
 
         Kokkos::parallel_for("compute cell quantities", 
@@ -1997,9 +1995,9 @@ public:
         });
 
         if( std::count(mPlottable.begin(),mPlottable.end(),"electrical field") ) 
-        { toMap(mDataMap, tElectricField, "electrical field", mSpatialDomain); }
+        { Plato::toMap(mDataMap, tElectricField, "electrical field", mSpatialDomain); }
         if( std::count(mPlottable.begin(),mPlottable.end(),"current density" ) )
-        { toMap(mDataMap, tCurrentDensity, "current density" , mSpatialDomain); }
+        { Plato::toMap(mDataMap, tCurrentDensity, "current density" , mSpatialDomain); }
     }
 
     void
@@ -2012,26 +2010,11 @@ public:
               Plato::Scalar aTimeStep = 0.0
     ) const override
     {
-        // add contributions from natural boundary conditions
-        if( mSurfaceLoads != nullptr )
-        {
-            mSurfaceLoads->get(aSpatialModel,aState,aControl,aConfig,aResult,1.0);
-        }
-    }
-
-private:
-    void parseCurrentDensity(
-        Teuchos::ParameterList & aParamList
-    )
-    {
-        if(aParamList.isSublist("Current Density"))
-        {
-            // to be derived from a volume force class in the future
-            auto tMaterialName = mSpatialDomain.getMaterialName();
-            mSingleDiode = std::make_shared<Plato::SingleDiodeTwoPhaseAlloy<EvaluationType>>(
-                    tMaterialName,aParamList.sublist("Single Diode")
-                );
-        }
+      // add contributions from natural boundary conditions
+      if( mSurfaceLoads != nullptr )
+      {
+          mSurfaceLoads->get(aSpatialModel,aState,aControl,aConfig,aResult,1.0);
+      }
     }
 };
 
@@ -2143,6 +2126,9 @@ namespace ElectrostaticsTest
     "    <Parameter  name='Function'        type='string'      value='Two Phase Light-Generated Current Density'/> \n"
     "    <Parameter  name='Model'           type='string'      value='Constant'/>                                  \n"
       "</ParameterList>                                                                                            \n"
+    "</ParameterList>                                                                                              \n"
+    "<ParameterList name='Output'>                                                                                 \n"
+    "  <Parameter name='Plottable' type='Array(string)' value='{electrical field,current density}'/>              \n"
     "</ParameterList>                                                                                              \n"
   "</ParameterList>                                                                                                \n"
   );
@@ -2665,6 +2651,51 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CriterionVolumeTwoPhase)
   for(Plato::OrdinalType i = 0; i < tNumCells; i++){
     TEST_FLOATING_EQUALITY(tGold[i],tHost(i),tTol);
   }
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, SteadyStateCurrentResidual)
+{
+  // create mesh
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  using ElementType = typename Plato::ElementElectrical<Plato::Tri3>;
+  //set ad-types
+  using Residual = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using StateT   = typename Residual::StateScalarType;
+  using ConfigT  = typename Residual::ConfigScalarType;
+  using ResultT  = typename Residual::ResultScalarType;
+  using ControlT = typename Residual::ControlScalarType;
+  // create configuration workset
+  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
+  const Plato::OrdinalType tNumCells = tMesh->NumElements();
+  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
+  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
+  tWorksetBase.worksetConfig(tConfigWS);
+  
+  // create control workset
+  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  Plato::ScalarVector tControl("Controls", tNumVerts);
+  Plato::blas1::fill(0.5, tControl);
+  tWorksetBase.worksetControl(tControl, tControlWS);
+  
+  // create state workset
+  Plato::ScalarVector tState("States", tNumVerts);
+  Plato::blas1::fill(0.67186, tState);
+  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
+  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
+  tWorksetBase.worksetState(tState, tStateWS);
+  
+  // create spatial model
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
+  // create current density
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  Plato::Elliptic::SteadyStateCurrentResidual<Residual> 
+    tResidual(tOnlyDomainDefined,tDataMap,tGenericParamList.operator*());
+  Plato::ScalarMultiVectorT<ResultT> tResultWS("result",tNumCells,tNodesPerCell);
+  tResidual.evaluate(tStateWS,tControlWS,tConfigWS,tResultWS);
 }
 
 }
