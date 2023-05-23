@@ -108,13 +108,20 @@ inline void fill(const Plato::Scalar & aValue, const VectorT & aVector)
 {
     if(aVector.size() <= static_cast<Plato::OrdinalType>(0))
     {
-        return;
+	return;
     }
+
     if(std::isfinite(aValue) == false)
     {
         ANALYZE_THROWERR("BLAS 1 FILL: INPUT SCALAR IS NOT A FINITE NUMBER.\n")
     }
-    KokkosBlas::fill(aVector,aValue);
+
+    Plato::OrdinalType tNumLocalVals = aVector.size();
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumLocalVals), KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+    {
+        aVector(aOrdinal) = aValue;
+    }, "fill vector");
+    //KokkosBlas::fill(aVector,aValue);
 }
 // function fill
 

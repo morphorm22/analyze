@@ -145,7 +145,7 @@ inline void test_partial_control(Plato::Mesh aMesh,
     const Plato::OrdinalType tTotalNumDofs = tNumVerts * tDofsPerNode;
     Plato::ScalarVector tState("State", tTotalNumDofs);
     auto tHostState = Kokkos::create_mirror(tState);
-    Plato::blas1::random(1, 5, tHostState);
+    Plato::blas1::random(0.1, 0.5, tHostState);
     Kokkos::deep_copy(tState, tHostState);
     Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
     tWorksetBase.worksetState(tState, tStateWS);

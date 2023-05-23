@@ -147,8 +147,9 @@ if(ELLIPTIC)
     elliptic/VolumeAverageCriterion.cpp
     elliptic/VolumeAverageCriterionDenominator.cpp
     IntermediateDensityPenalty.cpp
+    elliptic/electrical/SupportedOptionEnums.cpp
   )
-
+  
   if(HATCHING)
     set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
       elliptic/hatching/Problem.cpp
