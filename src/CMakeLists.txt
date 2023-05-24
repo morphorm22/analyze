@@ -152,6 +152,7 @@ if(ELLIPTIC)
     elliptic/electrical/FactoryElectricalMaterial.cpp
     elliptic/electrical/MaterialElectricalConductivity.cpp
     elliptic/electrical/MaterialElectricalConductivityTwoPhaseAlloy.cpp
+    elliptic/electrical/DarkCurrentDensityTwoPhaseAlloy.cpp
     elliptic/electrical/LightCurrentDensityTwoPhaseAlloy.cpp
   )
   
