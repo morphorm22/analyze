@@ -17,12 +17,14 @@
 namespace Plato
 {
 
-/// @brief class for quadratic dark current density model
+/// @brief class for constant ligh-generated current density model of the form
+///   \f$ J = \alpha\beta \f$, where \f$\alpha\f$ is the generation rate and 
+///   \f$\beta\f$ is the solar illumination power.
 /// @tparam EvaluationType   automatic differentiation evaluation type, which sets scalar types
 /// @tparam OutputScalarType output scalar type 
 template<typename EvaluationType, 
-         typename OutputScalarType = typename EvaluationType::StateScalarType>
-class DarkCurrentDensityQuadratic : 
+         typename OutputScalarType = Plato::Scalar>
+class LightGeneratedCurrentDensityConstant : 
     public Plato::CurrentDensityModel<EvaluationType,OutputScalarType>
 {
 private:
@@ -30,37 +32,32 @@ private:
     using ElementType = typename EvaluationType::ElementType;
     /// @brief state scalar type
     using StateScalarType = typename EvaluationType::StateScalarType;
-    /// @brief number of degrees of freedom per node
+    /// @brief number of degrees of freedom per vertex/node
     static constexpr int mNumDofsPerNode  = ElementType::mNumDofsPerNode;
 
 public:
-    /// @brief default coefficient values for dark current density model quadratic model
-    Plato::Scalar mCoefA  = 0.;
-    Plato::Scalar mCoefB  = 1.27e-6;
-    Plato::Scalar mCoefC  = 25.94253;
-    Plato::Scalar mCoefM1 = 0.38886;
-    Plato::Scalar mCoefB1 = 0.;
-    Plato::Scalar mCoefM2 = 30.;
-    Plato::Scalar mCoefB2 = 6.520373;
-    Plato::Scalar mPerformanceLimit = -0.22;
-    /// @brief input current density parameter list name
+    /// @brief name of light-generated current density input parameter list 
     std::string mCurrentDensityName = "";
+    /// @brief generation rate coefficient
+    Plato::Scalar mGenerationRate = -0.40914;
+    /// @brief solar illumination power coefficient 
+    Plato::Scalar mIlluminationPower = 1000.0;
 
 public:
     /// @brief class constructor
     /// @param [in] aCurrentDensityName input current density parameter list name
     /// @param [in] aParamList          input problem parameters
-    DarkCurrentDensityQuadratic(
+    LightGeneratedCurrentDensityConstant(
       const std::string            & aCurrentDensityName,
       const Teuchos::ParameterList & aParamList
     ) : 
       mCurrentDensityName(aCurrentDensityName)
     {
-        this->initialize(aParamList);
+      this->initialize(aParamList);
     }
 
     /// @brief class destructor
-    virtual ~DarkCurrentDensityQuadratic(){}
+    virtual ~LightGeneratedCurrentDensityConstant(){}
 
     /// @fn evaluate
     /// @brief evaluate cell current density model
@@ -72,16 +69,8 @@ public:
         const StateScalarType & aCellElectricPotential
     ) const
     {
-        OutputScalarType tDarkCurrentDensity = 0.0;
-        if( aCellElectricPotential > 0.0 )
-          { tDarkCurrentDensity = mCoefA + mCoefB * exp(mCoefC * aCellElectricPotential); }
-        else 
-        if( (mPerformanceLimit < aCellElectricPotential) && (aCellElectricPotential < 0.0) )
-          { tDarkCurrentDensity = mCoefM1 * aCellElectricPotential + mCoefB1; }
-        else 
-        if( aCellElectricPotential < mPerformanceLimit )
-          { tDarkCurrentDensity = mCoefM2 * aCellElectricPotential + mCoefB2; }
-        return tDarkCurrentDensity;
+      Plato::Scalar tOutput = mGenerationRate * mIlluminationPower;
+      return ( tOutput );
     }
 
     /// @fn evaluate
@@ -97,7 +86,7 @@ public:
         auto tCubPoints  = ElementType::getCubPoints();
         auto tCubWeights = ElementType::getCubWeights();
         auto tNumPoints  = tCubWeights.size();
-
+        
         Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
 
         // evaluate light-generated current density
@@ -120,7 +109,7 @@ private:
     /// @param [in] aParamList input problem parameters
     void 
     initialize(
-      const Teuchos::ParameterList & aParamList
+      const Teuchos::ParameterList &aParamList
     )
     {
         if( !aParamList.isSublist("Source Terms") ){
@@ -135,24 +124,8 @@ private:
           ANALYZE_THROWERR(tMsg)
         }
         auto tCurrentDensitySublist = tSourceTermsSublist.sublist(mCurrentDensityName);
-        this->parseCurrentDensityModelCoefficients(tCurrentDensitySublist);
-    }
-
-    /// @fn parseCurrentDensityModelCoefficients
-    /// @brief parse quadratic model coefficients
-    /// @param [in] aParamList input problem parameters
-    void parseCurrentDensityModelCoefficients(
-      Teuchos::ParameterList & aParamList
-    )
-    {
-        mCoefA  = aParamList.get<Plato::Scalar>("a",0.);
-        mCoefB  = aParamList.get<Plato::Scalar>("b",1.27e-6);
-        mCoefC  = aParamList.get<Plato::Scalar>("c",25.94253);
-        mCoefM1 = aParamList.get<Plato::Scalar>("m1",0.38886);
-        mCoefB1 = aParamList.get<Plato::Scalar>("b1",0.);
-        mCoefM2 = aParamList.get<Plato::Scalar>("m2",30.);
-        mCoefB2 = aParamList.get<Plato::Scalar>("b2",6.520373);
-        mPerformanceLimit = aParamList.get<Plato::Scalar>("limit",-0.22);
+        mGenerationRate = tCurrentDensitySublist.get<Plato::Scalar>("Generation Rate",-0.40914);
+        mIlluminationPower = tCurrentDensitySublist.get<Plato::Scalar>("Illumination Power",1000.);
     }
 };
 

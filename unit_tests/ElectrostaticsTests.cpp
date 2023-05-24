@@ -36,6 +36,7 @@
 #include "elliptic/electrical/SupportedOptionEnums.hpp"
 #include "elliptic/electrical/FactoryElectricalMaterial.hpp"
 #include "elliptic/electrical/DarkCurrentDensityQuadratic.hpp"
+#include "elliptic/electrical/LightGeneratedCurrentDensityConstant.hpp"
 
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
@@ -43,93 +44,6 @@
 
 namespace Plato
 {
-
-template<typename EvaluationType, 
-         typename OutputScalarType = Plato::Scalar>
-class LightGeneratedCurrentDensityConstant : 
-    public Plato::CurrentDensityModel<EvaluationType,OutputScalarType>
-{
-private:
-    using ElementType = typename EvaluationType::ElementType;
-    using StateScalarType = typename EvaluationType::StateScalarType;
-
-    // set local element type
-    static constexpr int mNumDofsPerNode  = ElementType::mNumDofsPerNode;
-
-public:
-    std::string mCurrentDensityName = ""; /*!< input light-generated current density parameter list name */
-    Plato::Scalar mGenerationRate = -0.40914; /*!< generation rate */
-    Plato::Scalar mIlluminationPower = 1000.0; /*!< solar illumination power */
-
-public:
-    LightGeneratedCurrentDensityConstant(
-      const std::string            & aCurrentDensityName,
-      const Teuchos::ParameterList & aParamList
-    ) : 
-      mCurrentDensityName(aCurrentDensityName)
-    {
-      this->initialize(aParamList);
-    }
-    virtual ~LightGeneratedCurrentDensityConstant(){}
-
-    KOKKOS_INLINE_FUNCTION
-    OutputScalarType 
-    evaluate(
-        const StateScalarType & aCellElectricPotential
-    ) const
-    {
-      Plato::Scalar tOutput = mGenerationRate * mIlluminationPower;
-      return ( tOutput );
-    }
-
-    void evaluate(
-      const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-      const Plato::ScalarMultiVectorT <OutputScalarType>  & aResult
-    ) const
-    {
-        // integration rule
-        auto tCubPoints  = ElementType::getCubPoints();
-        auto tCubWeights = ElementType::getCubWeights();
-        auto tNumPoints  = tCubWeights.size();
-        
-        Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
-
-        // evaluate light-generated current density
-        Plato::OrdinalType tNumCells = aState.extent(0);
-        Kokkos::parallel_for("light-generated current density", 
-          Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-          KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
-        {
-            auto tCubPoint = tCubPoints(iGpOrdinal);
-            auto tBasisValues = ElementType::basisValues(tCubPoint);
-            // evaluate light-generated current density
-            StateScalarType tCellElectricPotential = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
-            aResult(iCellOrdinal,iGpOrdinal) = this->evaluate(tCellElectricPotential);
-        });
-    }
-
-private:
-    void 
-    initialize(
-      const Teuchos::ParameterList &aParamList
-    )
-    {
-        if( !aParamList.isSublist("Source Terms") ){
-          auto tMsg = std::string("Parameter is not valid. Argument ('Source Terms') is not a parameter list");
-          ANALYZE_THROWERR(tMsg)
-        }
-        auto tSourceTermsSublist = aParamList.sublist("Source Terms");
-
-        if( !tSourceTermsSublist.isSublist(mCurrentDensityName) ){
-          auto tMsg = std::string("Parameter is not valid. Argument ('") + mCurrentDensityName 
-            + "') is not a parameter list";
-          ANALYZE_THROWERR(tMsg)
-        }
-        auto tCurrentDensitySublist = tSourceTermsSublist.sublist(mCurrentDensityName);
-        mGenerationRate = tCurrentDensitySublist.get<Plato::Scalar>("Generation Rate",-0.40914);
-        mIlluminationPower = tCurrentDensitySublist.get<Plato::Scalar>("Illumination Power",1000.);
-    }
-};
 
 
 
