@@ -40,8 +40,10 @@
 #include "elliptic/electrical/DarkCurrentDensityTwoPhaseAlloy.hpp"
 #include "elliptic/electrical/LightCurrentDensityTwoPhaseAlloy.hpp"
 #include "elliptic/electrical/FactoryCurrentDensityEvaluator.hpp"
-#include "elliptic/electrical/SourceWeightedSum.hpp"
 #include "elliptic/electrical/FactorySourceEvaluator.hpp"
+#include "elliptic/electrical/SourceWeightedSum.hpp"
+#include "elliptic/electrical/CriterionVolumeTwoPhase.hpp"
+#include "elliptic/electrical/CriterionPowerSurfaceDensityTwoPhase.hpp"
 
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
@@ -61,302 +63,6 @@ namespace Plato
 namespace Elliptic
 {
 
-template<typename EvaluationType>
-class CriterionPowerSurfaceDensityTwoPhase : public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
-{
-private:
-    using ElementType = typename EvaluationType::ElementType;
-    static constexpr int mNumSpatialDims  = ElementType::mNumSpatialDims;
-    static constexpr int mNumDofsPerNode  = ElementType::mNumDofsPerNode;
-    static constexpr int mNumDofsPerCell  = ElementType::mNumDofsPerCell;
-    static constexpr int mNumNodesPerCell = ElementType::mNumNodesPerCell;
-
-    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mSpatialDomain;
-    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mDataMap;
- 
-    using StateScalarType   = typename EvaluationType::StateScalarType;
-    using ControlScalarType = typename EvaluationType::ControlScalarType;
-    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
-    using ResultScalarType  = typename EvaluationType::ResultScalarType;
-
-    using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
-    
-    std::string mCriterionFunctionName = "";
-
-    Plato::Scalar mPenaltyExponent = 3.0;
-    Plato::Scalar mMinErsatzMaterialValue = 0.0;
-    std::vector<Plato::Scalar> mOutofPlaneThickness;
-
-    std::shared_ptr<Plato::CurrentDensityEvaluator<EvaluationType>> mCurrentDensityEvaluator;
-
-public:
-    CriterionPowerSurfaceDensityTwoPhase(
-        const Plato::SpatialDomain   & aSpatialDomain,
-              Plato::DataMap         & aDataMap,
-              Teuchos::ParameterList & aParamList,
-        const std::string            & aFuncName
-    ) : 
-      FunctionBaseType(aSpatialDomain, aDataMap, aParamList, aFuncName),
-      mCriterionFunctionName(aFuncName)
-    {
-      this->initialize(aParamList);
-    }
-    ~CriterionPowerSurfaceDensityTwoPhase(){}
-
-  void 
-  evaluate(
-      const Plato::ScalarMultiVectorT <typename EvaluationType::StateScalarType>   & aState,
-      const Plato::ScalarMultiVectorT <typename EvaluationType::ControlScalarType> & aControl,
-      const Plato::ScalarArray3DT     <typename EvaluationType::ConfigScalarType>  & aConfig,
-            Plato::ScalarVectorT      <typename EvaluationType::ResultScalarType>  & aResult,
-            Plato::Scalar                                                            aCycle = 1.0
-  ) override
-  { 
-    this->evaluate_conditional(aState, aControl, aConfig, aResult, aCycle);
-  }
-
-  void
-  evaluate_conditional(
-      const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-      const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-      const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-            Plato::ScalarVectorT      <ResultScalarType>  & aResult,
-            Plato::Scalar                                   aCycle = 1.0
-  ) const override
-  {
-    // integration rule
-    auto tCubPoints  = ElementType::getCubPoints();
-    auto tCubWeights = ElementType::getCubWeights();
-    auto tNumPoints  = tCubWeights.size();
-    // out-of-plane thicknesses
-    Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
-    Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
-    // build local functor
-    Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
-    // evaluate current density
-    Plato::Scalar tScale = aCycle;
-    Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
-    Plato::ScalarMultiVectorT<ResultScalarType> tCurrentDensity("current density",tNumCells,tNumPoints);
-    mCurrentDensityEvaluator->evaluate(aState,aControl,aConfig,tCurrentDensity,tScale);
-    // evaluate dark current density
-    Kokkos::parallel_for("power surface density", 
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
-    {
-        // get basis functions and weights for this integration point
-        auto tCubPoint = tCubPoints(iGpOrdinal);
-        auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal));
-        auto tBasisValues = ElementType::basisValues(tCubPoint);
-        // out-of-plane thickness interpolation
-        ControlScalarType tDensity =
-          Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
-        ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
-        ControlScalarType tThicknessInterpolation = tThicknessTwo + 
-          ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
-        // evaluate electric potential
-        StateScalarType tCellElectricPotential = 
-          tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
-        ResultScalarType tWeightedCurrentDensity = 
-          tCurrentDensity(iCellOrdinal,iGpOrdinal) * tCubWeights(iGpOrdinal) * tDetJ;
-        for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
-        {
-            ResultScalarType tCellResult = tBasisValues(tFieldOrdinal) * 
-              tCellElectricPotential * tWeightedCurrentDensity * tThicknessInterpolation;
-            Kokkos::atomic_add( &aResult(iCellOrdinal), tCellResult );
-        }
-    });
-  }
-
-private:
-  void initialize(
-    Teuchos::ParameterList & aParamList
-  )
-  {
-    // build current density function
-    this->buildCurrentDensityFunction(aParamList);
-    // set out-of-plane thickness 
-    Plato::FactoryElectricalMaterial<EvaluationType> tMaterialFactory(aParamList);
-    auto tMaterialModel = tMaterialFactory.create(mSpatialDomain.getMaterialName());
-    this->setOutofPlaneThickness(tMaterialModel.operator*());
-  }
-
-  void buildCurrentDensityFunction(
-    Teuchos::ParameterList & aParamList
-  )
-  {
-    if( !aParamList.isSublist("Criteria") ){
-      auto tMsg = std::string("Parameter is not valid. Argument ('Criteria') is not a parameter list");
-      ANALYZE_THROWERR(tMsg)
-    }
-    auto tCriteriaParamList = aParamList.sublist("Criteria");
-    if( !tCriteriaParamList.isSublist(mCriterionFunctionName) ){
-      auto tMsg = std::string("Parameter is not valid. Argument ('") 
-        + mCriterionFunctionName + "') is not a parameter list";
-      ANALYZE_THROWERR(tMsg)
-    }
-    auto tMyCriterionParamList = tCriteriaParamList.sublist(mCriterionFunctionName);
-    if( !tMyCriterionParamList.isParameter("Function") ){
-      auto tMsg = std::string("Parameter ('Function') is not defined in parameter list ('") 
-        + mCriterionFunctionName + "'), power surface density cannot be evaluated";
-      ANALYZE_THROWERR(tMsg)
-    }
-    std::string tMaterialName = mSpatialDomain.getMaterialName();
-    std::string tCurrentDensityFunctionName = tMyCriterionParamList.get<std::string>("Function");
-    Plato::FactoryCurrentDensityEvaluator<EvaluationType> tFactoryCurrentDensityEvaluator;
-    mCurrentDensityEvaluator = 
-      tFactoryCurrentDensityEvaluator.create(tMaterialName,tCurrentDensityFunctionName,aParamList
-    );
-  }
-
-  void 
-  setOutofPlaneThickness(
-      Plato::MaterialModel<EvaluationType> & aMaterialModel
-  )
-  {
-      std::vector<std::string> tThickness = aMaterialModel.property("out-of-plane thickness");
-      if ( tThickness.empty() )
-      {
-          auto tMsg = std::string("Array of out-of-plane thicknesses is empty. ") 
-            + "Dark current density cannnot be computed.";
-          ANALYZE_THROWERR(tMsg)
-      }
-      else
-      {
-          mOutofPlaneThickness.clear();
-          for(size_t tIndex = 0; tIndex < tThickness.size(); tIndex++)
-          {
-            Plato::Scalar tMyThickness = std::stod(tThickness[tIndex]);
-            mOutofPlaneThickness.push_back(tMyThickness);
-          }
-      }
-  }
-};
-
-template<typename EvaluationType>
-class CriterionVolumeTwoPhase : public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
-{
-private:
-    using ElementType = typename EvaluationType::ElementType;
-    static constexpr int mNumSpatialDims  = ElementType::mNumSpatialDims;
-    static constexpr int mNumDofsPerNode  = ElementType::mNumDofsPerNode;
-    static constexpr int mNumDofsPerCell  = ElementType::mNumDofsPerCell;
-    static constexpr int mNumNodesPerCell = ElementType::mNumNodesPerCell;
-
-    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mSpatialDomain;
-    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mDataMap;
- 
-    using StateScalarType   = typename EvaluationType::StateScalarType;
-    using ControlScalarType = typename EvaluationType::ControlScalarType;
-    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
-    using ResultScalarType  = typename EvaluationType::ResultScalarType;
-
-    using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
-
-    Plato::Scalar mPenaltyExponent = 3.0;
-
-    std::vector<Plato::Scalar> mOutofPlaneThickness;
-
-public:
-  CriterionVolumeTwoPhase(
-      const Plato::SpatialDomain   & aSpatialDomain,
-            Plato::DataMap         & aDataMap,
-            Teuchos::ParameterList & aParamList,
-      const std::string            & aFuncName
-  ) :
-      FunctionBaseType(aSpatialDomain, aDataMap, aParamList, aFuncName)
-  {
-      this->initialize(aParamList);
-  }
-  ~CriterionVolumeTwoPhase(){}
-
-  void 
-  evaluate(
-    const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-    const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-    const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-          Plato::ScalarVectorT      <ResultScalarType>  & aResult,
-          Plato::Scalar                                   aCycle = 1.0
-  ) override
-  {
-    this->evaluate_conditional(aState,aControl,aConfig,aResult,aCycle);
-  }
-  void
-  evaluate_conditional(
-      const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-      const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-      const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-            Plato::ScalarVectorT      <ResultScalarType>  & aResult,
-            Plato::Scalar                                   aCycle = 1.0
-  ) const override
-  {
-    // out-of-plane thicknesses for two-phase electrical material
-    Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
-    Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
-    // get basis functions and weights associated with the integration rule
-    auto tCubPoints  = ElementType::getCubPoints();
-    auto tCubWeights = ElementType::getCubWeights();
-    auto tNumPoints  = tCubWeights.size();
-    // evaluate volume for a two-phase electrical material
-    auto tNumCells = mSpatialDomain.numCells();
-    Kokkos::parallel_for("compute volume", 
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
-    {
-      // evaluate cell jacobian
-      auto tCubPoint  = tCubPoints(iGpOrdinal);
-      auto tCubWeight = tCubWeights(iGpOrdinal);
-      auto tJacobian = ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal);
-      // compute cell volume
-      ResultScalarType tCellVolume = Plato::determinant(tJacobian);
-      tCellVolume *= tCubWeight;
-      // evaluate out-of-plane thickness interpolation function
-      auto tBasisValues = ElementType::basisValues(tCubPoint);
-      ControlScalarType tDensity = 
-          Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
-      ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
-      ControlScalarType tThicknessInterpolation = tThicknessTwo + 
-        ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
-      // apply penalty to volume
-      ResultScalarType tPenalizedVolume = tThicknessInterpolation * tCellVolume;
-      Kokkos::atomic_add(&aResult(iCellOrdinal), tPenalizedVolume);
-    });
-  }
-
-private:
-  void 
-  initialize(
-    Teuchos::ParameterList & aParamList
-  )
-  {
-    Plato::FactoryElectricalMaterial<EvaluationType> tMaterialFactory(aParamList);
-    auto tMaterialModel = tMaterialFactory.create(mSpatialDomain.getMaterialName());
-    this->setOutofPlaneThickness(tMaterialModel.operator*());
-    mPenaltyExponent = aParamList.get<Plato::Scalar>("Penalty Exponent", 3.0);
-  }
-
-  void 
-  setOutofPlaneThickness(
-    Plato::MaterialModel<EvaluationType> & aMaterialModel
-  )
-  {
-    std::vector<std::string> tThickness = aMaterialModel.property("out-of-plane thickness");
-    if ( tThickness.empty() )
-    {
-        auto tMsg = std::string("Array of out-of-plane thicknesses is empty. ") 
-          + "Volume criterion for two-phase material alloy cannnot be computed.";
-        ANALYZE_THROWERR(tMsg)
-    }
-    else
-    {
-        mOutofPlaneThickness.clear();
-        for(size_t tIndex = 0; tIndex < tThickness.size(); tIndex++)
-        {
-          Plato::Scalar tMyThickness = std::stod(tThickness[tIndex]);
-          mOutofPlaneThickness.push_back(tMyThickness);
-        }
-    }
-  }
-};
 
 /******************************************************************************/
 template<typename EvaluationType>
@@ -1105,7 +811,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CriterionPowerSurfaceDensityTwoPhase)
   Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
   // create current density
   auto tOnlyDomainDefined = tSpatialModel.Domains.front();
-  Plato::Elliptic::CriterionPowerSurfaceDensityTwoPhase<Residual>
+  Plato::CriterionPowerSurfaceDensityTwoPhase<Residual>
     tCriterionPowerSurfaceDensityTwoPhase(tOnlyDomainDefined,tDataMap,*tGenericParamList,"My Dark Power");
   Plato::ScalarVectorT<ResultT> tResultWS("result workset", tNumCells);
   tCriterionPowerSurfaceDensityTwoPhase.evaluate(tStateWS,tControlWS,tConfigWS,tResultWS);
@@ -1158,7 +864,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CriterionVolumeTwoPhase)
   Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
   // create current density
   auto tOnlyDomainDefined = tSpatialModel.Domains.front();
-  Plato::Elliptic::CriterionVolumeTwoPhase<Residual>
+  Plato::CriterionVolumeTwoPhase<Residual>
     tCriterionVolumeTwoPhase(tOnlyDomainDefined,tDataMap,*tGenericParamList,"My Volume");
   Plato::ScalarVectorT<ResultT> tResultWS("result workset", tNumCells);
   tCriterionVolumeTwoPhase.evaluate(tStateWS,tControlWS,tConfigWS,tResultWS);
