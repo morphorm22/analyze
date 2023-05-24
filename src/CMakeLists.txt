@@ -148,6 +148,7 @@ if(ELLIPTIC)
     elliptic/VolumeAverageCriterionDenominator.cpp
     IntermediateDensityPenalty.cpp
     elliptic/electrical/SupportedOptionEnums.cpp
+    elliptic/electrical/MaterialElectricalConductivity.cpp
   )
   
   if(HATCHING)

@@ -1,5 +1,5 @@
 /*
- * MaterialElectricalConductivity.cpp
+ * MaterialElectricalConductivity.hpp
  *
  *  Created on: May 23, 2023
  */

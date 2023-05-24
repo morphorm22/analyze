@@ -34,6 +34,7 @@
 
 #include "elliptic/electrical/ElectricalElement.hpp"
 #include "elliptic/electrical/SupportedOptionEnums.cpp"
+#include "elliptic/electrical/MaterialElectricalConductivity.hpp"
 
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
@@ -49,48 +50,6 @@ namespace electrical
 
 };
 // namespace electrical 
-
-/******************************************************************************/
-/*!
- \brief Base class for linear electrical conductivity material model
- */
-template<typename EvaluationType>
-class MaterialElectricalConductivity : public MaterialModel<EvaluationType>
-/******************************************************************************/
-{
-private:
-    using ElementType = typename EvaluationType::ElementType; // set local element type
-    static constexpr int mNumSpatialDims = ElementType::mNumSpatialDims;
-    
-    Plato::electrical::PropEnum mS2E; /*!< map string to supported enum */
-    std::unordered_map<Plato::electrical::property,std::vector<std::string>> mProperties;
-
-public:
-    MaterialElectricalConductivity(
-        const std::string            & aMaterialName,
-        const Teuchos::ParameterList & aParamList
-    )
-    {
-        this->name(aMaterialName);
-        this->parseScalar("Electrical Conductivity", aParamList);
-        auto tElectricConductivity = this->getScalarConstant("Electrical Conductivity");
-        this->setTensorConstant("material tensor",Plato::TensorConstant<mNumSpatialDims>(tElectricConductivity));
-        mProperties[mS2E.get("Electrical Conductivity")].push_back( std::to_string(tElectricConductivity) );
-    }
-    ~MaterialElectricalConductivity(){}
-
-    std::vector<std::string> 
-    property(const std::string & aPropertyID)
-    const override
-    {
-        auto tEnum = mS2E.get(aPropertyID);
-        auto tItr = mProperties.find(tEnum);
-        if( tItr == mProperties.end() ){
-            return {};
-        }
-        return tItr->second;
-    }
-};
 
 /******************************************************************************/
 /*!
