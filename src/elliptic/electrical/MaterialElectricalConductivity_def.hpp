@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include "elliptic/electrical/MaterialElectricalConductivity_decl.hpp"
-
 namespace Plato
 {
 

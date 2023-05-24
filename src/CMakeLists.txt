@@ -148,6 +148,8 @@ if(ELLIPTIC)
     elliptic/VolumeAverageCriterionDenominator.cpp
     IntermediateDensityPenalty.cpp
     elliptic/electrical/SupportedOptionEnums.cpp
+    elliptic/electrical/MaterialDielectric.cpp
+    elliptic/electrical/FactoryElectricalMaterial.cpp
     elliptic/electrical/MaterialElectricalConductivity.cpp
     elliptic/electrical/MaterialElectricalConductivityTwoPhaseAlloy.cpp
   )

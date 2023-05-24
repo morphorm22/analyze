@@ -11,7 +11,7 @@
 #include <string>
 #include <unordered_map>
 
-/// @include plato analyze includes
+/// @include analyze includes
 #include "MaterialModel.hpp"
 #include "elliptic/electrical/SupportedOptionEnums.hpp"
 
@@ -20,7 +20,7 @@ namespace Plato
 
 /// @class MaterialElectricalConductivityTwoPhaseAlloy
 /// @brief class for electrical conductivity material constitutive models used to model two-phase alloys
-/// @tparam EvaluationType 
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class MaterialElectricalConductivityTwoPhaseAlloy : public MaterialModel<EvaluationType>
 /******************************************************************************/
@@ -79,8 +79,8 @@ public:
     ) override;
 
     /// @fn property
-    /// @brief return material property values in string format associated with this material 
-    /// @param aPropertyID input property identifier
+    /// @brief return list of material property values in string format
+    /// @param [in] aPropertyID input material property name
     /// @return list of string values
     std::vector<std::string> 
     property(const std::string & aPropertyID)
@@ -89,35 +89,35 @@ public:
 private:
     /// @fn initialize
     /// @brief initialize material constitutive model
-    /// @param aParamList input problem parameters
+    /// @param [in] aParamList input problem parameters
     void initialize(
         Teuchos::ParameterList & aParamList
     );
 
     /// @fn parseMaterialProperties
     /// @brief parse physical material properties from input file
-    /// @param aParamList input problem parameters
+    /// @param [in] aParamList input problem parameters
     void parseMaterialProperties(
         Teuchos::ParameterList & aParamList
     );
     
     /// @fn parseMaterialNames
     /// @brief parse material names from input file
-    /// @param aParamList input problem parameters
+    /// @param [in] aParamList input problem parameters
     void parseMaterialNames(
         Teuchos::ParameterList & aParamList
     );
 
     /// @fn parseOutofPlaneThickness
     /// @brief parse out-of-plane material thicknesses from input file
-    /// @param aParamList input problem parameters
+    /// @param [in] aParamList input problem parameters
     void parseOutofPlaneThickness(
         Teuchos::ParameterList &aParamList
     );
 
     /// @fn parsePenaltyModel
     /// @brief parse parameters associated with the ersatz material penalty model
-    /// @param aParamList input problem parameters
+    /// @param [in] aParamList input problem parameters
     void parsePenaltyModel(
         Teuchos::ParameterList & aParamList
     );

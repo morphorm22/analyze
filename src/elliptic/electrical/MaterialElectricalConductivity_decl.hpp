@@ -14,7 +14,7 @@ namespace Plato
 
 /// @class MaterialElectricalConductivity
 /// @brief material model class for electrical conductivity material constitutive models
-/// @tparam EvaluationType scalar evaluation automatic differentiation types
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class MaterialElectricalConductivity : public MaterialModel<EvaluationType>
 {
@@ -23,7 +23,6 @@ private:
     using ElementType = typename EvaluationType::ElementType;
     /// @brief number of spatial dimensions 
     static constexpr int mNumSpatialDims = ElementType::mNumSpatialDims;
-    
     /// @brief map from input string to supported electrical material property
     Plato::electrical::PropEnum mS2E;
     /// @brief map from electrical material property enum to list of material property values saved as a string
@@ -31,8 +30,8 @@ private:
 
 public:
     /// @brief class constructor
-    /// @param aMaterialName user defined parameter list name from input file
-    /// @param aParamList    problem inputs
+    /// @param [in] aMaterialName user defined parameter list name from input file
+    /// @param [in] aParamList    problem inputs
     MaterialElectricalConductivity(
         const std::string            & aMaterialName,
         const Teuchos::ParameterList & aParamList
@@ -40,8 +39,8 @@ public:
     /// @brief class destructor
     ~MaterialElectricalConductivity(){}
 
-    /// @brief return list of material property values saved as a string
-    /// @param aPropertyID electrical material property enum
+    /// @brief return list of material property values in string format
+    /// @param [in] aPropertyID input electrical material property name
     /// @return standard vector of strings
     std::vector<std::string> 
     property(const std::string & aPropertyID)
