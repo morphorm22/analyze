@@ -39,6 +39,7 @@
 #include "elliptic/electrical/LightGeneratedCurrentDensityConstant.hpp"
 #include "elliptic/electrical/DarkCurrentDensityTwoPhaseAlloy.hpp"
 #include "elliptic/electrical/LightCurrentDensityTwoPhaseAlloy.hpp"
+#include "elliptic/electrical/FactoryCurrentDensityEvaluator.hpp"
 
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
@@ -48,55 +49,7 @@ namespace Plato
 {
 
 
-namespace FactoryCurrentDensityEvaluator
-{
-  template <typename EvaluationType>
-  inline std::shared_ptr<Plato::CurrentDensityEvaluator<EvaluationType>> 
-  create(
-    const std::string            & aMaterialName,
-    const std::string            & aFunctionName,
-          Teuchos::ParameterList & aParamList
-  )
-  {
-    if( !aParamList.isSublist("Source Terms") )
-    {
-      auto tMsg = std::string("Parameter is not valid. Argument ('Source Terms') is not a parameter list");
-      ANALYZE_THROWERR(tMsg)
-    }
-    auto tSourceTermsParamList = aParamList.sublist("Source Terms");
-    if( !tSourceTermsParamList.isSublist(aFunctionName) )
-    {
-      auto tMsg = std::string("Parameter is not valid. Argument ('") + aFunctionName + "') is not a parameter list";
-      ANALYZE_THROWERR(tMsg)
-    }
-    auto mCurrentDensityEvaluatorParamList = tSourceTermsParamList.sublist(aFunctionName);
-    if( !mCurrentDensityEvaluatorParamList.isParameter("Function") )
-    {
-      auto tMsg = std::string("Parameter ('Function') is not defined in parameter list ('") 
-        + aFunctionName + "'), current density evaluator cannot be determined";
-      ANALYZE_THROWERR(tMsg)
-    }
-    Plato::electrical::CurrentDensityEvaluatorEnum tS2E;
-    auto tType = mCurrentDensityEvaluatorParamList.get<std::string>("Function");
-    auto tLowerType = Plato::tolower(tType);
-    auto tSupportedSourceTermEnum = tS2E.get(tLowerType);
-    switch (tSupportedSourceTermEnum)
-    {
-      case Plato::electrical::current_density_evaluator::TWO_PHASE_DARK_CURRENT_DENSITY:
-        return std::make_shared<Plato::DarkCurrentDensityTwoPhaseAlloy<EvaluationType>>(
-          aMaterialName,aFunctionName,aParamList);
-        break;
-      case Plato::electrical::current_density_evaluator::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY:
-        return std::make_shared<Plato::LightCurrentDensityTwoPhaseAlloy<EvaluationType>>(
-          aMaterialName,aFunctionName,aParamList);
-        break;
-      default:
-        return nullptr;
-        break;
-    }
-  }
-}
-// namespace FactoryCurrentDensityEvaluator
+
 
 template<typename EvaluationType>
 class SourceEvaluator
@@ -234,8 +187,9 @@ private:
     {
       for(auto& tFunctionName : mFunctions)
       {
+        Plato::FactoryCurrentDensityEvaluator<EvaluationType> tFactoryCurrentDensityEvaluator;
         std::shared_ptr<Plato::CurrentDensityEvaluator<EvaluationType>> tEvaluator = 
-          Plato::FactoryCurrentDensityEvaluator::create<EvaluationType>(mMaterialName,tFunctionName,aParamList);
+          tFactoryCurrentDensityEvaluator.create(mMaterialName,tFunctionName,aParamList);
         mCurrentDensityEvaluators.push_back(tEvaluator);
       }
     }
@@ -431,8 +385,9 @@ private:
     }
     std::string tMaterialName = mSpatialDomain.getMaterialName();
     std::string tCurrentDensityFunctionName = tMyCriterionParamList.get<std::string>("Function");
-    mCurrentDensityEvaluator = Plato::FactoryCurrentDensityEvaluator::create<EvaluationType>(
-      tMaterialName,tCurrentDensityFunctionName,aParamList
+    Plato::FactoryCurrentDensityEvaluator<EvaluationType> tFactoryCurrentDensityEvaluator;
+    mCurrentDensityEvaluator = 
+      tFactoryCurrentDensityEvaluator.create(tMaterialName,tCurrentDensityFunctionName,aParamList
     );
   }
 

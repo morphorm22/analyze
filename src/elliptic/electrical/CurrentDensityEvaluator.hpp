@@ -7,6 +7,7 @@
 #pragma once
 
 #include "PlatoTypes.hpp"
+#include "SpatialModel.hpp"
 
 namespace Plato
 {
