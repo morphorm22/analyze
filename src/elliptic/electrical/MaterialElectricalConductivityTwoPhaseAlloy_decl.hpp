@@ -66,7 +66,7 @@ public:
 
     /// @fn computeMaterialTensor
     /// @brief compute material tensor for a two-phase electrical material
-    /// @param [in]     aSpatialDomain contains mesh information
+    /// @param [in]     aSpatialDomain contains meshed model information
     /// @param [in]     aState         state workset
     /// @param [in]     aControl       control workse
     /// @param [in,out] aResult        material tensor 
