@@ -149,6 +149,7 @@ if(ELLIPTIC)
     IntermediateDensityPenalty.cpp
     elliptic/electrical/SupportedOptionEnums.cpp
     elliptic/electrical/MaterialElectricalConductivity.cpp
+    elliptic/electrical/MaterialElectricalConductivityTwoPhaseAlloy.cpp
   )
   
   if(HATCHING)
