@@ -35,6 +35,7 @@
 #include "elliptic/electrical/ElectricalElement.hpp"
 #include "elliptic/electrical/SupportedOptionEnums.hpp"
 #include "elliptic/electrical/FactoryElectricalMaterial.hpp"
+#include "elliptic/electrical/DarkCurrentDensityQuadratic.hpp"
 
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
@@ -42,141 +43,6 @@
 
 namespace Plato
 {
-
-template<typename EvaluationType, 
-         typename OutputScalarType>
-class CurrentDensityModel
-{
-private:
-    using ElementType = typename EvaluationType::ElementType;
-    using StateScalarType = typename EvaluationType::StateScalarType;
-
-public:
-    CurrentDensityModel(){}
-    virtual ~CurrentDensityModel(){}
-
-    virtual 
-    void 
-    evaluate(
-      const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-      const Plato::ScalarMultiVectorT <OutputScalarType>  & aResult
-    ) const = 0;
-};
-
-template<typename EvaluationType, 
-         typename OutputScalarType = typename EvaluationType::StateScalarType>
-class DarkCurrentDensityQuadratic : 
-    public Plato::CurrentDensityModel<EvaluationType,OutputScalarType>
-{
-private:
-    using ElementType = typename EvaluationType::ElementType;
-    using StateScalarType = typename EvaluationType::StateScalarType;
-
-    // set local element type
-    static constexpr int mNumDofsPerNode  = ElementType::mNumDofsPerNode;
-
-public:
-    Plato::Scalar mCoefA  = 0.;
-    Plato::Scalar mCoefB  = 1.27e-6;
-    Plato::Scalar mCoefC  = 25.94253;
-    Plato::Scalar mCoefM1 = 0.38886;
-    Plato::Scalar mCoefB1 = 0.;
-    Plato::Scalar mCoefM2 = 30.;
-    Plato::Scalar mCoefB2 = 6.520373;
-    Plato::Scalar mPerformanceLimit = -0.22;
-
-    std::string mCurrentDensityName = "";
-
-public:
-    DarkCurrentDensityQuadratic(
-      const std::string            & aCurrentDensityName,
-      const Teuchos::ParameterList & aParamList
-    ) : 
-      mCurrentDensityName(aCurrentDensityName)
-    {
-        this->initialize(aParamList);
-    }
-    virtual ~DarkCurrentDensityQuadratic(){}
-    
-    KOKKOS_INLINE_FUNCTION
-    OutputScalarType 
-    evaluate(
-        const StateScalarType & aCellElectricPotential
-    ) const
-    {
-        OutputScalarType tDarkCurrentDensity = 0.0;
-        if( aCellElectricPotential > 0.0 )
-          { tDarkCurrentDensity = mCoefA + mCoefB * exp(mCoefC * aCellElectricPotential); }
-        else 
-        if( (mPerformanceLimit < aCellElectricPotential) && (aCellElectricPotential < 0.0) )
-          { tDarkCurrentDensity = mCoefM1 * aCellElectricPotential + mCoefB1; }
-        else 
-        if( aCellElectricPotential < mPerformanceLimit )
-          { tDarkCurrentDensity = mCoefM2 * aCellElectricPotential + mCoefB2; }
-        return tDarkCurrentDensity;
-    }
-
-    void evaluate(
-      const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-      const Plato::ScalarMultiVectorT <OutputScalarType>  & aResult
-    ) const
-    {
-        // integration rule
-        auto tCubPoints  = ElementType::getCubPoints();
-        auto tCubWeights = ElementType::getCubWeights();
-        auto tNumPoints  = tCubWeights.size();
-
-        Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
-
-        // evaluate light-generated current density
-        Plato::OrdinalType tNumCells = aState.extent(0);
-        Kokkos::parallel_for("light-generated current density", 
-          Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-          KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
-        {
-            auto tCubPoint = tCubPoints(iGpOrdinal);
-            auto tBasisValues = ElementType::basisValues(tCubPoint);
-            // evaluate light-generated current density
-            StateScalarType tCellElectricPotential = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
-            aResult(iCellOrdinal,iGpOrdinal) = this->evaluate(tCellElectricPotential);
-        });
-    }
-
-private:
-    void 
-    initialize(
-      const Teuchos::ParameterList & aParamList
-    )
-    {
-        if( !aParamList.isSublist("Source Terms") ){
-          auto tMsg = std::string("Parameter is not valid. Argument ('Source Terms') is not a parameter list");
-          ANALYZE_THROWERR(tMsg)
-        }
-        auto tSourceTermsSublist = aParamList.sublist("Source Terms");
-
-        if( !tSourceTermsSublist.isSublist(mCurrentDensityName) ){
-          auto tMsg = std::string("Parameter is not valid. Argument ('") + mCurrentDensityName 
-            + "') is not a parameter list";
-          ANALYZE_THROWERR(tMsg)
-        }
-        auto tCurrentDensitySublist = tSourceTermsSublist.sublist(mCurrentDensityName);
-        this->parseParameters(tCurrentDensitySublist);
-    }
-    void 
-    parseParameters(
-      Teuchos::ParameterList & aParamList
-    )
-    {
-        mCoefA  = aParamList.get<Plato::Scalar>("a",0.);
-        mCoefB  = aParamList.get<Plato::Scalar>("b",1.27e-6);
-        mCoefC  = aParamList.get<Plato::Scalar>("c",25.94253);
-        mCoefM1 = aParamList.get<Plato::Scalar>("m1",0.38886);
-        mCoefB1 = aParamList.get<Plato::Scalar>("b1",0.);
-        mCoefM2 = aParamList.get<Plato::Scalar>("m2",30.);
-        mCoefB2 = aParamList.get<Plato::Scalar>("b2",6.520373);
-        mPerformanceLimit = aParamList.get<Plato::Scalar>("limit",-0.22);
-    }
-};
 
 template<typename EvaluationType, 
          typename OutputScalarType = Plato::Scalar>

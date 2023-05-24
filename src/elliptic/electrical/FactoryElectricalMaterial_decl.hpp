@@ -31,7 +31,7 @@ private:
       
 public:
     /// @brief class constructor
-    /// @param aParamList input parameters
+    /// @param [in] aParamList input parameters
     FactoryElectricalMaterial(
         Teuchos::ParameterList& aParamList
     );
@@ -41,7 +41,7 @@ public:
 
     /// @fn create
     /// @brief create shared pointer to electrical material constitutive model
-    /// @param aModelName input material parameter list name
+    /// @param [in] aModelName input material parameter list name
     /// @return standard shared pointer
     std::shared_ptr<MaterialModel<EvaluationType>> 
     create(
