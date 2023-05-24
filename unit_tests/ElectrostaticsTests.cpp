@@ -40,6 +40,8 @@
 #include "elliptic/electrical/DarkCurrentDensityTwoPhaseAlloy.hpp"
 #include "elliptic/electrical/LightCurrentDensityTwoPhaseAlloy.hpp"
 #include "elliptic/electrical/FactoryCurrentDensityEvaluator.hpp"
+#include "elliptic/electrical/SourceWeightedSum.hpp"
+#include "elliptic/electrical/FactorySourceEvaluator.hpp"
 
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
@@ -51,195 +53,10 @@ namespace Plato
 
 
 
-template<typename EvaluationType>
-class SourceEvaluator
-{
-private:
-    using StateScalarType   = typename EvaluationType::StateScalarType;
-    using ControlScalarType = typename EvaluationType::ControlScalarType;
-    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
-    using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
-public:
-  virtual 
-  void 
-  evaluate(
-      const Plato::SpatialDomain                         & aSpatialDomain,
-      const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
-      const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
-      const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
-      const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
-      const Plato::Scalar                                & aScale
-  ) 
-  const = 0;
-};
-// class SourceEvaluator
 
-// TODO: create factory to allocate volume forces. it will require refactoring the interfaces 
-// to take workset metadata; e.g., similar to how it is done in the Ifem unit test. 
-template<typename EvaluationType>
-class SourceWeightedSum : public Plato::SourceEvaluator<EvaluationType>
-{
-private:
-    using StateScalarType   = typename EvaluationType::StateScalarType;
-    using ControlScalarType = typename EvaluationType::ControlScalarType;
-    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
-    using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
-    std::string mMaterialName = "";
-    std::vector<std::string>   mFunctions;
-    std::vector<Plato::Scalar> mFunctionWeights;
-    std::vector<std::shared_ptr<Plato::CurrentDensityEvaluator<EvaluationType>>> mCurrentDensityEvaluators;
 
-public:
-    SourceWeightedSum(
-      const std::string            & aMaterialName,
-            Teuchos::ParameterList & aParamList
-    ) : 
-      mMaterialName(aMaterialName)
-    {
-      this->initialize(aParamList);
-    }
-    ~SourceWeightedSum(){}
-
-    void 
-    evaluate(
-        const Plato::SpatialDomain                         & aSpatialDomain,
-        const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
-        const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
-        const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
-        const Plato::Scalar                                & aScale
-    ) 
-    const
-    {
-      for(auto& tFunction : mCurrentDensityEvaluators)
-      {
-        Plato::OrdinalType tFunctionIndex = &tFunction - &mCurrentDensityEvaluators[0];
-        Plato::Scalar tScalarMultiplier = mFunctionWeights[tFunctionIndex] * aScale;
-        tFunction->evaluate(aSpatialDomain,aState,aControl,aConfig,aResult,tScalarMultiplier);
-      }
-    }
-
-private:
-    void initialize(
-      Teuchos::ParameterList & aParamList
-    )
-    {
-      if( !aParamList.isSublist("Source Terms") ){
-        auto tMsg = std::string("Parameter is not valid. Argument ('Source Terms') is not a parameter list");
-        ANALYZE_THROWERR(tMsg)
-      }
-      auto tSourceTermsParamList = aParamList.sublist("Source Terms");
-      if( !tSourceTermsParamList.isSublist("Source") ){
-        auto tMsg = std::string("Parameter is not valid. Argument ('Source') is not a parameter list");
-        ANALYZE_THROWERR(tMsg)
-      }
-      auto tSourceParamList = tSourceTermsParamList.sublist("Source");
-      this->parseFunctions(tSourceParamList);
-      this->parseWeights(tSourceParamList);
-
-      this->createCurrentDensityEvaluators(aParamList);
-    }
-
-    void parseFunctions(
-      Teuchos::ParameterList & aParamList
-    )
-    {
-      bool tIsArray = aParamList.isType<Teuchos::Array<std::string>>("Functions");
-      if( !tIsArray)
-      {
-        auto tMsg = std::string("Argument ('Functions') is not defined in ('Source') parameter list");
-        ANALYZE_THROWERR(tMsg)
-      }
-      Teuchos::Array<std::string> tFunctions = aParamList.get<Teuchos::Array<std::string>>("Functions");
-      for( Plato::OrdinalType tIndex = 0; tIndex < tFunctions.size(); tIndex++ )
-        { mFunctions.push_back(tFunctions[tIndex]); }
-    }
-
-    void parseWeights(
-      Teuchos::ParameterList & aParamList      
-    )
-    {
-      bool tIsArray = aParamList.isType<Teuchos::Array<Plato::Scalar>>("Weights");
-      if( !tIsArray)
-      {
-        if(mFunctions.size() <= 0)
-        {
-          auto tMsg = std::string("Argument ('Functions') has not been parsed, ") 
-            + "default number of weights cannot be determined";
-          ANALYZE_THROWERR(tMsg)
-        }
-        for( Plato::OrdinalType tIndex = 0; tIndex < mFunctions.size(); tIndex++ )
-          { mFunctionWeights.push_back(1.0); }
-      }
-      else
-      {
-        Teuchos::Array<Plato::Scalar> tWeights = aParamList.get<Teuchos::Array<Plato::Scalar>>("Weights");
-        for( Plato::OrdinalType tIndex = 0; tIndex < tWeights.size(); tIndex++ )
-          { mFunctionWeights.push_back(tWeights[tIndex]); }
-      }
-    }
-
-    void createCurrentDensityEvaluators(
-      Teuchos::ParameterList & aParamList  
-    )
-    {
-      for(auto& tFunctionName : mFunctions)
-      {
-        Plato::FactoryCurrentDensityEvaluator<EvaluationType> tFactoryCurrentDensityEvaluator;
-        std::shared_ptr<Plato::CurrentDensityEvaluator<EvaluationType>> tEvaluator = 
-          tFactoryCurrentDensityEvaluator.create(mMaterialName,tFunctionName,aParamList);
-        mCurrentDensityEvaluators.push_back(tEvaluator);
-      }
-    }
-};
-
-namespace FactorySourceEvaluator
-{
-
-  template <typename EvaluationType>
-  inline std::shared_ptr<Plato::SourceEvaluator<EvaluationType>> 
-  create(
-    const std::string            & aMaterialName,
-          Teuchos::ParameterList & aParamList
-  )
-  {
-    if( !aParamList.isSublist("Source Terms") )
-    {
-      auto tMsg = std::string("Parameter is not valid. Argument ('Source Terms') is not a parameter list");
-      ANALYZE_THROWERR(tMsg)
-    }
-    auto tSourceTermsParamList = aParamList.sublist("Source Terms");
-    if( !tSourceTermsParamList.isSublist("Source") )
-    {
-      auto tMsg = std::string("Parameter is not valid. Argument ('Source') is not a parameter list");
-      ANALYZE_THROWERR(tMsg)
-    }
-    auto tSourceParamList = tSourceTermsParamList.sublist("Source");
-    if( !tSourceParamList.isParameter("Type") )
-    {
-      auto tMsg = std::string("Parameter ('Type') is not defined in parameter list ('Source'), ") 
-        + "source evaluator cannot be determined";
-      ANALYZE_THROWERR(tMsg)
-    }
-    Plato::electrical::SourceEvaluatorEnum tS2E;
-    auto tType = tSourceParamList.get<std::string>("Type");
-    auto tLowerType = Plato::tolower(tType);
-    auto tSupportedSourceEvaluatorEnum = tS2E.get(tLowerType);
-    switch (tSupportedSourceEvaluatorEnum)
-    {
-      case Plato::electrical::source_evaluator::WEIGHTED_SUM:
-        return std::make_shared<Plato::SourceWeightedSum<EvaluationType>>(aMaterialName,aParamList);
-        break;
-      default:
-        return nullptr;
-        break;
-    }
-  }
-
-}
-// namespace FactorySourceEvaluator
 
 namespace Elliptic
 {
@@ -729,7 +546,8 @@ private:
     mMaterialModel = tMaterialFactory.create(tMaterialName);
 
     // create source evaluator
-    mSourceEvaluator = Plato::FactorySourceEvaluator::create<EvaluationType>(tMaterialName,aParamList);
+    Plato::FactorySourceEvaluator<EvaluationType> tFactorySourceEvaluator;
+    mSourceEvaluator = tFactorySourceEvaluator.create(tMaterialName,aParamList);
 
     // parse output QoI plot table
     auto tResidualParams = aParamList.sublist("Output");
