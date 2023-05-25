@@ -27,7 +27,7 @@
 #include "ThermalVonMisesLocalMeasure.hpp"
 #include "elliptic/WeightedSumFunction.hpp"
 #include "elliptic/PhysicsScalarFunction.hpp"
-#include "elliptic/MassMoment.hpp"
+#include "elliptic/mechanical/MassMoment.hpp"
 
 namespace AugLagStressTest
 {

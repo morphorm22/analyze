@@ -15,7 +15,7 @@
 #include "Mechanics.hpp"
 #include "MechanicsElement.hpp"
 
-#include "elliptic/MassMoment.hpp"
+#include "elliptic/mechanical/MassMoment.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/WeightedSumFunction.hpp"
 #include "elliptic/PhysicsScalarFunction.hpp"

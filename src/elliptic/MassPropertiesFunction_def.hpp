@@ -8,7 +8,7 @@
 #include "PlatoEigen.hpp"
 #include "AnalyzeMacros.hpp"
 #include "PlatoStaticsTypes.hpp"
-#include "elliptic/MassMoment.hpp"
+#include "elliptic/mechanical/MassMoment.hpp"
 #include "elliptic/DivisionFunction.hpp"
 #include "elliptic/WeightedSumFunction.hpp"
 #include "elliptic/ScalarFunctionBaseFactory.hpp"

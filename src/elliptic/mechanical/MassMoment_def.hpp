@@ -1,7 +1,5 @@
 #pragma once
 
-#include "elliptic/MassMoment.hpp"
-
 #include "BLAS1.hpp"
 #include "FadTypes.hpp"
 #include "Assembly.hpp"

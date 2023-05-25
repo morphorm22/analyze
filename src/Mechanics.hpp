@@ -10,7 +10,7 @@
 #include "elliptic/StressPNorm.hpp"
 #include "elliptic/EffectiveEnergy.hpp"
 #include "elliptic/Volume.hpp"
-#include "elliptic/MassMoment.hpp"
+#include "elliptic/mechanical/MassMoment.hpp"
 #include "elliptic/AugLagStrengthCriterion.hpp"
 #include "elliptic/VolumeIntegralCriterion.hpp"
 #include "elliptic/VolumeAverageCriterionDenominator.hpp"
