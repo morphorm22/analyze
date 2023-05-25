@@ -4,44 +4,23 @@
  *  Created on: May 10, 2023
  */
 
-// c++ includes
-#include <vector>
-#include <unordered_map>
-
 // trilinos includes
 #include <Teuchos_ParameterList.hpp>
 #include <Teuchos_UnitTestHarness.hpp>
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
 // unit test includes
-#include "Analyze_Diagnostics.hpp"
 #include "util/PlatoTestHelpers.hpp"
 
 // plato
 #include "Tri3.hpp"
-#include "Simp.hpp"
-#include "ToMap.hpp"
-#include "Solutions.hpp"
-#include "BodyLoads.hpp"
-#include "NaturalBCs.hpp"
-#include "ScalarGrad.hpp"
-#include "WorksetBase.hpp"
-#include "SpatialModel.hpp"
-#include "MaterialModel.hpp"
-#include "GradientMatrix.hpp"
-#include "InterpolateFromNodal.hpp"
-#include "GeneralFluxDivergence.hpp"
-
 #include "elliptic/Problem.hpp"
-
 #include "elliptic/electrical/Electrical.hpp"
 #include "elliptic/electrical/FactoryElectricalMaterial.hpp"
 #include "elliptic/electrical/DarkCurrentDensityQuadratic.hpp"
 #include "elliptic/electrical/LightGeneratedCurrentDensityConstant.hpp"
 #include "elliptic/electrical/DarkCurrentDensityTwoPhaseAlloy.hpp"
 #include "elliptic/electrical/LightCurrentDensityTwoPhaseAlloy.hpp"
-#include "elliptic/electrical/FactoryCurrentDensityEvaluator.hpp"
-#include "elliptic/electrical/FactorySourceEvaluator.hpp"
 #include "elliptic/electrical/SourceWeightedSum.hpp"
 
 namespace ElectrostaticsTest
