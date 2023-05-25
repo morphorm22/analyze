@@ -159,6 +159,7 @@ if(ELLIPTIC)
     elliptic/electrical/LightCurrentDensityTwoPhaseAlloy.cpp
     elliptic/electrical/CriterionVolumeTwoPhase.cpp
     elliptic/electrical/CriterionPowerSurfaceDensityTwoPhase.cpp
+    elliptic/electrical/ResidualSteadyStateCurrent.cpp
   )
   
   if(HATCHING)

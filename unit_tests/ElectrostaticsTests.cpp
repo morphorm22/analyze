@@ -44,6 +44,7 @@
 #include "elliptic/electrical/SourceWeightedSum.hpp"
 #include "elliptic/electrical/CriterionVolumeTwoPhase.hpp"
 #include "elliptic/electrical/CriterionPowerSurfaceDensityTwoPhase.hpp"
+#include "elliptic/electrical/ResidualSteadyStateCurrent.hpp"
 
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
@@ -59,213 +60,6 @@ namespace Plato
 
 
 
-
-namespace Elliptic
-{
-
-
-/******************************************************************************/
-template<typename EvaluationType>
-class SteadyStateCurrentResidual : public Plato::Elliptic::AbstractVectorFunction<EvaluationType>
-/******************************************************************************/
-{
-private:
-    // set local element type
-    using ElementType = typename EvaluationType::ElementType;
-    static constexpr int mNumSpatialDims  = ElementType::mNumSpatialDims;
-    static constexpr int mNumDofsPerNode  = ElementType::mNumDofsPerNode;
-    static constexpr int mNumDofsPerCell  = ElementType::mNumDofsPerCell;
-    static constexpr int mNumNodesPerCell = ElementType::mNumNodesPerCell;
-
-    using FunctionBaseType = Plato::Elliptic::AbstractVectorFunction<EvaluationType>;
-
-    using FunctionBaseType::mSpatialDomain;
-    using FunctionBaseType::mDataMap;
-    using FunctionBaseType::mDofNames;
-
-    using StateScalarType   = typename EvaluationType::StateScalarType;
-    using ControlScalarType = typename EvaluationType::ControlScalarType;
-    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
-    using ResultScalarType  = typename EvaluationType::ResultScalarType;
-
-    std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;
-
-    // to be derived from a new body load class in the future
-    std::shared_ptr<Plato::SourceEvaluator<EvaluationType>> mSourceEvaluator; 
-    std::shared_ptr<Plato::NaturalBCs<ElementType, mNumDofsPerNode>> mSurfaceLoads;
-
-    std::vector<std::string> mPlottable;
-
-public:
-    SteadyStateCurrentResidual(
-        const Plato::SpatialDomain   & aSpatialDomain,
-              Plato::DataMap         & aDataMap,
-              Teuchos::ParameterList & aParamList
-    ) : 
-      FunctionBaseType(aSpatialDomain,aDataMap)
-    {
-        this->initialize(aParamList);
-    }
-    ~SteadyStateCurrentResidual(){}
-
-    Plato::Solutions 
-    getSolutionStateOutputData(const Plato::Solutions &aSolutions) const override
-    { return aSolutions; }
-
-    void
-    evaluate(
-        const Plato::ScalarMultiVectorT <StateScalarType  > & aState,
-        const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT     <ConfigScalarType > & aConfig,
-              Plato::ScalarMultiVectorT <ResultScalarType > & aResult,
-              Plato::Scalar                                   aTimeStep = 1.0
-    ) const override
-    {
-        using GradScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
-        
-        // inline functors
-        Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
-        Plato::GeneralFluxDivergence<ElementType> tComputeDivergence;
-        Plato::ScalarGrad<ElementType>            tComputeScalarGrad;
-
-        // interpolate nodal values to integration points
-        Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
-
-        // integration rules
-        auto tCubPoints  = ElementType::getCubPoints();
-        auto tCubWeights = ElementType::getCubWeights();
-        auto tNumPoints  = tCubWeights.size();   
-
-        // quantity of interests
-        auto tNumCells = mSpatialDomain.numCells();
-        Plato::ScalarVectorT<ConfigScalarType>      
-          tVolume("InterpolateFromNodalvolume",tNumCells);
-        Plato::ScalarMultiVectorT<GradScalarType>   
-          tElectricField("electrical field", tNumCells, mNumSpatialDims);
-        Plato::ScalarMultiVectorT<ResultScalarType> 
-          tCurrentDensity("current density", tNumCells, mNumSpatialDims);
-        Plato::ScalarArray4DT<ResultScalarType> 
-          tMaterialTensor("material tensor", tNumCells, tNumPoints, mNumSpatialDims, mNumSpatialDims);
-        
-        // evaluate material tensor
-        mMaterialModel->computeMaterialTensor(mSpatialDomain,aState,aControl,tMaterialTensor);
-
-        // evaluate internal forces       
-        Kokkos::parallel_for("evaluate electrostatics residual", 
-          Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-          KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
-        {
-            ConfigScalarType tCellVolume(0.0);
-  
-            Plato::Array<mNumSpatialDims,GradScalarType>   tCellElectricField(0.0);
-            Plato::Array<mNumSpatialDims,ResultScalarType> tCellCurrentDensity(0.0);
-            Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient;
-  
-            auto tCubPoint = tCubPoints(iGpOrdinal);
-            auto tBasisValues = ElementType::basisValues(tCubPoint);
-
-            // compute electrical field 
-            tComputeGradient(iCellOrdinal,tCubPoint,aConfig,tGradient,tCellVolume);
-            tComputeScalarGrad(iCellOrdinal,tCellElectricField,aState,tGradient);
-
-            // compute current density
-            for (Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
-              tCellCurrentDensity(tDimI) = 0.0;
-              for (Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
-                tCellCurrentDensity(tDimI) += tMaterialTensor(iCellOrdinal,iGpOrdinal,tDimI,tDimJ) 
-                  * tCellElectricField(tDimJ);
-              }
-            }
-
-            // apply divergence operator to current density
-            tCellVolume *= tCubWeights(iGpOrdinal);
-            tComputeDivergence(iCellOrdinal,aResult,tCellCurrentDensity,tGradient,tCellVolume,1.0);
-
-            for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
-            {
-              for (Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
-              }
-            }
-          
-            for(Plato::OrdinalType tIndex=0; tIndex<mNumSpatialDims; tIndex++)
-            {
-              // compute the electric field E = -\nabla{\phi} (or -\phi_{,j}, where j=1,\dots,dims)
-              Kokkos::atomic_add(&tElectricField(iCellOrdinal,tIndex),  -1.0*tCellVolume*tCellElectricField(tIndex));
-              // Ohm constitutive law J = -\gamma_{ij}\phi_{,j}, where \phi is the scalar electric potential, 
-              // \gamma is the second order electric conductivity tensor, and J is the current density
-              Kokkos::atomic_add(&tCurrentDensity(iCellOrdinal,tIndex), -1.0*tCellVolume*tCellCurrentDensity(tIndex));
-            }
-            Kokkos::atomic_add(&tVolume(iCellOrdinal),tCellVolume);
-        });
-
-        // evaluate volume forces
-        if( mSourceEvaluator != nullptr )
-        {
-          mSourceEvaluator->evaluate( mSpatialDomain, aState, aControl, aConfig, aResult, -1.0 );
-        }
-
-        Kokkos::parallel_for("compute cell quantities", 
-          Kokkos::RangePolicy<>(0, tNumCells),
-          KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal)
-        {
-            for(Plato::OrdinalType tIndex=0; tIndex<mNumSpatialDims; tIndex++)
-            {
-                tElectricField(iCellOrdinal,tIndex)  /= tVolume(iCellOrdinal);
-                tCurrentDensity(iCellOrdinal,tIndex) /= tVolume(iCellOrdinal);
-            }
-        });
-
-        if( std::count(mPlottable.begin(),mPlottable.end(),"electric field") ) 
-        { Plato::toMap(mDataMap, tElectricField, "electric field", mSpatialDomain); }
-        if( std::count(mPlottable.begin(),mPlottable.end(),"current density" ) )
-        { Plato::toMap(mDataMap, tCurrentDensity, "current density" , mSpatialDomain); }
-    }
-
-    void
-    evaluate_boundary(
-        const Plato::SpatialModel                           & aSpatialModel,
-        const Plato::ScalarMultiVectorT <StateScalarType  > & aState,
-        const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT     <ConfigScalarType > & aConfig,
-              Plato::ScalarMultiVectorT <ResultScalarType > & aResult,
-              Plato::Scalar aTimeStep = 0.0
-    ) const override
-    {
-      // add contributions from natural boundary conditions
-      if( mSurfaceLoads != nullptr )
-      {
-          mSurfaceLoads->get(aSpatialModel,aState,aControl,aConfig,aResult,1.0);
-      }
-    }
-
-private:
-  void initialize(
-    Teuchos::ParameterList & aParamList
-  )
-  {
-    // obligatory: define dof names in order
-    mDofNames.push_back("electric_potential");
-
-    // create material constitutive model
-    auto tMaterialName = mSpatialDomain.getMaterialName();
-    Plato::FactoryElectricalMaterial<EvaluationType> tMaterialFactory(aParamList);
-    mMaterialModel = tMaterialFactory.create(tMaterialName);
-
-    // create source evaluator
-    Plato::FactorySourceEvaluator<EvaluationType> tFactorySourceEvaluator;
-    mSourceEvaluator = tFactorySourceEvaluator.create(tMaterialName,aParamList);
-
-    // parse output QoI plot table
-    auto tResidualParams = aParamList.sublist("Output");
-    if( tResidualParams.isType<Teuchos::Array<std::string>>("Plottable") )
-    {
-        mPlottable = tResidualParams.get<Teuchos::Array<std::string>>("Plottable").toVector();
-    }
-  }
-    
-};
-
-}
 
 namespace FactoryElectrical
 {
@@ -878,7 +672,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CriterionVolumeTwoPhase)
   }
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, SteadyStateCurrentResidual_ConstantPotential)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ResidualSteadyStateCurrent_ConstantPotential)
 {
   // create mesh
   constexpr Plato::OrdinalType tSpaceDim = 2;
@@ -917,7 +711,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, SteadyStateCurrentResidual_ConstantPote
   Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
   // create current density
   auto tOnlyDomainDefined = tSpatialModel.Domains.front();
-  Plato::Elliptic::SteadyStateCurrentResidual<Residual> 
+  Plato::ResidualSteadyStateCurrent<Residual> 
     tResidual(tOnlyDomainDefined,tDataMap,tGenericParamList.operator*());
   Plato::ScalarMultiVectorT<ResultT> tResultWS("result",tNumCells,tNodesPerCell);
   tResidual.evaluate(tStateWS,tControlWS,tConfigWS,tResultWS);
@@ -936,7 +730,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, SteadyStateCurrentResidual_ConstantPote
   }
 }
 
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, SteadyStateCurrentResidual_NonConstantPotential)
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ResidualSteadyStateCurrent_NonConstantPotential)
 {
   // create mesh
   constexpr Plato::OrdinalType tSpaceDim = 2;
@@ -979,7 +773,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, SteadyStateCurrentResidual_NonConstantP
   Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
   // create current density
   auto tOnlyDomainDefined = tSpatialModel.Domains.front();
-  Plato::Elliptic::SteadyStateCurrentResidual<Residual> 
+  Plato::ResidualSteadyStateCurrent<Residual> 
     tResidual(tOnlyDomainDefined,tDataMap,tGenericParamList.operator*());
   Plato::ScalarMultiVectorT<ResultT> tResultWS("result",tNumCells,tNodesPerCell);
   tResidual.evaluate(tStateWS,tControlWS,tConfigWS,tResultWS);
