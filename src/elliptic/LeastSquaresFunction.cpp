@@ -9,9 +9,11 @@
 #include "Thermomechanics.hpp"
 #include "Electromechanics.hpp"
 #include "BaseExpInstMacros.hpp"
+#include "elliptic/electrical/Electrical.hpp"
 
 PLATO_ELEMENT_DEF(Plato::Elliptic::LeastSquaresFunction, Plato::Thermal)
 PLATO_ELEMENT_DEF(Plato::Elliptic::LeastSquaresFunction, Plato::Mechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::LeastSquaresFunction, Plato::Electrical)
 PLATO_ELEMENT_DEF(Plato::Elliptic::LeastSquaresFunction, Plato::Thermomechanics)
 PLATO_ELEMENT_DEF(Plato::Elliptic::LeastSquaresFunction, Plato::Electromechanics)
 

@@ -75,7 +75,7 @@ public:
     Problem(
       Plato::Mesh              aMesh,
       Teuchos::ParameterList & aProblemParams,
-      Comm::Machine            aMachine
+      Plato::Comm::Machine     aMachine
     );
 
     ~Problem();

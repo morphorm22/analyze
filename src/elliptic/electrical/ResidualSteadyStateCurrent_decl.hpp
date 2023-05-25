@@ -8,6 +8,7 @@
 
 #include "NaturalBCs.hpp"
 #include "MaterialModel.hpp"
+#include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/AbstractVectorFunction.hpp"
 #include "elliptic/electrical/SourceEvaluator.hpp"
 

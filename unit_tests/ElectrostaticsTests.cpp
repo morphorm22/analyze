@@ -32,8 +32,9 @@
 #include "InterpolateFromNodal.hpp"
 #include "GeneralFluxDivergence.hpp"
 
-#include "elliptic/electrical/ElectricalElement.hpp"
-#include "elliptic/electrical/SupportedOptionEnums.hpp"
+#include "elliptic/Problem.hpp"
+
+#include "elliptic/electrical/Electrical.hpp"
 #include "elliptic/electrical/FactoryElectricalMaterial.hpp"
 #include "elliptic/electrical/DarkCurrentDensityQuadratic.hpp"
 #include "elliptic/electrical/LightGeneratedCurrentDensityConstant.hpp"
@@ -42,51 +43,6 @@
 #include "elliptic/electrical/FactoryCurrentDensityEvaluator.hpp"
 #include "elliptic/electrical/FactorySourceEvaluator.hpp"
 #include "elliptic/electrical/SourceWeightedSum.hpp"
-#include "elliptic/electrical/CriterionVolumeTwoPhase.hpp"
-#include "elliptic/electrical/CriterionPowerSurfaceDensityTwoPhase.hpp"
-#include "elliptic/electrical/ResidualSteadyStateCurrent.hpp"
-
-#include "elliptic/EvaluationTypes.hpp"
-#include "elliptic/AbstractScalarFunction.hpp"
-#include "elliptic/AbstractVectorFunction.hpp"
-
-namespace Plato
-{
-
-
-
-
-
-
-
-
-
-namespace FactoryElectrical
-{
-
-/******************************************************************************//**
- * \brief Factory for linear mechanics problem
-**********************************************************************************/
-struct FunctionFactory
-{
-};
-
-}
-// FactoryElectrical
-
-/******************************************************************************//**
- * \brief Concrete class for use as the physics template argument in Plato::Elliptic::Problem
-**********************************************************************************/
-template<typename TopoElementType>
-class Electrical
-{
-public:
-    typedef Plato::FactoryElectrical::FunctionFactory FunctionFactory;
-    using ElementType = ElectricalElement<TopoElementType>;
-};
-// Electrical
-
-}
 
 namespace ElectrostaticsTest
 {

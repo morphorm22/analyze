@@ -9,9 +9,11 @@
 #include "Thermomechanics.hpp"
 #include "Electromechanics.hpp"
 #include "BaseExpInstMacros.hpp"
+#include "elliptic/electrical/Electrical.hpp"
 
 PLATO_ELEMENT_DEF(Plato::Elliptic::WeightedSumFunction, Plato::Thermal)
 PLATO_ELEMENT_DEF(Plato::Elliptic::WeightedSumFunction, Plato::Mechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::WeightedSumFunction, Plato::Electrical)
 PLATO_ELEMENT_DEF(Plato::Elliptic::WeightedSumFunction, Plato::Thermomechanics)
 PLATO_ELEMENT_DEF(Plato::Elliptic::WeightedSumFunction, Plato::Electromechanics)
 

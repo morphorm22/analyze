@@ -1,5 +1,7 @@
 #pragma once
 
+#include "elliptic/ScalarFunctionBaseFactory_decl.hpp"
+
 #include "elliptic/PhysicsScalarFunction.hpp"
 #include "elliptic/VolumeAverageCriterion.hpp"
 #include "elliptic/DivisionFunction.hpp"

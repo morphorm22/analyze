@@ -1,7 +1,5 @@
 #pragma once
 
-#include "elliptic/Problem_decl.hpp"
-
 #include "BLAS1.hpp"
 #include "Solutions.hpp"
 #include "ParseTools.hpp"
@@ -31,7 +29,7 @@ namespace Elliptic
     Problem<PhysicsType>::Problem(
       Plato::Mesh              aMesh,
       Teuchos::ParameterList & aProblemParams,
-      Comm::Machine            aMachine
+      Plato::Comm::Machine     aMachine
     ) :
       AbstractProblem(aMesh, aProblemParams),
       mSpatialModel  (aMesh, aProblemParams, mDataMap),

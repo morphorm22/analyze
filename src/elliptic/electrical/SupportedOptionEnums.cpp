@@ -14,6 +14,66 @@ namespace Plato
 namespace electrical 
 {
 
+// begin: functions associated with ResidualEnum struct
+Plato::electrical::residual
+ResidualEnum::get(
+    const std::string &aInput
+) const
+{
+  auto tLower = Plato::tolower(aInput);
+  auto tItr = s2e.find(tLower);
+  if( tItr == s2e.end() ){
+    auto tMsg = this->getErrorMsg(tLower);
+    ANALYZE_THROWERR(tMsg)
+  }
+  return tItr->second;
+}
+
+std::string
+ResidualEnum::getErrorMsg(
+    const std::string & aInProperty
+) const
+{
+  auto tMsg = std::string("Did not find matching enum for input electrical residual '") 
+    + aInProperty + "'. Supported electrical residual keywords are: ";
+  for(const auto& tPair : s2e){
+    tMsg = tMsg + "'" + tPair.first + "', ";
+  }
+  auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+  return tSubMsg;
+}
+// end: functions associated with ResidualEnum struct
+
+// begin: functions associated with CriterionEnum struct
+Plato::electrical::criterion
+CriterionEnum::get(
+    const std::string &aInput
+) const
+{
+  auto tLower = Plato::tolower(aInput);
+  auto tItr = s2e.find(tLower);
+  if( tItr == s2e.end() ){
+    auto tMsg = this->getErrorMsg(tLower);
+    ANALYZE_THROWERR(tMsg)
+  }
+  return tItr->second;
+}
+
+std::string
+CriterionEnum::getErrorMsg(
+    const std::string & aInProperty
+) const
+{
+  auto tMsg = std::string("Did not find matching enum for input electrical criterion '") 
+    + aInProperty + "'. Supported electrical criterion keywords are: ";
+  for(const auto& tPair : s2e){
+    tMsg = tMsg + "'" + tPair.first + "', ";
+  }
+  auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+  return tSubMsg;
+}
+// end: functions associated with CriterionEnum struct
+
 // begin: functions associated with PropEnum struct
 Plato::electrical::property 
 PropEnum::get(

@@ -21,6 +21,7 @@
 #include "Electromechanics.hpp"
 #include "Thermomechanics.hpp"
 #include "solver/ParallelComm.hpp"
+#include "elliptic/electrical/Electrical.hpp"
 
 #ifdef PLATO_HEX_ELEMENTS
 #include "Hex8.hpp"
@@ -69,7 +70,7 @@ namespace Plato
 * \returns return lowercase pde type
 **********************************************************************************/
 inline std::string
-is_pde_constraint_supported
+get_pde_type
 (Teuchos::ParameterList & aPlatoProb)
 {
     if(aPlatoProb.isParameter("PDE Constraint") == false)
@@ -80,7 +81,7 @@ is_pde_constraint_supported
     auto tLowerPDE = Plato::tolower(tPDE);
     return tLowerPDE;
 }
-// function is_pde_constraint_supported
+// function get_pde_type
 
 template<template <typename> typename ProblemT, template <typename> typename PhysicsT>
 inline
@@ -155,8 +156,7 @@ create_mechanical_problem
  Teuchos::ParameterList & aPlatoProb,
  Comm::Machine            aMachine)
 {
-    auto tLowerPDE = Plato::is_pde_constraint_supported(aPlatoProb);
-
+    auto tLowerPDE = Plato::get_pde_type(aPlatoProb);
 #ifdef PLATO_ELLIPTIC
     if (tLowerPDE == "elliptic")
     {
@@ -181,6 +181,32 @@ create_mechanical_problem
 }
 // function create_mechanical_problem
 
+/// @fn create_electrical_problem
+/// @brief inline function, create electrical residual evaluator
+/// @param aMesh      contains mesh and model information
+/// @param aPlatoProb inpur problem parameters
+/// @param aMachine   contains mpi communicator information
+/// @return 
+inline
+std::shared_ptr<Plato::AbstractProblem>
+create_electrical_problem
+(Plato::Mesh              aMesh,
+ Teuchos::ParameterList & aPlatoProb,
+ Comm::Machine            aMachine)
+{
+  auto tLowerPDE = Plato::get_pde_type(aPlatoProb);
+#ifdef PLATO_ELLIPTIC
+  if (tLowerPDE == "elliptic"){
+    return ( std::make_shared< Plato::Elliptic::Problem<Plato::Electrical<Plato::Tet4> > >(
+        aMesh, aPlatoProb, aMachine));
+  }
+#endif
+  else{
+    return nullptr;
+  }
+}
+// function create_mechanical_problem
+
 /******************************************************************************//**
 * \brief Create plasticity problem.
 * \param [in] aMesh        Plato mesh database
@@ -195,7 +221,7 @@ create_plasticity_problem
  Teuchos::ParameterList & aPlatoProb,
  Comm::Machine            aMachine)
  {
-     auto tLowerPDE = Plato::is_pde_constraint_supported(aPlatoProb);
+     auto tLowerPDE = Plato::get_pde_type(aPlatoProb);
 
 #ifdef PLATO_ELLIPTIC
 #ifdef PLATO_PLASTICITY
@@ -227,7 +253,7 @@ create_thermoplasticity_problem
  Teuchos::ParameterList & aPlatoProb,
  Comm::Machine            aMachine)
  {
-     auto tLowerPDE = Plato::is_pde_constraint_supported(aPlatoProb);
+     auto tLowerPDE = Plato::get_pde_type(aPlatoProb);
 
 #ifdef PLATO_ELLIPTIC
 #ifdef PLATO_PLASTICITY
@@ -259,7 +285,7 @@ create_thermal_problem
  Teuchos::ParameterList & aPlatoProb,
  Comm::Machine            aMachine)
  {
-     auto tLowerPDE = Plato::is_pde_constraint_supported(aPlatoProb);
+     auto tLowerPDE = Plato::get_pde_type(aPlatoProb);
 
 #ifdef PLATO_PARABOLIC
     if(tLowerPDE == "parabolic")
@@ -293,7 +319,7 @@ create_electromechanical_problem
  Teuchos::ParameterList & aPlatoProb,
  Comm::Machine            aMachine)
  {
-     auto tLowerPDE = Plato::is_pde_constraint_supported(aPlatoProb);
+     auto tLowerPDE = Plato::get_pde_type(aPlatoProb);
 
 #ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
@@ -321,7 +347,7 @@ create_thermomechanical_problem
  Teuchos::ParameterList & aPlatoProb,
  Comm::Machine            aMachine)
  {
-    auto tLowerPDE = Plato::is_pde_constraint_supported(aPlatoProb);
+    auto tLowerPDE = Plato::get_pde_type(aPlatoProb);
 
 #ifdef PLATO_PARABOLIC
     if(tLowerPDE == "parabolic")
@@ -355,7 +381,7 @@ create_incompressible_fluid_problem
  Teuchos::ParameterList & aPlatoProb,
  Comm::Machine            aMachine)
  {
-    auto tLowerPDE = Plato::is_pde_constraint_supported(aPlatoProb);
+    auto tLowerPDE = Plato::get_pde_type(aPlatoProb);
 
 #ifdef PLATO_HYPERBOLIC
 #ifdef PLATO_FLUIDS
@@ -385,7 +411,7 @@ create_micromorphic_mechanics_problem
  Teuchos::ParameterList & aPlatoProb,
  Comm::Machine            aMachine)
  {
-    auto tLowerPDE = Plato::is_pde_constraint_supported(aPlatoProb);
+    auto tLowerPDE = Plato::get_pde_type(aPlatoProb);
 
 #ifdef PLATO_HYPERBOLIC
 #ifdef PLATO_MICROMORPHIC
@@ -429,6 +455,10 @@ public:
         if(tLowerPhysics == "mechanical")
         {
             return ( Plato::create_mechanical_problem(aMesh, tInputData, aMachine) );
+        }
+        if(tLowerPhysics == "electrical")
+        {
+            return ( Plato::create_electrical_problem(aMesh, tInputData, aMachine) );
         }
         if(tLowerPhysics == "plasticity")
         {
