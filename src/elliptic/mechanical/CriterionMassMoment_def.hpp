@@ -22,8 +22,8 @@ namespace Elliptic
      * \param [in] aFuncName function name
      **********************************************************************************/
     template<typename EvaluationType>
-    MassMoment<EvaluationType>::
-    MassMoment(
+    CriterionMassMoment<EvaluationType>::
+    CriterionMassMoment(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap, 
               Teuchos::ParameterList & aInputParams,
@@ -40,18 +40,18 @@ namespace Elliptic
      * \param [in] aDataMap PLATO Engine and Analyze data map
      **********************************************************************************/
     template<typename EvaluationType>
-    MassMoment<EvaluationType>::
-    MassMoment(
+    CriterionMassMoment<EvaluationType>::
+    CriterionMassMoment(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap& aDataMap
     ) :
-      Plato::Elliptic::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, "MassMoment")
+      Plato::Elliptic::AbstractScalarFunction<EvaluationType>(aSpatialDomain, aDataMap, "CriterionMassMoment")
     {}
     /**************************************************************************/
 
     /**************************************************************************/    
     template<typename EvaluationType>
-    void MassMoment<EvaluationType>::
+    void CriterionMassMoment<EvaluationType>::
     initialize(
       const Plato::SpatialDomain   & aSpatialDomain,
             Teuchos::ParameterList & aInputParams
@@ -64,7 +64,7 @@ namespace Elliptic
     /**************************************************************************/
 
     template<typename EvaluationType>
-    void MassMoment<EvaluationType>::
+    void CriterionMassMoment<EvaluationType>::
     parseMaterialDensity(
       const Plato::SpatialDomain   & aSpatialDomain,
             Teuchos::ParameterList & aInputParams
@@ -105,7 +105,7 @@ namespace Elliptic
     }
 
     template<typename EvaluationType>
-    void MassMoment<EvaluationType>::
+    void CriterionMassMoment<EvaluationType>::
     parseNormalizeCriterion(
       const Plato::SpatialDomain   & aSpatialDomain,
             Teuchos::ParameterList & aInputParams
@@ -121,7 +121,7 @@ namespace Elliptic
     **********************************************************************************/
     template<typename EvaluationType>
     void
-    MassMoment<EvaluationType>::
+    CriterionMassMoment<EvaluationType>::
     computeTotalStructuralMass()
     {
         if( !mNormalizeCriterion )
@@ -164,7 +164,7 @@ namespace Elliptic
      * \param [in] aMaterialDensity material density
      **********************************************************************************/
     template<typename EvaluationType>
-    void MassMoment<EvaluationType>::
+    void CriterionMassMoment<EvaluationType>::
     setMaterialDensity(const Plato::Scalar aMaterialDensity)
     /**************************************************************************/
     {
@@ -176,7 +176,7 @@ namespace Elliptic
      * \param [in] aCalculationType calculation type string
      **********************************************************************************/
     template<typename EvaluationType>
-    void MassMoment<EvaluationType>::
+    void CriterionMassMoment<EvaluationType>::
     setCalculationType(const std::string & aCalculationType)
     /**************************************************************************/
     {
@@ -193,7 +193,7 @@ namespace Elliptic
     **********************************************************************************/
     template<typename EvaluationType>
     void
-    MassMoment<EvaluationType>::
+    CriterionMassMoment<EvaluationType>::
     evaluate_conditional(
         const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
@@ -237,7 +237,7 @@ namespace Elliptic
     **********************************************************************************/
     template<typename EvaluationType>
     void
-    MassMoment<EvaluationType>::
+    CriterionMassMoment<EvaluationType>::
     computeStructuralMass(
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
@@ -285,7 +285,7 @@ namespace Elliptic
     **********************************************************************************/
     template<typename EvaluationType>
     void
-    MassMoment<EvaluationType>::
+    CriterionMassMoment<EvaluationType>::
     computeFirstMoment(
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
@@ -341,7 +341,7 @@ namespace Elliptic
     **********************************************************************************/
     template<typename EvaluationType>
     void
-    MassMoment<EvaluationType>::
+    CriterionMassMoment<EvaluationType>::
     computeSecondMoment(
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
@@ -397,7 +397,7 @@ namespace Elliptic
     **********************************************************************************/
     template<typename EvaluationType>
     void
-    MassMoment<EvaluationType>::
+    CriterionMassMoment<EvaluationType>::
     mapQuadraturePoints(
         const Plato::ScalarArray3DT <ConfigScalarType> & aConfig,
               Plato::ScalarArray3DT <ConfigScalarType> & aMappedPoints

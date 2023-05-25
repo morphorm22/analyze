@@ -14,7 +14,7 @@ namespace Elliptic
  *   type for scalar function (e.g. Residual, Jacobian, GradientZ, etc.)
 **********************************************************************************/
 template<typename EvaluationType>
-class MassMoment :
+class CriterionMassMoment :
   public EvaluationType::ElementType,
   public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
 /******************************************************************************/
@@ -51,18 +51,18 @@ class MassMoment :
      * \param [in] aInputParams input parameters database
      * \param [in] aFuncName function name
      **********************************************************************************/
-    MassMoment(
+    CriterionMassMoment(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap, 
               Teuchos::ParameterList & aInputParams,
-              std::string             aFuncName = "MassMoment"
+              std::string             aFuncName = "CriterionMassMoment"
     );
 
     /******************************************************************************//**
      * \brief Unit testing constructor
      * \param [in] aDataMap PLATO Engine and Analyze data map
      **********************************************************************************/
-    MassMoment(
+    CriterionMassMoment(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap& aDataMap
     );
@@ -192,7 +192,7 @@ class MassMoment :
             Teuchos::ParameterList & aInputParams
     );
 };
-// class MassMoment
+// class CriterionMassMoment
 
 } // namespace Elliptic
 

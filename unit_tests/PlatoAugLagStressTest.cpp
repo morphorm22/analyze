@@ -27,7 +27,7 @@
 #include "ThermalVonMisesLocalMeasure.hpp"
 #include "elliptic/WeightedSumFunction.hpp"
 #include "elliptic/PhysicsScalarFunction.hpp"
-#include "elliptic/mechanical/MassMoment.hpp"
+#include "elliptic/mechanical/CriterionMassMoment.hpp"
 
 namespace AugLagStressTest
 {
@@ -1426,7 +1426,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusTensileEnergy2D)
     Plato::Elliptic::WeightedSumFunction<Plato::Mechanics<Plato::Tri3>> tWeightedSum(tSpatialModel, tDataMap);
 
     const Plato::Scalar tMaterialDensity = 0.5;
-    const auto tMassCriterion = std::make_shared<Plato::Elliptic::MassMoment<Residual>>(tOnlyDomain, tDataMap);
+    const auto tMassCriterion = std::make_shared<Plato::Elliptic::CriterionMassMoment<Residual>>(tOnlyDomain, tDataMap);
     tMassCriterion->setMaterialDensity(tMaterialDensity);
     tMassCriterion->setCalculationType("Mass");
 
@@ -1528,13 +1528,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradZ_2D)
     tWeightedSum.appendFunctionWeight(tVonMisesFunctionWeight);
 
     const Plato::Scalar tMaterialDensity = 0.5;
-    const std::shared_ptr<Plato::Elliptic::MassMoment<GradientZ>> tMassCriterionGradZ =
-          std::make_shared<Plato::Elliptic::MassMoment<GradientZ>>(tOnlyDomain, tDataMap);
+    const std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientZ>> tMassCriterionGradZ =
+          std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientZ>>(tOnlyDomain, tDataMap);
     tMassCriterionGradZ->setMaterialDensity(tMaterialDensity);
     tMassCriterionGradZ->setCalculationType("Mass");
 
-    const std::shared_ptr<Plato::Elliptic::MassMoment<Residual>> tMassCriterion =
-          std::make_shared<Plato::Elliptic::MassMoment<Residual>>(tOnlyDomain, tDataMap);
+    const std::shared_ptr<Plato::Elliptic::CriterionMassMoment<Residual>> tMassCriterion =
+          std::make_shared<Plato::Elliptic::CriterionMassMoment<Residual>>(tOnlyDomain, tDataMap);
     tMassCriterion->setMaterialDensity(tMaterialDensity);
     tMassCriterion->setCalculationType("Mass");
 
@@ -1600,11 +1600,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradZ_3D)
     tWeightedSum.appendFunctionWeight(tVonMisesFunctionWeight);
 
     const Plato::Scalar tMaterialDensity = 0.5;
-    const auto tMassCriterionGradZ = std::make_shared<Plato::Elliptic::MassMoment<GradientZ>>(tOnlyDomain, tDataMap);
+    const auto tMassCriterionGradZ = std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientZ>>(tOnlyDomain, tDataMap);
     tMassCriterionGradZ->setMaterialDensity(tMaterialDensity);
     tMassCriterionGradZ->setCalculationType("Mass");
 
-    const auto tMassCriterion = std::make_shared<Plato::Elliptic::MassMoment<Residual>>(tOnlyDomain, tDataMap);
+    const auto tMassCriterion = std::make_shared<Plato::Elliptic::CriterionMassMoment<Residual>>(tOnlyDomain, tDataMap);
     tMassCriterion->setMaterialDensity(tMaterialDensity);
     tMassCriterion->setCalculationType("Mass");
 
@@ -1672,11 +1672,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradU_2D)
     tWeightedSum.appendFunctionWeight(tVonMisesFunctionWeight);
 
     const Plato::Scalar tMaterialDensity = 0.5;
-    const auto tMassCriterionGradU = std::make_shared<Plato::Elliptic::MassMoment<Jacobian>>(tOnlyDomain, tDataMap);
+    const auto tMassCriterionGradU = std::make_shared<Plato::Elliptic::CriterionMassMoment<Jacobian>>(tOnlyDomain, tDataMap);
     tMassCriterionGradU->setMaterialDensity(tMaterialDensity);
     tMassCriterionGradU->setCalculationType("Mass");
 
-    const auto tMassCriterion = std::make_shared<Plato::Elliptic::MassMoment<Residual>>(tOnlyDomain, tDataMap);
+    const auto tMassCriterion = std::make_shared<Plato::Elliptic::CriterionMassMoment<Residual>>(tOnlyDomain, tDataMap);
     tMassCriterion->setMaterialDensity(tMaterialDensity);
     tMassCriterion->setCalculationType("Mass");
 
@@ -1742,11 +1742,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradU_3D)
     tWeightedSum.appendFunctionWeight(tVonMisesFunctionWeight);
 
     const Plato::Scalar tMaterialDensity = 0.5;
-    const auto tMassCriterionGradU = std::make_shared<Plato::Elliptic::MassMoment<Jacobian>>(tOnlyDomain, tDataMap);
+    const auto tMassCriterionGradU = std::make_shared<Plato::Elliptic::CriterionMassMoment<Jacobian>>(tOnlyDomain, tDataMap);
     tMassCriterionGradU->setMaterialDensity(tMaterialDensity);
     tMassCriterionGradU->setCalculationType("Mass");
 
-    const auto tMassCriterion = std::make_shared<Plato::Elliptic::MassMoment<Residual>>(tOnlyDomain, tDataMap);
+    const auto tMassCriterion = std::make_shared<Plato::Elliptic::CriterionMassMoment<Residual>>(tOnlyDomain, tDataMap);
     tMassCriterion->setMaterialDensity(tMaterialDensity);
     tMassCriterion->setCalculationType("Mass");
 

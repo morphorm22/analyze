@@ -15,7 +15,7 @@
 #include "Mechanics.hpp"
 #include "MechanicsElement.hpp"
 
-#include "elliptic/mechanical/MassMoment.hpp"
+#include "elliptic/mechanical/CriterionMassMoment.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/WeightedSumFunction.hpp"
 #include "elliptic/PhysicsScalarFunction.hpp"
@@ -405,7 +405,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassCriterion_Normalized_Evaluate)
     // create criterion
     auto tOnlyDomainDefined = tSpatialModel.Domains.front();
     const auto tCriterion =
-      std::make_shared<Plato::Elliptic::MassMoment<Residual>>(
+      std::make_shared<Plato::Elliptic::CriterionMassMoment<Residual>>(
         tOnlyDomainDefined,tDataMap,*tGenericParamListTwo);
     tCriterion->setCalculationType("Mass");
 
@@ -468,7 +468,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassCriterion_NotNormalized_Evaluate)
     // create criterion
     auto tOnlyDomainDefined = tSpatialModel.Domains.front();
     const auto tCriterion =
-      std::make_shared<Plato::Elliptic::MassMoment<Residual>>(
+      std::make_shared<Plato::Elliptic::CriterionMassMoment<Residual>>(
         tOnlyDomainDefined,tDataMap,*tGenericParamListTwo, "My Mass");
     tCriterion->setCalculationType("Mass");
 

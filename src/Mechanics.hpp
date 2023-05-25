@@ -10,7 +10,7 @@
 #include "elliptic/StressPNorm.hpp"
 #include "elliptic/EffectiveEnergy.hpp"
 #include "elliptic/Volume.hpp"
-#include "elliptic/mechanical/MassMoment.hpp"
+#include "elliptic/mechanical/CriterionMassMoment.hpp"
 #include "elliptic/AugLagStrengthCriterion.hpp"
 #include "elliptic/VolumeIntegralCriterion.hpp"
 #include "elliptic/VolumeAverageCriterionDenominator.hpp"
@@ -184,7 +184,7 @@ mass_criterion(
           std::string            & aFuncName
 )
 {
-    auto tCriterion = std::make_shared<Plato::Elliptic::MassMoment<EvaluationType>>
+    auto tCriterion = std::make_shared<Plato::Elliptic::CriterionMassMoment<EvaluationType>>
                         (aSpatialDomain,aDataMap,aProblemParams,aFuncName);
     tCriterion->setCalculationType("Mass");
     return tCriterion;
