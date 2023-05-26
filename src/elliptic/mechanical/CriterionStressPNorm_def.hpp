@@ -1,7 +1,5 @@
 #pragma once
 
-#include "elliptic/StressPNorm_decl.hpp"
-
 #include "FadTypes.hpp"
 #include "SmallStrain.hpp"
 #include "LinearStress.hpp"
@@ -15,7 +13,7 @@ namespace Elliptic
 {
 
     template<typename EvaluationType, typename IndicatorFunctionType>
-    StressPNorm<EvaluationType, IndicatorFunctionType>::StressPNorm(
+    CriterionStressPNorm<EvaluationType, IndicatorFunctionType>::CriterionStressPNorm(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap, 
               Teuchos::ParameterList & aProblemParams, 
@@ -42,7 +40,7 @@ namespace Elliptic
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    StressPNorm<EvaluationType, IndicatorFunctionType>::evaluate_conditional(
+    CriterionStressPNorm<EvaluationType, IndicatorFunctionType>::evaluate_conditional(
         const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
@@ -129,7 +127,7 @@ namespace Elliptic
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    StressPNorm<EvaluationType, IndicatorFunctionType>::postEvaluate( 
+    CriterionStressPNorm<EvaluationType, IndicatorFunctionType>::postEvaluate( 
       Plato::ScalarVector resultVector,
       Plato::Scalar       resultScalar)
     /**************************************************************************/
@@ -140,7 +138,7 @@ namespace Elliptic
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    StressPNorm<EvaluationType, IndicatorFunctionType>::postEvaluate( Plato::Scalar& resultValue )
+    CriterionStressPNorm<EvaluationType, IndicatorFunctionType>::postEvaluate( Plato::Scalar& resultValue )
     /**************************************************************************/
     {
         mNorm->postEvaluate(resultValue);

@@ -13,7 +13,7 @@ namespace Elliptic
 
 /******************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
-class StressPNorm : 
+class CriterionStressPNorm : 
   public EvaluationType::ElementType,
   public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
 /******************************************************************************/
@@ -49,7 +49,7 @@ class StressPNorm :
 
   public:
     /**************************************************************************/
-    StressPNorm(
+    CriterionStressPNorm(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap, 
               Teuchos::ParameterList & aProblemParams, 
@@ -79,7 +79,7 @@ class StressPNorm :
     postEvaluate( Plato::Scalar& resultValue );
     /**************************************************************************/
 };
-// class StressPNorm
+// class CriterionStressPNorm
 
 } // namespace Elliptic
 

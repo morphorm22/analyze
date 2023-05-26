@@ -28,7 +28,6 @@
 #include "elliptic/PhysicsScalarFunction.hpp"
 #include "LinearStress.hpp"
 #include "GradientMatrix.hpp"
-//#include "geometric/GeometryScalarFunction.hpp"
 #include "ApplyConstraints.hpp"
 #include "elliptic/Problem.hpp"
 
