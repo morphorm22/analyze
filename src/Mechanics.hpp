@@ -139,9 +139,6 @@ volume_integral_criterion_for_volume_average(
     return (tOutput);
 }
 
-
-
-
 /******************************************************************************//**
  * \brief Create volume average criterion denominator
  * \param [in] aSpatialDomain Plato Analyze spatial domain
