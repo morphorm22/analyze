@@ -134,6 +134,7 @@ if(ELLIPTIC)
     elliptic/mechanical/CriterionEffectiveEnergy.cpp
     elliptic/mechanical/CriterionInternalElasticEnergy.cpp
     elliptic/mechanical/CriterionVolAvgStressPNormDenominator.cpp
+    elliptic/mechanical/CriterionVolumeAverageDenominator.cpp
     elliptic/FluxPNorm.cpp
     elliptic/TMStressPNorm.cpp
     elliptic/EMStressPNorm.cpp
@@ -145,7 +146,6 @@ if(ELLIPTIC)
     elliptic/ElectroelastostaticResidual.cpp
     elliptic/ThermoelastostaticResidual.cpp
     elliptic/VolumeAverageCriterion.cpp
-    elliptic/VolumeAverageCriterionDenominator.cpp
     elliptic/electrical/SupportedOptionEnums.cpp
     elliptic/electrical/FactorySourceEvaluator.cpp
     elliptic/electrical/SourceWeightedSum.cpp

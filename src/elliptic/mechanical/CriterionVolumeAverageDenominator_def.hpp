@@ -1,7 +1,5 @@
 #pragma once
 
-#include "VolumeAverageCriterionDenominator_decl.hpp"
-
 #include "PlatoMeshExpr.hpp"
 
 namespace Plato
@@ -12,8 +10,8 @@ namespace Elliptic
 
     /**************************************************************************/
     template<typename EvaluationType>
-    VolumeAverageCriterionDenominator<EvaluationType>::
-    VolumeAverageCriterionDenominator(
+    CriterionVolumeAverageDenominator<EvaluationType>::
+    CriterionVolumeAverageDenominator(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap, 
               Teuchos::ParameterList & aProblemParams, 
@@ -30,7 +28,7 @@ namespace Elliptic
     **********************************************************************************/
     template<typename EvaluationType>
     void
-    VolumeAverageCriterionDenominator<EvaluationType>::
+    CriterionVolumeAverageDenominator<EvaluationType>::
     setSpatialWeightFunction(std::string aWeightFunctionString)
     {
         mSpatialWeightFunction = aWeightFunctionString;
@@ -39,7 +37,7 @@ namespace Elliptic
     /**************************************************************************/
     template<typename EvaluationType>
     void
-    VolumeAverageCriterionDenominator<EvaluationType>::
+    CriterionVolumeAverageDenominator<EvaluationType>::
     evaluate_conditional(
         const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,

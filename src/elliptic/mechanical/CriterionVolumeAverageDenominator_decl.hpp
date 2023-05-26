@@ -10,7 +10,7 @@ namespace Elliptic
 
 /******************************************************************************/
 template<typename EvaluationType>
-class VolumeAverageCriterionDenominator : 
+class CriterionVolumeAverageDenominator : 
     public EvaluationType::ElementType,
     public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
 /******************************************************************************/
@@ -35,7 +35,7 @@ class VolumeAverageCriterionDenominator :
 
   public:
     /**************************************************************************/
-    VolumeAverageCriterionDenominator(
+    CriterionVolumeAverageDenominator(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap, 
               Teuchos::ParameterList & aProblemParams, 
@@ -58,7 +58,7 @@ class VolumeAverageCriterionDenominator :
               Plato::Scalar aTimeStep = 0.0
     ) const override;
 };
-// class VolumeAverageCriterionDenominator
+// class CriterionVolumeAverageDenominator
 
 } // namespace Elliptic
 

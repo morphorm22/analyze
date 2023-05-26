@@ -15,9 +15,9 @@
 #include "elliptic/mechanical/LocalMeasureTensileEnergyDensity.hpp"
 #include "elliptic/mechanical/LocalMeasureVonMises.hpp"
 #include "elliptic/mechanical/CriterionInternalElasticEnergy.hpp"
+#include "elliptic/mechanical/CriterionVolumeAverageDenominator.hpp"
 #include "elliptic/mechanical/CriterionVolAvgStressPNormDenominator.hpp"
 #include "elliptic/mechanical/Plato_AugLagStressCriterionGeneral.hpp"
-#include "elliptic/VolumeAverageCriterionDenominator.hpp"
 #include "elliptic/VolumeIntegralCriterion.hpp"
 
 #include "MakeFunctions.hpp"
@@ -158,7 +158,7 @@ vol_avg_criterion_denominator(
           std::string            & aFuncName
 )
 {
-    return std::make_shared<Plato::Elliptic::VolumeAverageCriterionDenominator<EvaluationType>>
+    return std::make_shared<Plato::Elliptic::CriterionVolumeAverageDenominator<EvaluationType>>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
 }
 // function vol_avg_criterion_denominator
