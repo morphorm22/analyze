@@ -12,18 +12,15 @@
 #include "elliptic/mechanical/CriterionEffectiveEnergy.hpp"
 #include "elliptic/mechanical/CriterionMassMoment.hpp"
 #include "elliptic/mechanical/CriterionAugLagStrength.hpp"
-#include "elliptic/VolumeIntegralCriterion.hpp"
-#include "elliptic/VolumeAverageCriterionDenominator.hpp"
 #include "elliptic/mechanical/LocalMeasureTensileEnergyDensity.hpp"
 #include "elliptic/mechanical/LocalMeasureVonMises.hpp"
 #include "elliptic/mechanical/Plato_AugLagStressCriterionGeneral.hpp"
 #include "elliptic/mechanical/CriterionInternalElasticEnergy.hpp"
+#include "elliptic/VolumeAverageCriterionDenominator.hpp"
+#include "elliptic/VolumeIntegralCriterion.hpp"
 #include "elliptic/VolAvgStressPNormDenominator.hpp"
-#include "IntermediateDensityPenalty.hpp"
 
 #include "MakeFunctions.hpp"
-
-
 #include "AnalyzeMacros.hpp"
 
 namespace Plato
@@ -305,11 +302,6 @@ struct FunctionFactory
         {
             return Plato::MechanicsFactory::strength_constraint<EvaluationType>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
-        }
-        else if(tLowerFuncType == "density penalty")
-        {
-            return std::make_shared<Plato::IntermediateDensityPenalty<EvaluationType>>
-                       (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else
         {

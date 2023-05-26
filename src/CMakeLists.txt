@@ -146,7 +146,6 @@ if(ELLIPTIC)
     elliptic/ThermoelastostaticResidual.cpp
     elliptic/VolumeAverageCriterion.cpp
     elliptic/VolumeAverageCriterionDenominator.cpp
-    IntermediateDensityPenalty.cpp
     elliptic/electrical/SupportedOptionEnums.cpp
     elliptic/electrical/FactorySourceEvaluator.cpp
     elliptic/electrical/SourceWeightedSum.cpp
