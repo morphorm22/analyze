@@ -23,9 +23,9 @@
 #include "elliptic/mechanical/CriterionMassMoment.hpp"
 #include "elliptic/mechanical/Plato_AugLagStressCriterionGeneral.hpp"
 #include "elliptic/mechanical/Plato_AugLagStressCriterionQuadratic.hpp"
-#include "elliptic/mechanical/VonMisesLocalMeasure.hpp"
+#include "elliptic/mechanical/LocalMeasureVonMises.hpp"
 #include "elliptic/mechanical/VonMisesYieldFunction.hpp"
-#include "elliptic/mechanical/TensileEnergyDensityLocalMeasure.hpp"
+#include "elliptic/mechanical/LocalMeasureTensileEnergyDensity.hpp"
 
 #include "ThermalVonMisesLocalMeasure.hpp"
 #include "elliptic/WeightedSumFunction.hpp"
@@ -280,7 +280,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateVonMises)
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
     auto tCellStiffMatrix = tMatModel.getStiffnessMatrix();
 
-    const auto tLocalMeasure = std::make_shared<Plato::VonMisesLocalMeasure<Residual>>(tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+    const auto tLocalMeasure = std::make_shared<Plato::LocalMeasureVonMises<Residual>>(tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
     tCriterion.setLocalMeasure(tLocalMeasure, tLocalMeasure);
 
     tCriterion.evaluate(tStateWS, tControlWS, tConfigWS, tResultWS);
@@ -383,7 +383,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateTensileEnergyDe
     constexpr Plato::Scalar tYoungsModulus = 1.0;
     constexpr Plato::Scalar tPoissonRatio = 0.3;
 
-    const auto tLocalMeasure = std::make_shared<Plato::TensileEnergyDensityLocalMeasure<Residual>>
+    const auto tLocalMeasure = std::make_shared<Plato::LocalMeasureTensileEnergyDensity<Residual>>
                                  (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     tCriterion.setLocalMeasure(tLocalMeasure, tLocalMeasure);
     tCriterion.setLocalMeasureValueLimit(0.15);
@@ -472,7 +472,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvalTensileEnergyScalar
     constexpr Plato::Scalar tYoungsModulus = 1.0;
     constexpr Plato::Scalar tPoissonRatio = 0.3;
 
-    const auto tLocalMeasure = std::make_shared<Plato::TensileEnergyDensityLocalMeasure<Residual>>
+    const auto tLocalMeasure = std::make_shared<Plato::LocalMeasureTensileEnergyDensity<Residual>>
                                  (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     tCriterion->setLocalMeasure(tLocalMeasure, tLocalMeasure);
     tCriterion->setLocalMeasureValueLimit(0.15);
@@ -615,10 +615,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
     constexpr Plato::Scalar tYoungsModulus = 1.0;
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     const auto tLocalMeasureGradZ =
-         std::make_shared<Plato::TensileEnergyDensityLocalMeasure<GradientZ>>
+         std::make_shared<Plato::LocalMeasureTensileEnergyDensity<GradientZ>>
                                               (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     const auto tLocalMeasurePODType =
-         std::make_shared<Plato::TensileEnergyDensityLocalMeasure<Residual>>
+         std::make_shared<Plato::LocalMeasureTensileEnergyDensity<Residual>>
                                               (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
     tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
@@ -660,10 +660,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
     constexpr Plato::Scalar tYoungsModulus = 1.0;
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     const auto tLocalMeasureEvaluationType =
-         std::make_shared<Plato::TensileEnergyDensityLocalMeasure<Jacobian>>
+         std::make_shared<Plato::LocalMeasureTensileEnergyDensity<Jacobian>>
                                               (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     const auto tLocalMeasurePODType =
-         std::make_shared<Plato::TensileEnergyDensityLocalMeasure<Residual>>
+         std::make_shared<Plato::LocalMeasureTensileEnergyDensity<Residual>>
                                               (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
     tCriterionGradU->setLocalMeasure(tLocalMeasureEvaluationType, tLocalMeasurePODType);
@@ -703,10 +703,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
     constexpr Plato::Scalar tYoungsModulus = 1.0;
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     const auto tLocalMeasureEvaluationType =
-         std::make_shared<Plato::TensileEnergyDensityLocalMeasure<Jacobian>>
+         std::make_shared<Plato::LocalMeasureTensileEnergyDensity<Jacobian>>
                                               (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     const auto tLocalMeasurePODType =
-         std::make_shared<Plato::TensileEnergyDensityLocalMeasure<Residual>>
+         std::make_shared<Plato::LocalMeasureTensileEnergyDensity<Residual>>
                                               (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
     tCriterionGradU->setLocalMeasure(tLocalMeasureEvaluationType, tLocalMeasurePODType);
@@ -785,7 +785,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvaluateTensileEnergyDe
     constexpr Plato::Scalar tPoissonRatio = 0.3;
 
     const auto tLocalMeasure =
-         std::make_shared<Plato::TensileEnergyDensityLocalMeasure<Residual>>
+         std::make_shared<Plato::LocalMeasureTensileEnergyDensity<Residual>>
                                               (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     tCriterion.setLocalMeasure(tLocalMeasure, tLocalMeasure);
 
@@ -828,10 +828,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
     constexpr Plato::Scalar tYoungsModulus = 1.0;
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     const auto tLocalMeasureEvaluationType =
-         std::make_shared<Plato::TensileEnergyDensityLocalMeasure<GradientZ>>
+         std::make_shared<Plato::LocalMeasureTensileEnergyDensity<GradientZ>>
                                               (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     const auto tLocalMeasurePODType =
-         std::make_shared<Plato::TensileEnergyDensityLocalMeasure<Residual>>
+         std::make_shared<Plato::LocalMeasureTensileEnergyDensity<Residual>>
                                               (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     tCriterion.setLocalMeasure(tLocalMeasureEvaluationType, tLocalMeasurePODType);
 
@@ -858,10 +858,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
     constexpr Plato::Scalar tYoungsModulus = 1.0;
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     const auto  tLocalMeasureEvaluationType =
-         std::make_shared<Plato::TensileEnergyDensityLocalMeasure<GradientZ>>
+         std::make_shared<Plato::LocalMeasureTensileEnergyDensity<GradientZ>>
                                               (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     const auto tLocalMeasurePODType =
-         std::make_shared<Plato::TensileEnergyDensityLocalMeasure<Residual>>
+         std::make_shared<Plato::LocalMeasureTensileEnergyDensity<Residual>>
                                               (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     tCriterion.setLocalMeasure(tLocalMeasureEvaluationType, tLocalMeasurePODType);
 
@@ -889,10 +889,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
     constexpr Plato::Scalar tYoungsModulus = 1.0;
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     const auto tLocalMeasureEvaluationType =
-         std::make_shared<Plato::TensileEnergyDensityLocalMeasure<Jacobian>>
+         std::make_shared<Plato::LocalMeasureTensileEnergyDensity<Jacobian>>
                                               (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     const auto tLocalMeasurePODType =
-         std::make_shared<Plato::TensileEnergyDensityLocalMeasure<Residual>>
+         std::make_shared<Plato::LocalMeasureTensileEnergyDensity<Residual>>
                                               (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     tCriterion.setLocalMeasure(tLocalMeasureEvaluationType, tLocalMeasurePODType);
 
@@ -920,10 +920,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
     constexpr Plato::Scalar tYoungsModulus = 1.0;
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     const auto tLocalMeasureEvaluationType =
-         std::make_shared<Plato::TensileEnergyDensityLocalMeasure<Jacobian>>
+         std::make_shared<Plato::LocalMeasureTensileEnergyDensity<Jacobian>>
                                               (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     const auto tLocalMeasurePODType =
-         std::make_shared<Plato::TensileEnergyDensityLocalMeasure<Residual>>
+         std::make_shared<Plato::LocalMeasureTensileEnergyDensity<Residual>>
                                               (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     tCriterion.setLocalMeasure(tLocalMeasureEvaluationType, tLocalMeasurePODType);
 
@@ -957,7 +957,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_UpdateMultipliers1)
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
     Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
 
-    const auto tLocalMeasure = std::make_shared<Plato::VonMisesLocalMeasure<Residual>>(tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+    const auto tLocalMeasure = std::make_shared<Plato::LocalMeasureVonMises<Residual>>(tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
     tCriterion.setLocalMeasure(tLocalMeasure, tLocalMeasure);
 
     // CREATE WORKSETS FOR TEST
@@ -1034,7 +1034,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_UpdateMultipliers2)
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
     Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
 
-    const auto tLocalMeasure = std::make_shared<Plato::VonMisesLocalMeasure<Residual>>(tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+    const auto tLocalMeasure = std::make_shared<Plato::LocalMeasureVonMises<Residual>>(tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
     tCriterion.setLocalMeasure(tLocalMeasure, tLocalMeasure);
 
     // CREATE WORKSETS FOR TEST
@@ -1440,7 +1440,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusTensileEnergy2D)
     constexpr Plato::Scalar tYoungsModulus = 1.0;
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     const auto tLocalMeasure =
-         std::make_shared<Plato::TensileEnergyDensityLocalMeasure<Residual>>
+         std::make_shared<Plato::LocalMeasureTensileEnergyDensity<Residual>>
                                               (tOnlyDomain, tDataMap, tYoungsModulus, tPoissonRatio, "TensileEnergyDensity");
     tTensileEnergyCriterion->setLocalMeasure(tLocalMeasure, tLocalMeasure);
     tTensileEnergyCriterion->setLocalMeasureValueLimit(0.15);
@@ -1512,8 +1512,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradZ_2D)
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
     Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
-    const auto tLocalMeasureGradZ = std::make_shared<Plato::VonMisesLocalMeasure<GradientZ>> (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
-    const auto tLocalMeasurePODType = std::make_shared<Plato::VonMisesLocalMeasure<Residual>> (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+    const auto tLocalMeasureGradZ = std::make_shared<Plato::LocalMeasureVonMises<GradientZ>> (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+    const auto tLocalMeasurePODType = std::make_shared<Plato::LocalMeasureVonMises<Residual>> (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
 
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
     tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
@@ -1584,8 +1584,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradZ_3D)
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
     Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
-    const auto tLocalMeasureGradZ = std::make_shared<Plato::VonMisesLocalMeasure<GradientZ>> (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
-    const auto tLocalMeasurePODType = std::make_shared<Plato::VonMisesLocalMeasure<Residual>> (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+    const auto tLocalMeasureGradZ = std::make_shared<Plato::LocalMeasureVonMises<GradientZ>> (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+    const auto tLocalMeasurePODType = std::make_shared<Plato::LocalMeasureVonMises<Residual>> (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
 
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
     tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
@@ -1655,9 +1655,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradU_2D)
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
     Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     const auto tLocalMeasureGradU =
-        std::make_shared<Plato::VonMisesLocalMeasure<Jacobian>> (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+        std::make_shared<Plato::LocalMeasureVonMises<Jacobian>> (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
     const auto tLocalMeasurePODType =
-        std::make_shared<Plato::VonMisesLocalMeasure<Residual>> (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+        std::make_shared<Plato::LocalMeasureVonMises<Residual>> (tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
 
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
     tCriterionGradU->setLocalMeasure(tLocalMeasureGradU, tLocalMeasurePODType);
@@ -1726,8 +1726,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradU_3D)
     constexpr Plato::Scalar tPoissonRatio = 0.3;
     Plato::IsotropicLinearElasticMaterial<tSpaceDim> tMatModel(tYoungsModulus, tPoissonRatio);
     Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
-    const auto tLocalMeasureGradU = std::make_shared<Plato::VonMisesLocalMeasure<Jacobian>>(tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
-    const auto tLocalMeasurePODType = std::make_shared<Plato::VonMisesLocalMeasure<Residual>>(tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+    const auto tLocalMeasureGradU = std::make_shared<Plato::LocalMeasureVonMises<Jacobian>>(tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
+    const auto tLocalMeasurePODType = std::make_shared<Plato::LocalMeasureVonMises<Residual>>(tOnlyDomain, tDataMap, tCellStiffMatrix, "VonMises");
 
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
     tCriterionGradU->setLocalMeasure(tLocalMeasureGradU, tLocalMeasurePODType);

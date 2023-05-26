@@ -14,8 +14,8 @@ namespace Plato
      * \param [in] aName local measure name
      **********************************************************************************/
     template<typename EvaluationType>
-    VonMisesLocalMeasure<EvaluationType>::
-    VonMisesLocalMeasure(
+    LocalMeasureVonMises<EvaluationType>::
+    LocalMeasureVonMises(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aInputParams,
@@ -35,8 +35,8 @@ namespace Plato
      * \param [in] aName local measure name
      **********************************************************************************/
     template<typename EvaluationType>
-    VonMisesLocalMeasure<EvaluationType>::
-    VonMisesLocalMeasure(
+    LocalMeasureVonMises<EvaluationType>::
+    LocalMeasureVonMises(
         const Plato::SpatialDomain & aSpatialDomain,
               Plato::DataMap       & aDataMap,
         const MatrixType           & aCellStiffMatrix,
@@ -55,7 +55,7 @@ namespace Plato
     **********************************************************************************/
     template<typename EvaluationType>
     void
-    VonMisesLocalMeasure<EvaluationType>::
+    LocalMeasureVonMises<EvaluationType>::
     operator()(
         const Plato::ScalarMultiVectorT<StateT>   & aStateWS,
         const Plato::ScalarMultiVectorT<ControlT> & aControlWS,

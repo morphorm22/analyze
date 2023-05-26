@@ -349,7 +349,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_Evaluate_Vo
     auto tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     
     // create local measure
-    const auto tLocalMeasure = std::make_shared<Plato::VonMisesLocalMeasure<Residual>>(
+    const auto tLocalMeasure = std::make_shared<Plato::LocalMeasureVonMises<Residual>>(
                                  tOnlyDomainDefined,tDataMap,tCellStiffMatrix,"VonMises");
     tCriterion.setLocalMeasure(tLocalMeasure, tLocalMeasure); 
     
@@ -551,7 +551,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_Evaluate_Vo
     auto tCellStiffMatrix = tMatModel.getStiffnessMatrix();
     
     // create local measure
-    const auto tLocalMeasure = std::make_shared<Plato::VonMisesLocalMeasure<Residual>>
+    const auto tLocalMeasure = std::make_shared<Plato::LocalMeasureVonMises<Residual>>
                                (tOnlyDomainDefined,tDataMap,tCellStiffMatrix,"VonMises");
     tCriterion.setLocalMeasure(tLocalMeasure, tLocalMeasure); 
     
@@ -598,9 +598,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
     // create von mises local measure
     constexpr Plato::OrdinalType tNumVoigtTerms = ElementType::mNumVoigtTerms;
     Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
-    const auto tLocalMeasureGradZ = std::make_shared<Plato::VonMisesLocalMeasure<GradientZ>> 
+    const auto tLocalMeasureGradZ = std::make_shared<Plato::LocalMeasureVonMises<GradientZ>> 
                                       (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
-    const auto tLocalMeasurePODType = std::make_shared<Plato::VonMisesLocalMeasure<Residual>> 
+    const auto tLocalMeasurePODType = std::make_shared<Plato::LocalMeasureVonMises<Residual>> 
                                         (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
 
     // create stress criterion
@@ -649,9 +649,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
     // create von mises local measure
     constexpr Plato::OrdinalType tNumVoigtTerms = ElementType::mNumVoigtTerms;
     Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
-    const auto tLocalMeasureGradZ = std::make_shared<Plato::VonMisesLocalMeasure<GradientZ>> 
+    const auto tLocalMeasureGradZ = std::make_shared<Plato::LocalMeasureVonMises<GradientZ>> 
                                       (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
-    const auto tLocalMeasurePODType = std::make_shared<Plato::VonMisesLocalMeasure<Residual>> 
+    const auto tLocalMeasurePODType = std::make_shared<Plato::LocalMeasureVonMises<Residual>> 
                                         (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
 
     // create stress criterion
@@ -700,9 +700,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
     // create von mises local measure
     constexpr Plato::OrdinalType tNumVoigtTerms = ElementType::mNumVoigtTerms;
     Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
-    const auto tLocalMeasureGradZ = std::make_shared<Plato::VonMisesLocalMeasure<GradientU>> 
+    const auto tLocalMeasureGradZ = std::make_shared<Plato::LocalMeasureVonMises<GradientU>> 
                                       (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
-    const auto tLocalMeasurePODType = std::make_shared<Plato::VonMisesLocalMeasure<Residual>> 
+    const auto tLocalMeasurePODType = std::make_shared<Plato::LocalMeasureVonMises<Residual>> 
                                         (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
 
     // create stress criterion
@@ -751,9 +751,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
     // create von mises local measure
     constexpr Plato::OrdinalType tNumVoigtTerms = ElementType::mNumVoigtTerms;
     Plato::Matrix<tNumVoigtTerms, tNumVoigtTerms> tCellStiffMatrix = tMatModel.getStiffnessMatrix();
-    const auto tLocalMeasureGradZ = std::make_shared<Plato::VonMisesLocalMeasure<GradientU>> 
+    const auto tLocalMeasureGradZ = std::make_shared<Plato::LocalMeasureVonMises<GradientU>> 
                                       (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
-    const auto tLocalMeasurePODType = std::make_shared<Plato::VonMisesLocalMeasure<Residual>> 
+    const auto tLocalMeasurePODType = std::make_shared<Plato::LocalMeasureVonMises<Residual>> 
                                         (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
 
     // create stress criterion

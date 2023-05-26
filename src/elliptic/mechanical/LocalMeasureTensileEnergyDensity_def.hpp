@@ -1,6 +1,6 @@
 #pragma once
 
-#include "TensileEnergyDensityLocalMeasure_decl.hpp"
+#include "LocalMeasureTensileEnergyDensity_decl.hpp"
 
 #include "SmallStrain.hpp"
 #include "Eigenvalues.hpp"
@@ -17,7 +17,7 @@ namespace Plato
     **********************************************************************************/
     template<typename EvaluationType>
     void
-    TensileEnergyDensityLocalMeasure<EvaluationType>::
+    LocalMeasureTensileEnergyDensity<EvaluationType>::
     getYoungsModulusAndPoissonsRatio(Teuchos::ParameterList & aInputParams)
     {
         auto tMaterialName = mSpatialDomain.getMaterialName();
@@ -41,7 +41,7 @@ namespace Plato
     **********************************************************************************/
     template<typename EvaluationType>
     void
-    TensileEnergyDensityLocalMeasure<EvaluationType>::
+    LocalMeasureTensileEnergyDensity<EvaluationType>::
     computeLameConstants()
     {
         mLameConstantMu     = mYoungsModulus / 
@@ -57,8 +57,8 @@ namespace Plato
      * \param [in] aName local measure name
      **********************************************************************************/
     template<typename EvaluationType>
-    TensileEnergyDensityLocalMeasure<EvaluationType>::
-    TensileEnergyDensityLocalMeasure(
+    LocalMeasureTensileEnergyDensity<EvaluationType>::
+    LocalMeasureTensileEnergyDensity(
         const Plato::SpatialDomain   & aSpatialModel,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aInputParams,
@@ -77,8 +77,8 @@ namespace Plato
      * \param [in] aName local measure name
      **********************************************************************************/
     template<typename EvaluationType>
-    TensileEnergyDensityLocalMeasure<EvaluationType>::
-    TensileEnergyDensityLocalMeasure(
+    LocalMeasureTensileEnergyDensity<EvaluationType>::
+    LocalMeasureTensileEnergyDensity(
         const Plato::SpatialDomain & aSpatialModel,
               Plato::DataMap       & aDataMap,
         const Plato::Scalar        & aYoungsModulus,
@@ -96,8 +96,8 @@ namespace Plato
      * \brief Destructor
      **********************************************************************************/
     template<typename EvaluationType>
-    TensileEnergyDensityLocalMeasure<EvaluationType>::
-    ~TensileEnergyDensityLocalMeasure()
+    LocalMeasureTensileEnergyDensity<EvaluationType>::
+    ~LocalMeasureTensileEnergyDensity()
     {
     }
 
@@ -111,7 +111,7 @@ namespace Plato
     **********************************************************************************/
     template<typename EvaluationType>
     void
-    TensileEnergyDensityLocalMeasure<EvaluationType>::
+    LocalMeasureTensileEnergyDensity<EvaluationType>::
     operator()(
         const Plato::ScalarMultiVectorT <StateT>   & aStateWS,
         const Plato::ScalarMultiVectorT <ControlT> & aControlWS,

@@ -15,8 +15,8 @@
 #include "elliptic/mechanical/CriterionAugLagStrength.hpp"
 #include "elliptic/VolumeIntegralCriterion.hpp"
 #include "elliptic/VolumeAverageCriterionDenominator.hpp"
-#include "elliptic/mechanical/TensileEnergyDensityLocalMeasure.hpp"
-#include "elliptic/mechanical/VonMisesLocalMeasure.hpp"
+#include "elliptic/mechanical/LocalMeasureTensileEnergyDensity.hpp"
+#include "elliptic/mechanical/LocalMeasureVonMises.hpp"
 #include "elliptic/mechanical/Plato_AugLagStressCriterionGeneral.hpp"
 #include "elliptic/VolAvgStressPNormDenominator.hpp"
 #include "IntermediateDensityPenalty.hpp"
@@ -52,12 +52,12 @@ namespace MechanicsFactory
       auto tLowerLocalMeasT = Plato::tolower(tLocalMeasure);
       if(tLowerLocalMeasT == "vonmises")
       {
-          return std::make_shared<Plato::VonMisesLocalMeasure<EvaluationType>>
+          return std::make_shared<Plato::LocalMeasureVonMises<EvaluationType>>
               (aSpatialDomain, aDataMap, aProblemParams, "VonMises");
       }
       else if(tLowerLocalMeasT == "tensileenergydensity")
       {
-          return std::make_shared<Plato::TensileEnergyDensityLocalMeasure<EvaluationType>>
+          return std::make_shared<Plato::LocalMeasureTensileEnergyDensity<EvaluationType>>
               (aSpatialDomain, aDataMap, aProblemParams, "TensileEnergyDensity");
       }
       else

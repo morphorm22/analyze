@@ -33,11 +33,11 @@ if(EXPRESSION)
 endif()
 
 set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    elliptic/mechanical/TensileEnergyDensityLocalMeasure.cpp
+    elliptic/mechanical/LocalMeasureVonMises.cpp
+    elliptic/mechanical/LocalMeasureTensileEnergyDensity.cpp
     elliptic/mechanical/Plato_AugLagStressCriterionQuadratic.cpp
     elliptic/mechanical/Plato_AugLagStressCriterionGeneral.cpp
     elliptic/mechanical/CriterionAugLagStrength.cpp
-    elliptic/mechanical/VonMisesLocalMeasure.cpp
     ThermalVonMisesLocalMeasure.cpp
     optimizer/AugLagDataMng.cpp
 )

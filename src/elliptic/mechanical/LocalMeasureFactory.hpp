@@ -7,8 +7,8 @@
 #include "SimplexFadTypes.hpp"
 #include "AnalyzeMacros.hpp"
 
-#include "elliptic/mechanical/VonMisesLocalMeasure.hpp"
-#include "elliptic/mechanical/TensileEnergyDensityLocalMeasure.hpp"
+#include "elliptic/mechanical/LocalMeasureVonMises.hpp"
+#include "elliptic/mechanical/LocalMeasureTensileEnergyDensity.hpp"
 
 namespace Plato
 {
@@ -29,11 +29,11 @@ public:
 
         if(tLocalMeasure == "VonMises")
         {
-            return std::make_shared<VonMisesLocalMeasure<EvaluationType, SimplexPhysics>>(aInputParams, "VonMises");
+            return std::make_shared<LocalMeasureVonMises<EvaluationType, SimplexPhysics>>(aInputParams, "VonMises");
         }
         else if(tLocalMeasure == "TensileEnergyDensity")
         {
-            return std::make_shared<TensileEnergyDensityLocalMeasure<EvaluationType, SimplexPhysics>>
+            return std::make_shared<LocalMeasureTensileEnergyDensity<EvaluationType, SimplexPhysics>>
                                                              (aInputParams, "TensileEnergyDensity");
         }
         else
