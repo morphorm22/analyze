@@ -127,13 +127,13 @@ if(ELLIPTIC)
     elliptic/ScalarFunctionBaseFactory.cpp
     elliptic/PhysicsScalarFunction.cpp
     elliptic/MassPropertiesFunction.cpp
-    elliptic/VolAvgStressPNormDenominator.cpp
     elliptic/VolumeIntegralCriterion.cpp
     elliptic/Volume.cpp
     elliptic/mechanical/CriterionMassMoment.cpp
     elliptic/mechanical/CriterionStressPNorm.cpp
     elliptic/mechanical/CriterionEffectiveEnergy.cpp
     elliptic/mechanical/CriterionInternalElasticEnergy.cpp
+    elliptic/mechanical/CriterionVolAvgStressPNormDenominator.cpp
     elliptic/FluxPNorm.cpp
     elliptic/TMStressPNorm.cpp
     elliptic/EMStressPNorm.cpp

@@ -13,7 +13,7 @@ namespace Elliptic
 
 /******************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
-class VolAvgStressPNormDenominator : 
+class CriterionVolAvgStressPNormDenominator : 
   public EvaluationType::ElementType,
   public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
 /******************************************************************************/
@@ -43,7 +43,7 @@ class VolAvgStressPNormDenominator :
 
   public:
     /**************************************************************************/
-    VolAvgStressPNormDenominator(
+    CriterionVolAvgStressPNormDenominator(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap, 
               Teuchos::ParameterList & aProblemParams, 
@@ -71,7 +71,7 @@ class VolAvgStressPNormDenominator :
     void
     postEvaluate(Plato::Scalar& resultValue);
 };
-// class VolAvgStressPNormDenominator
+// class CriterionVolAvgStressPNormDenominator
 
 } // namespace Elliptic
 

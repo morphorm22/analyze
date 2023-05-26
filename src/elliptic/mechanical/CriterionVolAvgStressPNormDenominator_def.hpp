@@ -1,7 +1,5 @@
 #pragma once
 
-#include "VolAvgStressPNormDenominator_decl.hpp"
-
 #include "BLAS2.hpp"
 #include "SmallStrain.hpp"
 #include "LinearStress.hpp"
@@ -18,8 +16,8 @@ namespace Elliptic
 
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
-    VolAvgStressPNormDenominator<EvaluationType, IndicatorFunctionType>::
-    VolAvgStressPNormDenominator(
+    CriterionVolAvgStressPNormDenominator<EvaluationType, IndicatorFunctionType>::
+    CriterionVolAvgStressPNormDenominator(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap, 
               Teuchos::ParameterList & aProblemParams, 
@@ -43,7 +41,7 @@ namespace Elliptic
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    VolAvgStressPNormDenominator<EvaluationType, IndicatorFunctionType>::
+    CriterionVolAvgStressPNormDenominator<EvaluationType, IndicatorFunctionType>::
     evaluate_conditional(
         const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
@@ -97,7 +95,7 @@ namespace Elliptic
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    VolAvgStressPNormDenominator<EvaluationType, IndicatorFunctionType>::
+    CriterionVolAvgStressPNormDenominator<EvaluationType, IndicatorFunctionType>::
     postEvaluate( 
       Plato::ScalarVector resultVector,
       Plato::Scalar       resultScalar)
@@ -109,7 +107,7 @@ namespace Elliptic
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    VolAvgStressPNormDenominator<EvaluationType, IndicatorFunctionType>::
+    CriterionVolAvgStressPNormDenominator<EvaluationType, IndicatorFunctionType>::
     postEvaluate( Plato::Scalar& resultValue )
     /**************************************************************************/
     {
