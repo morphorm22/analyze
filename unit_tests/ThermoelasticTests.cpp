@@ -25,7 +25,7 @@
 #include "ScalarProduct.hpp"
 #include "WorksetBase.hpp"
 #include "elliptic/VectorFunction.hpp"
-#include "elliptic/PhysicsScalarFunction.hpp"
+#include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
 #include "elliptic/Problem.hpp"
 #include "StateValues.hpp"
 #include "ApplyConstraints.hpp"
@@ -252,7 +252,7 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   // create objective
   //
   std::string tMyFunction("Internal Thermoelastic Energy");
-  Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermomechanics<Plato::Tet4>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Thermomechanics<Plato::Tet4>>
     scalarFunction(tSpatialModel, tDataMap, *params, tMyFunction);
 
   // compute and test objective value

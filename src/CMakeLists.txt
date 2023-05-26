@@ -119,22 +119,22 @@ endif()
 ## elliptic sources
 if(ELLIPTIC)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    elliptic/Problem.cpp
-    elliptic/SolutionFunction.cpp
-    elliptic/DivisionFunction.cpp
-    elliptic/LeastSquaresFunction.cpp
-    elliptic/WeightedSumFunction.cpp
-    elliptic/ScalarFunctionBaseFactory.cpp
-    elliptic/PhysicsScalarFunction.cpp
-    elliptic/MassPropertiesFunction.cpp
     elliptic/Volume.cpp
+    elliptic/Problem.cpp
     elliptic/TMStressPNorm.cpp
     elliptic/EMStressPNorm.cpp
     elliptic/InternalThermoelasticEnergy.cpp
     elliptic/InternalElectroelasticEnergy.cpp
     elliptic/ElectroelastostaticResidual.cpp
     elliptic/ThermoelastostaticResidual.cpp
-    elliptic/VolumeAverageCriterion.cpp
+    elliptic/criterioneval/FactoryCriterionEvaluator.cpp
+    elliptic/criterioneval/CriterionEvaluatorDivision.cpp
+    elliptic/criterioneval/CriterionEvaluatorWeightedSum.cpp
+    elliptic/criterioneval/CriterionEvaluatorLeastSquares.cpp
+    elliptic/criterioneval/CriterionEvaluatorVolumeAverage.cpp
+    elliptic/criterioneval/CriterionEvaluatorScalarFunction.cpp
+    elliptic/criterioneval/CriterionEvaluatorMassProperties.cpp
+    elliptic/criterioneval/CriterionEvaluatorSolutionFunction.cpp
     elliptic/mechanical/ResidualElastostatic.cpp
     elliptic/mechanical/CriterionMassMoment.cpp
     elliptic/mechanical/CriterionStressPNorm.cpp

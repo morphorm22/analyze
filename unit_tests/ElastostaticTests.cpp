@@ -30,7 +30,7 @@
 #include "LinearStress.hpp"
 #include "GeneralStressDivergence.hpp"
 #include "elliptic/VectorFunction.hpp"
-#include "elliptic/PhysicsScalarFunction.hpp"
+#include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
 #include "geometric/GeometryScalarFunction.hpp"
 #include "ApplyConstraints.hpp"
 #include "elliptic/Problem.hpp"
@@ -540,7 +540,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   std::string tMyFunction("Internal Elastic Energy");
-  Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<Plato::Tet4>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Mechanics<Plato::Tet4>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
@@ -719,7 +719,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, StressPNorm3D )
   std::string tMyFunction("Globalized Stress");
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<Plato::Tet4>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Mechanics<Plato::Tet4>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
@@ -911,7 +911,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, EffectiveEnergy3D_ShearCellProblem )
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   std::string tMyFunction("Effective Energy");
-  Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<Plato::Tet4>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Mechanics<Plato::Tet4>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
@@ -1139,7 +1139,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, EffectiveEnergy3D_NormalCellProblem )
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   std::string tMyFunction("Effective Energy");
-  Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<Plato::Tet4>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Mechanics<Plato::Tet4>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 

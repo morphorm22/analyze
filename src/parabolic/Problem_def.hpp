@@ -10,7 +10,6 @@
 #include "AnalyzeMacros.hpp"
 #include "ApplyConstraints.hpp"
 #include "solver/PlatoAbstractSolver.hpp"
-#include "elliptic/ScalarFunctionBaseFactory.hpp"
 #include "parabolic/ScalarFunctionBaseFactory.hpp"
 #include "geometric/ScalarFunctionBaseFactory.hpp"
 

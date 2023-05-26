@@ -5,7 +5,7 @@
 #include "Tri3.hpp"
 #include "Mechanics.hpp"
 #include "solver/ParallelComm.hpp"
-#include "elliptic/SolutionFunction.hpp"
+#include "elliptic/criterioneval/CriterionEvaluatorSolutionFunction.hpp"
 
 
 /******************************************************************************/
@@ -85,7 +85,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D )
   // create objective
   //
   std::string tMyFunction("Displacement");
-  Plato::Elliptic::SolutionFunction<::Plato::Mechanics<Plato::Tri3>>
+  Plato::Elliptic::CriterionEvaluatorSolutionFunction<::Plato::Mechanics<Plato::Tri3>>
     scalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
@@ -216,7 +216,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D_Mag )
   // create objective
   //
   std::string tMyFunction("Displacement");
-  Plato::Elliptic::SolutionFunction<::Plato::Mechanics<Plato::Tri3>>
+  Plato::Elliptic::CriterionEvaluatorSolutionFunction<::Plato::Mechanics<Plato::Tri3>>
     scalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 

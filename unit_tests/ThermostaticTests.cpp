@@ -21,7 +21,7 @@
 #include "ScalarProduct.hpp"
 #include "WorksetBase.hpp"
 #include "elliptic/VectorFunction.hpp"
-#include "elliptic/PhysicsScalarFunction.hpp"
+#include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
 #include "geometric/GeometryScalarFunction.hpp"
 #include "ApplyConstraints.hpp"
 #include "elliptic/Problem.hpp"
@@ -292,7 +292,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalThermalEnergy3D )
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   std::string tMyFunction("Internal Thermal Energy");
-  Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermal<Plato::Tet4>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Thermal<Plato::Tet4>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
@@ -466,7 +466,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, FluxPNorm3D )
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   std::string tMyFunction("Flux P-Norm");
-  Plato::Elliptic::PhysicsScalarFunction<::Plato::Thermal<Plato::Tet4>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Thermal<Plato::Tet4>>
     scalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 

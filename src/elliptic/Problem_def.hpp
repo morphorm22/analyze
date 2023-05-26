@@ -10,8 +10,8 @@
 #include "ImplicitFunctors.hpp"
 #include "ApplyConstraints.hpp"
 #include "MultipointConstraints.hpp"
-#include "elliptic/ScalarFunctionBaseFactory.hpp"
 #include "geometric/ScalarFunctionBaseFactory.hpp"
+#include "elliptic/criterioneval/FactoryCriterionEvaluator.hpp"
 
 
 namespace Plato
@@ -615,7 +615,7 @@ namespace Elliptic
         if(aProblemParams.isSublist("Criteria"))
         {
             Plato::Geometric::ScalarFunctionBaseFactory<Plato::Geometrical<TopoElementType>> tLinearFunctionBaseFactory;
-            Plato::Elliptic::ScalarFunctionBaseFactory<PhysicsType> tNonlinearFunctionBaseFactory;
+            Plato::Elliptic::FactoryCriterionEvaluator<PhysicsType> tNonlinearFunctionBaseFactory;
 
             auto tCriteriaParams = aProblemParams.sublist("Criteria");
             for(Teuchos::ParameterList::ConstIterator tIndex = tCriteriaParams.begin(); tIndex != tCriteriaParams.end(); ++tIndex)

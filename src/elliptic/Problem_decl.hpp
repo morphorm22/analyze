@@ -6,8 +6,8 @@
 #include "PlatoAbstractProblem.hpp"
 #include "solver/PlatoSolverFactory.hpp"
 #include "elliptic/VectorFunction.hpp"
-#include "elliptic/ScalarFunctionBase.hpp"
 #include "geometric/ScalarFunctionBase.hpp"
+#include "elliptic/criterioneval/CriterionEvaluatorBase.hpp"
 
 namespace Plato
 {
@@ -23,7 +23,7 @@ class Problem: public Plato::AbstractProblem
 {
 private:
 
-    using Criterion       = std::shared_ptr<Plato::Elliptic::ScalarFunctionBase>;
+    using Criterion       = std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase>;
     using Criteria        = std::map<std::string, Criterion>;
 
     using LinearCriterion = std::shared_ptr<Plato::Geometric::ScalarFunctionBase>;

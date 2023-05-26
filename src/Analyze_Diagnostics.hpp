@@ -6,20 +6,21 @@
 
 #pragma once
 
+#include <Teuchos_XMLParameterListCoreHelpers.hpp>
+
 #include "BLAS1.hpp"
+#include "FadTypes.hpp"
+#include "TimeData.hpp"
 #include "Solutions.hpp"
 #include "PlatoMesh.hpp"
 #include "WorksetBase.hpp"
-#include "FadTypes.hpp"
 #include "PlatoMathHelpers.hpp"
+#include "ImplicitFunctors.hpp"
+
 #include "geometric/ScalarFunctionBase.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
-#include "elliptic/ScalarFunctionBase.hpp"
-//TODO #include "LocalVectorFunctionInc.hpp"
-#include "ImplicitFunctors.hpp"
-#include "TimeData.hpp"
+#include "elliptic/criterioneval/CriterionEvaluatorBase.hpp"
 
-#include <Teuchos_XMLParameterListCoreHelpers.hpp>
 
 namespace Plato
 {
@@ -391,7 +392,7 @@ inline void test_partial_control(Plato::Mesh aMesh,
 // function test_partial_control
 template<typename EvaluationType, typename ElementType>
 inline void test_partial_control(Plato::Mesh aMesh,
-                                 Plato::Elliptic::ScalarFunctionBase & aScalarFuncBase,
+                                 Plato::Elliptic::CriterionEvaluatorBase & aScalarFuncBase,
                                  Plato::OrdinalType aSuperscriptLowerBound = 1,
                                  Plato::OrdinalType aSuperscriptUpperBound = 10)
 {
@@ -473,7 +474,7 @@ inline void test_partial_control(Plato::Mesh aMesh,
  * \param [in] aCriterion scalar function (i.e. scalar criterion) interface
 **********************************************************************************/
 template<typename EvaluationType, typename ElementType>
-inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::ScalarFunctionBase & aScalarFuncBase)
+inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::CriterionEvaluatorBase & aScalarFuncBase)
 {
     using StateT = typename EvaluationType::StateScalarType;
     using ConfigT = typename EvaluationType::ConfigScalarType;

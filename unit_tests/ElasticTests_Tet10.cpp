@@ -25,7 +25,7 @@
 #include "WorksetBase.hpp"
 #include "elliptic/VectorFunction.hpp"
 #include "elliptic/EvaluationTypes.hpp"
-#include "elliptic/PhysicsScalarFunction.hpp"
+#include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
 #include "LinearStress.hpp"
 #include "GradientMatrix.hpp"
 #include "ApplyConstraints.hpp"
@@ -999,7 +999,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   std::string tMyFunction("Internal Elastic Energy");
-  Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<Plato::Tet10>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Mechanics<Plato::Tet10>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
@@ -1176,7 +1176,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, StressPNorm3D )
   std::string tMyFunction("Globalized Stress");
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
-  Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<spaceDim>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Mechanics<spaceDim>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 

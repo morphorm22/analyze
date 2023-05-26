@@ -19,7 +19,7 @@
 #include "PlatoMathHelpers.hpp"
 #include "PlatoMathFunctors.hpp"
 #include "Mechanics.hpp"
-#include "elliptic/PhysicsScalarFunction.hpp"
+#include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
 #include "elliptic/VectorFunction.hpp"
 #include "ApplyProjection.hpp"
 #include "AnalyzeMacros.hpp"
@@ -1158,7 +1158,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_MatrixTimesVectorPlusV
 
   Plato::SpatialModel tSpatialModel(tMesh, *tParams, tDataMap);
 
-  Plato::Elliptic::PhysicsScalarFunction<::Plato::Mechanics<Plato::Tet4>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Mechanics<Plato::Tet4>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParams, tMyFunction);
 
   Plato::Solutions tSolution;

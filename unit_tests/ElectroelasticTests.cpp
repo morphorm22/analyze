@@ -11,7 +11,7 @@
 #include "Tet4.hpp"
 #include "Electromechanics.hpp"
 #include "elliptic/VectorFunction.hpp"
-#include "elliptic/PhysicsScalarFunction.hpp"
+#include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
 
 #include <fenv.h>
 
@@ -240,7 +240,7 @@ TEUCHOS_UNIT_TEST( ElectroelasticTests, InternalElectroelasticEnergy3D )
   // create criterion
   //
   std::string tMyFunctionName("Internal Electroelastic Energy");
-  Plato::Elliptic::PhysicsScalarFunction<::Plato::Electromechanics<Plato::Tet4>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Electromechanics<Plato::Tet4>>
     scalarFunction(tSpatialModel, tDataMap, *params, tMyFunctionName);
 
   // compute and test criterion value

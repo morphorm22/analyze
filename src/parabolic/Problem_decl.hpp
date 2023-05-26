@@ -7,7 +7,6 @@
 #include "PlatoAbstractProblem.hpp"
 #include "solver/PlatoSolverFactory.hpp"
 #include "parabolic/VectorFunction.hpp"
-#include "elliptic/ScalarFunctionBase.hpp"
 #include "parabolic/ScalarFunctionBase.hpp"
 #include "geometric/ScalarFunctionBase.hpp"
 #include "parabolic/TrapezoidIntegrator.hpp"
