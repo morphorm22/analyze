@@ -2,12 +2,13 @@
 
 #include <memory>
 
+#include <Teuchos_ParameterList.hpp>
+
 #include "SimplexFadTypes.hpp"
 #include "AnalyzeMacros.hpp"
 
-#include "VonMisesLocalMeasure.hpp"
-#include "TensileEnergyDensityLocalMeasure.hpp"
-#include <Teuchos_ParameterList.hpp>
+#include "elliptic/mechanical/VonMisesLocalMeasure.hpp"
+#include "elliptic/mechanical/TensileEnergyDensityLocalMeasure.hpp"
 
 namespace Plato
 {

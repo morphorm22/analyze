@@ -2,7 +2,7 @@
 
 #include "PlatoStaticsTypes.hpp"
 #include "ThermoelasticMaterial.hpp"
-#include "AbstractLocalMeasure.hpp"
+#include "elliptic/AbstractLocalMeasure.hpp"
 
 namespace Plato
 {

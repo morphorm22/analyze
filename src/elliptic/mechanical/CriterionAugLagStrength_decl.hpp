@@ -13,7 +13,7 @@
 
 #include "SpatialModel.hpp"
 #include "PlatoStaticsTypes.hpp"
-#include "AbstractLocalMeasure.hpp"
+#include "elliptic/AbstractLocalMeasure.hpp"
 
 #include "optimizer/AugLagDataMng.hpp"
 #include "elliptic/EvaluationTypes.hpp"

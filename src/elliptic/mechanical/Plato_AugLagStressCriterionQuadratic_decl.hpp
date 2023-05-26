@@ -2,9 +2,9 @@
 
 #include <algorithm>
 
-#include "AbstractLocalMeasure.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
+#include "elliptic/AbstractLocalMeasure.hpp"
 
 namespace Plato
 {

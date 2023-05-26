@@ -3,11 +3,11 @@
  *
  */
 
-#include "VonMisesLocalMeasure_decl.hpp"
+#include "elliptic/mechanical/VonMisesLocalMeasure_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "VonMisesLocalMeasure_def.hpp"
+#include "elliptic/mechanical/VonMisesLocalMeasure_def.hpp"
 
 #include "MechanicsElement.hpp"
 #include "elliptic/ExpInstMacros.hpp"

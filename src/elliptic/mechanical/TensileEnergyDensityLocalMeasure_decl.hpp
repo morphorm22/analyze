@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AbstractLocalMeasure.hpp"
+#include "elliptic/AbstractLocalMeasure.hpp"
 
 namespace Plato
 {

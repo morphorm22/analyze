@@ -4,11 +4,11 @@
  *  Created on: Apr 2, 2019
  */
 
-#include "Plato_AugLagStressCriterionGeneral_decl.hpp"
+#include "elliptic/mechanical/Plato_AugLagStressCriterionGeneral_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "Plato_AugLagStressCriterionGeneral_def.hpp"
+#include "elliptic/mechanical/Plato_AugLagStressCriterionGeneral_def.hpp"
 
 #include "MechanicsElement.hpp"
 #include "elliptic/ExpInstMacros.hpp"

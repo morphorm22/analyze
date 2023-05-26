@@ -3,7 +3,7 @@
 #include "SmallStrain.hpp"
 #include "LinearStress.hpp"
 #include "GradientMatrix.hpp"
-#include "VonMisesYieldFunction.hpp"
+#include "elliptic/mechanical/VonMisesYieldFunction.hpp"
 
 namespace Plato
 {

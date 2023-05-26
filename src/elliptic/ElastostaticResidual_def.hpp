@@ -1,15 +1,13 @@
 #pragma once
 
-#include "elliptic/ElastostaticResidual_decl.hpp"
-
 #include "ToMap.hpp"
 #include "FadTypes.hpp"
 #include "PlatoTypes.hpp"
 #include "SmallStrain.hpp"
 #include "LinearStress.hpp"
 #include "GradientMatrix.hpp"
-#include "VonMisesYieldFunction.hpp"
 #include "GeneralStressDivergence.hpp"
+#include "elliptic/mechanical/VonMisesYieldFunction.hpp"
 
 namespace Plato
 {

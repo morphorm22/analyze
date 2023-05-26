@@ -16,9 +16,9 @@
 #include "elliptic/Volume.hpp"
 
 #include "MakeFunctions.hpp"
-#include "AbstractLocalMeasure.hpp"
+#include "elliptic/AbstractLocalMeasure.hpp"
 #include "AnalyzeMacros.hpp"
-#include "Plato_AugLagStressCriterionQuadratic.hpp"
+#include "elliptic/mechanical/Plato_AugLagStressCriterionQuadratic.hpp"
 #include "ThermalVonMisesLocalMeasure.hpp"
 
 namespace Plato

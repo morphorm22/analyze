@@ -3,11 +3,11 @@
  *
  */
 
-#include "Plato_AugLagStressCriterionQuadratic_decl.hpp"
+#include "elliptic/mechanical/Plato_AugLagStressCriterionQuadratic_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "Plato_AugLagStressCriterionQuadratic_def.hpp"
+#include "elliptic/mechanical/Plato_AugLagStressCriterionQuadratic_def.hpp"
 
 #include "MechanicsElement.hpp"
 #include "ThermomechanicsElement.hpp"

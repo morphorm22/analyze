@@ -19,15 +19,17 @@
 #include "IsotropicLinearElasticMaterial.hpp"
 #include "ThermalMassMaterial.hpp"
 #include "Eigenvalues.hpp"
-#include "Plato_AugLagStressCriterionGeneral.hpp"
-#include "Plato_AugLagStressCriterionQuadratic.hpp"
-#include "VonMisesLocalMeasure.hpp"
-#include "VonMisesYieldFunction.hpp"
-#include "TensileEnergyDensityLocalMeasure.hpp"
+
+#include "elliptic/mechanical/CriterionMassMoment.hpp"
+#include "elliptic/mechanical/Plato_AugLagStressCriterionGeneral.hpp"
+#include "elliptic/mechanical/Plato_AugLagStressCriterionQuadratic.hpp"
+#include "elliptic/mechanical/VonMisesLocalMeasure.hpp"
+#include "elliptic/mechanical/VonMisesYieldFunction.hpp"
+#include "elliptic/mechanical/TensileEnergyDensityLocalMeasure.hpp"
+
 #include "ThermalVonMisesLocalMeasure.hpp"
 #include "elliptic/WeightedSumFunction.hpp"
 #include "elliptic/PhysicsScalarFunction.hpp"
-#include "elliptic/mechanical/CriterionMassMoment.hpp"
 
 namespace AugLagStressTest
 {

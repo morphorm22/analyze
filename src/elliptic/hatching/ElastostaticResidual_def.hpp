@@ -7,9 +7,9 @@
 #include "GradientMatrix.hpp"
 #include "ApplyWeighting.hpp"
 #include "ElasticModelFactory.hpp"
-#include "VonMisesYieldFunction.hpp"
 #include "GeneralStressDivergence.hpp"
 #include "elliptic/hatching/LinearStress.hpp"
+#include "elliptic/mechanical/VonMisesYieldFunction.hpp"
 
 namespace Plato
 {

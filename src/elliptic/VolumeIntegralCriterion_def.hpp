@@ -1,7 +1,5 @@
 #pragma once
 
-#include "elliptic/VolumeIntegralCriterion_decl.hpp"
-
 #include "Simp.hpp"
 #include "PlatoMeshExpr.hpp"
 #include "ApplyWeighting.hpp"

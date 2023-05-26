@@ -18,8 +18,8 @@
 #include "GradientMatrix.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "Plato_TopOptFunctors.hpp"
-#include "VonMisesYieldFunction.hpp"
 #include "elliptic/EvaluationTypes.hpp"
+#include "elliptic/mechanical/VonMisesYieldFunction.hpp"
 
 namespace Plato
 {

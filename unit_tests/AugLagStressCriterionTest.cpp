@@ -15,10 +15,10 @@
 #include "Mechanics.hpp"
 #include "MechanicsElement.hpp"
 
-#include "elliptic/mechanical/CriterionMassMoment.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/WeightedSumFunction.hpp"
 #include "elliptic/PhysicsScalarFunction.hpp"
+#include "elliptic/mechanical/CriterionMassMoment.hpp"
 #include "elliptic//mechanical/CriterionAugLagStrength.hpp"
 
 
