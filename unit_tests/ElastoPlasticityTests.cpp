@@ -11,8 +11,6 @@
 #include "Analyze_Diagnostics.hpp"
 
 #include "PlasticityProblem.hpp"
-#include "SimplexStabilizedMechanics.hpp"
-#include "StabilizedElastostaticResidual.hpp"
 #include "ComputeDeviatoricStrain.hpp"
 #include "TimeData.hpp"
 

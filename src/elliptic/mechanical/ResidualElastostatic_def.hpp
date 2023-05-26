@@ -23,7 +23,7 @@ namespace Elliptic
      * \param [in] aPenaltyParams input parameters for penalty function
     **********************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
-    ElastostaticResidual<EvaluationType, IndicatorFunctionType>::ElastostaticResidual(
+    ResidualElastostatic<EvaluationType, IndicatorFunctionType>::ResidualElastostatic(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
@@ -82,7 +82,7 @@ namespace Elliptic
     ********************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     Plato::Solutions
-    ElastostaticResidual<EvaluationType, IndicatorFunctionType>::
+    ResidualElastostatic<EvaluationType, IndicatorFunctionType>::
     getSolutionStateOutputData(const Plato::Solutions &aSolutions) const
     {
       // No scaling, addition, or removal of data necessary for this physics.
@@ -103,7 +103,7 @@ namespace Elliptic
     **********************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    ElastostaticResidual<EvaluationType, IndicatorFunctionType>::evaluate(
+    ResidualElastostatic<EvaluationType, IndicatorFunctionType>::evaluate(
         const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
@@ -205,7 +205,7 @@ namespace Elliptic
     **********************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    ElastostaticResidual<EvaluationType, IndicatorFunctionType>::evaluate_boundary(
+    ResidualElastostatic<EvaluationType, IndicatorFunctionType>::evaluate_boundary(
         const Plato::SpatialModel                           & aSpatialModel,
         const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
@@ -227,7 +227,7 @@ namespace Elliptic
     **************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    ElastostaticResidual<EvaluationType, IndicatorFunctionType>::outputVonMises(
+    ResidualElastostatic<EvaluationType, IndicatorFunctionType>::outputVonMises(
         const Plato::ScalarMultiVectorT<ResultScalarType> & aCauchyStress,
         const Plato::SpatialDomain                        & aSpatialDomain
     ) const

@@ -22,7 +22,7 @@ namespace Elliptic
  * \tparam IndicatorFunctionType penalty function used for density-based methods
 **********************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
-class ElastostaticResidual : 
+class ResidualElastostatic : 
     public EvaluationType::ElementType,
     public Plato::Elliptic::AbstractVectorFunction<EvaluationType>
 {
@@ -65,7 +65,7 @@ public:
      * \param [in] aProblemParams input parameters for overall problem
      * \param [in] aPenaltyParams input parameters for penalty function
     **********************************************************************************/
-    ElastostaticResidual(
+    ResidualElastostatic(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
@@ -133,7 +133,7 @@ public:
         const Plato::SpatialDomain                        & aSpatialDomain
     ) const;
 };
-// class ElastostaticResidual
+// class ResidualElastostatic
 
 } // namespace Elliptic
 

@@ -5,20 +5,21 @@
 
 #include "parabolic/AbstractScalarFunction.hpp"
 
-#include "elliptic/ElastostaticResidual.hpp"
+#include "elliptic/mechanical/ResidualElastostatic.hpp"
+
+#include "elliptic/mechanical/LocalMeasureVonMises.hpp"
+#include "elliptic/mechanical/LocalMeasureTensileEnergyDensity.hpp"
 
 #include "elliptic/Volume.hpp"
 #include "elliptic/mechanical/CriterionStressPNorm.hpp"
 #include "elliptic/mechanical/CriterionEffectiveEnergy.hpp"
 #include "elliptic/mechanical/CriterionMassMoment.hpp"
 #include "elliptic/mechanical/CriterionAugLagStrength.hpp"
-#include "elliptic/mechanical/LocalMeasureTensileEnergyDensity.hpp"
-#include "elliptic/mechanical/LocalMeasureVonMises.hpp"
+#include "elliptic/mechanical/CriterionVolumeIntegral.hpp"
 #include "elliptic/mechanical/CriterionInternalElasticEnergy.hpp"
 #include "elliptic/mechanical/CriterionVolumeAverageDenominator.hpp"
 #include "elliptic/mechanical/CriterionVolAvgStressPNormDenominator.hpp"
 #include "elliptic/mechanical/Plato_AugLagStressCriterionGeneral.hpp"
-#include "elliptic/VolumeIntegralCriterion.hpp"
 
 #include "MakeFunctions.hpp"
 #include "AnalyzeMacros.hpp"
@@ -131,8 +132,8 @@ volume_integral_criterion_for_volume_average(
 {
     auto tLocalMeasure = Plato::MechanicsFactory::create_local_measure<EvaluationType>(aSpatialDomain, aDataMap, aProblemParams, aFuncName);
 
-    std::shared_ptr<Plato::Elliptic::VolumeIntegralCriterion<EvaluationType>> tOutput;
-    tOutput = std::make_shared<Plato::Elliptic::VolumeIntegralCriterion<EvaluationType>>
+    std::shared_ptr<Plato::Elliptic::CriterionVolumeIntegral<EvaluationType>> tOutput;
+    tOutput = std::make_shared<Plato::Elliptic::CriterionVolumeIntegral<EvaluationType>>
         (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
 
     tOutput->setVolumeIntegratedQuantity(tLocalMeasure);
@@ -207,7 +208,7 @@ struct FunctionFactory
         auto tLowerPDE = Plato::tolower(aPDE);
         if(tLowerPDE == "elliptic")
         {
-            return Plato::makeVectorFunction<EvaluationType, Plato::Elliptic::ElastostaticResidual>
+            return Plato::makeVectorFunction<EvaluationType, Plato::Elliptic::ResidualElastostatic>
                      (aSpatialDomain, aDataMap, aProblemParams, aPDE);
         }
         else
