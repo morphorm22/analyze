@@ -16,7 +16,7 @@ namespace Elliptic
  * @tparam IndicatorFunctionType penalty function (e.g. simp)
 **********************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
-class EffectiveEnergy : 
+class CriterionEffectiveEnergy : 
   public EvaluationType::ElementType,
   public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
 {
@@ -49,7 +49,7 @@ class EffectiveEnergy :
 
   public:
     /**************************************************************************/
-    EffectiveEnergy(
+    CriterionEffectiveEnergy(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
@@ -67,7 +67,7 @@ class EffectiveEnergy :
               Plato::Scalar aTimeStep = 0.0
     ) const override;
 };
-// class EffectiveEnergy
+// class CriterionEffectiveEnergy
 
 } // namespace Elliptic
 

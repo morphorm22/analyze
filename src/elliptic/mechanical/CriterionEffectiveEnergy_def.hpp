@@ -1,7 +1,5 @@
 #pragma once
 
-#include "elliptic/EffectiveEnergy_decl.hpp"
-
 #include "ToMap.hpp"
 #include "FadTypes.hpp"
 #include "SmallStrain.hpp"
@@ -17,7 +15,7 @@ namespace Elliptic
 {
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
-    EffectiveEnergy<EvaluationType, IndicatorFunctionType>::EffectiveEnergy(
+    CriterionEffectiveEnergy<EvaluationType, IndicatorFunctionType>::CriterionEffectiveEnergy(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
@@ -59,7 +57,7 @@ namespace Elliptic
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void 
-    EffectiveEnergy<EvaluationType, IndicatorFunctionType>::evaluate_conditional(
+    CriterionEffectiveEnergy<EvaluationType, IndicatorFunctionType>::evaluate_conditional(
         const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,

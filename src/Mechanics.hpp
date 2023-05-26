@@ -7,9 +7,10 @@
 
 #include "elliptic/AbstractScalarFunction.hpp"
 #include "elliptic/ElastostaticResidual.hpp"
-#include "elliptic/mechanical/CriterionStressPNorm.hpp"
-#include "elliptic/EffectiveEnergy.hpp"
+
 #include "elliptic/Volume.hpp"
+#include "elliptic/mechanical/CriterionStressPNorm.hpp"
+#include "elliptic/mechanical/CriterionEffectiveEnergy.hpp"
 #include "elliptic/mechanical/CriterionMassMoment.hpp"
 #include "elliptic/AugLagStrengthCriterion.hpp"
 #include "elliptic/VolumeIntegralCriterion.hpp"
@@ -269,7 +270,7 @@ struct FunctionFactory
         }
         else if(tLowerFuncType == "effective energy")
         {
-            return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::EffectiveEnergy>
+            return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::CriterionEffectiveEnergy>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else if(tLowerFuncType == "volume")

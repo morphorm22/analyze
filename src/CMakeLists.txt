@@ -132,10 +132,10 @@ if(ELLIPTIC)
     elliptic/Volume.cpp
     elliptic/mechanical/CriterionMassMoment.cpp
     elliptic/mechanical/CriterionStressPNorm.cpp
+    elliptic/mechanical/CriterionEffectiveEnergy.cpp
     elliptic/FluxPNorm.cpp
     elliptic/TMStressPNorm.cpp
     elliptic/EMStressPNorm.cpp
-    elliptic/EffectiveEnergy.cpp
     elliptic/InternalThermalEnergy.cpp
     elliptic/InternalThermoelasticEnergy.cpp
     elliptic/InternalElectroelasticEnergy.cpp
