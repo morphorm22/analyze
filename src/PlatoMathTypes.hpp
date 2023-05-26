@@ -69,8 +69,10 @@ namespace Plato
                 int k = 0;
                 for (ScalarType v : l) { mData[k] = v; ++k; }
             }
-            KOKKOS_INLINE_FUNCTION ScalarType& operator()(int i, int j)       { return mData[i*N+j]; }
-            KOKKOS_INLINE_FUNCTION ScalarType  operator()(int i, int j) const { return mData[i*N+j]; }
+            KOKKOS_INLINE_FUNCTION ScalarType& operator()(int i, int j)       
+              { return mData[i*N+j]; }
+            KOKKOS_INLINE_FUNCTION ScalarType  operator()(int i, int j) const 
+              { return mData[i*N+j]; }
 
             KOKKOS_INLINE_FUNCTION Plato::Array<N, ScalarType> operator()(int iRow) const
             {
