@@ -1,7 +1,5 @@
 #pragma once
 
-#include "elliptic/InternalThermalEnergy_decl.hpp"
-
 #include "FadTypes.hpp"
 #include "ScalarGrad.hpp"
 #include "ThermalFlux.hpp"
@@ -22,7 +20,7 @@ namespace Elliptic
      * \param aPenaltyParams input database for penalty function
     **********************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
-    InternalThermalEnergy<EvaluationType, IndicatorFunctionType>::InternalThermalEnergy(
+    CriterionInternalThermalEnergy<EvaluationType, IndicatorFunctionType>::CriterionInternalThermalEnergy(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
@@ -46,7 +44,7 @@ namespace Elliptic
      * \param [in] aTimeStep time step (default = 0)
     **********************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
-    void InternalThermalEnergy<EvaluationType, IndicatorFunctionType>::evaluate_conditional(
+    void CriterionInternalThermalEnergy<EvaluationType, IndicatorFunctionType>::evaluate_conditional(
         const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,

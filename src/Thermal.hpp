@@ -12,9 +12,9 @@
 
 #include "elliptic/AbstractVectorFunction.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
-#include "elliptic/ThermostaticResidual.hpp"
-#include "elliptic/InternalThermalEnergy.hpp"
-#include "elliptic/FluxPNorm.hpp"
+#include "elliptic/thermal/ResidualThermostatic.hpp"
+#include "elliptic/thermal/CriterionInternalThermalEnergy.hpp"
+#include "elliptic/thermal/CriterionFluxPNorm.hpp"
 
 #include "MakeFunctions.hpp"
 
@@ -37,7 +37,7 @@ struct FunctionFactory{
         auto tLowerPDE = Plato::tolower(aPDE);
         if(tLowerPDE == "elliptic")
         {
-            return Plato::makeVectorFunction<EvaluationType, Plato::Elliptic::ThermostaticResidual>
+            return Plato::makeVectorFunction<EvaluationType, Plato::Elliptic::ResidualThermostatic>
                      (aSpatialDomain, aDataMap, aProblemParams, aPDE);
         }
         else
@@ -84,12 +84,12 @@ struct FunctionFactory{
         auto tLowerFuncType = Plato::tolower(aFuncType);
         if(tLowerFuncType == "internal thermal energy")
         {
-            return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::InternalThermalEnergy>
+            return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::CriterionInternalThermalEnergy>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         } else
         if( tLowerFuncType == "flux p-norm" )
         {
-            return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::FluxPNorm>
+            return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::CriterionFluxPNorm>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else

@@ -17,7 +17,7 @@ namespace Elliptic
  * @tparam IndicatorFunctionType penalty function (e.g. simp)
 **********************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
-class InternalThermalEnergy : 
+class CriterionInternalThermalEnergy : 
   public EvaluationType::ElementType,
   public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
 {
@@ -49,7 +49,7 @@ class InternalThermalEnergy :
      * \param aProblemParams input database for overall problem
      * \param aPenaltyParams input database for penalty function
     **********************************************************************************/
-    InternalThermalEnergy(
+    CriterionInternalThermalEnergy(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
@@ -73,7 +73,7 @@ class InternalThermalEnergy :
               Plato::Scalar aTimeStep = 0.0
     ) const override;
 };
-// class InternalThermalEnergy
+// class CriterionInternalThermalEnergy
 
 } // namespace Elliptic
 

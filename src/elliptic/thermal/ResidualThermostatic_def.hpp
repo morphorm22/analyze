@@ -1,7 +1,5 @@
 #pragma once
 
-#include "elliptic/ThermostaticResidual_decl.hpp"
-
 #include "ToMap.hpp"
 #include "FadTypes.hpp"
 #include "ScalarGrad.hpp"
@@ -17,7 +15,7 @@ namespace Elliptic
 {
 
     template<typename EvaluationType, typename IndicatorFunctionType>
-    ThermostaticResidual<EvaluationType, IndicatorFunctionType>::ThermostaticResidual(
+    ResidualThermostatic<EvaluationType, IndicatorFunctionType>::ResidualThermostatic(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
@@ -64,7 +62,7 @@ namespace Elliptic
     * \return output state solution database
     ********************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
-    Plato::Solutions ThermostaticResidual<EvaluationType, IndicatorFunctionType>::
+    Plato::Solutions ResidualThermostatic<EvaluationType, IndicatorFunctionType>::
     getSolutionStateOutputData(const Plato::Solutions &aSolutions) const 
     {
       return aSolutions;
@@ -73,7 +71,7 @@ namespace Elliptic
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    ThermostaticResidual<EvaluationType, IndicatorFunctionType>::evaluate(
+    ResidualThermostatic<EvaluationType, IndicatorFunctionType>::evaluate(
         const Plato::ScalarMultiVectorT <StateScalarType  > & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType > & aConfig,
@@ -161,7 +159,7 @@ namespace Elliptic
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    ThermostaticResidual<EvaluationType, IndicatorFunctionType>::evaluate_boundary(
+    ResidualThermostatic<EvaluationType, IndicatorFunctionType>::evaluate_boundary(
         const Plato::SpatialModel                           & aSpatialModel,
         const Plato::ScalarMultiVectorT <StateScalarType  > & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,

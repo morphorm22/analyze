@@ -14,7 +14,7 @@ namespace Elliptic
 
 /******************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
-class ThermostaticResidual : 
+class ResidualThermostatic : 
   public EvaluationType::ElementType,
   public Plato::Elliptic::AbstractVectorFunction<EvaluationType>
 /******************************************************************************/
@@ -50,7 +50,7 @@ class ThermostaticResidual :
 
   public:
     /**************************************************************************/
-    ThermostaticResidual(
+    ResidualThermostatic(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
@@ -85,7 +85,7 @@ class ThermostaticResidual :
               Plato::Scalar aTimeStep = 0.0
     ) const override;
 };
-// class ThermostaticResidual
+// class ResidualThermostatic
 
 } // namespace Elliptic
 

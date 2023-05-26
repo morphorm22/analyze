@@ -1,7 +1,5 @@
 #pragma once
 
-#include "elliptic/FluxPNorm_decl.hpp"
-
 #include "FadTypes.hpp"
 #include "ScalarGrad.hpp"
 #include "VectorPNorm.hpp"
@@ -17,7 +15,7 @@ namespace Elliptic
 {
 
     template<typename EvaluationType, typename IndicatorFunctionType>
-    FluxPNorm<EvaluationType, IndicatorFunctionType>::FluxPNorm(
+    CriterionFluxPNorm<EvaluationType, IndicatorFunctionType>::CriterionFluxPNorm(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap, 
               Teuchos::ParameterList & aProblemParams, 
@@ -39,7 +37,7 @@ namespace Elliptic
 
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
-    void FluxPNorm<EvaluationType, IndicatorFunctionType>::evaluate_conditional(
+    void CriterionFluxPNorm<EvaluationType, IndicatorFunctionType>::evaluate_conditional(
         const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
@@ -105,7 +103,7 @@ namespace Elliptic
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    FluxPNorm<EvaluationType, IndicatorFunctionType>::postEvaluate( 
+    CriterionFluxPNorm<EvaluationType, IndicatorFunctionType>::postEvaluate( 
       Plato::ScalarVector resultVector,
       Plato::Scalar       resultScalar)
     /**************************************************************************/
@@ -121,7 +119,7 @@ namespace Elliptic
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    FluxPNorm<EvaluationType, IndicatorFunctionType>::postEvaluate( Plato::Scalar& resultValue )
+    CriterionFluxPNorm<EvaluationType, IndicatorFunctionType>::postEvaluate( Plato::Scalar& resultValue )
     /**************************************************************************/
     {
       resultValue = pow(resultValue, 1.0/mExponent);

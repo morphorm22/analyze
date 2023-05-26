@@ -128,6 +128,13 @@ if(ELLIPTIC)
     elliptic/PhysicsScalarFunction.cpp
     elliptic/MassPropertiesFunction.cpp
     elliptic/Volume.cpp
+    elliptic/TMStressPNorm.cpp
+    elliptic/EMStressPNorm.cpp
+    elliptic/InternalThermoelasticEnergy.cpp
+    elliptic/InternalElectroelasticEnergy.cpp
+    elliptic/ElectroelastostaticResidual.cpp
+    elliptic/ThermoelastostaticResidual.cpp
+    elliptic/VolumeAverageCriterion.cpp
     elliptic/mechanical/ResidualElastostatic.cpp
     elliptic/mechanical/CriterionMassMoment.cpp
     elliptic/mechanical/CriterionStressPNorm.cpp
@@ -136,16 +143,9 @@ if(ELLIPTIC)
     elliptic/mechanical/CriterionInternalElasticEnergy.cpp
     elliptic/mechanical/CriterionVolAvgStressPNormDenominator.cpp
     elliptic/mechanical/CriterionVolumeAverageDenominator.cpp
-    elliptic/FluxPNorm.cpp
-    elliptic/TMStressPNorm.cpp
-    elliptic/EMStressPNorm.cpp
-    elliptic/InternalThermalEnergy.cpp
-    elliptic/InternalThermoelasticEnergy.cpp
-    elliptic/InternalElectroelasticEnergy.cpp
-    elliptic/ThermostaticResidual.cpp
-    elliptic/ElectroelastostaticResidual.cpp
-    elliptic/ThermoelastostaticResidual.cpp
-    elliptic/VolumeAverageCriterion.cpp
+    elliptic/thermal/ResidualThermostatic.cpp
+    elliptic/thermal/CriterionFluxPNorm.cpp
+    elliptic/thermal/CriterionInternalThermalEnergy.cpp
     elliptic/electrical/SupportedOptionEnums.cpp
     elliptic/electrical/FactorySourceEvaluator.cpp
     elliptic/electrical/SourceWeightedSum.cpp

@@ -12,7 +12,7 @@ namespace Elliptic
 
 /******************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
-class FluxPNorm : 
+class CriterionFluxPNorm : 
   public EvaluationType::ElementType,
   public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
 /******************************************************************************/
@@ -42,7 +42,7 @@ class FluxPNorm :
 
   public:
     /**************************************************************************/
-    FluxPNorm(
+    CriterionFluxPNorm(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap, 
               Teuchos::ParameterList & aProblemParams, 
@@ -69,7 +69,7 @@ class FluxPNorm :
     void
     postEvaluate( Plato::Scalar& resultValue );
 };
-// class FluxPNorm
+// class CriterionFluxPNorm
 
 } // namespace Elliptic
 
