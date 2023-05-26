@@ -5,7 +5,6 @@
 
 #include "parabolic/AbstractScalarFunction.hpp"
 
-#include "elliptic/AbstractScalarFunction.hpp"
 #include "elliptic/ElastostaticResidual.hpp"
 
 #include "elliptic/Volume.hpp"
