@@ -1,5 +1,5 @@
 /*
- * AugLagStrengthCriterion_decl.hpp
+ * CriterionAugLagStrength_decl.hpp
  *
  *  Created on: May 4, 2023
  */
@@ -28,7 +28,7 @@ namespace Plato
  *         type for scalar function (e.g. Residual, Jacobian, GradientZ, etc.)
 **********************************************************************************/
 template<typename EvaluationType>
-class AugLagStrengthCriterion :
+class CriterionAugLagStrength :
     public EvaluationType::ElementType,
     public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
 {
@@ -73,7 +73,7 @@ public:
      * \param [in] aParams        input parameters database
      * \param [in] aFuncName      user-defined criterion name
     **********************************************************************************/
-    AugLagStrengthCriterion(
+    CriterionAugLagStrength(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aParams,
@@ -83,7 +83,7 @@ public:
     /******************************************************************************//**
      * \brief Destructor
     **********************************************************************************/
-    ~AugLagStrengthCriterion(){}
+    ~CriterionAugLagStrength(){}
 
     void 
     setLocalMeasure(

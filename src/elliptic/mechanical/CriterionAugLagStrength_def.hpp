@@ -1,12 +1,10 @@
 /*
- * AugLagStrengthCriterion_def.hpp
+ * CriterionAugLagStrength_def.hpp
  *
  *  Created on: May 4, 2023
  */
 
 #pragma once
-
-#include "elliptic/AugLagStrengthCriterion_decl.hpp"
 
 #include "Simp.hpp"
 #include "ToMap.hpp"
@@ -17,8 +15,8 @@ namespace Plato
 {
 
 template<typename EvaluationType>
-AugLagStrengthCriterion<EvaluationType>::
-AugLagStrengthCriterion(
+CriterionAugLagStrength<EvaluationType>::
+CriterionAugLagStrength(
     const Plato::SpatialDomain   & aSpatialDomain,
           Plato::DataMap         & aDataMap,
           Teuchos::ParameterList & aParams,
@@ -31,7 +29,7 @@ AugLagStrengthCriterion(
 
 template<typename EvaluationType>
 void 
-AugLagStrengthCriterion<EvaluationType>::
+CriterionAugLagStrength<EvaluationType>::
 setLocalMeasure(
     const std::shared_ptr<AbstractLocalMeasure<EvaluationType>> & aInputEvaluationType,
     const std::shared_ptr<AbstractLocalMeasure<Residual>>       & aInputPODType
@@ -43,7 +41,7 @@ setLocalMeasure(
 
 template<typename EvaluationType>
 void 
-AugLagStrengthCriterion<EvaluationType>::
+CriterionAugLagStrength<EvaluationType>::
 updateProblem(
     const Plato::ScalarMultiVector & aStateWS,
     const Plato::ScalarMultiVector & aControlWS,
@@ -57,7 +55,7 @@ updateProblem(
 
 template<typename EvaluationType>
 void 
-AugLagStrengthCriterion<EvaluationType>::
+CriterionAugLagStrength<EvaluationType>::
 evaluate_conditional(
     const Plato::ScalarMultiVectorT <StateT>   & aStateWS,
     const Plato::ScalarMultiVectorT <ControlT> & aControlWS,
@@ -130,7 +128,7 @@ evaluate_conditional(
 
 template<typename EvaluationType>
 void 
-AugLagStrengthCriterion<EvaluationType>::
+CriterionAugLagStrength<EvaluationType>::
 initialize(Teuchos::ParameterList & aParams)
 {
     this->parseNumerics(aParams);
@@ -142,7 +140,7 @@ initialize(Teuchos::ParameterList & aParams)
 
 template<typename EvaluationType>
 void
-AugLagStrengthCriterion<EvaluationType>::
+CriterionAugLagStrength<EvaluationType>::
 parseNumerics(Teuchos::ParameterList & aParams)
 {
     Teuchos::ParameterList & tParams = 
@@ -154,7 +152,7 @@ parseNumerics(Teuchos::ParameterList & aParams)
 
 template<typename EvaluationType>
 void 
-AugLagStrengthCriterion<EvaluationType>::
+CriterionAugLagStrength<EvaluationType>::
 parseLimits(Teuchos::ParameterList & aParams)
 {
     Teuchos::ParameterList &tParams = 
@@ -164,7 +162,7 @@ parseLimits(Teuchos::ParameterList & aParams)
 
 template<typename EvaluationType>
 void 
-AugLagStrengthCriterion<EvaluationType>::
+CriterionAugLagStrength<EvaluationType>::
 evaluateCurrentConstraints(
     const Plato::ScalarMultiVector &aStateWS,
     const Plato::ScalarMultiVector &aControlWS,

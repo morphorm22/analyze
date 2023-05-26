@@ -12,7 +12,7 @@
 #include "elliptic/mechanical/CriterionStressPNorm.hpp"
 #include "elliptic/mechanical/CriterionEffectiveEnergy.hpp"
 #include "elliptic/mechanical/CriterionMassMoment.hpp"
-#include "elliptic/AugLagStrengthCriterion.hpp"
+#include "elliptic/mechanical/CriterionAugLagStrength.hpp"
 #include "elliptic/VolumeIntegralCriterion.hpp"
 #include "elliptic/VolumeAverageCriterionDenominator.hpp"
 #include "TensileEnergyDensityLocalMeasure.hpp"
@@ -112,8 +112,8 @@ strength_constraint(
     auto PODMeasure = Plato::MechanicsFactory::create_local_measure<Residual>
                             (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
 
-    std::shared_ptr<Plato::AugLagStrengthCriterion<EvaluationType>> tOutput;
-    tOutput = std::make_shared< Plato::AugLagStrengthCriterion<EvaluationType> >
+    std::shared_ptr<Plato::CriterionAugLagStrength<EvaluationType>> tOutput;
+    tOutput = std::make_shared< Plato::CriterionAugLagStrength<EvaluationType> >
                             (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
     tOutput->setLocalMeasure(EvalMeasure, PODMeasure);
     return (tOutput);

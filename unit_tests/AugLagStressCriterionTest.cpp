@@ -19,7 +19,7 @@
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/WeightedSumFunction.hpp"
 #include "elliptic/PhysicsScalarFunction.hpp"
-#include "elliptic/AugLagStrengthCriterion.hpp"
+#include "elliptic//mechanical/CriterionAugLagStrength.hpp"
 
 
 namespace AugLagStressCriterionTest
@@ -340,7 +340,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_Evaluate_Vo
 
     // create criterion
     auto tOnlyDomainDefined = tSpatialModel.Domains.front();
-    Plato::AugLagStrengthCriterion<Residual> tCriterion(tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
+    Plato::CriterionAugLagStrength<Residual> tCriterion(tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     
     // create material model
     constexpr Plato::Scalar tYoungsModulus = 1;
@@ -542,7 +542,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_Evaluate_Vo
 
     // create criterion
     auto tOnlyDomainDefined = tSpatialModel.Domains.front();
-    Plato::AugLagStrengthCriterion<Residual> tCriterion(tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
+    Plato::CriterionAugLagStrength<Residual> tCriterion(tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     
     // create material model
     constexpr Plato::Scalar tYoungsModulus = 1;
@@ -604,10 +604,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
                                         (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
 
     // create stress criterion
-    const auto tCriterionResidual = std::make_shared<Plato::AugLagStrengthCriterion<Residual>>(
+    const auto tCriterionResidual = std::make_shared<Plato::CriterionAugLagStrength<Residual>>(
                                       tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
-    const auto tCriterionGradZ = std::make_shared<Plato::AugLagStrengthCriterion<GradientZ>>(
+    const auto tCriterionGradZ = std::make_shared<Plato::CriterionAugLagStrength<GradientZ>>(
                                     tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
 
@@ -655,10 +655,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
                                         (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
 
     // create stress criterion
-    const auto tCriterionResidual = std::make_shared<Plato::AugLagStrengthCriterion<Residual>>(
+    const auto tCriterionResidual = std::make_shared<Plato::CriterionAugLagStrength<Residual>>(
                                       tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
-    const auto tCriterionGradZ = std::make_shared<Plato::AugLagStrengthCriterion<GradientZ>>(
+    const auto tCriterionGradZ = std::make_shared<Plato::CriterionAugLagStrength<GradientZ>>(
                                     tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
 
@@ -706,10 +706,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
                                         (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
 
     // create stress criterion
-    const auto tCriterionResidual = std::make_shared<Plato::AugLagStrengthCriterion<Residual>>(
+    const auto tCriterionResidual = std::make_shared<Plato::CriterionAugLagStrength<Residual>>(
                                       tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
-    const auto tCriterionGradZ = std::make_shared<Plato::AugLagStrengthCriterion<GradientU>>(
+    const auto tCriterionGradZ = std::make_shared<Plato::CriterionAugLagStrength<GradientU>>(
                                     tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
 
@@ -757,10 +757,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
                                         (tOnlyDomainDefined, tDataMap, tCellStiffMatrix, "VonMises");
 
     // create stress criterion
-    const auto tCriterionResidual = std::make_shared<Plato::AugLagStrengthCriterion<Residual>>(
+    const auto tCriterionResidual = std::make_shared<Plato::CriterionAugLagStrength<Residual>>(
                                       tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionResidual->setLocalMeasure(tLocalMeasurePODType, tLocalMeasurePODType);
-    const auto tCriterionGradZ = std::make_shared<Plato::AugLagStrengthCriterion<GradientU>>(
+    const auto tCriterionGradZ = std::make_shared<Plato::CriterionAugLagStrength<GradientU>>(
                                     tOnlyDomainDefined,tDataMap,*tGenericParamListTwo,"My Stress");
     tCriterionGradZ->setLocalMeasure(tLocalMeasureGradZ, tLocalMeasurePODType);
 
