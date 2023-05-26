@@ -1,7 +1,5 @@
 #pragma once
 
-#include "elliptic/InternalElasticEnergy_decl.hpp"
-
 #include "ToMap.hpp"
 #include "FadTypes.hpp"
 #include "SmallStrain.hpp"
@@ -22,7 +20,7 @@ namespace Elliptic
      * \param aPenaltyParams input database for penalty function
     **********************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
-    InternalElasticEnergy<EvaluationType, IndicatorFunctionType>::InternalElasticEnergy(
+    CriterionInternalElasticEnergy<EvaluationType, IndicatorFunctionType>::CriterionInternalElasticEnergy(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
@@ -47,7 +45,7 @@ namespace Elliptic
     **********************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    InternalElasticEnergy<EvaluationType, IndicatorFunctionType>::evaluate_conditional(
+    CriterionInternalElasticEnergy<EvaluationType, IndicatorFunctionType>::evaluate_conditional(
         const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,

@@ -926,7 +926,7 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D_Solution )
 /******************************************************************************/
 /*! 
   \brief Compute value and both gradients (wrt state and control) of 
-         InternalElasticEnergy in 3D.
+         CriterionInternalElasticEnergy in 3D.
 */
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
@@ -1098,7 +1098,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
 /******************************************************************************/
 /*! 
   \brief Compute value and both gradients (wrt state and control) of 
-         InternalElasticEnergy in 3D.
+         CriterionInternalElasticEnergy in 3D.
 */
 /******************************************************************************/
 TEUCHOS_UNIT_TEST( DerivativeTests, StressPNorm3D )

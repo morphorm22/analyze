@@ -17,12 +17,12 @@
 #include "elliptic/mechanical/LocalMeasureTensileEnergyDensity.hpp"
 #include "elliptic/mechanical/LocalMeasureVonMises.hpp"
 #include "elliptic/mechanical/Plato_AugLagStressCriterionGeneral.hpp"
+#include "elliptic/mechanical/CriterionInternalElasticEnergy.hpp"
 #include "elliptic/VolAvgStressPNormDenominator.hpp"
 #include "IntermediateDensityPenalty.hpp"
 
 #include "MakeFunctions.hpp"
 
-#include "elliptic/InternalElasticEnergy.hpp"
 
 #include "AnalyzeMacros.hpp"
 
@@ -258,7 +258,7 @@ struct FunctionFactory
         auto tLowerFuncType = Plato::tolower(aFuncType);
         if(tLowerFuncType == "internal elastic energy")
         {
-            return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::InternalElasticEnergy>
+            return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::CriterionInternalElasticEnergy>
                 (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
         }
         else if(tLowerFuncType == "stress p-norm")

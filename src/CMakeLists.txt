@@ -133,13 +133,13 @@ if(ELLIPTIC)
     elliptic/mechanical/CriterionMassMoment.cpp
     elliptic/mechanical/CriterionStressPNorm.cpp
     elliptic/mechanical/CriterionEffectiveEnergy.cpp
+    elliptic/mechanical/CriterionInternalElasticEnergy.cpp
     elliptic/FluxPNorm.cpp
     elliptic/TMStressPNorm.cpp
     elliptic/EMStressPNorm.cpp
     elliptic/InternalThermalEnergy.cpp
     elliptic/InternalThermoelasticEnergy.cpp
     elliptic/InternalElectroelasticEnergy.cpp
-    elliptic/InternalElasticEnergy.cpp
     elliptic/ElastostaticResidual.cpp
     elliptic/ThermostaticResidual.cpp
     elliptic/ElectroelastostaticResidual.cpp
