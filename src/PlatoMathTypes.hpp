@@ -46,43 +46,76 @@ namespace Plato
     /******************************************************************************//**
      * \brief Statically sized matrix
     **********************************************************************************/
-    template <int M, int N, typename ScalarType = Plato::Scalar>
+    template <Plato::OrdinalType M, Plato::OrdinalType N, typename ScalarType = Plato::Scalar>
     class Matrix
     {
         ScalarType mData[M*N];
 
         public:
-            KOKKOS_INLINE_FUNCTION Matrix() {}
+            KOKKOS_INLINE_FUNCTION 
+            Matrix()
+            {}
 
             explicit
-            KOKKOS_INLINE_FUNCTION Matrix(ScalarType aInit)
+            KOKKOS_INLINE_FUNCTION 
+            Matrix(
+              ScalarType aInit
+            )
             {
-                for (ScalarType& v : mData) { v = aInit; }
+              for (ScalarType& tElem : mData) 
+              { tElem = aInit; }
             }
-            KOKKOS_INLINE_FUNCTION Matrix(Matrix<M,N> const & aMatrix)
+            
+            KOKKOS_INLINE_FUNCTION 
+            Matrix(
+              Matrix<M,N> const & aMatrix
+            )
             { 
-                int k = 0;
-                for (ScalarType v : aMatrix.mData) { mData[k] = v; ++k; }
+              Plato::OrdinalType tIndex = 0;
+              for (ScalarType tElem : aMatrix.mData) 
+              { mData[tIndex] = tElem; ++tIndex; }
             }
-            inline Matrix(std::initializer_list<ScalarType> l)
-            { 
-                int k = 0;
-                for (ScalarType v : l) { mData[k] = v; ++k; }
-            }
-            KOKKOS_INLINE_FUNCTION ScalarType& operator()(int i, int j)       
-              { return mData[i*N+j]; }
-            KOKKOS_INLINE_FUNCTION ScalarType  operator()(int i, int j) const 
-              { return mData[i*N+j]; }
 
-            KOKKOS_INLINE_FUNCTION Plato::Array<N, ScalarType> operator()(int iRow) const
-            {
-                Plato::Array<N> tArray;
-                for (Plato::OrdinalType iCol=0; iCol<N; iCol++)
-                {
-                    tArray[iCol] = mData[iRow*N+iCol];
-                }
-                return tArray;
+            inline 
+            Matrix(
+              std::initializer_list<ScalarType> aList
+            )
+            { 
+              Plato::OrdinalType tIndex = 0;
+              for (ScalarType tElem : aList) 
+              { mData[tIndex] = tElem; ++tIndex; }
             }
+
+            KOKKOS_INLINE_FUNCTION 
+            ScalarType& 
+            operator()(
+              Plato::OrdinalType aRowI,
+              Plato::OrdinalType aColJ
+            )       
+            { return mData[aRowI*N+aColJ]; }
+
+            KOKKOS_INLINE_FUNCTION 
+            ScalarType  
+            operator()(
+              Plato::OrdinalType aRowI, 
+              Plato::OrdinalType aColJ
+            ) const 
+            { return mData[aRowI*N+aColJ]; }
+
+            KOKKOS_INLINE_FUNCTION 
+            Plato::Array<N, ScalarType> 
+            operator()(
+              Plato::OrdinalType aRowI
+            ) const
+            {
+              Plato::Array<N> tArray;
+              for (Plato::OrdinalType tColJ=0; tColJ<N; tColJ++)
+              {
+                tArray[tColJ] = mData[aRowI*N+tColJ];
+              }
+              return tArray;
+            }
+
     };
 
     /******************************************************************************//**
