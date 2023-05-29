@@ -44,7 +44,7 @@ Plato_add_test(SolverInterface PlatoSolverInterfaceTests.cpp)
 Plato_add_test(AugLagStressCriterion AugLagStressCriterionTest.cpp)
 Plato_add_test(MultipointConstraint PlatoMultipointConstraintTests.cpp)
 Plato_add_test(VolumeAverageCriterion VolumeAverageCriterionTests.cpp SKIP_MATH)
-Plato_add_test(ElastostaticsTotalLagrangianTests ElastostaticsTotalLagrangianTests.cpp)
+Plato_add_test(ElastostaticTotalLagrangianTests ElastostaticTotalLagrangianTests.cpp)
 endif()
 
 if(HATCHING)
