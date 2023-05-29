@@ -1,5 +1,5 @@
 /*
- * ElastostaticsTotalLagrangianTests.cpp
+ * ElastostaticTotalLagrangianTests.cpp
  *
  *  Created on: May 10, 2023
  */
@@ -826,9 +826,15 @@ public:
   }
 };
 
+template<typename EvaluationType>
+class ResidualElastostaticTotalLagrangian
+{
+
+};
+
 }
 
-namespace ElastostaticsTotalLagrangianTests
+namespace ElastostaticTotalLagrangianTests
 {
 
 Teuchos::RCP<Teuchos::ParameterList> tGenericParamList = Teuchos::getParametersFromXmlString(
@@ -852,7 +858,7 @@ Teuchos::RCP<Teuchos::ParameterList> tGenericParamList = Teuchos::getParametersF
 "</ParameterList>                                                                                      \n"
 );
 
-TEUCHOS_UNIT_TEST( ElastostaticsTotalLagrangianTests, tComputeStateGradient )
+TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, tComputeStateGradient )
 {
   // create mesh
   constexpr Plato::OrdinalType tSpaceDim = 2;
@@ -928,7 +934,7 @@ TEUCHOS_UNIT_TEST( ElastostaticsTotalLagrangianTests, tComputeStateGradient )
   }
 }
 
-TEUCHOS_UNIT_TEST( ElastostaticsTotalLagrangianTests, DeformationGradient )
+TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, DeformationGradient )
 {
   // create mesh
   constexpr Plato::OrdinalType tSpaceDim = 2;
@@ -1008,7 +1014,7 @@ TEUCHOS_UNIT_TEST( ElastostaticsTotalLagrangianTests, DeformationGradient )
   }
 }
 
-TEUCHOS_UNIT_TEST( ElastostaticsTotalLagrangianTests, RightDeformationTensor )
+TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, RightDeformationTensor )
 {
   // create mesh
   constexpr Plato::OrdinalType tSpaceDim = 2;
@@ -1095,7 +1101,7 @@ TEUCHOS_UNIT_TEST( ElastostaticsTotalLagrangianTests, RightDeformationTensor )
   }
 }
 
-TEUCHOS_UNIT_TEST( ElastostaticsTotalLagrangianTests, GreenLagrangeStrainTensor )
+TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, GreenLagrangeStrainTensor )
 {
   // create mesh
   constexpr Plato::OrdinalType tSpaceDim = 2;
@@ -1186,7 +1192,7 @@ TEUCHOS_UNIT_TEST( ElastostaticsTotalLagrangianTests, GreenLagrangeStrainTensor 
   }
 }
 
-TEUCHOS_UNIT_TEST( ElastostaticsTotalLagrangianTests, StressEvaluatorKirchhoffTensor )
+TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, StressEvaluatorKirchhoffTensor )
 {
   // create mesh
   constexpr Plato::OrdinalType tSpaceDim = 2;
@@ -1248,7 +1254,7 @@ TEUCHOS_UNIT_TEST( ElastostaticsTotalLagrangianTests, StressEvaluatorKirchhoffTe
   }
 }
 
-TEUCHOS_UNIT_TEST( ElastostaticsTotalLagrangianTests, StressEvaluatorNeoHookeanTensor )
+TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, StressEvaluatorNeoHookeanTensor )
 {
   // create parameter list
   Teuchos::RCP<Teuchos::ParameterList> tParamList = Teuchos::getParametersFromXmlString(
