@@ -15,11 +15,14 @@
 // plato
 #include "Tri3.hpp"
 #include "BLAS1.hpp"
+#include "BodyLoads.hpp"
+#include "NaturalBCs.hpp"
 #include "WorksetBase.hpp"
 #include "MaterialModel.hpp"
 #include "GradientMatrix.hpp"
 #include "MechanicsElement.hpp"
 #include "elliptic/EvaluationTypes.hpp"
+#include "elliptic/AbstractVectorFunction.hpp"
 
 namespace Plato
 {
@@ -326,7 +329,7 @@ public:
   ~MaterialKirchhoff(){}
   /// @fn property
   /// @brief return list of property values
-  /// @param aPropertyID 
+  /// @param [in] aPropertyID 
   /// @return standard vector of strings
   std::vector<std::string> 
   property(const std::string & aPropertyID)
@@ -398,7 +401,7 @@ public:
   
   /// @fn property
   /// @brief return list of property values
-  /// @param aPropertyID 
+  /// @param [in] aPropertyID 
   /// @return standard vector of strings
   std::vector<std::string> 
   property(const std::string & aPropertyID)
@@ -413,11 +416,11 @@ public:
   }
 };
 
-/// @class FactoryNonlinearMechanicalMaterial
+/// @class FactoryNonlinearElasticMaterial
 /// @brief factroy for hyperelastic material models
 /// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
-class FactoryNonlinearMechanicalMaterial
+class FactoryNonlinearElasticMaterial
 {
 private:
     /// @brief const reference to input problem parameter list
@@ -427,17 +430,17 @@ private:
 
 public:
   /// @brief class constructor
-  /// @param aParamList input problem parameters
-  FactoryNonlinearMechanicalMaterial(
+  /// @param [in] aParamList input problem parameters
+  FactoryNonlinearElasticMaterial(
     Teuchos::ParameterList& aParamList
   ) :
     mParamList(aParamList)
   {}
   /// @brief class destructor
-  ~FactoryNonlinearMechanicalMaterial()
+  ~FactoryNonlinearElasticMaterial()
   {}
   /// @brief create material model
-  /// @param aMaterialName name of input material parameter list
+  /// @param [in] aMaterialName name of input material parameter list
   /// @return shared pointed
   std::shared_ptr<Plato::MaterialModel<EvaluationType>> 
   create(std::string aMaterialName)
@@ -514,19 +517,20 @@ public:
 
   /// @fn evaluate
   /// @brief pure virtual method: evaluates current density 
-  /// @param aSpatialDomain contains meshed model information
-  /// @param aState         state workset
-  /// @param aControl       control workset
-  /// @param aConfig        configuration workset
-  /// @param aResult        result workset
-  /// @param aScale         scalar 
+  /// @param [in]     aSpatialDomain contains meshed model information
+  /// @param [in]     aState         state workset
+  /// @param [in]     aControl       control workset
+  /// @param [in]     aConfig        configuration workset
+  /// @param [in,out] aResult        result workset
+  /// @param [in]     aCycle         scalar 
   virtual 
   void 
   evaluate(
       const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
       const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
       const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
-      const Plato::ScalarArray4DT<ResultScalarType>      & aResult
+      const Plato::ScalarArray4DT<ResultScalarType>      & aResult,
+            Plato::Scalar                                  aCycle = 0.0
   ) const = 0;
 };
 
@@ -573,21 +577,24 @@ public:
           Plato::DataMap         & aDataMap) : 
     Plato::StressEvaluator<EvaluationType>(aSpatialDomain,aDataMap)
   {
-    Plato::FactoryNonlinearMechanicalMaterial<EvaluationType> tFactory(aParamList);
+    Plato::FactoryNonlinearElasticMaterial<EvaluationType> tFactory(aParamList);
     mMaterial = tFactory.create(aMaterialName);
   }
 
+  /// @fn evaluate
   /// @brief evaluate stress tensor
-  /// @param aState   2D state workset
-  /// @param aControl 2D control workset
-  /// @param aConfig  3D configuration workset
-  /// @param aResult  4D result workset
+  /// @param [in]     aState   2D state workset
+  /// @param [in]     aControl 2D control workset
+  /// @param [in]     aConfig  3D configuration workset
+  /// @param [in,out] aResult  4D result workset
+  /// @param [in]     aCycle   scalar 
   void 
   evaluate(
       const Plato::ScalarMultiVectorT<StateT>   & aState,
       const Plato::ScalarMultiVectorT<ControlT> & aControl,
       const Plato::ScalarArray3DT<ConfigT>      & aConfig,
-      const Plato::ScalarArray4DT<ResultT>      & aResult
+      const Plato::ScalarArray4DT<ResultT>      & aResult,
+            Plato::Scalar                         aCycle = 0.0
   ) const
   {
     // get lame constants
@@ -683,24 +690,27 @@ public:
           Plato::DataMap         & aDataMap) : 
     Plato::StressEvaluator<EvaluationType>(aSpatialDomain,aDataMap)
   {
-    Plato::FactoryNonlinearMechanicalMaterial<EvaluationType> tFactory(aParamList);
+    Plato::FactoryNonlinearElasticMaterial<EvaluationType> tFactory(aParamList);
     mMaterial = tFactory.create(aMaterialName);
   }
 
   /// @brief class destructor
   ~StressEvaluatorNeoHookean(){}
 
+  /// @fn evaluate
   /// @brief evaluate stress tensor
-  /// @param aState   2D state workset
-  /// @param aControl 2D control workset
-  /// @param aConfig  3D configuration workset
-  /// @param aResult  4D result workset
+  /// @param [in]     aState   2D state workset
+  /// @param [in]     aControl 2D control workset
+  /// @param [in]     aConfig  3D configuration workset
+  /// @param [in,out] aResult  4D result workset
+  /// @param [in]     aCycle   scalar 
   void 
   evaluate(
       const Plato::ScalarMultiVectorT<StateT>   & aState,
       const Plato::ScalarMultiVectorT<ControlT> & aControl,
       const Plato::ScalarArray3DT<ConfigT>      & aConfig,
-      const Plato::ScalarArray4DT<ResultT>      & aResult
+      const Plato::ScalarArray4DT<ResultT>      & aResult,
+      Plato::Scalar                               aCycle = 0.0
   ) const
   {
     // get lame constants
@@ -771,7 +781,7 @@ private:
 
 public:
   /// @brief class constructor
-  /// @param aParamList input problem parameters
+  /// @param [in] aParamList input problem parameters
   FactoryStressEvaluator(
     const std::string & aMaterialName
   ) :
@@ -780,11 +790,12 @@ public:
 
   /// @brief class destructor
   ~FactoryStressEvaluator(){}
-
+  
+  /// @fn create 
   /// @brief create stress evaluator
-  /// @param aMaterialName  name of input material parameter list
-  /// @param aSpatialDomain contains mesh and model information
-  /// @param aDataMap       output database
+  /// @param [in] aMaterialName  name of input material parameter list
+  /// @param [in] aSpatialDomain contains mesh and model information
+  /// @param [in] aDataMap       output database
   /// @return shared pointer
   std::shared_ptr<Plato::StressEvaluator<EvaluationType>> 
   create(
@@ -827,9 +838,201 @@ public:
 };
 
 template<typename EvaluationType>
-class ResidualElastostaticTotalLagrangian
+class ResidualElastostaticTotalLagrangian : 
+  public Plato::Elliptic::AbstractVectorFunction<EvaluationType>
 {
+private:
+  /// @brief topological element type
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief number of nodes per cell
+  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+  /// @brief number of degrees of freedom per node
+  static constexpr auto mNumDofsPerNode = ElementType::mNumDofsPerNode;
+  /// @brief number of degrees of freedom per cell
+  static constexpr auto mNumDofsPerCell = ElementType::mNumDofsPerCell;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims = ElementType::mNumSpatialDims;
+  /// @brief number of integration points per cell
+  static constexpr auto mNumGaussPoints = ElementType::mNumGaussPoints;
+  /// @brief local typename for base class
+  using FunctionBaseType = Plato::Elliptic::AbstractVectorFunction<EvaluationType>;
+  /// @brief contains mesh and model information
+  using FunctionBaseType::mSpatialDomain;
+  /// @brief output database
+  using FunctionBaseType::mDataMap;
+  /// @brief contains degrees of freedom names 
+  using FunctionBaseType::mDofNames;
+  /// @brief scalar types associated with the automatic differentation evaluation type
+  using StateScalarType   = typename EvaluationType::StateScalarType;
+  using ControlScalarType = typename EvaluationType::ControlScalarType;
+  using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  using StrainScalarType  = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
+  /// @brief stress evaluator
+  std::shared_ptr<Plato::StressEvaluator<EvaluationType>> mStressEvaluator;
+  /// @brief natural boundary conditions evaluator
+  std::shared_ptr<Plato::NaturalBCs<ElementType>> mNaturalBCs;
+  /// @brief body loads evaluator
+  std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
+  /// @brief output plot table, contains requested output quantities of interests
+  std::vector<std::string> mPlotTable;
 
+public:
+  /// @brief class constructor
+  /// @param [in] aSpatialDomain contains mesh and model information
+  /// @param [in] aDataMap       output database
+  /// @param [in] aParamList     input problem parameters
+  ResidualElastostaticTotalLagrangian(
+    const Plato::SpatialDomain   & aSpatialDomain,
+          Plato::DataMap         & aDataMap,
+          Teuchos::ParameterList & aParamList
+  ) :
+    FunctionBaseType(aSpatialDomain, aDataMap),
+    mStressEvaluator(nullptr),
+    mNaturalBCs     (nullptr),
+    mBodyLoads      (nullptr)
+  {
+    // obligatory: define dof names in order
+    //
+    mDofNames.push_back("displacement X");
+    if(mNumSpatialDims > 1) mDofNames.push_back("displacement Y");
+    if(mNumSpatialDims > 2) mDofNames.push_back("displacement Z");
+    // initialize member data
+    //
+    this->initialize(aParamList);
+  }
+
+  /// @brief class destructor
+  ~ResidualElastostaticTotalLagrangian(){}
+
+  /// @fn getSolutionStateOutputData
+  /// @brief post-process state solution for output
+  /// @param [in,out] aSolutions solution database
+  /// @return solution database
+  Plato::Solutions
+  getSolutionStateOutputData(
+    const Plato::Solutions & aSolutions
+  ) const
+  {
+    // No scaling, addition, or removal of data necessary for this physics.
+    return aSolutions;
+  }
+
+  /// @fn evaluate
+  /// @brief evaluate internal forces
+  /// @param [in]     aState   2D state workset 
+  /// @param [in]     aControl 2D control workset
+  /// @param [in]     aConfig  3D configuration workset
+  /// @param [in,out] aResult  2D result workset
+  /// @param [in]     aCycle   scalar 
+  void
+  evaluate(
+    const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
+    const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
+    const Plato::ScalarArray3DT    <ConfigScalarType>  & aConfig,
+          Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
+          Plato::Scalar                                  aCycle
+  ) const
+  {
+    // evaluate stresses
+    Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
+    Plato::OrdinalType tNumGaussPoints = ElementType::mNumGaussPoints;
+    Plato::ScalarArray4DT<ResultScalarType> 
+      tStress("stress",tNumCells,tNumGaussPoints,mNumSpatialDims,mNumSpatialDims);
+    mStressEvaluator->evaluate(aState,aControl,aConfig,tStress,aCycle);
+    // get integration rule data
+    auto tCubPoints  = ElementType::getCubPoints();
+    auto tCubWeights = ElementType::getCubWeights();
+    // evaluate internal forces
+    Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
+    Kokkos::parallel_for("compute internal forces", 
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0}, {tNumCells,mNumGaussPoints}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      {
+        // compute gradient of interpolation functions
+        ConfigScalarType tVolume(0.0);
+        auto tCubPoint = tCubPoints(iGpOrdinal);
+        Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient;
+        tComputeGradient(iCellOrdinal,tCubPoint,aConfig,tGradient,tVolume);
+        // apply integration point weight to element volume
+        tVolume *= tCubWeights(iGpOrdinal);
+        // apply divergence operator to stress tensor
+        for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++){
+          for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
+            Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumSpatialDims + tDimI;
+            for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
+              ResultScalarType tVal = tStress(iCellOrdinal,iGpOrdinal,tDimI,tDimJ) 
+                * tGradient(tNodeIndex,tDimJ) * tVolume;
+              Kokkos::atomic_add( &aResult(iCellOrdinal,tLocalOrdinal),tVal );
+            }
+          }
+        }
+    });
+    // evaluate body forces
+    if( mBodyLoads != nullptr )
+    {
+      mBodyLoads->get( mSpatialDomain,aState,aControl,aConfig,aResult,-1.0 );
+    }
+  }
+
+  /// @fn evaluate_boundary
+  /// @brief evaluate boundary forces
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in]     aState        2D state workset 
+  /// @param [in]     aControl      2D control workse
+  /// @param [in]     aConfig       3D configuration 
+  /// @param [in,out] aResult       2D result workset
+  /// @param [in]     aCycle        scalar
+  void
+  evaluate_boundary(
+    const Plato::SpatialModel                           & aSpatialModel,
+    const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
+    const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
+    const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
+          Plato::ScalarMultiVectorT <ResultScalarType>  & aResult,
+          Plato::Scalar                                   aCycle
+  ) const
+  {
+    if( mNaturalBCs != nullptr )
+    {
+      mNaturalBCs->get(aSpatialModel, aState, aControl, aConfig, aResult, -1.0 );
+    }
+  }
+
+private:
+  /// @fn initialize
+  /// @brief initialize member data
+  /// @param [in] aParamList input problem parameters
+  void initialize(
+    Teuchos::ParameterList & aParamList
+  )
+  {
+    // create material model and get stiffness
+    //
+    Plato::FactoryStressEvaluator<EvaluationType> tStressEvaluatorFactory(mSpatialDomain.getMaterialName());
+    mStressEvaluator = tStressEvaluatorFactory.create(aParamList,mSpatialDomain,mDataMap);
+    // parse body loads
+    // 
+    if(aParamList.isSublist("Body Loads"))
+    {
+      mBodyLoads = 
+        std::make_shared<Plato::BodyLoads<EvaluationType, ElementType>>(aParamList.sublist("Body Loads"));
+    }
+    // parse boundary Conditions
+    // 
+    if(aParamList.isSublist("Natural Boundary Conditions"))
+    {
+      mNaturalBCs = 
+        std::make_shared<Plato::NaturalBCs<ElementType>>(aParamList.sublist("Natural Boundary Conditions"));
+    }
+    // parse plot table
+    //
+    auto tResidualParams = aParamList.sublist("Output");
+    if( tResidualParams.isType<Teuchos::Array<std::string>>("Plottable") )
+    {
+      mPlotTable = tResidualParams.get<Teuchos::Array<std::string>>("Plottable").toVector();
+    }
+  }
 };
 
 }
@@ -1334,6 +1537,71 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, StressEvaluatorNeoHookeanTe
       for(Plato::OrdinalType tDimJ = 0; tDimJ < tSpaceDim; tDimJ++){
         TEST_FLOATING_EQUALITY(tGold[tCell][tDimI*tSpaceDim+tDimJ],tHostResultsWS(tCell,0,tDimI,tDimJ),tTolerance);
       }
+    }
+  }
+}
+
+TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, Residual )
+{
+  // create mesh
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;  
+  // create output database and spatial model
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  //set ad-types
+  using Residual = typename Plato::Elliptic::Evaluation<Plato::MechanicsElement<Plato::Tri3>>::Residual;
+  using StateT   = typename Residual::StateScalarType;
+  using ConfigT  = typename Residual::ConfigScalarType;
+  using ResultT  = typename Residual::ResultScalarType;
+  using ControlT = typename Residual::ControlScalarType;
+  using StrainT  = typename Plato::fad_type_t<ElementType,StateT,ConfigT>;
+  // create configuration workset
+  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
+  const Plato::OrdinalType tNumCells = tMesh->NumElements();
+  TEST_EQUALITY(2,tNumCells);
+  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
+  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
+  tWorksetBase.worksetConfig(tConfigWS);
+  // create state workset
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+  Plato::ScalarVector tState("States", tNumDofs);
+  Plato::blas1::fill(0.1, tState);
+  Kokkos::parallel_for("fill state",
+    Kokkos::RangePolicy<>(0, tNumDofs), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+    { tState(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
+  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
+  tWorksetBase.worksetState(tState, tStateWS);
+  // create control workset
+  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+  Plato::ScalarVector tControl("Controls", tNumVerts);
+  Plato::blas1::fill(1.0, tControl);
+  tWorksetBase.worksetControl(tControl, tControlWS);
+  // create results workset
+  Plato::OrdinalType tNumGaussPoints = ElementType::mNumGaussPoints;
+  Plato::ScalarMultiVectorT<ResultT> tResultsWS("residual",tNumCells,tDofsPerCell);
+  // evaluate residual
+  Plato::ResidualElastostaticTotalLagrangian<Residual> 
+    tResidual(tOnlyDomainDefined,tDataMap,*tGenericParamList);
+  tResidual.evaluate(tStateWS,tControlWS,tConfigWS,tResultsWS,0.0);
+  // test gold values
+  constexpr Plato::Scalar tTolerance = 1e-4;
+  std::vector<std::vector<Plato::Scalar>> tGold = 
+    { 
+      {-0.553086 ,-0.1407405,0.4123455,-0.293827,0.1407405 ,0.4345675}, 
+      {-0.1407405,-0.4345675,0.553086 ,0.1407405,-0.4123455,0.293827} 
+    };
+  auto tHostResultsWS = Kokkos::create_mirror(tResultsWS);
+  Kokkos::deep_copy(tHostResultsWS, tResultsWS);
+  for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
+    for(Plato::OrdinalType tDof = 0; tDof < tDofsPerCell; tDof++){
+        TEST_FLOATING_EQUALITY(tGold[tCell][tDof],tHostResultsWS(tCell,tDof),tTolerance);
     }
   }
 }
