@@ -61,6 +61,7 @@ private:
   };
 
 public:
+  /// @fn get
   /// @brief Return mechanical property enum associated with input string, 
   ///   throw if requested mechanical property is not supported
   /// @param [in] aInput property identifier
@@ -80,6 +81,10 @@ public:
   }
 
 private:
+  /// @fn getErrorMsg
+  /// @brief return error message
+  /// @param [in] aInProperty property name enter in input deck
+  /// @return error message string
   std::string
   getErrorMsg(
     const std::string & aInProperty
@@ -117,6 +122,7 @@ private:
   };
 
 public:
+  /// @fn get
   /// @brief Return mechanical material enum associated with input string, 
   ///   throw if requested mechanical material is not supported
   /// @param [in] aInput mechanical material identifier
@@ -136,6 +142,10 @@ public:
   }
 
 private:
+  /// @fn getErrorMsg
+  /// @brief return error message
+  /// @param [in] aInProperty property name enter in input deck
+  /// @return error message string
   std::string
   getErrorMsg(
     const std::string & aInProperty
@@ -155,21 +165,36 @@ private:
 }
 // namespace mechanical
 
+/// @class StateGradient
+/// @brief Computes state gradient:
+/// \f[ 
+///     \nabla\mathbf{U}=\frac{\partial\mathbf{U}}{\partial\mathbf{X}}
+/// \f]
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class StateGradient
 {
 private:
+  /// @brief topological element type
   using ElementType = typename EvaluationType::ElementType;
-
+  /// @brief scalar types associated with input evaluation template type
   using StateScalarType  = typename EvaluationType::StateScalarType;
   using ConfigScalarType = typename EvaluationType::ConfigScalarType;
   using StrainScalarType = typename Plato::fad_type_t<ElementType,StateScalarType,ConfigScalarType>;
-
+  /// @brief number of degrees of freedom per node
   static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+  /// @brief number of spatial dimensions 
   static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+  /// @brief number of nodes per cell
   static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
 
 public:
+  /// @fn operator()()
+  /// @brief compute state gradient
+  /// @param [in]     aCellIndex local element ordinal
+  /// @param [in]     aStates    2D state workset
+  /// @param [in]     aGradient  gradient functions
+  /// @param [in,out] aStateGrad state gradient
   KOKKOS_INLINE_FUNCTION
   void 
   operator()(
@@ -193,19 +218,30 @@ public:
   }
 };
 
+/// @class DeformationGradient
+/// @brief Computes deformation gradient:
+/// \f[ 
+///   F_{ij}=\frac{\partial{x}_i}{\partial{X}_j}=\frac{\partial{u}_i}{\partial{X}_j} + \delta_{ij}
+/// \f]
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class DeformationGradient
 {
 private:
+  /// @brief topological element type
   using ElementType = typename EvaluationType::ElementType;
-  
+  /// @brief scalar types associated with input evaluation template type
   using StateScalarType  = typename EvaluationType::StateScalarType;
   using ConfigScalarType = typename EvaluationType::ConfigScalarType;
   using StrainScalarType = typename Plato::fad_type_t<ElementType,StateScalarType,ConfigScalarType>;
-
+  /// @brief number of spatial dimensions
   static constexpr auto mNumSpatialDims = ElementType::mNumSpatialDims;
 
 public:
+  /// @fn operator()()
+  /// @brief compute deformation gradient
+  /// @param [in]     aStateGrad state gradient
+  /// @param [in,out] aDefGrad   deformation gradient
   KOKKOS_INLINE_FUNCTION
   void 
   operator()(
@@ -222,19 +258,33 @@ public:
   }
 };
 
+/// @class RightDeformationTensor
+/// @brief Computes right deformation tensor:
+/// \f[ 
+///   C_{ij}=F_{ik}^{T}F_{kj}
+/// \f]
+/// where \f$F_{ij}\f$ is the deformation gradient
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class RightDeformationTensor
 {
 private:
+  /// @brief topological element type
   using ElementType = typename EvaluationType::ElementType;
-  
+  /// @brief scalar types associated with input evaluation template type
   using StateScalarType  = typename EvaluationType::StateScalarType;
   using ConfigScalarType = typename EvaluationType::ConfigScalarType;
   using StrainScalarType = typename Plato::fad_type_t<ElementType,StateScalarType,ConfigScalarType>;
-
+  /// @brief number of spatial dimensions
   static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
 
 public:
+  /// @fn operator()()
+  /// @brief 
+  /// @param [in]     aDefGradT  deformation gradient transpose
+  /// @param [in]     aDefGrad   deformation gradient 
+  /// @param [in,out] aDefTensor deformation tensor 
+  /// @return 
   KOKKOS_INLINE_FUNCTION
   void 
   operator()(
@@ -253,19 +303,32 @@ public:
   }
 };
 
+/// @class GreenLagrangeStrainTensor
+/// @brief Computes Green-Lagrange strain tensor:
+/// \f[ 
+///   E_{ij}=\frac{1}{2}\left(F_{ik}^{T}F_{kj}-\delta_{ij}\right)
+/// \f]
+/// where \f$F_{ij}\f$ is the deformation gradient and \f$\delta_{ij}\f$ is the Kronecker delta
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class GreenLagrangeStrainTensor
 {
 private:
+  /// @brief topological element type
   using ElementType = typename EvaluationType::ElementType;
-  
+  /// @brief scalar types associated with input evaluation template type
   using StateScalarType  = typename EvaluationType::StateScalarType;
   using ConfigScalarType = typename EvaluationType::ConfigScalarType;
   using StrainScalarType = typename Plato::fad_type_t<ElementType,StateScalarType,ConfigScalarType>;
-
+  /// @brief number of spatial dimensions
   static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
 
 public:
+  /// @fn operator()()
+  /// @brief computes the green-lagrange strain tensor
+  /// @param [in]     aDefTensor    right deformation tensor
+  /// @param [in,out] aStrainTensor green-lagrange strain tesnor
+  /// @return 
   KOKKOS_INLINE_FUNCTION
   void 
   operator()(
