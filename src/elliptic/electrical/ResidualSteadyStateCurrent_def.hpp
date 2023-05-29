@@ -76,7 +76,6 @@ evaluate(
     tCurrentDensity("current density", tNumCells, mNumSpatialDims);
   Plato::ScalarArray4DT<ResultScalarType> 
     tMaterialTensor("material tensor", tNumCells, tNumPoints, mNumSpatialDims, mNumSpatialDims);
-  
   // evaluate material tensor
   mMaterialModel->computeMaterialTensor(mSpatialDomain,aState,aControl,tMaterialTensor);
   // evaluate internal forces       
@@ -89,7 +88,6 @@ evaluate(
       Plato::Array<mNumSpatialDims,ResultScalarType> tCellCurrentDensity(0.0);
       Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient;  
       auto tCubPoint = tCubPoints(iGpOrdinal);
-      auto tBasisValues = ElementType::basisValues(tCubPoint);
       // compute electrical field 
       tComputeGradient(iCellOrdinal,tCubPoint,aConfig,tGradient,tCellVolume);
       tComputeScalarGrad(iCellOrdinal,tCellElectricField,aState,tGradient);
@@ -104,12 +102,7 @@ evaluate(
       // apply divergence operator to current density
       tCellVolume *= tCubWeights(iGpOrdinal);
       tComputeDivergence(iCellOrdinal,aResult,tCellCurrentDensity,tGradient,tCellVolume,1.0);
-      for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
-      {
-        for (Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
-        }
-      }
-    
+      // compute output quantities of interests  
       for(Plato::OrdinalType tIndex=0; tIndex<mNumSpatialDims; tIndex++)
       {
         // compute the electric field E = -\nabla{\phi} (or -\phi_{,j}, where j=1,\dots,dims)

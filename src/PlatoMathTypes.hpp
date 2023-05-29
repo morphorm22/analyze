@@ -162,10 +162,11 @@ namespace Plato
         }
         return sqrt(tRetVal);
     }
-
-    /******************************************************************************//**
-     * \brief Returns the norm (sqrt(sum_{i,j}(m(i,j)*m(i,j))) of the input Matrix
-    **********************************************************************************/
+    
+    /// @fn norm
+    /// @brief Returns the norm (sqrt(sum_{i,j}(m(i,j)*m(i,j))) of the input Matrix
+    /// @param [in] m1 input n-by-n matrix
+    /// @return scalar of type ScalarType
     template <Plato::OrdinalType N, typename ScalarType>
     KOKKOS_INLINE_FUNCTION
     ScalarType norm(Matrix<N,N,ScalarType> const & m1)
@@ -179,6 +180,16 @@ namespace Plato
             }
         }
         return sqrt(tRetVal);
+    }
+
+    template <Plato::OrdinalType N, typename ScalarType>
+    KOKKOS_INLINE_FUNCTION
+    ScalarType trace(Matrix<N,N,ScalarType> const & aMatrix)
+    {
+      ScalarType tRetVal(0.0);
+      for(Plato::OrdinalType tIndex=0; tIndex<N; tIndex++)
+      { tRetVal += aMatrix(tIndex,tIndex); }
+      return tRetVal;
     }
 
     /******************************************************************************//**

@@ -243,4 +243,17 @@ namespace PlatoTestMathTypes
     TEST_FLOATING_EQUALITY(tValues(1), 1.0, DBL_EPSILON);
     TEST_FLOATING_EQUALITY(tValues(2), 11.0, DBL_EPSILON);
   }
+  TEUCHOS_UNIT_TEST(PlatoMathTypesTests, trace)
+  {
+    Plato::Scalar tTol = 1e-6;
+    Plato::Matrix<1,1> tM1({2});
+    auto tTrace = Plato::trace(tM1);
+    TEST_FLOATING_EQUALITY(2.,tTrace,tTol);
+    Plato::Matrix<2,2> tM2({1,2,3,4});
+    tTrace = Plato::trace(tM2);
+    TEST_FLOATING_EQUALITY(5.,tTrace,tTol);
+    Plato::Matrix<3,3> tM3({1,2,3,4,5,6,7,8,9});
+    tTrace = Plato::trace(tM3);
+    TEST_FLOATING_EQUALITY(15.,tTrace,tTol);
+  }
 }
