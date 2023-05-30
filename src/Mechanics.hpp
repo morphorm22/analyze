@@ -5,21 +5,21 @@
 
 #include "parabolic/AbstractScalarFunction.hpp"
 
-#include "elliptic/mechanical/ResidualElastostatic.hpp"
+#include "elliptic/mechanical/linear/ResidualElastostatic.hpp"
 
-#include "elliptic/mechanical/LocalMeasureVonMises.hpp"
-#include "elliptic/mechanical/LocalMeasureTensileEnergyDensity.hpp"
+#include "elliptic/mechanical/linear/LocalMeasureVonMises.hpp"
+#include "elliptic/mechanical/linear/LocalMeasureTensileEnergyDensity.hpp"
 
 #include "elliptic/Volume.hpp"
-#include "elliptic/mechanical/CriterionStressPNorm.hpp"
-#include "elliptic/mechanical/CriterionEffectiveEnergy.hpp"
-#include "elliptic/mechanical/CriterionMassMoment.hpp"
-#include "elliptic/mechanical/CriterionAugLagStrength.hpp"
-#include "elliptic/mechanical/CriterionVolumeIntegral.hpp"
-#include "elliptic/mechanical/CriterionInternalElasticEnergy.hpp"
-#include "elliptic/mechanical/CriterionVolumeAverageDenominator.hpp"
-#include "elliptic/mechanical/CriterionVolAvgStressPNormDenominator.hpp"
-#include "elliptic/mechanical/Plato_AugLagStressCriterionGeneral.hpp"
+#include "elliptic/mechanical/linear/CriterionStressPNorm.hpp"
+#include "elliptic/mechanical/linear/CriterionEffectiveEnergy.hpp"
+#include "elliptic/mechanical/linear/CriterionMassMoment.hpp"
+#include "elliptic/mechanical/linear/CriterionAugLagStrength.hpp"
+#include "elliptic/mechanical/linear/CriterionVolumeIntegral.hpp"
+#include "elliptic/mechanical/linear/CriterionInternalElasticEnergy.hpp"
+#include "elliptic/mechanical/linear/CriterionVolumeAverageDenominator.hpp"
+#include "elliptic/mechanical/linear/CriterionVolAvgStressPNormDenominator.hpp"
+#include "elliptic/mechanical/linear/Plato_AugLagStressCriterionGeneral.hpp"
 
 #include "MakeFunctions.hpp"
 #include "AnalyzeMacros.hpp"

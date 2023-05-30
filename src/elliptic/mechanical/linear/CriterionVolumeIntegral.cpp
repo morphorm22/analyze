@@ -1,8 +1,8 @@
-#include "elliptic/mechanical/CriterionVolumeIntegral_decl.hpp"
+#include "elliptic/mechanical/linear/CriterionVolumeIntegral_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "elliptic/mechanical/CriterionVolumeIntegral_def.hpp"
+#include "elliptic/mechanical/linear/CriterionVolumeIntegral_def.hpp"
 
 #include "MechanicsElement.hpp"
 #include "elliptic/ExpInstMacros.hpp"

@@ -9,7 +9,7 @@
 #include "ElasticModelFactory.hpp"
 #include "GeneralStressDivergence.hpp"
 #include "elliptic/hatching/LinearStress.hpp"
-#include "elliptic/mechanical/VonMisesYieldFunction.hpp"
+#include "elliptic/mechanical/linear/VonMisesYieldFunction.hpp"
 
 namespace Plato
 {

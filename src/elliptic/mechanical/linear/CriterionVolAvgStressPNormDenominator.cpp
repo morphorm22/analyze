@@ -1,8 +1,8 @@
-#include "elliptic/mechanical/CriterionVolAvgStressPNormDenominator_decl.hpp"
+#include "elliptic/mechanical/linear/CriterionVolAvgStressPNormDenominator_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "elliptic/mechanical/CriterionVolAvgStressPNormDenominator_def.hpp"
+#include "elliptic/mechanical/linear/CriterionVolAvgStressPNormDenominator_def.hpp"
 
 #include "MechanicsElement.hpp"
 #include "elliptic/ExpInstMacros.hpp"

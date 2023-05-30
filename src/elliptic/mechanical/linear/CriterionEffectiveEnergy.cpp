@@ -1,8 +1,8 @@
-#include "elliptic/mechanical/CriterionEffectiveEnergy_decl.hpp"
+#include "elliptic/mechanical/linear/CriterionEffectiveEnergy_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "elliptic/mechanical/CriterionEffectiveEnergy_def.hpp"
+#include "elliptic/mechanical/linear/CriterionEffectiveEnergy_def.hpp"
 
 #include "MechanicsElement.hpp"
 #include "elliptic/ExpInstMacros.hpp"

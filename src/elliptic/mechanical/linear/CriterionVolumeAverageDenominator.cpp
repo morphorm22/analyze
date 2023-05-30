@@ -1,8 +1,8 @@
-#include "elliptic/mechanical/CriterionVolumeAverageDenominator_decl.hpp"
+#include "elliptic/mechanical/linear/CriterionVolumeAverageDenominator_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "elliptic/mechanical/CriterionVolumeAverageDenominator_def.hpp"
+#include "elliptic/mechanical/linear/CriterionVolumeAverageDenominator_def.hpp"
 
 #include "MechanicsElement.hpp"
 #include "elliptic/ExpInstMacros.hpp"

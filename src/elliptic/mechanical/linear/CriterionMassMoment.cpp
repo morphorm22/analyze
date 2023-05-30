@@ -1,8 +1,8 @@
-#include "elliptic/mechanical/CriterionMassMoment_decl.hpp"
+#include "elliptic/mechanical/linear/CriterionMassMoment_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "elliptic/mechanical/CriterionMassMoment_def.hpp"
+#include "elliptic/mechanical/linear/CriterionMassMoment_def.hpp"
 
 #include "ThermalElement.hpp"
 #include "MechanicsElement.hpp"

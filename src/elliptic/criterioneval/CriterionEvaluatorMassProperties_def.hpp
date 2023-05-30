@@ -6,7 +6,7 @@
 #include "PlatoEigen.hpp"
 #include "AnalyzeMacros.hpp"
 #include "PlatoStaticsTypes.hpp"
-#include "elliptic/mechanical/CriterionMassMoment.hpp"
+#include "elliptic/mechanical/linear/CriterionMassMoment.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorDivision.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorWeightedSum.hpp"
 #include "elliptic/criterioneval/FactoryCriterionEvaluator.hpp"

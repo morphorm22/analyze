@@ -7,7 +7,7 @@
 #include "LinearStress.hpp"
 #include "GradientMatrix.hpp"
 #include "GeneralStressDivergence.hpp"
-#include "elliptic/mechanical/VonMisesYieldFunction.hpp"
+#include "elliptic/mechanical/linear/VonMisesYieldFunction.hpp"
 
 namespace Plato
 {

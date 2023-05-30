@@ -1,8 +1,8 @@
-#include "elliptic/mechanical/ResidualElastostatic_decl.hpp"
+#include "elliptic/mechanical/linear/ResidualElastostatic_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "elliptic/mechanical/ResidualElastostatic_def.hpp"
+#include "elliptic/mechanical/linear/ResidualElastostatic_def.hpp"
 
 #include "MechanicsElement.hpp"
 #include "elliptic/ExpInstMacros.hpp"

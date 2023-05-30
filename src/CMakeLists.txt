@@ -33,11 +33,11 @@ if(EXPRESSION)
 endif()
 
 set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    elliptic/mechanical/LocalMeasureVonMises.cpp
-    elliptic/mechanical/LocalMeasureTensileEnergyDensity.cpp
-    elliptic/mechanical/Plato_AugLagStressCriterionQuadratic.cpp
-    elliptic/mechanical/Plato_AugLagStressCriterionGeneral.cpp
-    elliptic/mechanical/CriterionAugLagStrength.cpp
+    elliptic/mechanical/linear/LocalMeasureVonMises.cpp
+    elliptic/mechanical/linear/LocalMeasureTensileEnergyDensity.cpp
+    elliptic/mechanical/linear/Plato_AugLagStressCriterionQuadratic.cpp
+    elliptic/mechanical/linear/Plato_AugLagStressCriterionGeneral.cpp
+    elliptic/mechanical/linear/CriterionAugLagStrength.cpp
     ThermalVonMisesLocalMeasure.cpp
     optimizer/AugLagDataMng.cpp
 )
@@ -135,14 +135,14 @@ if(ELLIPTIC)
     elliptic/criterioneval/CriterionEvaluatorScalarFunction.cpp
     elliptic/criterioneval/CriterionEvaluatorMassProperties.cpp
     elliptic/criterioneval/CriterionEvaluatorSolutionFunction.cpp
-    elliptic/mechanical/ResidualElastostatic.cpp
-    elliptic/mechanical/CriterionMassMoment.cpp
-    elliptic/mechanical/CriterionStressPNorm.cpp
-    elliptic/mechanical/CriterionVolumeIntegral.cpp
-    elliptic/mechanical/CriterionEffectiveEnergy.cpp
-    elliptic/mechanical/CriterionInternalElasticEnergy.cpp
-    elliptic/mechanical/CriterionVolAvgStressPNormDenominator.cpp
-    elliptic/mechanical/CriterionVolumeAverageDenominator.cpp
+    elliptic/mechanical/linear/ResidualElastostatic.cpp
+    elliptic/mechanical/linear/CriterionMassMoment.cpp
+    elliptic/mechanical/linear/CriterionStressPNorm.cpp
+    elliptic/mechanical/linear/CriterionVolumeIntegral.cpp
+    elliptic/mechanical/linear/CriterionEffectiveEnergy.cpp
+    elliptic/mechanical/linear/CriterionInternalElasticEnergy.cpp
+    elliptic/mechanical/linear/CriterionVolAvgStressPNormDenominator.cpp
+    elliptic/mechanical/linear/CriterionVolumeAverageDenominator.cpp
     elliptic/thermal/ResidualThermostatic.cpp
     elliptic/thermal/CriterionFluxPNorm.cpp
     elliptic/thermal/CriterionInternalThermalEnergy.cpp

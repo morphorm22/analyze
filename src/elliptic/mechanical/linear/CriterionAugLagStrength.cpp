@@ -4,11 +4,11 @@
  *  Created on: May 5, 2023
  */
 
-#include "elliptic/mechanical/CriterionAugLagStrength_decl.hpp"
+#include "elliptic/mechanical/linear/CriterionAugLagStrength_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "elliptic/mechanical/CriterionAugLagStrength_def.hpp"
+#include "elliptic/mechanical/linear/CriterionAugLagStrength_def.hpp"
 
 #include "MechanicsElement.hpp"
 #include "elliptic/ExpInstMacros.hpp"

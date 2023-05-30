@@ -20,12 +20,12 @@
 #include "ThermalMassMaterial.hpp"
 #include "Eigenvalues.hpp"
 
-#include "elliptic/mechanical/CriterionMassMoment.hpp"
-#include "elliptic/mechanical/Plato_AugLagStressCriterionGeneral.hpp"
-#include "elliptic/mechanical/Plato_AugLagStressCriterionQuadratic.hpp"
-#include "elliptic/mechanical/LocalMeasureVonMises.hpp"
-#include "elliptic/mechanical/VonMisesYieldFunction.hpp"
-#include "elliptic/mechanical/LocalMeasureTensileEnergyDensity.hpp"
+#include "elliptic/mechanical/linear/CriterionMassMoment.hpp"
+#include "elliptic/mechanical/linear/Plato_AugLagStressCriterionGeneral.hpp"
+#include "elliptic/mechanical/linear/Plato_AugLagStressCriterionQuadratic.hpp"
+#include "elliptic/mechanical/linear/LocalMeasureVonMises.hpp"
+#include "elliptic/mechanical/linear/VonMisesYieldFunction.hpp"
+#include "elliptic/mechanical/linear/LocalMeasureTensileEnergyDensity.hpp"
 
 #include "ThermalVonMisesLocalMeasure.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"

@@ -5,7 +5,7 @@
 #include "GradientMatrix.hpp"
 #include "TMKineticsFactory.hpp"
 #include "InterpolateFromNodal.hpp"
-#include "elliptic/mechanical/VonMisesYieldFunction.hpp"
+#include "elliptic/mechanical/linear/VonMisesYieldFunction.hpp"
 
 namespace Plato
 {

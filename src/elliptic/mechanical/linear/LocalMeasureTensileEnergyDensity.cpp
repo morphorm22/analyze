@@ -2,11 +2,11 @@
  * LocalMeasureTensileEnergyDensity.cpp
  *
  */
-#include "LocalMeasureTensileEnergyDensity_decl.hpp"
+#include "elliptic/mechanical/linear/LocalMeasureTensileEnergyDensity_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "LocalMeasureTensileEnergyDensity_def.hpp"
+#include "elliptic/mechanical/linear/LocalMeasureTensileEnergyDensity_def.hpp"
 
 #include "MechanicsElement.hpp"
 #include "elliptic/ExpInstMacros.hpp"

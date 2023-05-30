@@ -19,7 +19,7 @@
 #include "PlatoMathHelpers.hpp"
 #include "Plato_TopOptFunctors.hpp"
 #include "elliptic/EvaluationTypes.hpp"
-#include "elliptic/mechanical/VonMisesYieldFunction.hpp"
+#include "elliptic/mechanical/linear/VonMisesYieldFunction.hpp"
 
 namespace Plato
 {

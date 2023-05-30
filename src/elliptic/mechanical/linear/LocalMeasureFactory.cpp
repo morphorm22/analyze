@@ -4,7 +4,7 @@
  *  Created on: Apr 2, 2019
  */
 
-#include "elliptic/mechanical/LocalMeasureFactory.hpp"
+#include "elliptic/mechanical/linear/LocalMeasureFactory.hpp"
 
 #ifdef PLATOANALYZE_1D
 PLATO_EXPL_DEF2(Plato::LocalMeasureFactory, Plato::SimplexMechanics, 1)

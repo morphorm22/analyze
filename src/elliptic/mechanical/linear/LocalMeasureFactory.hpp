@@ -7,8 +7,8 @@
 #include "SimplexFadTypes.hpp"
 #include "AnalyzeMacros.hpp"
 
-#include "elliptic/mechanical/LocalMeasureVonMises.hpp"
-#include "elliptic/mechanical/LocalMeasureTensileEnergyDensity.hpp"
+#include "elliptic/mechanical/linear/LocalMeasureVonMises.hpp"
+#include "elliptic/mechanical/linear/LocalMeasureTensileEnergyDensity.hpp"
 
 namespace Plato
 {
