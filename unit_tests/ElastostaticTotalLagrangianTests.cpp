@@ -260,11 +260,11 @@ public:
 };
 
 /// @class RightDeformationTensor
-/// @brief Computes right deformation tensor:
+/// @brief Computes right deformation tensor: 
 /// \f[ 
 ///   C_{ij}=F_{ik}^{T}F_{kj}
 /// \f]
-/// where \f$F_{ij}\f$ is the deformation gradient
+/// where \f$F_{ij}\f$ is the deformation gradient \n
 /// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class RightDeformationTensor
@@ -1318,7 +1318,104 @@ public:
         Kokkos::atomic_add(&aResult(iCellOrdinal), tValue);
     });
   }
+};
 
+template<typename EvaluationType>
+class CriterionNeoHookeanElasticEnergyPotential :
+  public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+{
+private:
+  /// @brief topological element type
+  using ElementType = typename EvaluationType::ElementType;
+  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+  /// @brief local typename for base class
+  using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
+  /// @brief number of spatial dimensions
+  using FunctionBaseType::mSpatialDomain;
+  using FunctionBaseType::mDataMap;
+
+  using StateT   = typename EvaluationType::StateScalarType;
+  using ConfigT  = typename EvaluationType::ConfigScalarType;
+  using ResultT  = typename EvaluationType::ResultScalarType;
+  using ControlT = typename EvaluationType::ControlScalarType;
+  using StrainT  = typename Plato::fad_type_t<ElementType,StateT,ConfigT>;
+  /// @brief material constitutive model interface
+  std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterial;
+
+public:
+  CriterionNeoHookeanElasticEnergyPotential(
+    const Plato::SpatialDomain   & aSpatialDomain,
+          Plato::DataMap         & aDataMap,
+          Teuchos::ParameterList & aParamList,
+    const std::string            & aFuncName
+  ) :
+    FunctionBaseType(aSpatialDomain,aDataMap,aParamList,aFuncName)
+  {
+    std::string tMaterialName = mSpatialDomain.getMaterialName();
+    Plato::FactoryNonlinearElasticMaterial<EvaluationType> tFactory(aParamList);
+    mMaterial = tFactory.create(tMaterialName);
+  }
+
+  ~CriterionNeoHookeanElasticEnergyPotential(){}
+
+  void 
+  evaluate_conditional(
+      const Plato::ScalarMultiVectorT <StateT>   & aState,
+      const Plato::ScalarMultiVectorT <ControlT> & aControl,
+      const Plato::ScalarArray3DT     <ConfigT>  & aConfig,
+            Plato::ScalarVectorT      <ResultT>  & aResult,
+            Plato::Scalar                          aCycle
+  ) const
+  {
+    // get material properties
+    auto tMu     = std::stod(mMaterial->property("lame mu").front());
+    auto tLambda = std::stod(mMaterial->property("lame lambda").front());
+    // get integration rule information
+    auto tNumPoints  = ElementType::mNumGaussPoints;
+    auto tCubPoints  = ElementType::getCubPoints();
+    auto tCubWeights = ElementType::getCubWeights();
+    // compute state gradient
+    Plato::StateGradient<EvaluationType> tComputeStateGradient;
+    Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
+    Plato::DeformationGradient<EvaluationType> tComputeDeformationGradient;
+    Plato::RightDeformationTensor<EvaluationType> tComputeRightDeformationTensor;
+    // evaluate stress tensor
+    auto tNumCells = mSpatialDomain.numCells();
+    Kokkos::parallel_for("evaluate strain energy potential", 
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0}, {tNumCells,tNumPoints}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      {
+        // compute gradient functions
+        ConfigT tVolume(0.0);
+        auto tCubPoint = tCubPoints(iGpOrdinal);
+        Plato::Matrix<ElementType::mNumNodesPerCell,ElementType::mNumSpatialDims,ConfigT> tGradient;
+        tComputeGradient(iCellOrdinal,tCubPoint,aConfig,tGradient,tVolume);
+        // compute state gradient
+        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> 
+          tStateGradient(StrainT(0.));
+        tComputeStateGradient(iCellOrdinal,aState,tGradient,tStateGradient);
+        // compute green-lagrange strain tensor
+        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> 
+          tDeformationGradient(StrainT(0.));
+        tComputeDeformationGradient(tStateGradient,tDeformationGradient);
+        // apply transpose to deformation gradient
+        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> 
+          tDeformationGradientT = Plato::transpose(tDeformationGradient);
+        // compute right deformation tensor
+        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> 
+          tRightDeformationTensor(StrainT(0.));
+        tComputeRightDeformationTensor(tDeformationGradientT,tDeformationGradient,tRightDeformationTensor);
+        // compute trace of right deformation tensor
+        StrainT tTrace = Plato::trace(tRightDeformationTensor);
+        // compute determinant of deformation gradient
+        StrainT tDetDeformationGradient = Plato::determinant(tDeformationGradient);
+        // evaluate elastic strain energy potential
+        StrainT tLogDetF = log(tDetDeformationGradient);
+        ResultT tValue = 0.5*tLambda*tLogDetF*tLogDetF - tMu*tLogDetF + 0.5*tMu*(tTrace-3.0);
+        Kokkos::atomic_add(&aResult(iCellOrdinal), tValue);
+    });
+  }
 };
 
 }
@@ -1945,6 +2042,64 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, CriterionKirchhoffElasticEn
   // test gold values
   constexpr Plato::Scalar tTolerance = 1e-4;
   std::vector<Plato::Scalar> tGold = { 0.52098765432098735, 0.52098765432098735 };
+  auto tHostResultsWS = Kokkos::create_mirror(tResultsWS);
+  Kokkos::deep_copy(tHostResultsWS, tResultsWS);
+  for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
+    TEST_FLOATING_EQUALITY(tGold[tCell],tHostResultsWS(tCell),tTolerance);
+  }
+}
+
+TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, CriterionNeoHookeanElasticEnergyPotential )
+{
+ // create mesh
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;  
+  // create output database and spatial model
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  //set ad-types
+  using Residual = typename Plato::Elliptic::Evaluation<Plato::MechanicsElement<Plato::Tri3>>::Residual;
+  using StateT   = typename Residual::StateScalarType;
+  using ConfigT  = typename Residual::ConfigScalarType;
+  using ResultT  = typename Residual::ResultScalarType;
+  using ControlT = typename Residual::ControlScalarType;
+  using StrainT  = typename Plato::fad_type_t<ElementType,StateT,ConfigT>;
+  // create configuration workset
+  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
+  const Plato::OrdinalType tNumCells = tMesh->NumElements();
+  TEST_EQUALITY(2,tNumCells);
+  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
+  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
+  tWorksetBase.worksetConfig(tConfigWS);
+  // create state workset
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+  Plato::ScalarVector tState("States", tNumDofs);
+  Plato::blas1::fill(0.1, tState);
+  Kokkos::parallel_for("fill state",
+    Kokkos::RangePolicy<>(0, tNumDofs), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+    { tState(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
+  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
+  tWorksetBase.worksetState(tState, tStateWS);
+  // create control workset
+  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+  Plato::ScalarVector tControl("Controls", tNumVerts);
+  Plato::blas1::fill(1.0, tControl);
+  tWorksetBase.worksetControl(tControl, tControlWS);
+  // create results workset
+  Plato::ScalarVectorT<ResultT> tResultsWS("residual",tNumCells);
+  // create criterion
+  Plato::CriterionNeoHookeanElasticEnergyPotential<Residual> 
+    tCriterion(tOnlyDomainDefined,tDataMap,*tGenericParamList,"My Strain Energy");
+  tCriterion.evaluate(tStateWS,tControlWS,tConfigWS,tResultsWS);
+  // test gold values
+  constexpr Plato::Scalar tTolerance = 1e-4;
+  std::vector<Plato::Scalar> tGold = { 0.032487784262637334, 0.032487784262637334 };
   auto tHostResultsWS = Kokkos::create_mirror(tResultsWS);
   Kokkos::deep_copy(tHostResultsWS, tResultsWS);
   for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
