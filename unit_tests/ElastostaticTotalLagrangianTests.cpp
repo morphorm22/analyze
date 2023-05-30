@@ -326,13 +326,13 @@ private:
 public:
   /// @fn operator()()
   /// @brief computes the green-lagrange strain tensor
-  /// @param [in]     aDefTensor    right deformation tensor
+  /// @param [in]     aStateGrad    state gradient
   /// @param [in,out] aStrainTensor green-lagrange strain tesnor
   /// @return 
   KOKKOS_INLINE_FUNCTION
   void 
   operator()(
-    const Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType>  & aDefTensor,
+    const Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType>  & aStateGrad,
           Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType>  & aStrainTensor
   ) const
   {
@@ -340,9 +340,12 @@ public:
     {
       for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++)
       {
-        aStrainTensor(tDimI,tDimJ) += 0.5 * aDefTensor(tDimI,tDimJ);
+        aStrainTensor(tDimI,tDimJ) += 0.5 * ( aStateGrad(tDimI,tDimJ) + aStateGrad(tDimJ,tDimI) );
+        for(Plato::OrdinalType tDimK = 0; tDimK < mNumSpatialDims; tDimK++)
+        {
+          aStrainTensor(tDimI,tDimJ) += 0.5 * ( aStateGrad(tDimK,tDimI) * aStateGrad(tDimK,tDimJ) );
+        }
       }
-      aStrainTensor(tDimI,tDimI) -= 0.5;
     }
   }
 };
@@ -670,7 +673,6 @@ public:
     Plato::StateGradient<EvaluationType> tComputeStateGradient;
     Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
     Plato::DeformationGradient<EvaluationType> tComputeDeformationGradient;
-    Plato::RightDeformationTensor<EvaluationType> tComputeRightDeformationTensor;
     Plato::GreenLagrangeStrainTensor<EvaluationType> tGreenLagrangeStrainTensor;
     // evaluate stress tensor
     auto tNumCells = mSpatialDomain.numCells();
@@ -680,30 +682,39 @@ public:
       {
         // compute gradient functions
         ConfigT tVolume(0.0);
-        Plato::Matrix<ElementType::mNumNodesPerCell,ElementType::mNumSpatialDims,ConfigT> tGradient;
+        Plato::Matrix<ElementType::mNumNodesPerCell,ElementType::mNumSpatialDims,ConfigT> 
+          tGradient;
         auto tCubPoint = tCubPoints(iGpOrdinal);
         tComputeGradient(iCellOrdinal,tCubPoint,aConfig,tGradient,tVolume);
         // compute state gradient
-        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> tStateGrad(StrainT(0.));
-        tComputeStateGradient(iCellOrdinal,aState,tGradient,tStateGrad);
-        // compute deformation gradient 
-        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> tDefGrad(StrainT(0.));
-        tComputeDeformationGradient(tStateGrad,tDefGrad);
-        // apply transpose to deformation gradient
-        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> tDefGradT = 
-          Plato::transpose(tDefGrad);
-        // compute cauchy-green deformation tensor
-        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> tDefTensor(StrainT(0.));
-        tComputeRightDeformationTensor(tDefGradT,tDefGrad,tDefTensor);
+        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> 
+          tStateGradient(StrainT(0.));
+        tComputeStateGradient(iCellOrdinal,aState,tGradient,tStateGradient);
         // compute green-lagrange strain tensor
-        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> tStrainTensor(StrainT(0.));
-        tGreenLagrangeStrainTensor(tDefTensor,tStrainTensor);
-        // compute stress
+        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> 
+          tStrainTensor(StrainT(0.));
+        tGreenLagrangeStrainTensor(tStateGradient,tStrainTensor);
+        // compute second piola-kirchhoff stress
         StrainT tTrace = Plato::trace(tStrainTensor);
+        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,ResultT> 
+          tStressTensor2PK(ResultT(0.));
         for(Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
-          aResult(iCellOrdinal,iGpOrdinal,tDimI,tDimI) += tLambda*tTrace;
+          tStressTensor2PK(tDimI,tDimI) += tLambda*tTrace;
           for(Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
-            aResult(iCellOrdinal,iGpOrdinal,tDimI,tDimJ) += 2.0*tMu*tStrainTensor(tDimI,tDimJ);
+            tStressTensor2PK(tDimI,tDimJ) += 2.0*tMu*tStrainTensor(tDimI,tDimJ);
+          }
+        }
+        // compute deformation gradient
+        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> 
+          tDefGradient(StrainT(0.));
+        tComputeDeformationGradient(tStateGradient,tDefGradient);
+        // compute nominal stress
+        for(Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
+          for(Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
+            for(Plato::OrdinalType tDimK = 0; tDimK < ElementType::mNumSpatialDims; tDimK++){
+              aResult(iCellOrdinal,iGpOrdinal,tDimI,tDimJ) += 
+                tStressTensor2PK(tDimI,tDimK)*tDefGradient(tDimJ,tDimK);
+            }
           }
         }
     });
@@ -799,31 +810,40 @@ public:
         auto tCubPoint = tCubPoints(iGpOrdinal);
         tComputeGradient(iCellOrdinal,tCubPoint,aConfig,tGradient,tVolume);
         // compute state gradient
-        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> tStateGrad(StrainT(0.));
-        tComputeStateGradient(iCellOrdinal,aState,tGradient,tStateGrad);
+        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> tStateGradient(StrainT(0.));
+        tComputeStateGradient(iCellOrdinal,aState,tGradient,tStateGradient);
         // compute deformation gradient 
-        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> tDefGrad(StrainT(0.));
-        tComputeDeformationGradient(tStateGrad,tDefGrad);
+        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> tDefGradient(StrainT(0.));
+        tComputeDeformationGradient(tStateGradient,tDefGradient);
         // apply transpose to deformation gradient
         Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> tDefGradT = 
-          Plato::transpose(tDefGrad);
+          Plato::transpose(tDefGradient);
         // compute cauchy-green deformation tensor
         Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> 
           tRightDeformationTensor(StrainT(0.));
-        tComputeRightDeformationTensor(tDefGradT,tDefGrad,tRightDeformationTensor);
+        tComputeRightDeformationTensor(tDefGradT,tDefGradient,tRightDeformationTensor);
         // compute determinant of deformation gradient
-        StrainT tDetDefGrad = Plato::determinant(tDefGrad);
+        StrainT tDetDefGrad = Plato::determinant(tDefGradient);
         // invert right deformation tensor
         Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> 
           tInverseRightDeformationTensor = Plato::invert(tRightDeformationTensor);
         // compute stress tensor
+        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,ResultT> 
+          tStressTensor2PK(ResultT(0.));
         for(Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
-          aResult(iCellOrdinal,iGpOrdinal,tDimI,tDimI) += tMu;
+          tStressTensor2PK(tDimI,tDimI) += tMu;
           for(Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
-            aResult(iCellOrdinal,iGpOrdinal,tDimI,tDimJ) += 
-              tLambda * log(tDetDefGrad) * tInverseRightDeformationTensor(tDimI,tDimJ);
-            aResult(iCellOrdinal,iGpOrdinal,tDimI,tDimJ) -= 
-              tMu * tInverseRightDeformationTensor(tDimI,tDimJ);
+            tStressTensor2PK(tDimI,tDimJ) += tLambda*log(tDetDefGrad)*tInverseRightDeformationTensor(tDimI,tDimJ);
+            tStressTensor2PK(tDimI,tDimJ) -= tMu*tInverseRightDeformationTensor(tDimI,tDimJ);
+          }
+        }
+        // compute nominal stress
+        for(Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
+          for(Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
+            for(Plato::OrdinalType tDimK = 0; tDimK < ElementType::mNumSpatialDims; tDimK++){
+              aResult(iCellOrdinal,iGpOrdinal,tDimI,tDimJ) += 
+                tStressTensor2PK(tDimI,tDimK)*tDefGradient(tDimJ,tDimK);
+            }
           }
         }
     });
@@ -1176,12 +1196,12 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, tComputeStateGradient )
       auto tCubPoint = tCubPoints(iGpOrdinal);
       tComputeGradient(iCellOrdinal,tCubPoint,tConfigWS,tGradient,tVolume);
       // compute state gradient
-      Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tStateGrad(StrainT(0.));
-      tComputeStateGradient(iCellOrdinal,tStateWS,tGradient,tStateGrad);
+      Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tStateGradient(StrainT(0.));
+      tComputeStateGradient(iCellOrdinal,tStateWS,tGradient,tStateGradient);
       // copy results
       for( Plato::OrdinalType tDimI = 0; tDimI < tSpaceDim; tDimI++){
         for( Plato::OrdinalType tDimJ = 0; tDimJ < tSpaceDim; tDimJ++){
-          tResultsWS(iCellOrdinal,tDimI,tDimJ) = tStateGrad(tDimI,tDimJ);
+          tResultsWS(iCellOrdinal,tDimI,tDimJ) = tStateGradient(tDimI,tDimJ);
         }
       }
   });
@@ -1253,15 +1273,15 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, DeformationGradient )
       auto tCubPoint = tCubPoints(iGpOrdinal);
       tComputeGradient(iCellOrdinal,tCubPoint,tConfigWS,tGradient,tVolume);
       // compute state gradient
-      Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tStateGrad(StrainT(0.));
-      tComputeStateGradient(iCellOrdinal,tStateWS,tGradient,tStateGrad);
+      Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tStateGradient(StrainT(0.));
+      tComputeStateGradient(iCellOrdinal,tStateWS,tGradient,tStateGradient);
       // compute deformation gradient 
-      Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tDefGrad(StrainT(0.));
-      tComputeDeformationGradient(tStateGrad,tDefGrad);
+      Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tDefGradient(StrainT(0.));
+      tComputeDeformationGradient(tStateGradient,tDefGradient);
       // copy result
       for( Plato::OrdinalType tDimI = 0; tDimI < tSpaceDim; tDimI++){
         for( Plato::OrdinalType tDimJ = 0; tDimJ < tSpaceDim; tDimJ++){
-          tResultsWS(iCellOrdinal,tDimI,tDimJ) = tDefGrad(tDimI,tDimJ);
+          tResultsWS(iCellOrdinal,tDimI,tDimJ) = tDefGradient(tDimI,tDimJ);
         }
       }
   });
@@ -1334,17 +1354,17 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, RightDeformationTensor )
       auto tCubPoint = tCubPoints(iGpOrdinal);
       tComputeGradient(iCellOrdinal,tCubPoint,tConfigWS,tGradient,tVolume);
       // compute state gradient
-      Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tStateGrad(StrainT(0.));
-      tComputeStateGradient(iCellOrdinal,tStateWS,tGradient,tStateGrad);
+      Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tStateGradient(StrainT(0.));
+      tComputeStateGradient(iCellOrdinal,tStateWS,tGradient,tStateGradient);
       // compute deformation gradient 
-      Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tDefGrad(StrainT(0.));
-      tComputeDeformationGradient(tStateGrad,tDefGrad);
+      Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tDefGradient(StrainT(0.));
+      tComputeDeformationGradient(tStateGradient,tDefGradient);
       // apply transpose to deformation gradient
       Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tDefGradT
-        = Plato::transpose(tDefGrad);
+        = Plato::transpose(tDefGradient);
       // compute cauchy-green deformation tensor
       Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tDefTensor(StrainT(0.));
-      tComputeRightDeformationTensor(tDefGradT,tDefGrad,tDefTensor);
+      tComputeRightDeformationTensor(tDefGradT,tDefGradient,tDefTensor);
       // copy result
       for( Plato::OrdinalType tDimI = 0; tDimI < tSpaceDim; tDimI++){
         for( Plato::OrdinalType tDimJ = 0; tDimJ < tSpaceDim; tDimJ++){
@@ -1422,20 +1442,11 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, GreenLagrangeStrainTensor )
       auto tCubPoint = tCubPoints(iGpOrdinal);
       tComputeGradient(iCellOrdinal,tCubPoint,tConfigWS,tGradient,tVolume);
       // compute state gradient
-      Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tStateGrad(StrainT(0.));
-      tComputeStateGradient(iCellOrdinal,tStateWS,tGradient,tStateGrad);
-      // compute deformation gradient 
-      Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tDefGrad(StrainT(0.));
-      tComputeDeformationGradient(tStateGrad,tDefGrad);
-      // apply transpose to deformation gradient
-      Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tDefGradT
-        = Plato::transpose(tDefGrad);
-      // compute cauchy-green deformation tensor
-      Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tDefTensor(StrainT(0.));
-      tComputeRightDeformationTensor(tDefGradT,tDefGrad,tDefTensor);
+      Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tStateGradient(StrainT(0.));
+      tComputeStateGradient(iCellOrdinal,tStateWS,tGradient,tStateGradient);
       // compute green-lagrange strain tensor
       Plato::Matrix<ElementType::mNumSpatialDims ,ElementType::mNumSpatialDims,StrainT> tStrainTensor(StrainT(0.));
-      tGreenLagrangeStrainTensor(tDefTensor,tStrainTensor);
+      tGreenLagrangeStrainTensor(tStateGradient,tStrainTensor);
       // copy result
       for( Plato::OrdinalType tDimI = 0; tDimI < tSpaceDim; tDimI++){
         for( Plato::OrdinalType tDimJ = 0; tDimJ < tSpaceDim; tDimJ++){
@@ -1508,7 +1519,7 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, StressEvaluatorKirchhoffTen
   // test gold values
   constexpr Plato::Scalar tTolerance = 1e-4;
   std::vector<std::vector<Plato::Scalar>> tGold = 
-    { {1.106172,0.281481,0.281481,0.869135}, {1.106172,0.281481,0.281481,0.869135} };
+    { {1.60493827,0.78024691,0.56790123,1.15555556}, {1.60493827,0.78024691,0.56790123,1.15555556} };
   auto tHostResultsWS = Kokkos::create_mirror(tResultsWS);
   Kokkos::deep_copy(tHostResultsWS, tResultsWS);
   for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
@@ -1592,7 +1603,7 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, StressEvaluatorNeoHookeanTe
   // test gold values
   constexpr Plato::Scalar tTolerance = 1e-4;
   std::vector<std::vector<Plato::Scalar>> tGold = 
-    { {0.39107049,-0.01062979,-0.01062979,0.40002189}, {0.39107049,-0.01062979,-0.01062979,0.40002189} };
+    { {0.54537272,0.14367245,0.06512267,0.47577435}, {0.54537272,0.14367245,0.06512267,0.47577435} };
   auto tHostResultsWS = Kokkos::create_mirror(tResultsWS);
   Kokkos::deep_copy(tHostResultsWS, tResultsWS);
   for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
@@ -1657,8 +1668,8 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, Residual )
   constexpr Plato::Scalar tTolerance = 1e-4;
   std::vector<std::vector<Plato::Scalar>> tGold = 
     { 
-      {-0.553086 ,-0.1407405,0.4123455,-0.293827,0.1407405 ,0.4345675}, 
-      {-0.1407405,-0.4345675,0.553086 ,0.1407405,-0.4123455,0.293827} 
+      {-0.802469,-0.28395 ,0.412346,-0.293827,0.390123 ,0.577778}, 
+      {-0.390123,-0.577778,0.802469,0.28395  ,-0.412346,0.293827} 
     };
   auto tHostResultsWS = Kokkos::create_mirror(tResultsWS);
   Kokkos::deep_copy(tHostResultsWS, tResultsWS);
