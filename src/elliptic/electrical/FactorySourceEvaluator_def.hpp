@@ -9,7 +9,7 @@
 #include "AnalyzeMacros.hpp"
 #include "PlatoUtilities.hpp"
 #include "elliptic/electrical/SourceWeightedSum.hpp"
-#include "elliptic/electrical/SupportedOptionEnums.hpp"
+#include "elliptic/electrical/SupportedParamOptions.hpp"
 
 namespace Plato
 {

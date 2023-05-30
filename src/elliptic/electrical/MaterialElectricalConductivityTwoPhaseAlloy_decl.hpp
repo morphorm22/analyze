@@ -13,7 +13,7 @@
 
 /// @include analyze includes
 #include "MaterialModel.hpp"
-#include "elliptic/electrical/SupportedOptionEnums.hpp"
+#include "elliptic/electrical/SupportedParamOptions.hpp"
 
 namespace Plato
 {

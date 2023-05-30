@@ -8,7 +8,7 @@
 
 #include "AnalyzeMacros.hpp"
 
-#include "elliptic/electrical/SupportedOptionEnums.hpp"
+#include "elliptic/electrical/SupportedParamOptions.hpp"
 #include "elliptic/electrical/DarkCurrentDensityTwoPhaseAlloy.hpp"
 #include "elliptic/electrical/LightCurrentDensityTwoPhaseAlloy.hpp"
 

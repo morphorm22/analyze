@@ -1,12 +1,12 @@
 /*
- * SupportedOptionEnums.cpp
+ * SupportedParamOptions.cpp
  *
  *  Created on: May 23, 2023
  */
 
 #include "AnalyzeMacros.hpp"
 #include "PlatoUtilities.hpp"
-#include "elliptic/electrical/SupportedOptionEnums.hpp"
+#include "elliptic/electrical/SupportedParamOptions.hpp"
 
 namespace Plato
 {

@@ -1,5 +1,5 @@
 /*
- * SupportedOptionEnums.hpp
+ * SupportedParamOptions.hpp
  *
  *  Created on: May 23, 2023
  */

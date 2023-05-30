@@ -12,7 +12,7 @@
 /// @include analyze includes
 #include "AnalyzeMacros.hpp"
 #include "elliptic/electrical/ElectricalElement.hpp"
-#include "elliptic/electrical/SupportedOptionEnums.hpp"
+#include "elliptic/electrical/SupportedParamOptions.hpp"
 #include "elliptic/electrical/ResidualSteadyStateCurrent.hpp"
 #include "elliptic/electrical/CriterionVolumeTwoPhase.hpp"
 #include "elliptic/electrical/CriterionPowerSurfaceDensityTwoPhase.hpp"

@@ -146,7 +146,7 @@ if(ELLIPTIC)
     elliptic/thermal/ResidualThermostatic.cpp
     elliptic/thermal/CriterionFluxPNorm.cpp
     elliptic/thermal/CriterionInternalThermalEnergy.cpp
-    elliptic/electrical/SupportedOptionEnums.cpp
+    elliptic/electrical/SupportedParamOptions.cpp
     elliptic/electrical/FactorySourceEvaluator.cpp
     elliptic/electrical/SourceWeightedSum.cpp
     elliptic/electrical/FactoryElectricalMaterial.cpp
