@@ -22,7 +22,8 @@ namespace Plato
 struct WorkSets
 {
 private:
-    std::unordered_map<std::string, std::shared_ptr<Plato::MetaDataBase>> mData; /*!< map from tag to metadata shared pointer */
+    /// @brief map from tag to metadata shared pointer
+    std::unordered_map<std::string, std::shared_ptr<Plato::MetaDataBase>> mData;
 
 public:
     WorkSets(){}
@@ -70,10 +71,15 @@ public:
 template <typename PhysicsType>
 struct LocalOrdinalMaps
 {
-    Plato::NodeCoordinate<PhysicsType::ElementType::mNumSpatialDims, PhysicsType::ElementType::mNumNodesPerCell>           mNodeCoordinate; /*!< list of node coordinates */
-    Plato::VectorEntryOrdinal<PhysicsType::ElementType::mNumSpatialDims, 1 /*scalar dofs per node*/>                       mScalarFieldOrdinalsMap; /*!< element to scalar field degree of freedom map */
-    Plato::VectorEntryOrdinal<PhysicsType::ElementType::mNumSpatialDims, PhysicsType::ElementType::mNumSpatialDims>        mVectorFieldOrdinalsMap; /*!< element to vector field degree of freedom map */
-    Plato::VectorEntryOrdinal<PhysicsType::ElementType::mNumSpatialDims, PhysicsType::ElementType::mNumControlDofsPerNode> mControlOrdinalsMap; /*!< element to control field degree of freedom map */
+    using ElementType = typename PhysicsType::ElementType;
+    /// @brief list of node coordinates 
+    Plato::NodeCoordinate<ElementType::mNumSpatialDims,ElementType::mNumNodesPerCell> mNodeCoordinate;
+    /// @brief element to scalar-field degree of freedom map
+    Plato::VectorEntryOrdinal<ElementType::mNumSpatialDims, 1 /*dof per node*/> mScalarFieldOrdinalsMap;
+    /// @brief element to vector-field degree of freedom map
+    Plato::VectorEntryOrdinal<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims> mVectorFieldOrdinalsMap;
+    /// @brief element to control-field degree of freedom map
+    Plato::VectorEntryOrdinal<ElementType::mNumSpatialDims,ElementType::mNumControlDofsPerNode> mControlOrdinalsMap;
 
     /***************************************************************************//**
      * \fn LocalOrdinalMaps
