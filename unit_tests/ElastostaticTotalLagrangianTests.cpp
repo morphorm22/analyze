@@ -22,6 +22,7 @@
 #include "GradientMatrix.hpp"
 #include "MechanicsElement.hpp"
 #include "elliptic/EvaluationTypes.hpp"
+#include "elliptic/AbstractScalarFunction.hpp"
 #include "elliptic/AbstractVectorFunction.hpp"
 
 namespace Plato
@@ -600,14 +601,74 @@ public:
   ) const = 0;
 };
 
-/// @class StressEvaluatorKirchhoff
-/// @brief Evaluate second Piola-Kirchhoff stress tensor for a Kirchhoff material:
+/// @class KirchhoffSecondPiolaStress
+/// @brief Evaluate second Piola-Kirchhoff stress tensor for a Kirchhoff material: \n
 ///  \f[
 ///    \mathbf{S}=\lambda\mbox{trace}(\mathbf{E})\mathbf{I} + 2\mu\mathbf{E},
 ///  \f]
-/// where \f$\lambda\f$ and \f$\mu\f$ are the Lame constants, \f$\mathbf{E}\f$ is 
-/// the Green-Lagrange strain tensor, and \f$\mathbf{I}\f$ is the second order 
+/// where \f$\lambda\f$ and \f$\mu\f$ are the Lame constants, \f$\mathbf{E}\f$ is \n
+/// the Green-Lagrange strain tensor, and \f$\mathbf{I}\f$ is the second order \n
 /// identity tensor.
+/// @tparam EvaluationType 
+template<typename EvaluationType>
+class KirchhoffSecondPiolaStress
+{
+private:
+  /// @brief topological element typename
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief scalar types for an evaluation type
+  using StateScalarType   = typename EvaluationType::StateScalarType;
+  using ControlScalarType = typename EvaluationType::ControlScalarType;
+  using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  using StrainScalarType  = typename Plato::fad_type_t<ElementType,StateScalarType,ConfigScalarType>;
+  /// @brief Lame constant \f$\mu\f$
+  Plato::Scalar mMu;
+  /// @brief Lame constant \f$\lambda\f$
+  Plato::Scalar mLambda;
+
+public:
+  /// @brief class constructor
+  /// @param [in] aMaterial material model interface
+  KirchhoffSecondPiolaStress(
+    const Plato::MaterialModel<EvaluationType> & aMaterial
+  )
+  {
+    mMu     = std::stod(aMaterial.property("lame mu").front());
+    mLambda = std::stod(aMaterial.property("lame lambda").front());
+  }
+
+  /// @brief class destructor
+  ~KirchhoffSecondPiolaStress(){}
+
+  /// @fn operator()()
+  /// @brief Compute second Piola-Kirchhoff stress tensor
+  /// @param [in]     aStrainTensor Green-Lagrange strain tensor 
+  /// @param [in,out] aStressTensor second Piola-Kirchhoff stress tensor
+  KOKKOS_INLINE_FUNCTION
+  void 
+  operator()(
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainScalarType> & aStrainTensor, 
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,ResultScalarType> & aStressTensor 
+  ) const
+  {
+    StrainScalarType tTrace = Plato::trace(aStrainTensor);
+    for(Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
+      aStressTensor(tDimI,tDimI) += mLambda*tTrace;
+      for(Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
+        aStressTensor(tDimI,tDimJ) += 2.0*mMu*aStrainTensor(tDimI,tDimJ);
+      }
+    }
+  }
+};
+
+/// @class StressEvaluatorKirchhoff
+/// @brief Evaluate nominal stress for a Kirchhoff material: \n
+///  \f[
+///    \mathbf{P}_{ij}=S_{ik}F_{jk},\quad i,j,k=1,\dots,N_{dim}
+///  \f]
+/// where \f$P\f$ is the nominal stress, \f$S\f$ is the second Piola-Kirchhoff \n
+/// stress tensor, and \f$F\f$ is the deformation gradient. \n
 /// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class StressEvaluatorKirchhoff : public Plato::StressEvaluator<EvaluationType>
@@ -663,9 +724,6 @@ public:
             Plato::Scalar                         aCycle = 0.0
   ) const
   {
-    // get lame constants
-    Plato::Scalar tMu     = std::stod(mMaterial->property("lame mu").front());
-    Plato::Scalar tLambda = std::stod(mMaterial->property("lame lambda").front());
     // get integration rule information
     auto tCubPoints = ElementType::getCubPoints();
     auto tNumPoints = ElementType::mNumGaussPoints;
@@ -674,9 +732,10 @@ public:
     Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
     Plato::DeformationGradient<EvaluationType> tComputeDeformationGradient;
     Plato::GreenLagrangeStrainTensor<EvaluationType> tGreenLagrangeStrainTensor;
+    Plato::KirchhoffSecondPiolaStress<EvaluationType> tComputeSecondPiolaKirchhoffStress(*mMaterial);
     // evaluate stress tensor
     auto tNumCells = mSpatialDomain.numCells();
-    Kokkos::parallel_for("compute state gradient", 
+    Kokkos::parallel_for("compute nominal stress", 
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0}, {tNumCells,tNumPoints}),
       KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
@@ -695,15 +754,9 @@ public:
           tStrainTensor(StrainT(0.));
         tGreenLagrangeStrainTensor(tStateGradient,tStrainTensor);
         // compute second piola-kirchhoff stress
-        StrainT tTrace = Plato::trace(tStrainTensor);
         Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,ResultT> 
           tStressTensor2PK(ResultT(0.));
-        for(Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
-          tStressTensor2PK(tDimI,tDimI) += tLambda*tTrace;
-          for(Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
-            tStressTensor2PK(tDimI,tDimJ) += 2.0*tMu*tStrainTensor(tDimI,tDimJ);
-          }
-        }
+        tComputeSecondPiolaKirchhoffStress(tStrainTensor,tStressTensor2PK);
         // compute deformation gradient
         Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> 
           tDefGradient(StrainT(0.));
@@ -721,14 +774,89 @@ public:
   }
 };
 
-/// @class StressEvaluatorNeoHookean
-/// @brief Evaluate second Piola-Kirchhoff stress tensor for a Neo-Hookean material: 
+/// @class NeoHookeanSecondPiolaStress
+/// @brief Evaluate second Piola-Kirchhoff stress tensor for a Neo-Hookean material: \n
 ///  \f[
 ///    \mathbf{S}=\lambda\ln(J)\mathbf{C}^{-1} + \mu(\mathbf{I}-\mathbf{C}^{-1}),
 ///  \f]
-/// where \f$\lambda\f$ and \f$\mu\f$ are the Lame constants, \f$J=\det(\mathbf{F})\f$, 
-/// \f$\mathbf{F}\f is the deformation gradient, \f$\mathbf{C}\f$ is the right deformation 
-/// tensor, and \f$\mathbf{I}\f$ is the second order identity tensor.
+/// where \f$\lambda\f$ and \f$\mu\f$ are the Lame constants, \f$J=\det(\mathbf{F})\f$, \n 
+/// \f$\mathbf{F}\f is the deformation gradient, \f$\mathbf{C}\f$ is the right deformation \n
+/// tensor, and \f$\mathbf{I}\f$ is the second order identity tensor. \n
+/// @tparam EvaluationType 
+template<typename EvaluationType>
+class NeoHookeanSecondPiolaStress
+{
+private:
+  /// @brief topological element typename
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief scalar types for an evaluation type
+  using StateScalarType   = typename EvaluationType::StateScalarType;
+  using ControlScalarType = typename EvaluationType::ControlScalarType;
+  using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  using StrainScalarType  = typename Plato::fad_type_t<ElementType,StateScalarType,ConfigScalarType>;
+  /// @brief Lame constant \f$\mu\f$
+  Plato::Scalar mMu;
+  /// @brief Lame constant \f$\lambda\f$
+  Plato::Scalar mLambda;
+  /// @brief computes right deformation tensor 
+  Plato::RightDeformationTensor<EvaluationType> mComputeRightDeformationTensor;
+
+public:
+  /// @brief class constructor
+  /// @param [in] aMaterial material model interface
+  NeoHookeanSecondPiolaStress(
+    const Plato::MaterialModel<EvaluationType> & aMaterial
+  )
+  {
+    mMu     = std::stod(aMaterial.property("lame mu").front());
+    mLambda = std::stod(aMaterial.property("lame lambda").front());
+  }
+
+  /// @brief class destructor
+  ~NeoHookeanSecondPiolaStress(){}
+
+  /// @fn operator()()
+  /// @brief Compute second Piola-Kirchhoff stress tensor
+  /// @param [in]     aDefGradient  deformation gradient  
+  /// @param [in,out] aStressTensor second Piola-Kirchhoff stress tensor
+  KOKKOS_INLINE_FUNCTION
+  void 
+  operator()(
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainScalarType> & aDefGradient, 
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,ResultScalarType> & aStressTensor 
+  ) const
+  {
+    // apply transpose to deformation gradient
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainScalarType> tDefGradientT = 
+      Plato::transpose(aDefGradient);
+    // compute cauchy-green deformation tensor
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainScalarType> 
+      tRightDeformationTensor(StrainScalarType(0.));
+    mComputeRightDeformationTensor(tDefGradientT,aDefGradient,tRightDeformationTensor);
+    // compute determinant of deformation gradient
+    StrainScalarType tDetDefGrad = Plato::determinant(aDefGradient);
+    // invert right deformation tensor
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainScalarType> 
+      tInverseRightDeformationTensor = Plato::invert(tRightDeformationTensor);
+    // compute stress tensor
+    for(Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
+      aStressTensor(tDimI,tDimI) += mMu;
+      for(Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
+        aStressTensor(tDimI,tDimJ) += mLambda*log(tDetDefGrad)*tInverseRightDeformationTensor(tDimI,tDimJ);
+        aStressTensor(tDimI,tDimJ) -= mMu*tInverseRightDeformationTensor(tDimI,tDimJ);
+      }
+    }
+  }
+};
+
+/// @class StressEvaluatorNeoHookean
+/// @brief Evaluate nominal stress for a Neo-Hookean material: \n
+///  \f[
+///    \mathbf{P}_{ij}=S_{ik}F_{jk},\quad i,j,k=1,\dots,N_{dim}
+///  \f]
+/// where \f$P\f$ is the nominal stress, \f$S\f$ is the second Piola-Kirchhoff \n
+/// stress tensor, and \f$F\f$ is the deformation gradient. \n
 /// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class StressEvaluatorNeoHookean : public Plato::StressEvaluator<EvaluationType>
@@ -787,9 +915,6 @@ public:
       Plato::Scalar                               aCycle = 0.0
   ) const
   {
-    // get lame constants
-    Plato::Scalar tMu     = std::stod(mMaterial->property("lame mu").front());
-    Plato::Scalar tLambda = std::stod(mMaterial->property("lame lambda").front());
     // get integration rule information
     auto tCubPoints = ElementType::getCubPoints();
     auto tNumPoints = ElementType::mNumGaussPoints;
@@ -797,10 +922,10 @@ public:
     Plato::StateGradient<EvaluationType> tComputeStateGradient;
     Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
     Plato::DeformationGradient<EvaluationType> tComputeDeformationGradient;
-    Plato::RightDeformationTensor<EvaluationType> tComputeRightDeformationTensor;
+    Plato::NeoHookeanSecondPiolaStress<EvaluationType> tComputeSecondPiolaKirchhoffStress(*mMaterial);
     // evaluate stress tensor
     auto tNumCells = mSpatialDomain.numCells();
-    Kokkos::parallel_for("compute state gradient", 
+    Kokkos::parallel_for("compute nominal stress", 
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0}, {tNumCells,tNumPoints}),
       KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
@@ -815,28 +940,10 @@ public:
         // compute deformation gradient 
         Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> tDefGradient(StrainT(0.));
         tComputeDeformationGradient(tStateGradient,tDefGradient);
-        // apply transpose to deformation gradient
-        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> tDefGradT = 
-          Plato::transpose(tDefGradient);
-        // compute cauchy-green deformation tensor
-        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> 
-          tRightDeformationTensor(StrainT(0.));
-        tComputeRightDeformationTensor(tDefGradT,tDefGradient,tRightDeformationTensor);
-        // compute determinant of deformation gradient
-        StrainT tDetDefGrad = Plato::determinant(tDefGradient);
-        // invert right deformation tensor
-        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> 
-          tInverseRightDeformationTensor = Plato::invert(tRightDeformationTensor);
-        // compute stress tensor
+        // compute second-piola kirchhoff stress tensor
         Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,ResultT> 
           tStressTensor2PK(ResultT(0.));
-        for(Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
-          tStressTensor2PK(tDimI,tDimI) += tMu;
-          for(Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
-            tStressTensor2PK(tDimI,tDimJ) += tLambda*log(tDetDefGrad)*tInverseRightDeformationTensor(tDimI,tDimJ);
-            tStressTensor2PK(tDimI,tDimJ) -= tMu*tInverseRightDeformationTensor(tDimI,tDimJ);
-          }
-        }
+        tComputeSecondPiolaKirchhoffStress(tDefGradient,tStressTensor2PK);
         // compute nominal stress
         for(Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
           for(Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
@@ -1021,8 +1128,8 @@ public:
     Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
     Plato::OrdinalType tNumGaussPoints = ElementType::mNumGaussPoints;
     Plato::ScalarArray4DT<ResultScalarType> 
-      tStress("stress",tNumCells,tNumGaussPoints,mNumSpatialDims,mNumSpatialDims);
-    mStressEvaluator->evaluate(aState,aControl,aConfig,tStress,aCycle);
+      tNominalStress("nominal stress",tNumCells,tNumGaussPoints,mNumSpatialDims,mNumSpatialDims);
+    mStressEvaluator->evaluate(aState,aControl,aConfig,tNominalStress,aCycle);
     // get integration rule data
     auto tCubPoints  = ElementType::getCubPoints();
     auto tCubWeights = ElementType::getCubWeights();
@@ -1044,7 +1151,7 @@ public:
           for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
             Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumSpatialDims + tDimI;
             for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
-              ResultScalarType tVal = tStress(iCellOrdinal,iGpOrdinal,tDimI,tDimJ) 
+              ResultScalarType tVal = tNominalStress(iCellOrdinal,iGpOrdinal,tDimI,tDimJ) 
                 * tGradient(tNodeIndex,tDimJ) * tVolume;
               Kokkos::atomic_add( &aResult(iCellOrdinal,tLocalOrdinal),tVal );
             }
@@ -1118,6 +1225,102 @@ private:
   }
 };
 
+template<typename EvaluationType>
+class CriterionKirchhoffElasticEnergyPotential :
+  public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+{
+private:
+  /// @brief topological element type
+  using ElementType = typename EvaluationType::ElementType;
+  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+  /// @brief local typename for base class
+  using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
+  /// @brief number of spatial dimensions
+  using FunctionBaseType::mSpatialDomain;
+  using FunctionBaseType::mDataMap;
+
+  using StateT   = typename EvaluationType::StateScalarType;
+  using ConfigT  = typename EvaluationType::ConfigScalarType;
+  using ResultT  = typename EvaluationType::ResultScalarType;
+  using ControlT = typename EvaluationType::ControlScalarType;
+  using StrainT  = typename Plato::fad_type_t<ElementType,StateT,ConfigT>;
+  /// @brief material constitutive model interface
+  std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterial;
+
+public:
+  CriterionKirchhoffElasticEnergyPotential(
+    const Plato::SpatialDomain   & aSpatialDomain,
+          Plato::DataMap         & aDataMap,
+          Teuchos::ParameterList & aParamList,
+    const std::string            & aFuncName
+  ) :
+    FunctionBaseType(aSpatialDomain,aDataMap,aParamList,aFuncName)
+  {
+    std::string tMaterialName = mSpatialDomain.getMaterialName();
+    Plato::FactoryNonlinearElasticMaterial<EvaluationType> tFactory(aParamList);
+    mMaterial = tFactory.create(tMaterialName);
+  }
+
+  ~CriterionKirchhoffElasticEnergyPotential(){}
+
+  void 
+  evaluate_conditional(
+      const Plato::ScalarMultiVectorT <StateT>   & aState,
+      const Plato::ScalarMultiVectorT <ControlT> & aControl,
+      const Plato::ScalarArray3DT     <ConfigT>  & aConfig,
+            Plato::ScalarVectorT      <ResultT>  & aResult,
+            Plato::Scalar                          aCycle
+  ) const
+  {
+    // get integration rule information
+    auto tNumPoints  = ElementType::mNumGaussPoints;
+    auto tCubPoints  = ElementType::getCubPoints();
+    auto tCubWeights = ElementType::getCubWeights();
+    // compute state gradient
+    Plato::StateGradient<EvaluationType> tComputeStateGradient;
+    Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
+    Plato::GreenLagrangeStrainTensor<EvaluationType> tGreenLagrangeStrainTensor;
+    Plato::KirchhoffSecondPiolaStress<EvaluationType> tComputeSecondPiolaKirchhoffStress(*mMaterial);
+    // evaluate stress tensor
+    auto tNumCells = mSpatialDomain.numCells();
+    Kokkos::parallel_for("evaluate strain energy potential", 
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0}, {tNumCells,tNumPoints}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      {
+        // compute gradient functions
+        ConfigT tVolume(0.0);
+        Plato::Matrix<ElementType::mNumNodesPerCell,ElementType::mNumSpatialDims,ConfigT> 
+          tGradient;
+        auto tCubPoint = tCubPoints(iGpOrdinal);
+        tComputeGradient(iCellOrdinal,tCubPoint,aConfig,tGradient,tVolume);
+        // compute state gradient
+        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> 
+          tStateGradient(StrainT(0.));
+        tComputeStateGradient(iCellOrdinal,aState,tGradient,tStateGradient);
+        // compute green-lagrange strain tensor
+        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> 
+          tStrainTensor(StrainT(0.));
+        tGreenLagrangeStrainTensor(tStateGradient,tStrainTensor);
+        // compute second piola-kirchhoff stress
+        Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,ResultT> 
+          tStressTensor2PK(ResultT(0.));
+        tComputeSecondPiolaKirchhoffStress(tStrainTensor,tStressTensor2PK);
+        // apply integration point weight to element volume
+        tVolume *= tCubWeights(iGpOrdinal);
+        // evaluate elastic strain energy potential 
+        ResultT tValue(0.0);
+        for(Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
+          for(Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
+            tValue += tStrainTensor(tDimI,tDimJ) * tStressTensor2PK(tDimI,tDimJ) * tVolume;
+          }
+        }
+        Kokkos::atomic_add(&aResult(iCellOrdinal), tValue);
+    });
+  }
+
+};
+
 }
 
 namespace ElastostaticTotalLagrangianTests
@@ -1141,8 +1344,19 @@ Teuchos::RCP<Teuchos::ParameterList> tGenericParamList = Teuchos::getParametersF
       "</ParameterList>                                                                                \n"
     "</ParameterList>                                                                                  \n"
   "</ParameterList>                                                                                    \n"
+  "<ParameterList name='Criteria'>                                                                     \n"
+  "  <ParameterList name='Objective'>                                                                  \n"
+  "    <Parameter name='Type' type='string' value='Weighted Sum'/>                                     \n"
+  "    <Parameter name='Functions' type='Array(string)' value='{My Strain Energy}'/>                   \n"
+  "    <Parameter name='Weights' type='Array(double)' value='{1.0}'/>                                  \n"
+  "  </ParameterList>                                                                                  \n"
+  "  <ParameterList name='My Strain Energy'>                                                           \n"
+  "    <Parameter name='Type'                 type='string' value='Scalar Function'/>                  \n"
+  "    <Parameter name='Scalar Function Type' type='string' value='Strain Energy Potential'/>          \n"
+  "  </ParameterList>                                                                                  \n"
+  "</ParameterList>                                                                                    \n"
 "</ParameterList>                                                                                      \n"
-);
+); 
 
 TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, tComputeStateGradient )
 {
@@ -1677,6 +1891,64 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, Residual )
     for(Plato::OrdinalType tDof = 0; tDof < tDofsPerCell; tDof++){
         TEST_FLOATING_EQUALITY(tGold[tCell][tDof],tHostResultsWS(tCell,tDof),tTolerance);
     }
+  }
+}
+
+TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, CriterionKirchhoffElasticEnergyPotential )
+{
+ // create mesh
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;  
+  // create output database and spatial model
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  //set ad-types
+  using Residual = typename Plato::Elliptic::Evaluation<Plato::MechanicsElement<Plato::Tri3>>::Residual;
+  using StateT   = typename Residual::StateScalarType;
+  using ConfigT  = typename Residual::ConfigScalarType;
+  using ResultT  = typename Residual::ResultScalarType;
+  using ControlT = typename Residual::ControlScalarType;
+  using StrainT  = typename Plato::fad_type_t<ElementType,StateT,ConfigT>;
+  // create configuration workset
+  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
+  const Plato::OrdinalType tNumCells = tMesh->NumElements();
+  TEST_EQUALITY(2,tNumCells);
+  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
+  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
+  tWorksetBase.worksetConfig(tConfigWS);
+  // create state workset
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+  Plato::ScalarVector tState("States", tNumDofs);
+  Plato::blas1::fill(0.1, tState);
+  Kokkos::parallel_for("fill state",
+    Kokkos::RangePolicy<>(0, tNumDofs), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+    { tState(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
+  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
+  tWorksetBase.worksetState(tState, tStateWS);
+  // create control workset
+  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+  Plato::ScalarVector tControl("Controls", tNumVerts);
+  Plato::blas1::fill(1.0, tControl);
+  tWorksetBase.worksetControl(tControl, tControlWS);
+  // create results workset
+  Plato::ScalarVectorT<ResultT> tResultsWS("residual",tNumCells);
+  // create criterion
+  Plato::CriterionKirchhoffElasticEnergyPotential<Residual> 
+    tCriterion(tOnlyDomainDefined,tDataMap,*tGenericParamList,"My Strain Energy");
+  tCriterion.evaluate(tStateWS,tControlWS,tConfigWS,tResultsWS);
+  // test gold values
+  constexpr Plato::Scalar tTolerance = 1e-4;
+  std::vector<Plato::Scalar> tGold = { 0.52098765432098735, 0.52098765432098735 };
+  auto tHostResultsWS = Kokkos::create_mirror(tResultsWS);
+  Kokkos::deep_copy(tHostResultsWS, tResultsWS);
+  for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
+    TEST_FLOATING_EQUALITY(tGold[tCell],tHostResultsWS(tCell),tTolerance);
   }
 }
 
