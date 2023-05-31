@@ -46,10 +46,6 @@ Plato_add_test(Electroelastic ElectroelasticTests.cpp)
 Plato_add_test(Thermoelastic ThermoelasticTests.cpp)
 endif()
 
-if(HATCHING)
-  Plato_add_test(EllipticHatching EllipticHatchingTests.cpp)
-endif()
-
 if(PLASTICITY)
   Plato_add_test(Plasticity PlasticityTests.cpp)
   Plato_add_test(ElastoPlasticity ElastoPlasticityTests.cpp SKIP_MATH)

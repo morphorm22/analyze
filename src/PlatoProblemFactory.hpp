@@ -34,11 +34,7 @@
 #endif
 
 #ifdef PLATO_ELLIPTIC
-#include "elliptic/Problem.hpp"
-  #ifdef PLATO_HATCHING
-  #include "elliptic/hatching/Mechanics.hpp"
-  #include "elliptic/hatching/Problem.hpp"
-  #endif
+  #include "elliptic/Problem.hpp"
 #endif
 
 #ifdef PLATO_PARABOLIC
@@ -162,12 +158,6 @@ create_mechanical_problem
     {
         return makeProblem<Plato::Elliptic::Problem, Plato::Mechanics>(aMesh, aPlatoProb, aMachine);
     }
-  #ifdef PLATO_HATCHING
-    if(tLowerPDE == "elliptic hatching")
-    {
-        return makeProblem<Plato::Elliptic::Hatching::Problem, Plato::Elliptic::Hatching::Mechanics>(aMesh, aPlatoProb, aMachine);
-    }
-  #endif
 #endif
 #ifdef PLATO_HYPERBOLIC
     if (tLowerPDE == "hyperbolic")

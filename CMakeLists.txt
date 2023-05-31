@@ -29,7 +29,6 @@ option(PARABOLIC       "Compile with Parabolic physics"      ON )
 option(HYPERBOLIC      "Compile with Hyperbolic physics"     ON )
 option(HELMHOLTZ       "Compile with Helmholtz filter"       ON )
 option(CUSTOMMATERIALS "Compile with custom materials"       OFF)
-option(HATCHING        "Compile with hatching algorithm"     ON )
 option(MICROMORPHIC    "Compile with Micromorphic physics"   ON )
 
 # Experimental option for using shape optimization with inherent strain/hatching

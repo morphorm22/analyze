@@ -162,15 +162,6 @@ if(ELLIPTIC)
     elliptic/electrical/ResidualSteadyStateCurrent.cpp
   )
   
-  if(HATCHING)
-    set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-      elliptic/hatching/Problem.cpp
-      elliptic/hatching/ElastostaticResidual.cpp
-      elliptic/hatching/ScalarFunctionBaseFactory.cpp
-      elliptic/hatching/PhysicsScalarFunction.cpp
-      elliptic/hatching/InternalElasticEnergy.cpp
-    )
-  endif()
 endif()
 
 ## parabolic sources
