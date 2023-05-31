@@ -1,0 +1,12 @@
+/*
+ * FactoryNonlinearElasticMaterial.hpp
+ *
+ *  Created on: May 31, 2023
+ */
+
+#pragma once
+
+#include "elliptic/mechanical/nonlinear/FactoryNonlinearElasticMaterial_decl.hpp"
+#ifndef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
+#include "elliptic/mechanical/nonlinear/FactoryNonlinearElasticMaterial_def.hpp"
+#endif

@@ -135,6 +135,7 @@ if(ELLIPTIC)
     elliptic/criterioneval/CriterionEvaluatorScalarFunction.cpp
     elliptic/criterioneval/CriterionEvaluatorMassProperties.cpp
     elliptic/criterioneval/CriterionEvaluatorSolutionFunction.cpp
+    elliptic/mechanical/SupportedParamOptions.cpp
     elliptic/mechanical/linear/ResidualElastostatic.cpp
     elliptic/mechanical/linear/CriterionMassMoment.cpp
     elliptic/mechanical/linear/CriterionStressPNorm.cpp
@@ -143,6 +144,15 @@ if(ELLIPTIC)
     elliptic/mechanical/linear/CriterionInternalElasticEnergy.cpp
     elliptic/mechanical/linear/CriterionVolAvgStressPNormDenominator.cpp
     elliptic/mechanical/linear/CriterionVolumeAverageDenominator.cpp
+    elliptic/mechanical/nonlinear/MaterialKirchhoff.cpp
+    elliptic/mechanical/nonlinear/MaterialNeoHookean.cpp
+    elliptic/mechanical/nonlinear/FactoryNonlinearElasticMaterial.cpp
+    elliptic/mechanical/nonlinear/StressEvaluatorKirchhoff.cpp
+    elliptic/mechanical/nonlinear/StressEvaluatorNeoHookean.cpp
+    elliptic/mechanical/nonlinear/FactoryStressEvaluator.cpp
+    elliptic/mechanical/nonlinear/ResidualElastostaticTotalLagrangian.cpp
+    elliptic/mechanical/nonlinear/CriterionKirchhoffEnergyPotential.cpp
+    elliptic/mechanical/nonlinear/CriterionNeoHookeanEnergyPotential.cpp
     elliptic/thermal/ResidualThermostatic.cpp
     elliptic/thermal/CriterionFluxPNorm.cpp
     elliptic/thermal/CriterionInternalThermalEnergy.cpp
