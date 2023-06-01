@@ -22,6 +22,7 @@
 #include "Thermomechanics.hpp"
 #include "solver/ParallelComm.hpp"
 #include "elliptic/electrical/Electrical.hpp"
+#include "elliptic/mechanical/nonlinear/NonlinearMechanics.hpp"
 
 #ifdef PLATO_HEX_ELEMENTS
 #include "Hex8.hpp"
@@ -171,12 +172,36 @@ create_mechanical_problem
 }
 // function create_mechanical_problem
 
+/// @fn create_nonlinear_mechanical_problem
+/// @brief inline function, create nonlinear mechanical residual evaluator
+/// @param [in] aMesh      contains mesh and model information
+/// @param [in] aPlatoProb inpur problem parameters
+/// @param [in] aMachine   contains mpi communicator information
+/// @return shared pointer to residual evaluator
+inline
+std::shared_ptr<Plato::AbstractProblem>
+create_nonlinear_mechanical_problem
+(Plato::Mesh              aMesh,
+ Teuchos::ParameterList & aPlatoProb,
+ Comm::Machine            aMachine)
+{
+  auto tLowerPDE = Plato::get_pde_type(aPlatoProb);
+#ifdef PLATO_ELLIPTIC
+  if (tLowerPDE == "elliptic"){
+    return ( makeProblem<Plato::Elliptic::Problem,Plato::NonlinearMechanics>(aMesh, aPlatoProb, aMachine) );
+  }
+#endif
+  else{
+    return nullptr;
+  }
+}
+
 /// @fn create_electrical_problem
 /// @brief inline function, create electrical residual evaluator
-/// @param aMesh      contains mesh and model information
-/// @param aPlatoProb inpur problem parameters
-/// @param aMachine   contains mpi communicator information
-/// @return 
+/// @param [in] aMesh      contains mesh and model information
+/// @param [in] aPlatoProb inpur problem parameters
+/// @param [in] aMachine   contains mpi communicator information
+/// @return shared pointer to residual evaluator
 inline
 std::shared_ptr<Plato::AbstractProblem>
 create_electrical_problem
@@ -187,15 +212,13 @@ create_electrical_problem
   auto tLowerPDE = Plato::get_pde_type(aPlatoProb);
 #ifdef PLATO_ELLIPTIC
   if (tLowerPDE == "elliptic"){
-    return ( std::make_shared< Plato::Elliptic::Problem<Plato::Electrical<Plato::Tet4> > >(
-        aMesh, aPlatoProb, aMachine));
+    return ( makeProblem<Plato::Elliptic::Problem,Plato::Electrical>(aMesh, aPlatoProb, aMachine) );
   }
 #endif
   else{
     return nullptr;
   }
 }
-// function create_mechanical_problem
 
 /******************************************************************************//**
 * \brief Create plasticity problem.

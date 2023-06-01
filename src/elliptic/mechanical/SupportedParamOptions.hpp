@@ -110,6 +110,45 @@ private:
   
 };
 
+/// @enum criterion
+/// @brief supported criterion enums for nonlinear mechanical physics
+enum struct criterion
+{
+  VOLUME=0,
+  KIRCHHOFF_ENERGY_POTENTIAL=1,
+  NEO_HOOKEAN_ENERGY_POTENTIAL=2,
+};
+
+/// @struct CriterionEnum
+/// @brief interface between input string and supported nonlinear mechanical criterion 
+struct CriterionEnum
+{
+private:
+  /// @brief map from string to supported mechanical criterion enum
+  std::unordered_map<std::string,Plato::mechanical::criterion> s2e = {
+    {"volume"                      ,Plato::mechanical::criterion::VOLUME},
+    {"kirchhoff energy potential"  ,Plato::mechanical::criterion::KIRCHHOFF_ENERGY_POTENTIAL},
+    {"neo-hookean energy potential",Plato::mechanical::criterion::NEO_HOOKEAN_ENERGY_POTENTIAL}
+  };
+
+public:
+  /// @brief Return mechanical criterion enum associated with input string,
+  ///   throw error if requested criterion is not supported
+  /// @param [in] aInput string property
+  /// @return mechanical criterion enum
+  Plato::mechanical::criterion 
+  get(const std::string &aInput) 
+  const;
+
+private:
+  /// @brief Return error message if input option is not supported
+  /// @param [in] aInProperty input string - parsed from input file
+  /// @return string
+  std::string
+  getErrorMsg(const std::string & aInProperty)
+  const;
+};
+
 }
 // namespace mechanical
 

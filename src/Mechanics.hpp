@@ -3,13 +3,19 @@
 
 #include <memory>
 
+#include "MakeFunctions.hpp"
+#include "AnalyzeMacros.hpp"
+
 #include "parabolic/AbstractScalarFunction.hpp"
 
+// residuals
 #include "elliptic/mechanical/linear/ResidualElastostatic.hpp"
 
+// local measures 
 #include "elliptic/mechanical/linear/LocalMeasureVonMises.hpp"
 #include "elliptic/mechanical/linear/LocalMeasureTensileEnergyDensity.hpp"
 
+// criteria
 #include "elliptic/Volume.hpp"
 #include "elliptic/mechanical/linear/CriterionStressPNorm.hpp"
 #include "elliptic/mechanical/linear/CriterionEffectiveEnergy.hpp"
@@ -20,9 +26,6 @@
 #include "elliptic/mechanical/linear/CriterionVolumeAverageDenominator.hpp"
 #include "elliptic/mechanical/linear/CriterionVolAvgStressPNormDenominator.hpp"
 #include "elliptic/mechanical/linear/Plato_AugLagStressCriterionGeneral.hpp"
-
-#include "MakeFunctions.hpp"
-#include "AnalyzeMacros.hpp"
 
 namespace Plato
 {
