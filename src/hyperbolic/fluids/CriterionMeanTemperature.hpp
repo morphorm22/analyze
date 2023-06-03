@@ -87,7 +87,7 @@ public:
         }
 
         // set current state worksets
-        auto tCurTempWS = Plato::metadata<Plato::ScalarMultiVectorT<CurTempT>>(aWorkSets.get("current temperature"));
+        auto tCurTempWS = Plato::unpack<Plato::ScalarMultiVectorT<CurTempT>>(aWorkSets.get("current temperature"));
         
         // calculate mean temperature criteria    
         auto tNumNodes = mSpatialDomain.numNodes();

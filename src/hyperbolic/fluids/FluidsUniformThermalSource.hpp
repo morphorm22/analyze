@@ -138,8 +138,8 @@ public:
             Plato::ScalarArray3DT<ConfigT> tGradient("cell gradient", tNumCells, mNumNodesPerCell, mNumSpatialDims);
 
             // set input state worksets
-            auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
-            auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlT>>(aWorkSets.get("control"));
+            auto tConfigWS = Plato::unpack<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
+            auto tControlWS = Plato::unpack<Plato::ScalarMultiVectorT<ControlT>>(aWorkSets.get("control"));
 
             // transfer member data to device
             auto tDimLessConstant = mDimLessConstant;
@@ -319,7 +319,7 @@ public:
             Plato::ScalarArray3DT<ConfigT> tGradient("cell gradient", tNumCells, mNumNodesPerCell, mNumSpatialDims);
 
             // set input state worksets
-            auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
+            auto tConfigWS = Plato::unpack<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
 
             // transfer member data to device
             auto tDimLessConstant = mDimLessConstant;

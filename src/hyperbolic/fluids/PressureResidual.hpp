@@ -162,12 +162,12 @@ public:
         Plato::InterpolateFromNodal<mNumSpatialDims, mNumVelDofsPerNode, 0/*offset*/, mNumSpatialDims> tIntrplVectorField;
 
         // set input state worksets
-        auto tConfigWS    = Plato::metadata<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
-        auto tPrevVelWS   = Plato::metadata<Plato::ScalarMultiVectorT<PrevVelT>>(aWorkSets.get("previous velocity"));
-        auto tPredVelWS   = Plato::metadata<Plato::ScalarMultiVectorT<PredVelT>>(aWorkSets.get("current predictor"));
-        auto tCurPressWS  = Plato::metadata<Plato::ScalarMultiVectorT<CurPressT>>(aWorkSets.get("current pressure"));
-        auto tPrevPressWS = Plato::metadata<Plato::ScalarMultiVectorT<PrevPressT>>(aWorkSets.get("previous pressure"));
-        auto tCriticalTimeStep = Plato::metadata<Plato::ScalarVector>(aWorkSets.get("critical time step"));
+        auto tConfigWS    = Plato::unpack<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
+        auto tPrevVelWS   = Plato::unpack<Plato::ScalarMultiVectorT<PrevVelT>>(aWorkSets.get("previous velocity"));
+        auto tPredVelWS   = Plato::unpack<Plato::ScalarMultiVectorT<PredVelT>>(aWorkSets.get("current predictor"));
+        auto tCurPressWS  = Plato::unpack<Plato::ScalarMultiVectorT<CurPressT>>(aWorkSets.get("current pressure"));
+        auto tPrevPressWS = Plato::unpack<Plato::ScalarMultiVectorT<PrevPressT>>(aWorkSets.get("previous pressure"));
+        auto tCriticalTimeStep = Plato::unpack<Plato::ScalarVector>(aWorkSets.get("critical time step"));
 
         // transfer member data to device
         auto tPressDamping = mPressDamping;

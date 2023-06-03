@@ -2926,7 +2926,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets_SpatialDoma
         (tDomain, tControls, tPrimal, tOrdinalMaps, tWorkSets);
 
     // test current velocity results
-    auto tCurVelWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentMomentumScalarType>>(tWorkSets.get("current velocity"));
+    auto tCurVelWS = 
+      Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentMomentumScalarType>>(
+        tWorkSets.get("current velocity")
+      );
     TEST_EQUALITY(tNumCells, tCurVelWS.extent(0));
     auto tNumVelDofsPerCell = PhysicsT::mNumMomentumDofsPerCell;
     TEST_EQUALITY(tNumVelDofsPerCell, tCurVelWS.extent(1));
@@ -2942,7 +2945,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets_SpatialDoma
     }
 
     // test current pressure results
-    auto tCurPressWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentMassScalarType>>(tWorkSets.get("current pressure"));
+    auto tCurPressWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentMassScalarType>>(tWorkSets.get("current pressure"));
     TEST_EQUALITY(tNumCells, tCurPressWS.extent(0));
     auto tNumPressDofsPerCell = PhysicsT::mNumMassDofsPerCell;
     TEST_EQUALITY(tNumPressDofsPerCell, tCurPressWS.extent(1));
@@ -2957,7 +2960,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets_SpatialDoma
     }
 
     // test current temperature results
-    auto tCurTempWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentEnergyScalarType>>(tWorkSets.get("current temperature"));
+    auto tCurTempWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentEnergyScalarType>>(tWorkSets.get("current temperature"));
     TEST_EQUALITY(tNumCells, tCurTempWS.extent(0));
     auto tNumTempDofsPerCell = PhysicsT::mNumEnergyDofsPerCell;
     TEST_EQUALITY(tNumTempDofsPerCell, tCurTempWS.extent(1));
@@ -2973,7 +2976,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets_SpatialDoma
 
     // test controls results
     auto tNumNodesPerCell = PhysicsT::mNumNodesPerCell;
-    auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::ControlScalarType>>(tWorkSets.get("control"));
+    auto tControlWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::ControlScalarType>>(tWorkSets.get("control"));
     TEST_EQUALITY(tNumCells, tControlWS.extent(0));
     TEST_EQUALITY(tNumNodesPerCell, tControlWS.extent(1));
     auto tHostControlWS = Kokkos::create_mirror(tControlWS);
@@ -2987,7 +2990,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets_SpatialDoma
     }
 
     // test configuration results
-    auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ResidualEvalT::ConfigScalarType>>(tWorkSets.get("configuration"));
+    auto tConfigWS = Plato::unpack<Plato::ScalarArray3DT<ResidualEvalT::ConfigScalarType>>(tWorkSets.get("configuration"));
     TEST_EQUALITY(tNumCells, tConfigWS.extent(0));
     TEST_EQUALITY(tNumNodesPerCell, tConfigWS.extent(1));
     auto tNumConfigDofsPerNode = PhysicsT::mNumConfigDofsPerNode;
@@ -3063,7 +3066,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets_SpatialDoma
         (tNumCells, tControls, tPrimal, tOrdinalMaps, tWorkSets);
 
     // test current velocity results
-    auto tCurVelWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentMomentumScalarType>>(tWorkSets.get("current velocity"));
+    auto tCurVelWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentMomentumScalarType>>(tWorkSets.get("current velocity"));
     TEST_EQUALITY(tNumCells, tCurVelWS.extent(0));
     auto tNumVelDofsPerCell = PhysicsT::mNumMomentumDofsPerCell;
     TEST_EQUALITY(tNumVelDofsPerCell, tCurVelWS.extent(1));
@@ -3079,7 +3082,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets_SpatialDoma
     }
 
     // test current pressure results
-    auto tCurPressWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentMassScalarType>>(tWorkSets.get("current pressure"));
+    auto tCurPressWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentMassScalarType>>(tWorkSets.get("current pressure"));
     TEST_EQUALITY(tNumCells, tCurPressWS.extent(0));
     auto tNumPressDofsPerCell = PhysicsT::mNumMassDofsPerCell;
     TEST_EQUALITY(tNumPressDofsPerCell, tCurPressWS.extent(1));
@@ -3094,7 +3097,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets_SpatialDoma
     }
 
     // test current temperature results
-    auto tCurTempWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentEnergyScalarType>>(tWorkSets.get("current temperature"));
+    auto tCurTempWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentEnergyScalarType>>(tWorkSets.get("current temperature"));
     TEST_EQUALITY(tNumCells, tCurTempWS.extent(0));
     auto tNumTempDofsPerCell = PhysicsT::mNumEnergyDofsPerCell;
     TEST_EQUALITY(tNumTempDofsPerCell, tCurTempWS.extent(1));
@@ -3109,7 +3112,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets_SpatialDoma
     }
 
     // test previous velocity results
-    auto tPrevVelWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::PreviousMomentumScalarType>>(tWorkSets.get("previous velocity"));
+    auto tPrevVelWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::PreviousMomentumScalarType>>(tWorkSets.get("previous velocity"));
     TEST_EQUALITY(tNumCells, tPrevVelWS.extent(0));
     TEST_EQUALITY(tNumVelDofsPerCell, tPrevVelWS.extent(1));
     auto tHostPrevVelWS = Kokkos::create_mirror(tPrevVelWS);
@@ -3123,7 +3126,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets_SpatialDoma
     }
 
     // test previous pressure results
-    auto tPrevPressWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::PreviousMassScalarType>>(tWorkSets.get("previous pressure"));
+    auto tPrevPressWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::PreviousMassScalarType>>(tWorkSets.get("previous pressure"));
     TEST_EQUALITY(tNumCells, tPrevPressWS.extent(0));
     TEST_EQUALITY(tNumPressDofsPerCell, tPrevPressWS.extent(1));
     auto tHostPrevPressWS = Kokkos::create_mirror(tPrevPressWS);
@@ -3137,7 +3140,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets_SpatialDoma
     }
 
     // test previous temperature results
-    auto tPrevTempWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::PreviousEnergyScalarType>>(tWorkSets.get("previous temperature"));
+    auto tPrevTempWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::PreviousEnergyScalarType>>(tWorkSets.get("previous temperature"));
     TEST_EQUALITY(tNumCells, tPrevTempWS.extent(0));
     TEST_EQUALITY(tNumTempDofsPerCell, tPrevTempWS.extent(1));
     auto tHostPrevTempWS = Kokkos::create_mirror(tPrevTempWS);
@@ -3151,7 +3154,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets_SpatialDoma
     }
 
     // test time steps results
-    auto tTimeStepWS = Plato::metadata<Plato::ScalarVector>(tWorkSets.get("critical time step"));
+    auto tTimeStepWS = Plato::unpack<Plato::ScalarVector>(tWorkSets.get("critical time step"));
     TEST_EQUALITY(1, tTimeStepWS.extent(0));
     auto tHostTimeStepWS = Kokkos::create_mirror(tTimeStepWS);
     Kokkos::deep_copy(tHostTimeStepWS, tTimeStepWS);
@@ -3159,7 +3162,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets_SpatialDoma
 
     // test controls results
     auto tNumNodesPerCell = PhysicsT::mNumNodesPerCell;
-    auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::ControlScalarType>>(tWorkSets.get("control"));
+    auto tControlWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::ControlScalarType>>(tWorkSets.get("control"));
     TEST_EQUALITY(tNumCells, tControlWS.extent(0));
     TEST_EQUALITY(tNumNodesPerCell, tControlWS.extent(1));
     auto tHostControlWS = Kokkos::create_mirror(tControlWS);
@@ -3173,7 +3176,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets_SpatialDoma
     }
 
     // test configuration results
-    auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ResidualEvalT::ConfigScalarType>>(tWorkSets.get("configuration"));
+    auto tConfigWS = Plato::unpack<Plato::ScalarArray3DT<ResidualEvalT::ConfigScalarType>>(tWorkSets.get("configuration"));
     TEST_EQUALITY(tNumCells, tConfigWS.extent(0));
     TEST_EQUALITY(tNumNodesPerCell, tConfigWS.extent(1));
     auto tNumConfigDofsPerNode = PhysicsT::mNumConfigDofsPerNode;
@@ -3246,7 +3249,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets)
         (tNumCells, tControls, tPrimal, tOrdinalMaps, tWorkSets);
 
     // test current velocity results
-    auto tCurVelWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentMomentumScalarType>>(tWorkSets.get("current velocity"));
+    auto tCurVelWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentMomentumScalarType>>(tWorkSets.get("current velocity"));
     TEST_EQUALITY(tNumCells, tCurVelWS.extent(0));
     auto tNumVelDofsPerCell = PhysicsT::mNumMomentumDofsPerCell;
     TEST_EQUALITY(tNumVelDofsPerCell, tCurVelWS.extent(1));
@@ -3262,7 +3265,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets)
     }
 
     // test current pressure results
-    auto tCurPressWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentMassScalarType>>(tWorkSets.get("current pressure"));
+    auto tCurPressWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentMassScalarType>>(tWorkSets.get("current pressure"));
     TEST_EQUALITY(tNumCells, tCurPressWS.extent(0));
     auto tNumPressDofsPerCell = PhysicsT::mNumMassDofsPerCell;
     TEST_EQUALITY(tNumPressDofsPerCell, tCurPressWS.extent(1));
@@ -3277,7 +3280,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets)
     }
 
     // test current temperature results
-    auto tCurTempWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentEnergyScalarType>>(tWorkSets.get("current temperature"));
+    auto tCurTempWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentEnergyScalarType>>(tWorkSets.get("current temperature"));
     TEST_EQUALITY(tNumCells, tCurTempWS.extent(0));
     auto tNumTempDofsPerCell = PhysicsT::mNumEnergyDofsPerCell;
     TEST_EQUALITY(tNumTempDofsPerCell, tCurTempWS.extent(1));
@@ -3292,7 +3295,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets)
     }
 
     // test previous velocity results
-    auto tPrevVelWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::PreviousMomentumScalarType>>(tWorkSets.get("previous velocity"));
+    auto tPrevVelWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::PreviousMomentumScalarType>>(tWorkSets.get("previous velocity"));
     TEST_EQUALITY(tNumCells, tPrevVelWS.extent(0));
     TEST_EQUALITY(tNumVelDofsPerCell, tPrevVelWS.extent(1));
     auto tHostPrevVelWS = Kokkos::create_mirror(tPrevVelWS);
@@ -3306,7 +3309,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets)
     }
 
     // test previous pressure results
-    auto tPrevPressWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::PreviousMassScalarType>>(tWorkSets.get("previous pressure"));
+    auto tPrevPressWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::PreviousMassScalarType>>(tWorkSets.get("previous pressure"));
     TEST_EQUALITY(tNumCells, tPrevPressWS.extent(0));
     TEST_EQUALITY(tNumPressDofsPerCell, tPrevPressWS.extent(1));
     auto tHostPrevPressWS = Kokkos::create_mirror(tPrevPressWS);
@@ -3320,7 +3323,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets)
     }
 
     // test previous temperature results
-    auto tPrevTempWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::PreviousEnergyScalarType>>(tWorkSets.get("previous temperature"));
+    auto tPrevTempWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::PreviousEnergyScalarType>>(tWorkSets.get("previous temperature"));
     TEST_EQUALITY(tNumCells, tPrevTempWS.extent(0));
     TEST_EQUALITY(tNumTempDofsPerCell, tPrevTempWS.extent(1));
     auto tHostPrevTempWS = Kokkos::create_mirror(tPrevTempWS);
@@ -3334,7 +3337,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets)
     }
 
     // test time steps results
-    auto tTimeStepWS = Plato::metadata<Plato::ScalarVector>(tWorkSets.get("critical time step"));
+    auto tTimeStepWS = Plato::unpack<Plato::ScalarVector>(tWorkSets.get("critical time step"));
     TEST_EQUALITY(1, tTimeStepWS.extent(0));
     auto tHostTimeStepWS = Kokkos::create_mirror(tTimeStepWS);
     Kokkos::deep_copy(tHostTimeStepWS, tTimeStepWS);
@@ -3342,7 +3345,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets)
 
     // test controls results
     auto tNumNodesPerCell = PhysicsT::mNumNodesPerCell;
-    auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::ControlScalarType>>(tWorkSets.get("control"));
+    auto tControlWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::ControlScalarType>>(tWorkSets.get("control"));
     TEST_EQUALITY(tNumCells, tControlWS.extent(0));
     TEST_EQUALITY(tNumNodesPerCell, tControlWS.extent(1));
     auto tHostControlWS = Kokkos::create_mirror(tControlWS);
@@ -3356,7 +3359,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildVectorFunctionWorksets)
     }
 
     // test configuration results
-    auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ResidualEvalT::ConfigScalarType>>(tWorkSets.get("configuration"));
+    auto tConfigWS = Plato::unpack<Plato::ScalarArray3DT<ResidualEvalT::ConfigScalarType>>(tWorkSets.get("configuration"));
     TEST_EQUALITY(tNumCells, tConfigWS.extent(0));
     TEST_EQUALITY(tNumNodesPerCell, tConfigWS.extent(1));
     auto tNumConfigDofsPerNode = PhysicsT::mNumConfigDofsPerNode;
@@ -3467,7 +3470,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets)
         (tNumCells, tControls, tPrimal, tOrdinalMaps, tWorkSets);
 
     // test current velocity results
-    auto tCurVelWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentMomentumScalarType>>(tWorkSets.get("current velocity"));
+    auto tCurVelWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentMomentumScalarType>>(tWorkSets.get("current velocity"));
     TEST_EQUALITY(tNumCells, tCurVelWS.extent(0));
     auto tNumVelDofsPerCell = PhysicsT::mNumMomentumDofsPerCell;
     TEST_EQUALITY(tNumVelDofsPerCell, tCurVelWS.extent(1));
@@ -3483,7 +3486,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets)
     }
 
     // test current pressure results
-    auto tCurPressWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentMassScalarType>>(tWorkSets.get("current pressure"));
+    auto tCurPressWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentMassScalarType>>(tWorkSets.get("current pressure"));
     TEST_EQUALITY(tNumCells, tCurPressWS.extent(0));
     auto tNumPressDofsPerCell = PhysicsT::mNumMassDofsPerCell;
     TEST_EQUALITY(tNumPressDofsPerCell, tCurPressWS.extent(1));
@@ -3498,7 +3501,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets)
     }
 
     // test current temperature results
-    auto tCurTempWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentEnergyScalarType>>(tWorkSets.get("current temperature"));
+    auto tCurTempWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::CurrentEnergyScalarType>>(tWorkSets.get("current temperature"));
     TEST_EQUALITY(tNumCells, tCurTempWS.extent(0));
     auto tNumTempDofsPerCell = PhysicsT::mNumEnergyDofsPerCell;
     TEST_EQUALITY(tNumTempDofsPerCell, tCurTempWS.extent(1));
@@ -3514,7 +3517,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets)
 
     // test controls results
     auto tNumNodesPerCell = PhysicsT::mNumNodesPerCell;
-    auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ResidualEvalT::ControlScalarType>>(tWorkSets.get("control"));
+    auto tControlWS = Plato::unpack<Plato::ScalarMultiVectorT<ResidualEvalT::ControlScalarType>>(tWorkSets.get("control"));
     TEST_EQUALITY(tNumCells, tControlWS.extent(0));
     TEST_EQUALITY(tNumNodesPerCell, tControlWS.extent(1));
     auto tHostControlWS = Kokkos::create_mirror(tControlWS);
@@ -3528,7 +3531,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, BuildScalarFunctionWorksets)
     }
 
     // test configuration results
-    auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ResidualEvalT::ConfigScalarType>>(tWorkSets.get("configuration"));
+    auto tConfigWS = Plato::unpack<Plato::ScalarArray3DT<ResidualEvalT::ConfigScalarType>>(tWorkSets.get("configuration"));
     TEST_EQUALITY(tNumCells, tConfigWS.extent(0));
     TEST_EQUALITY(tNumNodesPerCell, tConfigWS.extent(1));
     auto tNumConfigDofsPerNode = PhysicsT::mNumConfigDofsPerNode;
@@ -3609,7 +3612,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, WorkStes)
     tWorkSets.set("pressure", tPressPtr);
 
     // TEST VALUES
-    tVelWS = Plato::metadata<Plato::ScalarMultiVector>(tWorkSets.get("velocity"));
+    tVelWS = Plato::unpack<Plato::ScalarMultiVector>(tWorkSets.get("velocity"));
     TEST_EQUALITY(tNumCells, tVelWS.extent(0));
     TEST_EQUALITY(tNumVelDofs, tVelWS.extent(1));
     auto tHostVelWS = Kokkos::create_mirror(tVelWS);
@@ -3620,7 +3623,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, WorkStes)
         TEST_FLOATING_EQUALITY(1.0, tHostVelWS(0, tIndex), tTol);
     }
 
-    tPressWS = Plato::metadata<Plato::ScalarMultiVector>(tWorkSets.get("pressure"));
+    tPressWS = Plato::unpack<Plato::ScalarMultiVector>(tWorkSets.get("pressure"));
     TEST_EQUALITY(tNumCells, tPressWS.extent(0));
     TEST_EQUALITY(tNumPressDofs, tPressWS.extent(1));
     auto tHostPressWS = Kokkos::create_mirror(tPressWS);

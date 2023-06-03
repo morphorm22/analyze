@@ -138,11 +138,11 @@ public:
         Plato::InterpolateFromNodal<mNumSpatialDims, mNumVelDofsPerNode, 0, mNumSpatialDims> tIntrplVectorField;
 
         // set input state worksets
-        auto tConfigWS   = Plato::metadata<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
-        auto tCurVelWS   = Plato::metadata<Plato::ScalarMultiVectorT<CurVelT>>(aWorkSets.get("current velocity"));
-        auto tCurTempWS  = Plato::metadata<Plato::ScalarMultiVectorT<CurTempT>>(aWorkSets.get("current temperature"));
-        auto tPrevTempWS = Plato::metadata<Plato::ScalarMultiVectorT<PrevTempT>>(aWorkSets.get("previous temperature"));
-        auto tCriticalTimeStep = Plato::metadata<Plato::ScalarVector>(aWorkSets.get("critical time step"));
+        auto tConfigWS   = Plato::unpack<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
+        auto tCurVelWS   = Plato::unpack<Plato::ScalarMultiVectorT<CurVelT>>(aWorkSets.get("current velocity"));
+        auto tCurTempWS  = Plato::unpack<Plato::ScalarMultiVectorT<CurTempT>>(aWorkSets.get("current temperature"));
+        auto tPrevTempWS = Plato::unpack<Plato::ScalarMultiVectorT<PrevTempT>>(aWorkSets.get("previous temperature"));
+        auto tCriticalTimeStep = Plato::unpack<Plato::ScalarVector>(aWorkSets.get("critical time step"));
 
         // transfer member data to device
         auto tTheta           = mArtificialDamping;
@@ -344,12 +344,12 @@ public:
         Plato::InterpolateFromNodal<mNumSpatialDims, mNumVelDofsPerNode, 0, mNumSpatialDims> tIntrplVectorField;
 
         // set input state worksets
-        auto tConfigWS   = Plato::metadata<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
-        auto tCurVelWS   = Plato::metadata<Plato::ScalarMultiVectorT<CurVelT>>(aWorkSets.get("current velocity"));
-        auto tControlWS  = Plato::metadata<Plato::ScalarMultiVectorT<ControlT>>(aWorkSets.get("control"));
-        auto tCurTempWS  = Plato::metadata<Plato::ScalarMultiVectorT<CurTempT>>(aWorkSets.get("current temperature"));
-        auto tPrevTempWS = Plato::metadata<Plato::ScalarMultiVectorT<PrevTempT>>(aWorkSets.get("previous temperature"));
-        auto tCriticalTimeStep = Plato::metadata<Plato::ScalarVector>(aWorkSets.get("critical time step"));
+        auto tConfigWS   = Plato::unpack<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
+        auto tCurVelWS   = Plato::unpack<Plato::ScalarMultiVectorT<CurVelT>>(aWorkSets.get("current velocity"));
+        auto tControlWS  = Plato::unpack<Plato::ScalarMultiVectorT<ControlT>>(aWorkSets.get("control"));
+        auto tCurTempWS  = Plato::unpack<Plato::ScalarMultiVectorT<CurTempT>>(aWorkSets.get("current temperature"));
+        auto tPrevTempWS = Plato::unpack<Plato::ScalarMultiVectorT<PrevTempT>>(aWorkSets.get("previous temperature"));
+        auto tCriticalTimeStep = Plato::unpack<Plato::ScalarVector>(aWorkSets.get("critical time step"));
 
         // transfer member data to temporary local scope that device can access
         auto tArtificialDamping = mArtificialDamping;

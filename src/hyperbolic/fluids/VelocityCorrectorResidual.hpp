@@ -132,13 +132,13 @@ public:
         Plato::ScalarMultiVectorT<PredVelT> tPredVelGP("predicted velocity at Gauss points", tNumCells, mNumSpatialDims);
 
         // set input state worksets
-        auto tConfigWS    = Plato::metadata<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
-        auto tCurVelWS    = Plato::metadata<Plato::ScalarMultiVectorT<CurVelT>>(aWorkSets.get("current velocity"));
-        auto tPrevVelWS   = Plato::metadata<Plato::ScalarMultiVectorT<PrevVelT>>(aWorkSets.get("previous velocity"));
-        auto tPredVelWS   = Plato::metadata<Plato::ScalarMultiVectorT<PredVelT>>(aWorkSets.get("current predictor"));
-        auto tCurPressWS  = Plato::metadata<Plato::ScalarMultiVectorT<CurPressT>>(aWorkSets.get("current pressure"));
-        auto tPrevPressWS = Plato::metadata<Plato::ScalarMultiVectorT<PrevPressT>>(aWorkSets.get("previous pressure"));
-        auto tCriticalTimeStep = Plato::metadata<Plato::ScalarVector>(aWorkSets.get("critical time step"));
+        auto tConfigWS    = Plato::unpack<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
+        auto tCurVelWS    = Plato::unpack<Plato::ScalarMultiVectorT<CurVelT>>(aWorkSets.get("current velocity"));
+        auto tPrevVelWS   = Plato::unpack<Plato::ScalarMultiVectorT<PrevVelT>>(aWorkSets.get("previous velocity"));
+        auto tPredVelWS   = Plato::unpack<Plato::ScalarMultiVectorT<PredVelT>>(aWorkSets.get("current predictor"));
+        auto tCurPressWS  = Plato::unpack<Plato::ScalarMultiVectorT<CurPressT>>(aWorkSets.get("current pressure"));
+        auto tPrevPressWS = Plato::unpack<Plato::ScalarMultiVectorT<PrevPressT>>(aWorkSets.get("previous pressure"));
+        auto tCriticalTimeStep = Plato::unpack<Plato::ScalarVector>(aWorkSets.get("critical time step"));
 
         // set local functors
         Plato::ComputeGradientWorkset<mNumSpatialDims> tComputeGradient;

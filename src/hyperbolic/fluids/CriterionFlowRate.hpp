@@ -124,8 +124,8 @@ public:
         Plato::CalculateSurfaceJacobians<mNumSpatialDims> tCalculateSurfaceJacobians;
 
         // set input worksets
-        auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
-        auto tCurrentVelocityWS = Plato::metadata<Plato::ScalarMultiVectorT<CurVelT>>(aWorkSets.get("current velocity"));
+        auto tConfigWS = Plato::unpack<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
+        auto tCurrentVelocityWS = Plato::unpack<Plato::ScalarMultiVectorT<CurVelT>>(aWorkSets.get("current velocity"));
 
         // transfer member data to device
         auto tCubatureWeight = mSurfaceCubatureRule.getCubWeight();

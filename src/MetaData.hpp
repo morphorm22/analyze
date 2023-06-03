@@ -11,53 +11,48 @@
 namespace Plato
 {
 
-/***************************************************************************//**
- *  \class MetaDataBase
- *  \brief Plato metadata pure virtual base class.
- ******************************************************************************/
+/// @class MetaDataBase
+/// @brief abstraction layer for workeset data
 class MetaDataBase
 {
 public:
-    virtual ~MetaDataBase() = 0;
+  /// @brief class destructor
+  virtual ~MetaDataBase() = 0;
 };
 inline MetaDataBase::~MetaDataBase(){}
 // class MetaDataBase
 
-/***************************************************************************//**
- * \tparam Type metadata type
- * \class MetaData
- * \brief Plato metadata derived class.
- ******************************************************************************/
+/// @class MetaData
+/// @brief provides an abstraction layer for workset data
+/// @tparam Type data type
 template<class Type>
 class MetaData : public MetaDataBase
 {
 public:
-    /***************************************************************************//**
-     * \brief Constructor
-     * \param aData metadata
-     ******************************************************************************/
-    explicit MetaData(const Type &aData) : mData(aData) {}
-    MetaData() {}
-    Type mData; /*!< metadata */
+  /// @brief class constructor
+  /// @param [in] aData data
+  explicit MetaData(const Type &aData) : mData(aData) {}
+
+  /// @brief class constructor
+  MetaData() {}
+  
+  /// @brief abstract metadata
+  Type mData; 
 };
 // class MetaData
 
-/***************************************************************************//**
- * \tparam Type metadata type
- *
- * \fn inline Type metadata
- *
- * \brief Perform dynamic cast from MetaDataBase to Type data.
- *
- * \param aInput shared pointer of Plato metadata
- * \return Type data
- ******************************************************************************/
+/// @fn unpack
+/// @brief unpack data from metadata abstraction
+/// @tparam Type data type
+/// @param aInput shared pointer to metadata abstraction
+/// @return return reference to data with typename Type
 template<class Type>
-inline Type metadata(const std::shared_ptr<Plato::MetaDataBase> & aInput)
+inline Type 
+unpack(
+  const std::shared_ptr<Plato::MetaDataBase> & aInput
+)
 {
-    return (dynamic_cast<Plato::MetaData<Type>&>(aInput.operator*()).mData);
+  return (dynamic_cast<Plato::MetaData<Type>&>(aInput.operator*()).mData);
 }
-// function metadata
 
-}
-// namespace Plato
+} // namespace Plato

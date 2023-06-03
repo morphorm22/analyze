@@ -134,8 +134,8 @@ public:
         Plato::CalculateSurfaceJacobians<mNumSpatialDims> tCalculateSurfaceJacobians;
 
         // set local input worksets
-        auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
-        auto tCurTempWS  = Plato::metadata<Plato::ScalarMultiVectorT<CurTempT>>(aWorkSets.get("current temperature"));
+        auto tConfigWS = Plato::unpack<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
+        auto tCurTempWS  = Plato::unpack<Plato::ScalarMultiVectorT<CurTempT>>(aWorkSets.get("current temperature"));
 
         // transfer member data to device
         auto tCubatureWeight = mSurfaceCubatureRule.getCubWeight();

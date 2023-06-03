@@ -109,8 +109,8 @@ public:
             Plato::ComputeCellVolume<mNumSpatialDims> tComputeCellVolume;
 
             // set local input worksets
-            auto tConfigWS = Plato::metadata<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
-            auto tControlWS  = Plato::metadata<Plato::ScalarMultiVectorT<ControlT>>(aWorkSets.get("control"));
+            auto tConfigWS = Plato::unpack<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
+            auto tControlWS  = Plato::unpack<Plato::ScalarMultiVectorT<ControlT>>(aWorkSets.get("control"));
 
             // transfer member data to device
             auto tPenaltyExponent = mPenaltyExponent;

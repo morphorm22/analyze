@@ -120,7 +120,7 @@ public:
         }
 
         // set current state worksets
-        auto tCurTempWS = Plato::metadata<Plato::ScalarMultiVectorT<CurTempT>>(aWorkSets.get("current temperature"));
+        auto tCurTempWS = Plato::unpack<Plato::ScalarMultiVectorT<CurTempT>>(aWorkSets.get("current temperature"));
 
         // evaluate thermal sources
         Plato::ScalarMultiVectorT<ResultT> tThermalSource("thermal source", tNumCells, mNumNodesPerCell);
@@ -152,9 +152,9 @@ public:
         if( mHeatFlux != nullptr )
         {
             // get state worksets
-            auto tConfigWS  = Plato::metadata<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
-            auto tControlWS = Plato::metadata<Plato::ScalarMultiVectorT<ControlT>>(aWorkSets.get("control"));
-            auto tCurTempWS = Plato::metadata<Plato::ScalarMultiVectorT<CurTempT>>(aWorkSets.get("current temperature"));
+            auto tConfigWS  = Plato::unpack<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
+            auto tControlWS = Plato::unpack<Plato::ScalarMultiVectorT<ControlT>>(aWorkSets.get("control"));
+            auto tCurTempWS = Plato::unpack<Plato::ScalarMultiVectorT<CurTempT>>(aWorkSets.get("current temperature"));
 
             // evaluate prescribed flux
             auto tNumCells = aResultWS.extent(0);
