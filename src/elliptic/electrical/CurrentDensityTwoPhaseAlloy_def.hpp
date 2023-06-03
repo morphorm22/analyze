@@ -5,6 +5,7 @@
  */
 
 #include "Simp.hpp"
+#include "ToMap.hpp"
 #include "ScalarGrad.hpp"
 #include "GradientMatrix.hpp"
 #include "Plato_TopOptFunctors.hpp"
@@ -27,6 +28,11 @@ CurrentDensityTwoPhaseAlloy(
   mMaterial = tFactory.create(aMaterialName);
   mPenaltyExponent = std::stod( mMaterial->property("Penalty Exponent").back() );
   mMinErsatzMaterialValue = std::stod( mMaterial->property("Minimum Value").back() );
+  // parse output QoI plot table
+  auto tOutputParams = aParamList.sublist("Output");
+  if( tOutputParams.isType<Teuchos::Array<std::string>>("Plottable") ){
+    mPlottable = tOutputParams.get<Teuchos::Array<std::string>>("Plottable").toVector();
+  }
 }
 
 template<typename EvaluationType>
@@ -51,10 +57,18 @@ evaluate(
   Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
   // create material penalty model
   Plato::MSIMP tSIMP(mPenaltyExponent,mMinErsatzMaterialValue);
+  // output quantities of interest
+  auto tNumCells = mSpatialDomain.numCells();
+  Plato::ScalarVectorT<ConfigScalarType>      
+    tVolume("volume",tNumCells);
+  Plato::ScalarMultiVectorT<GradScalarType>   
+    tElectricField("electrical field",tNumCells,ElementType::mNumSpatialDims);
+  Plato::ScalarMultiVectorT<ResultScalarType>   
+    tCurrentDensity("current density",tNumCells,ElementType::mNumSpatialDims);
   // evaluate current density     
   auto tCubPoints  = ElementType::getCubPoints();
+  auto tCubWeights = ElementType::getCubWeights();
   auto tNumPoints  = ElementType::mNumGaussPoints;     
-  auto tNumCells   = mSpatialDomain.numCells();
   Kokkos::parallel_for("evaluate material tensor for 2-phase alloy", 
     Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
     KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
@@ -82,7 +96,31 @@ evaluate(
       }
       aResult(iCellOrdinal,iGpOrdinal,tDimI) = tValue;
     }
+    // pre-process output quantities of interests  
+    tCellVolume *= tCubWeights(iGpOrdinal);
+    Kokkos::atomic_add(&tVolume(iCellOrdinal),tCellVolume);
+    for(Plato::OrdinalType tDim=0; tDim<ElementType::mNumSpatialDims; tDim++){
+      Kokkos::atomic_add(&tElectricField(iCellOrdinal,tDim),-1.0*tCellVolume*tCellElectricField(tDim));
+      Kokkos::atomic_add(&tCurrentDensity(iCellOrdinal,tDim), -1.0*tCellVolume*aResult(iCellOrdinal,iGpOrdinal,tDim));
+    }
   });
+
+  // post-process output quantities of interests
+  Kokkos::parallel_for("compute output quantities", 
+    Kokkos::RangePolicy<>(0, tNumCells),
+    KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal)
+  {
+    for(Plato::OrdinalType tDim=0; tDim< ElementType::mNumSpatialDims; tDim++){
+      tElectricField(iCellOrdinal,tDim)  /= tVolume(iCellOrdinal);
+      tCurrentDensity(iCellOrdinal,tDim) /= tVolume(iCellOrdinal);
+    }
+  });
+  // save output quantities of interest in output database
+  if( std::count(mPlottable.begin(),mPlottable.end(),"electric field") ) 
+  { Plato::toMap(mDataMap,tElectricField,"electric field",mSpatialDomain); }
+  if( std::count(mPlottable.begin(),mPlottable.end(),"current density" ) )
+  { Plato::toMap(mDataMap,tCurrentDensity,"current density",mSpatialDomain); }
+
 }
 
 } // namespace Plato

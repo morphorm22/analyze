@@ -46,6 +46,8 @@ private:
   using BaseClassType::mDataMap;
   /// @brief material constitutive model interface
   std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterial;
+  /// @brief list of requested output quantities of interest
+  std::vector<std::string> mPlottable;
 
 public:
   /// @brief class constructor

@@ -90,6 +90,7 @@ evaluate(
       Kokkos::atomic_add(&tCurrentDensity(iCellOrdinal,tDim), -1.0*tCellVolume*aResult(iCellOrdinal,iGpOrdinal,tDim));
     }
   });
+  
   // post-process output quantities of interests
   Kokkos::parallel_for("compute output quantities", 
     Kokkos::RangePolicy<>(0, tNumCells),
