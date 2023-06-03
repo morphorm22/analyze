@@ -21,6 +21,7 @@
 #include "elliptic/electrical/LightGeneratedCurrentDensityConstant.hpp"
 #include "elliptic/electrical/DarkCurrentDensityTwoPhaseAlloy.hpp"
 #include "elliptic/electrical/LightCurrentDensityTwoPhaseAlloy.hpp"
+#include "elliptic/electrical/FactoryCurrentDensityEvaluator.hpp"
 #include "elliptic/electrical/SourceWeightedSum.hpp"
 
 namespace ElectrostaticsTest
@@ -38,7 +39,7 @@ namespace ElectrostaticsTest
     "</ParameterList>                                                                                              \n"
     "<ParameterList name='Material Models'>                                                                        \n"
       "<ParameterList name='Mystic'>                                                                               \n"
-        "<ParameterList name='Two Phase Electrical Conductivity'>                                                  \n"
+        "<ParameterList name='Two Phase Conductive'>                                                  \n"
           "<Parameter  name='Material Name'            type='Array(string)' value='{silver,aluminum}'/>            \n"
           "<Parameter  name='Electrical Conductivity'  type='Array(double)' value='{0.15,0.25}'/>                  \n"
           "<Parameter  name='Out-of-Plane Thickness'   type='Array(double)' value='{0.12,0.22}'/>                  \n"
@@ -87,6 +88,143 @@ namespace ElectrostaticsTest
   "</ParameterList>                                                                                                \n"
   );
 
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CurrentDensityEvaluator_TwoPhaseAlloy)
+{
+  // create mesh
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  using ElementType = typename Plato::ElectricalElement<Plato::Tri3>;
+  //set ad-types
+  using Residual = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using StateT   = typename Residual::StateScalarType;
+  using ConfigT  = typename Residual::ConfigScalarType;
+  using ResultT  = typename Residual::ResultScalarType;
+  using ControlT = typename Residual::ControlScalarType;
+  // create configuration workset
+  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
+  const Plato::OrdinalType tNumCells = tMesh->NumElements();
+  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
+  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
+  tWorksetBase.worksetConfig(tConfigWS);
+  // create control workset
+  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  Plato::ScalarVector tControl("Controls", tNumVerts);
+  Plato::blas1::fill(0.5, tControl);
+  tWorksetBase.worksetControl(tControl, tControlWS);
+  // create state workset
+  Plato::ScalarVector tState("States", tNumVerts);
+  Plato::blas1::fill(0.67186, tState);
+  auto tHostState = Kokkos::create_mirror_view(tState);
+  for(Plato::OrdinalType i = 0; i < tNumVerts; i++)
+  { tHostState(i) = tHostState(i) + (i*1e-2); }
+  Kokkos::deep_copy(tState, tHostState);
+  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
+  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
+  tWorksetBase.worksetState(tState, tStateWS);
+  // create result worset
+  Plato::ScalarArray3DT<ResultT> 
+    tResultWS("results",tNumCells,ElementType::mNumGaussPoints,ElementType::mNumSpatialDims);
+  // create spatial model
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
+  // create current density
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  Plato::FactoryCurrentDensityEvaluator<Residual> tFactory("Mystic",*tGenericParamList);
+  auto tCurrentDensity = tFactory.create(tOnlyDomainDefined,tDataMap);
+  tCurrentDensity->evaluate(tStateWS,tControlWS,tConfigWS,tResultWS);
+  // test results against gold 
+  Plato::Scalar tTol = 1e-4;
+  auto tHost = Kokkos::create_mirror_view(tResultWS);
+  std::vector<std::vector<Plato::Scalar>>tGold = {{0.00475,0.002375},
+                                                  {0.00475,0.002375}};
+  Kokkos::deep_copy(tHost, tResultWS);
+  for(Plato::OrdinalType i = 0; i < tNumCells; i++){
+    for(Plato::OrdinalType j = 0; j < ElementType::mNumSpatialDims; j++){
+      TEST_FLOATING_EQUALITY(tGold[i][j],tHost(i,0 /* gauss point */,j),tTol);
+    }
+  }
+}
+
+TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CurrentDensityEvaluator_Constant)
+{
+  Teuchos::RCP<Teuchos::ParameterList> tParamList = Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                                                  \n"
+      "<ParameterList name='Spatial Model'>                                                                \n"
+        "<ParameterList name='Domains'>                                                                    \n"
+          "<ParameterList name='Design Volume'>                                                            \n"
+            "<Parameter name='Element Block' type='string' value='body'/>                                  \n"
+            "<Parameter name='Material Model' type='string' value='Mystic'/>                               \n"
+          "</ParameterList>                                                                                \n"
+        "</ParameterList>                                                                                  \n"
+      "</ParameterList>                                                                                    \n"
+      "<ParameterList name='Material Models'>                                                              \n"
+        "<ParameterList name='Mystic'>                                                                     \n"
+          "<ParameterList name='Conductive'>                                                  \n"
+            "<Parameter  name='Electrical Conductivity' type='double' value='0.35'/>                       \n"
+          "</ParameterList>                                                                                \n"
+        "</ParameterList>                                                                                  \n"
+      "</ParameterList>                                                                                    \n"
+     "</ParameterList>                                                                                     \n"
+    );
+  // create mesh
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  using ElementType = typename Plato::ElectricalElement<Plato::Tri3>;
+  //set ad-types
+  using Residual = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using StateT   = typename Residual::StateScalarType;
+  using ConfigT  = typename Residual::ConfigScalarType;
+  using ResultT  = typename Residual::ResultScalarType;
+  using ControlT = typename Residual::ControlScalarType;
+  // create configuration workset
+  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
+  const Plato::OrdinalType tNumCells = tMesh->NumElements();
+  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
+  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
+  tWorksetBase.worksetConfig(tConfigWS);
+  // create control workset
+  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  Plato::ScalarVector tControl("Controls", tNumVerts);
+  Plato::blas1::fill(0.5, tControl);
+  tWorksetBase.worksetControl(tControl, tControlWS);
+  // create state workset
+  Plato::ScalarVector tState("States", tNumVerts);
+  Plato::blas1::fill(0.67186, tState);
+  auto tHostState = Kokkos::create_mirror_view(tState);
+  for(Plato::OrdinalType i = 0; i < tNumVerts; i++)
+  { tHostState(i) = tHostState(i) + (i*1e-2); }
+  Kokkos::deep_copy(tState, tHostState);
+  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
+  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
+  tWorksetBase.worksetState(tState, tStateWS);
+  // create result worset
+  Plato::ScalarArray3DT<ResultT> 
+    tResultWS("results",tNumCells,ElementType::mNumGaussPoints,ElementType::mNumSpatialDims);
+  // create spatial model
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
+  // create current density
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  Plato::FactoryCurrentDensityEvaluator<Residual> tFactory("Mystic",*tParamList);
+  auto tCurrentDensity = tFactory.create(tOnlyDomainDefined,tDataMap);
+  tCurrentDensity->evaluate(tStateWS,tControlWS,tConfigWS,tResultWS);
+  // test results against gold 
+  Plato::Scalar tTol = 1e-4;
+  auto tHost = Kokkos::create_mirror_view(tResultWS);
+  std::vector<std::vector<Plato::Scalar>>tGold = {{0.007,0.0035},
+                                                  {0.007,0.0035}};
+  Kokkos::deep_copy(tHost, tResultWS);
+  for(Plato::OrdinalType i = 0; i < tNumCells; i++){
+    for(Plato::OrdinalType j = 0; j < ElementType::mNumSpatialDims; j++){
+      TEST_FLOATING_EQUALITY(tGold[i][j],tHost(i,0 /* gauss point */,j),tTol);
+    }
+  }
+}
+
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MaterialElectricalConductivity_Error)
 {
     // TEST ONE: ERROR
@@ -131,7 +269,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MaterialElectricalConductivity)
         "</ParameterList>                                                                                    \n"
         "<ParameterList name='Material Models'>                                                              \n"
           "<ParameterList name='Mystic'>                                                                     \n"
-            "<ParameterList name='Electrical Conductivity'>                                                  \n"
+            "<ParameterList name='Conductive'>                                                  \n"
               "<Parameter  name='Electrical Conductivity' type='double' value='0.35'/>                       \n"
             "</ParameterList>                                                                                \n"
           "</ParameterList>                                                                                  \n"
@@ -214,7 +352,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MaterialElectricalConductivityTwoPhaseA
         "</ParameterList>                                                                              \n"
         "<ParameterList name='Material Models'>                                                        \n"
           "<ParameterList name='Mystic'>                                                               \n"
-            "<ParameterList name='Two Phase Electrical Conductivity'>                                  \n"
+            "<ParameterList name='Two Phase Conductive'>                                  \n"
               "<Parameter  name='Electrical Conductivity'  type='Array(double)' value='{0.15, 0.25}'/> \n"
               "<Parameter  name='Out-of-Plane Thickness'   type='Array(double)' value='{0.12, 0.22}'/> \n"
             "</ParameterList>                                                                          \n"

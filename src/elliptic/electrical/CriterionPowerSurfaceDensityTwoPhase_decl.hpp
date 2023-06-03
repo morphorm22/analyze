@@ -9,7 +9,7 @@
 #include "MaterialModel.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
-#include "elliptic/electrical/CurrentDensityEvaluator.hpp"
+#include "elliptic/electrical/CurrentDensitySourceEvaluator.hpp"
 
 namespace Plato
 {
@@ -53,7 +53,7 @@ private:
   /// @brief list of out-of-plane material thickness
   std::vector<Plato::Scalar> mOutofPlaneThickness;
   /// @brief current density evaluator 
-  std::shared_ptr<Plato::CurrentDensityEvaluator<EvaluationType>> mCurrentDensityEvaluator;
+  std::shared_ptr<Plato::CurrentDensitySourceEvaluator<EvaluationType>> mCurrentDensitySourceEvaluator;
 
 public:
   /// @brief class constructor

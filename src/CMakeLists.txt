@@ -163,11 +163,14 @@ if(ELLIPTIC)
     elliptic/electrical/MaterialDielectric.cpp
     elliptic/electrical/MaterialElectricalConductivity.cpp
     elliptic/electrical/MaterialElectricalConductivityTwoPhaseAlloy.cpp
-    elliptic/electrical/FactoryCurrentDensityEvaluator.cpp
+    elliptic/electrical/FactoryCurrentDensitySourceEvaluator.cpp
     elliptic/electrical/DarkCurrentDensityTwoPhaseAlloy.cpp
     elliptic/electrical/LightCurrentDensityTwoPhaseAlloy.cpp
     elliptic/electrical/CriterionVolumeTwoPhase.cpp
     elliptic/electrical/CriterionPowerSurfaceDensityTwoPhase.cpp
+    elliptic/electrical/CurrentDensityConstant.cpp
+    elliptic/electrical/CurrentDensityTwoPhaseAlloy.cpp
+    elliptic/electrical/FactoryCurrentDensityEvaluator.cpp
     elliptic/electrical/ResidualSteadyStateCurrent.cpp
   )
   

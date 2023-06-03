@@ -7,10 +7,10 @@
 #pragma once
 
 #include "NaturalBCs.hpp"
-#include "MaterialModel.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/AbstractVectorFunction.hpp"
 #include "elliptic/electrical/SourceEvaluator.hpp"
+#include "elliptic/electrical/CurrentDensityEvaluator.hpp"
 
 namespace Plato
 {
@@ -49,15 +49,14 @@ private:
   using StateScalarType   = typename EvaluationType::StateScalarType;
   using ControlScalarType = typename EvaluationType::ControlScalarType;
   using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
-  using ResultScalarType  = typename EvaluationType::ResultScalarType;  
-  /// @brief material model interface
-  std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;  
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  using GradScalarType    = typename Plato::fad_type_t<ElementType,StateScalarType,ConfigScalarType>;
   /// @brief source evaluator interface
   std::shared_ptr<Plato::SourceEvaluator<EvaluationType>> mSourceEvaluator; 
   /// @brief surface boundary condition (Neumann) interface
   std::shared_ptr<Plato::NaturalBCs<ElementType, mNumDofsPerNode>> mSurfaceLoads;  
-  /// @brief list of requested output quantities of interest
-  std::vector<std::string> mPlottable;
+  /// @brief current density evaluator
+  std::shared_ptr<Plato::CurrentDensityEvaluator<EvaluationType>> mCurrentDensityEvaluator;  
 
 public:
   /// @brief class constructor

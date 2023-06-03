@@ -64,20 +64,6 @@ public:
     /// @brief destructor 
     ~MaterialElectricalConductivityTwoPhaseAlloy();
 
-    /// @fn computeMaterialTensor
-    /// @brief compute material tensor for a two-phase electrical material
-    /// @param [in]     aSpatialDomain contains meshed model information
-    /// @param [in]     aState         state workset
-    /// @param [in]     aControl       control workse
-    /// @param [in,out] aResult        material tensor 
-    void 
-    computeMaterialTensor(
-        const Plato::SpatialDomain                         & aSpatialDomain,
-        const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
-        const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
-        const Plato::ScalarArray4DT<ResultScalarType>      & aResult
-    ) override;
-
     /// @fn property
     /// @brief return list of material property values in string format
     /// @param [in] aPropertyID input material property name

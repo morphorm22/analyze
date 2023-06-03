@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "elliptic/electrical/FactoryCurrentDensityEvaluator.hpp"
+#include "elliptic/electrical/FactoryCurrentDensitySourceEvaluator.hpp"
 
 namespace Plato
 {
@@ -39,9 +39,9 @@ evaluate(
     const Plato::Scalar                                & aScale
 ) const
 {
-  for(auto& tFunction : mCurrentDensityEvaluators)
+  for(auto& tFunction : mCurrentDensitySourceEvaluators)
   {
-    Plato::OrdinalType tFunctionIndex = &tFunction - &mCurrentDensityEvaluators[0];
+    Plato::OrdinalType tFunctionIndex = &tFunction - &mCurrentDensitySourceEvaluators[0];
     Plato::Scalar tScalarMultiplier = mFunctionWeights[tFunctionIndex] * aScale;
     tFunction->evaluate(aSpatialDomain,aState,aControl,aConfig,aResult,tScalarMultiplier);
   }
@@ -66,7 +66,7 @@ initialize(
   auto tSourceParamList = tSourceTermsParamList.sublist("Source");
   this->parseFunctions(tSourceParamList);
   this->parseWeights(tSourceParamList);
-  this->createCurrentDensityEvaluators(aParamList);
+  this->createCurrentDensitySourceEvaluators(aParamList);
 }
 
 template<typename EvaluationType>
@@ -117,16 +117,16 @@ parseWeights(
 template<typename EvaluationType>
 void 
 SourceWeightedSum<EvaluationType>::
-createCurrentDensityEvaluators(
+createCurrentDensitySourceEvaluators(
   Teuchos::ParameterList & aParamList  
 )
 {
   for(auto& tFunctionName : mFunctions)
   {
-    Plato::FactoryCurrentDensityEvaluator<EvaluationType> tFactoryCurrentDensityEvaluator;
-    std::shared_ptr<Plato::CurrentDensityEvaluator<EvaluationType>> tEvaluator = 
-      tFactoryCurrentDensityEvaluator.create(mMaterialName,tFunctionName,aParamList);
-    mCurrentDensityEvaluators.push_back(tEvaluator);
+    Plato::FactoryCurrentDensitySourceEvaluator<EvaluationType> tFactoryCurrentDensitySourceEvaluator;
+    std::shared_ptr<Plato::CurrentDensitySourceEvaluator<EvaluationType>> tEvaluator = 
+      tFactoryCurrentDensitySourceEvaluator.create(mMaterialName,tFunctionName,aParamList);
+    mCurrentDensitySourceEvaluators.push_back(tEvaluator);
   }
 }
 

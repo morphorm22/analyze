@@ -27,7 +27,7 @@ private:
     const Teuchos::ParameterList& mParamList;
     /// @brief list of supported input material options
     std::vector<std::string> mSupportedMaterials = 
-      {"Electrical Conductivity", "Dielectric", "Two Phase Electrical Conductivity"};
+      {"Electrical Conductivity", "Dielectric", "Two Phase Conductive"};
       
 public:
     /// @brief class constructor

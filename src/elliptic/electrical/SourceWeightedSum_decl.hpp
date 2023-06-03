@@ -12,7 +12,7 @@
 
 /// @include analyze includes
 #include "elliptic/electrical/SourceEvaluator.hpp"
-#include "elliptic/electrical/CurrentDensityEvaluator.hpp"
+#include "elliptic/electrical/CurrentDensitySourceEvaluator.hpp"
 
 namespace Plato
 {
@@ -36,7 +36,7 @@ private:
   /// @brief list of source weights
   std::vector<Plato::Scalar> mFunctionWeights;
   /// @brief list of current density evaluators
-  std::vector<std::shared_ptr<Plato::CurrentDensityEvaluator<EvaluationType>>> mCurrentDensityEvaluators;
+  std::vector<std::shared_ptr<Plato::CurrentDensitySourceEvaluator<EvaluationType>>> mCurrentDensitySourceEvaluators;
 
 public:
   /// @brief class constructor
@@ -90,10 +90,10 @@ private:
     Teuchos::ParameterList & aParamList      
   );
 
-  /// @fn createCurrentDensityEvaluators
+  /// @fn createCurrentDensitySourceEvaluators
   /// @brief create current density evaluators
   /// @param [in] aParamList input problem parameters
-  void createCurrentDensityEvaluators(
+  void createCurrentDensitySourceEvaluators(
     Teuchos::ParameterList & aParamList  
   );
 

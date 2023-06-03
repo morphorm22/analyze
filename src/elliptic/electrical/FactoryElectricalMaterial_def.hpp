@@ -48,19 +48,19 @@ create(std::string aModelName)
         }
 
         auto tModelParamList = tModelsParamList.sublist(aModelName);
-        if(tModelParamList.isSublist("Two Phase Electrical Conductivity"))
+        if(tModelParamList.isSublist("Two Phase Conductive"))
         {
             auto tMaterial = std::make_shared<Plato::MaterialElectricalConductivityTwoPhaseAlloy<EvaluationType>>
-                             (aModelName, tModelParamList.sublist("Two Phase Electrical Conductivity"));
-            tMaterial->model("Two Phase Electrical Conductivity");
+                             (aModelName, tModelParamList.sublist("Two Phase Conductive"));
+            tMaterial->model("Two Phase Conductive");
             return tMaterial;
         }
         else
-        if(tModelParamList.isSublist("Electrical Conductivity"))
+        if(tModelParamList.isSublist("Conductive"))
         {
             auto tMaterial = std::make_shared<Plato::MaterialElectricalConductivity<EvaluationType>>
-                             (aModelName, tModelParamList.sublist("Electrical Conductivity"));
-            tMaterial->model("Electrical Conductivity");
+                             (aModelName, tModelParamList.sublist("Conductive"));
+            tMaterial->model("Conductive");
             return tMaterial;
         }
         else 

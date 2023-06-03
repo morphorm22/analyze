@@ -628,16 +628,6 @@ namespace Plato {
       { return ElementType::mNumVoigtTerms; }
 
       virtual 
-      void
-      computeMaterialTensor(
-        const Plato::SpatialDomain                         & aSpatialDomain,
-        const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
-        const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
-        const Plato::ScalarArray4DT<ResultScalarType>       & aResult
-      ) 
-      { return; }
-
-      virtual 
       std::vector<std::string> 
       property(const std::string & aProperty)
       const

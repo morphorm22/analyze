@@ -11,7 +11,7 @@
 #include "Plato_TopOptFunctors.hpp"
 
 #include "elliptic/electrical/FactoryElectricalMaterial.hpp"
-#include "elliptic/electrical/FactoryCurrentDensityEvaluator.hpp"
+#include "elliptic/electrical/FactoryCurrentDensitySourceEvaluator.hpp"
 
 namespace Plato
 {
@@ -72,7 +72,7 @@ evaluate_conditional(
   Plato::Scalar tScale = aCycle;
   Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
   Plato::ScalarMultiVectorT<ResultScalarType> tCurrentDensity("current density",tNumCells,tNumPoints);
-  mCurrentDensityEvaluator->evaluate(aState,aControl,aConfig,tCurrentDensity,tScale);
+  mCurrentDensitySourceEvaluator->evaluate(aState,aControl,aConfig,tCurrentDensity,tScale);
   // evaluate dark current density
   Kokkos::parallel_for("power surface density", 
     Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
@@ -142,9 +142,9 @@ buildCurrentDensityFunction(
   }
   std::string tMaterialName = mSpatialDomain.getMaterialName();
   std::string tCurrentDensityFunctionName = tMyCriterionParamList.get<std::string>("Function");
-  Plato::FactoryCurrentDensityEvaluator<EvaluationType> tFactoryCurrentDensityEvaluator;
-  mCurrentDensityEvaluator = 
-    tFactoryCurrentDensityEvaluator.create(tMaterialName,tCurrentDensityFunctionName,aParamList
+  Plato::FactoryCurrentDensitySourceEvaluator<EvaluationType> tFactoryCurrentDensitySourceEvaluator;
+  mCurrentDensitySourceEvaluator = 
+    tFactoryCurrentDensitySourceEvaluator.create(tMaterialName,tCurrentDensityFunctionName,aParamList
   );
 }
 

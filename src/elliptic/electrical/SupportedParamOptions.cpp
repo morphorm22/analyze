@@ -74,6 +74,37 @@ CriterionEnum::getErrorMsg(
 }
 // end: functions associated with CriterionEnum struct
 
+// begin: functions associated with MaterialEnum struct
+Plato::electrical::material 
+MaterialEnum::get(
+    const std::string &aInput
+) const
+{
+    auto tLower = Plato::tolower(aInput);
+    auto tItr = s2e.find(tLower);
+    if( tItr == s2e.end() ){
+        auto tMsg = this->getErrorMsg(tLower);
+        ANALYZE_THROWERR(tMsg)
+    }
+    return tItr->second;
+}
+
+std::string
+MaterialEnum::getErrorMsg(
+    const std::string & aInProperty
+) const
+{
+    auto tMsg = std::string("Did not find matching enum for input electrical material constitutive model '") 
+            + aInProperty + "'. Supported material constitutive model keywords are: ";
+    for(const auto& tPair : s2e)
+    {
+        tMsg = tMsg + "'" + tPair.first + "', ";
+    }
+    auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+    return tSubMsg;
+}
+// end: functions associated with MaterialEnum struct
+
 // begin: functions associated with PropEnum struct
 Plato::electrical::property 
 PropEnum::get(
@@ -137,10 +168,10 @@ SourceEvaluatorEnum::getErrorMsg(
 
 // end: functions associated with SourceEvaluatorEnum struct
 
-// begin: functions associated with CurrentDensityEvaluatorEnum struct
+// begin: functions associated with CurrentDensitySourceEvaluatorEnum struct
 
 Plato::electrical::current_density_evaluator 
-CurrentDensityEvaluatorEnum::get(
+CurrentDensitySourceEvaluatorEnum::get(
     const std::string &aInput
 ) const
 {
@@ -154,7 +185,7 @@ CurrentDensityEvaluatorEnum::get(
 }
 
 std::string
-CurrentDensityEvaluatorEnum::getErrorMsg(
+CurrentDensitySourceEvaluatorEnum::getErrorMsg(
     const std::string & aInProperty
 )
 const
@@ -169,7 +200,7 @@ const
     return tSubMsg;
 }
 
-// end: functions associated with CurrentDensityEvaluatorEnum struct
+// end: functions associated with CurrentDensitySourceEvaluatorEnum struct
 
 // begin: functions associated with CurrentDensityEnum struct
 

@@ -94,6 +94,47 @@ private:
 
 
 
+/// @enum material
+/// @brief supported electrical material enums
+enum struct material
+{
+  DIELECTRIC = 0,
+  CONDUCTIVE = 1,
+  TWO_PHASE_CONDUCTIVE = 2,
+};
+
+/// @struct MaterialEnum
+/// @brief Interface between input string and supported electrical material constitutive models 
+struct MaterialEnum
+{
+private:
+  /// @brief map from string to supported electrical material constitutive model enum
+  std::unordered_map<std::string,Plato::electrical::material> s2e = {
+      {"two phase conductive",Plato::electrical::material::TWO_PHASE_CONDUCTIVE},
+      {"conductive"          ,Plato::electrical::material::CONDUCTIVE},
+      {"dielectric"          ,Plato::electrical::material::DIELECTRIC}
+  };
+
+public:
+  /// @brief Return electrical material constitutive model enum associated with input string,
+  ///   throw error if requested material material constitutive model is not supported
+  /// @param [in] aInput input material constitutive model string
+  /// @return electrical material constitutive model enum
+  Plato::electrical::material 
+  get(const std::string &aInput) 
+  const;
+
+private:
+  /// @brief Return error message if input option is not supported
+  /// @param [in] aInProperty input string - parsed from input file
+  /// @return string
+  std::string
+  getErrorMsg(const std::string & aInProperty)
+  const;
+};
+
+
+
 /// @enum property
 /// @brief supported electrical property enums
 enum struct property
@@ -189,9 +230,9 @@ enum struct current_density_evaluator
   TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY=1, 
 };
 
-/// @struct CurrentDensityEvaluatorEnum
+/// @struct CurrentDensitySourceEvaluatorEnum
 /// @brief interface between input string and supported current density evaluators
-struct CurrentDensityEvaluatorEnum
+struct CurrentDensitySourceEvaluatorEnum
 {
 private:
   /// @brief map from input string to supported current density evaluator
@@ -276,7 +317,7 @@ private:
   };
 
   /// @brief interface between input string and supported current density evaluators
-  Plato::electrical::CurrentDensityEvaluatorEnum mSourceTermEnums;
+  Plato::electrical::CurrentDensitySourceEvaluatorEnum mSourceTermEnums;
 
 public:
   /// @brief Return current density model enum associated with input function and model string,

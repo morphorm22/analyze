@@ -24,7 +24,8 @@ StressEvaluatorKirchhoff(
   const std::string            & aMaterialName,
         Teuchos::ParameterList & aParamList,
   const Plato::SpatialDomain   & aSpatialDomain,
-        Plato::DataMap         & aDataMap) : 
+        Plato::DataMap         & aDataMap
+) : 
   Plato::StressEvaluator<EvaluationType>(aSpatialDomain,aDataMap)
 {
   Plato::FactoryNonlinearElasticMaterial<EvaluationType> tFactory(aParamList);

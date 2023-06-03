@@ -11,7 +11,7 @@
 #include "Plato_TopOptFunctors.hpp"
 
 #include "elliptic/EvaluationTypes.hpp"
-#include "elliptic/electrical/CurrentDensityEvaluator.hpp"
+#include "elliptic/electrical/CurrentDensitySourceEvaluator.hpp"
 #include "elliptic/electrical/LightGeneratedCurrentDensityConstant.hpp"
 
 namespace Plato
@@ -22,7 +22,7 @@ namespace Plato
 /// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class LightCurrentDensityTwoPhaseAlloy : 
-  public Plato::CurrentDensityEvaluator<EvaluationType>
+  public Plato::CurrentDensitySourceEvaluator<EvaluationType>
 {
 private:
     /// @brief topological element type
