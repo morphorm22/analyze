@@ -44,15 +44,10 @@ namespace Hyperbolic
         mPhysics       (aProblemParams.get<std::string>("Physics"))
     {
         parseIntegrator(aProblemParams);
-
         allocateStateData();
-
         parseCriteria(aProblemParams);
-
         parseComputedFields(aProblemParams, aMesh);
-
         parseInitialState(aProblemParams);
-
         parseLinearSolver(aProblemParams, aMesh, aMachine);
     }
 
@@ -327,7 +322,8 @@ namespace Hyperbolic
         Plato::ScalarVector tAcceleration = Kokkos::subview(mAcceleration, aStepIndex, Kokkos::ALL());
 
         // -R
-        auto tResidual = mPDEConstraint.value(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, aCurrentTime);
+        auto tResidual = 
+          mPDEConstraint.value(tDisplacement, tVelocity, tAcceleration, aControl, mTimeStep, aCurrentTime);
         Plato::blas1::scale(-1.0, tResidual);
 
         // R_{v}
@@ -520,7 +516,8 @@ namespace Hyperbolic
 
         this->constrainFieldsAtBoundary(tDisplacementInit,tVelocityInit,tAccelerationInit,0.0);
 
-        auto tResidual = mPDEConstraint.value(tDisplacementInit, tVelocityInit, tAccelerationInit, aControl, mTimeStep, 0.0);
+        auto tResidual = 
+          mPDEConstraint.value(tDisplacementInit, tVelocityInit, tAccelerationInit, aControl, mTimeStep, 0.0);
         mDataMap.saveState();
     }
 
