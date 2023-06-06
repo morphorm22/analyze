@@ -1,7 +1,5 @@
 #pragma once
 
-#include "elliptic/InternalElectroelasticEnergy_decl.hpp"
-
 #include "ToMap.hpp"
 #include "FadTypes.hpp"
 #include "EMKinetics.hpp"

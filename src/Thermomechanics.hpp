@@ -10,9 +10,9 @@
 #endif
 
 #include "elliptic/AbstractVectorFunction.hpp"
-#include "elliptic/ThermoelastostaticResidual.hpp"
-#include "elliptic/InternalThermoelasticEnergy.hpp"
-#include "elliptic/TMStressPNorm.hpp"
+#include "elliptic/thermomechanics/ThermoelastostaticResidual.hpp"
+#include "elliptic/thermomechanics/InternalThermoelasticEnergy.hpp"
+#include "elliptic/thermomechanics/TMStressPNorm.hpp"
 #include "elliptic/Volume.hpp"
 
 #include "MakeFunctions.hpp"

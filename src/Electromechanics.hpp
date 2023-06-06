@@ -4,9 +4,9 @@
 #include <memory>
 
 #include "elliptic/AbstractVectorFunction.hpp"
-#include "elliptic/ElectroelastostaticResidual.hpp"
-#include "elliptic/InternalElectroelasticEnergy.hpp"
-#include "elliptic/EMStressPNorm.hpp"
+#include "elliptic/electromechanics/ElectroelastostaticResidual.hpp"
+#include "elliptic/electromechanics/InternalElectroelasticEnergy.hpp"
+#include "elliptic/electromechanics/EMStressPNorm.hpp"
 
 #include "MakeFunctions.hpp"
 

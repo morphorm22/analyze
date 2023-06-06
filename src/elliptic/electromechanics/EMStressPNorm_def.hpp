@@ -1,14 +1,11 @@
 #pragma once
 
-#include "elliptic/TMStressPNorm_decl.hpp"
-
 #include "FadTypes.hpp"
-#include "TMKinematics.hpp"
+#include "EMKinetics.hpp"
+#include "EMKinematics.hpp"
 #include "PlatoMeshExpr.hpp"
 #include "ScalarProduct.hpp"
 #include "GradientMatrix.hpp"
-#include "TMKineticsFactory.hpp"
-#include "InterpolateFromNodal.hpp"
 
 namespace Plato
 {
@@ -18,34 +15,35 @@ namespace Elliptic
 
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
-    TMStressPNorm<EvaluationType, IndicatorFunctionType>::TMStressPNorm(
+    EMStressPNorm<EvaluationType, IndicatorFunctionType>::EMStressPNorm(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap, 
               Teuchos::ParameterList & aProblemParams, 
               Teuchos::ParameterList & aPenaltyParams,
         const std::string            & aFunctionName
     ) :
-        FunctionBaseType      (aSpatialDomain, aDataMap, aProblemParams, aFunctionName),
-        mIndicatorFunction    (aPenaltyParams),
-        mApplyStressWeighting (mIndicatorFunction)
+        FunctionBaseType   (aSpatialDomain, aDataMap, aProblemParams, aFunctionName),
+        mIndicatorFunction (aPenaltyParams),
+        mApplyWeighting    (mIndicatorFunction)
     /**************************************************************************/
     {
-      Plato::ThermoelasticModelFactory<EvaluationType> tFactory(aProblemParams);
-      mMaterialModel = tFactory.create(aSpatialDomain.getMaterialName());
+      Plato::ElectroelasticModelFactory<mNumSpatialDims> mmfactory(aProblemParams);
+      mMaterialModel = mmfactory.create(aSpatialDomain.getMaterialName());
 
       auto tParams = aProblemParams.sublist("Criteria").get<Teuchos::ParameterList>(aFunctionName);
 
-      TensorNormFactory<mNumVoigtTerms, EvaluationType> tNormFactory;
-      mNorm = tNormFactory.create(tParams);
+      TensorNormFactory<mNumVoigtTerms, EvaluationType> normFactory;
+      mNorm = normFactory.create(tParams);
 
       if (tParams.isType<std::string>("Function"))
         mFuncString = tParams.get<std::string>("Function");
+
     }
 
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    TMStressPNorm<EvaluationType, IndicatorFunctionType>::evaluate_conditional(
+    EMStressPNorm<EvaluationType, IndicatorFunctionType>::evaluate_conditional(
         const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
         const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
         const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
@@ -63,7 +61,7 @@ namespace Elliptic
       Plato::ScalarMultiVectorT<ConfigScalarType> tFxnValues("function values", tNumCells*tNumPoints, 1);
 
       if (mFuncString == "1.0")
-      {
+      {   
           Kokkos::deep_copy(tFxnValues, 1.0);
       }
       else
@@ -77,65 +75,52 @@ namespace Elliptic
       using GradScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
       Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
-      Plato::TMKinematics<ElementType>          tKinematics;
+      Plato::EMKinematics<ElementType>          tKinematics;
+      Plato::EMKinetics<ElementType>            tKinetics(mMaterialModel);
 
-      Plato::TMKineticsFactory< EvaluationType, ElementType > tTMKineticsFactory;
-      auto tTMKinetics = tTMKineticsFactory.create(mMaterialModel, mSpatialDomain, mDataMap);
-
-      Plato::InterpolateFromNodal<ElementType, mNumDofsPerNode, TDofOffset> tInterpolateFromNodal;
-
-      Plato::ScalarArray3DT<ResultScalarType> tStress("stress", tNumCells, tNumPoints, mNumVoigtTerms);
-      Plato::ScalarArray3DT<ResultScalarType> tFlux  ("flux",   tNumCells, tNumPoints, mNumSpatialDims);
-      Plato::ScalarArray3DT<GradScalarType>   tStrain("strain", tNumCells, tNumPoints, mNumVoigtTerms);
-      Plato::ScalarArray3DT<GradScalarType>   tTGrad ("tgrad",  tNumCells, tNumPoints, mNumSpatialDims);
-
-      Plato::ScalarArray4DT<ConfigScalarType> tGradient("gradient", tNumCells, tNumPoints, mNumNodesPerCell, mNumSpatialDims);
-
-      Plato::ScalarMultiVectorT<ConfigScalarType> tVolume("volume", tNumCells, tNumPoints);
-      Plato::ScalarMultiVectorT<StateScalarType> tTemperature("temperature", tNumCells, tNumPoints);
+      Plato::ScalarVectorT<ConfigScalarType>  tCellVolume("cell weight", tNumCells);
 
       Plato::ScalarMultiVectorT<ResultScalarType> tCellStress("stress", tNumCells, mNumVoigtTerms);
-      Plato::ScalarVectorT<ConfigScalarType> tCellVolume("volume", tNumCells);
 
-      auto tApplyStressWeighting = mApplyStressWeighting;
+      auto tApplyWeighting = mApplyWeighting;
       Kokkos::parallel_for("compute internal energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
       KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
       {
+          ConfigScalarType tVolume(0.0);
+
+          Plato::Matrix<mNumNodesPerCell, mNumSpatialDims, ConfigScalarType> tGradient;
+
+          Plato::Array<mNumVoigtTerms,  GradScalarType>   tStrain(0.0);
+          Plato::Array<mNumSpatialDims, GradScalarType>   tEField(0.0);
+          Plato::Array<mNumVoigtTerms,  ResultScalarType> tStress(0.0);
+          Plato::Array<mNumSpatialDims, ResultScalarType> tEDisp (0.0);
+
           auto tCubPoint = tCubPoints(iGpOrdinal);
 
-          tComputeGradient(iCellOrdinal, iGpOrdinal, tCubPoint, aConfig, tGradient, tVolume);
+          tComputeGradient(iCellOrdinal, tCubPoint, aConfig, tGradient, tVolume);
 
-          tVolume(iCellOrdinal, iGpOrdinal) *= tCubWeights(iGpOrdinal);
-          tVolume(iCellOrdinal, iGpOrdinal) *= tFxnValues(iCellOrdinal*tNumPoints + iGpOrdinal, 0);
+          tVolume *= tCubWeights(iGpOrdinal);
+          tVolume *= tFxnValues(iCellOrdinal*tNumPoints + iGpOrdinal, 0);
 
           // compute strain and electric field
           //
-          tKinematics(iCellOrdinal, iGpOrdinal, tStrain, tTGrad, aState, tGradient);
+          tKinematics(iCellOrdinal, tStrain, tEField, aState, tGradient);
 
           // compute stress and electric displacement
           //
-          auto tBasisValues = ElementType::basisValues(tCubPoint);
-          tTemperature(iCellOrdinal, iGpOrdinal) = tInterpolateFromNodal(iCellOrdinal, tBasisValues, aState);
-      });
+          tKinetics(tStress, tEDisp, tStrain, tEField);
 
-      // compute element state
-      (*tTMKinetics)(tStress, tFlux, tStrain, tTGrad, tTemperature, aControl);
-
-      Kokkos::parallel_for("compute internal energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
-      {
           // apply weighting
           //
-          auto tCubPoint = tCubPoints(iGpOrdinal);
           auto tBasisValues = ElementType::basisValues(tCubPoint);
-          tApplyStressWeighting(iCellOrdinal, iGpOrdinal, aControl, tBasisValues, tStress);
+          tApplyWeighting(iCellOrdinal, aControl, tBasisValues, tStress);
 
           for(int i=0; i<ElementType::mNumVoigtTerms; i++)
           {
-              Kokkos::atomic_add(&tCellStress(iCellOrdinal,i), tVolume(iCellOrdinal, iGpOrdinal)*tStress(iCellOrdinal, iGpOrdinal, i));
+              Kokkos::atomic_add(&tCellStress(iCellOrdinal,i), tVolume*tStress(i));
           }
 
-          Kokkos::atomic_add(&tCellVolume(iCellOrdinal), tVolume(iCellOrdinal, iGpOrdinal));
+          Kokkos::atomic_add(&tCellVolume(iCellOrdinal), tVolume);
       });
 
       Kokkos::parallel_for("compute cell stress", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, mNumVoigtTerms}),
@@ -151,9 +136,10 @@ namespace Elliptic
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    TMStressPNorm<EvaluationType, IndicatorFunctionType>::postEvaluate( 
+    EMStressPNorm<EvaluationType, IndicatorFunctionType>::postEvaluate( 
       Plato::ScalarVector resultVector,
-      Plato::Scalar       resultScalar)
+      Plato::Scalar       resultScalar
+    )
     /**************************************************************************/
     {
       mNorm->postEvaluate(resultVector, resultScalar);
@@ -162,7 +148,9 @@ namespace Elliptic
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    TMStressPNorm<EvaluationType, IndicatorFunctionType>::postEvaluate( Plato::Scalar& resultValue )
+    EMStressPNorm<EvaluationType, IndicatorFunctionType>::postEvaluate(
+      Plato::Scalar& resultValue
+    )
     /**************************************************************************/
     {
       mNorm->postEvaluate(resultValue);

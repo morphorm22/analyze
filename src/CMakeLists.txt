@@ -121,12 +121,6 @@ if(ELLIPTIC)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     elliptic/Volume.cpp
     elliptic/Problem.cpp
-    elliptic/TMStressPNorm.cpp
-    elliptic/EMStressPNorm.cpp
-    elliptic/InternalThermoelasticEnergy.cpp
-    elliptic/InternalElectroelasticEnergy.cpp
-    elliptic/ElectroelastostaticResidual.cpp
-    elliptic/ThermoelastostaticResidual.cpp
     elliptic/criterioneval/FactoryCriterionEvaluator.cpp
     elliptic/criterioneval/CriterionEvaluatorDivision.cpp
     elliptic/criterioneval/CriterionEvaluatorWeightedSum.cpp
@@ -156,6 +150,9 @@ if(ELLIPTIC)
     elliptic/thermal/ResidualThermostatic.cpp
     elliptic/thermal/CriterionFluxPNorm.cpp
     elliptic/thermal/CriterionInternalThermalEnergy.cpp
+    elliptic/thermomechanics/TMStressPNorm.cpp
+    elliptic/thermomechanics/ThermoelastostaticResidual.cpp
+    elliptic/thermomechanics/InternalThermoelasticEnergy.cpp
     elliptic/electrical/SupportedParamOptions.cpp
     elliptic/electrical/FactorySourceEvaluator.cpp
     elliptic/electrical/SourceWeightedSum.cpp
@@ -172,6 +169,9 @@ if(ELLIPTIC)
     elliptic/electrical/CurrentDensityTwoPhaseAlloy.cpp
     elliptic/electrical/FactoryCurrentDensityEvaluator.cpp
     elliptic/electrical/ResidualSteadyStateCurrent.cpp
+    elliptic/electromechanics/EMStressPNorm.cpp
+    elliptic/electromechanics/InternalElectroelasticEnergy.cpp
+    elliptic/electromechanics/ElectroelastostaticResidual.cpp
   )
   
 endif()

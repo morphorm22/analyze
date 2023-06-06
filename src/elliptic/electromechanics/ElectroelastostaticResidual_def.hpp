@@ -1,7 +1,5 @@
 #pragma once
 
-#include "elliptic/ElectroelastostaticResidual_decl.hpp"
-
 #include "BLAS2.hpp"
 #include "ToMap.hpp"
 #include "FadTypes.hpp"

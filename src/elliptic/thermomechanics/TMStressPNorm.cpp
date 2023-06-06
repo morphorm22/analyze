@@ -1,8 +1,8 @@
-#include "elliptic/TMStressPNorm_decl.hpp"
+#include "elliptic/thermomechanics/TMStressPNorm_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "elliptic/TMStressPNorm_def.hpp"
+#include "elliptic/thermomechanics/TMStressPNorm_def.hpp"
 
 #include "ThermomechanicsElement.hpp"
 #include "elliptic/ExpInstMacros.hpp"

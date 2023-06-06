@@ -11,7 +11,11 @@
 namespace Plato
 {
 
-Plato::Scalar Variables::scalar(const std::string& aTag) const
+Plato::Scalar 
+Variables::
+scalar(
+  const std::string& aTag
+) const
 {
     auto tLowerTag = Plato::tolower(aTag);
     auto tItr = mScalars.find(tLowerTag);
@@ -22,13 +26,22 @@ Plato::Scalar Variables::scalar(const std::string& aTag) const
     return tItr->second;
 }
 
-void Variables::scalar(const std::string& aTag, const Plato::Scalar& aInput)
+void 
+Variables::
+scalar(
+  const std::string& aTag, 
+  const Plato::Scalar& aInput
+)
 {
     auto tLowerTag = Plato::tolower(aTag);
     mScalars[tLowerTag] = aInput;
 }
 
-Plato::ScalarVector Variables::vector(const std::string& aTag) const
+Plato::ScalarVector 
+Variables::
+vector(
+  const std::string& aTag
+) const
 {
     auto tLowerTag = Plato::tolower(aTag);
     auto tItr = mVectors.find(tLowerTag);
@@ -39,7 +52,12 @@ Plato::ScalarVector Variables::vector(const std::string& aTag) const
     return tItr->second;
 }
 
-void Variables::vector(const std::string& aTag, const Plato::ScalarVector& aInput)
+void 
+Variables::
+vector(
+  const std::string& aTag, 
+  const Plato::ScalarVector& aInput
+)
 {
     auto tLowerTag = Plato::tolower(aTag);
     mVectors[tLowerTag] = aInput;
@@ -55,7 +73,43 @@ bool Variables::isScalarMapEmpty() const
     return mScalars.empty();
 }
 
-bool Variables::defined(const std::string & aTag) const
+bool 
+Variables::
+isScalarVectorDefined(
+  const std::string & aTag
+) const
+{
+    auto tLowerTag = Plato::tolower(aTag);
+    auto tVectorMapItr = mVectors.find(tLowerTag);
+    auto tFoundTag = tVectorMapItr != mVectors.end();
+
+    if(tFoundTag)
+    { return true; }
+    else
+    { return false; }
+}
+
+bool 
+Variables::
+isScalarDefined(
+  const std::string & aTag
+) const
+{
+    auto tLowerTag = Plato::tolower(aTag);
+    auto tScalarMapItr = mScalars.find(tLowerTag);
+    auto tFoundTag = tScalarMapItr != mScalars.end();
+
+    if(tFoundTag)
+    { return true; }
+    else
+    { return false; }
+}
+
+bool 
+Variables::
+defined(
+  const std::string & aTag
+) const
 {
     auto tLowerTag = Plato::tolower(aTag);
     auto tScalarMapItr = mScalars.find(tLowerTag);
@@ -69,13 +123,17 @@ bool Variables::defined(const std::string & aTag) const
     { return false; }
 }
 
-void Variables::print() const
+void 
+Variables::
+print() const
 {
     this->printScalarMap();
     this->printVectorMap();
 }
 
-void Variables::printVectorMap() const
+void 
+Variables::
+printVectorMap() const
 {
     if(mVectors.empty())
     {
@@ -89,7 +147,9 @@ void Variables::printVectorMap() const
     }
 }
 
-void Variables::printScalarMap() const
+void 
+Variables::
+printScalarMap() const
 {
     if(mScalars.empty())
     {

@@ -69,6 +69,21 @@ public:
      ******************************************************************************/
     bool isScalarMapEmpty() const;
 
+
+    /***************************************************************************//**
+     * \fn bool isScalarVectorDefined
+     * \brief Returns true if element with tag/key is defined in the associative map.
+     * \return boolean (true or false)
+     ******************************************************************************/
+    bool isScalarVectorDefined(const std::string & aTag) const;
+
+    /***************************************************************************//**
+     * \fn bool isScalarDefined
+     * \brief Returns true if element with tag/key is defined in the associative map.
+     * \return boolean (true or false)
+     ******************************************************************************/
+    bool isScalarDefined(const std::string & aTag) const;
+    
     /***************************************************************************//**
      * \fn bool defined
      * \brief Returns true if element with tak/key is defined in a map.
@@ -97,8 +112,10 @@ private:
 };
 // struct Variables
 
-typedef Variables Dual;   /*!< variant name used to identify quantities associated with the dual optimization problem */
-typedef Variables Primal; /*!< variant name used to identify quantities associated with the primal optimization problem */
+/// @brief typedef for class Variables
+typedef Variables Dual;   
+typedef Variables Primal;
+typedef Variables Database;
 
 }
 // namespace Plato

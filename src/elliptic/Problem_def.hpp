@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BLAS1.hpp"
+#include "Variables.hpp"
 #include "Solutions.hpp"
 #include "ParseTools.hpp"
 #include "Geometrical.hpp"
@@ -153,20 +154,20 @@ applyStateConstraints(
 template<typename PhysicsType>
 void Problem<PhysicsType>::
 updateProblem(
-    const Plato::ScalarVector & aControl, 
-    const Plato::Solutions & aSolution
+  const Plato::ScalarVector & aControls, 
+  const Plato::Solutions & aSolution
 )
 {
   auto tState = aSolution.get("State");
-  const Plato::OrdinalType tTIME_STEP_INDEX = 0;
-  auto tStatesSubView = Kokkos::subview(tState, tTIME_STEP_INDEX, Kokkos::ALL());
+  constexpr Plato::OrdinalType tCYCLE = 0;
+  auto tMyStates = Kokkos::subview(tState, tCYCLE, Kokkos::ALL());
   for( auto tCriterion : mCriteria )
   {
-      tCriterion.second->updateProblem(tStatesSubView, aControl);
+    tCriterion.second->updateProblem(tMyStates, aControls);
   }
   for( auto tCriterion : mLinearCriteria )
   {
-      tCriterion.second->updateProblem(aControl);
+    tCriterion.second->updateProblem(aControls);
   }
 }
 
@@ -174,18 +175,24 @@ template<typename PhysicsType>
 Plato::Solutions
 Problem<PhysicsType>::
 solution(
-    const Plato::ScalarVector & aControl
+  const Plato::ScalarVector & aControls
 )
 {
-  const Plato::OrdinalType tTIME_STEP_INDEX = 0;
-  Plato::ScalarVector tStatesSubView = Kokkos::subview(mStates, tTIME_STEP_INDEX, Kokkos::ALL());
-  Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tStatesSubView);
+  // clear output database
   mDataMap.clearStates();
-  mDataMap.scalarNodeFields["Topology"] = aControl;
+  // set database
+  Plato::Database tDatabase;
+  constexpr Plato::OrdinalType tCYCLE = 0;
+  Plato::ScalarVector tMyStates = Kokkos::subview(mStates, tCYCLE, Kokkos::ALL());
+  Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tMyStates);
+  tDatabase.vector("states",tMyStates);
+  tDatabase.vector("controls",aControls);
+  // save controls to output database
+  mDataMap.scalarNodeFields["Topology"] = aControls;
   // inner loop for non-linear models
   for(Plato::OrdinalType tNewtonIndex = 0; tNewtonIndex < mNumNewtonSteps; tNewtonIndex++)
   {
-      mResidual = mPDE->value(tStatesSubView, aControl);
+      mResidual = mPDE->value(tMyStates, aControls);
       Plato::blas1::scale(-1.0, mResidual);
       if (mNumNewtonSteps > 1) {
           auto tResidualNorm = Plato::blas1::norm(mResidual);
@@ -195,13 +202,13 @@ solution(
               break;
           }
       }
-      mJacobian = mPDE->gradient_u(tStatesSubView, aControl);
+      mJacobian = mPDE->gradient_u(tMyStates, aControls);
       Plato::Scalar tScale = (tNewtonIndex == 0) ? 1.0 : 0.0;
       this->applyStateConstraints(mJacobian, mResidual, tScale);
-      Plato::ScalarVector tDeltaD("increment", tStatesSubView.extent(0));
+      Plato::ScalarVector tDeltaD("increment", tMyStates.extent(0));
       Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tDeltaD);
       mSolver->solve(*mJacobian, tDeltaD, mResidual);
-      Plato::blas1::axpy(1.0, tDeltaD, tStatesSubView);
+      Plato::blas1::axpy(1.0, tDeltaD, tMyStates);
       if (mNumNewtonSteps > 1) {
           auto tIncrementNorm = Plato::blas1::norm(tDeltaD);
           std::cout << " Delta norm: " << tIncrementNorm << std::endl;
@@ -214,7 +221,7 @@ solution(
   if ( mSaveState )
   {
       // evaluate at new state
-      mResidual  = mPDE->value(tStatesSubView, aControl);
+      mResidual  = mPDE->value(tMyStates, aControls);
       mDataMap.saveState();
   }
   auto tSolution = this->getSolution();
@@ -225,7 +232,7 @@ template<typename PhysicsType>
 Plato::Scalar
 Problem<PhysicsType>::
 criterionValue(
-    const Plato::ScalarVector & aControl,
+    const Plato::ScalarVector & aControls,
     const std::string         & aName
 )
 {
@@ -234,13 +241,13 @@ criterionValue(
       Plato::Solutions tSolution(mPhysics);
       tSolution.set("State", mStates);
       Criterion tCriterion = mCriteria[aName];
-      return tCriterion->value(tSolution, aControl);
+      return tCriterion->value(tSolution, aControls);
   }
   else
   if( mLinearCriteria.count(aName) )
   {
       LinearCriterion tCriterion = mLinearCriteria[aName];
-      return tCriterion->value(aControl);
+      return tCriterion->value(aControls);
   }
   else
   {
@@ -252,7 +259,7 @@ template<typename PhysicsType>
 Plato::Scalar
 Problem<PhysicsType>::
 criterionValue(
-    const Plato::ScalarVector & aControl,
+    const Plato::ScalarVector & aControls,
     const Plato::Solutions    & aSolution,
     const std::string         & aName
 )
@@ -260,13 +267,13 @@ criterionValue(
   if( mCriteria.count(aName) )
   {
       Criterion tCriterion = mCriteria[aName];
-      return tCriterion->value(aSolution, aControl);
+      return tCriterion->value(aSolution, aControls);
   }
   else
   if( mLinearCriteria.count(aName) )
   {
       LinearCriterion tCriterion = mLinearCriteria[aName];
-      return tCriterion->value(aControl);
+      return tCriterion->value(aControls);
   }
   else
   {
@@ -278,7 +285,7 @@ template<typename PhysicsType>
 Plato::ScalarVector
 Problem<PhysicsType>::
 criterionGradient(
-    const Plato::ScalarVector & aControl,
+    const Plato::ScalarVector & aControls,
     const Plato::Solutions    & aSolution,
     const std::string         & aName
 )
@@ -286,13 +293,13 @@ criterionGradient(
   if( mCriteria.count(aName) )
   {
       Criterion tCriterion = mCriteria[aName];
-      return criterionGradient(aControl, aSolution, tCriterion);
+      return criterionGradient(aControls, aSolution, tCriterion);
   }
   else
   if( mLinearCriteria.count(aName) )
   {
       LinearCriterion tCriterion = mLinearCriteria[aName];
-      return tCriterion->gradient_z(aControl);
+      return tCriterion->gradient_z(aControls);
   }
   else
   {
@@ -304,7 +311,7 @@ template<typename PhysicsType>
 Plato::ScalarVector
 Problem<PhysicsType>::
 criterionGradient(
-    const Plato::ScalarVector & aControl,
+    const Plato::ScalarVector & aControls,
     const Plato::Solutions    & aSolution,
           Criterion             aCriterion
 )
@@ -323,30 +330,30 @@ criterionGradient(
       mAdjoint = Plato::ScalarMultiVector("Adjoint Variables", 1, tLength);
   }
   // compute dfdz: partial of criterion wrt z
-  const Plato::OrdinalType tTIME_STEP_INDEX = 0;
+  const Plato::OrdinalType tCYCLE = 0;
   auto tState = aSolution.get("State");
-  auto tStatesSubView = Kokkos::subview(tState, tTIME_STEP_INDEX, Kokkos::ALL());
-  Plato::ScalarVector tAdjointSubView = Kokkos::subview(mAdjoint, tTIME_STEP_INDEX, Kokkos::ALL());
-  auto tPartialCriterionWRT_Control = aCriterion->gradient_z(aSolution, aControl);
+  auto tMyStates = Kokkos::subview(tState, tCYCLE, Kokkos::ALL());
+  Plato::ScalarVector tAdjointSubView = Kokkos::subview(mAdjoint, tCYCLE, Kokkos::ALL());
+  auto tPartialCriterionWRT_Control = aCriterion->gradient_z(aSolution, aControls);
   if(mIsSelfAdjoint)
   {
-      Plato::blas1::copy(tStatesSubView, tAdjointSubView);
+      Plato::blas1::copy(tMyStates, tAdjointSubView);
       Plato::blas1::scale(static_cast<Plato::Scalar>(-1), tAdjointSubView);
   }
   else
   {
       // compute dfdu: partial of criterion wrt u
-      auto tPartialCriterionWRT_State = aCriterion->gradient_u(aSolution, aControl, /*stepIndex=*/0);
+      auto tPartialCriterionWRT_State = aCriterion->gradient_u(aSolution, aControls, /*stepIndex=*/0);
       Plato::blas1::scale(static_cast<Plato::Scalar>(-1), tPartialCriterionWRT_State);
       // compute dgdu: partial of PDE wrt state
-      mJacobian = mPDE->gradient_u_T(tStatesSubView, aControl);
+      mJacobian = mPDE->gradient_u_T(tMyStates, aControls);
       this->applyAdjointConstraints(mJacobian, tPartialCriterionWRT_State);
       Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tAdjointSubView);
       mSolver->solve(*mJacobian, tAdjointSubView, tPartialCriterionWRT_State, /*isAdjointSolve=*/ true);
   }
   // compute dgdz: partial of PDE wrt state.
   // dgdz is returned transposed, nxm.  n=z.size() and m=u.size().
-  auto tPartialPDE_WRT_Control = mPDE->gradient_z(tStatesSubView, aControl);
+  auto tPartialPDE_WRT_Control = mPDE->gradient_z(tMyStates, aControls);
   // compute dgdz . adjoint + dfdz
   Plato::MatrixTimesVectorPlusVector(tPartialPDE_WRT_Control, tAdjointSubView, tPartialCriterionWRT_Control);
   return tPartialCriterionWRT_Control;
@@ -356,7 +363,7 @@ template<typename PhysicsType>
 Plato::ScalarVector
 Problem<PhysicsType>::
 criterionGradientX(
-    const Plato::ScalarVector & aControl,
+    const Plato::ScalarVector & aControls,
     const Plato::Solutions    & aSolution,
     const std::string         & aName
 )
@@ -364,13 +371,13 @@ criterionGradientX(
   if( mCriteria.count(aName) )
   {
       Criterion tCriterion = mCriteria[aName];
-      return criterionGradientX(aControl, aSolution, tCriterion);
+      return criterionGradientX(aControls, aSolution, tCriterion);
   }
   else
   if( mLinearCriteria.count(aName) )
   {
       LinearCriterion tCriterion = mLinearCriteria[aName];
-      return tCriterion->gradient_x(aControl);
+      return tCriterion->gradient_x(aControls);
   }
   else
   {
@@ -382,7 +389,7 @@ template<typename PhysicsType>
 Plato::ScalarVector
 Problem<PhysicsType>::
 criterionGradientX(
-    const Plato::ScalarVector & aControl,
+    const Plato::ScalarVector & aControls,
     const Plato::Solutions    & aSolution,
           Criterion             aCriterion)
 {
@@ -396,9 +403,9 @@ criterionGradientX(
   }
   // compute partial derivative wrt x
   auto tState = aSolution.get("State");
-  const Plato::OrdinalType tTIME_STEP_INDEX = 0;
-  auto tStatesSubView = Kokkos::subview(tState, tTIME_STEP_INDEX, Kokkos::ALL());
-  auto tPartialCriterionWRT_Config  = aCriterion->gradient_x(aSolution, aControl);
+  const Plato::OrdinalType tCYCLE = 0;
+  auto tMyStates = Kokkos::subview(tState, tCYCLE, Kokkos::ALL());
+  auto tPartialCriterionWRT_Config  = aCriterion->gradient_x(aSolution, aControls);
   if(mIsSelfAdjoint)
   {
       Plato::blas1::scale(static_cast<Plato::Scalar>(-1), tPartialCriterionWRT_Config);
@@ -406,19 +413,19 @@ criterionGradientX(
   else
   {
       // compute dfdu: partial of criterion wrt u
-      auto tPartialCriterionWRT_State = aCriterion->gradient_u(aSolution, aControl, /*stepIndex=*/0);
+      auto tPartialCriterionWRT_State = aCriterion->gradient_u(aSolution, aControls, /*stepIndex=*/0);
       Plato::blas1::scale(static_cast<Plato::Scalar>(-1), tPartialCriterionWRT_State);
       // compute dgdu: partial of PDE wrt state
-      mJacobian = mPDE->gradient_u(tStatesSubView, aControl);
+      mJacobian = mPDE->gradient_u(tMyStates, aControls);
       this->applyStateConstraints(mJacobian, tPartialCriterionWRT_State, 1.0);
       // adjoint problem uses transpose of global stiffness, but we're assuming the constrained
       // system is symmetric.
       Plato::ScalarVector
-        tAdjointSubView = Kokkos::subview(mAdjoint, tTIME_STEP_INDEX, Kokkos::ALL());
+        tAdjointSubView = Kokkos::subview(mAdjoint, tCYCLE, Kokkos::ALL());
       mSolver->solve(*mJacobian, tAdjointSubView, tPartialCriterionWRT_State, /*isAdjointSolve=*/ true);
       // compute dgdx: partial of PDE wrt config.
       // dgdx is returned transposed, nxm.  n=x.size() and m=u.size().
-      auto tPartialPDE_WRT_Config = mPDE->gradient_x(tStatesSubView, aControl);
+      auto tPartialPDE_WRT_Config = mPDE->gradient_x(tMyStates, aControls);
       // compute dgdx . adjoint + dfdx
       Plato::MatrixTimesVectorPlusVector(tPartialPDE_WRT_Config, tAdjointSubView, tPartialCriterionWRT_Config);
   }
@@ -428,7 +435,7 @@ criterionGradientX(
 template<typename PhysicsType>
 Plato::ScalarVector
 Problem<PhysicsType>::criterionGradient(
-    const Plato::ScalarVector & aControl,
+    const Plato::ScalarVector & aControls,
     const std::string         & aName
 )
 {
@@ -437,13 +444,13 @@ Problem<PhysicsType>::criterionGradient(
       Plato::Solutions tSolution(mPhysics);
       tSolution.set("State", mStates);
       Criterion tCriterion = mCriteria[aName];
-      return criterionGradient(aControl, tSolution, tCriterion);
+      return criterionGradient(aControls, tSolution, tCriterion);
   }
   else
   if( mLinearCriteria.count(aName) )
   {
       LinearCriterion tCriterion = mLinearCriteria[aName];
-      return tCriterion->gradient_z(aControl);
+      return tCriterion->gradient_z(aControls);
   }
   else
   {
@@ -455,7 +462,7 @@ template<typename PhysicsType>
 Plato::ScalarVector
 Problem<PhysicsType>::
 criterionGradientX(
-    const Plato::ScalarVector & aControl,
+    const Plato::ScalarVector & aControls,
     const std::string         & aName
 )
 {
@@ -464,13 +471,13 @@ criterionGradientX(
       Plato::Solutions tSolution(mPhysics);
       tSolution.set("State", mStates);
       Criterion tCriterion = mCriteria[aName];
-      return criterionGradientX(aControl, tSolution, tCriterion);
+      return criterionGradientX(aControls, tSolution, tCriterion);
   }
   else
   if( mLinearCriteria.count(aName) )
   {
       LinearCriterion tCriterion = mLinearCriteria[aName];
-      return tCriterion->gradient_x(aControl);
+      return tCriterion->gradient_x(aControls);
   }
   else
   {

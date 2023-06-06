@@ -1,8 +1,8 @@
-#include "elliptic/ThermoelastostaticResidual_decl.hpp"
+#include "elliptic/thermomechanics/ThermoelastostaticResidual_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "elliptic/ThermoelastostaticResidual_def.hpp"
+#include "elliptic/thermomechanics/ThermoelastostaticResidual_def.hpp"
 
 #include "ThermomechanicsElement.hpp"
 #include "elliptic/ExpInstMacros.hpp"

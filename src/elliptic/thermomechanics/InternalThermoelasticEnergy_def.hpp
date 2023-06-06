@@ -1,7 +1,5 @@
 #pragma once
 
-#include "elliptic/InternalThermoelasticEnergy_decl.hpp"
-
 #include "ToMap.hpp"
 #include "FadTypes.hpp"
 #include "TMKinetics.hpp"

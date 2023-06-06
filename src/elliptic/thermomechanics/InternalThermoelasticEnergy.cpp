@@ -1,8 +1,8 @@
-#include "elliptic/InternalThermoelasticEnergy_decl.hpp"
+#include "elliptic/thermomechanics/InternalThermoelasticEnergy_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "elliptic/InternalThermoelasticEnergy_def.hpp"
+#include "elliptic/thermomechanics/InternalThermoelasticEnergy_def.hpp"
 
 #include "ThermomechanicsElement.hpp"
 #include "elliptic/ExpInstMacros.hpp"
