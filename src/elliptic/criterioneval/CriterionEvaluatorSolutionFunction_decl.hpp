@@ -4,7 +4,7 @@
 #include <cassert>
 #include <vector>
 
-#include "WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
 #include "SpatialModel.hpp"
 #include "PlatoStaticsTypes.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorBase.hpp"

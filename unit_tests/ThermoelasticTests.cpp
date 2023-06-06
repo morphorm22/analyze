@@ -23,7 +23,7 @@
 #include "Mechanics.hpp"
 #include "Solutions.hpp"
 #include "ScalarProduct.hpp"
-#include "WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
 #include "elliptic/VectorFunction.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
 #include "elliptic/Problem.hpp"

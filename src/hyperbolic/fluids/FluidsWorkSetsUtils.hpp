@@ -10,8 +10,8 @@
 
 #include "BLAS1.hpp"
 #include "WorkSets.hpp"
-#include "Variables.hpp"
 #include "SpatialModel.hpp"
+#include "base/Database.hpp"
 
 #include "hyperbolic/fluids/FluidsWorkSetBuilders.hpp"
 
@@ -43,7 +43,7 @@ inline void
 build_scalar_function_worksets
 (const Plato::SpatialDomain              & aDomain,
  const Plato::ScalarVector               & aControls,
- const Plato::Variables                  & aVariables,
+ const Plato::Database                  & aVariables,
  const Plato::LocalOrdinalMaps<PhysicsT> & aMaps,
        Plato::WorkSets                   & aWorkSets)
 {
@@ -112,7 +112,7 @@ inline void
 build_scalar_function_worksets
 (const Plato::OrdinalType                & aNumCells,
  const Plato::ScalarVector               & aControls,
- const Plato::Variables                  & aVariables,
+ const Plato::Database                  & aVariables,
  const Plato::LocalOrdinalMaps<PhysicsT> & aMaps,
        Plato::WorkSets                   & aWorkSets)
 {
@@ -180,7 +180,7 @@ inline void
 build_vector_function_worksets
 (const Plato::SpatialDomain              & aDomain,
  const Plato::ScalarVector               & aControls,
- const Plato::Variables                  & aVariables,
+ const Plato::Database                  & aVariables,
  const Plato::LocalOrdinalMaps<PhysicsT> & aMaps,
        Plato::WorkSets                   & aWorkSets)
 
@@ -277,7 +277,7 @@ inline void
 build_vector_function_worksets
 (const Plato::OrdinalType                & aNumCells,
  const Plato::ScalarVector               & aControls,
- const Plato::Variables                  & aVariables,
+ const Plato::Database                  & aVariables,
  const Plato::LocalOrdinalMaps<PhysicsT> & aMaps,
        Plato::WorkSets                   & aWorkSets)
 {

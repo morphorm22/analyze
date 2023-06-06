@@ -7,7 +7,7 @@
 #pragma once
 
 #include "BLAS2.hpp"
-#include "WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
 #include "SimplexFadTypes.hpp"
 #include "LocalScalarFunctionInc.hpp"
 #include "InfinitesimalStrainPlasticity.hpp"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorBase.hpp"

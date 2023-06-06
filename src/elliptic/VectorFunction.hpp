@@ -2,8 +2,9 @@
 
 #include <memory>
 
-#include "WorksetBase.hpp"
+
 #include "NaturalBCs.hpp"
+#include "base/WorksetBase.hpp"
 #include "elliptic/AbstractVectorFunction.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 
@@ -37,9 +38,6 @@ class VectorFunction : public Plato::WorksetBase<typename PhysicsType::ElementTy
     using Plato::WorksetBase<ElementType>::mNumControl;
     using Plato::WorksetBase<ElementType>::mNumNodes;
     using Plato::WorksetBase<ElementType>::mNumCells;
-
-// NEEDED?    using Plato::WorksetBase<ElementType>::mGlobalStateEntryOrdinal;
-// NEEDED?    using Plato::WorksetBase<ElementType>::mControlEntryOrdinal;
 
     using Residual  = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
     using Jacobian  = typename Plato::Elliptic::Evaluation<ElementType>::Jacobian;

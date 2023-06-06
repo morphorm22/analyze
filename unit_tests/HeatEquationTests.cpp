@@ -19,7 +19,7 @@
 #include "Solutions.hpp"
 #include "ScalarGrad.hpp"
 #include "ThermalFlux.hpp"
-#include "WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
 #include "ComputedField.hpp"
 #include "ScalarProduct.hpp"
 #include "ProjectToNode.hpp"

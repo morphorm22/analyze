@@ -1028,19 +1028,21 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMaterialModel_MaterialModel)
             tScalarResult(0) = tDefaultConstant;
             tScalarResult(1) = tDefinedConstant;
 
-            for (int i=0; i<tNumSpaceDims; i++)
+            for (int i=0; i<tNumSpaceDims; i++){
                 for (int j=0; j<tNumSpaceDims; j++)
                 {
                     tTensorResult(0, i, j) = tTensorConstant1(i, j);
                     tTensorResult(1, i, j) = tTensorConstant2(i, j);
                     tTensorResult(2, i, j) = tTensorConstant3(i, j);
                 }
+            }
 
-            for (int i=0; i<6; i++)
+            for (int i=0; i<6; i++){
                 for (int j=0; j<6; j++)
                 {
                     tRank4VoigtResult(0, i, j) = tRank4VoigtConstant(i, j);
                 }
+            }
         }, "eval");
         auto tScalarResult_Host = Kokkos::create_mirror_view(tScalarResult);
         Kokkos::deep_copy(tScalarResult_Host, tScalarResult);

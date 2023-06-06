@@ -16,7 +16,7 @@
 #include "MechanicsElement.hpp"
 #include "SpatialModel.hpp"
 #include "BLAS1.hpp"
-#include "WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
 
 namespace PlatoUnitTests
 {

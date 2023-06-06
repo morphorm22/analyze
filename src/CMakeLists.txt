@@ -45,7 +45,7 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
 ## core sources
 set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     WorkSets.cpp
-    Variables.cpp
+    base/Database.cpp
     Solutions.cpp
     AnalyzeAppUtils.cpp
     PlatoMask.cpp

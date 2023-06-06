@@ -6,7 +6,7 @@
 #include "PlatoProblemFactory.hpp"
 
 #include "ImplicitFunctors.hpp"
-#include "WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
 
 #include "GradientMatrix.hpp"
 #include "CellVolume.hpp"

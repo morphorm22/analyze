@@ -7,11 +7,12 @@
 #ifndef SRC_PLATO_PLATOUTILITIES_HPP_
 #define SRC_PLATO_PLATOUTILITIES_HPP_
 
-#include "PlatoStaticsTypes.hpp"
-#include "Plato_Solve.hpp"
-#include "PlatoMesh.hpp"
-#include "Variables.hpp"
 #include <typeinfo>
+
+#include "PlatoMesh.hpp"
+#include "Plato_Solve.hpp"
+#include "PlatoStaticsTypes.hpp"
+#include "base/Database.hpp"
 
 #ifdef USE_OMEGAH_MESH
 #include <Omega_h_shape.hpp>
@@ -25,7 +26,7 @@ readNodeFields(
     Plato::MeshIO        aReader,
     Plato::OrdinalType   aStepIndex,
     Plato::FieldTags     aFieldTags,
-    Plato::Variables   & aVariables
+    Plato::Database    & aDatabase
 )
 {
     auto tTags = aFieldTags.tags();
@@ -33,7 +34,7 @@ readNodeFields(
     {
         auto tData = aReader->ReadNodeData(tTag, aStepIndex);
         auto tFieldName = aFieldTags.id(tTag);
-        aVariables.vector(tFieldName, tData);
+        aDatabase.vector(tFieldName, tData);
     }
 }
 

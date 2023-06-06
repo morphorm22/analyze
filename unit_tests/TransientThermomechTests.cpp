@@ -17,7 +17,7 @@
 
 #include "Tet4.hpp"
 #include "TMKinetics.hpp"
-#include "WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
 #include "TMKinematics.hpp"
 #include "ProjectToNode.hpp"
 #include "ApplyWeighting.hpp"

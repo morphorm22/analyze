@@ -13,7 +13,7 @@
 #include "TimeData.hpp"
 #include "Solutions.hpp"
 #include "PlatoMesh.hpp"
-#include "WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "ImplicitFunctors.hpp"
 

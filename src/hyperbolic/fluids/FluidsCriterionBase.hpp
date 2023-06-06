@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "Variables.hpp"
+#include "base/Database.hpp"
 
 namespace Plato
 {

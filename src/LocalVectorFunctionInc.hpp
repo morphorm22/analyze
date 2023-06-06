@@ -6,7 +6,7 @@
 
 #include <Teuchos_ParameterList.hpp>
 
-#include "WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
 #include "AbstractLocalVectorFunctionInc.hpp"
 #include "SimplexFadTypes.hpp"
 #include "TimeData.hpp"

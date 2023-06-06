@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "SpatialModel.hpp"
-#include "../WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
 #include "parabolic/EvaluationTypes.hpp"
 #include "parabolic/AbstractVectorFunction.hpp"
 

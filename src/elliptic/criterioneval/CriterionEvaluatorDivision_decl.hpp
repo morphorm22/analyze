@@ -6,7 +6,7 @@
 
 #include <Teuchos_ParameterList.hpp>
 
-#include "WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
 #include "PlatoStaticsTypes.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorBase.hpp"
 #include "elliptic/criterioneval/FactoryCriterionEvaluator.hpp"

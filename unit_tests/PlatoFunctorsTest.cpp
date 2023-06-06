@@ -10,10 +10,9 @@
 #include "util/PlatoTestHelpers.hpp"
  
 #include "Mechanics.hpp"
-#include "WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
 #include "elliptic/VectorFunction.hpp"
 #include "ImplicitFunctors.hpp"
-#include "StructuralDynamics.hpp"
 
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>

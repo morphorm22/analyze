@@ -3,9 +3,9 @@
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
 #include "PlatoStaticsTypes.hpp"
+#include "base/WorksetBase.hpp"
 #include "MechanicsElement.hpp"
 #include "PlatoMeshExpr.hpp"
-#include "WorksetBase.hpp"
 #include "Hex8.hpp"
 #include "Hex27.hpp"
 #include "Tet10.hpp"

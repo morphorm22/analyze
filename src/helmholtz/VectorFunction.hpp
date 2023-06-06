@@ -3,7 +3,8 @@
 
 #include <memory>
 
-#include "WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
+
 #include "NaturalBCs.hpp"
 #include "helmholtz/AbstractVectorFunction.hpp"
 #include "helmholtz/EvaluationTypes.hpp"

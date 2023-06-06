@@ -1,13 +1,13 @@
 #pragma once
 
 #include "BLAS1.hpp"
-#include "Variables.hpp"
 #include "Solutions.hpp"
 #include "ParseTools.hpp"
 #include "Geometrical.hpp"
 #include "EssentialBCs.hpp"
 #include "AnalyzeMacros.hpp"
 #include "AnalyzeOutput.hpp"
+#include "base/Database.hpp"
 #include "ImplicitFunctors.hpp"
 #include "ApplyConstraints.hpp"
 #include "MultipointConstraints.hpp"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorBase.hpp"
 
 namespace Plato

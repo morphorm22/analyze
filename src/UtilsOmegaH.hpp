@@ -17,9 +17,9 @@
 #include <Omega_h_array_ops.hpp>
 #include <Omega_h_filesystem.hpp>
 
-#include "Variables.hpp"
 #include "PlatoUtilities.hpp"
 #include "ImplicitFunctors.hpp"
+#include "base/Database.hpp"
 
 namespace Plato
 {
@@ -452,16 +452,15 @@ inline Omega_h::LOs get_boundary_entities
  * \param [in] aMesh      mesh metadata
  * \param [in] aPath      path to vtk file
  * \param [in] aFieldTags map from field data tag to identifier
- *
- * \param [in/out] aVariables map holding simulation metadata
+ * \param [in,out] aDatabase map holding simulation metadata
  ******************************************************************************/
 template<Omega_h::LO EntityDim>
 inline void
 read_fields
 (const Omega_h::Mesh& aMesh,
- const Omega_h::filesystem::path& aPath,
- const Plato::FieldTags& aFieldTags,
-       Plato::Variables& aVariables)
+ const Omega_h::filesystem::path & aPath,
+ const Plato::FieldTags          & aFieldTags,
+       Plato::Database           & aDatabase)
 {
     Omega_h::Mesh tReadMesh(aMesh.library());
     Omega_h::vtk::read_parallel(aPath, aMesh.library()->world(), &tReadMesh);
@@ -470,7 +469,7 @@ read_fields
     {
         auto tData = Plato::omega_h::read_metadata_from_mesh(tReadMesh, EntityDim, tTag);
         auto tFieldName = aFieldTags.id(tTag);
-        aVariables.vector(tFieldName, tData);
+        aDatabase.vector(tFieldName, tData);
     }
 }
 // function read_fields

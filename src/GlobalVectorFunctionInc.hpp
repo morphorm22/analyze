@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
 #include "SpatialModel.hpp"
 #include "SimplexFadTypes.hpp"
 #include "InfinitesimalStrainPlasticity.hpp"

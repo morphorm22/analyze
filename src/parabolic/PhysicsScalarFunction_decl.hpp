@@ -1,6 +1,6 @@
 #pragma once
 
-#include "WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
 #include "parabolic/EvaluationTypes.hpp"
 #include "parabolic/ScalarFunctionBase.hpp"
 #include "parabolic/AbstractScalarFunction.hpp"

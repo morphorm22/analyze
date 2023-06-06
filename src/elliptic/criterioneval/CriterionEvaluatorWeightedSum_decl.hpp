@@ -4,7 +4,7 @@
 #include <cassert>
 #include <vector>
 
-#include "WorksetBase.hpp"
+#include "base/WorksetBase.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorBase.hpp"
 
 namespace Plato
