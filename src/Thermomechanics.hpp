@@ -13,13 +13,13 @@
 #include "elliptic/thermomechanics/ThermoelastostaticResidual.hpp"
 #include "elliptic/thermomechanics/InternalThermoelasticEnergy.hpp"
 #include "elliptic/thermomechanics/TMStressPNorm.hpp"
+#include "elliptic/thermomechanics/ThermalVonMisesLocalMeasure.hpp"
 #include "elliptic/Volume.hpp"
 
 #include "MakeFunctions.hpp"
 #include "elliptic/AbstractLocalMeasure.hpp"
 #include "AnalyzeMacros.hpp"
 #include "elliptic/mechanical/linear/Plato_AugLagStressCriterionQuadratic.hpp"
-#include "ThermalVonMisesLocalMeasure.hpp"
 
 namespace Plato
 {

@@ -3,11 +3,11 @@
  *
  */
 
-#include "ThermalVonMisesLocalMeasure_decl.hpp"
+#include "elliptic/thermomechanics/ThermalVonMisesLocalMeasure_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "ThermalVonMisesLocalMeasure_def.hpp"
+#include "elliptic/thermomechanics/ThermalVonMisesLocalMeasure_def.hpp"
 
 #include "ThermomechanicsElement.hpp"
 #include "elliptic/ExpInstMacros.hpp"

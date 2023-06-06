@@ -38,7 +38,7 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     elliptic/mechanical/linear/Plato_AugLagStressCriterionQuadratic.cpp
     elliptic/mechanical/linear/Plato_AugLagStressCriterionGeneral.cpp
     elliptic/mechanical/linear/CriterionAugLagStrength.cpp
-    ThermalVonMisesLocalMeasure.cpp
+    elliptic/thermomechanics/ThermalVonMisesLocalMeasure.cpp
     optimizer/AugLagDataMng.cpp
 )
 

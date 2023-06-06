@@ -27,7 +27,7 @@
 #include "elliptic/mechanical/linear/VonMisesYieldFunction.hpp"
 #include "elliptic/mechanical/linear/LocalMeasureTensileEnergyDensity.hpp"
 
-#include "ThermalVonMisesLocalMeasure.hpp"
+#include "elliptic/thermomechanics/ThermalVonMisesLocalMeasure.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorWeightedSum.hpp"
 
