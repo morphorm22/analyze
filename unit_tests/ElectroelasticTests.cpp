@@ -9,7 +9,7 @@
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
 #include "Tet4.hpp"
-#include "Electromechanics.hpp"
+#include "elliptic/electromechanics/Electromechanics.hpp"
 #include "elliptic/VectorFunction.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
 
@@ -105,7 +105,7 @@ TEUCHOS_UNIT_TEST( ElectroelasticTests, InternalElectroelasticEnergy3D )
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
 
-  Plato::Elliptic::VectorFunction<::Plato::Electromechanics<Plato::Tet4>>
+  Plato::Elliptic::VectorFunction<Plato::Elliptic::Linear::Electromechanics<Plato::Tet4>>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
   // compute and test constraint value
   //
@@ -240,7 +240,7 @@ TEUCHOS_UNIT_TEST( ElectroelasticTests, InternalElectroelasticEnergy3D )
   // create criterion
   //
   std::string tMyFunctionName("Internal Electroelastic Energy");
-  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Electromechanics<Plato::Tet4>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<Plato::Elliptic::Linear::Electromechanics<Plato::Tet4>>
     scalarFunction(tSpatialModel, tDataMap, *params, tMyFunctionName);
 
   // compute and test criterion value

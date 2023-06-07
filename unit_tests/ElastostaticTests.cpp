@@ -34,7 +34,7 @@
 #include "geometric/GeometryScalarFunction.hpp"
 #include "ApplyConstraints.hpp"
 #include "elliptic/Problem.hpp"
-#include "Mechanics.hpp"
+#include "elliptic/mechanical/linear/Mechanics.hpp"
 
 #include <fenv.h>
 
@@ -332,7 +332,7 @@ TEUCHOS_UNIT_TEST( ElastostaticTests, Residual3D )
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  Plato::Elliptic::VectorFunction<::Plato::Mechanics<Plato::Tet4>>
+  Plato::Elliptic::VectorFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tet4>>
     esVectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
 
@@ -540,7 +540,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   std::string tMyFunction("Internal Elastic Energy");
-  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Mechanics<Plato::Tet4>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tet4>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
@@ -719,7 +719,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, StressPNorm3D )
   std::string tMyFunction("Globalized Stress");
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Mechanics<Plato::Tet4>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tet4>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
@@ -911,7 +911,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, EffectiveEnergy3D_ShearCellProblem )
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   std::string tMyFunction("Effective Energy");
-  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Mechanics<Plato::Tet4>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tet4>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
@@ -1139,7 +1139,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, EffectiveEnergy3D_NormalCellProblem )
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   std::string tMyFunction("Effective Energy");
-  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Mechanics<Plato::Tet4>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tet4>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
@@ -1311,16 +1311,19 @@ TEUCHOS_UNIT_TEST( DerivativeTests, ElastostaticResidual2D_InhomogeneousEssentia
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
 
-    Plato::Elliptic::Problem<Plato::Mechanics<Plato::Tri3>>
+    Plato::Elliptic::Problem<Plato::Elliptic::Linear::Mechanics<Plato::Tri3>>
         tElasticityProblem(tMesh, *tElasticityParams, tMachine);
 
     // SET ESSENTIAL/DIRICHLET BOUNDARY CONDITIONS 
     Plato::OrdinalType tDispDofX = 0;
     Plato::OrdinalType tDispDofY = 1;
     auto tNumDofsPerNode = tElasticityProblem.numDofsPerNode();
-    auto tDirichletIndicesBoundaryX0 = Plato::TestHelpers::get_dirichlet_indices_on_boundary_2D(tMesh, "x-", tNumDofsPerNode, tDispDofX);
-    auto tDirichletIndicesBoundaryY0 = Plato::TestHelpers::get_dirichlet_indices_on_boundary_2D(tMesh, "y-", tNumDofsPerNode, tDispDofY);
-    auto tDirichletIndicesBoundaryX1 = Plato::TestHelpers::get_dirichlet_indices_on_boundary_2D(tMesh, "x+", tNumDofsPerNode, tDispDofX);
+    auto tDirichletIndicesBoundaryX0 = 
+      Plato::TestHelpers::get_dirichlet_indices_on_boundary_2D(tMesh, "x-", tNumDofsPerNode, tDispDofX);
+    auto tDirichletIndicesBoundaryY0 = 
+      Plato::TestHelpers::get_dirichlet_indices_on_boundary_2D(tMesh, "y-", tNumDofsPerNode, tDispDofY);
+    auto tDirichletIndicesBoundaryX1 = 
+      Plato::TestHelpers::get_dirichlet_indices_on_boundary_2D(tMesh, "x+", tNumDofsPerNode, tDispDofX);
 
     Plato::Scalar tValueToSet = 0;
     auto tNumDirichletDofs = tDirichletIndicesBoundaryX0.size() + tDirichletIndicesBoundaryY0.size() + tDirichletIndicesBoundaryX1.size();

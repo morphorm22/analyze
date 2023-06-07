@@ -4,7 +4,7 @@
 #include "Analyze_Diagnostics.hpp"
 #include "elliptic/Problem.hpp"
 
-#include "Mechanics.hpp"
+#include "elliptic/mechanical/linear/Mechanics.hpp"
 
 namespace VolumeAverageCriterionTests
 {
@@ -98,7 +98,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressAxial_
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    using PhysicsT = Plato::Mechanics<Plato::Tet4>;
+    using PhysicsT = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);
@@ -229,7 +229,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressShear_
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    using PhysicsT = Plato::Mechanics<Plato::Tet4>;
+    using PhysicsT = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);
@@ -356,7 +356,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressGradie
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    using PhysicsT = Plato::Mechanics<Plato::Tet4>;
+    using PhysicsT = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);
@@ -455,7 +455,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyAxial_3
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    using PhysicsT = Plato::Mechanics<Plato::Tet4>;
+    using PhysicsT = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);
@@ -586,7 +586,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyShear_3
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    using PhysicsT = Plato::Mechanics<Plato::Tet4>;
+    using PhysicsT = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);
@@ -713,7 +713,7 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyGradien
     Plato::Comm::Machine tMachine(myComm);
 
     // 1. Construct plasticity problem
-    using PhysicsT = Plato::Mechanics<Plato::Tet4>;
+    using PhysicsT = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
     tProblem.readEssentialBoundaryConditions(*tParamList);

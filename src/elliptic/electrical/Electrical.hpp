@@ -20,6 +20,12 @@
 namespace Plato
 {
 
+namespace Elliptic
+{
+
+namespace LinearElectrical
+{
+  
 /// @struct FunctionFactory
 /// @brief factory of electrical residual and criteria
 struct FunctionFactory
@@ -92,20 +98,35 @@ struct FunctionFactory
   };
 };
 
+} // namespace LinearElectrical
+
+} // namespace Elliptic
+
 } // namespace Plato
 
 namespace Plato
 {
- 
+
+namespace Elliptic
+{
+
+namespace Linear
+{
+
+/// @brief concrete class use to define elliptic electrical physics
+/// @tparam TopoElementType topological element typename
 template<typename TopoElementType>
 class Electrical
 {
 public:
-  /// @brief factory for electrical physics scalar and vector functions
-  typedef Plato::FunctionFactory FunctionFactory;
+  /// @brief residual and criteria factory for elliptic electrical physics 
+  typedef Plato::Elliptic::LinearElectrical::FunctionFactory FunctionFactory;
   /// @brief topological element type with additional physics related information 
   using ElementType = Plato::ElectricalElement<TopoElementType>;
 };
 
-}
-// namespace Plato
+} // namespace Linear
+
+} // namespace Elliptic
+
+} // namespace Plato

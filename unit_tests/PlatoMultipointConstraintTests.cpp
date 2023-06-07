@@ -4,7 +4,7 @@
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
-#include "Mechanics.hpp"
+#include "elliptic/mechanical/linear/Mechanics.hpp"
 #include "EssentialBCs.hpp"
 #include "elliptic/VectorFunction.hpp"
 #include "ApplyConstraints.hpp"
@@ -102,7 +102,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, BuildCondensedSystem )
   constexpr int meshWidth=2;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
-  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using PhysicsType = Plato::Elliptic::Linear::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
 
   int tNumDofsPerNode = ElementType::mNumDofsPerNode;
@@ -266,7 +266,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic2DTieMPC )
   constexpr int meshWidth=2;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
-  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using PhysicsType = Plato::Elliptic::Linear::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
 
   int tNumDofsPerNode = ElementType::mNumDofsPerNode;
@@ -382,7 +382,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
   constexpr int meshWidth=2;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", meshWidth);
 
-  using PhysicsType = ::Plato::Mechanics<Plato::Tet4>;
+  using PhysicsType = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
   using ElementType = typename PhysicsType::ElementType;
 
   int tNumDofsPerNode = ElementType::mNumDofsPerNode;

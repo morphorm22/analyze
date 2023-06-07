@@ -4,7 +4,7 @@
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
-#include "Mechanics.hpp"
+#include "elliptic/mechanical/linear/Mechanics.hpp"
 #include "EssentialBCs.hpp"
 #include "elliptic/VectorFunction.hpp"
 #include "ApplyConstraints.hpp"
@@ -153,7 +153,7 @@ ElasticProblemParameters elastic_2d_parameters(const Plato::Scalar aMeshPhysical
 Plato::ScalarVector::HostMirror
 test_elastic_problem_solution(const Plato::Mesh& aMesh, const std::string& aSolverParameters)
 {
-    using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+    using PhysicsType = ::Plato::Elliptic::Linear::Mechanics<Plato::Tri3>;
     using ElementType = typename PhysicsType::ElementType;
 
     const int tNumDofsPerNode = ElementType::mNumDofsPerNode;
@@ -290,7 +290,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionEpetra )
   constexpr int meshWidth=2;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
-  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using PhysicsType = ::Plato::Elliptic::Linear::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
 
   int tNumDofsPerNode = ElementType::mNumDofsPerNode;
@@ -383,7 +383,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToEpetraVector )
   constexpr int meshWidth=2;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
-  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using PhysicsType = ::Plato::Elliptic::Linear::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
 
   int tNumDofsPerNode = ElementType::mNumDofsPerNode;
@@ -428,7 +428,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionToEpetraVector_invalidI
   constexpr int meshWidth=2;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
-  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using PhysicsType = ::Plato::Elliptic::Linear::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
 
   int tNumDofsPerNode = ElementType::mNumDofsPerNode;
@@ -465,7 +465,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector )
   constexpr int meshWidth=2;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
-  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using PhysicsType = ::Plato::Elliptic::Linear::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
 
   int tNumDofsPerNode = ElementType::mNumDofsPerNode;
@@ -509,7 +509,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector_invali
   constexpr int meshWidth=2;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
-  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using PhysicsType = ::Plato::Elliptic::Linear::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
 
   int tNumDofsPerNode = ElementType::mNumDofsPerNode;
@@ -543,7 +543,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, VectorConversionFromEpetraVector_invali
   constexpr int meshWidth=2;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
-  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using PhysicsType = ::Plato::Elliptic::Linear::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
 
   int tNumDofsPerNode = ElementType::mNumDofsPerNode;
@@ -658,7 +658,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra )
 
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  Plato::Elliptic::VectorFunction<::Plato::Mechanics<Plato::Tri3>>
+  Plato::Elliptic::VectorFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tri3>>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
   // compute and test constraint value
@@ -767,7 +767,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
 
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  Plato::Elliptic::VectorFunction<::Plato::Mechanics<Plato::Tri3>>
+  Plato::Elliptic::VectorFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tri3>>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
   // compute and test constraint value
@@ -1048,7 +1048,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
   constexpr int meshWidth=8;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
-  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using PhysicsType = ::Plato::Elliptic::Linear::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
 
   int tNumDofsPerNode = ElementType::mNumDofsPerNode;
@@ -1242,7 +1242,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_valid_input )
   constexpr int meshWidth=2;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
-  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using PhysicsType = ::Plato::Elliptic::Linear::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
 
   MPI_Comm myComm;
@@ -1283,7 +1283,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_invalid_solver_stack )
   constexpr int meshWidth=2;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", meshWidth);
 
-  using PhysicsType = ::Plato::Mechanics<Plato::Tri3>;
+  using PhysicsType = ::Plato::Elliptic::Linear::Mechanics<Plato::Tri3>;
   using ElementType = typename PhysicsType::ElementType;
   int tNumDofsPerNode = ElementType::mNumDofsPerNode;
 

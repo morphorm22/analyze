@@ -31,10 +31,11 @@
 #include "GeneralStressDivergence.hpp"
 #include "parabolic/VectorFunction.hpp"
 #include "ApplyConstraints.hpp"
-#include "Thermomechanics.hpp"
 #include "ComputedField.hpp"
 #include "TMKineticsFactory.hpp"
-#include "Mechanics.hpp"
+
+#include "elliptic/thermomechanics/Thermomechanics.hpp"
+#include "Thermomechanics.hpp"
 
 #include <fenv.h>
 
@@ -428,7 +429,7 @@ TEUCHOS_UNIT_TEST( TransientThermomechTests, TransientThermomechResidual3D )
   //
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
-  Plato::Parabolic::VectorFunction<::Plato::Thermomechanics<Plato::Tet4>>
+  Plato::Parabolic::VectorFunction<Plato::Parabolic::Linear::Thermomechanics<Plato::Tet4>>
     vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
 
 

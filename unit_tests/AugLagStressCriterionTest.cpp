@@ -12,10 +12,9 @@
 
 #include "Tri3.hpp"
 #include "Tet4.hpp"
-#include "Mechanics.hpp"
-#include "MechanicsElement.hpp"
 
 #include "elliptic/EvaluationTypes.hpp"
+#include "elliptic/mechanical/linear/Mechanics.hpp"
 #include "elliptic/mechanical/linear/CriterionMassMoment.hpp"
 #include "elliptic/mechanical/linear/CriterionAugLagStrength.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorWeightedSum.hpp"
@@ -410,11 +409,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassCriterion_Normalized_Evaluate)
 
     // Append mass function
     const auto tPhysicsScalarFuncMass =
-      std::make_shared<Plato::Elliptic::CriterionEvaluatorScalarFunction<Plato::Mechanics<Plato::Tri3>>>(tSpatialModel, tDataMap);
+    std::make_shared<Plato::Elliptic::CriterionEvaluatorScalarFunction<Plato::Elliptic::Linear::Mechanics<Plato::Tri3>>>
+      (tSpatialModel, tDataMap);
     tPhysicsScalarFuncMass->setEvaluator(tCriterion, tOnlyDomainDefined.getDomainName());
 
     // create weighted sum function
-    Plato::Elliptic::CriterionEvaluatorWeightedSum<Plato::Mechanics<Plato::Tri3>> tWeightedSum(tSpatialModel, tDataMap);
+    Plato::Elliptic::CriterionEvaluatorWeightedSum<Plato::Elliptic::Linear::Mechanics<Plato::Tri3>> 
+      tWeightedSum(tSpatialModel, tDataMap);
     const Plato::Scalar tMassFunctionWeight = 0.75;
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncMass);
     tWeightedSum.appendFunctionWeight(tMassFunctionWeight);
@@ -473,11 +474,13 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassCriterion_NotNormalized_Evaluate)
 
     // Append mass function
     const auto tPhysicsScalarFuncMass =
-      std::make_shared<Plato::Elliptic::CriterionEvaluatorScalarFunction<Plato::Mechanics<Plato::Tri3>>>(tSpatialModel, tDataMap);
+    std::make_shared<Plato::Elliptic::CriterionEvaluatorScalarFunction<Plato::Elliptic::Linear::Mechanics<Plato::Tri3>>>
+      (tSpatialModel, tDataMap);
     tPhysicsScalarFuncMass->setEvaluator(tCriterion, tOnlyDomainDefined.getDomainName());
 
     // create weighted sum function
-    Plato::Elliptic::CriterionEvaluatorWeightedSum<Plato::Mechanics<Plato::Tri3>> tWeightedSum(tSpatialModel, tDataMap);
+    Plato::Elliptic::CriterionEvaluatorWeightedSum<Plato::Elliptic::Linear::Mechanics<Plato::Tri3>> 
+      tWeightedSum(tSpatialModel, tDataMap);
     const Plato::Scalar tMassFunctionWeight = 0.75;
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncMass);
     tWeightedSum.appendFunctionWeight(tMassFunctionWeight);
@@ -582,7 +585,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
     Plato::DataMap tDataMap;
     Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
     auto tOnlyDomainDefined = tSpatialModel.Domains.front();
-    Plato::Elliptic::CriterionEvaluatorWeightedSum<Plato::Mechanics<Plato::Tri3>> tWeightedSum(tSpatialModel, tDataMap);
+    Plato::Elliptic::CriterionEvaluatorWeightedSum<Plato::Elliptic::Linear::Mechanics<Plato::Tri3>> 
+      tWeightedSum(tSpatialModel, tDataMap);
 
     // set ad-types
     using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
@@ -612,7 +616,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
 
     // append stress criterion to weighthed scalar function
     const auto tPhysicsScalarFuncVonMises =
-       std::make_shared<Plato::Elliptic::CriterionEvaluatorScalarFunction<Plato::Mechanics<Plato::Tri3>>>(tSpatialModel,tDataMap);
+    std::make_shared<Plato::Elliptic::CriterionEvaluatorScalarFunction<Plato::Elliptic::Linear::Mechanics<Plato::Tri3>>>
+      (tSpatialModel,tDataMap);
     tPhysicsScalarFuncVonMises->setEvaluator(tCriterionResidual, tOnlyDomainDefined.getDomainName());
     tPhysicsScalarFuncVonMises->setEvaluator(tCriterionGradZ, tOnlyDomainDefined.getDomainName());
     const Plato::Scalar tVonMisesFunctionWeight = 1.0;
@@ -633,7 +638,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
     Plato::DataMap tDataMap;
     Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
     auto tOnlyDomainDefined = tSpatialModel.Domains.front();
-    Plato::Elliptic::CriterionEvaluatorWeightedSum<Plato::Mechanics<Plato::Tet4>> tWeightedSum(tSpatialModel, tDataMap);
+    Plato::Elliptic::CriterionEvaluatorWeightedSum<Plato::Elliptic::Linear::Mechanics<Plato::Tet4>> 
+      tWeightedSum(tSpatialModel, tDataMap);
 
     // set ad-types
     using ElementType = typename Plato::MechanicsElement<Plato::Tet4>;
@@ -663,7 +669,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
 
     // append stress criterion to weighthed scalar function
     const auto tPhysicsScalarFuncVonMises =
-       std::make_shared<Plato::Elliptic::CriterionEvaluatorScalarFunction<Plato::Mechanics<Plato::Tet4>>>(tSpatialModel,tDataMap);
+    std::make_shared<Plato::Elliptic::CriterionEvaluatorScalarFunction<Plato::Elliptic::Linear::Mechanics<Plato::Tet4>>>
+      (tSpatialModel,tDataMap);
     tPhysicsScalarFuncVonMises->setEvaluator(tCriterionResidual, tOnlyDomainDefined.getDomainName());
     tPhysicsScalarFuncVonMises->setEvaluator(tCriterionGradZ, tOnlyDomainDefined.getDomainName());
     const Plato::Scalar tVonMisesFunctionWeight = 1.0;
@@ -684,7 +691,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
     Plato::DataMap tDataMap;
     Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
     auto tOnlyDomainDefined = tSpatialModel.Domains.front();
-    Plato::Elliptic::CriterionEvaluatorWeightedSum<Plato::Mechanics<Plato::Tri3>> tWeightedSum(tSpatialModel, tDataMap);
+    Plato::Elliptic::CriterionEvaluatorWeightedSum<Plato::Elliptic::Linear::Mechanics<Plato::Tri3>> 
+      tWeightedSum(tSpatialModel, tDataMap);
 
     // set ad-types
     using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;
@@ -714,7 +722,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
 
     // append stress criterion to weighthed scalar function
     const auto tPhysicsScalarFuncVonMises =
-       std::make_shared<Plato::Elliptic::CriterionEvaluatorScalarFunction<Plato::Mechanics<Plato::Tri3>>>(tSpatialModel,tDataMap);
+    std::make_shared<Plato::Elliptic::CriterionEvaluatorScalarFunction<Plato::Elliptic::Linear::Mechanics<Plato::Tri3>>>
+      (tSpatialModel,tDataMap);
     tPhysicsScalarFuncVonMises->setEvaluator(tCriterionResidual, tOnlyDomainDefined.getDomainName());
     tPhysicsScalarFuncVonMises->setEvaluator(tCriterionGradZ, tOnlyDomainDefined.getDomainName());
     const Plato::Scalar tVonMisesFunctionWeight = 1.0;
@@ -735,7 +744,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
     Plato::DataMap tDataMap;
     Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamListTwo, tDataMap);
     auto tOnlyDomainDefined = tSpatialModel.Domains.front();
-    Plato::Elliptic::CriterionEvaluatorWeightedSum<Plato::Mechanics<Plato::Tet4>> 
+    Plato::Elliptic::CriterionEvaluatorWeightedSum<Plato::Elliptic::Linear::Mechanics<Plato::Tet4>> 
       tWeightedSum(tSpatialModel, tDataMap);
 
     // set ad-types
@@ -766,7 +775,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, StrengthConstraintCriterion_VonMises_Gr
 
     // append stress criterion to weighthed scalar function
     const auto tPhysicsScalarFuncVonMises =
-       std::make_shared<Plato::Elliptic::CriterionEvaluatorScalarFunction<Plato::Mechanics<Plato::Tet4>>>(tSpatialModel,tDataMap);
+    std::make_shared<Plato::Elliptic::CriterionEvaluatorScalarFunction<Plato::Elliptic::Linear::Mechanics<Plato::Tet4>>>
+      (tSpatialModel,tDataMap);
     tPhysicsScalarFuncVonMises->setEvaluator(tCriterionResidual, tOnlyDomainDefined.getDomainName());
     tPhysicsScalarFuncVonMises->setEvaluator(tCriterionGradZ, tOnlyDomainDefined.getDomainName());
     const Plato::Scalar tVonMisesFunctionWeight = 1.0;

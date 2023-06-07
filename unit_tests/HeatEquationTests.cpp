@@ -453,7 +453,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, HeatEquationResidual3D )
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  Plato::Parabolic::VectorFunction<::Plato::Thermal<Plato::Tet4>>
+  Plato::Parabolic::VectorFunction<Plato::Parabolic::Linear::Thermal<Plato::Tet4>>
     vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
 
 
@@ -663,7 +663,7 @@ TEUCHOS_UNIT_TEST( HeatEquationTests, InternalThermalEnergy3D )
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   std::string tMyFunction("Internal Energy");
-  Plato::Parabolic::PhysicsScalarFunction<::Plato::Thermal<Plato::Tet4>>
+  Plato::Parabolic::PhysicsScalarFunction<Plato::Parabolic::Linear::Thermal<Plato::Tet4>>
     scalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
   auto timeStep = tParamList->sublist("Time Integration").get<Plato::Scalar>("Time Step");

@@ -4,17 +4,17 @@
 
 #include "elliptic/criterioneval/CriterionEvaluatorDivision_def.hpp"
 
-#include "Thermal.hpp"
-#include "Mechanics.hpp"
-#include "Thermomechanics.hpp"
-#include "Electromechanics.hpp"
-#include "BaseExpInstMacros.hpp"
+#include "elliptic/mechanical/linear/Mechanics.hpp"
+#include "elliptic/thermal/Thermal.hpp"
+#include "elliptic/thermomechanics/Thermomechanics.hpp"
 #include "elliptic/electrical/Electrical.hpp"
+#include "elliptic/electromechanics/Electromechanics.hpp"
+#include "BaseExpInstMacros.hpp"
 
-PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorDivision, Plato::Thermal)
-PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorDivision, Plato::Mechanics)
-PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorDivision, Plato::Electrical)
-PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorDivision, Plato::Thermomechanics)
-PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorDivision, Plato::Electromechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorDivision, Plato::Elliptic::Linear::Thermal)
+PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorDivision, Plato::Elliptic::Linear::Electrical)
+PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorDivision, Plato::Elliptic::Linear::Thermomechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorDivision, Plato::Elliptic::Linear::Electromechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorDivision, Plato::Elliptic::Linear::Mechanics)
 
 #endif

@@ -2,8 +2,8 @@
 #include "PlatoStaticsTypes.hpp"
 
 #include "Tet4.hpp"
-#include "Mechanics.hpp"
 #include "TensorPNorm.hpp"
+#include "elliptic/mechanical/linear/Mechanics.hpp"
 
 #include "elliptic/EvaluationTypes.hpp"
 
@@ -20,7 +20,7 @@ namespace TensorNormTests
 /******************************************************************************/
 TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormDefaultVolumeScaling)
 {
-    using PhysicsType = Plato::Mechanics<Plato::Tet4>;
+    using PhysicsType = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
     using ElementType = typename PhysicsType::ElementType;
     using ResidualEvalT = Plato::Elliptic::Evaluation<ElementType>::Residual;
 
@@ -79,7 +79,7 @@ TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormDefaultVolumeScaling)
 /******************************************************************************/
 TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormSpecifiedVolumeScaling)
 {
-    using PhysicsType = Plato::Mechanics<Plato::Tet4>;
+    using PhysicsType = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
     using ElementType = typename PhysicsType::ElementType;
     using ResidualEvalT = Plato::Elliptic::Evaluation<ElementType>::Residual;
 
@@ -139,7 +139,7 @@ TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormSpecifiedVolumeScaling)
 /******************************************************************************/
 TEUCHOS_UNIT_TEST(TensorNormTests, VonMisesPNormNoVolumeScaling)
 {
-    using PhysicsType = Plato::Mechanics<Plato::Tet4>;
+    using PhysicsType = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
     using ElementType = typename PhysicsType::ElementType;
     using ResidualEvalT = Plato::Elliptic::Evaluation<ElementType>::Residual;
 

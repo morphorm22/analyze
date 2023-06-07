@@ -4,18 +4,18 @@
 
 #include "elliptic/criterioneval/FactoryCriterionEvaluator_def.hpp"
 
-#include "BaseExpInstMacros.hpp"
-#include "Thermal.hpp"
-#include "Mechanics.hpp"
-#include "Thermomechanics.hpp"
-#include "Electromechanics.hpp"
+#include "elliptic/mechanical/linear/Mechanics.hpp"
+#include "elliptic/thermal/Thermal.hpp"
+#include "elliptic/thermomechanics/Thermomechanics.hpp"
 #include "elliptic/electrical/Electrical.hpp"
+#include "elliptic/electromechanics/Electromechanics.hpp"
+#include "BaseExpInstMacros.hpp"
 
-PLATO_ELEMENT_DEF(Plato::Elliptic::FactoryCriterionEvaluator, Plato::Thermal)
-PLATO_ELEMENT_DEF(Plato::Elliptic::FactoryCriterionEvaluator, Plato::Mechanics)
-PLATO_ELEMENT_DEF(Plato::Elliptic::FactoryCriterionEvaluator, Plato::Electrical)
-PLATO_ELEMENT_DEF(Plato::Elliptic::FactoryCriterionEvaluator, Plato::Thermomechanics)
-PLATO_ELEMENT_DEF(Plato::Elliptic::FactoryCriterionEvaluator, Plato::Electromechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::FactoryCriterionEvaluator, Plato::Elliptic::Linear::Thermal)
+PLATO_ELEMENT_DEF(Plato::Elliptic::FactoryCriterionEvaluator, Plato::Elliptic::Linear::Electrical)
+PLATO_ELEMENT_DEF(Plato::Elliptic::FactoryCriterionEvaluator, Plato::Elliptic::Linear::Thermomechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::FactoryCriterionEvaluator, Plato::Elliptic::Linear::Electromechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::FactoryCriterionEvaluator, Plato::Elliptic::Linear::Mechanics)
 
 
 #endif

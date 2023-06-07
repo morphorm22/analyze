@@ -8,7 +8,7 @@
 #include "Thermomechanics.hpp"
 #include "BaseExpInstMacros.hpp"
 
-PLATO_ELEMENT_DEF(Plato::Parabolic::PhysicsScalarFunction, Plato::Thermal);
-PLATO_ELEMENT_DEF(Plato::Parabolic::PhysicsScalarFunction, Plato::Thermomechanics);
+PLATO_ELEMENT_DEF(Plato::Parabolic::PhysicsScalarFunction, Plato::Parabolic::Linear::Thermal);
+PLATO_ELEMENT_DEF(Plato::Parabolic::PhysicsScalarFunction, Plato::Parabolic::Linear::Thermomechanics);
 
 #endif

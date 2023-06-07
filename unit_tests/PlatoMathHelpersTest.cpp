@@ -18,7 +18,7 @@
 #include "Solutions.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "PlatoMathFunctors.hpp"
-#include "Mechanics.hpp"
+#include "elliptic/mechanical/linear/Mechanics.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
 #include "elliptic/VectorFunction.hpp"
 #include "ApplyProjection.hpp"
@@ -129,7 +129,7 @@ Teuchos::RCP<Plato::CrsMatrixType> createSquareMatrix()
   const Teuchos::RCP<Teuchos::ParameterList> elastostaticsParams = test_elastostatics_params();
   Plato::SpatialModel tSpatialModel(tMesh, *elastostaticsParams, tDataMap);
 
-  Plato::Elliptic::VectorFunction<::Plato::Mechanics<Plato::Tet4>>
+  Plato::Elliptic::VectorFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tet4>>
     tVectorFunction(tSpatialModel, tDataMap, *elastostaticsParams, 
         elastostaticsParams->get<std::string>("PDE Constraint"));
 
@@ -1158,7 +1158,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_MatrixTimesVectorPlusV
 
   Plato::SpatialModel tSpatialModel(tMesh, *tParams, tDataMap);
 
-  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Mechanics<Plato::Tet4>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tet4>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParams, tMyFunction);
 
   Plato::Solutions tSolution;
@@ -1167,7 +1167,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_MatrixTimesVectorPlusV
 
   // create PDE constraint
   //
-  Plato::Elliptic::VectorFunction<::Plato::Mechanics<Plato::Tet4>>
+  Plato::Elliptic::VectorFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tet4>>
     esVectorFunction(tSpatialModel, tDataMap, *tParams, tParams->get<std::string>("PDE Constraint"));
 
   auto dgdx = esVectorFunction.gradient_x(u,z);

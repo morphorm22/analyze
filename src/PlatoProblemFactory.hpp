@@ -4,58 +4,60 @@
  *  Created on: Apr 19, 2018
  */
 
-#ifndef PLATOPROBLEMFACTORY_HPP_
-#define PLATOPROBLEMFACTORY_HPP_
+#pragma once
 
 #include <memory>
 #include <sstream>
 #include <Teuchos_ParameterList.hpp>
 #include <stdexcept>
 
+#include "Tet4.hpp"
+#include "Tet10.hpp"
 #include "PlatoMesh.hpp"
 #include "AnalyzeMacros.hpp"
-#include "Mechanics.hpp"
-#include "Thermal.hpp"
-#include "Tet10.hpp"
-#include "Tet4.hpp"
-#include "Electromechanics.hpp"
-#include "Thermomechanics.hpp"
 #include "solver/ParallelComm.hpp"
-#include "elliptic/electrical/Electrical.hpp"
-#include "elliptic/mechanical/nonlinear/NonlinearMechanics.hpp"
 
 #ifdef PLATO_HEX_ELEMENTS
-#include "Hex8.hpp"
-#include "Hex27.hpp"
-#include "Quad4.hpp"
+  #include "Hex8.hpp"
+  #include "Hex27.hpp"
+  #include "Quad4.hpp"
 #endif
 
 #ifdef PLATO_PLASTICITY
-#include "PlasticityProblem.hpp"
+  #include "PlasticityProblem.hpp"
 #endif
 
 #ifdef PLATO_ELLIPTIC
+  #include "elliptic/thermal/Thermal.hpp"
+  #include "elliptic/thermomechanics/Thermomechanics.hpp"
+  #include "elliptic/mechanical/nonlinear/Mechanics.hpp"
+  #include "elliptic/mechanical/linear/Mechanics.hpp"
+  #include "elliptic/electrical/Electrical.hpp"
+  #include "elliptic/electromechanics/Electromechanics.hpp"
   #include "elliptic/Problem.hpp"
 #endif
 
 #ifdef PLATO_PARABOLIC
-#include "parabolic/Problem.hpp"
+  #include "Thermal.hpp"
+  #include "Mechanics.hpp"
+  #include "Thermomechanics.hpp"
+  #include "parabolic/Problem.hpp"
 #endif
 
 #ifdef PLATO_HYPERBOLIC
-#include "hyperbolic/Problem.hpp"
-#include "hyperbolic/Mechanics.hpp"
-  #ifdef PLATO_FLUIDS
-  #include "hyperbolic/fluids/FluidsQuasiImplicit.hpp"
-  #endif
-  #ifdef PLATO_MICROMORPHIC
-  #include "hyperbolic/micromorphic/MicromorphicMechanics.hpp"
-  #endif
+  #include "hyperbolic/Problem.hpp"
+  #include "hyperbolic/Mechanics.hpp"
+    #ifdef PLATO_FLUIDS
+      #include "hyperbolic/fluids/FluidsQuasiImplicit.hpp"
+    #endif
+    #ifdef PLATO_MICROMORPHIC
+      #include "hyperbolic/micromorphic/MicromorphicMechanics.hpp"
+    #endif
 #endif
 
 #ifdef PLATO_HELMHOLTZ
-#include "helmholtz/Helmholtz.hpp"
-#include "helmholtz/Problem.hpp"
+  #include "helmholtz/Helmholtz.hpp"
+  #include "helmholtz/Problem.hpp"
 #endif
 
 namespace Plato
@@ -157,13 +159,13 @@ create_mechanical_problem
 #ifdef PLATO_ELLIPTIC
     if (tLowerPDE == "elliptic")
     {
-        return makeProblem<Plato::Elliptic::Problem, Plato::Mechanics>(aMesh, aPlatoProb, aMachine);
+        return makeProblem<Plato::Elliptic::Problem,Plato::Elliptic::Linear::Mechanics>(aMesh, aPlatoProb, aMachine);
     }
 #endif
 #ifdef PLATO_HYPERBOLIC
     if (tLowerPDE == "hyperbolic")
     {
-        return makeProblem<Plato::Hyperbolic::Problem, Plato::Hyperbolic::Mechanics>(aMesh, aPlatoProb, aMachine);
+        return makeProblem<Plato::Hyperbolic::Problem,Plato::Hyperbolic::Mechanics>(aMesh, aPlatoProb, aMachine);
     }
 #endif
     {
@@ -188,7 +190,7 @@ create_nonlinear_mechanical_problem
   auto tLowerPDE = Plato::get_pde_type(aPlatoProb);
 #ifdef PLATO_ELLIPTIC
   if (tLowerPDE == "elliptic"){
-    return ( makeProblem<Plato::Elliptic::Problem,Plato::NonlinearMechanics>(aMesh, aPlatoProb, aMachine) );
+    return ( makeProblem<Plato::Elliptic::Problem,Plato::Elliptic::Nonlinear::Mechanics>(aMesh, aPlatoProb, aMachine) );
   }
 #endif
   else{
@@ -212,7 +214,7 @@ create_electrical_problem
   auto tLowerPDE = Plato::get_pde_type(aPlatoProb);
 #ifdef PLATO_ELLIPTIC
   if (tLowerPDE == "elliptic"){
-    return ( makeProblem<Plato::Elliptic::Problem,Plato::Electrical>(aMesh, aPlatoProb, aMachine) );
+    return ( makeProblem<Plato::Elliptic::Problem,Plato::Elliptic::Linear::Electrical>(aMesh, aPlatoProb, aMachine) );
   }
 #endif
   else{
@@ -303,13 +305,13 @@ create_thermal_problem
 #ifdef PLATO_PARABOLIC
     if(tLowerPDE == "parabolic")
     {
-        return makeProblem<Plato::Parabolic::Problem, Plato::Thermal>(aMesh, aPlatoProb, aMachine);
+        return makeProblem<Plato::Parabolic::Problem, Plato::Parabolic::Linear::Thermal>(aMesh, aPlatoProb, aMachine);
     }
 #endif
 #ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
     {
-        return makeProblem<Plato::Elliptic::Problem, Plato::Thermal>(aMesh, aPlatoProb, aMachine);
+        return makeProblem<Plato::Elliptic::Problem, Plato::Elliptic::Linear::Thermal>(aMesh, aPlatoProb, aMachine);
     }
 #endif
     {
@@ -337,7 +339,7 @@ create_electromechanical_problem
 #ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
     {
-        return makeProblem<Plato::Elliptic::Problem, Plato::Electromechanics>(aMesh, aPlatoProb, aMachine);
+        return makeProblem<Plato::Elliptic::Problem, Plato::Elliptic::Linear::Electromechanics>(aMesh, aPlatoProb, aMachine);
     }
 #endif
     {
@@ -365,17 +367,21 @@ create_thermomechanical_problem
 #ifdef PLATO_PARABOLIC
     if(tLowerPDE == "parabolic")
     {
-        return makeProblem<Plato::Parabolic::Problem, Plato::Thermomechanics>(aMesh, aPlatoProb, aMachine);
+      return ( 
+        makeProblem<Plato::Parabolic::Problem, Plato::Parabolic::Linear::Thermomechanics>(aMesh,aPlatoProb,aMachine) 
+      );
     }
 #endif
 #ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
     {
-        return makeProblem<Plato::Elliptic::Problem, Plato::Thermomechanics>(aMesh, aPlatoProb, aMachine);
+      return ( 
+        makeProblem<Plato::Elliptic::Problem, Plato::Elliptic::Linear::Thermomechanics>(aMesh,aPlatoProb,aMachine) 
+      );
     }
 #endif
     {
-        ANALYZE_THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
+      ANALYZE_THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
     }
  }
  // function create_thermomechanical_problem
@@ -517,5 +523,3 @@ public:
 
 }
 // namespace Plato
-
-#endif /* PLATOPROBLEMFACTORY_HPP_ */

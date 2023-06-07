@@ -32,9 +32,7 @@
 #include "elliptic/Problem.hpp"
 
 #include "Tet10.hpp"
-#include "MechanicsElement.hpp"
-#include "Mechanics.hpp"
-//#include "Thermal.hpp"
+#include "elliptic/mechanical/linear/Mechanics.hpp"
 
 #include "SmallStrain.hpp"
 #include "GeneralStressDivergence.hpp"
@@ -563,7 +561,7 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D )
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  using PhysicsType = typename Plato::Mechanics<Plato::Tet10>;
+  using PhysicsType = typename Plato::Elliptic::Linear::Mechanics<Plato::Tet10>;
 
   Plato::Elliptic::VectorFunction<PhysicsType>
     tVectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
@@ -764,7 +762,7 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D_NaturalBC )
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
-  using PhysicsType = typename Plato::Mechanics<Plato::Tet10>;
+  using PhysicsType = typename Plato::Elliptic::Linear::Mechanics<Plato::Tet10>;
 
   Plato::Elliptic::VectorFunction<PhysicsType>
     tVectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
@@ -886,7 +884,7 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D_Solution )
     MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
     Plato::Comm::Machine tMachine(myComm);
 
-    Plato::Elliptic::Problem<Plato::Mechanics<Plato::Tet10>>
+    Plato::Elliptic::Problem<Plato::Elliptic::Linear::Mechanics<Plato::Tet10>>
         tElasticityProblem(tMesh, *tParamList, tMachine);
 
 
@@ -999,7 +997,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, InternalElasticEnergy3D )
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   std::string tMyFunction("Internal Elastic Energy");
-  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Mechanics<Plato::Tet10>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tet10>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 
@@ -1176,7 +1174,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, StressPNorm3D )
   std::string tMyFunction("Globalized Stress");
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList);
 
-  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Mechanics<spaceDim>>
+  Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Elliptic::Linear::Mechanics<spaceDim>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
 

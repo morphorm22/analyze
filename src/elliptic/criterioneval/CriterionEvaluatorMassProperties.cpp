@@ -4,17 +4,17 @@
 
 #include "elliptic/criterioneval/CriterionEvaluatorMassProperties_def.hpp"
 
-#include "Thermal.hpp"
-#include "Mechanics.hpp"
-#include "Thermomechanics.hpp"
-#include "Electromechanics.hpp"
-#include "BaseExpInstMacros.hpp"
+#include "elliptic/mechanical/linear/Mechanics.hpp"
+#include "elliptic/thermal/Thermal.hpp"
+#include "elliptic/thermomechanics/Thermomechanics.hpp"
 #include "elliptic/electrical/Electrical.hpp"
+#include "elliptic/electromechanics/Electromechanics.hpp"
+#include "BaseExpInstMacros.hpp"
 
-PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorMassProperties, Plato::Thermal)
-PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorMassProperties, Plato::Mechanics)
-PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorMassProperties, Plato::Electrical)
-PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorMassProperties, Plato::Thermomechanics)
-PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorMassProperties, Plato::Electromechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorMassProperties, Plato::Elliptic::Linear::Thermal)
+PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorMassProperties, Plato::Elliptic::Linear::Electrical)
+PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorMassProperties, Plato::Elliptic::Linear::Thermomechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorMassProperties, Plato::Elliptic::Linear::Electromechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::CriterionEvaluatorMassProperties, Plato::Elliptic::Linear::Mechanics)
 
 #endif

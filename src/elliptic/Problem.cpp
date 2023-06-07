@@ -2,18 +2,19 @@
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "Thermal.hpp"
-#include "Mechanics.hpp"
-#include "Thermomechanics.hpp"
-#include "Electromechanics.hpp"
-#include "elliptic/electrical/Electrical.hpp"
-#include "BaseExpInstMacros.hpp"
 #include "elliptic/Problem_def.hpp"
 
-PLATO_ELEMENT_DEF(Plato::Elliptic::Problem, Plato::Thermal)
-PLATO_ELEMENT_DEF(Plato::Elliptic::Problem, Plato::Mechanics)
-PLATO_ELEMENT_DEF(Plato::Elliptic::Problem, Plato::Electrical)
-PLATO_ELEMENT_DEF(Plato::Elliptic::Problem, Plato::Thermomechanics)
-PLATO_ELEMENT_DEF(Plato::Elliptic::Problem, Plato::Electromechanics)
+#include "elliptic/mechanical/linear/Mechanics.hpp"
+#include "elliptic/thermal/Thermal.hpp"
+#include "elliptic/thermomechanics/Thermomechanics.hpp"
+#include "elliptic/electrical/Electrical.hpp"
+#include "elliptic/electromechanics/Electromechanics.hpp"
+#include "BaseExpInstMacros.hpp"
+
+PLATO_ELEMENT_DEF(Plato::Elliptic::Problem, Plato::Elliptic::Linear::Thermal)
+PLATO_ELEMENT_DEF(Plato::Elliptic::Problem, Plato::Elliptic::Linear::Electrical)
+PLATO_ELEMENT_DEF(Plato::Elliptic::Problem, Plato::Elliptic::Linear::Thermomechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::Problem, Plato::Elliptic::Linear::Electromechanics)
+PLATO_ELEMENT_DEF(Plato::Elliptic::Problem, Plato::Elliptic::Linear::Mechanics)
 
 #endif

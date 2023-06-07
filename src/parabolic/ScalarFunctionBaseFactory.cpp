@@ -7,7 +7,7 @@
 #include "BaseExpInstMacros.hpp"
 #include "parabolic/ScalarFunctionBaseFactory_def.hpp"
 
-PLATO_ELEMENT_DEF(Plato::Parabolic::ScalarFunctionBaseFactory, Plato::Thermal)
-PLATO_ELEMENT_DEF(Plato::Parabolic::ScalarFunctionBaseFactory, Plato::Thermomechanics)
+PLATO_ELEMENT_DEF(Plato::Parabolic::ScalarFunctionBaseFactory, Plato::Parabolic::Linear::Thermal)
+PLATO_ELEMENT_DEF(Plato::Parabolic::ScalarFunctionBaseFactory, Plato::Parabolic::Linear::Thermomechanics)
 
 #endif

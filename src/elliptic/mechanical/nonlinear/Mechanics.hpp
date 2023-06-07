@@ -21,7 +21,10 @@
 namespace Plato
 {
 
-namespace NonlinearMechanicsFactory
+namespace Elliptic
+{
+
+namespace NonlinearMechanics
 {
   
 struct FunctionFactory
@@ -94,14 +97,35 @@ struct FunctionFactory
   }
 };
 
-} // namespace NonlinearMechanicsFactory
+} // namespace NonlinearMechanics
 
-template<typename TopoElementType>
-class NonlinearMechanics
-{
-public:
-    typedef Plato::NonlinearMechanicsFactory::FunctionFactory FunctionFactory;
-    using ElementType = MechanicsElement<TopoElementType>;
-};
+} // namespace Elliptic
 
 } // Plato
+
+namespace Plato
+{
+
+namespace Elliptic
+{
+
+namespace Nonlinear
+{
+
+/// @brief concrete class use to define elliptic nonlinear mechanical physics
+/// @tparam TopoElementType topological element typename
+template<typename TopoElementType>
+class Mechanics
+{
+public:
+  /// @brief residual and criteria factory for elliptic linear mechanical physics
+  typedef Plato::Elliptic::NonlinearMechanics::FunctionFactory FunctionFactory;
+  /// @brief physics-based topological element typename
+  using ElementType = MechanicsElement<TopoElementType>;
+};
+
+} // namespace Nonlinear
+
+} // namespace Elliptic
+
+} // namespace Plato

@@ -26,15 +26,15 @@ namespace Parabolic
         {
             auto tName = tDomain.getDomainName();
 
-            mValueFunctions[tName]     = tFactory.template createScalarFunctionParabolic<Residual>
+            mValueFunctions[tName]     = tFactory.template createScalarFunction<Residual>
                 (tDomain, mDataMap, aInputParams, tFunctionType, mFunctionName);
-            mGradientUFunctions[tName] = tFactory.template createScalarFunctionParabolic<GradientU>
+            mGradientUFunctions[tName] = tFactory.template createScalarFunction<GradientU>
                 (tDomain, mDataMap, aInputParams, tFunctionType, mFunctionName);
-            mGradientVFunctions[tName] = tFactory.template createScalarFunctionParabolic<GradientV>
+            mGradientVFunctions[tName] = tFactory.template createScalarFunction<GradientV>
                 (tDomain, mDataMap, aInputParams, tFunctionType, mFunctionName);
-            mGradientXFunctions[tName] = tFactory.template createScalarFunctionParabolic<GradientX>
+            mGradientXFunctions[tName] = tFactory.template createScalarFunction<GradientX>
                 (tDomain, mDataMap, aInputParams, tFunctionType, mFunctionName);
-            mGradientZFunctions[tName] = tFactory.template createScalarFunctionParabolic<GradientZ>
+            mGradientZFunctions[tName] = tFactory.template createScalarFunction<GradientZ>
                 (tDomain, mDataMap, aInputParams, tFunctionType, mFunctionName);
         }
     }

@@ -7,7 +7,7 @@
 #include "BaseExpInstMacros.hpp"
 #include "parabolic/Problem_def.hpp"
 
-PLATO_ELEMENT_DEF(Plato::Parabolic::Problem, Plato::Thermal)
-PLATO_ELEMENT_DEF(Plato::Parabolic::Problem, Plato::Thermomechanics)
+PLATO_ELEMENT_DEF(Plato::Parabolic::Problem, Plato::Parabolic::Linear::Thermal)
+PLATO_ELEMENT_DEF(Plato::Parabolic::Problem, Plato::Parabolic::Linear::Thermomechanics)
 
 #endif
