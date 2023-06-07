@@ -35,7 +35,7 @@
 #include "TMKineticsFactory.hpp"
 
 #include "elliptic/thermomechanics/Thermomechanics.hpp"
-#include "Thermomechanics.hpp"
+#include "parabolic/Thermomechanics.hpp"
 
 #include <fenv.h>
 

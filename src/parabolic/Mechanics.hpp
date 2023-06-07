@@ -8,7 +8,6 @@
 
 #include "parabolic/AbstractScalarFunction.hpp"
 #include "parabolic/AbstractVectorFunction.hpp"
-#include ""
 
 namespace Plato
 {
@@ -16,6 +15,9 @@ namespace Plato
 namespace Parabolic
 {
 
+namespace LinearMechanics
+{
+  
 /******************************************************************************//**
  * \brief Factory for linear mechanics problem
 **********************************************************************************/
@@ -54,6 +56,8 @@ struct FunctionFactory
 };
 // struct FunctionFactory
 
+} // namespace LinearMechanics
+
 } // namespace Parabolic
 
 } // namespace Plato
@@ -66,6 +70,9 @@ namespace Plato
 namespace Parabolic
 {
 
+namespace Linear
+{
+  
 /// @brief concrete class use to define parabolic mechanical physics
 /// @tparam TopoElementType topological element typename
 template<typename TopoElementType>
@@ -73,10 +80,12 @@ class Mechanics
 {
 public:
   /// @brief residual and criteria factory for parabolic mechanical physics
-  typedef Plato::Parabolic::FunctionFactory FunctionFactory;
+  typedef Plato::Parabolic::LinearMechanics::FunctionFactory FunctionFactory;
   /// @brief physics-based topological element typename
   using ElementType = MechanicsElement<TopoElementType>;
 };
+
+} // namespace Linear
 
 } // namespace Parabolic
 

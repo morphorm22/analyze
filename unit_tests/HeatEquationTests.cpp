@@ -15,7 +15,7 @@
 #include <Sacado.hpp>
 
 #include "Tet4.hpp"
-#include "Thermal.hpp"
+#include "parabolic/Thermal.hpp"
 #include "Solutions.hpp"
 #include "ScalarGrad.hpp"
 #include "ThermalFlux.hpp"

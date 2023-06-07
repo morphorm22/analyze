@@ -38,9 +38,9 @@
 #endif
 
 #ifdef PLATO_PARABOLIC
-  #include "Thermal.hpp"
-  #include "Mechanics.hpp"
-  #include "Thermomechanics.hpp"
+  #include "parabolic/Thermal.hpp"
+  #include "parabolic/Mechanics.hpp"
+  #include "parabolic/Thermomechanics.hpp"
   #include "parabolic/Problem.hpp"
 #endif
 
