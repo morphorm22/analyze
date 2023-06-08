@@ -8,8 +8,7 @@
 
 /// @include standard cpp includes
 #include <memory>
-/// @include analyze includes
-#include "MechanicsElement.hpp"
+
 // mechanics related
 #include "elliptic/mechanical/SupportedParamOptions.hpp"
 // residuals related
@@ -29,13 +28,14 @@ namespace NonlinearMechanics
   
 struct FunctionFactory
 {
-  /// @brief 
-  /// @tparam EvaluationType 
-  /// @param aSpatialDomain 
-  /// @param aDataMap 
-  /// @param aParamList 
-  /// @param aTypePDE 
-  /// @return 
+  /// @fn createVectorFunction
+  /// @brief create elliptic vector function
+  /// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
+  /// @param [in] aSpatialDomain contains mech and model information
+  /// @param [in] aDataMap       output database
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aTypePDE       partial differential equation type
+  /// @return shared pointer to residual base class
   template<typename EvaluationType>
   std::shared_ptr<Plato::Elliptic::AbstractVectorFunction<EvaluationType>>
   createVectorFunction(
@@ -59,14 +59,15 @@ struct FunctionFactory
       }
   }
 
-  /// @brief 
-  /// @tparam EvaluationType 
-  /// @param aSpatialDomain 
-  /// @param aDataMap 
-  /// @param aParamList 
-  /// @param aFuncType 
-  /// @param aFuncName 
-  /// @return 
+  /// @fn createScalarFunction
+  /// @brief create elliptic scalar function
+  /// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
+  /// @param [in] aSpatialDomain contains mech and model information
+  /// @param [in] aDataMap       output database
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aFuncType      scalar function type
+  /// @param [in] aFuncName      scalar function name
+  /// @return shared pointer to criterion base class
   template<typename EvaluationType>
   std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<EvaluationType>>
   createScalarFunction(
@@ -103,6 +104,9 @@ struct FunctionFactory
 
 } // Plato
 
+/// @include analyze includes
+#include "MechanicsElement.hpp"
+
 namespace Plato
 {
 
@@ -115,13 +119,13 @@ namespace Nonlinear
 /// @brief concrete class use to define elliptic nonlinear mechanical physics
 /// @tparam TopoElementType topological element typename
 template<typename TopoElementType>
-class Mechanics
+class Mechanics : public Plato::MechanicsElement<TopoElementType>
 {
 public:
   /// @brief residual and criteria factory for elliptic linear mechanical physics
   typedef Plato::Elliptic::NonlinearMechanics::FunctionFactory FunctionFactory;
   /// @brief physics-based topological element typename
-  using ElementType = MechanicsElement<TopoElementType>;
+  using ElementType = Plato::MechanicsElement<TopoElementType>;
 };
 
 } // namespace Nonlinear

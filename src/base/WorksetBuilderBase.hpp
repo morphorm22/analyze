@@ -1,8 +1,10 @@
 /*
- * WorksetTests.cpp
+ * WorksetBuilderBase.hpp
  *
  *  Created on: June 6, 2023
  */
+
+#pragma once
 
 namespace Plato
 {

@@ -6,6 +6,9 @@
 #include "MakeFunctions.hpp"
 #include "AnalyzeMacros.hpp"
 
+// evaluation types
+#include "elliptic/EvaluationTypes.hpp"
+
 // residuals
 #include "elliptic/mechanical/linear/ResidualElastostatic.hpp"
 
@@ -319,7 +322,7 @@ namespace Linear
 /// @brief concrete class use to define elliptic linear mechanical physics
 /// @tparam TopoElementType topological element typename
 template<typename TopoElementType>
-class Mechanics
+class Mechanics : public Plato::MechanicsElement<TopoElementType>
 {
 public:
   /// @brief residual and criteria factory for elliptic linear mechanical physics

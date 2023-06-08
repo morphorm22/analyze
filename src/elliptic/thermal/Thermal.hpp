@@ -89,7 +89,7 @@ namespace Linear
 /// @brief concrete class use to define elliptic thermal physics
 /// @tparam TopoElementType topological element typename 
 template <typename TopoElementType>
-class Thermal
+class Thermal : public Plato::ThermalElement<TopoElementType>
 {
 public:
   /// @brief residual and criteria factory for elliptic thermal physics

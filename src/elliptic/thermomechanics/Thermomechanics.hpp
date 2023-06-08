@@ -163,7 +163,7 @@ namespace Linear
 /// @brief concrete class use to define elliptic thermomechanics physics
 /// @tparam TopoElementType topological element typename 
 template<typename TopoElementType>
-class Thermomechanics
+class Thermomechanics : public Plato::ThermomechanicsElement<TopoElementType>
 {
 public:
   /// @brief residual and criteria factory for elliptic thermomechanics physics

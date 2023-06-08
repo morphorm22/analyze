@@ -38,15 +38,22 @@ protected:
     using ControlFad    = typename Plato::FadTypes<ElementType>::ControlFad;        /*!< control AD type */
     using ConfigFad     = typename Plato::FadTypes<ElementType>::ConfigFad;         /*!< configuration AD type */
 
-    static constexpr Plato::OrdinalType mSpaceDim = ElementType::mNumSpatialDims;          /*!< number of spatial dimensions */
-    static constexpr Plato::OrdinalType mNumConfigDofsPerCell = mSpaceDim * mNumNodesPerCell; /*!< number of configuration degrees of freedom per element  */
+    /*!< number of spatial dimensions */
+    static constexpr Plato::OrdinalType mSpaceDim = ElementType::mNumSpatialDims;          
+    /*!< number of configuration degrees of freedom per element  */
+    static constexpr Plato::OrdinalType mNumConfigDofsPerCell = mSpaceDim * mNumNodesPerCell; 
 
-    Plato::VectorEntryOrdinal<mSpaceDim, mNumDofsPerNode,      mNumNodesPerCell> mGlobalStateEntryOrdinal; /*!< local-to-global ID map for global state */
-    Plato::VectorEntryOrdinal<mSpaceDim, mNumNodeStatePerNode, mNumNodesPerCell> mNodeStateEntryOrdinal;   /*!< local-to-global ID map for node state */
-    Plato::VectorEntryOrdinal<mSpaceDim, mNumControl,          mNumNodesPerCell> mControlEntryOrdinal;     /*!< local-to-global ID map for control */
-    Plato::VectorEntryOrdinal<mSpaceDim, mSpaceDim,            mNumNodesPerCell> mConfigEntryOrdinal;      /*!< local-to-global ID map for configuration */
-
-    Plato::NodeCoordinate<mSpaceDim, mNumNodesPerCell> mNodeCoordinate; /*!< node coordinates database */
+public:
+    /*!< local-to-global ID map for global state */
+    Plato::VectorEntryOrdinal<mSpaceDim, mNumDofsPerNode,      mNumNodesPerCell> mGlobalStateEntryOrdinal; 
+    /*!< local-to-global ID map for node state */
+    Plato::VectorEntryOrdinal<mSpaceDim, mNumNodeStatePerNode, mNumNodesPerCell> mNodeStateEntryOrdinal;   
+    /*!< local-to-global ID map for control */
+    Plato::VectorEntryOrdinal<mSpaceDim, mNumControl,          mNumNodesPerCell> mControlEntryOrdinal;     
+    /*!< local-to-global ID map for configuration */
+    Plato::VectorEntryOrdinal<mSpaceDim, mSpaceDim,            mNumNodesPerCell> mConfigEntryOrdinal;      
+    /*!< node coordinates database */
+    Plato::NodeCoordinate<mSpaceDim, mNumNodesPerCell> mNodeCoordinate; 
 
 public:
     /******************************************************************************//**
@@ -473,10 +480,33 @@ public:
      * \param [in] aResidualWorkset residual cell workset - Scalar type
      * \param [in/out] aReturnValue assembled residual - Scalar type
     **********************************************************************************/
-    template<class WorksetType, class OutType>
-    void assembleVectorGradientFadU(const WorksetType & aWorkset, OutType & aOutput) const
+    template<class WorksetType, 
+             class OutType>
+    void assembleVectorGradientFadU(
+        const WorksetType & aWorkset, 
+        OutType & aOutput
+    ) const
     {
-        Plato::assemble_vector_gradient_fad<mNumNodesPerCell, mNumDofsPerNode>(mNumCells, mGlobalStateEntryOrdinal, aWorkset, aOutput);
+        Plato::assemble_vector_gradient_fad<mNumNodesPerCell, mNumDofsPerNode>(
+            mNumCells, mGlobalStateEntryOrdinal, aWorkset, aOutput);
+    }
+
+    /// @brief assemble partial derivative with respect to state
+    /// @tparam WorksetType workset typename 
+    /// @tparam OutType     output typename
+    /// @param aDomain  contains mesh and model information
+    /// @param aWorkset workset data
+    /// @param aOutput  assembled partial derivative
+    template<class WorksetType, 
+             class OutType>
+    void assembleVectorGradientFadU(
+        const Plato::SpatialDomain & aDomain,
+        const WorksetType          & aWorkset, 
+              OutType              & aOutput
+    ) const
+    {
+        Plato::assemble_vector_gradient_fad<mNumNodesPerCell, mNumDofsPerNode>(
+            aDomain, mGlobalStateEntryOrdinal, aWorkset, aOutput);
     }
 
     /******************************************************************************//**
@@ -520,13 +550,36 @@ public:
      * \tparam WorksetType Input container, as a 2-D Kokkos::View
      * \tparam OutType     Output container, as a 1-D Kokkos::View
      *
-     * \param [in] aResidualWorkset residual cell workset - Scalar type
-     * \param [in/out] aReturnValue assembled residual - Scalar type
+     * \param [in]     aResidualWorkset residual cell workset - Scalar type
+     * \param [in,out] aReturnValue assembled residual - Scalar type
     **********************************************************************************/
-    template<class WorksetType, class OutType>
-    void assembleVectorGradientFadX(const WorksetType & aWorkset, OutType & aOutput) const
+    template<class WorksetType,
+             class OutType>
+    void assembleVectorGradientFadX(
+      const WorksetType & aWorkset, 
+            OutType     & aOutput
+    ) const
     {
-        Plato::assemble_vector_gradient_fad<mNumNodesPerCell, mSpaceDim>(mNumCells, mConfigEntryOrdinal, aWorkset, aOutput);
+        Plato::assemble_vector_gradient_fad<mNumNodesPerCell, mSpaceDim>(
+            mNumCells, mConfigEntryOrdinal, aWorkset, aOutput);
+    }
+
+    /// @brief assemble partial derivative with respect to configuration
+    /// @tparam WorksetType workset typename 
+    /// @tparam OutType     output typename
+    /// @param aDomain  contains mesh and model information
+    /// @param aWorkset workset data
+    /// @param aOutput  assembled partial derivative
+    template<class WorksetType, 
+             class OutType>
+    void assembleVectorGradientFadX(
+      const Plato::SpatialDomain & aDomain,
+      const WorksetType          & aWorkset,
+            OutType              & aOutput
+    ) const
+    {
+        Plato::assemble_vector_gradient_fad<mNumNodesPerCell, mSpaceDim>(
+            aDomain, mConfigEntryOrdinal, aWorkset, aOutput);
     }
 
     /******************************************************************************//**
@@ -541,7 +594,8 @@ public:
     template<class WorksetType, class OutType>
     void assembleScalarGradientZ(const WorksetType & aWorkset, OutType & aOutput) const
     {
-        Plato::assemble_scalar_gradient<mNumNodesPerCell>(mNumCells, mControlEntryOrdinal, aWorkset, aOutput);
+        Plato::assemble_scalar_gradient<mNumNodesPerCell>(
+            mNumCells, mControlEntryOrdinal, aWorkset, aOutput);
     }
 
     /******************************************************************************//**
@@ -557,7 +611,27 @@ public:
     template<class WorksetType, class OutType>
     void assembleScalarGradientFadZ(const WorksetType & aWorkset, OutType & aOutput) const
     {
-        Plato::assemble_scalar_gradient_fad<mNumNodesPerCell>(mNumCells, mControlEntryOrdinal, aWorkset, aOutput);
+        Plato::assemble_scalar_gradient_fad<mNumNodesPerCell>(
+            mNumCells, mControlEntryOrdinal, aWorkset, aOutput);
+    }
+
+    /// @fn assembleScalarGradientFadZ
+    /// @brief assemble forward automatically differentiated (FAD) partial derivative with respect to controls
+    /// @tparam WorksetType workset typename
+    /// @tparam OutType     output typename
+    /// @param [in]     aDomain  contains mesh and model information
+    /// @param [in]     aWorkset worset data
+    /// @param [in,out] aOutput  assembled partial derivative
+    template<class WorksetType, 
+             class OutType>
+    void assembleScalarGradientFadZ(
+      const Plato::SpatialDomain & aDomain,
+      const WorksetType          & aWorkset,
+            OutType              & aOutput
+    ) const
+    {
+      Plato::assemble_scalar_gradient_fad<mNumNodesPerCell>(
+        aDomain, mControlEntryOrdinal, aWorkset, aOutput);
     }
 
     /******************************************************************************//**

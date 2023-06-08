@@ -4,6 +4,10 @@
  *  Created on: June 6, 2023
  */
 
+#include "WorkSets.hpp"
+#include "UtilsTeuchos.hpp"
+#include "SpatialModel.hpp"
+
 namespace Plato
 {
 

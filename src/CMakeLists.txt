@@ -121,6 +121,9 @@ if(ELLIPTIC)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     elliptic/Volume.cpp
     elliptic/Problem.cpp
+    elliptic/base/VectorFunction.cpp
+    elliptic/base/ScalarFunction.cpp
+    elliptic/base/WorksetBuilder.cpp
     elliptic/criterioneval/FactoryCriterionEvaluator.cpp
     elliptic/criterioneval/CriterionEvaluatorDivision.cpp
     elliptic/criterioneval/CriterionEvaluatorWeightedSum.cpp

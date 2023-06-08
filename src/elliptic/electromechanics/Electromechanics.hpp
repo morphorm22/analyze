@@ -94,7 +94,7 @@ namespace Linear
 /// @brief concrete class use to define elliptic electromechanics physics
 /// @tparam TopoElementType topological element typename 
 template<typename TopoElementType>
-class Electromechanics
+class Electromechanics : public Plato::ElectromechanicsElement<TopoElementType>
 {
 public:
   /// @brief residual and criteria factory for elliptic electromechanics physics 
