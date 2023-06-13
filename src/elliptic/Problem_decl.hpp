@@ -116,18 +116,22 @@ public:
   /// @brief return number of control degrees of freedom per node
   /// @return integer
   Plato::OrdinalType numControlDofsPerNode() const;
+  
+  /// @fn criterionIsLinear
+  /// @brief return true if criterion is linear
+  /// @param [in] aName criterion name 
+  /// @return boolean
+  bool 
+  criterionIsLinear( 
+    const std::string & aName
+  ) override;
 
-    /******************************************************************************//**
-     * \brief Is criterion independent of the solution state?
-     * \param [in] aName Name of criterion.
-    **********************************************************************************/
-    bool criterionIsLinear( const std::string & aName) override;
-
-    /******************************************************************************//**
-     * \brief Output solution to visualization file.
-     * \param [in] aFilepath output/visualizaton file path
-    **********************************************************************************/
-    void output(const std::string & aFilepath) override;
+  /// @brief output state solution and requested quantities of interests to visualization file
+  /// @param [in] aFilepath output file name 
+  void 
+  output(
+    const std::string & aFilepath
+  );
 
     /******************************************************************************//**
      * \brief Update physics-based parameters within optimization iterations
