@@ -202,7 +202,6 @@ solution(
   constexpr Plato::Scalar tCYCLE = 0.0;
   for(Plato::OrdinalType tNewtonIndex = 0; tNewtonIndex < mNumNewtonSteps; tNewtonIndex++)
   {
-    //mResidual = mResidualEvaluator->value(tMyStates, aControls);
     mResidual = mResidualEvaluator->value(tDatabase,tCYCLE);
     Plato::blas1::scale(-1.0, mResidual);
     if (mNumNewtonSteps > 1) {
@@ -213,7 +212,6 @@ solution(
         break;
       }
     }
-    //mJacobianState = mResidualEvaluator->gradient_u(tMyStates, aControls);
     mJacobianState = mResidualEvaluator->jacobianState(tDatabase,tCYCLE,false/*transpose=*/);
     // solve linear system of equations
     Plato::Scalar tScale = (tNewtonIndex == 0) ? 1.0 : 0.0;
@@ -235,7 +233,6 @@ solution(
   if ( mSaveState )
   {
     // evaluate at new state
-    //mResidual  = mResidualEvaluator->value(tMyStates, aControls);
     mResidual = mResidualEvaluator->value(tDatabase,tCYCLE);
     mDataMap.saveState();
   }
