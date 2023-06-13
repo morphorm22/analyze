@@ -133,12 +133,14 @@ public:
     const std::string & aFilepath
   );
 
-    /******************************************************************************//**
-     * \brief Update physics-based parameters within optimization iterations
-     * \param [in] aGlobalState 2D container of state variables
-     * \param [in] aControl 1D container of control variables
-    **********************************************************************************/
-    void updateProblem(const Plato::ScalarVector & aControl, const Plato::Solutions & aSolution);
+  /// @brief 
+  /// @param aControl 
+  /// @param aSolution 
+  void 
+  updateProblem(
+    const Plato::ScalarVector & aControl, 
+    const Plato::Solutions & aSolution
+  );
 
     /******************************************************************************//**
      * \brief Solve system of equations

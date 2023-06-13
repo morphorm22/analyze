@@ -9,7 +9,6 @@
 #include "MaterialModel.hpp"
 #include "base/CriterionBase.hpp"
 #include "elliptic/EvaluationTypes.hpp"
-#include "elliptic/AbstractScalarFunction.hpp"
 
 namespace Plato
 {
