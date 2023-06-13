@@ -1,8 +1,8 @@
 #pragma once
 
 #include "base/WorksetBase.hpp"
+#include "base/CriterionBase.hpp"
 #include "elliptic/EvaluationTypes.hpp"
-#include "elliptic/AbstractScalarFunction.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorBase.hpp"
 
 namespace Plato
@@ -16,178 +16,156 @@ namespace Elliptic
  **********************************************************************************/
 template<typename PhysicsType>
 class CriterionEvaluatorScalarFunction : 
-  public CriterionEvaluatorBase, 
-  public Plato::WorksetBase<typename PhysicsType::ElementType>
+  public Plato::Elliptic::CriterionEvaluatorBase
 {
 private:
-    using ElementType = typename PhysicsType::ElementType;
+  /// @brief local topological element typename
+  using ElementType = typename PhysicsType::ElementType;
 
-    using Plato::WorksetBase<ElementType>::mNumDofsPerCell; /*!< number of degree of freedom per cell/element */
-    using Plato::WorksetBase<ElementType>::mNumNodesPerCell; /*!< number of nodes per cell/element */
-    using Plato::WorksetBase<ElementType>::mNumDofsPerNode; /*!< number of degree of freedom per node */
-    using Plato::WorksetBase<ElementType>::mNumSpatialDims; /*!< number of spatial dimensions */
-    using Plato::WorksetBase<ElementType>::mNumNodes; /*!< total number of nodes in the mesh */
-    using Plato::WorksetBase<ElementType>::mNumCells; /*!< total number of cells/elements in the mesh */
+  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+  static constexpr auto mNumNodesPerFace = ElementType::mNumNodesPerFace;
+  static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+  static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+  static constexpr auto mNumControl      = ElementType::mNumControl;
 
-    using Plato::WorksetBase<ElementType>::mGlobalStateEntryOrdinal;
-    using Plato::WorksetBase<ElementType>::mControlEntryOrdinal;
-    using Plato::WorksetBase<ElementType>::mConfigEntryOrdinal;
+  using ValueEvalType = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using GradUEvalType = typename Plato::Elliptic::Evaluation<ElementType>::Jacobian;
+  using GradXEvalType = typename Plato::Elliptic::Evaluation<ElementType>::GradientX;
+  using GradZEvalType = typename Plato::Elliptic::Evaluation<ElementType>::GradientZ;
 
-    using Residual  = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
-    using Jacobian  = typename Plato::Elliptic::Evaluation<ElementType>::Jacobian;
-    using GradientX = typename Plato::Elliptic::Evaluation<ElementType>::GradientX;
-    using GradientZ = typename Plato::Elliptic::Evaluation<ElementType>::GradientZ;
+  /*!< scalar function value interface */
+  std::map<std::string, std::shared_ptr<Plato::CriterionBase>> mValueFunctions;     
+  /*!< scalar function value partial wrt states */
+  std::map<std::string, std::shared_ptr<Plato::CriterionBase>> mGradientUFunctions; 
+  /*!< scalar function value partial wrt configuration */
+  std::map<std::string, std::shared_ptr<Plato::CriterionBase>> mGradientXFunctions;
+  /*!< scalar function value partial wrt controls */
+  std::map<std::string, std::shared_ptr<Plato::CriterionBase>> mGradientZFunctions; 
 
-    using ValueFunction     = std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<Residual>>;
-    using GradientUFunction = std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<Jacobian>>;
-    using GradientXFunction = std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<GradientX>>;
-    using GradientZFunction = std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<GradientZ>>;
-
-    std::map<std::string, ValueFunction>     mValueFunctions;     /*!< scalar function value interface */
-    std::map<std::string, GradientUFunction> mGradientUFunctions; /*!< scalar function value partial wrt states */
-    std::map<std::string, GradientXFunction> mGradientXFunctions; /*!< scalar function value partial wrt configuration */
-    std::map<std::string, GradientZFunction> mGradientZFunctions; /*!< scalar function value partial wrt controls */
-
-    const Plato::SpatialModel & mSpatialModel;
-
-    Plato::DataMap& mDataMap;   /*!< output data map */
-    std::string mFunctionName;  /*!< User defined function name */
+  /// @brief contains mesh and model information
+  const Plato::SpatialModel & mSpatialModel;
+  /// @brief interface to workset builders
+  Plato::WorksetBase<ElementType> mWorksetFuncs;
+  /// @brief output database
+  Plato::DataMap& mDataMap; 
+  /// @brief criterion function name
+  std::string mFunctionName;
 
 private:
-    /******************************************************************************//**
-     * \brief Initialization of Physics Scalar Function
-     * \param [in] aProblemParams input parameters database
-    **********************************************************************************/
-    void initialize(Teuchos::ParameterList & aProblemParams);
+  /// @brief initialize member data
+  /// @param [in] aProblemParams input problem parameters
+  void 
+  initialize(
+    Teuchos::ParameterList & aProblemParams
+  );
 
 public:
-    /******************************************************************************//**
-     * \brief Primary physics scalar function constructor
-     * \param [in] aSpatialModel Plato Analyze spatial model
-     * \param [in] aDataMap Plato Analyze data map
-     * \param [in] aProblemParams input parameters database
-     * \param [in] aName user defined function name
-    **********************************************************************************/
-    CriterionEvaluatorScalarFunction(
-        const Plato::SpatialModel    & aSpatialModel,
-              Plato::DataMap         & aDataMap,
-              Teuchos::ParameterList & aProblemParams,
-              std::string            & aName
-    );
+  /// @brief class constructor
+  /// @param [in] aSpatialModel  contains mesh and model information
+  /// @param [in] aDataMap       output database
+  /// @param [in] aProblemParams input problem parameters 
+  /// @param [in] aName          criterion function name
+  CriterionEvaluatorScalarFunction(
+    const Plato::SpatialModel    & aSpatialModel,
+          Plato::DataMap         & aDataMap,
+          Teuchos::ParameterList & aProblemParams,
+          std::string            & aName
+  );
 
-    /******************************************************************************//**
-     * \brief Secondary physics scalar function constructor, used for unit testing
-     * \param [in] aSpatialModel Plato Analyze spatial model
-     * \param [in] aDataMap Plato Analyze data map
-    **********************************************************************************/
-    CriterionEvaluatorScalarFunction(
-        const Plato::SpatialModel & aSpatialModel,
-              Plato::DataMap      & aDataMap
-    );
+  /// @brief class constructor
+  /// @param [in] aSpatialModel contains mesh and model information
+  /// @param [in] aDataMap      output database
+  CriterionEvaluatorScalarFunction(
+    const Plato::SpatialModel & aSpatialModel,
+          Plato::DataMap      & aDataMap
+  );
 
-    /******************************************************************************//**
-     * \brief Allocate scalar function using the residual automatic differentiation type
-     * \param [in] aInput scalar function
-    **********************************************************************************/
-    void setEvaluator( const ValueFunction & aInput, std::string aName);
+  /// @fn isLinear
+  /// @brief return true if scalar function is linear
+  /// @return boolean
+  bool 
+  isLinear() 
+  const;
 
-    /******************************************************************************//**
-     * \brief Allocate scalar function using the Jacobian automatic differentiation type
-     * \param [in] aInput scalar function
-    **********************************************************************************/
-    void setEvaluator( const GradientUFunction & aInput, std::string aName);
+  /// @fn setEvaluator
+  /// @brief set criterion evaluator type. function used in composite criterion evaluators
+  /// @param aEvalType   evaluation type
+  /// @param aCriterion  criterion evaluator
+  /// @param aDomainName domain name, i.e.; element block name
+  void
+  setEvaluator(
+    const Plato::Elliptic::evaluator_t          & aEvalType,
+    const std::shared_ptr<Plato::CriterionBase> & aCriterion,
+    const std::string                           & aDomainName
+  );
 
-    /******************************************************************************//**
-     * \brief Allocate scalar function using the GradientZ automatic differentiation type
-     * \param [in] aInput scalar function
-    **********************************************************************************/
-    void setEvaluator( const GradientZFunction & aInput, std::string aName);
+  /// @fn updateProblem
+  /// @brief update criterion parameters at runtime
+  /// @param [in] aDatabase function domain and range database
+  /// @param [in] aCycle    scalar, e.g.; time step
+  void 
+  updateProblem(
+    const Plato::Database & aDatabase,
+    const Plato::Scalar   & aCycle
+  ) const;
 
-    /******************************************************************************//**
-     * \brief Allocate scalar function using the GradientX automatic differentiation type
-     * \param [in] aInput scalar function
-    **********************************************************************************/
-    void setEvaluator(const GradientXFunction & aInput, std::string aName);
+  /// @fn value
+  /// @brief evaluate criterion
+  /// @param [in] aDatabase function domain and range database
+  /// @param [in] aCycle    scalar, e.g.; time step
+  /// @return scalar
+  Plato::Scalar
+  value(
+    const Plato::Database & aDatabase,
+    const Plato::Scalar   & aCycle
+  ) const;
 
-    /******************************************************************************//**
-     * \brief Update physics-based parameters within optimization iterations
-     * \param [in] aState 1D view of state variables
-     * \param [in] aControl 1D view of control variables
-     **********************************************************************************/
-    void
-    updateProblem(
-        const Plato::ScalarVector & aState,
-        const Plato::ScalarVector & aControl
-    ) const override;
+  /// @fn gradientConfig
+  /// @brief compute partial derivative with respect to the configuration
+  /// @param [in] aDatabase function domain and range database
+  /// @param [in] aCycle    scalar, e.g.; time step
+  /// @return plato scalar vector
+  Plato::ScalarVector
+  gradientConfig(
+    const Plato::Database & aDatabase,
+    const Plato::Scalar   & aCycle
+  ) const;
 
-    /******************************************************************************//**
-     * \brief Evaluate physics scalar function
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return scalar physics function evaluation
-    **********************************************************************************/
-    Plato::Scalar
-    value(
-        const Plato::Solutions    & aSolution,
-        const Plato::ScalarVector & aControl,
-              Plato::Scalar         aTimeStep = 0.0
-    ) const override;
+  /// @fn gradientState
+  /// @brief compute partial derivative with respect to the states
+  /// @param [in] aDatabase function domain and range database
+  /// @param [in] aCycle    scalar, e.g.; time step
+  /// @return plato scalar vector
+  Plato::ScalarVector
+  gradientState(
+    const Plato::Database & aDatabase,
+    const Plato::Scalar   & aCycle
+  ) const;
 
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the physics scalar function with respect to (wrt) the configuration parameters
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the physics scalar function wrt the configuration parameters
-    **********************************************************************************/
-    Plato::ScalarVector
-    gradient_x(
-        const Plato::Solutions    & aSolution,
-        const Plato::ScalarVector & aControl,
-              Plato::Scalar         aTimeStep = 0.0
-    ) const override;
+  /// @fn gradientControl
+  /// @brief compute partial derivative with respect to the controls
+  /// @param [in] aDatabase function domain and range database
+  /// @param [in] aCycle    scalar, e.g.; time step
+  /// @return plato scalar vector
+  Plato::ScalarVector
+  gradientControl(
+    const Plato::Database & aDatabase,
+    const Plato::Scalar   & aCycle
+  ) const;
 
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the physics scalar function with respect to (wrt) the state variables
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the physics scalar function wrt the state variables
-    **********************************************************************************/
-    Plato::ScalarVector
-    gradient_u(
-        const Plato::Solutions    & aSolution,
-        const Plato::ScalarVector & aControl,
-              Plato::OrdinalType    aStepIndex,
-              Plato::Scalar         aTimeStep = 0.0
-    ) const override;
+  /// @brief set criterion function name
+  /// @param aFunctionName function name
+  void 
+  setFunctionName(
+    const std::string aFunctionName
+  );
 
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the physics scalar function with respect to (wrt) the control variables
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the physics scalar function wrt the control variables
-    **********************************************************************************/
-    Plato::ScalarVector
-    gradient_z(
-        const Plato::Solutions    & aSolution,
-        const Plato::ScalarVector & aControl,
-              Plato::Scalar         aTimeStep = 0.0
-    ) const override;
-
-    /******************************************************************************//**
-     * \brief Set user defined function name
-     * \param [in] function name
-    **********************************************************************************/
-    void setFunctionName(const std::string aFunctionName);
-
-    /******************************************************************************//**
-     * \brief Return user defined function name
-     * \return User defined function name
-    **********************************************************************************/
-    std::string name() const;
+  /// @brief set criterion function name
+  /// @return string
+  std::string 
+  name() 
+  const;
 };
 //class CriterionEvaluatorScalarFunction
 

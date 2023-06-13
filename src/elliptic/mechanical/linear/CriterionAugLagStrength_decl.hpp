@@ -15,11 +15,14 @@
 #include "PlatoStaticsTypes.hpp"
 #include "elliptic/AbstractLocalMeasure.hpp"
 
+#include "base/CriterionBase.hpp"
 #include "optimizer/AugLagDataMng.hpp"
 #include "elliptic/EvaluationTypes.hpp"
-#include "elliptic/AbstractScalarFunction.hpp"
 
 namespace Plato
+{
+
+namespace Elliptic
 {
 
 /******************************************************************************//**
@@ -28,126 +31,128 @@ namespace Plato
  *         type for scalar function (e.g. Residual, Jacobian, GradientZ, etc.)
 **********************************************************************************/
 template<typename EvaluationType>
-class CriterionAugLagStrength :
-    public EvaluationType::ElementType,
-    public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+class CriterionAugLagStrength : public Plato::CriterionBase
 {
 private:
-    using ElementType = typename EvaluationType::ElementType;
+  /// @brief topologcial element type
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief number of nodes per cell
+  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+  /// @brief number of degrees of freedom per node
+  static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+  /// @brief number of degrees of freedom per cell
+  static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+  /// @brief number of voigt stress-strain terms 
+  static constexpr auto mNumVoigtTerms   = ElementType::mNumVoigtTerms;
 
-    using ElementType::mNumVoigtTerms;
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumSpatialDims;
+  using FunctionBaseType = typename Plato::CriterionBase;
+  using FunctionBaseType::mSpatialDomain;
+  using FunctionBaseType::mDataMap;
 
-    using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
+  using StateScalarType   = typename EvaluationType::StateScalarType;
+  using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  using ControlScalarType = typename EvaluationType::ControlScalarType;
+  using StrainScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
+  /// @brief local measure evaluation type
+  using Residual = typename Plato::Elliptic::ResidualTypes<ElementType>;
 
-    using FunctionBaseType::mSpatialDomain;
-    using FunctionBaseType::mDataMap;
+  Plato::Scalar mMaterialPenalty = 3.0;         /*!< penalty for material penalty model */
+  Plato::Scalar mMinErsatzMaterialValue = 1e-9; /*!< minimum ersatz material stiffness for material penalty model*/
 
-    using StateT   = typename EvaluationType::StateScalarType;
-    using ConfigT  = typename EvaluationType::ConfigScalarType;
-    using ResultT  = typename EvaluationType::ResultScalarType;
-    using ControlT = typename EvaluationType::ControlScalarType;
+  Plato::AugLagDataMng mAugLagDataMng;    /*!< contains all relevant data associated with the AL method*/
 
-    using Residual = typename Plato::Elliptic::ResidualTypes<ElementType>;
+  /*!< Local measure with FAD evaluation type */
+  std::shared_ptr<Plato::AbstractLocalMeasure<EvaluationType>> mLocalMeasureEvaluationType;
 
-    Plato::Scalar mMaterialPenalty = 3.0;         /*!< penalty for material penalty model */
-    Plato::Scalar mMinErsatzMaterialValue = 1e-9; /*!< minimum ersatz material stiffness for material penalty model*/
+  /*!< Local measure with POD type */
+  std::shared_ptr<Plato::AbstractLocalMeasure<Residual>> mLocalMeasurePODType;
 
-    Plato::AugLagDataMng mAugLagDataMng;    /*!< contains all relevant data associated with the AL method*/
-
-    /*!< Local measure with FAD evaluation type */
-    std::shared_ptr<Plato::AbstractLocalMeasure<EvaluationType>> mLocalMeasureEvaluationType;
-
-    /*!< Local measure with POD type */
-    std::shared_ptr<Plato::AbstractLocalMeasure<Residual>> mLocalMeasurePODType;
-
-    /*!< plot table with output quantities of interests */
-    std::vector<std::string> mPlotTable;
+  /*!< plot table with output quantities of interests */
+  std::vector<std::string> mPlotTable;
 
 public:
-    /******************************************************************************//**
-     * \brief Constructor
-     * \param [in] aSpatialDomain holds spatial domain; i.e., element block, data
-     * \param [in] aDataMap       holds output data map
-     * \param [in] aParams        input parameters database
-     * \param [in] aFuncName      user-defined criterion name
-    **********************************************************************************/
-    CriterionAugLagStrength(
-        const Plato::SpatialDomain   & aSpatialDomain,
-              Plato::DataMap         & aDataMap,
-              Teuchos::ParameterList & aParams,
-        const std::string            & aFuncName
-    );
+  /// @brief class constructor
+  /// @param aSpatialDomain contains mesh and model information
+  /// @param aDataMap       output database
+  /// @param aParams        input problem parameters
+  /// @param aFuncName      criterion parameter list name
+  CriterionAugLagStrength(
+    const Plato::SpatialDomain   & aSpatialDomain,
+          Plato::DataMap         & aDataMap,
+          Teuchos::ParameterList & aParams,
+    const std::string            & aFuncName
+  );
 
-    /******************************************************************************//**
-     * \brief Destructor
-    **********************************************************************************/
-    ~CriterionAugLagStrength(){}
+  /// @brief class destructor
+  ~CriterionAugLagStrength(){}
 
-    void 
-    setLocalMeasure(
-        const std::shared_ptr<AbstractLocalMeasure<EvaluationType>> & aInputEvaluationType,
-        const std::shared_ptr<AbstractLocalMeasure<Residual>>       & aInputPODType
-    );
+  void 
+  setLocalMeasure(
+    const std::shared_ptr<AbstractLocalMeasure<EvaluationType>> & aInputEvaluationType,
+    const std::shared_ptr<AbstractLocalMeasure<Residual>>       & aInputPODType
+  );
 
-    void 
-    updateProblem(
-        const Plato::ScalarMultiVector & aStateWS,
-        const Plato::ScalarMultiVector & aControlWS,
-        const Plato::ScalarArray3D     & aConfigWS
-    );
+  /// @fn isLinear
+  /// @brief returns true if criterion is linear
+  /// @return boolean
+  bool 
+  isLinear() 
+  const;
 
-    void
-    evaluate_conditional(
-        const Plato::ScalarMultiVectorT <StateT>   & aStateWS,
-        const Plato::ScalarMultiVectorT <ControlT> & aControlWS,
-        const Plato::ScalarArray3DT     <ConfigT>  & aConfigWS,
-              Plato::ScalarVectorT      <ResultT>  & aResultWS,
-              Plato::Scalar aTimeStep
-    ) const;
+  /// @fn updateProblem
+  /// @brief update criterion parameters at runtime
+  /// @param [in] aWorkSets function domain and range workset database
+  /// @param [in] aCycle    scalar 
+  void 
+  updateProblem(
+    const Plato::WorkSets & aWorkSets,
+    const Plato::Scalar   & aCycle
+  ) override;
 
-    /******************************************************************************//**
-     * \brief Evaluate current local strength constraints
-     * \param [in] aStateWS   state workset
-     * \param [in] aControlWS control workset
-     * \param [in] aConfigWS  configuration workset
-    **********************************************************************************/
-    void 
-    evaluateCurrentConstraints(
-        const Plato::ScalarMultiVector &aStateWS,
-        const Plato::ScalarMultiVector &aControlWS,
-        const Plato::ScalarArray3D     &aConfigWS
-    );
+  void
+  evaluateConditional(
+    const Plato::WorkSets & aWorkSets,
+    const Plato::Scalar   & aCycle
+  ) const;
+
+  void 
+  evaluateCurrentConstraints(
+    const Plato::ScalarMultiVector &aStateWS,
+    const Plato::ScalarMultiVector &aControlWS,
+    const Plato::ScalarArray3D     &aConfigWS
+  );
 
 private:
-    /******************************************************************************//**
-     * \brief Allocate member data
-     * \param [in] aParams input parameters database
-    **********************************************************************************/
-    void 
-    initialize(
-        Teuchos::ParameterList & aParams
-    );
+  /******************************************************************************//**
+   * \brief Allocate member data
+   * \param [in] aParams input parameters database
+  **********************************************************************************/
+  void 
+  initialize(
+    Teuchos::ParameterList & aParams
+  );
+  /******************************************************************************//**
+   * \brief Parse numeric inputs from input file
+   * \param [in] aParams input parameters database
+  **********************************************************************************/
+  void 
+  parseNumerics(
+    Teuchos::ParameterList & aParams
+  );
+  /******************************************************************************//**
+   * \brief Parse limits on strength constraint
+   * \param [in] aParams input parameters database
+  **********************************************************************************/
+  void 
+  parseLimits(
+    Teuchos::ParameterList & aParams
+  );
 
-    /******************************************************************************//**
-     * \brief Parse numeric inputs from input file
-     * \param [in] aParams input parameters database
-    **********************************************************************************/
-    void 
-    parseNumerics(
-        Teuchos::ParameterList & aParams
-    );
-
-    /******************************************************************************//**
-     * \brief Parse limits on strength constraint
-     * \param [in] aParams input parameters database
-    **********************************************************************************/
-    void 
-    parseLimits(
-        Teuchos::ParameterList & aParams
-    );
 };
 
-}
-// namespace Plato
+} // namespace Elliptic
+
+} // namespace Plato

@@ -11,6 +11,10 @@
 
 /// @include analyze includes
 #include "AnalyzeMacros.hpp"
+#include "base/ResidualBase.hpp"
+#include "base/CriterionBase.hpp"
+
+#include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/electrical/ElectricalElement.hpp"
 #include "elliptic/electrical/SupportedParamOptions.hpp"
 #include "elliptic/electrical/ResidualSteadyStateCurrent.hpp"
@@ -39,12 +43,12 @@ struct FunctionFactory
   /// @param [in] aTypePDE       partial differential equation type
   /// @return shared pointer to electrical residual evaluator 
   template <typename EvaluationType>
-  std::shared_ptr<Plato::Elliptic::AbstractVectorFunction<EvaluationType>>
+  std::shared_ptr<Plato::ResidualBase>
   createVectorFunction(
-      const Plato::SpatialDomain   & aSpatialDomain,
-            Plato::DataMap         & aDataMap,
-            Teuchos::ParameterList & aParamList,
-            std::string              aTypePDE
+    const Plato::SpatialDomain   & aSpatialDomain,
+          Plato::DataMap         & aDataMap,
+          Teuchos::ParameterList & aParamList,
+          std::string              aTypePDE
   )
   {
     Plato::electrical::ResidualEnum tSupportedResidual;
@@ -69,13 +73,13 @@ struct FunctionFactory
   /// @param [in] aFuncName      name of the criterion parameter list
   /// @return shared pointer to electrical criterion evaluator 
   template <typename EvaluationType>
-  std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<EvaluationType>>
+  std::shared_ptr<Plato::CriterionBase>
   createScalarFunction( 
-      const Plato::SpatialDomain   & aSpatialDomain,
-            Plato::DataMap         & aDataMap,
-            Teuchos::ParameterList & aParamList,
-            std::string              aCriterionType,
-            std::string              aFuncName
+    const Plato::SpatialDomain   & aSpatialDomain,
+          Plato::DataMap         & aDataMap,
+          Teuchos::ParameterList & aParamList,
+          std::string              aCriterionType,
+          std::string              aFuncName
   )
   {
     Plato::electrical::CriterionEnum tSupportedCriterion;

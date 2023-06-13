@@ -4,7 +4,9 @@
 #include "NaturalBCs.hpp"
 #include "ApplyWeighting.hpp"
 #include "LinearElectroelasticMaterial.hpp"
-#include "elliptic/AbstractVectorFunction.hpp"
+
+#include "base/ResidualBase.hpp"
+#include "elliptic/EvaluationTypes.hpp"
 
 namespace Plato
 {
@@ -12,88 +14,91 @@ namespace Plato
 namespace Elliptic
 {
 
-/******************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
-class ElectroelastostaticResidual :
-    public EvaluationType::ElementType,
-    public Plato::Elliptic::AbstractVectorFunction<EvaluationType>
-/******************************************************************************/
+class ElectroelastostaticResidual : public Plato::ResidualBase
 {
 private:
-    using ElementType = typename EvaluationType::ElementType;
+  /// @brief topological element type
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief number of stress-strain terms
+  static constexpr auto mNumVoigtTerms   = ElementType::mNumVoigtTerms;
+  /// @brief number of integration points
+  static constexpr auto mNumGaussPoints  = ElementType::mNumGaussPoints;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+  /// @brief number of nodes per cell
+  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+  /// @brief number of degrees of freedom per node
+  static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+  /// @brief number of degrees of freedom per cell
+  static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+  
+  using FunctionBaseType = Plato::ResidualBase;
+  using FunctionBaseType::mSpatialDomain;
+  using FunctionBaseType::mDataMap;
+  using FunctionBaseType::mDofNames;
 
-    using ElementType::mNumVoigtTerms;
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumDofsPerNode;
-    using ElementType::mNumDofsPerCell;
-    using ElementType::mNumSpatialDims;
+  static constexpr Plato::OrdinalType NElecDims = 1;
+  static constexpr Plato::OrdinalType NMechDims = mNumSpatialDims;  
+  static constexpr Plato::OrdinalType EDofOffset = mNumSpatialDims;
+  static constexpr Plato::OrdinalType MDofOffset = 0;
 
-    using FunctionBaseType = Plato::Elliptic::AbstractVectorFunction<EvaluationType>;
+  using StateScalarType   = typename EvaluationType::StateScalarType;
+  using ControlScalarType = typename EvaluationType::ControlScalarType;
+  using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
 
-    using FunctionBaseType::mSpatialDomain;
-    using FunctionBaseType::mDataMap;
-    using FunctionBaseType::mDofNames;
+  IndicatorFunctionType mIndicatorFunction;
+  ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyEDispWeighting;
+  ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms,  IndicatorFunctionType> mApplyStressWeighting;
 
-    static constexpr Plato::OrdinalType NElecDims = 1;
-    static constexpr Plato::OrdinalType NMechDims = mNumSpatialDims;
+  std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
 
-    static constexpr Plato::OrdinalType EDofOffset = mNumSpatialDims;
-    static constexpr Plato::OrdinalType MDofOffset = 0;
+  std::shared_ptr<Plato::NaturalBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>> mBoundaryLoads;
+  std::shared_ptr<Plato::NaturalBCs<ElementType, NElecDims, mNumDofsPerNode, EDofOffset>> mBoundaryCharges;
 
-    using StateScalarType   = typename EvaluationType::StateScalarType;
-    using ControlScalarType = typename EvaluationType::ControlScalarType;
-    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
-    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  Teuchos::RCP<Plato::LinearElectroelasticMaterial<mNumSpatialDims>> mMaterialModel;
 
-    IndicatorFunctionType mIndicatorFunction;
-    ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyEDispWeighting;
-    ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms,  IndicatorFunctionType> mApplyStressWeighting;
-
-    std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
-
-    std::shared_ptr<Plato::NaturalBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>> mBoundaryLoads;
-    std::shared_ptr<Plato::NaturalBCs<ElementType, NElecDims, mNumDofsPerNode, EDofOffset>> mBoundaryCharges;
-
-    Teuchos::RCP<Plato::LinearElectroelasticMaterial<mNumSpatialDims>> mMaterialModel;
-
-    std::vector<std::string> mPlottable;
+  std::vector<std::string> mPlottable;
 
 public:
-    /**************************************************************************/
-    ElectroelastostaticResidual(
-        const Plato::SpatialDomain   & aSpatialDomain,
-              Plato::DataMap         & aDataMap,
-              Teuchos::ParameterList & aProblemParams,
-              Teuchos::ParameterList & aPenaltyParams
-    );
+  ElectroelastostaticResidual(
+    const Plato::SpatialDomain   & aSpatialDomain,
+          Plato::DataMap         & aDataMap,
+          Teuchos::ParameterList & aProblemParams,
+          Teuchos::ParameterList & aPenaltyParams
+  );
 
-    /****************************************************************************//**
-    * \brief Pure virtual function to get output solution data
-    * \param [in] state solution database
-    * \return output state solution database
-    ********************************************************************************/
-    Plato::Solutions getSolutionStateOutputData(const Plato::Solutions &aSolutions) const override;
+  /****************************************************************************//**
+  * \brief Pure virtual function to get output solution data
+  * \param [in] state solution database
+  * \return output state solution database
+  ********************************************************************************/
+  Plato::Solutions 
+  getSolutionStateOutputData(
+    const Plato::Solutions &aSolutions
+  ) const;
 
-    /**************************************************************************/
-    void evaluate(
-        const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-        const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-              Plato::ScalarMultiVectorT <ResultScalarType>  & aResult,
-              Plato::Scalar aTimeStep = 0.0
-    ) const override;
-    /**************************************************************************/
+  /// @brief evaluate electro-mechanical residual, internal forces only
+  /// @param [in,out] aWorkSets domain and range workset database
+  /// @param [in]     aCycle    scalar
+  void 
+  evaluate(
+    Plato::WorkSets & aWorkSets,
+    Plato::Scalar     aCycle = 0.0
+  ) const override;
 
-    /**************************************************************************/
-    void evaluate_boundary(
-        const Plato::SpatialModel                           & aSpatialModel,
-        const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-        const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-              Plato::ScalarMultiVectorT <ResultScalarType>  & aResult,
-              Plato::Scalar aTimeStep = 0.0
-    ) const override;
-    /**************************************************************************/
+  /// @brief evaluate boundary forces
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  void 
+  evaluateBoundary(
+    const Plato::SpatialModel & aSpatialModel,
+          Plato::WorkSets     & aWorkSets,
+          Plato::Scalar         aCycle = 0.0
+  ) const override;
+
 };
 // class ElectroelastostaticResidual
 

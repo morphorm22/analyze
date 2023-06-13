@@ -14,37 +14,35 @@ namespace Elliptic
  **********************************************************************************/
 template<typename PhysicsType>
 class CriterionEvaluatorLeastSquares :
-    public Plato::Elliptic::CriterionEvaluatorBase,
-    public Plato::WorksetBase<typename PhysicsType::ElementType>
+    public Plato::Elliptic::CriterionEvaluatorBase
 {
 private:
-    using ElementType = typename PhysicsType::ElementType;
+  using ElementType = typename PhysicsType::ElementType;
+  
+  static constexpr auto mNumDofsPerNode = ElementType::mNumDofsPerNode;
+  static constexpr auto mNumSpatialDims = ElementType::mNumSpatialDims;
 
-    using Plato::WorksetBase<ElementType>::mNumDofsPerNode;
-    using Plato::WorksetBase<ElementType>::mNumSpatialDims;
-    using Plato::WorksetBase<ElementType>::mNumNodes;
-
-    std::vector<Plato::Scalar> mFunctionWeights;
-    std::vector<Plato::Scalar> mFunctionGoldValues;
-    std::vector<Plato::Scalar> mFunctionNormalization;
-    std::vector<std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase>> mScalarFunctionBaseContainer;
-
-    const Plato::SpatialModel & mSpatialModel;
-
-    Plato::DataMap& mDataMap;
-
-    std::string mFunctionName;
-
-    bool mGradientWRTStateIsZero = false;
-
-    /*!< if (|GoldValue| > 0.1) then ((f - f_gold) / f_gold)^2 ; otherwise  (f - f_gold)^2 */
-    const Plato::Scalar mFunctionNormalizationCutoff = 0.1;
-
-    /******************************************************************************//**
-     * \brief Initialization of Least Squares Function
-     * \param [in] aProblemParams input parameters database
-    **********************************************************************************/
-    void initialize (Teuchos::ParameterList & aProblemParams);
+  std::vector<Plato::Scalar> mFunctionWeights;
+  std::vector<Plato::Scalar> mFunctionGoldValues;
+  std::vector<Plato::Scalar> mFunctionNormalization;
+  std::vector<std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase>> mScalarFunctionBaseContainer;
+  
+  const Plato::SpatialModel & mSpatialModel;
+  Plato::DataMap& mDataMap;
+  std::string mFunctionName;
+  bool mGradientWRTStateIsZero = false;
+  
+  /*!< if (|GoldValue| > 0.1) then ((f - f_gold) / f_gold)^2 ; otherwise  (f - f_gold)^2 */
+  const Plato::Scalar mFunctionNormalizationCutoff = 0.1;
+  
+  /******************************************************************************//**
+   * \brief Initialization of Least Squares Function
+   * \param [in] aProblemParams input parameters database
+  **********************************************************************************/
+  void 
+  initialize(
+    Teuchos::ParameterList & aProblemParams
+  );
 
 public:
     /******************************************************************************//**
@@ -96,58 +94,68 @@ public:
     **********************************************************************************/
     void allocateScalarFunctionBase(const std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase>& aInput);
 
-    /******************************************************************************//**
-     * \brief Update physics-based parameters within optimization iterations
-     * \param [in] aState 1D view of state variables
-     * \param [in] aControl 1D view of control variables
-     **********************************************************************************/
-    void updateProblem(const Plato::ScalarVector & aState, const Plato::ScalarVector & aControl) const override;
+    /// @fn isLinear
+    /// @brief return true if scalar function is linear
+    /// @return boolean
+    bool 
+    isLinear() 
+    const;
+    
+    /// @fn updateProblem
+    /// @brief update criterion parameters of the least square function at runtime
+    /// @param [in] aDatabase function domain and range database
+    /// @param [in] aCycle    scalar, e.g.; time step
+    void 
+    updateProblem(
+      const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
+    ) const;
 
-    /******************************************************************************//**
-     * \brief Evaluate least squares function
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return scalar function evaluation
-    **********************************************************************************/
-    Plato::Scalar value(const Plato::Solutions    & aSolution,
-                        const Plato::ScalarVector & aControl,
-                              Plato::Scalar         aTimeStep = 0.0) const override;
+    /// @fn value
+    /// @brief Evaluate least square function 
+    /// @param [in] aDatabase function domain and range database
+    /// @param [in] aCycle    scalar, e.g.; time step
+    /// @return scalar
+    Plato::Scalar
+    value(const Plato::Database & aDatabase,
+        const Plato::Scalar   & aCycle
+    ) const;
 
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the least squares function with respect to (wrt) the configuration parameters
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the scalar function wrt the configuration parameters
-    **********************************************************************************/
-    Plato::ScalarVector gradient_x(const Plato::Solutions    & aSolution,
-                                   const Plato::ScalarVector & aControl,
-                                         Plato::Scalar         aTimeStep = 0.0) const override;
+    /// @fn gradientConfig
+    /// @brief Evaluate partial derivative of the least square function with respect to the configuration
+    /// @param [in] aDatabase function domain and range database
+    /// @param [in] aCycle    scalar, e.g.; time step
+    /// @return plato scalar vector
+    Plato::ScalarVector
+    gradientConfig(
+      const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
+    ) const ;
 
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the least squares function with respect to (wrt) the state variables
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the scalar function wrt the state variables
-    **********************************************************************************/
-    Plato::ScalarVector gradient_u(const Plato::Solutions    & aSolution,
-                                   const Plato::ScalarVector & aControl,
-                                         Plato::OrdinalType    aStepIndex,
-                                         Plato::Scalar         aTimeStep = 0.0) const override;
+    /// @fn gradientState
+    /// @brief Evaluate partial derivative of the least squares function with respect to the states
+    /// @param [in] aDatabase function domain and range database
+    /// @param [in] aCycle    scalar, e.g.; time step
+    /// @return plato scalar vector
+    virtual 
+    Plato::ScalarVector
+    gradientState(
+      const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
+    ) const;
 
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the least squares function with respect to (wrt) the control variables
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the scalar function wrt the control variables
-    **********************************************************************************/
-    Plato::ScalarVector gradient_z(const Plato::Solutions    & aSolution,
-                                   const Plato::ScalarVector & aControl,
-                                         Plato::Scalar         aTimeStep = 0.0) const override;
-
+    /// @fn gradientControl
+    /// @brief compute partial derivative of the least squares function with respect to the controls
+    /// @param [in] aDatabase function domain and range database
+    /// @param [in] aCycle    scalar, e.g.; time step
+    /// @return plato scalar vector
+    virtual 
+    Plato::ScalarVector
+    gradientControl(
+      const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
+    ) const;
+    
     /******************************************************************************//**
      * \brief Return user defined function name
      * \return User defined function name

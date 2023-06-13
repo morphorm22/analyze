@@ -3,7 +3,7 @@
 #include <memory>
 #include <algorithm>
 
-#include "elliptic/AbstractScalarFunction.hpp"
+#include "base/CriterionBase.hpp"
 #include "elliptic/AbstractLocalMeasure.hpp"
 
 
@@ -19,33 +19,27 @@ namespace Elliptic
  *   type for scalar function (e.g. Residual, Jacobian, GradientZ, etc.)
 **********************************************************************************/
 template<typename EvaluationType>
-class CriterionVolumeIntegral :
-    public EvaluationType::ElementType,
-    public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+class CriterionVolumeIntegral : public Plato::CriterionBase
 {
 private:
-    using ElementType = typename EvaluationType::ElementType;
+  using ElementType = typename EvaluationType::ElementType;  
+  
+  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;  
+  
+  using CriterionBaseType = Plato::CriterionBase;
+  using CriterionBaseType::mSpatialDomain; /*!< mesh database */
+  using CriterionBaseType::mDataMap; /*!< PLATO Engine output database */  
 
-    using ElementType::mNumVoigtTerms;
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumSpatialDims;
+  using StateT   = typename EvaluationType::StateScalarType;   /*!< state variables automatic differentiation type */
+  using ConfigT  = typename EvaluationType::ConfigScalarType;  /*!< configuration automatic differentiation type */
+  using ResultT  = typename EvaluationType::ResultScalarType;  /*!< result variables automatic differentiation type */
+  using ControlT = typename EvaluationType::ControlScalarType; /*!< control variables automatic differentiation type */
 
-    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mSpatialDomain; /*!< mesh database */
-    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mDataMap; /*!< PLATO Engine output database */
-
-    using StateT   = typename EvaluationType::StateScalarType;   /*!< state variables automatic differentiation type */
-    using ConfigT  = typename EvaluationType::ConfigScalarType;  /*!< configuration variables automatic differentiation type */
-    using ResultT  = typename EvaluationType::ResultScalarType;  /*!< result variables automatic differentiation type */
-    using ControlT = typename EvaluationType::ControlScalarType; /*!< control variables automatic differentiation type */
-
-    using FunctionBaseType = Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
-
-    std::string mSpatialWeightFunction;
-
-    Plato::Scalar mPenalty;        /*!< penalty parameter in SIMP model */
-    Plato::Scalar mMinErsatzValue; /*!< minimum ersatz material value in SIMP model */
-
-    std::shared_ptr<Plato::AbstractLocalMeasure<EvaluationType>> mLocalMeasure; /*!< Volume averaged quantity with evaluation type */
+   std::string mSpatialWeightFunction;
+   Plato::Scalar mPenalty;        /*!< penalty parameter in SIMP model */
+   Plato::Scalar mMinErsatzValue; /*!< minimum ersatz material value in SIMP model */
+   std::shared_ptr<Plato::AbstractLocalMeasure<EvaluationType>> mLocalMeasure; /*!< Volume averaged quantity with evaluation type */
 
 private:
     /******************************************************************************//**
@@ -102,34 +96,32 @@ public:
     **********************************************************************************/
     void setSpatialWeightFunction(std::string aWeightFunctionString) override;
 
-    /******************************************************************************//**
-     * \brief Update physics-based parameters within optimization iterations
-     * \param [in] aState 2D container of state variables
-     * \param [in] aControl 2D container of control variables
-     * \param [in] aConfig 3D container of configuration/coordinates
-    **********************************************************************************/
-    void
+    /// @fn isLinear
+    /// @brief returns true if criterion is linear
+    /// @return boolean
+    bool 
+    isLinear() 
+    const;
+
+    /// @fn updateProblem
+    /// @brief update criterion parameters at runtime
+    /// @param [in] aWorkSets function domain and range workset database
+    /// @param [in] aCycle    scalar 
+    virtual 
+    void 
     updateProblem(
-        const Plato::ScalarMultiVector & aStateWS,
-        const Plato::ScalarMultiVector & aControlWS,
-        const Plato::ScalarArray3D     & aConfigWS
+      const Plato::WorkSets & aWorkSets,
+      const Plato::Scalar   & aCycle
     ) override;
 
-    /******************************************************************************//**
-     * \brief Evaluate volume average criterion
-     * \param [in] aState 2D container of state variables
-     * \param [in] aControl 2D container of control variables
-     * \param [in] aConfig 3D container of configuration/coordinates
-     * \param [out] aResult 1D container of cell criterion values
-     * \param [in] aTimeStep time step (default = 0)
-    **********************************************************************************/
-    void evaluate_conditional(
-        const Plato::ScalarMultiVectorT <StateT>   & aStateWS,
-        const Plato::ScalarMultiVectorT <ControlT> & aControlWS,
-        const Plato::ScalarArray3DT     <ConfigT>  & aConfigWS,
-              Plato::ScalarVectorT      <ResultT>  & aResultWS,
-              Plato::Scalar aTimeStep = 0.0
-    ) const override;
+    /// @fn evaluateConditional
+    /// @brief Evaluate volume average criterion
+    /// @param [in] aWorkSets function domain and range workset database
+    /// @param [in] aCycle    scalar 
+    void evaluateConditional(
+      const Plato::WorkSets & aWorkSets,
+      const Plato::Scalar   & aCycle
+    ) const;
 };
 // class CriterionVolumeIntegral
 

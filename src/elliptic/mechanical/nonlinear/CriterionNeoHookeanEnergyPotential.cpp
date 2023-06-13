@@ -13,6 +13,6 @@
 #include "MechanicsElement.hpp"
 #include "elliptic/ExpInstMacros.hpp"
 
-PLATO_ELLIPTIC_EXP_INST_2(Plato::CriterionNeoHookeanEnergyPotential,Plato::MechanicsElement)
+PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::CriterionNeoHookeanEnergyPotential,Plato::MechanicsElement)
 
 #endif

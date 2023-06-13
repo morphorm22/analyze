@@ -4,6 +4,8 @@
  *  Created on: June 6, 2023
  */
 
+#pragma once
+
 #include "WorkSets.hpp"
 #include "UtilsTeuchos.hpp"
 #include "SpatialModel.hpp"
@@ -21,11 +23,14 @@ protected:
   /// @brief output database 
   Plato::DataMap & mDataMap;
   /// @brief criterion name
-  const std::string mName;
+  const std::string mFunctionName;
   /// @brief include criterion in evaluation if true
   bool mCompute;       
 
 public:
+  /// @brief public typename for base criterion class
+  using AbstractType = typename Plato::CriterionBase;
+
   /// @brief class constructor
   /// @param [in] aName      criterion name
   /// @param [in] aDomain    contains mesh and model information
@@ -39,68 +44,123 @@ public:
   ) :
     mSpatialDomain (aDomain),
     mDataMap       (aDataMap),
-    mName          (aName),
+    mFunctionName  (aName),
     mCompute       (true)
   {
     this->initialize(aParamList);
   }
 
+  /// @brief class constructor
+  /// @param [in] aName    criterion name
+  /// @param [in] aDomain  contains mesh and model information
+  /// @param [in] aDataMap output database
+  CriterionBase(
+    const std::string            & aName,
+    const Plato::SpatialDomain   & aDomain,
+         Plato::DataMap          & aDataMap
+  ) :
+    mSpatialDomain (aDomain),
+    mDataMap       (aDataMap),
+    mFunctionName  (aName),
+    mCompute       (true)
+  {
+  }
+
   /// @brief class destructor
   virtual ~CriterionBase(){}
   
+  /// @fn domain
+  /// @brief get spatial domain database - contains model information
+  /// @return const reference to spatial domain
+  decltype(mSpatialDomain) 
+  domain() 
+  const
+  { return mSpatialDomain; }
+
   /// @fn isLinear
   /// @brief returns true if criterion is linear
   /// @return boolean
-  virtual bool isLinear() const = 0;
+  virtual 
+  bool 
+  isLinear() 
+  const = 0;
 
   /// @fn evaluateConditional
   /// @brief evaluate criterion
-  /// @param [in,out] aWorksets workset database
+  /// @param [in,out] aWorkSets function domain and range workset database
   /// @param [in]     aCycle    scalar 
-  virtual void
+  virtual 
+  void
   evaluateConditional(
-    const Plato::WorkSets & aWorksets,
+    const Plato::WorkSets & aWorkSets,
     const Plato::Scalar   & aCycle
-  ) = 0;  
+  ) const = 0;  
 
   /// @fn evaluate
   /// @brief main evaluate criterion
-  /// @param [in,out] aWorksets workset database
+  /// @param [in,out] aWorkSets function domain and range workset database
   /// @param [in]     aCycle    scalar 
-  virtual void
+  virtual 
+  void
   evaluate(
-    const Plato::WorkSets & aWorksets,
+    const Plato::WorkSets & aWorkSets,
     const Plato::Scalar   & aCycle
   )
   { 
     if(mCompute){
-      this->evaluateConditional(aWorksets,aCycle); 
+      this->evaluateConditional(aWorkSets,aCycle); 
     }
   }
+
+  /// @fn updateProblem
+  /// @brief update criterion parameters at runtime
+  /// @param [in] aWorkSets function domain and range workset database
+  /// @param [in] aCycle    scalar 
+  virtual 
+  void 
+  updateProblem(
+    const Plato::WorkSets & aWorkSets,
+    const Plato::Scalar   & aCycle
+  ) 
+  { return; }
 
   /// @fn getName
   /// @brief get criterion name
   /// @return string
-  const decltype(mName)& getName()
-  { return mName; }
+  const decltype(mFunctionName)& 
+  getName()
+  { return mFunctionName; }
 
   /// @fn postEvaluate
   /// @brief post evaluate criterion
   /// @param [in,out] aGrad  criterion gradient
   /// @param [in,out] aValue criterion value
-  virtual void postEvaluate(Plato::ScalarVector aGrad, Plato::Scalar aValue)
+  virtual 
+  void 
+  postEvaluate(
+    Plato::ScalarVector aGrad, 
+    Plato::Scalar       aValue
+  )
   { return; }
 
   /// @fn postEvaluate
   /// @brief post evaluate criterion
   /// @param [in] aValue criterion value 
-  virtual void postEvaluate(Plato::Scalar& aValue)
+  virtual 
+  void 
+  postEvaluate(
+    Plato::Scalar& aValue
+  )
   { return; }
 
   /// @fn setSpatialWeightFunction
   /// @brief set spatial weight function
   /// @param [in] aExpression mathematical expression
-  virtual void setSpatialWeightFunction(std::string aExpression)
+  virtual 
+  void 
+  setSpatialWeightFunction(
+    std::string aExpression
+  )
   { return; }
 
 private:
@@ -113,7 +173,7 @@ private:
   )
   {
     std::string tCurrentDomainName = mSpatialDomain.getDomainName();  
-    auto tMyCriteria = aParamList.sublist("Criteria").sublist(mName);
+    auto tMyCriteria = aParamList.sublist("Criteria").sublist(mFunctionName);
     std::vector<std::string> tDomains = Plato::teuchos::parse_array<std::string>("Domains", tMyCriteria);
     if(tDomains.size() != 0)
     {
@@ -121,7 +181,8 @@ private:
       if(!mCompute)
       {
         std::stringstream ss;
-        ss << "Block '" << tCurrentDomainName << "' will not be included in the calculation of '" << mName << "'.";
+        ss << "Block '" << tCurrentDomainName << "' will not be included in the calculation of '" 
+          << mFunctionName << "'.";
         REPORT(ss.str());
       }
     }

@@ -7,7 +7,7 @@
 #pragma once
 
 #include "ElasticModelFactory.hpp"
-#include "elliptic/AbstractScalarFunction.hpp"
+#include "base/CriterionBase.hpp"
 
 namespace Plato
 {
@@ -18,21 +18,19 @@ namespace Plato
  *   type for scalar function (e.g. Residual, Jacobian, GradientZ, etc.)
 **********************************************************************************/
 template<typename EvaluationType>
-class AugLagStressCriterionGeneral :
-        public EvaluationType::ElementType,
-        public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+class AugLagStressCriterionGeneral : public Plato::CriterionBase
 {
 private:
+    /// @brief local topological element typename
     using ElementType = typename EvaluationType::ElementType;
 
-    using ElementType::mNumVoigtTerms;
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumSpatialDims;
+    static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+    static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+    static constexpr auto mNumVoigtTerms   = ElementType::mNumVoigtTerms;
 
-    using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
-
-    using FunctionBaseType::mSpatialDomain;
-    using FunctionBaseType::mDataMap;
+    using CriterionBaseType = typename Plato::CriterionBase;
+    using CriterionBaseType::mSpatialDomain;
+    using CriterionBaseType::mDataMap;
 
     using StateT   = typename EvaluationType::StateScalarType;
     using ConfigT  = typename EvaluationType::ConfigScalarType;
@@ -143,55 +141,55 @@ public:
      **********************************************************************************/
     void setLagrangeMultipliers(const Plato::ScalarVector & aInput);
 
-    /******************************************************************************//**
-     * \brief Set cell material stiffness matrix
-     * \param [in] aInput cell material stiffness matrix
-    **********************************************************************************/
-    void setCellStiffMatrix(const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> & aInput);
+  /// @brief set fourth-order material constitutive matrix
+  /// @param [in] aInput plato matrix VoigTerms X VoigtTerms 
+  void 
+  setCellStiffMatrix(
+    const Plato::Matrix<mNumVoigtTerms, mNumVoigtTerms> & aInput
+  );
 
-    /******************************************************************************//**
-     * \brief Update physics-based parameters within optimization iterations
-     * \param [in] aState 2D container of state variables
-     * \param [in] aControl 2D container of control variables
-     * \param [in] aConfig 3D container of configuration/coordinates
-    **********************************************************************************/
-    void updateProblem(const Plato::ScalarMultiVector & aStateWS,
-                       const Plato::ScalarMultiVector & aControlWS,
-                       const Plato::ScalarArray3D & aConfigWS) override;
+  /// @fn isLinear
+  /// @brief returns true if criterion is linear
+  /// @return boolean
+  bool 
+  isLinear() 
+  const;
+  
+  /// @fn updateProblem
+  /// @brief update criterion parameters at runtime
+  /// @param [in] aWorkSets function domain and range workset database
+  /// @param [in] aCycle    scalar 
+  void 
+  updateProblem(
+    const Plato::WorkSets & aWorkSets,
+    const Plato::Scalar   & aCycle
+  ) override;
 
-    /******************************************************************************//**
-     * \brief Evaluate augmented Lagrangian stress constraint criterion
-     * \param [in] aState 2D container of state variables
-     * \param [in] aControl 2D container of control variables
-     * \param [in] aConfig 3D container of configuration/coordinates
-     * \param [out] aResult 1D container of cell criterion values
-     * \param [in] aTimeStep time step (default = 0)
-    **********************************************************************************/
-    void
-    evaluate_conditional(
-        const Plato::ScalarMultiVectorT <StateT>   & aStateWS,
-        const Plato::ScalarMultiVectorT <ControlT> & aControlWS,
-        const Plato::ScalarArray3DT     <ConfigT>  & aConfigWS,
-              Plato::ScalarVectorT      <ResultT>  & aResultWS,
-              Plato::Scalar aTimeStep = 0.0
-    ) const override;
+  /// @fn updateProblem
+  /// @brief update criterion parameters at runtime
+  /// @param [in] aWorkSets function domain and range workset database
+  /// @param [in] aCycle    scalar 
+  void
+  evaluateConditional(
+    const Plato::WorkSets & aWorkSets,
+    const Plato::Scalar   & aCycle
+  ) 
+  const;
 
-    /******************************************************************************//**
-     * \brief Update Lagrange multipliers
-     * \param [in] aState 2D container of state variables
-     * \param [in] aControl 2D container of control variables
-     * \param [in] aConfig 3D container of configuration/coordinates
-    **********************************************************************************/
-    void updateLagrangeMultipliers(
-        const Plato::ScalarMultiVector & aStateWS,
-        const Plato::ScalarMultiVector & aControlWS,
-        const Plato::ScalarArray3D     & aConfigWS
-    );
+  /// @fn updateProblem
+  /// @brief update criterion parameters at runtime
+  /// @param [in] aWorkSets function domain and range workset database
+  /// @param [in] aCycle    scalar 
+  void updateLagrangeMultipliers(
+    const Plato::WorkSets & aWorkSets,
+    const Plato::Scalar   & aCycle
+  );
 
-    /******************************************************************************//**
-     * \brief Compute structural mass (i.e. structural mass with ersatz densities set to one)
-    **********************************************************************************/
-    void computeStructuralMass();
+  /// @fn computeStructuralMass
+  /// @brief compute structral mass
+  void 
+  computeStructuralMass();
+
 };
 // class AugLagStressCriterionGeneral
 

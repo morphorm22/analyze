@@ -10,13 +10,16 @@
 #include "NaturalBCs.hpp"
 #include "SpatialModel.hpp"
 
+#include "base/ResidualBase.hpp"
 #include "elliptic/EvaluationTypes.hpp"
-#include "elliptic/AbstractVectorFunction.hpp"
 #include "elliptic/mechanical/nonlinear/StressEvaluator.hpp"
 
 namespace Plato
 {
     
+namespace Elliptic
+{
+  
 /// @brief Evaluate nonlinear elastostatic residual of the form:
 ///  \f[
 ///      \int_{\Omega_0}\left( P_{ji}\delta{F}_{ij}-\rho_0 b_i \delta{u}_i \right)d\Omega_0 
@@ -29,8 +32,7 @@ namespace Plato
 /// \f$u\f$ are the displacements
 /// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
-class ResidualElastostaticTotalLagrangian : 
-  public Plato::Elliptic::AbstractVectorFunction<EvaluationType>
+class ResidualElastostaticTotalLagrangian : public Plato::ResidualBase
 {
 private:
   /// @brief topological element type
@@ -46,7 +48,7 @@ private:
   /// @brief number of integration points per cell
   static constexpr auto mNumGaussPoints = ElementType::mNumGaussPoints;
   /// @brief local typename for base class
-  using FunctionBaseType = Plato::Elliptic::AbstractVectorFunction<EvaluationType>;
+  using FunctionBaseType = Plato::ResidualBase;
   /// @brief contains mesh and model information
   using FunctionBaseType::mSpatialDomain;
   /// @brief output database
@@ -93,36 +95,24 @@ public:
 
   /// @fn evaluate
   /// @brief evaluate internal forces
-  /// @param [in]     aState   2D state workset 
-  /// @param [in]     aControl 2D control workset
-  /// @param [in]     aConfig  3D configuration workset
-  /// @param [in,out] aResult  2D result workset
-  /// @param [in]     aCycle   scalar 
+  /// @param [in,out] aWorkSets domain and range workset database
+  /// @param [in]     aCycle    scalar
   void
   evaluate(
-    const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
-    const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
-    const Plato::ScalarArray3DT    <ConfigScalarType>  & aConfig,
-          Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
-          Plato::Scalar                                  aCycle
+    Plato::WorkSets & aWorkSets,
+    Plato::Scalar     aCycle = 0.0
   ) const;
 
   /// @fn evaluate_boundary
   /// @brief evaluate boundary forces
   /// @param [in]     aSpatialModel contains mesh and model information
-  /// @param [in]     aState        2D state workset 
-  /// @param [in]     aControl      2D control workse
-  /// @param [in]     aConfig       3D configuration 
-  /// @param [in,out] aResult       2D result workset
+  /// @param [in,out] aWorkSets     domain and range workset database
   /// @param [in]     aCycle        scalar
   void
-  evaluate_boundary(
-    const Plato::SpatialModel                           & aSpatialModel,
-    const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-    const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-    const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-          Plato::ScalarMultiVectorT <ResultScalarType>  & aResult,
-          Plato::Scalar                                   aCycle
+  evaluateBoundary(
+    const Plato::SpatialModel & aSpatialModel,
+          Plato::WorkSets     & aWorkSets,
+          Plato::Scalar         aCycle = 0.0
   ) const;
 
 private:
@@ -134,4 +124,6 @@ private:
   );
 };
     
+} // namespace Elliptic
+
 } // namespace Plato

@@ -7,8 +7,8 @@
 #pragma once
 
 #include "MaterialModel.hpp"
+#include "base/CriterionBase.hpp"
 #include "elliptic/EvaluationTypes.hpp"
-#include "elliptic/AbstractScalarFunction.hpp"
 #include "elliptic/electrical/CurrentDensitySourceEvaluator.hpp"
 
 namespace Plato
@@ -20,7 +20,7 @@ namespace Plato
 ///   the source term and \f$V\f$ is the electric potential
 /// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
-class CriterionPowerSurfaceDensityTwoPhase : public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+class CriterionPowerSurfaceDensityTwoPhase : public Plato::CriterionBase
 {
 private:
   /// @brief topological element type
@@ -33,17 +33,17 @@ private:
   static constexpr int mNumDofsPerCell  = ElementType::mNumDofsPerCell;
   /// @brief number of nodes per cell
   static constexpr int mNumNodesPerCell = ElementType::mNumNodesPerCell;
+  /// @brief typename for base class
+  using FunctionBaseType = typename Plato::CriterionBase;
   /// @brief contains mesh and model information
-  using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mSpatialDomain;
+  using FunctionBaseType::mSpatialDomain;
   /// @brief output data map
-  using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mDataMap;
+  using FunctionBaseType::mDataMap;
   /// @brief scalar types associated with the evaluation type
   using StateScalarType   = typename EvaluationType::StateScalarType;
   using ControlScalarType = typename EvaluationType::ControlScalarType;
   using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
   using ResultScalarType  = typename EvaluationType::ResultScalarType;
-  /// @brief typename for base class
-  using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
   /// @brief name of criterion parameter list in the input file
   std::string mCriterionFunctionName = "";
   /// @brief penalty exponent for material penalty model
@@ -71,37 +71,22 @@ public:
   /// @brief class destructor
   ~CriterionPowerSurfaceDensityTwoPhase();
 
-  /// @fn evaluate
-  /// @brief virtual function, overrides base class: evaluate criterion
-  /// @param [in]     aState   2D state workset
-  /// @param [in]     aControl 2D control workset
-  /// @param [in]     aConfig  3D configuration workset
-  /// @param [in,out] aResult  2D result workset
-  /// @param [in]     aCycle   scalar
-  void 
-  evaluate(
-      const Plato::ScalarMultiVectorT <typename EvaluationType::StateScalarType>   & aState,
-      const Plato::ScalarMultiVectorT <typename EvaluationType::ControlScalarType> & aControl,
-      const Plato::ScalarArray3DT     <typename EvaluationType::ConfigScalarType>  & aConfig,
-            Plato::ScalarVectorT      <typename EvaluationType::ResultScalarType>  & aResult,
-            Plato::Scalar                                                            aCycle = 1.0
-  ) override;
+  /// @fn isLinear
+  /// @brief returns true if criterion is linear
+  /// @return boolean
+  bool 
+  isLinear() 
+  const;
 
-  /// @fn evaluate_conditional
+  /// @fn evaluateConditional
   /// @brief virtual function, overrides base class: evaluate criterion
-  /// @param [in]     aState   2D state workset
-  /// @param [in]     aControl 2D control workset
-  /// @param [in]     aConfig  3D configuration workset
-  /// @param [in,out] aResult  2D result workset
-  /// @param [in]     aCycle   scalar
+  /// @param [in,out] aWorkSets function domain and range workset database
+  /// @param [in]     aCycle    scalar 
   void
-  evaluate_conditional(
-      const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-      const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-      const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-            Plato::ScalarVectorT      <ResultScalarType>  & aResult,
-            Plato::Scalar                                   aCycle = 1.0
-  ) const override;
+  evaluateConditional(
+    const Plato::WorkSets & aWorkSets,
+    const Plato::Scalar   & aCycle
+  ) const;
 
 private:
   /// @fn initialize

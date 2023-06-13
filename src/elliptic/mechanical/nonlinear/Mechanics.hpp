@@ -10,10 +10,13 @@
 #include <memory>
 
 // mechanics related
+#include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/mechanical/SupportedParamOptions.hpp"
 // residuals related
+#include "base/ResidualBase.hpp"
 #include "elliptic/mechanical/nonlinear/ResidualElastostaticTotalLagrangian.hpp"
 // criteria related
+#include "base/CriterionBase.hpp"
 #include "elliptic/mechanical/nonlinear/CriterionKirchhoffEnergyPotential.hpp"
 #include "elliptic/mechanical/nonlinear/CriterionNeoHookeanEnergyPotential.hpp"
 
@@ -37,26 +40,26 @@ struct FunctionFactory
   /// @param [in] aTypePDE       partial differential equation type
   /// @return shared pointer to residual base class
   template<typename EvaluationType>
-  std::shared_ptr<Plato::Elliptic::AbstractVectorFunction<EvaluationType>>
+  std::shared_ptr<Plato::ResidualBase>
   createVectorFunction(
-      const Plato::SpatialDomain   & aSpatialDomain,
-            Plato::DataMap         & aDataMap, 
-            Teuchos::ParameterList & aParamList,
-            std::string              aTypePDE)
+    const Plato::SpatialDomain   & aSpatialDomain,
+          Plato::DataMap         & aDataMap, 
+          Teuchos::ParameterList & aParamList,
+          std::string              aTypePDE)
   {
-      auto tLowerPDE = Plato::tolower(aTypePDE);
-      if(tLowerPDE == "elliptic")
-      {
-        auto tResidual = std::make_shared<Plato::ResidualElastostaticTotalLagrangian<EvaluationType>>
-                          (aSpatialDomain,aDataMap, aParamList,aTypePDE);
-        return tResidual;
-      }
-      else
-      {
-        auto tMsg = std::string("Invalid input parameter argument: Requested ('PDE Constraint') is not supported") 
-          + "Supported ('PDE constraint') options for nonlinear mechanical problems are: 'elliptic'";
-          ANALYZE_THROWERR(tMsg)
-      }
+    auto tLowerPDE = Plato::tolower(aTypePDE);
+    if(tLowerPDE == "elliptic")
+    {
+      auto tResidual = std::make_shared<Plato::Elliptic::ResidualElastostaticTotalLagrangian<EvaluationType>>
+                        (aSpatialDomain,aDataMap, aParamList,aTypePDE);
+      return tResidual;
+    }
+    else
+    {
+      auto tMsg = std::string("Invalid input parameter argument: Requested ('PDE Constraint') is not supported") 
+        + "Supported ('PDE constraint') options for nonlinear mechanical problems are: 'elliptic'";
+        ANALYZE_THROWERR(tMsg)
+    }
   }
 
   /// @fn createScalarFunction
@@ -69,13 +72,13 @@ struct FunctionFactory
   /// @param [in] aFuncName      scalar function name
   /// @return shared pointer to criterion base class
   template<typename EvaluationType>
-  std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<EvaluationType>>
+  std::shared_ptr<Plato::CriterionBase>
   createScalarFunction(
-      const Plato::SpatialDomain   & aSpatialDomain,
-            Plato::DataMap         & aDataMap, 
-            Teuchos::ParameterList & aParamList,
-            std::string              aFuncType,
-            std::string              aFuncName
+    const Plato::SpatialDomain   & aSpatialDomain,
+          Plato::DataMap         & aDataMap, 
+          Teuchos::ParameterList & aParamList,
+          std::string              aFuncType,
+          std::string              aFuncName
   )
   {
     Plato::mechanical::CriterionEnum tSupportedCriterion;
@@ -83,11 +86,11 @@ struct FunctionFactory
     switch (tCriterion)
     {
       case Plato::mechanical::criterion::KIRCHHOFF_ENERGY_POTENTIAL:
-        return ( std::make_shared<Plato::CriterionKirchhoffEnergyPotential<EvaluationType>>(
+        return ( std::make_shared<Plato::Elliptic::CriterionKirchhoffEnergyPotential<EvaluationType>>(
           aSpatialDomain, aDataMap, aParamList, aFuncName) );
         break;
       case Plato::mechanical::criterion::NEO_HOOKEAN_ENERGY_POTENTIAL:
-        return ( std::make_shared<Plato::CriterionNeoHookeanEnergyPotential<EvaluationType>>(
+        return ( std::make_shared<Plato::Elliptic::CriterionNeoHookeanEnergyPotential<EvaluationType>>(
           aSpatialDomain, aDataMap, aParamList, aFuncName) );
         break;  
       default:

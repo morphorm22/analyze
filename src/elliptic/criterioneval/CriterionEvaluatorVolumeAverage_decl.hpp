@@ -16,8 +16,7 @@ namespace Elliptic
  **********************************************************************************/
 template<typename PhysicsType>
 class CriterionEvaluatorVolumeAverage :
-    public Plato::Elliptic::CriterionEvaluatorBase,
-    public Plato::WorksetBase<typename PhysicsType::ElementType>
+  public Plato::Elliptic::CriterionEvaluatorBase
 {
 private:
     using ElementType = typename PhysicsType::ElementType;
@@ -81,79 +80,72 @@ public:
               std::string            & aName
     );
 
-    /******************************************************************************//**
-     * \brief Update physics-based parameters within optimization iterations
-     * \param [in] aState 1D view of state variables
-     * \param [in] aControl 1D view of control variables
-     **********************************************************************************/
-    void
+    /// @fn isLinear
+    /// @brief return true if scalar function is linear
+    /// @return boolean
+    bool 
+    isLinear() 
+    const;
+
+    /// @fn updateProblem
+    /// @brief update criterion parameters at runtime
+    /// @param [in] aDatabase function domain and range database
+    /// @param [in] aCycle    scalar, e.g.; time step
+    void 
     updateProblem(
-        const Plato::ScalarVector & aState,
-        const Plato::ScalarVector & aControl
-    ) const override;
+      const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
+    ) const;
 
-    /******************************************************************************//**
-     * \brief Evaluate Volume Average Criterion
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return scalar function evaluation
-    **********************************************************************************/
+    /// @fn value
+    /// @brief evaluate criterion
+    /// @param [in] aDatabase function domain and range database
+    /// @param [in] aCycle    scalar, e.g.; time step
+    /// @return scalar
     Plato::Scalar
-    value(
-        const Plato::Solutions    & aSolution,
-        const Plato::ScalarVector & aControl,
-              Plato::Scalar         aTimeStep = 0.0
-    ) const override;
+    value(const Plato::Database & aDatabase,
+          const Plato::Scalar   & aCycle
+    ) const;
 
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the Volume Average Criterion with respect to (wrt) the state variables
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the scalar function wrt the state variables
-    **********************************************************************************/
+    /// @fn gradientState
+    /// @brief compute partial derivative with respect to the states
+    /// @param [in] aDatabase function domain and range database
+    /// @param [in] aCycle    scalar, e.g.; time step
+    /// @return plato scalar vector
     Plato::ScalarVector
-    gradient_u(
-        const Plato::Solutions    & aSolution,
-        const Plato::ScalarVector & aControl,
-              Plato::OrdinalType    aStepIndex,
-              Plato::Scalar         aTimeStep = 0.0
-    ) const override;
+    gradientState(
+      const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
+    ) const;
 
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the Volume Average Criterion with respect to (wrt) the configuration
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the scalar function wrt the state variables
-    **********************************************************************************/
+    /// @fn gradientConfig
+    /// @brief compute partial derivative with respect to the configuration
+    /// @param [in] aDatabase function domain and range database
+    /// @param [in] aCycle    scalar, e.g.; time step
+    /// @return plato scalar vector
     Plato::ScalarVector
-    gradient_x(
-        const Plato::Solutions    & aSolution,
-        const Plato::ScalarVector & aControl,
-              Plato::Scalar         aTimeStep = 0.0
-    ) const override;
+    gradientConfig(
+      const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
+    ) const;
 
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the Volume Average Criterion with respect to (wrt) the control
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the scalar function wrt the state variables
-    **********************************************************************************/
+    /// @fn gradientControl
+    /// @brief compute partial derivative with respect to the controls
+    /// @param [in] aDatabase function domain and range database
+    /// @param [in] aCycle    scalar, e.g.; time step
+    /// @return plato scalar vector
     Plato::ScalarVector
-    gradient_z(
-        const Plato::Solutions    & aSolution,
-        const Plato::ScalarVector & aControl,
-              Plato::Scalar         aTimeStep = 0.0
-    ) const override;
+    gradientControl(
+      const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
+    ) const;
 
     /******************************************************************************//**
      * \brief Return user defined function name
      * \return User defined function name
     **********************************************************************************/
-    std::string name() const;
+    std::string 
+    name() const;
 };
 // class CriterionEvaluatorVolumeAverage
 

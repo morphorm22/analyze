@@ -2,8 +2,8 @@
 
 #include <algorithm>
 
+#include "base/CriterionBase.hpp"
 #include "elliptic/EvaluationTypes.hpp"
-#include "elliptic/AbstractScalarFunction.hpp"
 #include "elliptic/AbstractLocalMeasure.hpp"
 
 namespace Plato
@@ -15,21 +15,18 @@ namespace Plato
  *   type for scalar function (e.g. Residual, Jacobian, GradientZ, etc.)
 **********************************************************************************/
 template<typename EvaluationType>
-class AugLagStressCriterionQuadratic :
-        public EvaluationType::ElementType,
-        public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+class AugLagStressCriterionQuadratic : public Plato::CriterionBase
 {
 private:
     using ElementType = typename EvaluationType::ElementType;
 
-    using ElementType::mNumVoigtTerms;
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumSpatialDims;
+    static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+    static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+    static constexpr auto mNumVoigtTerms   = ElementType::mNumVoigtTerms;
 
-    using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
-
-    using FunctionBaseType::mSpatialDomain;
-    using FunctionBaseType::mDataMap;
+    using CriterionBaseType = typename Plato::CriterionBase;
+    using CriterionBaseType::mSpatialDomain;
+    using CriterionBaseType::mDataMap;
 
     using StateT   = typename EvaluationType::StateScalarType;
     using ConfigT  = typename EvaluationType::ConfigScalarType;
@@ -140,46 +137,32 @@ public:
      **********************************************************************************/
     void setLagrangeMultipliers(const Plato::ScalarVector & aInput);
 
-    /******************************************************************************//**
-     * \brief Update physics-based parameters within optimization iterations
-     * \param [in] aState 2D container of state variables
-     * \param [in] aControl 2D container of control variables
-     * \param [in] aConfig 3D container of configuration/coordinates
-    **********************************************************************************/
-    void
+    /// @fn updateProblem
+    /// @brief update criterion parameters at runtime
+    /// @param [in] aWorkSets function domain and range workset database
+    /// @param [in] aCycle    scalar 
+    void 
     updateProblem(
-        const Plato::ScalarMultiVector & aStateWS,
-        const Plato::ScalarMultiVector & aControlWS,
-        const Plato::ScalarArray3D     & aConfigWS
+      const Plato::WorkSets & aWorkSets,
+      const Plato::Scalar   & aCycle
     ) override;
 
-    /******************************************************************************//**
-     * \brief Evaluate augmented Lagrangian local constraint criterion
-     * \param [in] aState 2D container of state variables
-     * \param [in] aControl 2D container of control variables
-     * \param [in] aConfig 3D container of configuration/coordinates
-     * \param [out] aResult 1D container of cell criterion values
-     * \param [in] aTimeStep time step (default = 0)
-    **********************************************************************************/
-    void evaluate_conditional(
-        const Plato::ScalarMultiVectorT <StateT>   & aStateWS,
-        const Plato::ScalarMultiVectorT <ControlT> & aControlWS,
-        const Plato::ScalarArray3DT     <ConfigT>  & aConfigWS,
-              Plato::ScalarVectorT      <ResultT>  & aResultWS,
-              Plato::Scalar aTimeStep = 0.0
-    ) const override;
+    /// @fn isLinear
+    /// @brief returns true if criterion is linear
+    /// @return boolean
+    bool 
+    isLinear() 
+    const;
 
-    /******************************************************************************//**
-     * \brief Update Lagrange multipliers
-     * \param [in] aState 2D container of state variables
-     * \param [in] aControl 2D container of control variables
-     * \param [in] aConfig 3D container of configuration/coordinates
-    **********************************************************************************/
+    void evaluateConditional(
+      const Plato::WorkSets & aWorkSets,
+      const Plato::Scalar   & aCycle
+    ) const;
+
     void
     updateLagrangeMultipliers(
-        const Plato::ScalarMultiVector & aStateWS,
-        const Plato::ScalarMultiVector & aControlWS,
-        const Plato::ScalarArray3D     & aConfigWS
+      const Plato::WorkSets & aWorkSets,
+      const Plato::Scalar   & aCycle
     );
 };
 // class AugLagStressCriterionQuadratic

@@ -4,7 +4,9 @@
 #include "NaturalBCs.hpp"
 #include "ApplyWeighting.hpp"
 #include "ThermalConductivityMaterial.hpp"
-#include "elliptic/AbstractVectorFunction.hpp"
+
+#include "base/ResidualBase.hpp"
+#include "elliptic/EvaluationTypes.hpp"
 
 namespace Plato
 {
@@ -12,80 +14,80 @@ namespace Plato
 namespace Elliptic
 {
 
-/******************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
-class ResidualThermostatic : 
-  public EvaluationType::ElementType,
-  public Plato::Elliptic::AbstractVectorFunction<EvaluationType>
-/******************************************************************************/
+class ResidualThermostatic : public Plato::ResidualBase
 {
-  private:
-    using ElementType = typename EvaluationType::ElementType;
+private:
+  /// @brief topological element type
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief number of integration points
+  static constexpr auto mNumGaussPoints  = ElementType::mNumGaussPoints;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+  /// @brief number of nodes per cell
+  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+  /// @brief number of degrees of freedom per node
+  static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+  /// @brief number of degrees of freedom per cell
+  static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
 
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumDofsPerNode;
-    using ElementType::mNumDofsPerCell;
-    using ElementType::mNumSpatialDims;
+  using FunctionBaseType = Plato::ResidualBase;
+  using FunctionBaseType::mSpatialDomain;
+  using FunctionBaseType::mDataMap;
+  using FunctionBaseType::mDofNames;
 
-    using FunctionBaseType = Plato::Elliptic::AbstractVectorFunction<EvaluationType>;
+  using StateScalarType   = typename EvaluationType::StateScalarType;
+  using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  using ControlScalarType = typename EvaluationType::ControlScalarType;
+  using GradScalarType    = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
-    using FunctionBaseType::mSpatialDomain;
-    using FunctionBaseType::mDataMap;
-    using FunctionBaseType::mDofNames;
+  IndicatorFunctionType mIndicatorFunction;
+  ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyWeighting;
 
-    using StateScalarType   = typename EvaluationType::StateScalarType;
-    using ControlScalarType = typename EvaluationType::ControlScalarType;
-    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
-    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
+  std::shared_ptr<Plato::NaturalBCs<ElementType, mNumDofsPerNode>> mBoundaryLoads;
 
-    IndicatorFunctionType mIndicatorFunction;
-    ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyWeighting;
+  Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
-    std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
-    std::shared_ptr<Plato::NaturalBCs<ElementType, mNumDofsPerNode>> mBoundaryLoads;
+  std::vector<std::string> mPlottable;
 
-    Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
+public:
+  ResidualThermostatic(
+    const Plato::SpatialDomain   & aSpatialDomain,
+          Plato::DataMap         & aDataMap,
+          Teuchos::ParameterList & aProblemParams,
+          Teuchos::ParameterList & penaltyParams
+  );
 
-    std::vector<std::string> mPlottable;
+  Plato::Solutions 
+  getSolutionStateOutputData(
+    const Plato::Solutions &aSolutions
+  ) const;
 
-  public:
-    /**************************************************************************/
-    ResidualThermostatic(
-        const Plato::SpatialDomain   & aSpatialDomain,
-              Plato::DataMap         & aDataMap,
-              Teuchos::ParameterList & aProblemParams,
-              Teuchos::ParameterList & penaltyParams
-    );
+  /// @fn evaluate
+  /// @brief evaluate internal forces
+  /// @param [in,out] aWorkSets domain and range workset database
+  /// @param [in]     aCycle    scalar
+  void
+  evaluate(
+    Plato::WorkSets & aWorkSets,
+    Plato::Scalar     aCycle = 0.0
+  ) const;
 
-    /****************************************************************************//**
-    * \brief Pure virtual function to get output solution data
-    * \param [in] state solution database
-    * \return output state solution database
-    ********************************************************************************/
-    Plato::Solutions getSolutionStateOutputData(const Plato::Solutions &aSolutions) const override;
+  /// @fn evaluateBoundary
+  /// @brief evaluate boundary forces
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  void
+  evaluateBoundary(
+    const Plato::SpatialModel & aSpatialModel,
+          Plato::WorkSets     & aWorkSets,
+          Plato::Scalar         aCycle = 0.0
+  ) const;
 
-    /**************************************************************************/
-    void
-    evaluate(
-        const Plato::ScalarMultiVectorT <StateScalarType  > & aState,
-        const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT     <ConfigScalarType > & aConfig,
-              Plato::ScalarMultiVectorT <ResultScalarType > & aResult,
-              Plato::Scalar aTimeStep = 0.0
-    ) const override;
-
-    /**************************************************************************/
-    void
-    evaluate_boundary(
-        const Plato::SpatialModel                           & aSpatialModel,
-        const Plato::ScalarMultiVectorT <StateScalarType  > & aState,
-        const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT     <ConfigScalarType > & aConfig,
-              Plato::ScalarMultiVectorT <ResultScalarType > & aResult,
-              Plato::Scalar aTimeStep = 0.0
-    ) const override;
-};
-// class ResidualThermostatic
+}; // class ResidualThermostatic
 
 } // namespace Elliptic
 

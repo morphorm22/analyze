@@ -31,7 +31,6 @@ VectorFunction(
   typename PhysicsType::FunctionFactory tFactoryResidual;
   for(const auto& tDomain : mSpatialModel.Domains)
   {
-    /*
     auto tName = tDomain.getDomainName();
     mResiduals [tName] = 
       tFactoryResidual.template createVectorFunction<ResidualEvalType> (tDomain, aDataMap, aProbParams, aType);
@@ -41,7 +40,6 @@ VectorFunction(
       tFactoryResidual.template createVectorFunction<JacobianZEvalType>(tDomain, aDataMap, aProbParams, aType);
     mJacobiansX[tName] = 
       tFactoryResidual.template createVectorFunction<JacobianXEvalType>(tDomain, aDataMap, aProbParams, aType);
-    */
   }
 }
 
@@ -54,6 +52,59 @@ const
   auto tNumNodes = mSpatialModel.Mesh->NumNodes();
   return (tNumNodes*mNumDofsPerNode);
 }
+template<typename PhysicsType>
+Plato::OrdinalType 
+VectorFunction<PhysicsType>::
+numNodes() 
+const
+{
+  return (mSpatialModel.Mesh->NumNodes());
+}
+
+template<typename PhysicsType>
+Plato::OrdinalType 
+VectorFunction<PhysicsType>::
+numCells() 
+const
+{
+  return (mSpatialModel.Mesh->NumElements());
+}
+
+template<typename PhysicsType>
+Plato::OrdinalType 
+VectorFunction<PhysicsType>::
+numDofsPerCell() 
+const
+{
+  return (mNumDofsPerCell);
+}
+
+template<typename PhysicsType>
+Plato::OrdinalType 
+VectorFunction<PhysicsType>::
+numNodesPerCell() 
+const
+{
+  return (mNumNodesPerCell);
+}
+
+template<typename PhysicsType>
+Plato::OrdinalType 
+VectorFunction<PhysicsType>::
+numStateDofsPerNode() 
+const
+{
+  return (mNumDofsPerNode);
+}
+
+template<typename PhysicsType>
+Plato::OrdinalType 
+VectorFunction<PhysicsType>::
+numControlDofsPerNode() 
+const
+{
+  return (mNumControlDofsPerNode);
+}
 
 template<typename PhysicsType>
 std::vector<std::string> 
@@ -63,6 +114,23 @@ const
 {
   auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
   return mResiduals.at(tFirstBlockName)->getDofNames();
+}
+
+template<typename PhysicsType>
+Plato::Solutions 
+VectorFunction<PhysicsType>::
+getSolutionStateOutputData(
+  const Plato::Solutions & aSolutions
+) const
+{
+  auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
+  auto tItr = mResiduals.find(tFirstBlockName);
+  if(tItr == mResiduals.end())
+  { 
+      ANALYZE_THROWERR(std::string("Element block with name '") + tFirstBlockName 
+      + "is not defined in residual function to element block map.") 
+  }
+  return tItr->second->getSolutionStateOutputData(aSolutions);
 }
 
 template<typename PhysicsType>
@@ -272,9 +340,9 @@ jacobianControl
   auto tMesh = mSpatialModel.Mesh;
   Teuchos::RCP<Plato::CrsMatrixType> tJacobianZ;
   if(aTranspose)
-  { tJacobianZ = Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumControl, mNumDofsPerNode>( tMesh ); }
+  { tJacobianZ = Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumControlDofsPerNode, mNumDofsPerNode>( tMesh ); }
   else
-  { tJacobianZ = Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumControl>( tMesh ); }
+  { tJacobianZ = Plato::CreateBlockMatrix<Plato::CrsMatrixType, mNumDofsPerNode, mNumControlDofsPerNode>( tMesh ); }
   Plato::Elliptic::WorksetBuilder<JacobianZEvalType> tWorksetBuilder(mWorksetFuncs);
   // internal forces
   for(const auto& tDomain : mSpatialModel.Domains)
@@ -291,7 +359,7 @@ jacobianControl
     auto tName = tDomain.getDomainName();
     mJacobiansZ.at(tName)->evaluate(tWorksets, aCycle);
     // assembly to return matrix
-    Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumControl, mNumDofsPerNode> 
+    Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumControlDofsPerNode, mNumDofsPerNode> 
       tJacEntryOrdinal( tJacobianZ, tMesh );
     auto tJacEntries = tJacobianZ->entries();
     if(aTranspose)
@@ -319,7 +387,7 @@ jacobianControl
     auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
     mJacobiansZ.at(tFirstBlockName)->evaluateBoundary(mSpatialModel, tWorksets, aCycle );
     // assembly to return matrix
-    Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumControl, mNumDofsPerNode> 
+    Plato::BlockMatrixEntryOrdinal<mNumNodesPerCell, mNumControlDofsPerNode, mNumDofsPerNode> 
       tJacEntryOrdinal( tJacobianZ, tMesh );
     auto tJacEntries = tJacobianZ->entries();
     if(aTranspose)

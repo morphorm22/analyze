@@ -6,7 +6,7 @@
 
 #include "elliptic/mechanical/linear/Mechanics.hpp"
 #include "EssentialBCs.hpp"
-#include "elliptic/VectorFunction.hpp"
+#include "elliptic/base/VectorFunction.hpp"
 #include "ApplyConstraints.hpp"
 #include "LinearElasticMaterial.hpp"
 #include "solver/PlatoSolverFactory.hpp"
@@ -111,20 +111,23 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, BuildCondensedSystem )
 
   // create mesh based density
   //
+  Plato::Database tDatabase;
   Plato::ScalarVector control("density", tNumDofs);
   Kokkos::deep_copy(control, 1.0);
+  tDatabase.vector("controls",control);
 
   // create mesh based state
   //
   Plato::ScalarVector state("state", tNumDofs);
   Kokkos::deep_copy(state, 0.0);
+  tDatabase.vector("states",state);
 
   // parse essential BCs
   //
   Plato::OrdinalVector mBcDofs;
   Plato::ScalarVector mBcValues;
   Plato::EssentialBCs<ElementType>
-      tEssentialBoundaryConditions(params->sublist("Essential Boundary Conditions",false), tMesh);
+    tEssentialBoundaryConditions(params->sublist("Essential Boundary Conditions",false), tMesh);
   tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
 
   // create vector function
@@ -132,20 +135,22 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, BuildCondensedSystem )
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
   Plato::Elliptic::VectorFunction<PhysicsType>
-    vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
+    vectorFunction(params->get<std::string>("PDE Constraint"), tSpatialModel, tDataMap, *params);
 
   // compute residual
   //
-  auto residual = vectorFunction.value(state, control);
+  auto residual = vectorFunction.value(tDatabase,/*cycle=*/0.);
   Plato::blas1::scale(-1.0, residual);
 
   // compute jacobian
   //
-  auto jacobian = vectorFunction.gradient_u(state, control);
+  auto jacobian = vectorFunction.jacobianState(tDatabase,/*cycle=*/0.);
   
   // parse multipoint constraints
   //
-  std::shared_ptr<Plato::MultipointConstraints> tMPCs = std::make_shared<Plato::MultipointConstraints>(tSpatialModel, tNumDofsPerNode, params->sublist("Multipoint Constraints", false));
+  std::shared_ptr<Plato::MultipointConstraints> tMPCs = std::make_shared<Plato::MultipointConstraints>(
+    tSpatialModel, tNumDofsPerNode, params->sublist("Multipoint Constraints", false)
+  );
   tMPCs->setupTransform();
 
   // apply essential BCs
@@ -165,8 +170,12 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, BuildCondensedSystem )
   Plato::ScalarVector tMpcRhs = tMPCs->getRhsVector();
   
   // build condensed matrix
-  auto tCondensedALeft = Teuchos::rcp( new Plato::CrsMatrixType(tNumDofs, tNumCondensedDofs, tNumDofsPerNode, tNumDofsPerNode) );
-  auto tCondensedA     = Teuchos::rcp( new Plato::CrsMatrixType(tNumCondensedDofs, tNumCondensedDofs, tNumDofsPerNode, tNumDofsPerNode) );
+  auto tCondensedALeft = Teuchos::rcp( new Plato::CrsMatrixType(
+    tNumDofs, tNumCondensedDofs, tNumDofsPerNode, tNumDofsPerNode) 
+  );
+  auto tCondensedA = Teuchos::rcp( new Plato::CrsMatrixType(
+    tNumCondensedDofs, tNumCondensedDofs, tNumDofsPerNode, tNumDofsPerNode) 
+  );
       
   Plato::MatrixMatrixMultiply(aA, tTransformMatrix, tCondensedALeft);
   Plato::MatrixMatrixMultiply(tTransformMatrixTranspose, tCondensedALeft, tCondensedA);
@@ -275,20 +284,23 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic2DTieMPC )
 
   // create mesh based density
   //
+  Plato::Database tDatabase;
   Plato::ScalarVector control("density", tNumDofs);
   Kokkos::deep_copy(control, 1.0);
+  tDatabase.vector("controls",control);
 
   // create mesh based state
   //
   Plato::ScalarVector state("state", tNumDofs);
   Kokkos::deep_copy(state, 0.0);
+  tDatabase.vector("states",state);
 
   // parse essential BCs
   //
   Plato::OrdinalVector mBcDofs;
   Plato::ScalarVector mBcValues;
   Plato::EssentialBCs<ElementType>
-      tEssentialBoundaryConditions(params->sublist("Essential Boundary Conditions",false), tMesh);
+    tEssentialBoundaryConditions(params->sublist("Essential Boundary Conditions",false), tMesh);
   tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
 
   // create vector function
@@ -296,20 +308,22 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic2DTieMPC )
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
   Plato::Elliptic::VectorFunction<PhysicsType>
-    vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
+    vectorFunction(params->get<std::string>("PDE Constraint"), tSpatialModel, tDataMap, *params);
 
   // compute residual
   //
-  auto residual = vectorFunction.value(state, control);
+  auto residual = vectorFunction.value(tDatabase,/*cycle=*/0.);
   Plato::blas1::scale(-1.0, residual);
 
   // compute jacobian
   //
-  auto jacobian = vectorFunction.gradient_u(state, control);
+  auto jacobian = vectorFunction.jacobianState(tDatabase,/*cycle=*/0.);
   
   // parse multipoint constraints
   //
-  std::shared_ptr<Plato::MultipointConstraints> tMPCs = std::make_shared<Plato::MultipointConstraints>(tSpatialModel, tNumDofsPerNode, params->sublist("Multipoint Constraints", false));
+  std::shared_ptr<Plato::MultipointConstraints> tMPCs = std::make_shared<Plato::MultipointConstraints>(
+    tSpatialModel, tNumDofsPerNode, params->sublist("Multipoint Constraints", false)
+  );
   tMPCs->setupTransform();
   
   // create solver
@@ -391,13 +405,16 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
 
   // create mesh based density
   //
+  Plato::Database tDatabase;
   Plato::ScalarVector control("density", tNumDofs);
   Kokkos::deep_copy(control, 1.0);
+  tDatabase.vector("controls",control);
 
   // create mesh based state
   //
   Plato::ScalarVector state("state", tNumDofs);
   Kokkos::deep_copy(state, 0.0);
+  tDatabase.vector("states",state);
   
   // specify parameter input
   //
@@ -469,7 +486,7 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
   Plato::OrdinalVector mBcDofs;
   Plato::ScalarVector mBcValues;
   Plato::EssentialBCs<ElementType>
-      tEssentialBoundaryConditions(params->sublist("Essential Boundary Conditions",false), tMesh);
+    tEssentialBoundaryConditions(params->sublist("Essential Boundary Conditions",false), tMesh);
   tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
 
   // create vector function
@@ -477,20 +494,22 @@ TEUCHOS_UNIT_TEST( MultipointConstraintTests, Elastic3DPbcMPC )
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
   Plato::Elliptic::VectorFunction<PhysicsType>
-    vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
+    vectorFunction(params->get<std::string>("PDE Constraint"), tSpatialModel, tDataMap, *params);
 
   // compute residual
   //
-  auto residual = vectorFunction.value(state, control);
+  auto residual = vectorFunction.value(tDatabase,/*cycle=*/0.);
   Plato::blas1::scale(-1.0, residual);
 
   // compute jacobian
   //
-  auto jacobian = vectorFunction.gradient_u(state, control);
+  auto jacobian = vectorFunction.jacobianState(tDatabase,/*cycle=*/0.);
   
   // parse multipoint constraints
   //
-  std::shared_ptr<Plato::MultipointConstraints> tMPCs = std::make_shared<Plato::MultipointConstraints>(tSpatialModel, tNumDofsPerNode, params->sublist("Multipoint Constraints", false));
+  std::shared_ptr<Plato::MultipointConstraints> tMPCs = std::make_shared<Plato::MultipointConstraints>(
+    tSpatialModel, tNumDofsPerNode, params->sublist("Multipoint Constraints", false)
+  );
   tMPCs->setupTransform();
   
   // create solver

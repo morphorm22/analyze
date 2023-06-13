@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "MetaData.hpp"
 #include "AnalyzeMacros.hpp"
 #include "InterpolateFromNodal.hpp"
 #include "Plato_TopOptFunctors.hpp"
@@ -18,12 +19,12 @@ namespace Plato
 template<typename EvaluationType>
 CriterionVolumeTwoPhase<EvaluationType>::
 CriterionVolumeTwoPhase(
-    const Plato::SpatialDomain   & aSpatialDomain,
-          Plato::DataMap         & aDataMap,
-          Teuchos::ParameterList & aParamList,
-    const std::string            & aFuncName
+  const Plato::SpatialDomain   & aSpatialDomain,
+        Plato::DataMap         & aDataMap,
+        Teuchos::ParameterList & aParamList,
+  const std::string            & aFuncName
 ) :
-    FunctionBaseType(aSpatialDomain, aDataMap, aParamList, aFuncName)
+    FunctionBaseType(aFuncName, aSpatialDomain, aDataMap, aParamList)
 {
     this->initialize(aParamList);
 }
@@ -33,30 +34,29 @@ CriterionVolumeTwoPhase<EvaluationType>::
 ~CriterionVolumeTwoPhase(){}
 
 template<typename EvaluationType>
-void 
+bool 
 CriterionVolumeTwoPhase<EvaluationType>::
-evaluate(
-  const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-  const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-  const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-        Plato::ScalarVectorT      <ResultScalarType>  & aResult,
-        Plato::Scalar                                   aCycle
-)
+isLinear() 
+const
 {
-  this->evaluate_conditional(aState,aControl,aConfig,aResult,aCycle);
+  return true;
 }
 
 template<typename EvaluationType>
 void
 CriterionVolumeTwoPhase<EvaluationType>::
-evaluate_conditional(
-    const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-    const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-    const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-          Plato::ScalarVectorT      <ResultScalarType>  & aResult,
-          Plato::Scalar                                   aCycle
+evaluateConditional(
+  const Plato::WorkSets & aWorkSets,
+  const Plato::Scalar   & aCycle
 ) const
 {
+  // unpack worksets
+  Plato::ScalarArray3DT<ConfigScalarType> tConfigWS  = 
+    Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+  Plato::ScalarMultiVectorT<ControlScalarType> tControlWS = 
+    Plato::unpack<Plato::ScalarMultiVectorT<ControlScalarType>>(aWorkSets.get("controls"));
+  Plato::ScalarVectorT<ResultScalarType> tResultWS = 
+    Plato::unpack<Plato::ScalarVectorT<ResultScalarType>>(aWorkSets.get("result"));
   // out-of-plane thicknesses for two-phase electrical material
   Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
   Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
@@ -73,20 +73,20 @@ evaluate_conditional(
     // evaluate cell jacobian
     auto tCubPoint  = tCubPoints(iGpOrdinal);
     auto tCubWeight = tCubWeights(iGpOrdinal);
-    auto tJacobian = ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal);
+    auto tJacobian = ElementType::jacobian(tCubPoint, tConfigWS, iCellOrdinal);
     // compute cell volume
     ResultScalarType tCellVolume = Plato::determinant(tJacobian);
     tCellVolume *= tCubWeight;
     // evaluate out-of-plane thickness interpolation function
     auto tBasisValues = ElementType::basisValues(tCubPoint);
     ControlScalarType tDensity = 
-        Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
+        Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,tControlWS,tBasisValues);
     ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
     ControlScalarType tThicknessInterpolation = tThicknessTwo + 
       ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
     // apply penalty to volume
     ResultScalarType tPenalizedVolume = tThicknessInterpolation * tCellVolume;
-    Kokkos::atomic_add(&aResult(iCellOrdinal), tPenalizedVolume);
+    Kokkos::atomic_add(&tResultWS(iCellOrdinal), tPenalizedVolume);
   });
 }
 

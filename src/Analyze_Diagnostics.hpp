@@ -9,16 +9,19 @@
 #include <Teuchos_XMLParameterListCoreHelpers.hpp>
 
 #include "BLAS1.hpp"
+#include "MetaData.hpp"
 #include "FadTypes.hpp"
 #include "TimeData.hpp"
 #include "Solutions.hpp"
 #include "PlatoMesh.hpp"
+#include "base/Database.hpp"
 #include "base/WorksetBase.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "ImplicitFunctors.hpp"
 
+#include "base/CriterionBase.hpp"
 #include "geometric/ScalarFunctionBase.hpp"
-#include "elliptic/AbstractScalarFunction.hpp"
+#include "elliptic/base/WorksetBuilder.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorBase.hpp"
 
 
@@ -112,10 +115,13 @@ test_criterion_grad_wrt_control(
  * \param [in] aSuperscriptLowerBound lower bound on the superscript used to compute the step (e.g. \f$10^{lb}/$f
 **********************************************************************************/
 template<typename EvaluationType, typename ElementType>
-inline void test_partial_control(Plato::Mesh aMesh,
-                                 Plato::Elliptic::AbstractScalarFunction<EvaluationType> & aCriterion,
-                                 Plato::OrdinalType aSuperscriptLowerBound = 1,
-                                 Plato::OrdinalType aSuperscriptUpperBound = 10)
+inline void 
+test_partial_control(
+  Plato::Mesh            aMesh,
+  Plato::CriterionBase & aCriterion,
+  Plato::OrdinalType     aSuperscriptLowerBound = 1,
+  Plato::OrdinalType     aSuperscriptUpperBound = 10
+)
 {
     using StateT = typename EvaluationType::StateScalarType;
     using ConfigT = typename EvaluationType::ConfigScalarType;
@@ -128,19 +134,14 @@ inline void test_partial_control(Plato::Mesh aMesh,
     constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
     constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
 
-    // Create configuration workset
-    Plato::WorksetBase<ElementType> tWorksetBase(aMesh);
-    Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
-    tWorksetBase.worksetConfig(tConfigWS);
-
     // Create control workset
+    Plato::Database tDatabase;
     const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
     Plato::ScalarVector tControl("Control", tNumVerts);
     auto tHostControl = Kokkos::create_mirror(tControl);
     Plato::blas1::random(0.5, 0.75, tHostControl);
     Kokkos::deep_copy(tControl, tHostControl);
-    Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset", tNumCells, tNodesPerCell);
-    tWorksetBase.worksetControl(tControl, tControlWS);
+    tDatabase.vector("controls",tControl);
 
     // Create state workset
     const Plato::OrdinalType tTotalNumDofs = tNumVerts * tDofsPerNode;
@@ -148,18 +149,25 @@ inline void test_partial_control(Plato::Mesh aMesh,
     auto tHostState = Kokkos::create_mirror(tState);
     Plato::blas1::random(0.1, 0.5, tHostState);
     Kokkos::deep_copy(tState, tHostState);
-    Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
-    tWorksetBase.worksetState(tState, tStateWS);
+    tDatabase.vector("states",tState);
 
+    // Create workset database
+    Plato::WorksetBase<ElementType> tWorksetBase(aMesh);
+    Plato::Elliptic::WorksetBuilder<EvaluationType> tWorksetBuilder(tWorksetBase);
+    Plato::WorkSets tWorksets;
+    auto tDomain = aCriterion.domain();
+    tWorksetBuilder.build(tDomain, tDatabase, tWorksets);
+    
     // Create result workset
-    Plato::ScalarVectorT<ResultT> tResultWS("result", tNumCells);
+    auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarVectorT<ResultT> > >
+      ( Plato::ScalarVectorT<ResultT>("Result Workset", tNumCells) );
+    Kokkos::deep_copy(tResultWS->mData, 0.0);
+    tWorksets.set("result", tResultWS);
 
     // FINITE DIFFERENCE TEST
-    aCriterion.evaluate(tStateWS, tControlWS, tConfigWS, tResultWS);
-    constexpr Plato::OrdinalType tNumControlFields = 1;
+    aCriterion.evaluate(tWorksets,/*cycle=*/0.);
     Plato::ScalarVector tPartialZ("objective partial control", tNumVerts);
-    Plato::VectorEntryOrdinal<tSpaceDim, tNumControlFields> tControlEntryOrdinal(aMesh);
-    Plato::assemble_scalar_gradient_fad<tNodesPerCell>(tNumCells, tControlEntryOrdinal, tResultWS, tPartialZ);
+    tWorksetBase.assembleScalarGradientFadZ(tDomain, tResultWS->mData, tPartialZ);
 
     Plato::ScalarVector tStep("step", tNumVerts);
     auto tHostStep = Kokkos::create_mirror(tStep);
@@ -167,51 +175,64 @@ inline void test_partial_control(Plato::Mesh aMesh,
     Kokkos::deep_copy(tStep, tHostStep);
     Plato::Scalar tGradientDotStep = Plato::blas1::dot(tPartialZ, tStep);
 
-    std::cout << std::right << std::setw(18) << "\nStep Size" << std::setw(20) << "Grad'*Step" << std::setw(18) << "FD Approx"
-               << std::setw(20) << "abs(Error)" << "\n";
+    std::cout << std::right << std::setw(18) << "\nStep Size" << std::setw(20) << "Grad'*Step" 
+      << std::setw(18) << "FD Approx" << std::setw(20) << "abs(Error)" << "\n";
 
     Plato::ScalarVector tTrialControl("trial control", tNumVerts);
     for(Plato::OrdinalType tIndex = aSuperscriptLowerBound; tIndex <= aSuperscriptUpperBound; tIndex++)
     {
-        Plato::Scalar tEpsilon = tEpsilon = static_cast<Plato::Scalar>(1) /
-                std::pow(static_cast<Plato::Scalar>(10), tIndex);
-        // four point finite difference approximation
-        Plato::blas1::update(1.0, tControl, 0.0, tTrialControl);
-        Plato::blas1::update(tEpsilon, tStep, 1.0, tTrialControl);
-        tWorksetBase.worksetControl(tTrialControl, tControlWS);
-        Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tResultWS);
-        aCriterion.evaluate(tStateWS, tControlWS, tConfigWS, tResultWS);
-        Plato::Scalar tObjFuncValueOne = Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS);
+      Plato::WorkSets tInWorksets;
+      Plato::Scalar tEpsilon = tEpsilon = static_cast<Plato::Scalar>(1) /
+              std::pow(static_cast<Plato::Scalar>(10), tIndex);
+      // four point finite difference approximation
+      Plato::blas1::update(1.0, tControl, 0.0, tTrialControl);
+      Plato::blas1::update(tEpsilon, tStep, 1.0, tTrialControl);
+      tDatabase.vector("controls",tTrialControl);
+      tWorksetBuilder.build(tDomain, tDatabase, tInWorksets);
+      Kokkos::deep_copy(tResultWS->mData, 0.0);
+      tInWorksets.set("result", tResultWS);
+      aCriterion.evaluate(tInWorksets,/*cycle=*/0.);
+      Plato::Scalar tObjFuncValueOne = 
+        Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS->mData);
 
-        Plato::blas1::update(1.0, tControl, 0.0, tTrialControl);
-        Plato::blas1::update(-tEpsilon, tStep, 1.0, tTrialControl);
-        tWorksetBase.worksetControl(tTrialControl, tControlWS);
-        Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tResultWS);
-        aCriterion.evaluate(tStateWS, tControlWS, tConfigWS, tResultWS);
-        Plato::Scalar tObjFuncValueTwo = Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS);
+      Plato::blas1::update(1.0, tControl, 0.0, tTrialControl);
+      Plato::blas1::update(-tEpsilon, tStep, 1.0, tTrialControl);
+      tDatabase.vector("controls",tTrialControl);
+      tWorksetBuilder.build(tDomain, tDatabase, tInWorksets);
+      Kokkos::deep_copy(tResultWS->mData, 0.0);
+      tInWorksets.set("result", tResultWS);
+      aCriterion.evaluate(tInWorksets,/*cycle=*/0.);
+      Plato::Scalar tObjFuncValueTwo = 
+        Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS->mData);
 
-        Plato::blas1::update(1.0, tControl, 0.0, tTrialControl);
-        Plato::blas1::update(2.0 * tEpsilon, tStep, 1.0, tTrialControl);
-        tWorksetBase.worksetControl(tTrialControl, tControlWS);
-        Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tResultWS);
-        aCriterion.evaluate(tStateWS, tControlWS, tConfigWS, tResultWS);
-        Plato::Scalar tObjFuncValueThree = Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS);
+      Plato::blas1::update(1.0, tControl, 0.0, tTrialControl);
+      Plato::blas1::update(2.0 * tEpsilon, tStep, 1.0, tTrialControl);
+      tDatabase.vector("controls",tTrialControl);
+      tWorksetBuilder.build(tDomain, tDatabase, tInWorksets);
+      Kokkos::deep_copy(tResultWS->mData, 0.0);
+      tInWorksets.set("result", tResultWS);
+      aCriterion.evaluate(tInWorksets,/*cycle=*/0.);
+      Plato::Scalar tObjFuncValueThree = 
+        Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS->mData);
 
-        Plato::blas1::update(1.0, tControl, 0.0, tTrialControl);
-        Plato::blas1::update(-2.0 * tEpsilon, tStep, 1.0, tTrialControl);
-        tWorksetBase.worksetControl(tTrialControl, tControlWS);
-        Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tResultWS);
-        aCriterion.evaluate(tStateWS, tControlWS, tConfigWS, tResultWS);
-        Plato::Scalar tObjFuncValueFour = Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS);
+      Plato::blas1::update(1.0, tControl, 0.0, tTrialControl);
+      Plato::blas1::update(-2.0 * tEpsilon, tStep, 1.0, tTrialControl);
+      tDatabase.vector("controls",tTrialControl);
+      tWorksetBuilder.build(tDomain, tDatabase, tInWorksets);
+      Kokkos::deep_copy(tResultWS->mData, 0.0);
+      tInWorksets.set("result", tResultWS);
+      aCriterion.evaluate(tInWorksets,/*cycle=*/0.);
+      Plato::Scalar tObjFuncValueFour = 
+        Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS->mData);
 
-        Plato::Scalar tNumerator = -tObjFuncValueThree + static_cast<Plato::Scalar>(8.) * tObjFuncValueOne
-                - static_cast<Plato::Scalar>(8.) * tObjFuncValueTwo + tObjFuncValueFour;
-        Plato::Scalar tDenominator = static_cast<Plato::Scalar>(12.) * tEpsilon;
-        Plato::Scalar tFiniteDiffAppxError = tNumerator / tDenominator;
-        Plato::Scalar tAppxError = std::abs(tFiniteDiffAppxError - tGradientDotStep);
+      Plato::Scalar tNumerator = -tObjFuncValueThree + static_cast<Plato::Scalar>(8.) * tObjFuncValueOne
+        - static_cast<Plato::Scalar>(8.) * tObjFuncValueTwo + tObjFuncValueFour;
+      Plato::Scalar tDenominator = static_cast<Plato::Scalar>(12.) * tEpsilon;
+      Plato::Scalar tFiniteDiffAppxError = tNumerator / tDenominator;
+      Plato::Scalar tAppxError = std::abs(tFiniteDiffAppxError - tGradientDotStep);
 
-        std::cout << std::right << std::scientific << std::setprecision(8) << std::setw(14) << tEpsilon << std::setw(19)
-              << tGradientDotStep << std::setw(19) << tFiniteDiffAppxError << std::setw(19) << tAppxError << "\n";
+      std::cout << std::right << std::scientific << std::setprecision(8) << std::setw(14) << tEpsilon << std::setw(19)
+        << tGradientDotStep << std::setw(19) << tFiniteDiffAppxError << std::setw(19) << tAppxError << "\n";
     }
 }
 // function test_partial_control
@@ -222,32 +243,30 @@ inline void test_partial_control(Plato::Mesh aMesh,
  * \param [in] aCriterion scalar function (i.e. scalar criterion) interface
 **********************************************************************************/
 template<typename EvaluationType, typename ElementType>
-inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::AbstractScalarFunction<EvaluationType> & aCriterion)
+inline void 
+test_partial_state(
+  Plato::Mesh            aMesh, 
+  Plato::CriterionBase & aCriterion
+)
 {
-    using StateT = typename EvaluationType::StateScalarType;
-    using ConfigT = typename EvaluationType::ConfigScalarType;
-    using ResultT = typename EvaluationType::ResultScalarType;
+    using StateT   = typename EvaluationType::StateScalarType;
+    using ConfigT  = typename EvaluationType::ConfigScalarType;
+    using ResultT  = typename EvaluationType::ResultScalarType;
     using ControlT = typename EvaluationType::ControlScalarType;
 
-    const Plato::OrdinalType tNumCells = aMesh->NumElements();
     constexpr Plato::OrdinalType tSpaceDim = EvaluationType::SpatialDim;
     constexpr Plato::OrdinalType tDofsPerNode = ElementType::mNumDofsPerNode;
     constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
     constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
 
-    // Create configuration workset
-    Plato::WorksetBase<ElementType> tWorksetBase(aMesh);
-    Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
-    tWorksetBase.worksetConfig(tConfigWS);
-
     // Create control workset
+    Plato::Database tDatabase;
     const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
     Plato::ScalarVector tControl("Control", tNumVerts);
     auto tHostControl = Kokkos::create_mirror(tControl);
     Plato::blas1::random(0.5, 0.75, tHostControl);
     Kokkos::deep_copy(tControl, tHostControl);
-    Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset", tNumCells, tNodesPerCell);
-    tWorksetBase.worksetControl(tControl, tControlWS);
+    tDatabase.vector("controls",tControl);
 
     // Create state workset
     const Plato::OrdinalType tTotalNumDofs = tNumVerts * tDofsPerNode;
@@ -255,17 +274,26 @@ inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::AbstractScala
     auto tHostState = Kokkos::create_mirror(tState);
     Plato::blas1::random(1, 5, tHostState);
     Kokkos::deep_copy(tState, tHostState);
-    Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
-    tWorksetBase.worksetState(tState, tStateWS);
+    tDatabase.vector("states",tState);
+
+    // Create workset database
+    Plato::WorksetBase<ElementType> tWorksetBase(aMesh);
+    Plato::Elliptic::WorksetBuilder<EvaluationType> tWorksetBuilder(tWorksetBase);
+    Plato::WorkSets tWorksets;
+    auto tDomain = aCriterion.domain();
+    tWorksetBuilder.build(tDomain, tDatabase, tWorksets);
 
     // Create result workset
-    Plato::ScalarVectorT<ResultT> tResultWS("result", tNumCells);
+    const Plato::OrdinalType tNumCells = aMesh->NumElements();
+    auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarVectorT<ResultT> > >
+      ( Plato::ScalarVectorT<ResultT>("Result Workset", tNumCells) );
+    Kokkos::deep_copy(tResultWS->mData, 0.0);
+    tWorksets.set("result", tResultWS);
 
     // finite difference
-    aCriterion.evaluate(tStateWS, tControlWS, tConfigWS, tResultWS);
+    aCriterion.evaluate(tWorksets,/*cycle=*/0.);
     Plato::ScalarVector tPartialU("objective partial state", tTotalNumDofs);
-    Plato::VectorEntryOrdinal<tSpaceDim, tDofsPerNode> tStateEntryOrdinal(aMesh);
-    Plato::assemble_vector_gradient_fad<tNodesPerCell, tDofsPerNode>(tNumCells, tStateEntryOrdinal, tResultWS, tPartialU);
+    tWorksetBase.assembleVectorGradientFadU(tDomain, tResultWS->mData, tPartialU);
 
     Plato::ScalarVector tStep("step", tTotalNumDofs);
     auto tHostStep = Kokkos::create_mirror(tStep);
@@ -273,63 +301,79 @@ inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::AbstractScala
     Kokkos::deep_copy(tStep, tHostStep);
     Plato::Scalar tGradientDotStep = Plato::blas1::dot(tPartialU, tStep);
 
-    std::cout << std::right << std::setw(18) << "\nStep Size" << std::setw(20) << "Grad'*Step" << std::setw(18) << "FD Approx"
-               << std::setw(20) << "abs(Error)" << "\n";
+    std::cout << std::right << std::setw(18) << "\nStep Size" << std::setw(20) << "Grad'*Step" 
+      << std::setw(18) << "FD Approx" << std::setw(20) << "abs(Error)" << "\n";
 
     constexpr Plato::OrdinalType tSuperscriptLowerBound = 1;
     constexpr Plato::OrdinalType tSuperscriptUpperBound = 10;
     Plato::ScalarVector tTrialState("trial state", tTotalNumDofs);
     for(Plato::OrdinalType tIndex = tSuperscriptLowerBound; tIndex <= tSuperscriptUpperBound; tIndex++)
     {
-        Plato::Scalar tEpsilon = tEpsilon = static_cast<Plato::Scalar>(1) /
-                std::pow(static_cast<Plato::Scalar>(10), tIndex);
-        // four point finite difference approximation
-        Plato::blas1::update(1.0, tState, 0.0, tTrialState);
-        Plato::blas1::update(tEpsilon, tStep, 1.0, tTrialState);
-        tWorksetBase.worksetState(tTrialState, tStateWS);
-        Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tResultWS);
-        aCriterion.evaluate(tStateWS, tControlWS, tConfigWS, tResultWS);
-        Plato::Scalar tObjFuncValueOne = Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS);
+      Plato::WorkSets tInWorksets;
+      Plato::Scalar tEpsilon = tEpsilon = static_cast<Plato::Scalar>(1) /
+              std::pow(static_cast<Plato::Scalar>(10), tIndex);
+      // four point finite difference approximation
+      Plato::blas1::update(1.0, tState, 0.0, tTrialState);
+      Plato::blas1::update(tEpsilon, tStep, 1.0, tTrialState);
+      tDatabase.vector("states",tTrialState);
+      tWorksetBuilder.build(tDomain, tDatabase, tInWorksets);
+      Kokkos::deep_copy(tResultWS->mData, 0.0);
+      tInWorksets.set("result", tResultWS);
+      aCriterion.evaluate(tInWorksets,/*cycle=*/0.);
+      Plato::Scalar tObjFuncValueOne = 
+        Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS->mData);
 
-        Plato::blas1::update(1.0, tState, 0.0, tTrialState);
-        Plato::blas1::update(-tEpsilon, tStep, 1.0, tTrialState);
-        tWorksetBase.worksetState(tTrialState, tStateWS);
-        Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tResultWS);
-        aCriterion.evaluate(tStateWS, tControlWS, tConfigWS, tResultWS);
-        Plato::Scalar tObjFuncValueTwo = Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS);
+      Plato::blas1::update(1.0, tState, 0.0, tTrialState);
+      Plato::blas1::update(-tEpsilon, tStep, 1.0, tTrialState);
+      tDatabase.vector("states",tTrialState);
+      tWorksetBuilder.build(tDomain, tDatabase, tInWorksets);
+      Kokkos::deep_copy(tResultWS->mData, 0.0);
+      tInWorksets.set("result", tResultWS);
+      aCriterion.evaluate(tInWorksets,/*cycle=*/0.);
+      Plato::Scalar tObjFuncValueTwo = 
+        Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS->mData);
 
-        Plato::blas1::update(1.0, tState, 0.0, tTrialState);
-        Plato::blas1::update(2.0 * tEpsilon, tStep, 1.0, tTrialState);
-        tWorksetBase.worksetState(tTrialState, tStateWS);
-        Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tResultWS);
-        aCriterion.evaluate(tStateWS, tControlWS, tConfigWS, tResultWS);
-        Plato::Scalar tObjFuncValueThree = Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS);
+      Plato::blas1::update(1.0, tState, 0.0, tTrialState);
+      Plato::blas1::update(2.0 * tEpsilon, tStep, 1.0, tTrialState);
+      tDatabase.vector("states",tTrialState);
+      tWorksetBuilder.build(tDomain, tDatabase, tInWorksets);
+      Kokkos::deep_copy(tResultWS->mData, 0.0);
+      tInWorksets.set("result", tResultWS);
+      aCriterion.evaluate(tInWorksets,/*cycle=*/0.);
+      Plato::Scalar tObjFuncValueThree = 
+        Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS->mData);
 
-        Plato::blas1::update(1.0, tState, 0.0, tTrialState);
-        Plato::blas1::update(-2.0 * tEpsilon, tStep, 1.0, tTrialState);
-        tWorksetBase.worksetState(tTrialState, tStateWS);
-        Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tResultWS);
-        aCriterion.evaluate(tStateWS, tControlWS, tConfigWS, tResultWS);
-        Plato::Scalar tObjFuncValueFour = Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS);
+      Plato::blas1::update(1.0, tState, 0.0, tTrialState);
+      Plato::blas1::update(-2.0 * tEpsilon, tStep, 1.0, tTrialState);
+      tDatabase.vector("states",tTrialState);
+      tWorksetBuilder.build(tDomain, tDatabase, tInWorksets);
+      Kokkos::deep_copy(tResultWS->mData, 0.0);
+      tInWorksets.set("result", tResultWS);
+      aCriterion.evaluate(tInWorksets,/*cycle=*/0.);
+      Plato::Scalar tObjFuncValueFour = 
+        Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells, tResultWS->mData);
 
-        Plato::Scalar tNumerator = -tObjFuncValueThree + static_cast<Plato::Scalar>(8.) * tObjFuncValueOne
-                - static_cast<Plato::Scalar>(8.) * tObjFuncValueTwo + tObjFuncValueFour;
-        Plato::Scalar tDenominator = static_cast<Plato::Scalar>(12.) * tEpsilon;
-        Plato::Scalar tFiniteDiffAppxError = tNumerator / tDenominator;
-        Plato::Scalar tAppxError = std::abs(tFiniteDiffAppxError - tGradientDotStep);
+      Plato::Scalar tNumerator = -tObjFuncValueThree + static_cast<Plato::Scalar>(8.) * tObjFuncValueOne
+        - static_cast<Plato::Scalar>(8.) * tObjFuncValueTwo + tObjFuncValueFour;
+      Plato::Scalar tDenominator = static_cast<Plato::Scalar>(12.) * tEpsilon;
+      Plato::Scalar tFiniteDiffAppxError = tNumerator / tDenominator;
+      Plato::Scalar tAppxError = std::abs(tFiniteDiffAppxError - tGradientDotStep);
 
-        std::cout << std::right << std::scientific << std::setprecision(8) << std::setw(14) << tEpsilon << std::setw(19)
-              << tGradientDotStep << std::setw(19) << tFiniteDiffAppxError << std::setw(19) << tAppxError << "\n";
+      std::cout << std::right << std::scientific << std::setprecision(8) << std::setw(14) << tEpsilon << std::setw(19)
+        << tGradientDotStep << std::setw(19) << tFiniteDiffAppxError << std::setw(19) << tAppxError << "\n";
     }
 }
 // function test_partial_state
 
 
 template<typename EvaluationType, typename ElementType>
-inline void test_partial_control(Plato::Mesh aMesh,
-                                 Plato::Geometric::ScalarFunctionBase & aScalarFuncBase,
-                                 Plato::OrdinalType aSuperscriptLowerBound = 1,
-                                 Plato::OrdinalType aSuperscriptUpperBound = 10)
+inline void 
+test_partial_control(
+  Plato::Mesh                            aMesh,
+  Plato::Geometric::ScalarFunctionBase & aScalarFuncBase,
+  Plato::OrdinalType                     aSuperscriptLowerBound = 1,
+  Plato::OrdinalType                     aSuperscriptUpperBound = 10
+)
 {
     using ConfigT  = typename EvaluationType::ConfigScalarType;
     using ResultT  = typename EvaluationType::ResultScalarType;
@@ -353,8 +397,8 @@ inline void test_partial_control(Plato::Mesh aMesh,
     Kokkos::deep_copy(tStep, tHostStep);
     Plato::Scalar tGradientDotStep = Plato::blas1::dot(tPartialZ, tStep);
 
-    std::cout << std::right << std::setw(18) << "\nStep Size" << std::setw(20) << "Grad'*Step" << std::setw(18) << "FD Approx"
-               << std::setw(20) << "abs(Error)" << "\n";
+    std::cout << std::right << std::setw(18) << "\nStep Size" << std::setw(20) << "Grad'*Step" 
+      << std::setw(18) << "FD Approx" << std::setw(20) << "abs(Error)" << "\n";
 
     Plato::ScalarVector tTrialControl("trial control", tNumVerts);
     for(Plato::OrdinalType tIndex = aSuperscriptLowerBound; tIndex <= aSuperscriptUpperBound; tIndex++)
@@ -391,10 +435,13 @@ inline void test_partial_control(Plato::Mesh aMesh,
 
 // function test_partial_control
 template<typename EvaluationType, typename ElementType>
-inline void test_partial_control(Plato::Mesh aMesh,
-                                 Plato::Elliptic::CriterionEvaluatorBase & aScalarFuncBase,
-                                 Plato::OrdinalType aSuperscriptLowerBound = 1,
-                                 Plato::OrdinalType aSuperscriptUpperBound = 10)
+inline void 
+test_partial_control(
+  Plato::Mesh                               aMesh,
+  Plato::Elliptic::CriterionEvaluatorBase & aScalarFuncBase,
+  Plato::OrdinalType                        aSuperscriptLowerBound = 1,
+  Plato::OrdinalType                        aSuperscriptUpperBound = 10
+)
 {
     using StateT = typename EvaluationType::StateScalarType;
     using ConfigT = typename EvaluationType::ConfigScalarType;
@@ -403,6 +450,7 @@ inline void test_partial_control(Plato::Mesh aMesh,
 
     const Plato::OrdinalType tNumCells = aMesh->NumElements();
     constexpr Plato::OrdinalType tDofsPerNode = ElementType::mNumDofsPerNode;
+    Plato::Database tDatabase;
 
     // Create control workset
     const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
@@ -410,6 +458,7 @@ inline void test_partial_control(Plato::Mesh aMesh,
     auto tHostControl = Kokkos::create_mirror(tControl);
     Plato::blas1::random(0.5, 0.75, tHostControl);
     Kokkos::deep_copy(tControl, tHostControl);
+    tDatabase.vector("controls",tControl);
 
     // Create state workset
     const Plato::OrdinalType tTotalNumDofs = tNumVerts * tDofsPerNode;
@@ -418,52 +467,54 @@ inline void test_partial_control(Plato::Mesh aMesh,
     auto tHostState = Kokkos::create_mirror(tState);
     Plato::blas1::random(1, 5, tHostState);
     Kokkos::deep_copy(tState, tHostState);
+    tDatabase.vector("states",tState);
 
     // FINITE DIFFERENCE TEST
-    Plato::Solutions tSolution;
-    tSolution.set("State", tStates);
-    Plato::ScalarVector tPartialZ = aScalarFuncBase.gradient_z(tSolution, tControl, 0.0);
-
-
+    Plato::ScalarVector tPartialZ = aScalarFuncBase.gradientControl(tDatabase,/*cycle=*/0.);
     Plato::ScalarVector tStep("step", tNumVerts);
     auto tHostStep = Kokkos::create_mirror(tStep);
     Plato::blas1::random(0.05, 0.1, tHostStep);
     Kokkos::deep_copy(tStep, tHostStep);
     Plato::Scalar tGradientDotStep = Plato::blas1::dot(tPartialZ, tStep);
 
-    std::cout << std::right << std::setw(18) << "\nStep Size" << std::setw(20) << "Grad'*Step" << std::setw(18) << "FD Approx"
-               << std::setw(20) << "abs(Error)" << "\n";
+    std::cout << std::right << std::setw(18) << "\nStep Size" << std::setw(20) << "Grad'*Step" 
+      << std::setw(18) << "FD Approx" << std::setw(20) << "abs(Error)" << "\n";
 
     Plato::ScalarVector tTrialControl("trial control", tNumVerts);
     for(Plato::OrdinalType tIndex = aSuperscriptLowerBound; tIndex <= aSuperscriptUpperBound; tIndex++)
     {
-        Plato::Scalar tEpsilon = tEpsilon = static_cast<Plato::Scalar>(1) /
-                std::pow(static_cast<Plato::Scalar>(10), tIndex);
-        // four point finite difference approximation
-        Plato::blas1::update(1.0, tControl, 0.0, tTrialControl);
-        Plato::blas1::update(tEpsilon, tStep, 1.0, tTrialControl);
-        Plato::Scalar tObjFuncValueOne = aScalarFuncBase.value(tSolution, tTrialControl, 0.0);
+      Plato::Scalar tEpsilon = tEpsilon = static_cast<Plato::Scalar>(1) /
+              std::pow(static_cast<Plato::Scalar>(10), tIndex);
+      // four point finite difference approximation
+      Plato::blas1::update(1.0, tControl, 0.0, tTrialControl);
+      Plato::blas1::update(tEpsilon, tStep, 1.0, tTrialControl);
+      tDatabase.vector("controls",tTrialControl);
+      Plato::Scalar tObjFuncValueOne = aScalarFuncBase.value(tDatabase,/*cycle=*/0.);
 
-        Plato::blas1::update(1.0, tControl, 0.0, tTrialControl);
-        Plato::blas1::update(-tEpsilon, tStep, 1.0, tTrialControl);
-        Plato::Scalar tObjFuncValueTwo = aScalarFuncBase.value(tSolution, tTrialControl, 0.0);
+      Plato::blas1::update(1.0, tControl, 0.0, tTrialControl);
+      Plato::blas1::update(-tEpsilon, tStep, 1.0, tTrialControl);
+      tDatabase.vector("controls",tTrialControl);
+      Plato::Scalar tObjFuncValueTwo = aScalarFuncBase.value(tDatabase,/*cycle=*/0.);
 
-        Plato::blas1::update(1.0, tControl, 0.0, tTrialControl);
-        Plato::blas1::update(2.0 * tEpsilon, tStep, 1.0, tTrialControl);
-        Plato::Scalar tObjFuncValueThree = aScalarFuncBase.value(tSolution, tTrialControl, 0.0);
+      Plato::blas1::update(1.0, tControl, 0.0, tTrialControl);
+      Plato::blas1::update(2.0 * tEpsilon, tStep, 1.0, tTrialControl);
+      tDatabase.vector("controls",tTrialControl);
+      Plato::Scalar tObjFuncValueThree = aScalarFuncBase.value(tDatabase,/*cycle=*/0.);
 
-        Plato::blas1::update(1.0, tControl, 0.0, tTrialControl);
-        Plato::blas1::update(-2.0 * tEpsilon, tStep, 1.0, tTrialControl);
-        Plato::Scalar tObjFuncValueFour = aScalarFuncBase.value(tSolution, tTrialControl, 0.0);
+      Plato::blas1::update(1.0, tControl, 0.0, tTrialControl);
+      Plato::blas1::update(-2.0 * tEpsilon, tStep, 1.0, tTrialControl);
+      tDatabase.vector("controls",tTrialControl);
+      Plato::Scalar tObjFuncValueFour = aScalarFuncBase.value(tDatabase,/*cycle=*/0.);
 
-        Plato::Scalar tNumerator = -tObjFuncValueThree + static_cast<Plato::Scalar>(8.) * tObjFuncValueOne
-                - static_cast<Plato::Scalar>(8.) * tObjFuncValueTwo + tObjFuncValueFour;
-        Plato::Scalar tDenominator = static_cast<Plato::Scalar>(12.) * tEpsilon;
-        Plato::Scalar tFiniteDiffAppxError = tNumerator / tDenominator;
-        Plato::Scalar tAppxError = std::abs(tFiniteDiffAppxError - tGradientDotStep);
+      Plato::Scalar tNumerator = -tObjFuncValueThree + static_cast<Plato::Scalar>(8.) * tObjFuncValueOne
+        - static_cast<Plato::Scalar>(8.) * tObjFuncValueTwo + tObjFuncValueFour;
+      Plato::Scalar tDenominator = static_cast<Plato::Scalar>(12.) * tEpsilon;
+      Plato::Scalar tFiniteDiffAppxError = tNumerator / tDenominator;
+      Plato::Scalar tAppxError = std::abs(tFiniteDiffAppxError - tGradientDotStep);
 
-        std::cout << std::right << std::scientific << std::setprecision(8) << std::setw(14) << tEpsilon << std::setw(19)
-              << tGradientDotStep << std::setw(19) << tFiniteDiffAppxError << std::setw(19) << tAppxError << "\n";
+      std::cout << std::right << std::scientific << std::setprecision(8) << std::setw(14) << tEpsilon 
+        << std::setw(19) << tGradientDotStep << std::setw(19) << tFiniteDiffAppxError << std::setw(19) 
+        << tAppxError << "\n";
     }
 }
 // function test_partial_control
@@ -474,7 +525,11 @@ inline void test_partial_control(Plato::Mesh aMesh,
  * \param [in] aCriterion scalar function (i.e. scalar criterion) interface
 **********************************************************************************/
 template<typename EvaluationType, typename ElementType>
-inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::CriterionEvaluatorBase & aScalarFuncBase)
+inline void 
+test_partial_state(
+  Plato::Mesh                               aMesh, 
+  Plato::Elliptic::CriterionEvaluatorBase & aScalarFuncBase
+)
 {
     using StateT = typename EvaluationType::StateScalarType;
     using ConfigT = typename EvaluationType::ConfigScalarType;
@@ -483,6 +538,7 @@ inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::CriterionEval
 
     const Plato::OrdinalType tNumCells = aMesh->NumElements();
     constexpr Plato::OrdinalType tDofsPerNode = ElementType::mNumDofsPerNode;
+    Plato::Database tDatabase;
 
     // Create control workset
     const Plato::OrdinalType tNumVerts = aMesh->NumNodes();
@@ -490,6 +546,7 @@ inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::CriterionEval
     auto tHostControl = Kokkos::create_mirror(tControl);
     Plato::blas1::random(0.5, 0.75, tHostControl);
     Kokkos::deep_copy(tControl, tHostControl);
+    tDatabase.vector("controls",tControl);
 
     // Create state workset
     const Plato::OrdinalType tTotalNumDofs = tNumVerts * tDofsPerNode;
@@ -498,10 +555,9 @@ inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::CriterionEval
     auto tHostState = Kokkos::create_mirror(tState);
     Plato::blas1::random(1, 5, tHostState);
     Kokkos::deep_copy(tState, tHostState);
+    tDatabase.vector("states",tState);
 
-    Plato::Solutions tSolution;
-    tSolution.set("State", tStates);
-    Plato::ScalarVector tPartialU = aScalarFuncBase.gradient_u(tSolution, tControl, 0.0);
+    Plato::ScalarVector tPartialU = aScalarFuncBase.gradientState(tDatabase,/*cycle=*/0.);
 
     Plato::ScalarMultiVector tTrialStates("trial state", /*numSteps=*/1, tTotalNumDofs);
     auto tTrialState = Kokkos::subview(tTrialStates, 0, Kokkos::ALL());
@@ -512,8 +568,8 @@ inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::CriterionEval
     Kokkos::deep_copy(tStep, tHostStep);
     Plato::Scalar tGradientDotStep = Plato::blas1::dot(tPartialU, tStep);
 
-    std::cout << std::right << std::setw(18) << "\nStep Size" << std::setw(20) << "Grad'*Step" << std::setw(18) << "FD Approx"
-               << std::setw(20) << "abs(Error)" << "\n";
+    std::cout << std::right << std::setw(18) << "\nStep Size" << std::setw(20) << "Grad'*Step" 
+      << std::setw(18) << "FD Approx" << std::setw(20) << "abs(Error)" << "\n";
 
     constexpr Plato::OrdinalType tSuperscriptLowerBound = 1;
     constexpr Plato::OrdinalType tSuperscriptUpperBound = 10;
@@ -521,26 +577,27 @@ inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::CriterionEval
     {
         Plato::Scalar tEpsilon = tEpsilon = static_cast<Plato::Scalar>(1) /
                 std::pow(static_cast<Plato::Scalar>(10), tIndex);
+        
         // four point finite difference approximation
         Plato::blas1::update<Plato::ScalarVector>(1.0, tState, 0.0, tTrialState);
         Plato::blas1::update<Plato::ScalarVector>(tEpsilon, tStep, 1.0, tTrialState);
-        tSolution.set("State", tTrialStates);
-        Plato::Scalar tObjFuncValueOne = aScalarFuncBase.value(tSolution, tControl, 0.0);
+        tDatabase.vector("states",tTrialState);
+        Plato::Scalar tObjFuncValueOne = aScalarFuncBase.value(tDatabase,/*cycle=*/0.);
 
         Plato::blas1::update<Plato::ScalarVector>(1.0, tState, 0.0, tTrialState);
         Plato::blas1::update<Plato::ScalarVector>(-tEpsilon, tStep, 1.0, tTrialState);
-        tSolution.set("State", tTrialStates);
-        Plato::Scalar tObjFuncValueTwo = aScalarFuncBase.value(tSolution, tControl, 0.0);
+        tDatabase.vector("states",tTrialState);
+        Plato::Scalar tObjFuncValueTwo = aScalarFuncBase.value(tDatabase,/*cycle=*/0.);
 
         Plato::blas1::update<Plato::ScalarVector>(1.0, tState, 0.0, tTrialState);
         Plato::blas1::update<Plato::ScalarVector>(2.0 * tEpsilon, tStep, 1.0, tTrialState);
-        tSolution.set("State", tTrialStates);
-        Plato::Scalar tObjFuncValueThree = aScalarFuncBase.value(tSolution, tControl, 0.0);
+        tDatabase.vector("states",tTrialState);
+        Plato::Scalar tObjFuncValueThree = aScalarFuncBase.value(tDatabase,/*cycle=*/0.);
 
         Plato::blas1::update<Plato::ScalarVector>(1.0, tState, 0.0, tTrialState);
         Plato::blas1::update<Plato::ScalarVector>(-2.0 * tEpsilon, tStep, 1.0, tTrialState);
-        tSolution.set("State", tTrialStates);
-        Plato::Scalar tObjFuncValueFour = aScalarFuncBase.value(tSolution, tControl, 0.0);
+        tDatabase.vector("states",tTrialState);
+        Plato::Scalar tObjFuncValueFour = aScalarFuncBase.value(tDatabase,/*cycle=*/0.);
 
         Plato::Scalar tNumerator = -tObjFuncValueThree + static_cast<Plato::Scalar>(8.) * tObjFuncValueOne
                 - static_cast<Plato::Scalar>(8.) * tObjFuncValueTwo + tObjFuncValueFour;
@@ -548,15 +605,19 @@ inline void test_partial_state(Plato::Mesh aMesh, Plato::Elliptic::CriterionEval
         Plato::Scalar tFiniteDiffAppxError = tNumerator / tDenominator;
         Plato::Scalar tAppxError = std::abs(tFiniteDiffAppxError - tGradientDotStep);
 
-        std::cout << std::right << std::scientific << std::setprecision(8) << std::setw(14) << tEpsilon << std::setw(19)
-              << tGradientDotStep << std::setw(19) << tFiniteDiffAppxError << std::setw(19) << tAppxError << "\n";
+        std::cout << std::right << std::scientific << std::setprecision(8) << std::setw(14) << tEpsilon 
+          << std::setw(19) << tGradientDotStep << std::setw(19) << tFiniteDiffAppxError << std::setw(19) 
+          << tAppxError << "\n";
     }
 }
 // function test_partial_state
 
-inline Plato::ScalarVector
-local_workset_matrix_vector_multiply(const Plato::ScalarArray3D & aWorkset,
-                                     const Plato::ScalarVector & aVector)
+inline 
+Plato::ScalarVector
+local_workset_matrix_vector_multiply(
+  const Plato::ScalarArray3D & aWorkset,
+  const Plato::ScalarVector  & aVector
+)
 {
     const Plato::OrdinalType tNumCells            = aWorkset.extent(0);
     const Plato::OrdinalType tNumLocalDofsPerCell = aWorkset.extent(1);

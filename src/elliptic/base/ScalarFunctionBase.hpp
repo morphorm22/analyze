@@ -25,19 +25,34 @@ public:
   /// @fn name
   /// @brief return scalar function name
   /// @return string
-  virtual std::string name() const = 0;
+  virtual 
+  std::string 
+  name() 
+  const = 0;
 
   /// @fn isLinear
   /// @brief return true if scalar function is linear
   /// @return boolean
-  virtual bool isLinear() const = 0;
-  
+  virtual 
+  bool 
+  isLinear() 
+  const = 0;
+
+  virtual 
+  void
+  updateProblem(
+    const Plato::Database & aDatabase,
+    const Plato::Scalar   & aCycle
+  ) 
+  { return; }
+
   /// @fn value
   /// @brief evaluate scalar function
   /// @param aDatabase output database
   /// @param aCycle    scalar, e.g.; time step
   /// @return scalar
-  virtual Plato::Scalar
+  virtual 
+  Plato::Scalar
   value(
     const Plato::Database & aDatabase,
     const Plato::Scalar   & aCycle
@@ -48,7 +63,8 @@ public:
   /// @param aDatabase output database
   /// @param aCycle    scalar, e.g.; time step
   /// @return scalar plato vector
-  virtual Plato::ScalarVector
+  virtual 
+  Plato::ScalarVector
   gradientControl(
     const Plato::Database & aDatabase,
     const Plato::Scalar   & aCycle
@@ -59,7 +75,8 @@ public:
   /// @param aDatabase output database
   /// @param aCycle    scalar, e.g.; time step
   /// @return scalar plato vector
-  virtual Plato::ScalarVector
+  virtual 
+  Plato::ScalarVector
   gradientState(
     const Plato::Database & aDatabase,
     const Plato::Scalar   & aCycle
@@ -70,7 +87,8 @@ public:
   /// @param aDatabase output database
   /// @param aCycle    scalar, e.g.; time step
   /// @return scalar plato vector
-  virtual Plato::ScalarVector
+  virtual 
+  Plato::ScalarVector
   gradientConfig(
     const Plato::Database & aDatabase,
     const Plato::Scalar   & aCycle

@@ -25,10 +25,11 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D )
 
   // create mesh based density from host data
   //
+  Plato::Database tDatabase;
   Plato::OrdinalType tNumVerts = tMesh->NumNodes();
   Plato::ScalarVector z("density", tNumVerts);
   Kokkos::deep_copy(z, 1.0);
-
+  tDatabase.vector("controls",z);
 
   // create displacement field, u = x
   //
@@ -39,7 +40,8 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D )
     U(0, aNodeOrdinal*spaceDim + 0) = tCoords[aNodeOrdinal*spaceDim + 0];
     U(0, aNodeOrdinal*spaceDim + 1) = tCoords[aNodeOrdinal*spaceDim + 1];
   }, "set disp");
-
+  auto tMyState = Kokkos::subview(U,/*cycle index=*/0,Kokkos::ALL());
+  tDatabase.vector("states",tMyState);
 
   // setup the problem
   //
@@ -88,19 +90,16 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D )
   Plato::Elliptic::CriterionEvaluatorSolutionFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tri3>>
     scalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
-
   // compute and test objective value
   //
-  Plato::Solutions tSolution;
-  tSolution.set("State", U);
-  auto value = scalarFunction.value(tSolution, z);
+  auto value = scalarFunction.value(tDatabase,/*cycle=*/0.);
 
   Plato::Scalar value_gold = 0.5;
   TEST_FLOATING_EQUALITY(value, value_gold, 1e-13);
 
   // compute and test objective gradient wrt state, u
   //
-  auto grad_u = scalarFunction.gradient_u(tSolution, z, /*stepIndex=*/0);
+  auto grad_u = scalarFunction.gradientState(tDatabase,/*cycle=*/0.);
 
   auto grad_u_Host = Kokkos::create_mirror_view( grad_u );
   Kokkos::deep_copy( grad_u_Host, grad_u );
@@ -119,7 +118,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D )
 
   // compute and test objective gradient wrt control, z
   //
-  auto grad_z = scalarFunction.gradient_z(tSolution, z);
+  auto grad_z = scalarFunction.gradientControl(tDatabase,/*cycle=*/0.);
 
   auto grad_z_Host = Kokkos::create_mirror_view( grad_z );
   Kokkos::deep_copy( grad_z_Host, grad_z );
@@ -130,7 +129,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D )
 
   // compute and test objective gradient wrt node position, x
   //
-  auto grad_x = scalarFunction.gradient_x(tSolution, z);
+  auto grad_x = scalarFunction.gradientConfig(tDatabase,/*cycle=*/0.);
 
   auto grad_x_Host = Kokkos::create_mirror_view( grad_x );
   Kokkos::deep_copy(grad_x_Host, grad_x);
@@ -156,10 +155,11 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D_Mag )
 
   // create mesh based density from host data
   //
+  Plato::Database tDatabase;
   Plato::OrdinalType tNumVerts = tMesh->NumNodes();
   Plato::ScalarVector z("density", tNumVerts);
   Kokkos::deep_copy(z, 1.0);
-
+  tDatabase.vector("controls",z);
 
   // create displacement field, u = x
   //
@@ -170,7 +170,8 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D_Mag )
     U(0, aNodeOrdinal*spaceDim + 0) = tCoords[aNodeOrdinal*spaceDim + 0];
     U(0, aNodeOrdinal*spaceDim + 1) = tCoords[aNodeOrdinal*spaceDim + 1];
   }, "set disp");
-
+  auto tMyState = Kokkos::subview(U,/*cycle index=*/0,Kokkos::ALL());
+  tDatabase.vector("states",tMyState);
 
   // setup the problem
   //
@@ -219,19 +220,16 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D_Mag )
   Plato::Elliptic::CriterionEvaluatorSolutionFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tri3>>
     scalarFunction(tSpatialModel, tDataMap, *tParamList, tMyFunction);
 
-
   // compute and test objective value
   //
-  Plato::Solutions tSolution;
-  tSolution.set("State", U);
-  auto value = scalarFunction.value(tSolution, z);
+  auto value = scalarFunction.value(tDatabase,/*cycle=*/0.);
 
   Plato::Scalar value_gold = 0.5;
   TEST_FLOATING_EQUALITY(value, value_gold, 1e-13);
 
   // compute and test objective gradient wrt state, u
   //
-  auto grad_u = scalarFunction.gradient_u(tSolution, z, /*stepIndex=*/0);
+  auto grad_u = scalarFunction.gradientState(tDatabase,/*cycle=*/0.);
 
   auto grad_u_Host = Kokkos::create_mirror_view( grad_u );
   Kokkos::deep_copy( grad_u_Host, grad_u );
@@ -250,7 +248,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D_Mag )
 
   // compute and test objective gradient wrt control, z
   //
-  auto grad_z = scalarFunction.gradient_z(tSolution, z);
+  auto grad_z = scalarFunction.gradientControl(tDatabase,/*cycle=*/0.);
 
   auto grad_z_Host = Kokkos::create_mirror_view( grad_z );
   Kokkos::deep_copy( grad_z_Host, grad_z );
@@ -261,7 +259,7 @@ TEUCHOS_UNIT_TEST( DerivativeTests, Solution2D_Mag )
 
   // compute and test objective gradient wrt node position, x
   //
-  auto grad_x = scalarFunction.gradient_x(tSolution, z);
+  auto grad_x = scalarFunction.gradientConfig(tDatabase,/*cycle=*/0.);
 
   auto grad_x_Host = Kokkos::create_mirror_view( grad_x );
   Kokkos::deep_copy(grad_x_Host, grad_x);

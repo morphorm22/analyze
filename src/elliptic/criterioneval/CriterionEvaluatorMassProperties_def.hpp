@@ -9,6 +9,7 @@
 #include "elliptic/mechanical/linear/CriterionMassMoment.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorDivision.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorWeightedSum.hpp"
+#include "elliptic/criterioneval/CriterionEvaluatorLeastSquares.hpp"
 #include "elliptic/criterioneval/FactoryCriterionEvaluator.hpp"
 
 namespace Plato
@@ -407,25 +408,25 @@ namespace Elliptic
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<Residual>>(tDomain, mDataMap);
             tValue->setMaterialDensity(mMaterialDensities[tName]);
             tValue->setCalculationType(tCalculationType);
-            tMassFunction->setEvaluator(tValue, tName);
+            tMassFunction->setEvaluator(Plato::Elliptic::evaluator_t::VALUE, tValue, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientU>> tGradientU = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientU>>(tDomain, mDataMap);
             tGradientU->setMaterialDensity(mMaterialDensities[tName]);
             tGradientU->setCalculationType(tCalculationType);
-            tMassFunction->setEvaluator(tGradientU, tName);
+            tMassFunction->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_U, tGradientU, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientZ>> tGradientZ = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientZ>>(tDomain, mDataMap);
             tGradientZ->setMaterialDensity(mMaterialDensities[tName]);
             tGradientZ->setCalculationType(tCalculationType);
-            tMassFunction->setEvaluator(tGradientZ, tName);
+            tMassFunction->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_Z, tGradientZ, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientX>> tGradientX = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientX>>(tDomain, mDataMap);
             tGradientX->setMaterialDensity(mMaterialDensities[tName]);
             tGradientX->setCalculationType(tCalculationType);
-            tMassFunction->setEvaluator(tGradientX, tName);
+            tMassFunction->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_X, tGradientX, tName);
         }
         return tMassFunction;
     }
@@ -457,25 +458,25 @@ namespace Elliptic
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<Residual>>(tDomain, mDataMap);
             tNumeratorValue->setMaterialDensity(mMaterialDensities[tName]);
             tNumeratorValue->setCalculationType(aMomentType);
-            tNumerator->setEvaluator(tNumeratorValue, tName);
+            tNumerator->setEvaluator(Plato::Elliptic::evaluator_t::VALUE, tNumeratorValue, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientU>> tNumeratorGradientU = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientU>>(tDomain, mDataMap);
             tNumeratorGradientU->setMaterialDensity(mMaterialDensities[tName]);
             tNumeratorGradientU->setCalculationType(aMomentType);
-            tNumerator->setEvaluator(tNumeratorGradientU, tName);
+            tNumerator->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_U, tNumeratorGradientU, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientZ>> tNumeratorGradientZ = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientZ>>(tDomain, mDataMap);
             tNumeratorGradientZ->setMaterialDensity(mMaterialDensities[tName]);
             tNumeratorGradientZ->setCalculationType(aMomentType);
-            tNumerator->setEvaluator(tNumeratorGradientZ, tName);
+            tNumerator->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_Z, tNumeratorGradientZ, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientX>> tNumeratorGradientX = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientX>>(tDomain, mDataMap);
             tNumeratorGradientX->setMaterialDensity(mMaterialDensities[tName]);
             tNumeratorGradientX->setCalculationType(aMomentType);
-            tNumerator->setEvaluator(tNumeratorGradientX, tName);
+            tNumerator->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_X, tNumeratorGradientX, tName);
         }
 
         const std::string tDenominatorName = std::string("CG Mass Denominator (Moment type = ")
@@ -519,29 +520,28 @@ namespace Elliptic
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<Residual>>(tDomain, mDataMap);
             tValue->setMaterialDensity(mMaterialDensities[tName]);
             tValue->setCalculationType(aMomentType);
-            tSecondMomentFunction->setEvaluator(tValue, tName);
+            tSecondMomentFunction->setEvaluator(Plato::Elliptic::evaluator_t::VALUE, tValue, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientU>> tGradientU = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientU>>(tDomain, mDataMap);
             tGradientU->setMaterialDensity(mMaterialDensities[tName]);
             tGradientU->setCalculationType(aMomentType);
-            tSecondMomentFunction->setEvaluator(tGradientU, tName);
+            tSecondMomentFunction->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_U, tGradientU, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientZ>> tGradientZ = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientZ>>(tDomain, mDataMap);
             tGradientZ->setMaterialDensity(mMaterialDensities[tName]);
             tGradientZ->setCalculationType(aMomentType);
-            tSecondMomentFunction->setEvaluator(tGradientZ, tName);
+            tSecondMomentFunction->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_Z, tGradientZ, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientX>> tGradientX = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientX>>(tDomain, mDataMap);
             tGradientX->setMaterialDensity(mMaterialDensities[tName]);
             tGradientX->setCalculationType(aMomentType);
-            tSecondMomentFunction->setEvaluator(tGradientX, tName);
+            tSecondMomentFunction->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_X, tGradientX, tName);
         }
         return tSecondMomentFunction;
     }
-
 
     /******************************************************************************//**
      * \brief Create the moment of inertia function
@@ -766,12 +766,11 @@ namespace Elliptic
               Teuchos::ParameterList & aInputParams,
               std::string            & aName
     ) :
-        Plato::WorksetBase<typename PhysicsType::ElementType>(aSpatialModel.Mesh),
-        mSpatialModel (aSpatialModel),
-        mDataMap      (aDataMap),
-        mFunctionName (aName)
+      mSpatialModel (aSpatialModel),
+      mDataMap      (aDataMap),
+      mFunctionName (aName)
     {
-        initialize(aInputParams);
+      initialize(aInputParams);
     }
 
     /******************************************************************************//**
@@ -823,107 +822,78 @@ namespace Elliptic
         mMeshExtentZ = std::abs(tZmax - tZmin);
     }
 
-    /******************************************************************************//**
-     * \brief Update physics-based parameters within optimization iterations
-     * \param [in] aState 1D view of state variables
-     * \param [in] aControl 1D view of control variables
-     **********************************************************************************/
+    template<typename PhysicsType>
+    bool 
+    CriterionEvaluatorMassProperties<PhysicsType>::
+    isLinear() 
+    const
+    {
+      return ( mLeastSquaresFunction->isLinear() );
+    }
+
     template<typename PhysicsType>
     void
-    CriterionEvaluatorMassProperties<PhysicsType>::updateProblem(
-        const Plato::ScalarVector & aState,
-        const Plato::ScalarVector & aControl
+    CriterionEvaluatorMassProperties<PhysicsType>::
+    updateProblem(
+      const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
     ) const
     {
-        mLeastSquaresFunction->updateProblem(aState, aControl);
+      mLeastSquaresFunction->updateProblem(aDatabase,aCycle);
     }
 
-    /******************************************************************************//**
-     * \brief Evaluate Mass Properties Function
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return scalar function evaluation
-    **********************************************************************************/
     template<typename PhysicsType>
     Plato::Scalar
-    CriterionEvaluatorMassProperties<PhysicsType>::value(
-        const Plato::Solutions    & aSolution,
-        const Plato::ScalarVector & aControl,
-              Plato::Scalar         aTimeStep
+    CriterionEvaluatorMassProperties<PhysicsType>::
+    value(const Plato::Database & aDatabase,
+          const Plato::Scalar   & aCycle
     ) const
     {
-        Plato::Scalar tFunctionValue = mLeastSquaresFunction->value(aSolution, aControl, aTimeStep);
-        return tFunctionValue;
+      Plato::Scalar tFunctionValue = mLeastSquaresFunction->value(aDatabase,aCycle);
+      return tFunctionValue;
     }
 
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the Mass Properties Function with respect to (wrt) the state variables
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the scalar function wrt the state variables
-    **********************************************************************************/
     template<typename PhysicsType>
     Plato::ScalarVector
-    CriterionEvaluatorMassProperties<PhysicsType>::gradient_u(
-        const Plato::Solutions    & aSolution,
-        const Plato::ScalarVector & aControl,
-              Plato::OrdinalType    aStepIndex,
-              Plato::Scalar         aTimeStep
+    CriterionEvaluatorMassProperties<PhysicsType>::
+    gradientState(
+      const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
     ) const
     {
-        Plato::ScalarVector tGradientU = mLeastSquaresFunction->gradient_u(aSolution, aControl, aStepIndex, aTimeStep);
-        return tGradientU;
+      Plato::ScalarVector tGradientU = mLeastSquaresFunction->gradientState(aDatabase,aCycle);
+      return tGradientU;
     }
 
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the Mass Properties Function with respect to (wrt) the configuration
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the scalar function wrt the state variables
-    **********************************************************************************/
     template<typename PhysicsType>
     Plato::ScalarVector
-    CriterionEvaluatorMassProperties<PhysicsType>::gradient_x(
-        const Plato::Solutions    & aSolution,
-        const Plato::ScalarVector & aControl,
-              Plato::Scalar         aTimeStep
+    CriterionEvaluatorMassProperties<PhysicsType>::
+    gradientConfig(
+      const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
     ) const
     {
-        Plato::ScalarVector tGradientX = mLeastSquaresFunction->gradient_x(aSolution, aControl, aTimeStep);
-        return tGradientX;
+      Plato::ScalarVector tGradientX = mLeastSquaresFunction->gradientConfig(aDatabase,aCycle);
+      return tGradientX;
     }
 
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the Mass Properties Function with respect to (wrt) the control
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the scalar function wrt the state variables
-    **********************************************************************************/
     template<typename PhysicsType>
     Plato::ScalarVector
-    CriterionEvaluatorMassProperties<PhysicsType>::gradient_z(
-        const Plato::Solutions    & aSolution,
-        const Plato::ScalarVector & aControl,
-              Plato::Scalar         aTimeStep
+    CriterionEvaluatorMassProperties<PhysicsType>::
+    gradientControl(
+      const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
     ) const
     {
-        Plato::ScalarVector tGradientZ = mLeastSquaresFunction->gradient_z(aSolution, aControl, aTimeStep);
-        return tGradientZ;
+      Plato::ScalarVector tGradientZ = mLeastSquaresFunction->gradientControl(aDatabase,aCycle);
+      return tGradientZ;
     }
 
-
-    /******************************************************************************//**
-     * \brief Return user defined function name
-     * \return User defined function name
-    **********************************************************************************/
     template<typename PhysicsType>
-    std::string CriterionEvaluatorMassProperties<PhysicsType>::name() const
+    std::string CriterionEvaluatorMassProperties<PhysicsType>::
+    name() const
     {
-        return mFunctionName;
+      return mFunctionName;
     }
 } // namespace Elliptic
 

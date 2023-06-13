@@ -2,7 +2,8 @@
 
 #include "ApplyWeighting.hpp"
 #include "ElasticModelFactory.hpp"
-#include "elliptic/AbstractScalarFunction.hpp"
+#include "base/CriterionBase.hpp"
+#include "elliptic/EvaluationTypes.hpp"
 
 namespace Plato
 {
@@ -17,67 +18,70 @@ namespace Elliptic
  * @tparam IndicatorFunctionType penalty function (e.g. simp)
 **********************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
-class CriterionInternalElasticEnergy :
-  public EvaluationType::ElementType,
-  public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+class CriterionInternalElasticEnergy : public Plato::CriterionBase
 {
-  private:
-    using ElementType = typename EvaluationType::ElementType;
+private:
+  /// @brief topologcial element type
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief number of nodes per cell
+  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+  /// @brief number of degrees of freedom per node
+  static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+  /// @brief number of degrees of freedom per cell
+  static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+  /// @brief number of voigt stress-strain terms 
+  static constexpr auto mNumVoigtTerms   = ElementType::mNumVoigtTerms;
 
-    using ElementType::mNumVoigtTerms;
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumDofsPerNode;
-    using ElementType::mNumDofsPerCell;
-    using ElementType::mNumSpatialDims;
+  using FunctionBaseType = typename Plato::CriterionBase;
+  using FunctionBaseType::mSpatialDomain;
+  using FunctionBaseType::mDataMap;
 
-    using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
+  using StateScalarType   = typename EvaluationType::StateScalarType;
+  using ControlScalarType = typename EvaluationType::ControlScalarType;
+  using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  using StrainScalarType  = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
-    using FunctionBaseType::mSpatialDomain;
-    using FunctionBaseType::mDataMap;
+  IndicatorFunctionType mIndicatorFunction;
+  Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, IndicatorFunctionType> mApplyWeighting;
 
-    using StateScalarType   = typename EvaluationType::StateScalarType;
-    using ControlScalarType = typename EvaluationType::ControlScalarType;
-    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
-    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  Teuchos::RCP<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterialModel;
 
-    IndicatorFunctionType mIndicatorFunction;
-    Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, IndicatorFunctionType> mApplyWeighting;
+public:
+  /******************************************************************************//**
+   * \brief Constructor
+   * \param aSpatialDomain Plato Analyze spatial domain
+   * \param aProblemParams input database for overall problem
+   * \param aPenaltyParams input database for penalty function
+  **********************************************************************************/
+  CriterionInternalElasticEnergy(
+      const Plato::SpatialDomain   & aSpatialDomain,
+            Plato::DataMap         & aDataMap,
+            Teuchos::ParameterList & aProblemParams,
+            Teuchos::ParameterList & aPenaltyParams,
+      const std::string            & aFunctionName
+  );
 
-    Teuchos::RCP<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterialModel;
+  /// @fn isLinear
+  /// @brief returns true if criterion is linear
+  /// @return boolean
+  bool 
+  isLinear() 
+  const;
 
-  public:
-    /******************************************************************************//**
-     * \brief Constructor
-     * \param aSpatialDomain Plato Analyze spatial domain
-     * \param aProblemParams input database for overall problem
-     * \param aPenaltyParams input database for penalty function
-    **********************************************************************************/
-    CriterionInternalElasticEnergy(
-        const Plato::SpatialDomain   & aSpatialDomain,
-              Plato::DataMap         & aDataMap,
-              Teuchos::ParameterList & aProblemParams,
-              Teuchos::ParameterList & aPenaltyParams,
-        const std::string            & aFunctionName
-    );
+  /// @fn evaluateConditional
+  /// @brief evaluate criterion
+  /// @param [in,out] aWorkSets function domain and range workset database
+  /// @param [in]     aCycle    scalar 
+  void
+  evaluateConditional(
+    const Plato::WorkSets & aWorkSets,
+    const Plato::Scalar   & aCycle
+  ) const;
 
-    /******************************************************************************//**
-     * \brief Evaluate internal elastic energy function
-     * \param [in] aState 2D container of state variables
-     * \param [in] aControl 2D container of control variables
-     * \param [in] aConfig 3D container of configuration/coordinates
-     * \param [out] aResult 1D container of cell criterion values
-     * \param [in] aTimeStep time step (default = 0)
-    **********************************************************************************/
-    void
-    evaluate_conditional(
-        const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-        const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-              Plato::ScalarVectorT      <ResultScalarType>  & aResult,
-              Plato::Scalar aTimeStep = 0.0
-    ) const override;
-};
-// class CriterionInternalElasticEnergy
+}; // class CriterionInternalElasticEnergy
 
 } // namespace Elliptic
 

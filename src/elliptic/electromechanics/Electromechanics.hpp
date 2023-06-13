@@ -3,7 +3,10 @@
 
 #include <memory>
 
-#include "elliptic/AbstractVectorFunction.hpp"
+#include "base/ResidualBase.hpp"
+#include "base/CriterionBase.hpp"
+
+#include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/electromechanics/ElectroelastostaticResidual.hpp"
 #include "elliptic/electromechanics/InternalElectroelasticEnergy.hpp"
 #include "elliptic/electromechanics/EMStressPNorm.hpp"
@@ -24,12 +27,12 @@ struct FunctionFactory
 {
   /******************************************************************************/
   template<typename EvaluationType>
-  std::shared_ptr<Plato::Elliptic::AbstractVectorFunction<EvaluationType>>
+  std::shared_ptr<Plato::ResidualBase>
   createVectorFunction(
-      const Plato::SpatialDomain   & aSpatialDomain,
-            Plato::DataMap         & aDataMap, 
-            Teuchos::ParameterList & aParamList,
-            std::string              aFuncType
+    const Plato::SpatialDomain   & aSpatialDomain,
+          Plato::DataMap         & aDataMap, 
+          Teuchos::ParameterList & aParamList,
+          std::string              aFuncType
   )
   /******************************************************************************/
   {  
@@ -46,13 +49,13 @@ struct FunctionFactory
   }
 
   template<typename EvaluationType>
-  std::shared_ptr<Plato::Elliptic::AbstractScalarFunction<EvaluationType>>
+  std::shared_ptr<Plato::CriterionBase>
   createScalarFunction(
-      const Plato::SpatialDomain   & aSpatialDomain,
-            Plato::DataMap         & aDataMap, 
-            Teuchos::ParameterList & aProblemParams, 
-            std::string              aFuncType,
-            std::string              aFuncName
+    const Plato::SpatialDomain   & aSpatialDomain,
+          Plato::DataMap         & aDataMap, 
+          Teuchos::ParameterList & aProblemParams, 
+          std::string              aFuncType,
+          std::string              aFuncName
   )
   {
     auto tLowerFuncType = Plato::tolower(aFuncType);

@@ -4,9 +4,10 @@
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
+#include "base/Database.hpp"
 #include "elliptic/mechanical/linear/Mechanics.hpp"
 #include "EssentialBCs.hpp"
-#include "elliptic/VectorFunction.hpp"
+#include "elliptic/base/VectorFunction.hpp"
 #include "ApplyConstraints.hpp"
 #include "LinearElasticMaterial.hpp"
 #include "solver/PlatoSolverFactory.hpp"
@@ -162,13 +163,16 @@ test_elastic_problem_solution(const Plato::Mesh& aMesh, const std::string& aSolv
 
     // create mesh based density
     //
+    Plato::Database tDatabase;
     Plato::ScalarVector tControl("density", tNumDofs);
     Kokkos::deep_copy(tControl, 1.0);
+    tDatabase.vector("controls",tControl);
 
     // create mesh based state
     //
     Plato::ScalarVector tState("state", tNumDofs);
     Kokkos::deep_copy(tState, 0.0);
+    tDatabase.vector("states",tState);
 
     // create material model
     //
@@ -177,15 +181,15 @@ test_elastic_problem_solution(const Plato::Mesh& aMesh, const std::string& aSolv
     Plato::DataMap tDataMap;
     Plato::SpatialModel tSpatialModel(aMesh, *tParamList, tDataMap);
     Plato::Elliptic::VectorFunction<PhysicsType>
-        vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
+      vectorFunction(tParamList->get<std::string>("PDE Constraint"), tSpatialModel, tDataMap, *tParamList);
 
     // compute and test constraint value
     //
-    auto tResidual = vectorFunction.value(tState, tControl);
+    auto tResidual = vectorFunction.value(tDatabase,/*cycle=*/0.);
 
     // compute and test constraint value
     //
-    auto tJacobian = vectorFunction.gradient_u(tState, tControl);
+    auto tJacobian = vectorFunction.jacobianState(tDatabase,/*cycle=*/0.);
 
     // parse constraints
     //
@@ -299,13 +303,16 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionEpetra )
 
   // create mesh based density
   //
+  Plato::Database tDatabase;
   Plato::ScalarVector control("density", tNumDofs);
   Kokkos::deep_copy(control, 1.0);
+  tDatabase.vector("controls",control);
 
   // create mesh based state
   //
   Plato::ScalarVector state("state", tNumDofs);
   Kokkos::deep_copy(state, 0.0);
+  tDatabase.vector("states",state);
 
   // create material model
   //
@@ -343,11 +350,11 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionEpetra )
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   Plato::Elliptic::VectorFunction<PhysicsType>
-    vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
+    vectorFunction(tParamList->get<std::string>("PDE Constraint"), tSpatialModel, tDataMap, *tParamList);
 
   // compute and test constraint value
   //
-  auto jacobian = vectorFunction.gradient_u(state, control);
+  auto jacobian = vectorFunction.jacobianState(tDatabase,/*cycle=*/0.);
 
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -614,13 +621,16 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra )
 
   // create mesh based density
   //
+  Plato::Database tDatabase;
   Plato::ScalarVector control("density", tNumDofs);
   Kokkos::deep_copy(control, 1.0);
+  tDatabase.vector("controls",control);
 
   // create mesh based state
   //
   Plato::ScalarVector state("state", tNumDofs);
   Kokkos::deep_copy(state, 0.0);
+  tDatabase.vector("states",state);
 
   // create material model
   //
@@ -659,11 +669,11 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra )
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   Plato::Elliptic::VectorFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tri3>>
-    vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
+    vectorFunction(tParamList->get<std::string>("PDE Constraint"), tSpatialModel, tDataMap, *tParamList);
 
   // compute and test constraint value
   //
-  auto jacobian = vectorFunction.gradient_u(state, control);
+  auto jacobian = vectorFunction.jacobianState(tDatabase,/*cycle=*/0.);
 
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -723,13 +733,16 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
 
   // create mesh based density
   //
+  Plato::Database tDatabase;
   Plato::ScalarVector control("density", tNumDofs);
   Kokkos::deep_copy(control, 1.0);
+  tDatabase.vector("controls",control);
 
   // create mesh based state
   //
   Plato::ScalarVector state("state", tNumDofs);
   Kokkos::deep_copy(state, 0.0);
+  tDatabase.vector("states",state);
 
   // create material model
   //
@@ -768,11 +781,11 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, MatrixConversionTpetra_wrongSize )
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   Plato::Elliptic::VectorFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tri3>>
-    vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
+    vectorFunction(tParamList->get<std::string>("PDE Constraint"), tSpatialModel, tDataMap, *tParamList);
 
   // compute and test constraint value
   //
-  auto jacobian = vectorFunction.gradient_u(state, control);
+  auto jacobian = vectorFunction.jacobianState(tDatabase,/*cycle=*/0.);
 
   MPI_Comm myComm;
   MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
@@ -1057,13 +1070,16 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
 
   // create mesh based density
   //
+  Plato::Database tDatabase;
   Plato::ScalarVector control("density", tNumDofs);
   Kokkos::deep_copy(control, 1.0);
+  tDatabase.vector("controls",control);
 
   // create mesh based state
   //
   Plato::ScalarVector state("state", tNumDofs);
   Kokkos::deep_copy(state, 0.0);
+  tDatabase.vector("states",state);
 
   // create material model
   //
@@ -1129,15 +1145,15 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
   Plato::SpatialModel tSpatialModel(tMesh, *tParamList, tDataMap);
 
   Plato::Elliptic::VectorFunction<PhysicsType>
-    vectorFunction(tSpatialModel, tDataMap, *tParamList, tParamList->get<std::string>("PDE Constraint"));
+    vectorFunction(tParamList->get<std::string>("PDE Constraint"), tSpatialModel, tDataMap, *tParamList);
 
   // compute and test constraint value
   //
-  auto residual = vectorFunction.value(state, control);
+  auto residual = vectorFunction.value(tDatabase,/*cycle=*/0.);
 
   // compute and test constraint value
   //
-  auto jacobian = vectorFunction.gradient_u(state, control);
+  auto jacobian = vectorFunction.jacobianState(tDatabase,/*cycle=*/0.);
 
   // parse constraints
   //

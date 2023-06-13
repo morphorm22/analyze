@@ -1,7 +1,8 @@
 #pragma once
 
 #include "ApplyWeighting.hpp"
-#include "elliptic/AbstractScalarFunction.hpp"
+#include "base/CriterionBase.hpp"
+#include "elliptic/EvaluationTypes.hpp"
 
 namespace Plato
 {
@@ -16,58 +17,74 @@ namespace Elliptic
  * @tparam IndicatorFunctionType penalty function (e.g. simp)
 **********************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
-class CriterionEffectiveEnergy : 
-  public EvaluationType::ElementType,
-  public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+class CriterionEffectiveEnergy : public Plato::CriterionBase
 {
   private:
-    using ElementType = typename EvaluationType::ElementType;
+  /// @brief topologcial element type
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief number of nodes per cell
+  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+  /// @brief number of degrees of freedom per node
+  static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+  /// @brief number of degrees of freedom per cell
+  static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+  /// @brief number of voigt stress-strain terms 
+  static constexpr auto mNumVoigtTerms   = ElementType::mNumVoigtTerms;
 
-    using ElementType::mNumVoigtTerms;
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumDofsPerNode;
-    using ElementType::mNumDofsPerCell;
-    using ElementType::mNumSpatialDims;
+  using Plato::CriterionBase::mSpatialDomain;
+  using Plato::CriterionBase::mDataMap;
+  using Plato::CriterionBase::mFunctionName;
 
-    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mSpatialDomain;
-    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mDataMap;
-    using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mFunctionName;
+  using StateScalarType   = typename EvaluationType::StateScalarType;
+  using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  using ControlScalarType = typename EvaluationType::ControlScalarType;
+  using StrainScalarType  = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
-    using StateScalarType   = typename EvaluationType::StateScalarType;
-    using ControlScalarType = typename EvaluationType::ControlScalarType;
-    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
-    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  IndicatorFunctionType mIndicatorFunction;
+  Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, IndicatorFunctionType> mApplyWeighting;
 
-    IndicatorFunctionType mIndicatorFunction;
-    Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, IndicatorFunctionType> mApplyWeighting;
+  Plato::Matrix< mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;
+  Plato::Array<mNumVoigtTerms> mAssumedStrain;
+  Plato::OrdinalType mColumnIndex;
 
-    Plato::Matrix< mNumVoigtTerms, mNumVoigtTerms> mCellStiffness;
-    Plato::Array<mNumVoigtTerms> mAssumedStrain;
-    Plato::OrdinalType mColumnIndex;
+  std::vector<std::string> mPlottable;
 
-    std::vector<std::string> mPlottable;
+public:
+  /// @brief class constructor
+  /// @param [in] aSpatialDomain contains mesh and model information
+  /// @param [in] aDataMap       output database
+  /// @param [in] aProblemParams input problem parameters
+  /// @param [in] aPenaltyParams input density-based penalty function parameters
+  /// @param [in] aFunctionName  criterion parameter list name
+  CriterionEffectiveEnergy(
+    const Plato::SpatialDomain   & aSpatialDomain,
+          Plato::DataMap         & aDataMap,
+          Teuchos::ParameterList & aProblemParams,
+          Teuchos::ParameterList & aPenaltyParams,
+    const std::string            & aFunctionName
+  );
 
-  public:
-    /**************************************************************************/
-    CriterionEffectiveEnergy(
-        const Plato::SpatialDomain   & aSpatialDomain,
-              Plato::DataMap         & aDataMap,
-              Teuchos::ParameterList & aProblemParams,
-              Teuchos::ParameterList & aPenaltyParams,
-        const std::string            & aFunctionName
-    );
+  /// @fn isLinear
+  /// @brief returns true if criterion is linear
+  /// @return boolean
+  bool 
+  isLinear() 
+  const;
 
-    /**************************************************************************/
-    void 
-    evaluate_conditional(
-        const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-        const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-              Plato::ScalarVectorT      <ResultScalarType>  & aResult,
-              Plato::Scalar aTimeStep = 0.0
-    ) const override;
-};
-// class CriterionEffectiveEnergy
+  /// @fn evaluateConditional
+  /// @brief evaluate effective internal energy criterion
+  /// @param [in,out] aWorkSets function domain and range workset database
+  /// @param [in]     aCycle    scalar 
+  void 
+  evaluateConditional(
+  const Plato::WorkSets & aWorkSets,
+  const Plato::Scalar   & aCycle
+  ) const;
+
+}; // class CriterionEffectiveEnergy
 
 } // namespace Elliptic
 

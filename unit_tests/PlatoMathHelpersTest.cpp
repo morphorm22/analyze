@@ -18,9 +18,9 @@
 #include "Solutions.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "PlatoMathFunctors.hpp"
+#include "elliptic/base/VectorFunction.hpp"
 #include "elliptic/mechanical/linear/Mechanics.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
-#include "elliptic/VectorFunction.hpp"
 #include "ApplyProjection.hpp"
 #include "AnalyzeMacros.hpp"
 #include "HyperbolicTangentProjection.hpp"
@@ -118,9 +118,13 @@ Teuchos::RCP<Plato::CrsMatrixType> createSquareMatrix()
 
   // create vector data
   //
+  Plato::Database tDatabase;
   Plato::ScalarVector u("state", spaceDim*nverts);
+  Plato::blas1::fill(0.0, u);
+  tDatabase.vector("states",u);
   Plato::ScalarVector z("control", nverts);
   Plato::blas1::fill(1.0, z);
+  tDatabase.vector("controls",z);
 
   // create residual function
   //
@@ -129,13 +133,13 @@ Teuchos::RCP<Plato::CrsMatrixType> createSquareMatrix()
   const Teuchos::RCP<Teuchos::ParameterList> elastostaticsParams = test_elastostatics_params();
   Plato::SpatialModel tSpatialModel(tMesh, *elastostaticsParams, tDataMap);
 
-  Plato::Elliptic::VectorFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tet4>>
-    tVectorFunction(tSpatialModel, tDataMap, *elastostaticsParams, 
-        elastostaticsParams->get<std::string>("PDE Constraint"));
+  auto tTypePDE = elastostaticsParams->get<std::string>("PDE Constraint");
+  Plato::Elliptic::VectorFunction<Plato::Elliptic::Linear::Mechanics<Plato::Tet4>>
+    tVectorFunction(tTypePDE, tSpatialModel, tDataMap, *elastostaticsParams);
 
   // compute and test gradient_u
   //
-  return tVectorFunction.gradient_u(u,z);
+  return tVectorFunction.jacobianState(tDatabase,/*cycle=*/0.);
 }
 
 }
@@ -1095,9 +1099,11 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_MatrixTimesVectorPlusV
 
   // create mesh based density from host data
   //
+  Plato::Database tDatabase;
   std::vector<Plato::Scalar> z_host( tMesh->NumNodes(), 1.0 );
   Kokkos::View<Plato::Scalar*, Kokkos::HostSpace, Kokkos::MemoryUnmanaged> z_host_view(z_host.data(),z_host.size());
   auto z = Kokkos::create_mirror_view_and_copy( Kokkos::DefaultExecutionSpace(), z_host_view);
+  tDatabase.vector("controls",z);
 
   // create mesh based displacement from host data
   //
@@ -1108,6 +1114,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_MatrixTimesVectorPlusV
   Plato::Scalar disp = 0.0, dval = 0.0001;
   for( int i = 0; i<stateSize; i++) u_host(i) = (disp += dval);
   Kokkos::deep_copy(u, u_host);
+  tDatabase.vector("states",u);
 
   // create material model
   //
@@ -1155,22 +1162,18 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_MatrixTimesVectorPlusV
   //
   Plato::DataMap tDataMap;
   std::string tMyFunction("Internal Elastic Energy");
-
   Plato::SpatialModel tSpatialModel(tMesh, *tParams, tDataMap);
-
   Plato::Elliptic::CriterionEvaluatorScalarFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tet4>>
     eeScalarFunction(tSpatialModel, tDataMap, *tParams, tMyFunction);
 
-  Plato::Solutions tSolution;
-  tSolution.set("State", U);
-  auto dfdx = eeScalarFunction.gradient_x(tSolution, z);
+  auto dfdx = eeScalarFunction.gradientConfig(tDatabase,/*cycle=*/0.);
 
   // create PDE constraint
   //
   Plato::Elliptic::VectorFunction<::Plato::Elliptic::Linear::Mechanics<Plato::Tet4>>
-    esVectorFunction(tSpatialModel, tDataMap, *tParams, tParams->get<std::string>("PDE Constraint"));
+    esVectorFunction(tParams->get<std::string>("PDE Constraint"), tSpatialModel, tDataMap, *tParams);
 
-  auto dgdx = esVectorFunction.gradient_x(u,z);
+  auto dgdx = esVectorFunction.jacobianConfig(tDatabase,/*cycle=*/0.);
 
 #ifdef COMPUTE_GOLD_
   {

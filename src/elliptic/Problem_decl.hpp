@@ -5,8 +5,7 @@
 #include "solver/ParallelComm.hpp"
 #include "PlatoAbstractProblem.hpp"
 #include "solver/PlatoSolverFactory.hpp"
-#include "elliptic/VectorFunction.hpp"
-#include "geometric/ScalarFunctionBase.hpp"
+#include "elliptic/base/VectorFunction.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorBase.hpp"
 
 namespace Plato
@@ -22,75 +21,101 @@ template<typename PhysicsType>
 class Problem: public Plato::AbstractProblem
 {
 private:
+  /// @brief local criterion typename
+  using Criterion = std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase>;
+  /// @brief local typename for map from criterion name to criterion evaluator
+  using Criteria  = std::map<std::string, Criterion>;
+  /// @brief local typename for physics-based element interface
+  using ElementType     = typename PhysicsType::ElementType;
+  /// @brief local typename for topological element
+  using TopoElementType = typename ElementType::TopoElementType;
+  /// @brief local typename for vector function evaluator
+  using VectorFunctionType = Plato::Elliptic::VectorFunction<PhysicsType>;
 
-    using Criterion       = std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase>;
-    using Criteria        = std::map<std::string, Criterion>;
+  /// @brief contains mesh and model information
+  Plato::SpatialModel mSpatialModel;
+  /// @brief residual evaluator
+  std::shared_ptr<VectorFunctionType> mResidualEvaluator; 
+  /// @brief map from criterion name to criterion evaluator
+  Criteria mCriterionEvaluator;
+  /// @brief number of newton steps/cycles
+  Plato::OrdinalType mNumNewtonSteps;
+  /// @brief residual and increment tolerances for newton solver
+  Plato::Scalar      mNewtonResTol, mNewtonIncTol;
 
-    using LinearCriterion = std::shared_ptr<Plato::Geometric::ScalarFunctionBase>;
-    using LinearCriteria  = std::map<std::string, LinearCriterion>;
+  /// @brief save state if true
+  bool mSaveState;
+  /// @brief apply dirichlet boundary condition weakly
+  bool mWeakEBCs = false;
+  /// @brief vector of adjoint values
+  Plato::ScalarMultiVector mAdjoints;
+  /// @brief scalar residual vector
+  Plato::ScalarVector mResidual;
+  /// @brief vector of state values
+  Plato::ScalarMultiVector mStates; 
+  /// @brief jacobian matrix
+  Teuchos::RCP<Plato::CrsMatrixType> mJacobianState;
 
-    using ElementType = typename PhysicsType::ElementType;
-    using TopoElementType = typename ElementType::TopoElementType;
+  /// @brief dirichlet degrees of freedom
+  Plato::OrdinalVector mDirichletDofs; 
+  /// @brief dirichlet degrees of freedom state values
+  Plato::ScalarVector mDirichletStateVals; 
+  /// @brief dirichlet degrees of freedom adjoint values
+  Plato::ScalarVector mDirichletAdjointVals;
 
-    using VectorFunctionType = Plato::Elliptic::VectorFunction<PhysicsType>;
+  /// @brief multipoint constraint interface
+  std::shared_ptr<Plato::MultipointConstraints> mMPCs;
+  /// @brief linear solver interface
+  std::shared_ptr<Plato::AbstractSolver> mSolver;
 
-    Plato::SpatialModel mSpatialModel; /*!< SpatialModel instance contains the mesh, meshsets, domains, etc. */
-
-    // required
-    std::shared_ptr<VectorFunctionType> mPDE; /*!< equality constraint interface */
-
-    LinearCriteria mLinearCriteria;
-    Criteria       mCriteria;
-
-    Plato::OrdinalType mNumNewtonSteps;
-    Plato::Scalar      mNewtonResTol, mNewtonIncTol;
-
-    bool mSaveState;
-
-    Plato::ScalarMultiVector mAdjoint;
-    Plato::ScalarVector mResidual;
-
-    Plato::ScalarMultiVector mStates; /*!< state variables */
-
-    bool mIsSelfAdjoint; /*!< indicates if problem is self-adjoint */
-
-    Teuchos::RCP<Plato::CrsMatrixType> mJacobian; /*!< Jacobian matrix */
-
-    Plato::OrdinalVector mBcDofs; /*!< list of degrees of freedom associated with the Dirichlet boundary conditions */
-    Plato::ScalarVector mBcValues; /*!< values associated with the Dirichlet boundary conditions */
-
-    std::shared_ptr<Plato::MultipointConstraints> mMPCs; /*!< multipoint constraint interface */
-
-    rcp<Plato::AbstractSolver> mSolver;
-
-    std::string mPDEType; /*!< partial differential equation type */
-    std::string mPhysics; /*!< physics used for the simulation */
+  /// @brief partial differential equation type
+  std::string mTypePDE; 
+  /// @brief simulated physics
+  std::string mPhysics; 
 
 public:
-    /******************************************************************************//**
-     * \brief PLATO problem constructor
-     * \param [in] aMesh mesh database
-     * \param [in] aProblemParams input parameters database
-    **********************************************************************************/
-    Problem(
-      Plato::Mesh              aMesh,
-      Teuchos::ParameterList & aProblemParams,
-      Plato::Comm::Machine     aMachine
-    );
+  /// @brief class constructor
+  /// @param aMesh       mesh interface
+  /// @param aParamList input problem parameters
+  /// @param aMachine    mpi wrapper
+  Problem(
+    Plato::Mesh              aMesh,
+    Teuchos::ParameterList & aParamList,
+    Plato::Comm::Machine     aMachine
+  );
 
-    ~Problem();
+  /// class destructor
+  ~Problem();
 
-    Plato::OrdinalType numNodes() const;
+  /// @fn numNodes
+  /// @brief return total number of nodes/vertices
+  /// @return integer
+  Plato::OrdinalType numNodes() const;
 
-    Plato::OrdinalType numCells() const;
-    
-    Plato::OrdinalType numDofsPerCell() const;
+  /// @fn numCells
+  /// @brief return total number of cells/elements
+  /// @return integer
+  Plato::OrdinalType numCells() const;
 
-    Plato::OrdinalType numNodesPerCell() const;
+  /// @fn numDofsPerCell
+  /// @brief return number of degrees of freedom per cell
+  /// @return integer
+  Plato::OrdinalType numDofsPerCell() const;
 
-    Plato::OrdinalType numDofsPerNode() const;
+  /// @fn numNodesPerCell
+  /// @brief return number of nodes per cell
+  /// @return integer
+  Plato::OrdinalType numNodesPerCell() const;
 
-    Plato::OrdinalType numControlsPerNode() const;
+  /// @fn numDofsPerNode
+  /// @brief return number of state degrees of freedom per node
+  /// @return integer
+  Plato::OrdinalType numDofsPerNode() const;
+
+  /// @fn numControlDofsPerNode
+  /// @brief return number of control degrees of freedom per node
+  /// @return integer
+  Plato::OrdinalType numControlDofsPerNode() const;
 
     /******************************************************************************//**
      * \brief Is criterion independent of the solution state?
@@ -103,17 +128,6 @@ public:
      * \param [in] aFilepath output/visualizaton file path
     **********************************************************************************/
     void output(const std::string & aFilepath) override;
-
-    /******************************************************************************//**
-     * \brief Apply Dirichlet constraints
-     * \param [in] aMatrix Compressed Row Storage (CRS) matrix
-     * \param [in] aVector 1D view of Right-Hand-Side forces
-    **********************************************************************************/
-    void applyStateConstraints(
-      const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
-      const Plato::ScalarVector & aVector,
-            Plato::Scalar aScale
-    );
 
     /******************************************************************************//**
      * \brief Update physics-based parameters within optimization iterations
@@ -235,31 +249,97 @@ public:
 
     /***************************************************************************//**
      * \brief Read essential (Dirichlet) boundary conditions from the Exodus file.
-     * \param [in] aProblemParams input parameters database
+     * \param [in] aParamList input parameters database
     *******************************************************************************/
-    void readEssentialBoundaryConditions(Teuchos::ParameterList& aProblemParams);
+    void 
+    readEssentialBoundaryConditions(
+      Teuchos::ParameterList & aParamList
+    );
 
     /***************************************************************************//**
      * \brief Set essential (Dirichlet) boundary conditions
      * \param [in] aDofs   degrees of freedom associated with Dirichlet boundary conditions
      * \param [in] aValues values associated with Dirichlet degrees of freedom
     *******************************************************************************/
-    void setEssentialBoundaryConditions(const Plato::OrdinalVector & aDofs, const Plato::ScalarVector & aValues);
+    void 
+    setEssentialBoundaryConditions(
+      const Plato::OrdinalVector & aDofs, 
+      const Plato::ScalarVector  & aValues
+    );
 
 private:
-    /******************************************************************************//**
-     * \brief Initialize member data
-     * \param [in] aProblemParams input parameters database
-    **********************************************************************************/
-    void initialize(Teuchos::ParameterList& aProblemParams);
+  /// @brief initialize linear system solver
+  /// @param aMesh       mesh interface
+  /// @param aParamList input problem parameters
+  /// @param aMachine    mpi wrapper
+  void 
+  initializeSolver(
+    Plato::Mesh            & aMesh,
+    Teuchos::ParameterList & aParamList,
+    Comm::Machine          & aMachine
+  );
 
-    void applyAdjointConstraints(const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix, const Plato::ScalarVector & aVector);
+  /// @brief initialize multi-point constraint interface
+  /// @param aParamList input problem parameters
+  void 
+  initializeMultiPointConstraints(
+    Teuchos::ParameterList& aParamList
+  );
 
-    /******************************************************************************/ /**
-    * \brief Return solution database.
-    * \return solution database
-    **********************************************************************************/
-    Plato::Solutions getSolution() const override;
+  /// @brief initialize criteria and residual evaluators
+  /// @param aParamList input problem parameters
+  void 
+  initializeEvaluators(
+    Teuchos::ParameterList& aParamList
+  );
+
+  /// @brief return solution database
+  /// @return solutions database
+  Plato::Solutions 
+  getSolution() 
+  const override;
+  
+  std::string
+  getErrorMsg(
+    const std::string & aName
+  ) const;
+
+  void
+  buildDatabase(
+    const Plato::ScalarVector & aControl,
+          Plato::Database     & aDatabase
+  );
+
+  Plato::ScalarVector
+  computeCriterionGradientControl(
+    Plato::Database & aDatabase,
+    Criterion       & aCriterion
+  );
+
+  Plato::ScalarVector
+  computeCriterionGradientConfig(
+    Plato::Database & aDatabase,
+    Criterion       & aCriterion
+  );
+
+  void
+  enforceStrongEssentialBoundaryConditions(
+    const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
+    const Plato::ScalarVector                & aVector,
+    const Plato::Scalar                      & aMultiplier
+  );
+
+  void 
+  enforceStrongEssentialAdjointBoundaryConditions(
+    const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
+    const Plato::ScalarVector                & aVector
+  );
+
+  void 
+  enforceWeakEssentialAdjointBoundaryConditions(
+    Plato::Database & aDatabase
+  );
+
 };
 // class Problem
 

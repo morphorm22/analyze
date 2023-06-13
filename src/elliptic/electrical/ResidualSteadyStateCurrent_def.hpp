@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "MetaData.hpp"
 #include "ScalarGrad.hpp"
 #include "GradientMatrix.hpp"
 #include "InterpolateFromNodal.hpp"
@@ -46,24 +47,30 @@ template<typename EvaluationType>
 void
 ResidualSteadyStateCurrent<EvaluationType>::
 evaluate(
-    const Plato::ScalarMultiVectorT <StateScalarType  > & aState,
-    const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-    const Plato::ScalarArray3DT     <ConfigScalarType > & aConfig,
-          Plato::ScalarMultiVectorT <ResultScalarType > & aResult,
-          Plato::Scalar                                   aCycle
+  Plato::WorkSets & aWorkSets,
+  Plato::Scalar     aCycle
 ) const
 {
+  // unpack worksets
+  Plato::ScalarArray3DT<ConfigScalarType> tConfigWS  = 
+    Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+  Plato::ScalarMultiVectorT<ControlScalarType> tControlWS = 
+    Plato::unpack<Plato::ScalarMultiVectorT<ControlScalarType>>(aWorkSets.get("controls"));
+  Plato::ScalarMultiVectorT<StateScalarType> tStateWS = 
+    Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
+  Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
+    Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
   // inline functors
   Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
   // integration rules
+  auto tNumPoints  = mNumGaussPoints;   
   auto tCubPoints  = ElementType::getCubPoints();
   auto tCubWeights = ElementType::getCubWeights();
-  auto tNumPoints  = ElementType::mNumGaussPoints;   
   // evaluate current density model
   auto tNumCells = mSpatialDomain.numCells();
   Plato::ScalarArray3DT<ResultScalarType> 
     tCurrentDensity("current density",tNumCells,tNumPoints,mNumSpatialDims);
-  mCurrentDensityEvaluator->evaluate(aState,aControl,aConfig,tCurrentDensity);
+  mCurrentDensityEvaluator->evaluate(tStateWS,tControlWS,tConfigWS,tCurrentDensity);
   // evaluate internal forces       
   Kokkos::parallel_for("evaluate steady state current residual", 
     Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells,tNumPoints}),
@@ -73,7 +80,7 @@ evaluate(
     ConfigScalarType tCellVolume(0.0);  
     auto tCubPoint = tCubPoints(iGpOrdinal);
     Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient;  
-    tComputeGradient(iCellOrdinal,tCubPoint,aConfig,tGradient,tCellVolume);
+    tComputeGradient(iCellOrdinal,tCubPoint,tConfigWS,tGradient,tCellVolume);
     // apply divergence operator
     tCellVolume *= tCubWeights(iGpOrdinal);
     for(Plato::OrdinalType tNode = 0; tNode < mNumNodesPerCell; tNode++){
@@ -82,30 +89,36 @@ evaluate(
       for(Plato::OrdinalType tDim = 0; tDim < mNumSpatialDims; tDim++){
         tValue += tCurrentDensity(iCellOrdinal,iGpOrdinal,tDim) * tGradient(tNode, tDim) * tCellVolume;
       }
-      Kokkos::atomic_add( &aResult(iCellOrdinal,tLocalOrdinal),tValue );
+      Kokkos::atomic_add( &tResultWS(iCellOrdinal,tLocalOrdinal),tValue );
     }
   });
   // evaluate volume forces
   if( mSourceEvaluator != nullptr ){
-    mSourceEvaluator->evaluate( mSpatialDomain, aState, aControl, aConfig, aResult, -1.0 );
+    mSourceEvaluator->evaluate( mSpatialDomain, tStateWS, tControlWS, tConfigWS, tResultWS, -1.0 );
   }
 }
 
 template<typename EvaluationType>
 void
 ResidualSteadyStateCurrent<EvaluationType>::
-evaluate_boundary(
-    const Plato::SpatialModel                           & aSpatialModel,
-    const Plato::ScalarMultiVectorT <StateScalarType  > & aState,
-    const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-    const Plato::ScalarArray3DT     <ConfigScalarType > & aConfig,
-          Plato::ScalarMultiVectorT <ResultScalarType > & aResult,
-          Plato::Scalar                                   aCycle
+evaluateBoundary(
+  const Plato::SpatialModel & aSpatialModel,
+        Plato::WorkSets     & aWorkSets,
+        Plato::Scalar         aCycle
 ) const
 {
+  // unpack worksets
+  Plato::ScalarArray3DT<ConfigScalarType> tConfigWS  = 
+    Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+  Plato::ScalarMultiVectorT<ControlScalarType> tControlWS = 
+    Plato::unpack<Plato::ScalarMultiVectorT<ControlScalarType>>(aWorkSets.get("controls"));
+  Plato::ScalarMultiVectorT<StateScalarType> tStateWS = 
+    Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
+  Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
+    Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
   // add contributions from natural boundary conditions
   if( mSurfaceLoads != nullptr ){
-    mSurfaceLoads->get(aSpatialModel,aState,aControl,aConfig,aResult,1.0);
+    mSurfaceLoads->get(aSpatialModel,tStateWS,tControlWS,tConfigWS,tResultWS,1.0);
   }
 }
 

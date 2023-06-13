@@ -7,8 +7,8 @@
 #pragma once
 
 #include "NaturalBCs.hpp"
+#include "base/ResidualBase.hpp"
 #include "elliptic/EvaluationTypes.hpp"
-#include "elliptic/AbstractVectorFunction.hpp"
 #include "elliptic/electrical/SourceEvaluator.hpp"
 #include "elliptic/electrical/CurrentDensityEvaluator.hpp"
 
@@ -24,21 +24,23 @@ namespace Plato
 ///
 /// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
-class ResidualSteadyStateCurrent : public Plato::Elliptic::AbstractVectorFunction<EvaluationType>
+class ResidualSteadyStateCurrent : public Plato::ResidualBase
 {
 private:
   /// @brief topological element type
   using ElementType = typename EvaluationType::ElementType;
+  /// @brief number of integration points
+  static constexpr auto mNumGaussPoints  = ElementType::mNumGaussPoints;
   /// @brief number of spatial dimensions 
-  static constexpr int mNumSpatialDims  = ElementType::mNumSpatialDims;
+  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
   /// @brief number of degrees of freedom per node
-  static constexpr int mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+  static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
   /// @brief number of degrees of freedom per cell
-  static constexpr int mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+  static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
   /// @brief number of nodes per cell
-  static constexpr int mNumNodesPerCell = ElementType::mNumNodesPerCell;
+  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
   /// @brief typename for base class
-  using FunctionBaseType = Plato::Elliptic::AbstractVectorFunction<EvaluationType>;  
+  using FunctionBaseType = Plato::ResidualBase;  
   /// @brief contains mesh and model information
   using FunctionBaseType::mSpatialDomain;
   /// @brief contains output data
@@ -78,41 +80,30 @@ public:
   /// @return updated solutions
   Plato::Solutions 
   getSolutionStateOutputData(
-      const Plato::Solutions &aSolutions
-  ) const override;
+      const Plato::Solutions & aSolutions
+  ) const;
 
   /// @fn evaluate
   /// @brief evaluate inner (volume) steady state current residual
-  /// @param [in]     aState   2D state workset
-  /// @param [in]     aControl 2D control workset
-  /// @param [in]     aConfig  3D configuration workset
-  /// @param [in,out] aResult  2D result workset
-  /// @param [in]     aCycle   scalar
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        cycle scalar
   void
   evaluate(
-      const Plato::ScalarMultiVectorT <StateScalarType  > & aState,
-      const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-      const Plato::ScalarArray3DT     <ConfigScalarType > & aConfig,
-            Plato::ScalarMultiVectorT <ResultScalarType > & aResult,
-            Plato::Scalar                                   aCycle = 1.0
-  ) const override;
+    Plato::WorkSets & aWorkSets,
+    Plato::Scalar     aCycle = 0.0
+  ) const;
 
-  /// @fn evaluate_boundary
+  /// @fn evaluateBoundary
   /// @brief evaluate outer (boundary) steady state current residual
-  /// @param [in]     aState   2D state workset
-  /// @param [in]     aControl 2D control workset
-  /// @param [in]     aConfig  3D configuration workset
-  /// @param [in,out] aResult  2D result workset
-  /// @param [in]     aCycle   scalar
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        cycle scalar
   void
-  evaluate_boundary(
-      const Plato::SpatialModel                           & aSpatialModel,
-      const Plato::ScalarMultiVectorT <StateScalarType  > & aState,
-      const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-      const Plato::ScalarArray3DT     <ConfigScalarType > & aConfig,
-            Plato::ScalarMultiVectorT <ResultScalarType > & aResult,
-            Plato::Scalar                                   aCycle = 0.0
-  ) const override;
+  evaluateBoundary(
+    const Plato::SpatialModel & aSpatialModel,
+          Plato::WorkSets     & aWorkSets,
+          Plato::Scalar         aCycle = 0.0
+  ) const;
 
 private:
   /// @fn initialize

@@ -241,7 +241,6 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressShear_
     Plato::blas1::fill(tDensity, tControls);
     auto tSolution = tProblem.solution(tControls);
 
-
     // 5. Test results
     Plato::Scalar tSimpPenalty = 1.0e-8 + (1.0 - 1.0e-8) * std::pow(tDensity, 3);
     constexpr Plato::Scalar tTolerance = 1e-4;

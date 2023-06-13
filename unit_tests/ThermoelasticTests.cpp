@@ -24,7 +24,7 @@
 #include "Solutions.hpp"
 #include "ScalarProduct.hpp"
 #include "base/WorksetBase.hpp"
-#include "elliptic/VectorFunction.hpp"
+#include "elliptic/base/VectorFunction.hpp"
 #include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
 #include "elliptic/Problem.hpp"
 #include "StateValues.hpp"
@@ -69,7 +69,9 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
      state(aNodeOrdinal*tNumDofsPerNode+3) = (4e-7)*aNodeOrdinal;
 
   }, "state");
-
+  Plato::Database tDatabase;
+  tDatabase.vector("controls",z);
+  tDatabase.vector("states",state);
 
   // create material model
   //
@@ -123,12 +125,11 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *params, tDataMap);
   Plato::Elliptic::VectorFunction<::Plato::Elliptic::Linear::Thermomechanics<Plato::Tet4>>
-    vectorFunction(tSpatialModel, tDataMap, *params, params->get<std::string>("PDE Constraint"));
-
+    vectorFunction(params->get<std::string>("PDE Constraint"), tSpatialModel, tDataMap, *params);
 
   // compute and test constraint value
   //
-  auto residual = vectorFunction.value(state, z);
+  auto residual = vectorFunction.value(tDatabase,/*cycle=*/0.);
 
   auto residualHost = Kokkos::create_mirror_view( residual );
   Kokkos::deep_copy(residualHost, residual);
@@ -155,7 +156,7 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
 
   // compute and test constraint value
   //
-  auto jacobian = vectorFunction.gradient_u(state, z);
+  auto jacobian = vectorFunction.jacobianState(tDatabase,/*cycle=*/0.);
 
   auto jac_entries = jacobian->entries();
   auto jac_entriesHost = Kokkos::create_mirror_view( jac_entries );
@@ -191,7 +192,7 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
 
   // compute and test constraint gradient_z
   //
-  auto gradient_z = vectorFunction.gradient_z(state, z);
+  auto gradient_z = vectorFunction.jacobianControl(tDatabase,/*cycle=*/0.);
 
   auto gradz_entries = gradient_z->entries();
   auto gradz_entriesHost = Kokkos::create_mirror_view( gradz_entries );
@@ -216,7 +217,7 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
 
   // compute and test constraint gradient_x
   //
-  auto gradient_x = vectorFunction.gradient_x(state, z);
+  auto gradient_x = vectorFunction.jacobianConfig(tDatabase,/*cycle=*/0.);
 
   auto gradx_entries = gradient_x->entries();
   auto gradx_entriesHost = Kokkos::create_mirror_view( gradx_entries );
@@ -257,17 +258,14 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
 
   // compute and test objective value
   //
-  Plato::Solutions tSolution;
-  tSolution.set("State", states);
-  auto value = scalarFunction.value(tSolution, z);
+  auto value = scalarFunction.value(tDatabase,/*cycle=*/0.);
 
   Plato::Scalar value_gold = 3.20610709915224668;
   TEST_FLOATING_EQUALITY(value, value_gold, 1e-13);
 
   // compute and test objective gradient wrt state, u
   //
-  tSolution.set("State", states);
-  auto grad_u = scalarFunction.gradient_u(tSolution, z, /*stepIndex=*/0);
+  auto grad_u = scalarFunction.gradientState(tDatabase,/*cycle=*/0.);
 
   auto grad_u_Host = Kokkos::create_mirror_view( grad_u );
   Kokkos::deep_copy( grad_u_Host, grad_u );
@@ -297,8 +295,7 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
 
   // compute and test objective gradient wrt control, z
   //
-  tSolution.set("State", states);
-  auto grad_z = scalarFunction.gradient_z(tSolution, z);
+  auto grad_z = scalarFunction.gradientControl(tDatabase,/*cycle=*/0.);
 
   auto grad_z_Host = Kokkos::create_mirror_view( grad_z );
   Kokkos::deep_copy( grad_z_Host, grad_z );
@@ -321,8 +318,7 @@ TEUCHOS_UNIT_TEST( ThermoelasticTests, InternalThermoelasticEnergy3D )
 
   // compute and test objective gradient wrt node position, x
   //
-  tSolution.set("State", states);
-  auto grad_x = scalarFunction.gradient_x(tSolution, z);
+  auto grad_x = scalarFunction.gradientConfig(tDatabase,/*cycle=*/0.);
   
   auto grad_x_Host = Kokkos::create_mirror_view( grad_x );
   Kokkos::deep_copy(grad_x_Host, grad_x);
@@ -361,7 +357,9 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormAxial_3D)
     const Plato::OrdinalType tNumElemY = 1;
     const Plato::OrdinalType tNumElemZ = 1;
     const Plato::Scalar tBoxWidth = 5.0;
-    auto tMesh = Plato::TestHelpers::get_box_mesh("TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ);
+    auto tMesh = Plato::TestHelpers::get_box_mesh(
+      "TET4", tBoxWidth, tNumElemX, tBoxWidth, tNumElemY, tBoxWidth, tNumElemZ
+    );
 
     Teuchos::RCP<Teuchos::ParameterList> tParamList =
     Teuchos::getParametersFromXmlString(

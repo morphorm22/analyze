@@ -7,6 +7,7 @@
 #pragma once
 
 #include "MaterialModel.hpp"
+#include "base/CriterionBase.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/AbstractScalarFunction.hpp"
 
@@ -22,7 +23,7 @@ namespace Plato
 ///   density material and the subscript indices denote the material phases  
 /// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
-class CriterionVolumeTwoPhase : public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+class CriterionVolumeTwoPhase : public Plato::CriterionBase
 {
 /// @private member data
 private:
@@ -37,16 +38,16 @@ private:
   /// @brief number of nodes per cell
   static constexpr int mNumNodesPerCell = ElementType::mNumNodesPerCell;
   /// @brief contains mesh and model information
-  using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mSpatialDomain;
+  using Plato::CriterionBase::mSpatialDomain;
   /// @brief output data map
-  using Plato::Elliptic::AbstractScalarFunction<EvaluationType>::mDataMap;
+  using Plato::CriterionBase::mDataMap;
   /// @brief scalar types associated with the evaluation type
   using StateScalarType   = typename EvaluationType::StateScalarType;
   using ControlScalarType = typename EvaluationType::ControlScalarType;
   using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
   using ResultScalarType  = typename EvaluationType::ResultScalarType;
   /// @brief typename for base class
-  using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;  
+  using FunctionBaseType = typename Plato::CriterionBase;  
   /// @brief penalty exponent for material penalty model
   Plato::Scalar mPenaltyExponent = 3.0;  
   /// @brief list of out-of-plane material thickness
@@ -55,10 +56,10 @@ private:
 /// @public functions
 public:
   /// @brief class constructor
-  /// @param aSpatialDomain contains mesh and model information
-  /// @param aDataMap       output data map
-  /// @param aParamList     input problem parameters
-  /// @param aFuncName      name of criterion parameter list
+  /// @param [in] aSpatialDomain contains mesh and model information
+  /// @param [in] aDataMap       output data map
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aFuncName      name of criterion parameter list
   CriterionVolumeTwoPhase(
       const Plato::SpatialDomain   & aSpatialDomain,
             Plato::DataMap         & aDataMap,
@@ -69,37 +70,22 @@ public:
   /// @brief class destructor
   ~CriterionVolumeTwoPhase();
 
-  /// @fn evaluate
-  /// @brief virtual function, overrides base class: evaluate criterion
-  /// @param [in]     aState   2D state workset
-  /// @param [in]     aControl 2D control workset
-  /// @param [in]     aConfig  3D configuration workset
-  /// @param [in,out] aResult  2D result workset
-  /// @param [in]     aCycle   scalar
-  void 
-  evaluate(
-    const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-    const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-    const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-          Plato::ScalarVectorT      <ResultScalarType>  & aResult,
-          Plato::Scalar                                   aCycle = 1.0
-  ) override;
+  /// @fn isLinear
+  /// @brief returns true if criterion is linear
+  /// @return boolean
+  bool 
+  isLinear() 
+  const;
 
   /// @fn evaluate_conditional
-  /// @brief virtual function, overrides base class: evaluate criterion
-  /// @param [in]     aState   2D state workset
-  /// @param [in]     aControl 2D control workset
-  /// @param [in]     aConfig  3D configuration workset
-  /// @param [in,out] aResult  2D result workset
-  /// @param [in]     aCycle   scalar
+  /// @brief evaluate volume criterion 
+  /// @param [in,out] aWorkSets function domain and range workset database
+  /// @param [in]     aCycle    scalar 
   void
-  evaluate_conditional(
-      const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-      const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-      const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-            Plato::ScalarVectorT      <ResultScalarType>  & aResult,
-            Plato::Scalar                                   aCycle = 1.0
-  ) const override;
+  evaluateConditional(
+    const Plato::WorkSets & aWorkSets,
+    const Plato::Scalar   & aCycle
+  ) const;
 
 /// @private functions
 private:

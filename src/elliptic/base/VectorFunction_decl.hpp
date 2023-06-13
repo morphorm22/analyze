@@ -10,6 +10,7 @@
 #include <memory>
 #include <unordered_map>
 
+#include "Solutions.hpp"
 #include "SpatialModel.hpp"
 #include "base/Database.hpp"
 #include "base/WorksetBase.hpp"
@@ -33,17 +34,17 @@ private:
   /// @brief topological element type
   using ElementType = typename PhysicsType::ElementType;
   /// @brief number of nodes per element
-  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+  static constexpr auto mNumNodesPerCell       = ElementType::mNumNodesPerCell;
   /// @brief number of nodes per element face
-  static constexpr auto mNumNodesPerFace = ElementType::mNumNodesPerFace;
+  static constexpr auto mNumNodesPerFace       = ElementType::mNumNodesPerFace;
   /// @brief number of degrees of freedom per node
-  static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+  static constexpr auto mNumDofsPerNode        = ElementType::mNumDofsPerNode;
   /// @brief number of degrees of freedom per cell
-  static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+  static constexpr auto mNumDofsPerCell        = ElementType::mNumDofsPerCell;
   /// @brief number of spatial dimensions
-  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+  static constexpr auto mNumSpatialDims        = ElementType::mNumSpatialDims;
   /// @brief number of control degree of freedoms per node
-  static constexpr auto mNumControl      = ElementType::mNumControl;
+  static constexpr auto mNumControlDofsPerNode = ElementType::mNumControl;
   /// @brief number of configuration degress of freedom per element
   static constexpr auto mNumConfigDofsPerCell = mNumSpatialDims*mNumNodesPerCell;
   /// @brief scalar types for a given evaluation type
@@ -89,6 +90,48 @@ public:
   numDofs() 
   const;
 
+  /// @fn numNodes
+  /// @brief return local number nodes
+  /// @return integer 
+  Plato::OrdinalType 
+  numNodes() 
+  const;
+
+  /// @fn numCells
+  /// @brief return local number of cells/elements
+  /// @return integer
+  Plato::OrdinalType 
+  numCells() 
+  const;
+
+  /// @fn numDofsPerCell
+  /// @brief return number of state degree of freedom per cell
+  /// @return integer
+  Plato::OrdinalType 
+  numDofsPerCell() 
+  const;
+
+  /// @fn numNodesPerCell
+  /// @brief return number of nodes per cell
+  /// @return integer
+  Plato::OrdinalType 
+  numNodesPerCell() 
+  const;
+
+  /// @fn numStateDofsPerNode
+  /// @brief return number of state degree of freedom per node
+  /// @return integer
+  Plato::OrdinalType 
+  numStateDofsPerNode() 
+  const;
+
+  /// @fn numControlDofsPerNode
+  /// @brief return number of control degree of freedom per node
+  /// @return integer
+  Plato::OrdinalType 
+  numControlDofsPerNode() 
+  const;
+
   /// @fn getDofNames
   /// @brief return list of degree of freedom names
   /// @return standard vector
@@ -96,9 +139,18 @@ public:
   getDofNames() 
   const;
 
+  /// @fn getSolutionStateOutputData
+  /// @brief get output solutions database
+  /// @param [in,out] aSolutions function domain solution database
+  /// @return output solutions database
+  Plato::Solutions 
+  getSolutionStateOutputData(
+    const Plato::Solutions & aSolutions
+  ) const;
+
   /// @fn value
   /// @brief return vector function evaluation
-  /// @param [in] aDatabase output database
+  /// @param [in] aDatabase function domain and range database
   /// @param [in] aCycle    scalar, e.g.; time step
   /// @return scalar plato vector
   Plato::ScalarVector
@@ -109,8 +161,8 @@ public:
 
   /// @fn jacobianState
   /// @brief return jacobian with respect to states
-  /// @param [in] aDatabase  output database
-  /// @param [in] aCycle     scalar, e.g.; time step
+  /// @param [in] aDatabase function domain and range database
+  /// @param [in] aCycle    scalar, e.g.; time step
   /// @param [in] aTranspose applied transpose
   /// @return teuchos reference counter pointer to a plato compressed sparse row (CRS) matrix
   Teuchos::RCP<Plato::CrsMatrixType>
@@ -122,8 +174,8 @@ public:
 
   /// @fn jacobianConfig
   /// @brief return jacobian with respect to configuration
-  /// @param [in] aDatabase  output database
-  /// @param [in] aCycle     scalar, e.g.; time step
+  /// @param [in] aDatabase function domain and range database
+  /// @param [in] aCycle    scalar, e.g.; time step
   /// @param [in] aTranspose applied transpose
   /// @return teuchos reference counter pointer to a plato compressed sparse row (CRS) matrix
   Teuchos::RCP<Plato::CrsMatrixType>
@@ -135,8 +187,8 @@ public:
 
   /// @fn jacobianControl
   /// @brief return jacobian with respect to controls
-  /// @param [in] aDatabase  output database
-  /// @param [in] aCycle     scalar, e.g.; time step
+  /// @param [in] aDatabase function domain and range database
+  /// @param [in] aCycle    scalar, e.g.; time step
   /// @param [in] aTranspose applied transpose
   /// @return teuchos reference counter pointer to a plato compressed sparse row (CRS) matrix
   Teuchos::RCP<Plato::CrsMatrixType>

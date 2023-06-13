@@ -3,7 +3,9 @@
 #include "TensorPNorm.hpp"
 #include "ApplyWeighting.hpp"
 #include "LinearElectroelasticMaterial.hpp"
-#include "elliptic/AbstractScalarFunction.hpp"
+
+#include "base/CriterionBase.hpp"
+#include "elliptic/EvaluationTypes.hpp"
 
 namespace Plato
 {
@@ -11,72 +13,80 @@ namespace Plato
 namespace Elliptic
 {
 
-/******************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
-class EMStressPNorm :
-  public EvaluationType::ElementType,
-  public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
-/******************************************************************************/
+class EMStressPNorm : public Plato::CriterionBase
 {
-  private:
-    using ElementType = typename EvaluationType::ElementType;
+private:
+  /// @brief topological element type
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief number of stress-strain terms
+  static constexpr auto mNumVoigtTerms   = ElementType::mNumVoigtTerms;
+  /// @brief number of integration points
+  static constexpr auto mNumGaussPoints  = ElementType::mNumGaussPoints;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+  /// @brief number of nodes per cell
+  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+  /// @brief number of degrees of freedom per node
+  static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+  /// @brief number of degrees of freedom per cell
+  static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
 
-    using ElementType::mNumVoigtTerms;
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumDofsPerNode;
-    using ElementType::mNumDofsPerCell;
-    using ElementType::mNumSpatialDims;
+  using FunctionBaseType = typename Plato::CriterionBase;
+  using FunctionBaseType::mSpatialDomain;
+  using FunctionBaseType::mDataMap;
 
-    using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
+  using StateScalarType   = typename EvaluationType::StateScalarType;
+  using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  using ControlScalarType = typename EvaluationType::ControlScalarType;
+  using GradScalarType    = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
-    using FunctionBaseType::mSpatialDomain;
-    using FunctionBaseType::mDataMap;
+  Teuchos::RCP<Plato::LinearElectroelasticMaterial<mNumSpatialDims>> mMaterialModel;
 
-    using StateScalarType   = typename EvaluationType::StateScalarType;
-    using ControlScalarType = typename EvaluationType::ControlScalarType;
-    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
-    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  IndicatorFunctionType mIndicatorFunction;
+  Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, IndicatorFunctionType> mApplyWeighting;
 
-    Teuchos::RCP<Plato::LinearElectroelasticMaterial<mNumSpatialDims>> mMaterialModel;
+  Teuchos::RCP<TensorNormBase<mNumVoigtTerms, EvaluationType>> mNorm;
 
-    IndicatorFunctionType mIndicatorFunction;
-    Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, IndicatorFunctionType> mApplyWeighting;
+  std::string mFuncString = "1.0";
 
-    Teuchos::RCP<TensorNormBase<mNumVoigtTerms, EvaluationType>> mNorm;
+public:
+  EMStressPNorm(
+      const Plato::SpatialDomain   & aSpatialDomain,
+            Plato::DataMap         & aDataMap, 
+            Teuchos::ParameterList & aProblemParams, 
+            Teuchos::ParameterList & aPenaltyParams,
+      const std::string            & aFunctionName
+  );
 
-    std::string mFuncString = "1.0";
+  /// @brief returns true if criterion is linear
+  /// @return boolean
+  bool 
+  isLinear() 
+  const;
 
-  public:
-    /**************************************************************************/
-    EMStressPNorm(
-        const Plato::SpatialDomain   & aSpatialDomain,
-              Plato::DataMap         & aDataMap, 
-              Teuchos::ParameterList & aProblemParams, 
-              Teuchos::ParameterList & aPenaltyParams,
-        const std::string            & aFunctionName
-    );
+  /// @fn evaluateConditional
+  /// @brief evaluate criterion
+  /// @param [in,out] aWorkSets function domain and range workset database
+  /// @param [in]     aCycle    scalar 
+  void
+  evaluateConditional(
+    const Plato::WorkSets & aWorkSets,
+    const Plato::Scalar   & aCycle
+  ) const;
 
-    /**************************************************************************/
-    void
-    evaluate_conditional(
-        const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-        const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-              Plato::ScalarVectorT      <ResultScalarType>  & aResult,
-              Plato::Scalar aTimeStep = 0.0
-    ) const override;
+  void
+  postEvaluate( 
+    Plato::ScalarVector resultVector,
+    Plato::Scalar       resultScalar
+  );
 
-    /**************************************************************************/
-    void
-    postEvaluate( 
-      Plato::ScalarVector resultVector,
-      Plato::Scalar       resultScalar);
-    /**************************************************************************/
+  void
+  postEvaluate( 
+    Plato::Scalar& resultValue 
+  );
 
-    /**************************************************************************/
-    void
-    postEvaluate( Plato::Scalar& resultValue );
-    /**************************************************************************/
 };
 // class EMStressPNorm
 

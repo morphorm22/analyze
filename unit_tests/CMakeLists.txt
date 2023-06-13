@@ -14,10 +14,6 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/util)
 ## will be compiled without checking for math exceptions.
 
 Plato_add_test(PlatoMathHelpers PlatoMathHelpersTest.cpp)
-
-#TODO: update StructuralDynamics to new element
-#Plato_add_test(PlatoFunctors PlatoFunctorsTest.cpp)
-
 Plato_add_test(BLAS BLASTests.cpp)
 Plato_add_test(Workset WorksetTests.cpp)
 Plato_add_test(MassProperties MassPropertiesTests.cpp)

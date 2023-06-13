@@ -4,7 +4,10 @@
  *  Created on: June 6, 2023
  */
 
+#pragma once
+
 #include "WorkSets.hpp"
+#include "Solutions.hpp"
 #include "SpatialModel.hpp"
 
 namespace Plato
@@ -23,6 +26,9 @@ protected:
   std::vector<std::string>   mDofNames;       
 
 public:
+  /// @brief typename for residual base class
+  using AbstractType = Plato::ResidualBase;
+
   /// @brief class constructor
   /// @param [in] aSpatialDomain contains mesh and model information
   /// @param [in] aDataMap       output database
@@ -56,23 +62,39 @@ public:
     return mDofNames;
   }
 
+  /// @fn getSolutionStateOutputData
+  /// @brief get output solutions database
+  /// @param [in] aSolutions function domain solution database
+  /// @return output solutions database
+  virtual 
+  Plato::Solutions 
+  getSolutionStateOutputData(
+    const Plato::Solutions & aSolutions
+  ) const = 0;
+
+  /// @fn evaluate
   /// @brief evaluate internal forces, pure virtual function
-  /// @param [in,out] aWorkSets workset database
-  /// @param [in]     aCycle    cycle scalar
-  virtual void evaluate(
+  /// @param [in,out] aWorkSets domain and range workset database
+  /// @param [in]     aCycle    scalar
+  virtual 
+  void 
+  evaluate(
     Plato::WorkSets & aWorkSets,
     Plato::Scalar     aCycle = 0.0
-  ) = 0;
+  ) const = 0;
 
+  /// @fn evaluateBoundary
   /// @brief evaluate boundary forces, pure virtual function
-  /// @param [in] aSpatialModel contains mesh and model information
-  /// @param [in] aWorkSets     workset database
-  /// @param [in] aCycle        cycle scalar
-  virtual void evaluateBoundary(
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  virtual 
+  void 
+  evaluateBoundary(
     const Plato::SpatialModel & aSpatialModel,
           Plato::WorkSets     & aWorkSets,
           Plato::Scalar         aCycle = 0.0
-  ) = 0;
+  ) const = 0;
 };
 // class abstract residual
 

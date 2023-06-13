@@ -6,6 +6,7 @@
 #include "Simp.hpp"
 #include "BLAS1.hpp"
 #include "ToMap.hpp"
+#include "MetaData.hpp"
 #include "Plato_TopOptFunctors.hpp"
 
 namespace Plato
@@ -71,7 +72,7 @@ namespace Plato
               Teuchos::ParameterList & aInputParams,
         const std::string            & aFuncName
     ) :
-        FunctionBaseType(aSpatialDomain, aDataMap, aInputParams, aFuncName),
+        CriterionBaseType(aFuncName, aSpatialDomain, aDataMap, aInputParams),
         mPenalty(3),
         mLocalMeasureLimit(1),
         mAugLagPenalty(0.1),
@@ -95,7 +96,7 @@ namespace Plato
         const Plato::SpatialDomain & aSpatialDomain,
               Plato::DataMap       & aDataMap
     ) :
-        FunctionBaseType(aSpatialDomain, aDataMap, "Local Constraint Quadratic"),
+        CriterionBaseType("Local Constraint Quadratic", aSpatialDomain, aDataMap),
         mPenalty(3),
         mLocalMeasureLimit(1),
         mAugLagPenalty(0.1),
@@ -195,54 +196,49 @@ namespace Plato
         Plato::blas1::copy(aInput, mLagrangeMultipliers);
     }
 
-    /******************************************************************************//**
-     * \brief Update physics-based parameters within optimization iterations
-     * \param [in] aState 2D container of state variables
-     * \param [in] aControl 2D container of control variables
-     * \param [in] aConfig 3D container of configuration/coordinates
-    **********************************************************************************/
     template<typename EvaluationType>
     void
     AugLagStressCriterionQuadratic<EvaluationType>::
     updateProblem(
-        const Plato::ScalarMultiVector & aStateWS,
-        const Plato::ScalarMultiVector & aControlWS,
-        const Plato::ScalarArray3D     & aConfigWS
+      const Plato::WorkSets & aWorkSets,
+      const Plato::Scalar   & aCycle
     )
     {
-        this->updateLagrangeMultipliers(aStateWS, aControlWS, aConfigWS);
+        this->updateLagrangeMultipliers(aWorkSets,aCycle);
         this->updateAugLagPenaltyMultipliers();
     }
 
-    /******************************************************************************//**
-     * \brief Evaluate augmented Lagrangian local constraint criterion
-     * \param [in] aState 2D container of state variables
-     * \param [in] aControl 2D container of control variables
-     * \param [in] aConfig 3D container of configuration/coordinates
-     * \param [out] aResult 1D container of cell criterion values
-     * \param [in] aTimeStep time step (default = 0)
-    **********************************************************************************/
+    template<typename EvaluationType>
+    bool 
+    AugLagStressCriterionQuadratic<EvaluationType>::
+    isLinear() 
+    const
+    {
+      return false;
+    }
+
     template<typename EvaluationType>
     void
     AugLagStressCriterionQuadratic<EvaluationType>::
-    evaluate_conditional(
-        const Plato::ScalarMultiVectorT <StateT>   & aStateWS,
-        const Plato::ScalarMultiVectorT <ControlT> & aControlWS,
-        const Plato::ScalarArray3DT     <ConfigT>  & aConfigWS,
-              Plato::ScalarVectorT      <ResultT>  & aResultWS,
-              Plato::Scalar aTimeStep
+    evaluateConditional(
+      const Plato::WorkSets & aWorkSets,
+      const Plato::Scalar   & aCycle
     ) const
     {
-        using StrainT = typename Plato::fad_type_t<ElementType, StateT, ConfigT>;
-
-        const Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
-
-        Plato::MSIMP tSIMP(mPenalty, mMinErsatzValue);
+        // unpack worksets
+        Plato::ScalarArray3DT<ConfigT> tConfigWS  = 
+          Plato::unpack<Plato::ScalarArray3DT<ConfigT>>(aWorkSets.get("configuration"));
+        Plato::ScalarMultiVectorT<ControlT> tControlWS = 
+          Plato::unpack<Plato::ScalarMultiVectorT<ControlT>>(aWorkSets.get("controls"));
+        Plato::ScalarMultiVectorT<StateT> tStateWS = 
+          Plato::unpack<Plato::ScalarMultiVectorT<StateT>>(aWorkSets.get("states"));
+        Plato::ScalarVectorT<ResultT> tResultWS = 
+          Plato::unpack<Plato::ScalarVectorT<ResultT>>(aWorkSets.get("result"));
 
         // ****** COMPUTE LOCAL MEASURE VALUES AND STORE ON DEVICE ******
+        const Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
         Plato::ScalarVectorT<ResultT> tLocalMeasureValue("local measure value", tNumCells);
-        (*mLocalMeasureEvaluationType)(aStateWS, aControlWS, aConfigWS, tLocalMeasureValue);
-        
+        (*mLocalMeasureEvaluationType)(tStateWS, tControlWS, tConfigWS, tLocalMeasureValue);
         Plato::ScalarVectorT<ResultT> tOutputPenalizedLocalMeasure("output penalized local measure", tNumCells);
 
         // ****** TRANSFER MEMBER ARRAYS TO DEVICE ******
@@ -255,6 +251,7 @@ namespace Plato
         auto tNumPoints = tCubWeights.size();
 
         // ****** COMPUTE AUGMENTED LAGRANGIAN FUNCTION ******
+        Plato::MSIMP tSIMP(mPenalty, mMinErsatzValue);
         Plato::Scalar tLagrangianMultiplier = static_cast<Plato::Scalar>(1.0 / tNumCells);
         Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
         KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
@@ -267,7 +264,7 @@ namespace Plato
             auto tCubPoint = tCubPoints(iGpOrdinal);
 
             auto tBasisValues = ElementType::basisValues(tCubPoint);
-            ControlT tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal, aControlWS, tBasisValues);
+            ControlT tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal, tControlWS, tBasisValues);
             ControlT tMaterialPenalty = tSIMP(tDensity);
             const ResultT tTrialConstraintValue = tMaterialPenalty * tConstraintValue;
             const ResultT tTrueConstraintValue = tLocalMeasureValueOverLimit > static_cast<ResultT>(1.0) ?
@@ -277,36 +274,36 @@ namespace Plato
             const ResultT tResult = tLagrangianMultiplier * ( ( tLagrangeMultipliers(iCellOrdinal) *
                                     tTrueConstraintValue ) + ( static_cast<Plato::Scalar>(0.5) * tAugLagPenalty *
                                     tTrueConstraintValue * tTrueConstraintValue ) );
-            Kokkos::atomic_add(&aResultWS(iCellOrdinal), tResult);
+            Kokkos::atomic_add(&tResultWS(iCellOrdinal), tResult);
 
-            Kokkos::atomic_add(&tOutputPenalizedLocalMeasure(iCellOrdinal), tMaterialPenalty * tLocalMeasureValue(iCellOrdinal));
+            Kokkos::atomic_add(
+              &tOutputPenalizedLocalMeasure(iCellOrdinal), tMaterialPenalty * tLocalMeasureValue(iCellOrdinal)
+            );
         });
 
          Plato::toMap(mDataMap, tOutputPenalizedLocalMeasure, mLocalMeasureEvaluationType->getName(), mSpatialDomain);
     }
 
-    /******************************************************************************//**
-     * \brief Update Lagrange multipliers
-     * \param [in] aState 2D container of state variables
-     * \param [in] aControl 2D container of control variables
-     * \param [in] aConfig 3D container of configuration/coordinates
-    **********************************************************************************/
     template<typename EvaluationType>
     void
     AugLagStressCriterionQuadratic<EvaluationType>::
     updateLagrangeMultipliers(
-        const Plato::ScalarMultiVector & aStateWS,
-        const Plato::ScalarMultiVector & aControlWS,
-        const Plato::ScalarArray3D     & aConfigWS
+      const Plato::WorkSets & aWorkSets,
+      const Plato::Scalar   & aCycle
     )
     {
-        const Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
-
-        Plato::MSIMP tSIMP(mPenalty, mMinErsatzValue);
+        // unpack worksets
+        Plato::ScalarArray3DT<Plato::Scalar> tConfigWS  = 
+          Plato::unpack<Plato::ScalarArray3DT<Plato::Scalar>>(aWorkSets.get("configuration"));
+        Plato::ScalarMultiVectorT<Plato::Scalar> tControlWS = 
+          Plato::unpack<Plato::ScalarMultiVectorT<Plato::Scalar>>(aWorkSets.get("controls"));
+        Plato::ScalarMultiVectorT<Plato::Scalar> tStateWS = 
+          Plato::unpack<Plato::ScalarMultiVectorT<Plato::Scalar>>(aWorkSets.get("states"));
 
         // ****** COMPUTE LOCAL MEASURE VALUES AND STORE ON DEVICE ******
+        const Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
         Plato::ScalarVector tLocalMeasureValue("local measure value", tNumCells);
-        (*mLocalMeasurePODType)(aStateWS, aControlWS, aConfigWS, tLocalMeasureValue);
+        (*mLocalMeasurePODType)(tStateWS, tControlWS, tConfigWS, tLocalMeasureValue);
         
         // ****** TRANSFER MEMBER ARRAYS TO DEVICE ******
         auto tLocalMeasureValueLimit = mLocalMeasureLimit;
@@ -318,6 +315,7 @@ namespace Plato
         auto tCubWeights = ElementType::getCubWeights();
         auto tNumPoints = tCubWeights.size();
 
+        Plato::MSIMP tSIMP(mPenalty, mMinErsatzValue);
         Kokkos::parallel_for("elastic energy", Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
         KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
         {
@@ -330,7 +328,7 @@ namespace Plato
             auto tCubPoint = tCubPoints(iGpOrdinal);
 
             auto tBasisValues = ElementType::basisValues(tCubPoint);
-            Plato::Scalar tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal, aControlWS, tBasisValues);
+            Plato::Scalar tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal, tControlWS, tBasisValues);
             Plato::Scalar tMaterialPenalty = tSIMP(tDensity);
             const Plato::Scalar tTrialConstraintValue = tMaterialPenalty * tConstraintValue;
             const Plato::Scalar tTrueConstraintValue = tLocalMeasureValueOverLimit > static_cast<Plato::Scalar>(1.0) ?

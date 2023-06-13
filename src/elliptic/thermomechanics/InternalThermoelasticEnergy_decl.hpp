@@ -2,7 +2,9 @@
 
 #include "ApplyWeighting.hpp"
 #include "ThermoelasticMaterial.hpp"
-#include "elliptic/AbstractScalarFunction.hpp"
+
+#include "base/CriterionBase.hpp"
+#include "elliptic/EvaluationTypes.hpp"
 
 namespace Plato
 {
@@ -18,56 +20,73 @@ namespace Elliptic
  * @tparam IndicatorFunctionType penalty function (e.g. simp)
 **********************************************************************************/
 template<typename EvaluationType, typename IndicatorFunctionType>
-class InternalThermoelasticEnergy : 
-  public EvaluationType::ElementType,
-  public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+class InternalThermoelasticEnergy : public Plato::CriterionBase
 {
-  private:
-    using ElementType = typename EvaluationType::ElementType;
+private:
+  /// @brief topological element type
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief number of stress-strain terms
+  static constexpr auto mNumVoigtTerms   = ElementType::mNumVoigtTerms;
+  /// @brief number of integration points
+  static constexpr auto mNumGaussPoints  = ElementType::mNumGaussPoints;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+  /// @brief number of nodes per cell
+  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+  /// @brief number of degrees of freedom per node
+  static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+  /// @brief number of degrees of freedom per cell
+  static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+  /// @brief temperature degree of freedom offset
+  static constexpr int TDofOffset = mNumSpatialDims;
 
-    using ElementType::mNumVoigtTerms;
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumDofsPerNode;
-    using ElementType::mNumDofsPerCell;
-    using ElementType::mNumSpatialDims;
+  using FunctionBaseType = typename Plato::CriterionBase;
+  using FunctionBaseType::mSpatialDomain;
+  using FunctionBaseType::mDataMap;
 
-    static constexpr int TDofOffset = mNumSpatialDims;
+  using StateScalarType   = typename EvaluationType::StateScalarType;
+  using ControlScalarType = typename EvaluationType::ControlScalarType;
+  using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  using GradScalarType    = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>;
 
-    using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
+  IndicatorFunctionType mIndicatorFunction;
+  Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms,  IndicatorFunctionType> mApplyStressWeighting;
+  Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyFluxWeighting;
 
-    using FunctionBaseType::mSpatialDomain;
-    using FunctionBaseType::mDataMap;
+  Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
-    using StateScalarType   = typename EvaluationType::StateScalarType;
-    using ControlScalarType = typename EvaluationType::ControlScalarType;
-    using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
-    using ResultScalarType  = typename EvaluationType::ResultScalarType;
+public:
+  /// @brief class constructor
+  /// @param [in] aSpatialDomain contains mesh and model information
+  /// @param [in] aDataMap       ouput database
+  /// @param [in] aProblemParams input problem parameters
+  /// @param [in] aPenaltyParams input penalty model parameters
+  /// @param [in] aFunctionName  criterion parameter list name
+  InternalThermoelasticEnergy(
+      const Plato::SpatialDomain   & aSpatialDomain,
+            Plato::DataMap         & aDataMap,
+            Teuchos::ParameterList & aProblemParams,
+            Teuchos::ParameterList & aPenaltyParams,
+      const std::string            & aFunctionName
+  );
 
-    IndicatorFunctionType mIndicatorFunction;
-    Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms,  IndicatorFunctionType> mApplyStressWeighting;
-    Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyFluxWeighting;
+  /// @fn isLinear
+  /// @brief returns true if criterion is linear
+  /// @return boolean
+  bool 
+  isLinear() 
+  const;
 
-    Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
-
-  public:
-    /**************************************************************************/
-    InternalThermoelasticEnergy(
-        const Plato::SpatialDomain   & aSpatialDomain,
-              Plato::DataMap         & aDataMap,
-              Teuchos::ParameterList & aProblemParams,
-              Teuchos::ParameterList & aPenaltyParams,
-        const std::string            & aFunctionName
-    );
-
-    /**************************************************************************/
-    void
-    evaluate_conditional(
-        const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-        const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-              Plato::ScalarVectorT      <ResultScalarType>  & aResult,
-              Plato::Scalar aTimeStep = 0.0
-    ) const override;
+  /// @fn evaluateConditional
+  /// @brief evaluate internal thermo-elastic energy criterion
+  /// @param [in,out] aWorkSets function domain and range workset database
+  /// @param [in]     aCycle    scalar 
+  void
+  evaluateConditional(
+    const Plato::WorkSets & aWorkSets,
+    const Plato::Scalar   & aCycle
+  ) const;
 };
 
 } // namespace Elliptic

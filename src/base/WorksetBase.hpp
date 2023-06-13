@@ -657,7 +657,9 @@ public:
               AssembledJacobianType    & aReturnValue
     ) const
     {
-        Plato::assemble_jacobian_fad(mNumCells, aNumRows, aNumColumns, aMatrixEntryOrdinal, aJacobianWorkset, aReturnValue);
+      Plato::assemble_jacobian_fad(
+        mNumCells, aNumRows, aNumColumns, aMatrixEntryOrdinal, aJacobianWorkset, aReturnValue
+      );
     }
 
     /******************************************************************************//**

@@ -6,10 +6,14 @@
 
 #pragma once
 
+#include "MetaData.hpp"
 #include "GradientMatrix.hpp"
 #include "elliptic/mechanical/nonlinear/FactoryStressEvaluator.hpp"
 
 namespace Plato
+{
+
+namespace Elliptic
 {
 
 template<typename EvaluationType>
@@ -49,19 +53,25 @@ template<typename EvaluationType>
 void
 ResidualElastostaticTotalLagrangian<EvaluationType>::
 evaluate(
-  const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
-  const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
-  const Plato::ScalarArray3DT    <ConfigScalarType>  & aConfig,
-        Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
-        Plato::Scalar                                  aCycle
+  Plato::WorkSets & aWorkSets,
+  Plato::Scalar     aCycle
 ) const
 {
+  // unpack worksets
+  Plato::ScalarArray3DT<ConfigScalarType> tConfigWS  = 
+    Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+  Plato::ScalarMultiVectorT<ControlScalarType> tControlWS = 
+    Plato::unpack<Plato::ScalarMultiVectorT<ControlScalarType>>(aWorkSets.get("controls"));
+  Plato::ScalarMultiVectorT<StateScalarType> tStateWS = 
+    Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
+  Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
+    Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
   // evaluate stresses
   Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
   Plato::OrdinalType tNumGaussPoints = ElementType::mNumGaussPoints;
   Plato::ScalarArray4DT<ResultScalarType> 
     tNominalStress("nominal stress",tNumCells,tNumGaussPoints,mNumSpatialDims,mNumSpatialDims);
-  mStressEvaluator->evaluate(aState,aControl,aConfig,tNominalStress,aCycle);
+  mStressEvaluator->evaluate(tStateWS,tControlWS,tConfigWS,tNominalStress,aCycle);
   // get integration rule data
   auto tCubPoints  = ElementType::getCubPoints();
   auto tCubWeights = ElementType::getCubWeights();
@@ -75,7 +85,7 @@ evaluate(
       ConfigScalarType tVolume(0.0);
       auto tCubPoint = tCubPoints(iGpOrdinal);
       Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient;
-      tComputeGradient(iCellOrdinal,tCubPoint,aConfig,tGradient,tVolume);
+      tComputeGradient(iCellOrdinal,tCubPoint,tConfigWS,tGradient,tVolume);
       // apply integration point weight to element volume
       tVolume *= tCubWeights(iGpOrdinal);
       // apply divergence operator to stress tensor
@@ -85,7 +95,7 @@ evaluate(
           for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
             ResultScalarType tVal = tNominalStress(iCellOrdinal,iGpOrdinal,tDimI,tDimJ) 
               * tGradient(tNodeIndex,tDimJ) * tVolume;
-            Kokkos::atomic_add( &aResult(iCellOrdinal,tLocalOrdinal),tVal );
+            Kokkos::atomic_add( &tResultWS(iCellOrdinal,tLocalOrdinal),tVal );
           }
         }
       }
@@ -93,25 +103,32 @@ evaluate(
   // evaluate body forces
   if( mBodyLoads != nullptr )
   {
-    mBodyLoads->get( mSpatialDomain,aState,aControl,aConfig,aResult,-1.0 );
+    mBodyLoads->get( mSpatialDomain,tStateWS,tControlWS,tConfigWS,tResultWS,-1.0 );
   }
 }
 
 template<typename EvaluationType>
 void
 ResidualElastostaticTotalLagrangian<EvaluationType>::
-evaluate_boundary(
-  const Plato::SpatialModel                           & aSpatialModel,
-  const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-  const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-  const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-        Plato::ScalarMultiVectorT <ResultScalarType>  & aResult,
-        Plato::Scalar                                   aCycle
+evaluateBoundary(
+  const Plato::SpatialModel & aSpatialModel,
+        Plato::WorkSets     & aWorkSets,
+        Plato::Scalar         aCycle
 ) const
 {
+  // unpack worksets
+  Plato::ScalarArray3DT<ConfigScalarType> tConfigWS  = 
+    Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+  Plato::ScalarMultiVectorT<ControlScalarType> tControlWS = 
+    Plato::unpack<Plato::ScalarMultiVectorT<ControlScalarType>>(aWorkSets.get("controls"));
+  Plato::ScalarMultiVectorT<StateScalarType> tStateWS = 
+    Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
+  Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
+    Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
+  // evaluate boundary forces
   if( mNaturalBCs != nullptr )
   {
-    mNaturalBCs->get(aSpatialModel, aState, aControl, aConfig, aResult, -1.0 );
+    mNaturalBCs->get(aSpatialModel, tStateWS, tControlWS, tConfigWS, tResultWS, -1.0 );
   }
 }
 
@@ -148,5 +165,7 @@ initialize(
     mPlotTable = tResidualParams.get<Teuchos::Array<std::string>>("Plottable").toVector();
   }
 }
+
+} // namespace Elliptic
 
 } // namespace Plato

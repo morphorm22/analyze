@@ -18,37 +18,35 @@ namespace Elliptic
  **********************************************************************************/
 template<typename PhysicsType>
 class CriterionEvaluatorWeightedSum :
-    public Plato::Elliptic::CriterionEvaluatorBase,
-    public Plato::WorksetBase<typename PhysicsType::ElementType>
+  public Plato::Elliptic::CriterionEvaluatorBase
 {
 private:
-    using ElementType = typename PhysicsType::ElementType;
+  using ElementType = typename PhysicsType::ElementType;
 
-    using Plato::WorksetBase<ElementType>::mNumDofsPerCell;
-    using Plato::WorksetBase<ElementType>::mNumNodesPerCell;
-    using Plato::WorksetBase<ElementType>::mNumDofsPerNode;
-    using Plato::WorksetBase<ElementType>::mNumSpatialDims;
-    using Plato::WorksetBase<ElementType>::mNumControl;
-    using Plato::WorksetBase<ElementType>::mNumNodes;
-    using Plato::WorksetBase<ElementType>::mNumCells;
+  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+  static constexpr auto mNumNodesPerFace = ElementType::mNumNodesPerFace;
+  static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+  static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+  static constexpr auto mNumControl      = ElementType::mNumControl;
 
-    std::vector<std::string> mFunctionNames;
-    std::vector<Plato::Scalar> mFunctionWeights;
-    std::vector<std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase>> mScalarFunctionBaseContainer;
-
-    const Plato::SpatialModel & mSpatialModel;
-
-    Plato::DataMap& mDataMap;
-
-    std::string mFunctionName;
+  std::vector<std::string> mFunctionNames;
+  std::vector<Plato::Scalar> mFunctionWeights;
+  std::vector<std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase>> mScalarFunctionBaseContainer;
+  
+  const Plato::SpatialModel & mSpatialModel;
+  Plato::DataMap& mDataMap;
+  std::string mFunctionName;
 
 	/******************************************************************************//**
-     * \brief Initialization of Weighted Sum Function
-     * \param [in] aSpatialModel Plato Analyze spatial model
-     * \param [in] aProblemParams input parameters database
-    **********************************************************************************/
-    void
-    initialize(Teuchos::ParameterList & aProblemParams);
+   * \brief Initialization of Weighted Sum Function
+   * \param [in] aSpatialModel Plato Analyze spatial model
+   * \param [in] aProblemParams input parameters database
+  **********************************************************************************/
+  void
+  initialize(
+    Teuchos::ParameterList & aProblemParams
+  );
 
 public:
     /******************************************************************************//**
@@ -92,57 +90,70 @@ public:
     **********************************************************************************/
     void allocateScalarFunctionBase(const std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase>& aInput);
 
-    /******************************************************************************//**
-     * \brief Update physics-based parameters within optimization iterations
-     * \param [in] aState 1D view of state variables
-     * \param [in] aControl 1D view of control variables
-     **********************************************************************************/
-    void updateProblem(const Plato::ScalarVector & aState, const Plato::ScalarVector & aControl) const override;
+    /// @fn isLinear
+    /// @brief return true if scalar function is linear
+    /// @return boolean
+    bool 
+    isLinear() 
+    const;
 
-    /******************************************************************************//**
-     * \brief Evaluate weight sum function
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return scalar function evaluation
-    **********************************************************************************/
-    Plato::Scalar value(const Plato::Solutions    & aSolution,
-                        const Plato::ScalarVector & aControl,
-                              Plato::Scalar         aTimeStep = 0.0) const override;
+    /// @fn updateProblem
+    /// @brief update criterion parameters at runtime
+    /// @param [in] aDatabase function domain and range database
+    /// @param [in] aCycle    scalar, e.g.; time step
+    virtual 
+    void 
+    updateProblem(
+      const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
+    ) const;
 
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the weight sum function with respect to (wrt) the configuration parameters
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the scalar function wrt the configuration parameters
-    **********************************************************************************/
-    Plato::ScalarVector gradient_x(const Plato::Solutions    & aSolution,
-                                   const Plato::ScalarVector & aControl,
-                                         Plato::Scalar         aTimeStep = 0.0) const override;
+    /// @fn value
+    /// @brief evaluate weighted sum criterion
+    /// @param [in] aDatabase function domain and range database
+    /// @param [in] aCycle    scalar, e.g.; time step
+    /// @return scalar
+    virtual 
+    Plato::Scalar
+    value(const Plato::Database & aDatabase,
+          const Plato::Scalar   & aCycle
+    ) const;
 
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the weight sum function with respect to (wrt) the state variables
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the scalar function wrt the state variables
-    **********************************************************************************/
-    Plato::ScalarVector gradient_u(const Plato::Solutions    & aSolution,
-                                   const Plato::ScalarVector & aControl,
-                                         Plato::OrdinalType    aStepIndex,
-                                         Plato::Scalar         aTimeStep = 0.0) const override;
+    /// @fn gradientConfig
+    /// @brief compute partial derivative of the weighted sum function with respect to the configuration
+    /// @param [in] aDatabase function domain and range database
+    /// @param [in] aCycle    scalar, e.g.; time step
+    /// @return plato scalar vector
+    virtual 
+    Plato::ScalarVector
+    gradientConfig(
+      const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
+    ) const;
 
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the weight sum function with respect to (wrt) the control variables
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the scalar function wrt the control variables
-    **********************************************************************************/
-    Plato::ScalarVector gradient_z(const Plato::Solutions    & aSolution,
-                                   const Plato::ScalarVector & aControl,
-                                         Plato::Scalar         aTimeStep = 0.0) const override;
+    /// @fn gradientState
+    /// @brief compute partial derivative of the weighted sum function with respect to the states
+    /// @param [in] aDatabase function domain and range database
+    /// @param [in] aCycle    scalar, e.g.; time step
+    /// @return plato scalar vector
+    virtual 
+    Plato::ScalarVector
+    gradientState(
+      const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
+    ) const;
+
+    /// @fn gradientControl
+    /// @brief compute partial derivative of the weighted sum function with respect to the controls
+    /// @param [in] aDatabase function domain and range database
+    /// @param [in] aCycle    scalar, e.g.; time step
+    /// @return plato scalar vector
+    virtual 
+    Plato::ScalarVector
+    gradientControl(
+      const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
+    ) const;
 
     /******************************************************************************//**
      * \brief Set user defined function name

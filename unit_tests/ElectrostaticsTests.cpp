@@ -14,7 +14,9 @@
 
 // plato
 #include "Tri3.hpp"
+#include "base/Database.hpp"
 #include "elliptic/Problem.hpp"
+#include "elliptic/base/WorksetBuilder.hpp"
 #include "elliptic/electrical/Electrical.hpp"
 #include "elliptic/electrical/FactoryElectricalMaterial.hpp"
 #include "elliptic/electrical/DarkCurrentDensityQuadratic.hpp"
@@ -646,47 +648,52 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CriterionPowerSurfaceDensityTwoPhase)
   constexpr Plato::OrdinalType tMeshWidth = 1;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
   using ElementType = typename Plato::ElectricalElement<Plato::Tri3>;
+
   //set ad-types
   using Residual = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
   using StateT   = typename Residual::StateScalarType;
   using ConfigT  = typename Residual::ConfigScalarType;
   using ResultT  = typename Residual::ResultScalarType;
   using ControlT = typename Residual::ControlScalarType;
-  // create configuration workset
-  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
-  const Plato::OrdinalType tNumCells = tMesh->NumElements();
-  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
-  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
-  tWorksetBase.worksetConfig(tConfigWS);
-  
+ 
   // create control workset
-  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+  Plato::Database tDatabase;
   const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
   Plato::ScalarVector tControl("Controls", tNumVerts);
   Plato::blas1::fill(0.5, tControl);
-  tWorksetBase.worksetControl(tControl, tControlWS);
+  tDatabase.vector("controls",tControl);
   
   // create state workset
   Plato::ScalarVector tState("States", tNumVerts);
   Plato::blas1::fill(0.67186, tState);
-  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
-  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
-  tWorksetBase.worksetState(tState, tStateWS);
+  tDatabase.vector("states",tState);
   
   // create spatial model
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
-  // create current density
   auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+
+  // create workset database
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  Plato::WorkSets tWorkSets;
+  tWorksetBuilder.build(tOnlyDomainDefined, tDatabase, tWorkSets);
+  auto tNumCells = tMesh->NumElements();
+  auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarVectorT<ResultT> > >
+    ( Plato::ScalarVectorT<ResultT>("Result Workset", tNumCells) );
+  tWorkSets.set("result",tResultWS);
+
+  // evaluate current density
   Plato::CriterionPowerSurfaceDensityTwoPhase<Residual>
     tCriterionPowerSurfaceDensityTwoPhase(tOnlyDomainDefined,tDataMap,*tGenericParamList,"My Dark Power");
-  Plato::ScalarVectorT<ResultT> tResultWS("result workset", tNumCells);
-  tCriterionPowerSurfaceDensityTwoPhase.evaluate(tStateWS,tControlWS,tConfigWS,tResultWS);
+  tCriterionPowerSurfaceDensityTwoPhase.evaluate(tWorkSets,/*cycle=*/0.);
+  TEUCHOS_ASSERT( tCriterionPowerSurfaceDensityTwoPhase.isLinear() == false );
+
   // test against gold
-  auto tHost = Kokkos::create_mirror_view(tResultWS);
+  auto tHost = Kokkos::create_mirror_view(tResultWS->mData);
   Plato::Scalar tTol = 1e-6;
   std::vector<Plato::Scalar>tGold = {15.8378409629,15.8378409629};
-  Kokkos::deep_copy(tHost, tResultWS);
+  Kokkos::deep_copy(tHost, tResultWS->mData);
   for(Plato::OrdinalType i = 0; i < tNumCells; i++){
     TEST_FLOATING_EQUALITY(tGold[i],tHost(i),tTol);
   }
@@ -699,47 +706,52 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, CriterionVolumeTwoPhase)
   constexpr Plato::OrdinalType tMeshWidth = 1;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
   using ElementType = typename Plato::ElectricalElement<Plato::Tri3>;
+
   //set ad-types
   using Residual = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
   using StateT   = typename Residual::StateScalarType;
   using ConfigT  = typename Residual::ConfigScalarType;
   using ResultT  = typename Residual::ResultScalarType;
   using ControlT = typename Residual::ControlScalarType;
-  // create configuration workset
-  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
-  const Plato::OrdinalType tNumCells = tMesh->NumElements();
-  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
-  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
-  tWorksetBase.worksetConfig(tConfigWS);
   
   // create control workset
-  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+  Plato::Database tDatabase;
   const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
   Plato::ScalarVector tControl("Controls", tNumVerts);
   Plato::blas1::fill(0.5, tControl);
-  tWorksetBase.worksetControl(tControl, tControlWS);
+  tDatabase.vector("controls",tControl);
   
   // create state workset
   Plato::ScalarVector tState("States", tNumVerts);
   Plato::blas1::fill(0.67186, tState);
-  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
-  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
-  tWorksetBase.worksetState(tState, tStateWS);
+  tDatabase.vector("states",tState);
   
   // create spatial model
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
-  // create current density
   auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+
+  // create workset database
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  Plato::WorkSets tWorkSets;
+  tWorksetBuilder.build(tOnlyDomainDefined, tDatabase, tWorkSets);
+  auto tNumCells = tMesh->NumElements();
+  auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarVectorT<ResultT> > >
+    ( Plato::ScalarVectorT<ResultT>("Result Workset", tNumCells) );
+  tWorkSets.set("result",tResultWS);
+
+  // evaluate current density
   Plato::CriterionVolumeTwoPhase<Residual>
     tCriterionVolumeTwoPhase(tOnlyDomainDefined,tDataMap,*tGenericParamList,"My Volume");
-  Plato::ScalarVectorT<ResultT> tResultWS("result workset", tNumCells);
-  tCriterionVolumeTwoPhase.evaluate(tStateWS,tControlWS,tConfigWS,tResultWS);
+  tCriterionVolumeTwoPhase.evaluate(tWorkSets,/*cycle=*/0.);
+  TEUCHOS_ASSERT( tCriterionVolumeTwoPhase.isLinear() == true );
+
   // test against gold
-  auto tHost = Kokkos::create_mirror_view(tResultWS);
+  auto tHost = Kokkos::create_mirror_view(tResultWS->mData);
   Plato::Scalar tTol = 1e-6;
   std::vector<Plato::Scalar>tGold = {0.10375,0.10375};
-  Kokkos::deep_copy(tHost, tResultWS);
+  Kokkos::deep_copy(tHost, tResultWS->mData);
   for(Plato::OrdinalType i = 0; i < tNumCells; i++){
     TEST_FLOATING_EQUALITY(tGold[i],tHost(i),tTol);
   }
@@ -752,52 +764,56 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ResidualSteadyStateCurrent_ConstantPote
   constexpr Plato::OrdinalType tMeshWidth = 1;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
   using ElementType = typename Plato::ElectricalElement<Plato::Tri3>;
+
   //set ad-types
   using Residual = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
   using StateT   = typename Residual::StateScalarType;
   using ConfigT  = typename Residual::ConfigScalarType;
   using ResultT  = typename Residual::ResultScalarType;
   using ControlT = typename Residual::ControlScalarType;
-  // create configuration workset
-  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
-  const Plato::OrdinalType tNumCells = tMesh->NumElements();
-  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
-  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
-  tWorksetBase.worksetConfig(tConfigWS);
-  
+ 
   // create control workset
-  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+  Plato::Database tDatabase;
   const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
   Plato::ScalarVector tControl("Controls", tNumVerts);
   Plato::blas1::fill(0.5, tControl);
-  tWorksetBase.worksetControl(tControl, tControlWS);
+  tDatabase.vector("controls",tControl);
   
   // create state workset
   Plato::ScalarVector tState("States", tNumVerts);
   Plato::blas1::fill(0.67186, tState);
-  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
-  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
-  tWorksetBase.worksetState(tState, tStateWS);
+  tDatabase.vector("states",tState);
   
   // create spatial model
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
-  // create current density
   auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+
+  // create workset database
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  Plato::WorkSets tWorkSets;
+  tWorksetBuilder.build(tOnlyDomainDefined, tDatabase, tWorkSets);
+  auto tNumCells = tMesh->NumElements();
+  auto tNodesPerCell = tMesh->NumNodesPerElement();
+  auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ResultT> > >
+    ( Plato::ScalarMultiVectorT<ResultT>("Result Workset",tNumCells,tNodesPerCell) );
+  tWorkSets.set("result",tResultWS);
+  
+  // create current density
   Plato::ResidualSteadyStateCurrent<Residual> 
     tResidual(tOnlyDomainDefined,tDataMap,tGenericParamList.operator*());
-  Plato::ScalarMultiVectorT<ResultT> tResultWS("result",tNumCells,tNodesPerCell);
-  tResidual.evaluate(tStateWS,tControlWS,tConfigWS,tResultWS);
+  tResidual.evaluate(tWorkSets,/*cycle=*/0.);
 
   // test against gold - electric field is zero due to constant electric potential; 
   // thus, internal forces are zero and the residual is equal to minus external forces
-  auto tHost = Kokkos::create_mirror_view(tResultWS);
+  auto tHost = Kokkos::create_mirror_view(tResultWS->mData);
   Plato::Scalar tTol = 1e-6;
   std::vector<std::vector<Plato::Scalar>>tGold = {{3.2098359,3.2098359,3.2098359},
                                                   {3.2098359,3.2098359,3.2098359}};
-  Kokkos::deep_copy(tHost, tResultWS);
+  Kokkos::deep_copy(tHost, tResultWS->mData);
   for(Plato::OrdinalType i = 0; i < tNumCells; i++){
-    for(Plato::OrdinalType j = 0; j < tDofsPerCell; j++){
+    for(Plato::OrdinalType j = 0; j < tNodesPerCell; j++){
       TEST_FLOATING_EQUALITY(tGold[i][j],tHost(i,j),tTol);
     }
   }
@@ -810,25 +826,20 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ResidualSteadyStateCurrent_NonConstantP
   constexpr Plato::OrdinalType tMeshWidth = 1;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
   using ElementType = typename Plato::ElectricalElement<Plato::Tri3>;
+
   //set ad-types
   using Residual = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
   using StateT   = typename Residual::StateScalarType;
   using ConfigT  = typename Residual::ConfigScalarType;
   using ResultT  = typename Residual::ResultScalarType;
   using ControlT = typename Residual::ControlScalarType;
-  // create configuration workset
-  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
-  const Plato::OrdinalType tNumCells = tMesh->NumElements();
-  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
-  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
-  tWorksetBase.worksetConfig(tConfigWS);
-  
+
   // create control workset
-  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
+  Plato::Database tDatabase;
   const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
   Plato::ScalarVector tControl("Controls", tNumVerts);
   Plato::blas1::fill(0.5, tControl);
-  tWorksetBase.worksetControl(tControl, tControlWS);
+  tDatabase.vector("controls",tControl);
   
   // create state workset
   Plato::ScalarVector tState("States", tNumVerts);
@@ -837,29 +848,38 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, ResidualSteadyStateCurrent_NonConstantP
   for(Plato::OrdinalType i = 0; i < tNumVerts; i++)
   { tHostState(i) = tHostState(i) + (i*1e-2); }
   Kokkos::deep_copy(tState, tHostState);
-  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
-  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
-  tWorksetBase.worksetState(tState, tStateWS);
+  tDatabase.vector("states",tState);
   
   // create spatial model
   Plato::DataMap tDataMap;
   Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
-  // create current density
   auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+
+  // create workset database
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  Plato::WorkSets tWorkSets;
+  tWorksetBuilder.build(tOnlyDomainDefined, tDatabase, tWorkSets);
+  auto tNumCells = tMesh->NumElements();
+  auto tNodesPerCell = tMesh->NumNodesPerElement();
+  auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ResultT> > >
+    ( Plato::ScalarMultiVectorT<ResultT>("Result Workset",tNumCells,tNodesPerCell) );
+  tWorkSets.set("result",tResultWS);
+
+  // evaluate current density
   Plato::ResidualSteadyStateCurrent<Residual> 
     tResidual(tOnlyDomainDefined,tDataMap,tGenericParamList.operator*());
-  Plato::ScalarMultiVectorT<ResultT> tResultWS("result",tNumCells,tNodesPerCell);
-  tResidual.evaluate(tStateWS,tControlWS,tConfigWS,tResultWS);
+  tResidual.evaluate(tWorkSets,/*cycle=*/0.);
 
   // test against gold - electric field is zero due to constant electric potential; 
   // thus, internal forces are zero and the residual is equal to minus external forces
-  auto tHost = Kokkos::create_mirror_view(tResultWS);
+  auto tHost = Kokkos::create_mirror_view(tResultWS->mData);
   Plato::Scalar tTol = 1e-6;
   std::vector<std::vector<Plato::Scalar>>tGold = {{-17.276113,-17.272551,-17.272551},
                                                   {-12.440948,-12.437385,-12.440948}};
-  Kokkos::deep_copy(tHost, tResultWS);
+  Kokkos::deep_copy(tHost, tResultWS->mData);
   for(Plato::OrdinalType i = 0; i < tNumCells; i++){
-    for(Plato::OrdinalType j = 0; j < tDofsPerCell; j++){
+    for(Plato::OrdinalType j = 0; j < tNodesPerCell; j++){
       TEST_FLOATING_EQUALITY(tGold[i][j],tHost(i,j),tTol);
     }
   }

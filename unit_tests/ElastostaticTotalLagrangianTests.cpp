@@ -20,6 +20,7 @@
 #include "MechanicsElement.hpp"
 #include "base/WorksetBase.hpp"
 
+#include "elliptic/base/WorksetBuilder.hpp"
 #include "elliptic/mechanical/nonlinear/StateGradient.hpp"
 #include "elliptic/mechanical/nonlinear/DeformationGradient.hpp"
 #include "elliptic/mechanical/nonlinear/RightDeformationTensor.hpp"
@@ -556,14 +557,8 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, Residual )
   using ResultT  = typename Residual::ResultScalarType;
   using ControlT = typename Residual::ControlScalarType;
   using StrainT  = typename Plato::fad_type_t<ElementType,StateT,ConfigT>;
-  // create configuration workset
-  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
-  const Plato::OrdinalType tNumCells = tMesh->NumElements();
-  TEST_EQUALITY(2,tNumCells);
-  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
-  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
-  tWorksetBase.worksetConfig(tConfigWS);
   // create state workset
+  Plato::Database tDatabase;
   const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
   const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
   Plato::ScalarVector tState("States", tNumDofs);
@@ -572,21 +567,24 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, Residual )
     Kokkos::RangePolicy<>(0, tNumDofs), 
     KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
     { tState(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
-  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
-  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
-  tWorksetBase.worksetState(tState, tStateWS);
+  tDatabase.vector("states",tState);
   // create control workset
-  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
   Plato::ScalarVector tControl("Controls", tNumVerts);
   Plato::blas1::fill(1.0, tControl);
-  tWorksetBase.worksetControl(tControl, tControlWS);
-  // create results workset
-  Plato::OrdinalType tNumGaussPoints = ElementType::mNumGaussPoints;
-  Plato::ScalarMultiVectorT<ResultT> tResultsWS("residual",tNumCells,tDofsPerCell);
+  tDatabase.vector("controls",tControl);
+  // create workset database
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  Plato::WorkSets tWorkSets;
+  tWorksetBuilder.build(tOnlyDomainDefined, tDatabase, tWorkSets);
+  auto tNumCells = tMesh->NumElements();
+  auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ResultT> > >
+    ( Plato::ScalarMultiVectorT<ResultT>("Result Workset", tNumCells, ElementType::mNumDofsPerCell) );
+  tWorkSets.set("result",tResultWS);
   // evaluate residual
-  Plato::ResidualElastostaticTotalLagrangian<Residual> 
+  Plato::Elliptic::ResidualElastostaticTotalLagrangian<Residual> 
     tResidual(tOnlyDomainDefined,tDataMap,*tGenericParamList);
-  tResidual.evaluate(tStateWS,tControlWS,tConfigWS,tResultsWS,0.0);
+  tResidual.evaluate(tWorkSets,/*cycle=*/0.);
   // test gold values
   constexpr Plato::Scalar tTolerance = 1e-4;
   std::vector<std::vector<Plato::Scalar>> tGold = 
@@ -594,10 +592,10 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, Residual )
       {-0.802469,-0.28395 ,0.412346,-0.293827,0.390123 ,0.577778}, 
       {-0.390123,-0.577778,0.802469,0.28395  ,-0.412346,0.293827} 
     };
-  auto tHostResultsWS = Kokkos::create_mirror(tResultsWS);
-  Kokkos::deep_copy(tHostResultsWS, tResultsWS);
+  auto tHostResultsWS = Kokkos::create_mirror(tResultWS->mData);
+  Kokkos::deep_copy(tHostResultsWS, tResultWS->mData);
   for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
-    for(Plato::OrdinalType tDof = 0; tDof < tDofsPerCell; tDof++){
+    for(Plato::OrdinalType tDof = 0; tDof < ElementType::mNumDofsPerCell; tDof++){
         TEST_FLOATING_EQUALITY(tGold[tCell][tDof],tHostResultsWS(tCell,tDof),tTolerance);
     }
   }
@@ -621,14 +619,8 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, CriterionKirchhoffEnergyPot
   using ResultT  = typename Residual::ResultScalarType;
   using ControlT = typename Residual::ControlScalarType;
   using StrainT  = typename Plato::fad_type_t<ElementType,StateT,ConfigT>;
-  // create configuration workset
-  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
-  const Plato::OrdinalType tNumCells = tMesh->NumElements();
-  TEST_EQUALITY(2,tNumCells);
-  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
-  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
-  tWorksetBase.worksetConfig(tConfigWS);
   // create state workset
+  Plato::Database tDatabase;
   const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
   const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
   Plato::ScalarVector tState("States", tNumDofs);
@@ -637,25 +629,29 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, CriterionKirchhoffEnergyPot
     Kokkos::RangePolicy<>(0, tNumDofs), 
     KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
     { tState(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
-  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
-  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
-  tWorksetBase.worksetState(tState, tStateWS);
+  tDatabase.vector("states",tState);
   // create control workset
-  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
   Plato::ScalarVector tControl("Controls", tNumVerts);
   Plato::blas1::fill(1.0, tControl);
-  tWorksetBase.worksetControl(tControl, tControlWS);
-  // create results workset
-  Plato::ScalarVectorT<ResultT> tResultsWS("residual",tNumCells);
+  tDatabase.vector("controls",tControl);
+  // create workset database
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  Plato::WorkSets tWorkSets;
+  tWorksetBuilder.build(tOnlyDomainDefined, tDatabase, tWorkSets);
+  auto tNumCells = tMesh->NumElements();
+  auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarVectorT<ResultT> > >
+    ( Plato::ScalarVectorT<ResultT>("Result Workset", tNumCells) );
+  tWorkSets.set("result",tResultWS);
   // create criterion
-  Plato::CriterionKirchhoffEnergyPotential<Residual> 
+  Plato::Elliptic::CriterionKirchhoffEnergyPotential<Residual> 
     tCriterion(tOnlyDomainDefined,tDataMap,*tGenericParamList,"My Strain Energy");
-  tCriterion.evaluate(tStateWS,tControlWS,tConfigWS,tResultsWS);
+  tCriterion.evaluate(tWorkSets,/*cycle=*/0.);
   // test gold values
   constexpr Plato::Scalar tTolerance = 1e-4;
   std::vector<Plato::Scalar> tGold = { 0.2604938271604937, 0.2604938271604937 };
-  auto tHostResultsWS = Kokkos::create_mirror(tResultsWS);
-  Kokkos::deep_copy(tHostResultsWS, tResultsWS);
+  auto tHostResultsWS = Kokkos::create_mirror(tResultWS->mData);
+  Kokkos::deep_copy(tHostResultsWS, tResultWS->mData);
   for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
     TEST_FLOATING_EQUALITY(tGold[tCell],tHostResultsWS(tCell),tTolerance);
   }
@@ -679,14 +675,8 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, CriterionNeoHookeanEnergyPo
   using ResultT  = typename Residual::ResultScalarType;
   using ControlT = typename Residual::ControlScalarType;
   using StrainT  = typename Plato::fad_type_t<ElementType,StateT,ConfigT>;
-  // create configuration workset
-  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
-  const Plato::OrdinalType tNumCells = tMesh->NumElements();
-  TEST_EQUALITY(2,tNumCells);
-  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
-  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
-  tWorksetBase.worksetConfig(tConfigWS);
   // create state workset
+  Plato::Database tDatabase;
   const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
   const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
   Plato::ScalarVector tState("States", tNumDofs);
@@ -695,25 +685,29 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, CriterionNeoHookeanEnergyPo
     Kokkos::RangePolicy<>(0, tNumDofs), 
     KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
     { tState(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
-  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
-  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
-  tWorksetBase.worksetState(tState, tStateWS);
+  tDatabase.vector("states",tState);
   // create control workset
-  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
   Plato::ScalarVector tControl("Controls", tNumVerts);
   Plato::blas1::fill(1.0, tControl);
-  tWorksetBase.worksetControl(tControl, tControlWS);
-  // create results workset
-  Plato::ScalarVectorT<ResultT> tResultsWS("residual",tNumCells);
+  tDatabase.vector("controls",tControl);
+  // create workset database
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  Plato::WorkSets tWorkSets;
+  tWorksetBuilder.build(tOnlyDomainDefined, tDatabase, tWorkSets);
+  auto tNumCells = tMesh->NumElements();
+  auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarVectorT<ResultT> > >
+    ( Plato::ScalarVectorT<ResultT>("Result Workset", tNumCells) );
+  tWorkSets.set("result",tResultWS);
   // create criterion
-  Plato::CriterionNeoHookeanEnergyPotential<Residual> 
+  Plato::Elliptic::CriterionNeoHookeanEnergyPotential<Residual> 
     tCriterion(tOnlyDomainDefined,tDataMap,*tGenericParamList,"My Strain Energy");
-  tCriterion.evaluate(tStateWS,tControlWS,tConfigWS,tResultsWS);
+  tCriterion.evaluate(tWorkSets,/*cycle=*/0.);
   // test gold values
   constexpr Plato::Scalar tTolerance = 1e-4;
   std::vector<Plato::Scalar> tGold = { 0.032487784262637334, 0.032487784262637334 };
-  auto tHostResultsWS = Kokkos::create_mirror(tResultsWS);
-  Kokkos::deep_copy(tHostResultsWS, tResultsWS);
+  auto tHostResultsWS = Kokkos::create_mirror(tResultWS->mData);
+  Kokkos::deep_copy(tHostResultsWS, tResultWS->mData);
   for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
     TEST_FLOATING_EQUALITY(tGold[tCell],tHostResultsWS(tCell),tTolerance);
   }

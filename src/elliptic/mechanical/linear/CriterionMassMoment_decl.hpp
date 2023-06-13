@@ -1,6 +1,6 @@
 #pragma once
 
-#include "elliptic/AbstractScalarFunction.hpp"
+#include "base/CriterionBase.hpp"
 
 namespace Plato
 {
@@ -14,21 +14,18 @@ namespace Elliptic
  *   type for scalar function (e.g. Residual, Jacobian, GradientZ, etc.)
 **********************************************************************************/
 template<typename EvaluationType>
-class CriterionMassMoment :
-  public EvaluationType::ElementType,
-  public Plato::Elliptic::AbstractScalarFunction<EvaluationType>
+class CriterionMassMoment : public Plato::CriterionBase
 /******************************************************************************/
 {
   private:
     using ElementType = typename EvaluationType::ElementType;
 
-    using ElementType::mNumNodesPerCell;
-    using ElementType::mNumSpatialDims;
+    static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+    static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+    static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+    static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
 
-    using ElementType::mNumDofsPerNode;
-    using ElementType::mNumDofsPerCell;
-
-    using FunctionBaseType = typename Plato::Elliptic::AbstractScalarFunction<EvaluationType>;
+    using FunctionBaseType = typename Plato::CriterionBase;
     using FunctionBaseType::mSpatialDomain;
     using FunctionBaseType::mDataMap;
 
@@ -79,22 +76,21 @@ class CriterionMassMoment :
      **********************************************************************************/
     void setCalculationType(const std::string & aCalculationType);
 
-    /******************************************************************************//**
-     * \brief Evaluate mass moment function
-     * \param [in] aState 2D container of state variables
-     * \param [in] aControl 2D container of control variables
-     * \param [in] aConfig 3D container of configuration/coordinates
-     * \param [out] aResult 1D container of cell criterion values
-     * \param [in] aTimeStep time step (default = 0)
-    **********************************************************************************/
+    /// @fn isLinear
+    /// @brief returns true if criterion is linear
+    /// @return boolean
+    bool 
+    isLinear() 
+    const;
+
+    /// @brief evaluate mass moment criterion
+    /// @param [in,out] aWorkSets function domain and range workset database
+    /// @param [in]     aCycle    scalar 
     void
-    evaluate_conditional(
-        const Plato::ScalarMultiVectorT <StateScalarType>   & aState,
-        const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT     <ConfigScalarType>  & aConfig,
-              Plato::ScalarVectorT      <ResultScalarType>  & aResult,
-              Plato::Scalar aTimeStep = 0.0
-    ) const override;
+    evaluateConditional(
+      const Plato::WorkSets & aWorkSets,
+      const Plato::Scalar   & aCycle
+    ) const;
 
     /******************************************************************************//**
      * \brief Compute structural mass

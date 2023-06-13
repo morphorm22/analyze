@@ -6,239 +6,217 @@ namespace Plato
 namespace Elliptic
 {
 
-    /******************************************************************************//**
-     * \brief Initialization of Division Function
-     * \param [in] aProblemParams input parameters database
-    **********************************************************************************/
-    template<typename PhysicsType>
-    void CriterionEvaluatorDivision<PhysicsType>::initialize(
-        Teuchos::ParameterList & aProblemParams
-    )
-    {
-        Plato::Elliptic::FactoryCriterionEvaluator<PhysicsType> tFactory;
+template<typename PhysicsType>
+void CriterionEvaluatorDivision<PhysicsType>::
+initialize(
+  Teuchos::ParameterList & aProblemParams
+)
+{
+  Plato::Elliptic::FactoryCriterionEvaluator<PhysicsType> tFactory;
+  auto tFunctionParams = aProblemParams.sublist("Criteria").sublist(mFunctionName);
+  auto tNumeratorFunctionName = tFunctionParams.get<std::string>("Numerator");
+  auto tDenominatorFunctionName = tFunctionParams.get<std::string>("Denominator");
+  mScalarFunctionBaseNumerator = 
+       tFactory.create(mSpatialModel, mDataMap, aProblemParams, tNumeratorFunctionName);
+  mScalarFunctionBaseDenominator = 
+       tFactory.create(mSpatialModel, mDataMap, aProblemParams, tDenominatorFunctionName);
+}
 
-        auto tFunctionParams = aProblemParams.sublist("Criteria").sublist(mFunctionName);
+template<typename PhysicsType>
+CriterionEvaluatorDivision<PhysicsType>::
+CriterionEvaluatorDivision(
+  const Plato::SpatialModel    & aSpatialModel,
+        Plato::DataMap         & aDataMap,
+        Teuchos::ParameterList & aProblemParams,
+  const std::string            & aName
+) :
+  mSpatialModel (aSpatialModel),
+  mDataMap      (aDataMap),
+  mFunctionName (aName)
+{
+  initialize(aProblemParams);
+}
 
-        auto tNumeratorFunctionName = tFunctionParams.get<std::string>("Numerator");
-        auto tDenominatorFunctionName = tFunctionParams.get<std::string>("Denominator");
+template<typename PhysicsType>
+CriterionEvaluatorDivision<PhysicsType>::
+CriterionEvaluatorDivision(
+  const Plato::SpatialModel & aSpatialModel,
+        Plato::DataMap      & aDataMap
+) :
+  mSpatialModel (aSpatialModel),
+  mDataMap      (aDataMap),
+  mFunctionName ("Division Function")
+{
+}
 
-        mScalarFunctionBaseNumerator = 
-             tFactory.create(mSpatialModel, mDataMap, aProblemParams, tNumeratorFunctionName);
+template<typename PhysicsType>
+void 
+CriterionEvaluatorDivision<PhysicsType>::
+allocateNumeratorFunction(
+  const std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase>& aInput
+)
+{
+  mScalarFunctionBaseNumerator = aInput;
+}
 
-        mScalarFunctionBaseDenominator = 
-             tFactory.create(mSpatialModel, mDataMap, aProblemParams, tDenominatorFunctionName);
-    }
+template<typename PhysicsType>
+void 
+CriterionEvaluatorDivision<PhysicsType>::
+allocateDenominatorFunction(
+  const std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase>& aInput
+)
+{
+  mScalarFunctionBaseDenominator = aInput;
+}
 
-    /******************************************************************************//**
-     * \brief Primary division function constructor
-     * \param [in] aSpatialModel Plato Analyze spatial model
-     * \param [in] aDataMap Plato Analyze data map
-     * \param [in] aInputParams input parameters database
-     * \param [in] aName user defined function name
-    **********************************************************************************/
-    template<typename PhysicsType>
-    CriterionEvaluatorDivision<PhysicsType>::CriterionEvaluatorDivision(
-        const Plato::SpatialModel    & aSpatialModel,
-              Plato::DataMap         & aDataMap,
-              Teuchos::ParameterList & aProblemParams,
-        const std::string            & aName
-    ) :
-        Plato::WorksetBase<ElementType>(aSpatialModel.Mesh),
-        mSpatialModel (aSpatialModel),
-        mDataMap      (aDataMap),
-        mFunctionName (aName)
-    {
-        initialize(aProblemParams);
-    }
+template<typename PhysicsType>
+bool 
+CriterionEvaluatorDivision<PhysicsType>::
+isLinear() 
+const
+{
+  bool tIsLinear = mScalarFunctionBaseNumerator->isLinear() && mScalarFunctionBaseDenominator->isLinear();
+  return tIsLinear;
+}
 
-    /******************************************************************************//**
-     * \brief Secondary division function constructor, used for unit testing
-     * \param [in] aMesh mesh database
-    **********************************************************************************/
-    template<typename PhysicsType>
-    CriterionEvaluatorDivision<PhysicsType>::CriterionEvaluatorDivision(
-        const Plato::SpatialModel & aSpatialModel,
-              Plato::DataMap      & aDataMap
-    ) :
-        Plato::WorksetBase<ElementType>(aSpatialModel.Mesh),
-        mSpatialModel (aSpatialModel),
-        mDataMap      (aDataMap),
-        mFunctionName ("Division Function")
-    {
-    }
-
-    /******************************************************************************//**
-     * \brief Allocate numerator function base using the residual automatic differentiation type
-     * \param [in] aInput scalar function
-    **********************************************************************************/
-    template<typename PhysicsType>
-    void CriterionEvaluatorDivision<PhysicsType>::allocateNumeratorFunction(const std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase>& aInput)
-    {
-        mScalarFunctionBaseNumerator = aInput;
-    }
-
-    /******************************************************************************//**
-     * \brief Allocate denominator function base using the residual automatic differentiation type
-     * \param [in] aInput scalar function
-    **********************************************************************************/
-    template<typename PhysicsType>
-    void CriterionEvaluatorDivision<PhysicsType>::allocateDenominatorFunction(const std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase>& aInput)
-    {
-        mScalarFunctionBaseDenominator = aInput;
-    }
-
-    /******************************************************************************//**
-     * \brief Update physics-based parameters within optimization iterations
-     * \param [in] aState 1D view of state variables
-     * \param [in] aControl 1D view of control variables
-     **********************************************************************************/
-    template<typename PhysicsType>
-    void CriterionEvaluatorDivision<PhysicsType>::updateProblem(const Plato::ScalarVector & aState, const Plato::ScalarVector & aControl) const
-    {
-        mScalarFunctionBaseNumerator->updateProblem(aState, aControl);
-        mScalarFunctionBaseDenominator->updateProblem(aState, aControl);
-    }
+template<typename PhysicsType>
+void 
+CriterionEvaluatorDivision<PhysicsType>::
+updateProblem(
+  const Plato::Database & aDatabase,
+  const Plato::Scalar   & aCycle
+) const
+{
+  mScalarFunctionBaseNumerator->updateProblem(aDatabase,aCycle);
+  mScalarFunctionBaseDenominator->updateProblem(aDatabase,aCycle);
+}
 
 
-    /******************************************************************************//**
-     * \brief Evaluate division function
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return scalar function evaluation
-    **********************************************************************************/
-    template<typename PhysicsType>
-    Plato::Scalar
-    CriterionEvaluatorDivision<PhysicsType>::value(const Plato::Solutions    & aSolution,
-          const Plato::ScalarVector & aControl,
-                Plato::Scalar         aTimeStep) const
-    {
-        Plato::Scalar tNumeratorValue = mScalarFunctionBaseNumerator->value(aSolution, aControl, aTimeStep);
-        Plato::Scalar tDenominatorValue = mScalarFunctionBaseDenominator->value(aSolution, aControl, aTimeStep);
-        Plato::Scalar tResult = tNumeratorValue / tDenominatorValue;
-        if (tDenominatorValue == 0.0)
-        {
-            ANALYZE_THROWERR("Denominator of division function evaluated to 0!")
-        }
-        
-        return tResult;
-    }
+template<typename PhysicsType>
+Plato::Scalar
+CriterionEvaluatorDivision<PhysicsType>::
+value(const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
+) const
+{
+  Plato::Scalar tNumeratorValue = 
+    mScalarFunctionBaseNumerator->value(aDatabase,aCycle);
+  Plato::Scalar tDenominatorValue = 
+    mScalarFunctionBaseDenominator->value(aDatabase,aCycle);
+  Plato::Scalar tResult = tNumeratorValue / tDenominatorValue;
+  if (tDenominatorValue == 0.0)
+  {
+    ANALYZE_THROWERR("Denominator of division function evaluated to 0!")
+  }
+  
+  return tResult;
+}
 
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the division function with respect to (wrt) the configuration parameters
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the scalar function wrt the configuration parameters
-    **********************************************************************************/
-    template<typename PhysicsType>
-    Plato::ScalarVector
-    CriterionEvaluatorDivision<PhysicsType>::gradient_x(const Plato::Solutions    & aSolution,
-               const Plato::ScalarVector & aControl,
-                     Plato::Scalar         aTimeStep) const
-    {
-        const Plato::OrdinalType tNumDofs = mNumSpatialDims * mNumNodes;
-        Plato::ScalarVector tGradientX ("gradient configuration", tNumDofs);
+template<typename PhysicsType>
+Plato::ScalarVector
+CriterionEvaluatorDivision<PhysicsType>::
+gradientConfig(
+  const Plato::Database & aDatabase,
+  const Plato::Scalar   & aCycle
+) const
+{
+  const Plato::OrdinalType tNumNodes = mSpatialModel.Mesh->NumNodes();
+  const Plato::OrdinalType tNumDofs = mNumSpatialDims * tNumNodes;
+  Plato::ScalarVector tGradientX ("gradient configuration", tNumDofs);
+  Plato::Scalar tNumeratorValue = 
+    mScalarFunctionBaseNumerator->value(aDatabase,aCycle);
+  Plato::Scalar tDenominatorValue = 
+    mScalarFunctionBaseDenominator->value(aDatabase,aCycle);
+  Plato::Scalar tDenominatorValueSquared = tDenominatorValue * tDenominatorValue;
+  Plato::ScalarVector tNumeratorGradX = 
+    mScalarFunctionBaseNumerator->gradientConfig(aDatabase,aCycle);
+  Plato::ScalarVector tDenominatorGradX = 
+    mScalarFunctionBaseDenominator->gradientConfig(aDatabase,aCycle);
+  Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & tDof)
+  {
+    tGradientX(tDof) = (tNumeratorGradX(tDof) * tDenominatorValue - 
+                        tDenominatorGradX(tDof) * tNumeratorValue) 
+                       / (tDenominatorValueSquared);
+  },"Division Function Grad X");
+  return tGradientX;
+}
 
-        Plato::Scalar tNumeratorValue = mScalarFunctionBaseNumerator->value(aSolution, aControl, aTimeStep);
-        Plato::Scalar tDenominatorValue = mScalarFunctionBaseDenominator->value(aSolution, aControl, aTimeStep);
-        Plato::Scalar tDenominatorValueSquared = tDenominatorValue * tDenominatorValue;
+template<typename PhysicsType>
+Plato::ScalarVector
+CriterionEvaluatorDivision<PhysicsType>::
+gradientState(
+  const Plato::Database & aDatabase,
+  const Plato::Scalar   & aCycle
+) const
+{
+  const Plato::OrdinalType tNumNodes = mSpatialModel.Mesh->NumNodes();
+  const Plato::OrdinalType tNumDofs = mNumDofsPerNode * tNumNodes;
+  Plato::ScalarVector tGradientU ("gradient state", tNumDofs);
+  Plato::Scalar tNumeratorValue = 
+    mScalarFunctionBaseNumerator->value(aDatabase,aCycle);
+  Plato::Scalar tDenominatorValue = 
+    mScalarFunctionBaseDenominator->value(aDatabase,aCycle);
+  Plato::Scalar tDenominatorValueSquared = tDenominatorValue * tDenominatorValue;
+  Plato::ScalarVector tNumeratorGradU = 
+    mScalarFunctionBaseNumerator->gradientState(aDatabase,aCycle);
+  Plato::ScalarVector tDenominatorGradU = 
+    mScalarFunctionBaseDenominator->gradientState(aDatabase,aCycle);
+  Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & tDof)
+  {
+    tGradientU(tDof) = (tNumeratorGradU(tDof) * tDenominatorValue - 
+                        tDenominatorGradU(tDof) * tNumeratorValue) 
+                       / (tDenominatorValueSquared);
+  },"Division Function Grad U");
+  return tGradientU;
+}
 
-        Plato::ScalarVector tNumeratorGradX = mScalarFunctionBaseNumerator->gradient_x(aSolution, aControl, aTimeStep);
-        Plato::ScalarVector tDenominatorGradX = mScalarFunctionBaseDenominator->gradient_x(aSolution, aControl, aTimeStep);
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & tDof)
-        {
-            tGradientX(tDof) = (tNumeratorGradX(tDof) * tDenominatorValue - 
-                                tDenominatorGradX(tDof) * tNumeratorValue) 
-                               / (tDenominatorValueSquared);
-        },"Division Function Grad X");
-        return tGradientX;
-    }
+template<typename PhysicsType>
+Plato::ScalarVector
+CriterionEvaluatorDivision<PhysicsType>::
+gradientControl(
+  const Plato::Database & aDatabase,
+  const Plato::Scalar   & aCycle
+) const
+{
+  const Plato::OrdinalType tNumDofs = mSpatialModel.Mesh->NumNodes();
+  Plato::ScalarVector tGradientZ ("gradient control", tNumDofs);
+  
+  Plato::Scalar tNumeratorValue = 
+    mScalarFunctionBaseNumerator->value(aDatabase,aCycle);
+  Plato::Scalar tDenominatorValue = 
+    mScalarFunctionBaseDenominator->value(aDatabase,aCycle);
+  Plato::Scalar tDenominatorValueSquared = tDenominatorValue * tDenominatorValue;
+  Plato::ScalarVector tNumeratorGradZ = 
+    mScalarFunctionBaseNumerator->gradientControl(aDatabase,aCycle);
+  Plato::ScalarVector tDenominatorGradZ = 
+    mScalarFunctionBaseDenominator->gradientControl(aDatabase,aCycle);
+  Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & tDof)
+  {
+    tGradientZ(tDof) = (tNumeratorGradZ(tDof) * tDenominatorValue - 
+                        tDenominatorGradZ(tDof) * tNumeratorValue) 
+                       / (tDenominatorValueSquared);
+  },"Division Function Grad Z");
+  return tGradientZ;
+}
 
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the division function with respect to (wrt) the state variables
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the scalar function wrt the state variables
-    **********************************************************************************/
-    template<typename PhysicsType>
-    Plato::ScalarVector
-    CriterionEvaluatorDivision<PhysicsType>::gradient_u(const Plato::Solutions    & aSolution,
-               const Plato::ScalarVector & aControl,
-                     Plato::OrdinalType    aStepIndex,
-                     Plato::Scalar         aTimeStep) const
-    {
-        const Plato::OrdinalType tNumDofs = mNumDofsPerNode * mNumNodes;
-        Plato::ScalarVector tGradientU ("gradient state", tNumDofs);
+template<typename PhysicsType>
+void 
+CriterionEvaluatorDivision<PhysicsType>::
+setFunctionName(
+  const std::string aFunctionName
+)
+{
+  mFunctionName = aFunctionName;
+}
 
-        Plato::Scalar tNumeratorValue = mScalarFunctionBaseNumerator->value(aSolution, aControl, aTimeStep);
-        Plato::Scalar tDenominatorValue = mScalarFunctionBaseDenominator->value(aSolution, aControl, aTimeStep);
-        Plato::Scalar tDenominatorValueSquared = tDenominatorValue * tDenominatorValue;
+template<typename PhysicsType>
+std::string 
+CriterionEvaluatorDivision<PhysicsType>::
+name() const
+{
+  return mFunctionName;
+}
 
-        Plato::ScalarVector tNumeratorGradU = mScalarFunctionBaseNumerator->gradient_u(aSolution, aControl, aTimeStep);
-        Plato::ScalarVector tDenominatorGradU = mScalarFunctionBaseDenominator->gradient_u(aSolution, aControl, aTimeStep);
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & tDof)
-        {
-            tGradientU(tDof) = (tNumeratorGradU(tDof) * tDenominatorValue - 
-                                tDenominatorGradU(tDof) * tNumeratorValue) 
-                               / (tDenominatorValueSquared);
-        },"Division Function Grad U");
-
-        return tGradientU;
-    }
-
-    /******************************************************************************//**
-     * \brief Evaluate gradient of the division function with respect to (wrt) the control variables
-     * \param [in] aSolution solution database
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aTimeStep time step (default = 0.0)
-     * \return 1D view with the gradient of the scalar function wrt the control variables
-    **********************************************************************************/
-    template<typename PhysicsType>
-    Plato::ScalarVector
-    CriterionEvaluatorDivision<PhysicsType>::gradient_z(const Plato::Solutions    & aSolution,
-               const Plato::ScalarVector & aControl,
-                     Plato::Scalar aTimeStep) const
-    {
-        const Plato::OrdinalType tNumDofs = mNumNodes;
-        Plato::ScalarVector tGradientZ ("gradient control", tNumDofs);
-        
-        Plato::Scalar tNumeratorValue = mScalarFunctionBaseNumerator->value(aSolution, aControl, aTimeStep);
-        Plato::Scalar tDenominatorValue = mScalarFunctionBaseDenominator->value(aSolution, aControl, aTimeStep);
-        Plato::Scalar tDenominatorValueSquared = tDenominatorValue * tDenominatorValue;
-
-        Plato::ScalarVector tNumeratorGradZ = mScalarFunctionBaseNumerator->gradient_z(aSolution, aControl, aTimeStep);
-        Plato::ScalarVector tDenominatorGradZ = mScalarFunctionBaseDenominator->gradient_z(aSolution, aControl, aTimeStep);
-        Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & tDof)
-        {
-            tGradientZ(tDof) = (tNumeratorGradZ(tDof) * tDenominatorValue - 
-                                tDenominatorGradZ(tDof) * tNumeratorValue) 
-                               / (tDenominatorValueSquared);
-        },"Division Function Grad Z");
-
-        return tGradientZ;
-    }
-
-    /******************************************************************************//**
-     * \brief Set user defined function name
-     * \param [in] function name
-    **********************************************************************************/
-    template<typename PhysicsType>
-    void CriterionEvaluatorDivision<PhysicsType>::setFunctionName(const std::string aFunctionName)
-    {
-        mFunctionName = aFunctionName;
-    }
-
-    /******************************************************************************//**
-     * \brief Return user defined function name
-     * \return User defined function name
-    **********************************************************************************/
-    template<typename PhysicsType>
-    std::string CriterionEvaluatorDivision<PhysicsType>::name() const
-    {
-        return mFunctionName;
-    }
 } // namespace Elliptic
 
 } // namespace Plato
