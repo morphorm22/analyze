@@ -33,7 +33,6 @@ Problem(
   mNumNewtonSteps(Plato::ParseTools::getSubParam<int>(aParamList,"Newton Iteration","Maximum Iterations",1.)),
   mNewtonIncTol(Plato::ParseTools::getSubParam<double>(aParamList,"Newton Iteration","Increment Tolerance",0.)),
   mNewtonResTol(Plato::ParseTools::getSubParam<double>(aParamList,"Newton Iteration","Residual Tolerance",0.)),
-  mSaveState    (aParamList.sublist("Elliptic").isType<Teuchos::Array<std::string>>("Plottable")),
   mResidual     ("MyResidual", mResidualEvaluator->numDofs()),
   mStates       ("States", static_cast<Plato::OrdinalType>(1), mResidualEvaluator->numDofs()),
   mJacobianState(Teuchos::null),
@@ -45,6 +44,7 @@ Problem(
   this->initializeMultiPointConstraints(aParamList);
   this->readEssentialBoundaryConditions(aParamList);
   this->initializeSolver(aMesh,aParamList,aMachine);
+  this->parseSaveOutput(aParamList);
 }
 
 template<typename PhysicsType>
@@ -594,6 +594,24 @@ initializeSolver(
   }
   Plato::SolverFactory tSolverFactory(aParamList.sublist("Linear Solver"), tSystemType);
   mSolver = tSolverFactory.create(aMesh->NumNodes(), aMachine, ElementType::mNumDofsPerNode, mMPCs);
+}
+
+template<typename PhysicsType>
+void
+Problem<PhysicsType>::
+parseSaveOutput(
+  Teuchos::ParameterList & aParamList
+)
+{
+  if( aParamList.isSublist("Output") ){
+    auto tOutputParamList = aParamList.sublist("Output");
+    if( tOutputParamList.isType<Teuchos::Array<std::string>>("Plottable") ){
+      auto tPlottable = tOutputParamList.get<Teuchos::Array<std::string>>("Plottable");
+      if( !tPlottable.empty() ){
+        mSaveState = true;
+      }
+    }
+  }
 }
 
 template<typename PhysicsType>

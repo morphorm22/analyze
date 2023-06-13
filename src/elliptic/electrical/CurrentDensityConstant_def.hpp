@@ -86,8 +86,10 @@ evaluate(
     tCellVolume *= tCubWeights(iGpOrdinal);
     Kokkos::atomic_add(&tVolume(iCellOrdinal),tCellVolume);
     for(Plato::OrdinalType tDim=0; tDim<ElementType::mNumSpatialDims; tDim++){
-      Kokkos::atomic_add(&tElectricField(iCellOrdinal,tDim),-1.0*tCellVolume*tCellElectricField(tDim));
-      Kokkos::atomic_add(&tCurrentDensity(iCellOrdinal,tDim), -1.0*tCellVolume*aResult(iCellOrdinal,iGpOrdinal,tDim));
+      /*Kokkos::atomic_add(&tElectricField(iCellOrdinal,tDim),-1.0*tCellVolume*tCellElectricField(tDim));
+      Kokkos::atomic_add(&tCurrentDensity(iCellOrdinal,tDim), -1.0*tCellVolume*aResult(iCellOrdinal,iGpOrdinal,tDim));*/
+      Kokkos::atomic_add(&tElectricField(iCellOrdinal,tDim) , tCellVolume*tCellElectricField(tDim));
+      Kokkos::atomic_add(&tCurrentDensity(iCellOrdinal,tDim), tCellVolume*aResult(iCellOrdinal,iGpOrdinal,tDim));
     }
   });
   
@@ -102,10 +104,12 @@ evaluate(
     }
   });
   // save output quantities of interest in output database
-  if( std::count(mPlottable.begin(),mPlottable.end(),"electric field") ) 
-  { Plato::toMap(mDataMap,tElectricField,"electric field",mSpatialDomain); }
-  if( std::count(mPlottable.begin(),mPlottable.end(),"current density" ) )
-  { Plato::toMap(mDataMap,tCurrentDensity,"current density",mSpatialDomain); }
+  if( std::count(mPlottable.begin(),mPlottable.end(),"electric_field") ) { 
+    Plato::toMap(mDataMap,tElectricField,"electric_field",mSpatialDomain); 
+  }
+  if( std::count(mPlottable.begin(),mPlottable.end(),"current_density" ) ){ 
+    Plato::toMap(mDataMap,tCurrentDensity,"current_density",mSpatialDomain); 
+  }
 
 }
 

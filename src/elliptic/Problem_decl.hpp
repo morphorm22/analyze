@@ -44,7 +44,7 @@ private:
   Plato::Scalar      mNewtonResTol, mNewtonIncTol;
 
   /// @brief save state if true
-  bool mSaveState;
+  bool mSaveState = false;
   /// @brief apply dirichlet boundary condition weakly
   bool mWeakEBCs = false;
   /// @brief vector of adjoint values
@@ -268,6 +268,13 @@ public:
     );
 
 private:
+  /// @brief parse and set save output flag
+  /// @param [in] aParamList input problem parameters
+  void 
+  parseSaveOutput(
+    Teuchos::ParameterList & aParamList
+  );
+
   /// @brief initialize linear system solver
   /// @param aMesh       mesh interface
   /// @param aParamList input problem parameters

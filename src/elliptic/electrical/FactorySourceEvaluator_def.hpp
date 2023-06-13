@@ -32,8 +32,10 @@ create(
 {
   if( !aParamList.isSublist("Source Terms") )
   {
-    auto tMsg = std::string("Parameter is not valid. Argument ('Source Terms') is not a parameter list");
-    ANALYZE_THROWERR(tMsg)
+    auto tMsg = std::string("WARNING: Parameter list ('Source Terms') is not defined, ") 
+      + "program assumes no source term is needed in the analysis";
+    WARNING(tMsg)
+    return nullptr;
   }
   auto tSourceTermsParamList = aParamList.sublist("Source Terms");
   if( !tSourceTermsParamList.isSublist("Source") )
