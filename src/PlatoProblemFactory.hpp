@@ -29,7 +29,7 @@
 
 #ifdef PLATO_ELLIPTIC
   #include "elliptic/thermal/Thermal.hpp"
-  #include "elliptic/thermomechanics/Thermomechanics.hpp"
+  #include "elliptic/thermomechanics/linear/Thermomechanics.hpp"
   #include "elliptic/mechanical/nonlinear/Mechanics.hpp"
   #include "elliptic/mechanical/linear/Mechanics.hpp"
   #include "elliptic/electrical/Electrical.hpp"

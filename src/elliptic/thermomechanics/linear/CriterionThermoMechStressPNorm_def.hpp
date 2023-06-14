@@ -15,8 +15,8 @@ namespace Elliptic
 {
 
 template<typename EvaluationType, typename IndicatorFunctionType>
-TMStressPNorm<EvaluationType, IndicatorFunctionType>::
-TMStressPNorm(
+CriterionThermoMechStressPNorm<EvaluationType, IndicatorFunctionType>::
+CriterionThermoMechStressPNorm(
   const Plato::SpatialDomain   & aSpatialDomain,
         Plato::DataMap         & aDataMap, 
         Teuchos::ParameterList & aProblemParams, 
@@ -38,7 +38,7 @@ TMStressPNorm(
 
 template<typename EvaluationType, typename IndicatorFunctionType>
 bool 
-TMStressPNorm<EvaluationType, IndicatorFunctionType>::
+CriterionThermoMechStressPNorm<EvaluationType, IndicatorFunctionType>::
 isLinear() 
 const
 {
@@ -47,7 +47,7 @@ const
 
 template<typename EvaluationType, typename IndicatorFunctionType>
 void
-TMStressPNorm<EvaluationType, IndicatorFunctionType>::
+CriterionThermoMechStressPNorm<EvaluationType, IndicatorFunctionType>::
 evaluateConditional(
   const Plato::WorkSets & aWorkSets,
   const Plato::Scalar   & aCycle
@@ -147,7 +147,7 @@ evaluateConditional(
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    TMStressPNorm<EvaluationType, IndicatorFunctionType>::postEvaluate( 
+    CriterionThermoMechStressPNorm<EvaluationType, IndicatorFunctionType>::postEvaluate( 
       Plato::ScalarVector resultVector,
       Plato::Scalar       resultScalar)
     /**************************************************************************/
@@ -158,7 +158,7 @@ evaluateConditional(
     /**************************************************************************/
     template<typename EvaluationType, typename IndicatorFunctionType>
     void
-    TMStressPNorm<EvaluationType, IndicatorFunctionType>::postEvaluate( Plato::Scalar& resultValue )
+    CriterionThermoMechStressPNorm<EvaluationType, IndicatorFunctionType>::postEvaluate( Plato::Scalar& resultValue )
     /**************************************************************************/
     {
       mNorm->postEvaluate(resultValue);

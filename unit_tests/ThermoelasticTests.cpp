@@ -29,7 +29,7 @@
 #include "elliptic/Problem.hpp"
 #include "StateValues.hpp"
 #include "ApplyConstraints.hpp"
-#include "elliptic/thermomechanics/Thermomechanics.hpp"
+#include "elliptic/thermomechanics/linear/Thermomechanics.hpp"
 #include "ImplicitFunctors.hpp"
 #include "LinearThermoelasticMaterial.hpp"
 #include "ExpressionEvaluator.hpp"

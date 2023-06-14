@@ -12,7 +12,7 @@
 
 #include "elliptic/mechanical/linear/Mechanics.hpp"
 #include "elliptic/thermal/Thermal.hpp"
-#include "elliptic/thermomechanics/Thermomechanics.hpp"
+#include "elliptic/thermomechanics/linear/Thermomechanics.hpp"
 #include "elliptic/electrical/Electrical.hpp"
 #include "elliptic/electromechanics/Electromechanics.hpp"
 #include "BaseExpInstMacros.hpp"

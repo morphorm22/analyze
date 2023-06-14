@@ -16,8 +16,8 @@ namespace Plato
      * \param [in] aName local measure name
      **********************************************************************************/
     template<typename EvaluationType>
-    ThermalVonMisesLocalMeasure<EvaluationType>::
-    ThermalVonMisesLocalMeasure(
+    LocalMeasureThermalVonMises<EvaluationType>::
+    LocalMeasureThermalVonMises(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aInputParams,
@@ -34,8 +34,8 @@ namespace Plato
      * \brief Destructor
      **********************************************************************************/
     template<typename EvaluationType>
-    ThermalVonMisesLocalMeasure<EvaluationType>::
-    ~ThermalVonMisesLocalMeasure()
+    LocalMeasureThermalVonMises<EvaluationType>::
+    ~LocalMeasureThermalVonMises()
     {
     }
 
@@ -48,7 +48,7 @@ namespace Plato
     **********************************************************************************/
     template<typename EvaluationType>
     void
-    ThermalVonMisesLocalMeasure<EvaluationType>::
+    LocalMeasureThermalVonMises<EvaluationType>::
     operator()(
         const Plato::ScalarMultiVectorT <StateT>   & aStateWS,
         const Plato::ScalarMultiVectorT <ControlT> & aControlWS,

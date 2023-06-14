@@ -38,7 +38,7 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     elliptic/mechanical/linear/Plato_AugLagStressCriterionQuadratic.cpp
     elliptic/mechanical/linear/Plato_AugLagStressCriterionGeneral.cpp
     elliptic/mechanical/linear/CriterionAugLagStrength.cpp
-    elliptic/thermomechanics/ThermalVonMisesLocalMeasure.cpp
+    elliptic/thermomechanics/linear/LocalMeasureThermalVonMises.cpp
     optimizer/AugLagDataMng.cpp
 )
 
@@ -152,9 +152,9 @@ if(ELLIPTIC)
     elliptic/thermal/ResidualThermostatic.cpp
     elliptic/thermal/CriterionFluxPNorm.cpp
     elliptic/thermal/CriterionInternalThermalEnergy.cpp
-    elliptic/thermomechanics/TMStressPNorm.cpp
-    elliptic/thermomechanics/ThermoelastostaticResidual.cpp
-    elliptic/thermomechanics/InternalThermoelasticEnergy.cpp
+    elliptic/thermomechanics/linear/CriterionThermoMechStressPNorm.cpp
+    elliptic/thermomechanics/linear/ResidualThermoelastostatic.cpp
+    elliptic/thermomechanics/linear/CriterionInternalThermoelasticEnergy.cpp
     elliptic/electrical/SupportedParamOptions.cpp
     elliptic/electrical/FactorySourceEvaluator.cpp
     elliptic/electrical/SourceWeightedSum.cpp

@@ -1,0 +1,4 @@
+#include "elliptic/thermomechanics/linear/CriterionInternalThermoelasticEnergy_decl.hpp"
+#ifndef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
+#include "elliptic/thermomechanics/linear/CriterionInternalThermoelasticEnergy_def.hpp"
+#endif

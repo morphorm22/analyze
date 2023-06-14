@@ -18,8 +18,8 @@ namespace Elliptic
 {
 
 template<typename EvaluationType, typename IndicatorFunctionType>
-ThermoelastostaticResidual<EvaluationType, IndicatorFunctionType>::
-ThermoelastostaticResidual(
+ResidualThermoelastostatic<EvaluationType, IndicatorFunctionType>::
+ResidualThermoelastostatic(
   const Plato::SpatialDomain   & aSpatialDomain,
         Plato::DataMap         & aDataMap,
         Teuchos::ParameterList & aProblemParams,
@@ -75,7 +75,7 @@ ThermoelastostaticResidual(
 
 template<typename EvaluationType, typename IndicatorFunctionType>
 Plato::Solutions 
-ThermoelastostaticResidual<EvaluationType, IndicatorFunctionType>::
+ResidualThermoelastostatic<EvaluationType, IndicatorFunctionType>::
 getSolutionStateOutputData(
   const Plato::Solutions &aSolutions
 ) const
@@ -85,7 +85,7 @@ getSolutionStateOutputData(
 
 template<typename EvaluationType, typename IndicatorFunctionType>
 void 
-ThermoelastostaticResidual<EvaluationType, IndicatorFunctionType>::
+ResidualThermoelastostatic<EvaluationType, IndicatorFunctionType>::
 evaluate(
   Plato::WorkSets & aWorkSets,
   Plato::Scalar     aCycle
@@ -214,7 +214,7 @@ evaluate(
 
 template<typename EvaluationType, typename IndicatorFunctionType>
 void 
-ThermoelastostaticResidual<EvaluationType, IndicatorFunctionType>::
+ResidualThermoelastostatic<EvaluationType, IndicatorFunctionType>::
 evaluateBoundary(
   const Plato::SpatialModel & aSpatialModel,
         Plato::WorkSets     & aWorkSets,

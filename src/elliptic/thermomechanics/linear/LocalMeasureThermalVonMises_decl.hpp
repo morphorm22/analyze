@@ -13,7 +13,7 @@ namespace Plato
  *   type for scalar function (e.g. Residual, Jacobian, GradientZ, etc.)
 **********************************************************************************/
 template<typename EvaluationType>
-class ThermalVonMisesLocalMeasure :
+class LocalMeasureThermalVonMises :
         public AbstractLocalMeasure<EvaluationType>
 {
 private:
@@ -42,7 +42,7 @@ public:
      * \param [in] aInputParams input parameters database
      * \param [in] aName local measure name
      **********************************************************************************/
-    ThermalVonMisesLocalMeasure(
+    LocalMeasureThermalVonMises(
         const Plato::SpatialDomain   & aSpatialDomain,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aInputParams,
@@ -52,7 +52,7 @@ public:
     /******************************************************************************//**
      * \brief Destructor
      **********************************************************************************/
-    virtual ~ThermalVonMisesLocalMeasure();
+    virtual ~LocalMeasureThermalVonMises();
 
     /******************************************************************************//**
      * \brief Evaluate vonmises local measure
@@ -69,7 +69,7 @@ public:
               Plato::ScalarVectorT      <ResultT>  & aResultWS
     ) override;
 };
-// class ThermalVonMisesLocalMeasure
+// class LocalMeasureThermalVonMises
 
 }
 //namespace Plato

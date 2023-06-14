@@ -14,7 +14,7 @@
 #include "WorkSets.hpp"
 #include "base/Database.hpp"
 #include "elliptic/mechanical/linear/Mechanics.hpp"
-#include "elliptic/thermomechanics/Thermomechanics.hpp"
+#include "elliptic/thermomechanics/linear/Thermomechanics.hpp"
 #include "Solutions.hpp"
 #include "Analyze_Diagnostics.hpp"
 #include "IsotropicLinearElasticMaterial.hpp"
@@ -28,7 +28,7 @@
 #include "elliptic/mechanical/linear/VonMisesYieldFunction.hpp"
 #include "elliptic/mechanical/linear/LocalMeasureTensileEnergyDensity.hpp"
 
-#include "elliptic/thermomechanics/ThermalVonMisesLocalMeasure.hpp"
+#include "elliptic/thermomechanics/linear/LocalMeasureThermalVonMises.hpp"
 #include "elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.hpp"
 #include "elliptic/evaluators/criterion/CriterionEvaluatorWeightedSum.hpp"
 
@@ -551,7 +551,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_CheckThermalVonMises3D)
     auto tOnlyDomain = tSpatialModel.Domains.front();
 
     const std::string tName = "ThermalVonMises";
-    Plato::ThermalVonMisesLocalMeasure<Residual> tLocalMeasure(tOnlyDomain, tDataMap, *tParamList, tName);
+    Plato::LocalMeasureThermalVonMises<Residual> tLocalMeasure(tOnlyDomain, tDataMap, *tParamList, tName);
 
     Plato::ScalarVector tResult("ThermalVonMises", tNumCells);
     tLocalMeasure(tStateWS, tControlWS, tConfigWS, tResult);

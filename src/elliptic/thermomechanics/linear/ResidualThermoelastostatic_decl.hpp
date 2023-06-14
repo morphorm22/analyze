@@ -17,7 +17,7 @@ namespace Elliptic
 {
 
 template<typename EvaluationType, typename IndicatorFunctionType>
-class ThermoelastostaticResidual :  public Plato::ResidualBase
+class ResidualThermoelastostatic :  public Plato::ResidualBase
 {
 private:
   /// @brief topological element type
@@ -66,7 +66,7 @@ private:
   std::vector<std::string> mPlottable;
 
 public:
-  ThermoelastostaticResidual(
+  ResidualThermoelastostatic(
     const Plato::SpatialDomain   & aSpatialDomain,
           Plato::DataMap         & aDataMap,
           Teuchos::ParameterList & aProblemParams,
@@ -100,7 +100,7 @@ public:
           Plato::Scalar         aCycle = 0.0
   ) const;
 
-}; // class ThermoelastostaticResidual
+}; // class ResidualThermoelastostatic
 
 } // namespace Elliptic
 

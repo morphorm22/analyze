@@ -7,10 +7,10 @@
 
 #include "elliptic/Volume.hpp"
 #include "elliptic/EvaluationTypes.hpp"
-#include "elliptic/thermomechanics/ThermoelastostaticResidual.hpp"
-#include "elliptic/thermomechanics/InternalThermoelasticEnergy.hpp"
-#include "elliptic/thermomechanics/TMStressPNorm.hpp"
-#include "elliptic/thermomechanics/ThermalVonMisesLocalMeasure.hpp"
+#include "elliptic/thermomechanics/linear/ResidualThermoelastostatic.hpp"
+#include "elliptic/thermomechanics/linear/CriterionInternalThermoelasticEnergy.hpp"
+#include "elliptic/thermomechanics/linear/CriterionThermoMechStressPNorm.hpp"
+#include "elliptic/thermomechanics/linear/LocalMeasureThermalVonMises.hpp"
 
 #include "elliptic/AbstractLocalMeasure.hpp"
 #include "elliptic/mechanical/linear/Plato_AugLagStressCriterionQuadratic.hpp"
@@ -45,7 +45,7 @@ create_local_measure(
   auto tLocalMeasure = tFunctionSpecs.get<std::string>("Local Measure", "VonMises");  
   if(tLocalMeasure == "VonMises")
   {
-    return std::make_shared<ThermalVonMisesLocalMeasure<EvaluationType>>
+    return std::make_shared<LocalMeasureThermalVonMises<EvaluationType>>
         (aSpatialDomain, aDataMap, aProblemParams, "VonMises");
   }
   else
@@ -94,7 +94,7 @@ struct FunctionFactory
     auto tLowerFuncType = Plato::tolower(aFuncType);
     if(tLowerFuncType == "elliptic")
     {
-      return Plato::makeVectorFunction<EvaluationType, Plato::Elliptic::ThermoelastostaticResidual>
+      return Plato::makeVectorFunction<EvaluationType, Plato::Elliptic::ResidualThermoelastostatic>
                (aSpatialDomain, aDataMap, aParamList, aFuncType);
     }
     else
@@ -116,13 +116,13 @@ struct FunctionFactory
     auto tLowerFuncType = Plato::tolower(aFuncType);
     if(tLowerFuncType == "internal thermoelastic energy")
     {
-      return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::InternalThermoelasticEnergy>
+      return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::CriterionInternalThermoelasticEnergy>
           (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
     }
     else 
     if(tLowerFuncType == "stress p-norm")
     {
-      return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::TMStressPNorm>
+      return Plato::makeScalarFunction<EvaluationType, Plato::Elliptic::CriterionThermoMechStressPNorm>
           (aSpatialDomain, aDataMap, aProblemParams, aFuncName);
     }
     else

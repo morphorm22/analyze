@@ -16,8 +16,8 @@ namespace Elliptic
 {
 
 template<typename EvaluationType, typename IndicatorFunctionType>
-InternalThermoelasticEnergy<EvaluationType, IndicatorFunctionType>::
-InternalThermoelasticEnergy(
+CriterionInternalThermoelasticEnergy<EvaluationType, IndicatorFunctionType>::
+CriterionInternalThermoelasticEnergy(
   const Plato::SpatialDomain   & aSpatialDomain,
         Plato::DataMap         & aDataMap,
         Teuchos::ParameterList & aProblemParams,
@@ -55,7 +55,7 @@ InternalThermoelasticEnergy(
 
 template<typename EvaluationType, typename IndicatorFunctionType>
 bool 
-InternalThermoelasticEnergy<EvaluationType, IndicatorFunctionType>::
+CriterionInternalThermoelasticEnergy<EvaluationType, IndicatorFunctionType>::
 isLinear() 
 const
 {
@@ -64,7 +64,7 @@ const
 
 template<typename EvaluationType, typename IndicatorFunctionType>
 void
-InternalThermoelasticEnergy<EvaluationType, IndicatorFunctionType>::
+CriterionInternalThermoelasticEnergy<EvaluationType, IndicatorFunctionType>::
 evaluateConditional(
   const Plato::WorkSets & aWorkSets,
   const Plato::Scalar   & aCycle
