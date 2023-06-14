@@ -118,7 +118,7 @@ evaluateBoundary(
     Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
   // add contributions from natural boundary conditions
   if( mSurfaceLoads != nullptr ){
-    mSurfaceLoads->get(aSpatialModel,tStateWS,tControlWS,tConfigWS,tResultWS,1.0);
+    mSurfaceLoads->get(aSpatialModel,tStateWS,tControlWS,tConfigWS,tResultWS,-1.0);
   }
 }
 
@@ -138,6 +138,12 @@ initialize(
   // create source evaluator
   Plato::FactorySourceEvaluator<EvaluationType> tFactorySourceEvaluator;
   mSourceEvaluator = tFactorySourceEvaluator.create(tMaterialName,aParamList);
+  // parse neumann boundary conditions
+  if(aParamList.isSublist("Natural Boundary Conditions")){
+    mSurfaceLoads = std::make_shared<Plato::NaturalBCs<ElementType,mNumDofsPerNode>>(
+      aParamList.sublist("Natural Boundary Conditions")
+    );
+  }
 }
 
 }

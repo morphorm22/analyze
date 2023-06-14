@@ -133,47 +133,48 @@ public:
     const std::string & aFilepath
   );
 
-  /// @brief 
-  /// @param aControl 
-  /// @param aSolution 
+  /// @fn updateProblem
+  /// @brief update criterion parameters at runtime
+  /// @param [in] aControl  control variables
+  /// @param [in] aSolution current state solution
   void 
   updateProblem(
     const Plato::ScalarVector & aControl, 
     const Plato::Solutions & aSolution
   );
 
-    /******************************************************************************//**
-     * \brief Solve system of equations
-     * \param [in] aControl 1D view of control variables
-     * \return solution database
-    **********************************************************************************/
-    Plato::Solutions solution(const Plato::ScalarVector & aControl);
+  /// @fn solution
+  /// @brief solve for state solution
+  /// @param [in] aControl control variables
+  /// @return state solution database
+  Plato::Solutions 
+  solution(
+    const Plato::ScalarVector & aControl
+  );
 
-    /******************************************************************************//**
-     * \brief Evaluate criterion function
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aName Name of criterion.
-     * \return criterion function value
-    **********************************************************************************/
-    Plato::Scalar
-    criterionValue(
-        const Plato::ScalarVector & aControl,
-        const std::string         & aName
-    ) override;
+  /// @fn criterionValue
+  /// @brief evaluate criterion
+  /// @param [in] aControl control variables
+  /// @param [in] aName    criterion name
+  /// @return scalar
+  Plato::Scalar
+  criterionValue(
+      const Plato::ScalarVector & aControl,
+      const std::string         & aName
+  );
 
-    /******************************************************************************//**
-     * \brief Evaluate criterion function
-     * \param [in] aControl 1D view of control variables
-     * \param [in] aSolution solution database
-     * \param [in] aName Name of criterion.
-     * \return criterion function value
-    **********************************************************************************/
-    Plato::Scalar
-    criterionValue(
-        const Plato::ScalarVector & aControl,
-        const Plato::Solutions    & aSolution,
-        const std::string         & aName
-    ) override;
+  /// @fn criterionValue
+  /// @brief evaluate criterion
+  /// @param [in] aControl  control variables
+  /// @param [in] aSolution current state solution
+  /// @param [in] aName     criterion name
+  /// @return scalar
+  Plato::Scalar
+  criterionValue(
+      const Plato::ScalarVector & aControl,
+      const Plato::Solutions    & aSolution,
+      const std::string         & aName
+  );
 
     /******************************************************************************//**
      * \brief Evaluate criterion gradient wrt control variables

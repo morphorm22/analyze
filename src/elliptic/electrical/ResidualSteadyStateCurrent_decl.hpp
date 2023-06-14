@@ -56,7 +56,7 @@ private:
   /// @brief source evaluator interface
   std::shared_ptr<Plato::SourceEvaluator<EvaluationType>> mSourceEvaluator; 
   /// @brief surface boundary condition (Neumann) interface
-  std::shared_ptr<Plato::NaturalBCs<ElementType, mNumDofsPerNode>> mSurfaceLoads;  
+  std::shared_ptr<Plato::NaturalBCs<ElementType,mNumDofsPerNode>> mSurfaceLoads;  
   /// @brief current density evaluator
   std::shared_ptr<Plato::CurrentDensityEvaluator<EvaluationType>> mCurrentDensityEvaluator;  
 
