@@ -3,7 +3,7 @@
 #include "base/WorksetBase.hpp"
 #include "base/CriterionBase.hpp"
 #include "elliptic/EvaluationTypes.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorBase.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorBase.hpp"
 
 namespace Plato
 {
@@ -89,9 +89,9 @@ public:
   const;
 
   /// @fn setEvaluator
-  /// @brief set criterion evaluator type. function used in composite criterion evaluators
+  /// @brief set criterion evaluators type. function used in composite criterion evaluators
   /// @param aEvalType   evaluation type
-  /// @param aCriterion  criterion evaluator
+  /// @param aCriterion  criterion evaluators
   /// @param aDomainName domain name, i.e.; element block name
   void
   setEvaluator(

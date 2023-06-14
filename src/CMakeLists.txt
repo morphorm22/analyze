@@ -123,14 +123,14 @@ if(ELLIPTIC)
     elliptic/Problem.cpp
     elliptic/base/VectorFunction.cpp
     elliptic/base/WorksetBuilder.cpp
-    elliptic/criterioneval/FactoryCriterionEvaluator.cpp
-    elliptic/criterioneval/CriterionEvaluatorDivision.cpp
-    elliptic/criterioneval/CriterionEvaluatorWeightedSum.cpp
-    elliptic/criterioneval/CriterionEvaluatorLeastSquares.cpp
-    elliptic/criterioneval/CriterionEvaluatorVolumeAverage.cpp
-    elliptic/criterioneval/CriterionEvaluatorScalarFunction.cpp
-    elliptic/criterioneval/CriterionEvaluatorMassProperties.cpp
-    elliptic/criterioneval/CriterionEvaluatorSolutionFunction.cpp
+    elliptic/evaluators/criterion/FactoryCriterionEvaluator.cpp
+    elliptic/evaluators/criterion/CriterionEvaluatorDivision.cpp
+    elliptic/evaluators/criterion/CriterionEvaluatorWeightedSum.cpp
+    elliptic/evaluators/criterion/CriterionEvaluatorLeastSquares.cpp
+    elliptic/evaluators/criterion/CriterionEvaluatorVolumeAverage.cpp
+    elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.cpp
+    elliptic/evaluators/criterion/CriterionEvaluatorMassProperties.cpp
+    elliptic/evaluators/criterion/CriterionEvaluatorSolutionFunction.cpp
     elliptic/mechanical/SupportedParamOptions.cpp
     elliptic/mechanical/linear/ResidualElastostatic.cpp
     elliptic/mechanical/linear/CriterionMassMoment.cpp

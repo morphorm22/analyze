@@ -5,7 +5,7 @@
 #include "SpatialModel.hpp"
 #include "PlatoStaticsTypes.hpp"
 #include <Teuchos_ParameterList.hpp>
-#include "elliptic/criterioneval/CriterionEvaluatorBase.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorBase.hpp"
 
 namespace Plato
 {

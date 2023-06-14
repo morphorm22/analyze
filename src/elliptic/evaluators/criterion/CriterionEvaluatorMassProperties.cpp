@@ -1,8 +1,8 @@
-#include "elliptic/criterioneval/CriterionEvaluatorMassProperties_decl.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorMassProperties_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "elliptic/criterioneval/CriterionEvaluatorMassProperties_def.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorMassProperties_def.hpp"
 
 #include "elliptic/mechanical/linear/Mechanics.hpp"
 #include "elliptic/thermal/Thermal.hpp"

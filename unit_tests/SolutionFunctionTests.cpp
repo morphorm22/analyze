@@ -5,7 +5,7 @@
 #include "Tri3.hpp"
 #include "solver/ParallelComm.hpp"
 #include "elliptic/mechanical/linear/Mechanics.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorSolutionFunction.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorSolutionFunction.hpp"
 
 
 /******************************************************************************/

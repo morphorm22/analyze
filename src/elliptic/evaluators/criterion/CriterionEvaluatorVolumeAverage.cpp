@@ -1,8 +1,8 @@
-#include "elliptic/criterioneval/CriterionEvaluatorVolumeAverage_decl.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorVolumeAverage_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "elliptic/criterioneval/CriterionEvaluatorVolumeAverage_def.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorVolumeAverage_def.hpp"
 
 #include "elliptic/mechanical/linear/Mechanics.hpp"
 #include "elliptic/thermal/Thermal.hpp"

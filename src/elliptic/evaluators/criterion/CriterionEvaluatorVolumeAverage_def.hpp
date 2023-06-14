@@ -2,8 +2,8 @@
 
 #include "PlatoMeshExpr.hpp"
 #include "base/CriterionBase.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorDivision.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorDivision.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.hpp"
 
 namespace Plato
 {

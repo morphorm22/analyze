@@ -29,8 +29,8 @@
 #include "elliptic/mechanical/linear/LocalMeasureTensileEnergyDensity.hpp"
 
 #include "elliptic/thermomechanics/ThermalVonMisesLocalMeasure.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorWeightedSum.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorWeightedSum.hpp"
 
 namespace AugLagStressTest
 {

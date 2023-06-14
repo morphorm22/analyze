@@ -1,8 +1,8 @@
-#include "elliptic/criterioneval/CriterionEvaluatorWeightedSum_decl.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorWeightedSum_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "elliptic/criterioneval/CriterionEvaluatorWeightedSum_def.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorWeightedSum_def.hpp"
 
 #include "elliptic/mechanical/linear/Mechanics.hpp"
 #include "elliptic/thermal/Thermal.hpp"

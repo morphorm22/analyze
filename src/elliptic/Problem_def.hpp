@@ -10,7 +10,7 @@
 #include "ImplicitFunctors.hpp"
 #include "ApplyConstraints.hpp"
 #include "MultipointConstraints.hpp"
-#include "elliptic/criterioneval/FactoryCriterionEvaluator.hpp"
+#include "elliptic/evaluators/criterion/FactoryCriterionEvaluator.hpp"
 
 
 namespace Plato

@@ -7,10 +7,10 @@
 #include "AnalyzeMacros.hpp"
 #include "PlatoStaticsTypes.hpp"
 #include "elliptic/mechanical/linear/CriterionMassMoment.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorDivision.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorWeightedSum.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorLeastSquares.hpp"
-#include "elliptic/criterioneval/FactoryCriterionEvaluator.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorDivision.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorWeightedSum.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorLeastSquares.hpp"
+#include "elliptic/evaluators/criterion/FactoryCriterionEvaluator.hpp"
 
 namespace Plato
 {

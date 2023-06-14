@@ -20,7 +20,7 @@
 #include "PlatoMathFunctors.hpp"
 #include "elliptic/base/VectorFunction.hpp"
 #include "elliptic/mechanical/linear/Mechanics.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.hpp"
 #include "ApplyProjection.hpp"
 #include "AnalyzeMacros.hpp"
 #include "HyperbolicTangentProjection.hpp"

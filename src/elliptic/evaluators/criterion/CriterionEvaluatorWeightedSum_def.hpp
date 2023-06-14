@@ -1,7 +1,7 @@
 #pragma once
 
 #include "AnalyzeMacros.hpp"
-#include "elliptic/criterioneval/FactoryCriterionEvaluator.hpp"
+#include "elliptic/evaluators/criterion/FactoryCriterionEvaluator.hpp"
 
 
 namespace Plato

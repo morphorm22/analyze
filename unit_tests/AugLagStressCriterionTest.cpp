@@ -19,8 +19,8 @@
 #include "elliptic/mechanical/linear/Mechanics.hpp"
 #include "elliptic/mechanical/linear/CriterionMassMoment.hpp"
 #include "elliptic/mechanical/linear/CriterionAugLagStrength.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorWeightedSum.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorWeightedSum.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.hpp"
 
 namespace AugLagStressCriterionTest
 {

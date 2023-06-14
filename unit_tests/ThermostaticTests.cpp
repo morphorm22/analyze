@@ -21,7 +21,7 @@
 #include "ScalarProduct.hpp"
 #include "base/WorksetBase.hpp"
 #include "elliptic/base/VectorFunction.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.hpp"
 #include "geometric/GeometryScalarFunction.hpp"
 #include "ApplyConstraints.hpp"
 #include "elliptic/Problem.hpp"

@@ -11,7 +11,7 @@
 #include "Tet4.hpp"
 #include "elliptic/base/VectorFunction.hpp"
 #include "elliptic/electromechanics/Electromechanics.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.hpp"
 
 #include <fenv.h>
 

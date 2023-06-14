@@ -22,7 +22,7 @@
 #include "base/CriterionBase.hpp"
 #include "geometric/ScalarFunctionBase.hpp"
 #include "elliptic/base/WorksetBuilder.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorBase.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorBase.hpp"
 
 
 namespace Plato

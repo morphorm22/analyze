@@ -1,9 +1,9 @@
 #pragma once
 
 #include "base/WorksetBase.hpp"
-#include "elliptic/criterioneval/FactoryCriterionEvaluator.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorDivision.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
+#include "elliptic/evaluators/criterion/FactoryCriterionEvaluator.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorDivision.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.hpp"
 
 namespace Plato
 {

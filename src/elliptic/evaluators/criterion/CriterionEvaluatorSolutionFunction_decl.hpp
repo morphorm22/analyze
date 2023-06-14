@@ -4,12 +4,9 @@
 #include <cassert>
 #include <vector>
 
-#include <Teuchos_ParameterList.hpp>
-
+#include "SpatialModel.hpp"
 #include "base/WorksetBase.hpp"
-#include "PlatoStaticsTypes.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorBase.hpp"
-#include "elliptic/criterioneval/FactoryCriterionEvaluator.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorBase.hpp"
 
 namespace Plato
 {
@@ -18,68 +15,84 @@ namespace Elliptic
 {
 
 /******************************************************************************//**
- * \brief Division function class \f$ F(x) = numerator(x) / denominator(x) \f$
+ * \brief Solution function class
  **********************************************************************************/
 template<typename PhysicsType>
-class CriterionEvaluatorDivision :
-    public Plato::Elliptic::CriterionEvaluatorBase
+class CriterionEvaluatorSolutionFunction :
+  public Plato::Elliptic::CriterionEvaluatorBase
 {
+    enum solution_type_t
+    {
+        UNKNOWN_TYPE = 0,
+        SOLUTION_IN_DIRECTION = 1,
+        SOLUTION_MAG_IN_DIRECTION = 2,
+        DIFF_BETWEEN_SOLUTION_MAG_IN_DIRECTION_AND_TARGET = 3,
+        DIFF_BETWEEN_SOLUTION_VECTOR_AND_TARGET_VECTOR = 4,
+        DIFF_BETWEEN_SOLUTION_IN_DIRECTION_AND_TARGET_SOLUTION_IN_DIRECTION = 5
+    };
+
 private:
   using ElementType = typename PhysicsType::ElementType;
 
-  static constexpr auto mNumDofsPerNode = ElementType::mNumDofsPerNode;
-  static constexpr auto mNumSpatialDims = ElementType::mNumSpatialDims;
-  
-  std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase> mScalarFunctionBaseNumerator; /*!< numerator function */
-  std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase> mScalarFunctionBaseDenominator; /*!< denominator function */
-  const Plato::SpatialModel & mSpatialModel;
-  Plato::DataMap& mDataMap; /*!< PLATO Engine and Analyze data map */
+  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
+  static constexpr auto mNumNodesPerFace = ElementType::mNumNodesPerFace;
+  static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
+  static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
+  static constexpr auto mNumControl      = ElementType::mNumControl;
+
   std::string mFunctionName; /*!< User defined function name */
+  std::string mDomainName;   /*!< Name of the node set that represents the domain of interest */
+  
+  Plato::Array<mNumDofsPerNode> mNormal;  /*!< Direction of solution criterion */
+  Plato::Array<mNumDofsPerNode> mTargetSolutionVector;  /*!< Target solution vector */
+  
+  Plato::Scalar mTargetMagnitude; /*!< Target magnitude */
+  Plato::Scalar mTargetSolution; /*!< Target solution */
+  
+  bool mMagnitudeSpecified;
+  bool mNormalSpecified;
+  bool mTargetSolutionVectorSpecified;
+  bool mTargetMagnitudeSpecified;
+  bool mTargetSolutionSpecified;
+  
+  const Plato::SpatialModel & mSpatialModel;
+  solution_type_t mSolutionType;
   
   /******************************************************************************//**
-   * \brief Initialization of Division Function
+   * \brief Initialization of Solution Function
    * \param [in] aProblemParams input parameters database
   **********************************************************************************/
-  void 
+  void
   initialize(
     Teuchos::ParameterList & aProblemParams
   );
 
+  void 
+  initialize_target_vector(
+    Teuchos::ParameterList &aFunctionParams
+  );
+
+  void 
+  initialize_normal_vector(
+    Teuchos::ParameterList &aFunctionParams
+  );
+
 public:
     /******************************************************************************//**
-     * \brief Primary division function constructor
+     * \brief Primary solution function constructor
+     * \param [in] aMesh mesh database
      * \param [in] aSpatialModel Plato Analyze spatial model
      * \param [in] aDataMap Plato Analyze data map
-     * \param [in] aInputParams input parameters database
+     * \param [in] aProblemParams input parameters database
      * \param [in] aName user defined function name
     **********************************************************************************/
-    CriterionEvaluatorDivision(
+    CriterionEvaluatorSolutionFunction(
         const Plato::SpatialModel    & aSpatialModel,
               Plato::DataMap         & aDataMap,
               Teuchos::ParameterList & aProblemParams,
-        const std::string            & aName
+              std::string            & aName
     );
-
-    /******************************************************************************//**
-     * \brief Secondary division function constructor, used for unit testing
-     * \param [in] aMesh mesh database
-    **********************************************************************************/
-    CriterionEvaluatorDivision(
-        const Plato::SpatialModel & aSpatialModel,
-              Plato::DataMap      & aDataMap
-    );
-
-    /******************************************************************************//**
-     * \brief Allocate numerator function base using the residual automatic differentiation type
-     * \param [in] aInput scalar function
-    **********************************************************************************/
-    void allocateNumeratorFunction(const std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase>& aInput);
-
-    /******************************************************************************//**
-     * \brief Allocate denominator function base using the residual automatic differentiation type
-     * \param [in] aInput scalar function
-    **********************************************************************************/
-    void allocateDenominatorFunction(const std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase>& aInput);
 
     /// @fn isLinear
     /// @brief return true if scalar function is linear
@@ -88,18 +101,8 @@ public:
     isLinear() 
     const;
 
-    /// @fn updateProblem
-    /// @brief update criterion parameters at runtime
-    /// @param [in] aDatabase function domain and range database
-    /// @param [in] aCycle    scalar, e.g.; time step
-    void 
-    updateProblem(
-      const Plato::Database & aDatabase,
-      const Plato::Scalar   & aCycle
-    ) const;
-
     /// @fn value
-    /// @brief evaluate division function criterion
+    /// @brief evaluate solution criterion
     /// @param [in] aDatabase function domain and range database
     /// @param [in] aCycle    scalar, e.g.; time step
     /// @return scalar
@@ -109,7 +112,7 @@ public:
     ) const;
 
     /// @fn gradientConfig
-    /// @brief compute partial derivative of the division function with respect to the configuration
+    /// @brief compute partial derivative of the solution function with respect to the configuration
     /// @param [in] aDatabase function domain and range database
     /// @param [in] aCycle    scalar, e.g.; time step
     /// @return plato scalar vector
@@ -120,7 +123,7 @@ public:
     ) const;
 
     /// @fn gradientState
-    /// @brief compute partial derivative of the division function with respect to the states
+    /// @brief compute partial derivative of the solution function with respect to the states
     /// @param [in] aDatabase function domain and range database
     /// @param [in] aCycle    scalar, e.g.; time step
     /// @return plato scalar vector
@@ -131,12 +134,22 @@ public:
     ) const;
 
     /// @fn gradientControl
-    /// @brief compute partial derivative of the division function with respect to the controls
+    /// @brief compute partial derivative of the solution function with respect to the controls
     /// @param [in] aDatabase function domain and range database
     /// @param [in] aCycle    scalar, e.g.; time step
     /// @return plato scalar vector
     Plato::ScalarVector
     gradientControl(
+      const Plato::Database & aDatabase,
+      const Plato::Scalar   & aCycle
+    ) const;
+
+    /// @fn updateProblem
+    /// @brief update criterion parameters at runtime
+    /// @param [in] aDatabase function domain and range database
+    /// @param [in] aCycle    scalar, e.g.; time step
+    void 
+    updateProblem(
       const Plato::Database & aDatabase,
       const Plato::Scalar   & aCycle
     ) const;
@@ -158,7 +171,7 @@ public:
     name() 
     const;
 };
-// class CriterionEvaluatorDivision
+// class CriterionEvaluatorSolutionFunction
 
 } // namespace Elliptic
 

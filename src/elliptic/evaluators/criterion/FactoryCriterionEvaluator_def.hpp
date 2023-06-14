@@ -2,13 +2,13 @@
 
 #include "AnalyzeMacros.hpp"
 
-#include "elliptic/criterioneval/CriterionEvaluatorDivision.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorWeightedSum.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorLeastSquares.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorVolumeAverage.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorSolutionFunction.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorMassProperties.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorDivision.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorWeightedSum.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorLeastSquares.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorVolumeAverage.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorSolutionFunction.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorMassProperties.hpp"
 
 namespace Plato
 {
@@ -16,13 +16,13 @@ namespace Plato
 namespace Elliptic
 {
 
-/// @brief create criterion evaluator
+/// @brief create criterion evaluators
 /// @tparam PhysicsType physics typename
 /// \param [in] aSpatialModel  contains mesh and model information
 /// \param [in] aDataMap       output database 
 /// \param [in] aProblemParams input problem parameters
 /// \param [in] aFunctionName  name of function in parameter list
-/// @return shared pointer to criterion evaluator
+/// @return shared pointer to criterion evaluators
 template <typename PhysicsType>
 std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase> 
 FactoryCriterionEvaluator<PhysicsType>::create(

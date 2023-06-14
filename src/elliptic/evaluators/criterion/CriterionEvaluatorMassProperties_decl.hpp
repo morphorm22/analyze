@@ -1,8 +1,8 @@
 #pragma once
 
 #include "base/WorksetBase.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorLeastSquares.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorLeastSquares.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.hpp"
 
 namespace Plato
 {
@@ -30,7 +30,7 @@ private:
   const Plato::SpatialModel & mSpatialModel;  
   /// @brief output database
   Plato::DataMap& mDataMap;
-  /// @brief evaluator name 
+  /// @brief evaluators name 
   std::string mFunctionName; 
   /// @brief map from domain to material density
   std::map<std::string, Plato::Scalar> mMaterialDensities;
@@ -247,7 +247,7 @@ public:
   ) const;  
 
   /// @fn name
-  /// @brief return criterion evaluator name
+  /// @brief return criterion evaluators name
   /// @return string
   std::string 
   name() 

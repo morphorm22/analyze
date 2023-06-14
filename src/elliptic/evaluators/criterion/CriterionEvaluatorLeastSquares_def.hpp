@@ -3,7 +3,7 @@
 #include "BLAS1.hpp"
 #include "AnalyzeMacros.hpp"
 #include "PlatoStaticsTypes.hpp"
-#include "elliptic/criterioneval/FactoryCriterionEvaluator.hpp"
+#include "elliptic/evaluators/criterion/FactoryCriterionEvaluator.hpp"
 
 namespace Plato
 {

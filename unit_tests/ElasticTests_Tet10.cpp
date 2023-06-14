@@ -25,7 +25,7 @@
 #include "base/WorksetBase.hpp"
 #include "elliptic/base/VectorFunction.hpp"
 #include "elliptic/EvaluationTypes.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.hpp"
 #include "LinearStress.hpp"
 #include "GradientMatrix.hpp"
 #include "ApplyConstraints.hpp"

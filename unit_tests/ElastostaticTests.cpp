@@ -32,7 +32,7 @@
 #include "elliptic/Problem.hpp"
 #include "elliptic/base/VectorFunction.hpp"
 #include "elliptic/mechanical/linear/Mechanics.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorScalarFunction.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.hpp"
 
 #include <fenv.h>
 

@@ -6,7 +6,7 @@
 #include "PlatoAbstractProblem.hpp"
 #include "solver/PlatoSolverFactory.hpp"
 #include "elliptic/base/VectorFunction.hpp"
-#include "elliptic/criterioneval/CriterionEvaluatorBase.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorBase.hpp"
 
 namespace Plato
 {
