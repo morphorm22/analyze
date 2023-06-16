@@ -8,6 +8,8 @@
 
 #include "MetaData.hpp"
 #include "GradientMatrix.hpp"
+#include "elliptic/mechanical/nonlinear/StateGradient.hpp"
+#include "elliptic/mechanical/nonlinear/DeformationGradient.hpp"
 #include "elliptic/mechanical/nonlinear/FactoryStressEvaluator.hpp"
 
 namespace Plato
@@ -66,39 +68,60 @@ evaluate(
     Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
   Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
     Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
-  // evaluate stresses
+  // evaluate second piola-kirchhoff stress tensor
   Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
   Plato::OrdinalType tNumGaussPoints = ElementType::mNumGaussPoints;
-  Plato::ScalarArray4DT<ResultScalarType> 
-    tNominalStress("nominal stress",tNumCells,tNumGaussPoints,mNumSpatialDims,mNumSpatialDims);
-  mStressEvaluator->evaluate(tStateWS,tControlWS,tConfigWS,tNominalStress,aCycle);
+  Plato::ScalarArray4DT<ResultScalarType> tSecondPiolaKirchhoffStress(
+    "2nd Piola-Kirchhoff Stress",tNumCells,tNumGaussPoints,mNumSpatialDims,mNumSpatialDims
+  );
+  mStressEvaluator->evaluate(aWorkSets,tSecondPiolaKirchhoffStress,aCycle);
   // get integration rule data
   auto tCubPoints  = ElementType::getCubPoints();
   auto tCubWeights = ElementType::getCubWeights();
   // evaluate internal forces
+  Plato::StateGradient<EvaluationType> tComputeStateGradient;
   Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
+  Plato::DeformationGradient<EvaluationType> tComputeDeformationGradient;
   Kokkos::parallel_for("compute internal forces", 
     Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0}, {tNumCells,mNumGaussPoints}),
     KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
-    {
-      // compute gradient of interpolation functions
-      ConfigScalarType tVolume(0.0);
-      auto tCubPoint = tCubPoints(iGpOrdinal);
-      Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient;
-      tComputeGradient(iCellOrdinal,tCubPoint,tConfigWS,tGradient,tVolume);
-      // apply integration point weight to element volume
-      tVolume *= tCubWeights(iGpOrdinal);
-      // apply divergence operator to stress tensor
-      for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++){
-        for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
-          Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumSpatialDims + tDimI;
-          for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
-            ResultScalarType tVal = tNominalStress(iCellOrdinal,iGpOrdinal,tDimI,tDimJ) 
-              * tGradient(tNodeIndex,tDimJ) * tVolume;
-            Kokkos::atomic_add( &tResultWS(iCellOrdinal,tLocalOrdinal),tVal );
-          }
+  {
+    // compute gradient of interpolation functions
+    ConfigScalarType tVolume(0.0);
+    auto tCubPoint = tCubPoints(iGpOrdinal);
+    Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient;
+    tComputeGradient(iCellOrdinal,tCubPoint,tConfigWS,tGradient,tVolume);
+    // compute state gradient
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainScalarType> 
+      tStateGradient(StrainScalarType(0.));
+    tComputeStateGradient(iCellOrdinal,tStateWS,tGradient,tStateGradient);
+    // compute deformation gradient 
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainScalarType> 
+      tDefGradient(StrainScalarType(0.));
+    tComputeDeformationGradient(tStateGradient,tDefGradient);
+    // compute nominal stress
+    Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ResultScalarType> 
+      tNominalStress(ResultScalarType(0.));
+    for(Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
+      for(Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
+        for(Plato::OrdinalType tDimK = 0; tDimK < ElementType::mNumSpatialDims; tDimK++){
+          tNominalStress(tDimI,tDimJ) += tSecondPiolaKirchhoffStress(iCellOrdinal,iGpOrdinal,tDimI,tDimK) 
+            * tDefGradient(tDimJ,tDimK);
         }
       }
+    }
+    // apply integration point weight to element volume
+    tVolume *= tCubWeights(iGpOrdinal);
+    // apply divergence operator to stress tensor
+    for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++){
+      for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
+        Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumSpatialDims + tDimI;
+        for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
+          ResultScalarType tVal = tNominalStress(tDimI,tDimJ) * tGradient(tNodeIndex,tDimJ) * tVolume;
+          Kokkos::atomic_add( &tResultWS(iCellOrdinal,tLocalOrdinal),tVal );
+        }
+      }
+    }
   });
   // evaluate body forces
   if( mBodyLoads != nullptr )

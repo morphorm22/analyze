@@ -28,7 +28,7 @@ private:
 
 public:
   /// @brief class constructor
-  /// @param [in] aParamList input problem parameters
+  /// @param [in] aMaterialName name of input material parameter list
   FactoryStressEvaluator(
     const std::string & aMaterialName
   );
@@ -38,7 +38,7 @@ public:
   
   /// @fn create 
   /// @brief create stress evaluator
-  /// @param [in] aMaterialName  name of input material parameter list
+  /// @param [in] aParamList     input problem parameters
   /// @param [in] aSpatialDomain contains mesh and model information
   /// @param [in] aDataMap       output database
   /// @return shared pointer

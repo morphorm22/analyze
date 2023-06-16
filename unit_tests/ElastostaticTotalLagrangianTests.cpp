@@ -411,14 +411,8 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, StressEvaluatorKirchhoffTen
   using ResultT  = typename Residual::ResultScalarType;
   using ControlT = typename Residual::ControlScalarType;
   using StrainT  = typename Plato::fad_type_t<ElementType,StateT,ConfigT>;
-  // create configuration workset
-  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
-  const Plato::OrdinalType tNumCells = tMesh->NumElements();
-  TEST_EQUALITY(2,tNumCells);
-  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
-  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
-  tWorksetBase.worksetConfig(tConfigWS);
   // create state workset
+  Plato::Database tDatabase;
   const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
   const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
   Plato::ScalarVector tState("States", tNumDofs);
@@ -426,24 +420,27 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, StressEvaluatorKirchhoffTen
   Kokkos::parallel_for("fill state",
     Kokkos::RangePolicy<>(0, tNumDofs), 
     KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
-    { tState(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
-  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
-  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
-  tWorksetBase.worksetState(tState, tStateWS);
+  { tState(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  tDatabase.vector("states",tState);
   // create control workset
-  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
   Plato::ScalarVector tControl("Controls", tNumVerts);
   Plato::blas1::fill(1.0, tControl);
-  tWorksetBase.worksetControl(tControl, tControlWS);
+  tDatabase.vector("controls",tControl);
+  // create workset database
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  Plato::WorkSets tWorkSets;
+  tWorksetBuilder.build(tOnlyDomainDefined, tDatabase, tWorkSets);
   // results workset
+  const Plato::OrdinalType tNumCells = tMesh->NumElements();
   Plato::OrdinalType tNumGaussPoints = ElementType::mNumGaussPoints;
   Plato::ScalarArray4DT<ResultT> tResultsWS("stress",tNumCells,tNumGaussPoints,tSpaceDim,tSpaceDim);
   Plato::StressEvaluatorKirchhoff<Residual> tStressEvaluator("Mystic",*tGenericParamList,tOnlyDomainDefined,tDataMap);
-  tStressEvaluator.evaluate(tStateWS,tControlWS,tConfigWS,tResultsWS);
+  tStressEvaluator.evaluate(tWorkSets,tResultsWS);
   // test gold values
   constexpr Plato::Scalar tTolerance = 1e-4;
   std::vector<std::vector<Plato::Scalar>> tGold = 
-    { {1.60493827,0.78024691,0.56790123,1.15555556}, {1.60493827,0.78024691,0.56790123,1.15555556} };
+    { {1.10617,0.281481,0.281481,0.869136}, {1.10617,0.281481,0.281481,0.869136} };
   auto tHostResultsWS = Kokkos::create_mirror(tResultsWS);
   Kokkos::deep_copy(tHostResultsWS, tResultsWS);
   for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
@@ -494,14 +491,8 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, StressEvaluatorNeoHookeanTe
   using ResultT  = typename Residual::ResultScalarType;
   using ControlT = typename Residual::ControlScalarType;
   using StrainT  = typename Plato::fad_type_t<ElementType,StateT,ConfigT>;
-  // create configuration workset
-  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
-  const Plato::OrdinalType tNumCells = tMesh->NumElements();
-  TEST_EQUALITY(2,tNumCells);
-  constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
-  Plato::ScalarArray3DT<ConfigT> tConfigWS("config workset", tNumCells, tNodesPerCell, tSpaceDim);
-  tWorksetBase.worksetConfig(tConfigWS);
   // create state workset
+  Plato::Database tDatabase;
   const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
   const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
   Plato::ScalarVector tState("States", tNumDofs);
@@ -509,25 +500,28 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, StressEvaluatorNeoHookeanTe
   Kokkos::parallel_for("fill state",
     Kokkos::RangePolicy<>(0, tNumDofs), 
     KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
-    { tState(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
-  constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
-  Plato::ScalarMultiVectorT<StateT> tStateWS("state workset", tNumCells, tDofsPerCell);
-  tWorksetBase.worksetState(tState, tStateWS);
+  { tState(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  tDatabase.vector("states",tState);
   // create control workset
-  Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset",tNumCells,tNodesPerCell);
   Plato::ScalarVector tControl("Controls", tNumVerts);
   Plato::blas1::fill(1.0, tControl);
-  tWorksetBase.worksetControl(tControl, tControlWS);
+  tDatabase.vector("controls",tControl);
+  // create workset database
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  Plato::WorkSets tWorkSets;
+  tWorksetBuilder.build(tOnlyDomainDefined, tDatabase, tWorkSets);
   // results workset
+  const Plato::OrdinalType tNumCells = tMesh->NumElements();
   Plato::OrdinalType tNumGaussPoints = ElementType::mNumGaussPoints;
   Plato::ScalarArray4DT<ResultT> tResultsWS("stress",tNumCells,tNumGaussPoints,tSpaceDim,tSpaceDim);
   Plato::StressEvaluatorNeoHookean<Residual> 
     tStressEvaluator("Mystic",*tParamList,tOnlyDomainDefined,tDataMap);
-  tStressEvaluator.evaluate(tStateWS,tControlWS,tConfigWS,tResultsWS);
+  tStressEvaluator.evaluate(tWorkSets,tResultsWS);
   // test gold values
   constexpr Plato::Scalar tTolerance = 1e-4;
   std::vector<std::vector<Plato::Scalar>> tGold = 
-    { {0.54537272,0.14367245,0.06512267,0.47577435}, {0.54537272,0.14367245,0.06512267,0.47577435} };
+    { {0.39107,-0.01063,-0.01063,0.400022}, {0.39107,-0.01063,-0.01063,0.400022} };
   auto tHostResultsWS = Kokkos::create_mirror(tResultsWS);
   Kokkos::deep_copy(tHostResultsWS, tResultsWS);
   for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){

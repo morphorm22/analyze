@@ -9,75 +9,91 @@
 namespace Plato
 {
 
-/******************************************************************************/
-/*!
- \brief Base class for Linear Thermal material models
- */
+/// @class ThermalConductionModel
+/// @brief base class for linear thermally conductive material constitutive models
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class ThermalConductionModel : public MaterialModel<EvaluationType>
-/******************************************************************************/
-{
-  public:
-    ThermalConductionModel(const Teuchos::ParameterList& paramList);
-};
-
-/******************************************************************************/
-template<typename EvaluationType>
-ThermalConductionModel<EvaluationType>::
-ThermalConductionModel(const Teuchos::ParameterList& paramList) : MaterialModel<EvaluationType>(paramList)
-/******************************************************************************/
-{
-    this->parseTensor("Thermal Conductivity", paramList);
-}
-
-/******************************************************************************/
-/*!
- \brief Factory for creating material models
- */
-template<typename EvaluationType>
-class ThermalConductionModelFactory
-/******************************************************************************/
 {
 public:
-    ThermalConductionModelFactory(const Teuchos::ParameterList& aParamList) :
-            mParamList(aParamList)
-    {
-    }
-    Teuchos::RCP<MaterialModel<EvaluationType>> create(std::string aModelName);
+  /// @brief class constructor
+  /// @param [in] aParamList input material parameter list
+  ThermalConductionModel(
+    const Teuchos::ParameterList & aParamList
+  );
+}; // class ThermalConductionModel
+
+template<typename EvaluationType>
+ThermalConductionModel<EvaluationType>::
+ThermalConductionModel(
+  const Teuchos::ParameterList& aParamList
+) : 
+  MaterialModel<EvaluationType>(aParamList)
+{
+ 
+  this->parseScalar("Thermal Expansivity", aParamList);
+  this->parseScalar("Reference Temperature", aParamList);
+  this->parseTensor("Thermal Conductivity", aParamList);
+
+} // constructor ThermalConductionModel
+
+/// @class ThermalConductionModelFactory
+/// @brief factory for linear thermal constitutive models
+/// @tparam EvaluationType 
+template<typename EvaluationType>
+class ThermalConductionModelFactory
+{
+public:
+  /// @brief class constructor
+  /// @param [in] aParamList input problem parameters
+  ThermalConductionModelFactory(
+    const Teuchos::ParameterList & aParamList
+  ) :
+    mParamList(aParamList)
+  {}
+  
+  /// @brief create thermal material constitutive model interface 
+  /// @param [in] aModelName name of input material parameter list
+  Teuchos::RCP<MaterialModel<EvaluationType>> 
+  create(
+    std::string aModelName
+  );
+
 private:
-    const Teuchos::ParameterList& mParamList;
+  /// @brief input problem parameters
+  const Teuchos::ParameterList& mParamList;
 };
-/******************************************************************************/
+
 template<typename EvaluationType>
 Teuchos::RCP<MaterialModel<EvaluationType>>
-ThermalConductionModelFactory<EvaluationType>::create(std::string aModelName)
-/******************************************************************************/
+ThermalConductionModelFactory<EvaluationType>::
+create(
+  std::string aModelName
+)
 {
-    if (!mParamList.isSublist("Material Models"))
+  if (!mParamList.isSublist("Material Models"))
+  {
+    REPORT("'Material Models' list not found! Returning 'nullptr'");
+    return Teuchos::RCP<Plato::MaterialModel<EvaluationType>>(nullptr);
+  }
+  else
+  {
+    auto tModelsParamList = mParamList.get < Teuchos::ParameterList > ("Material Models");
+    if (!tModelsParamList.isSublist(aModelName))
     {
-        REPORT("'Material Models' list not found! Returning 'nullptr'");
-        return Teuchos::RCP<Plato::MaterialModel<EvaluationType>>(nullptr);
+      std::stringstream ss;
+      ss << "Requested a material model ('" << aModelName << "') that isn't defined";
+      ANALYZE_THROWERR(ss.str());
+    }
+    auto tModelParamList = tModelsParamList.sublist(aModelName);
+    if(tModelParamList.isSublist("Thermal Conduction"))
+    {
+      return Teuchos::rcp(new ThermalConductionModel<EvaluationType>(
+          tModelParamList.sublist("Thermal Conduction")));
     }
     else
-    {
-        auto tModelsParamList = mParamList.get < Teuchos::ParameterList > ("Material Models");
-
-        if (!tModelsParamList.isSublist(aModelName))
-        {
-            std::stringstream ss;
-            ss << "Requested a material model ('" << aModelName << "') that isn't defined";
-            ANALYZE_THROWERR(ss.str());
-        }
-
-        auto tModelParamList = tModelsParamList.sublist(aModelName);
-        if(tModelParamList.isSublist("Thermal Conduction"))
-        {
-            return Teuchos::rcp(new ThermalConductionModel<EvaluationType>(
-                tModelParamList.sublist("Thermal Conduction")));
-        }
-        else
-          ANALYZE_THROWERR("Expected 'Thermal Conduction' ParameterList");
-    }
+      ANALYZE_THROWERR("Expected 'Thermal Conduction' ParameterList");
+  }
 }
 
 }

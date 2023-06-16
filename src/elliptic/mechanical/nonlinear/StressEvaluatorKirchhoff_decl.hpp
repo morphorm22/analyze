@@ -30,11 +30,11 @@ private:
   /// @brief topological element typename
   using ElementType = typename EvaluationType::ElementType;
   /// @brief scalar types for an evaluation type
-  using StateT   = typename EvaluationType::StateScalarType;
-  using ConfigT  = typename EvaluationType::ConfigScalarType;
-  using ResultT  = typename EvaluationType::ResultScalarType;
-  using ControlT = typename EvaluationType::ControlScalarType;
-  using StrainT  = typename Plato::fad_type_t<ElementType,StateT,ConfigT>;
+  using StateScalarType   = typename EvaluationType::StateScalarType;
+  using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  using ControlScalarType = typename EvaluationType::ControlScalarType;
+  using StrainScalarType  = typename Plato::fad_type_t<ElementType,StateScalarType,ConfigScalarType>;
   /// @brief local typename for base class
   using BaseClassType = Plato::StressEvaluator<EvaluationType>;
   /// @brief contains mesh and model information
@@ -61,19 +61,15 @@ public:
   ~StressEvaluatorKirchhoff(){}
 
   /// @fn evaluate
-  /// @brief evaluate stress tensor
-  /// @param [in]     aState   2D state workset
-  /// @param [in]     aControl 2D control workset
-  /// @param [in]     aConfig  3D configuration workset
-  /// @param [in,out] aResult  4D result workset
-  /// @param [in]     aCycle   scalar 
+  /// @brief evaluate second piola-kirchhoff stress tensor for a kirchhoff material
+  /// @param aWorkSets domain and range workset database
+  /// @param aResult   4D scalar container
+  /// @param aCycle    scalar
   void 
   evaluate(
-      const Plato::ScalarMultiVectorT<StateT>   & aState,
-      const Plato::ScalarMultiVectorT<ControlT> & aControl,
-      const Plato::ScalarArray3DT<ConfigT>      & aConfig,
-      const Plato::ScalarArray4DT<ResultT>      & aResult,
-            Plato::Scalar                         aCycle = 0.0
+    const Plato::WorkSets                         & aWorkSets,
+          Plato::ScalarArray4DT<ResultScalarType> & aResult,
+          Plato::Scalar                             aCycle = 0.0
   ) const;
 };
     

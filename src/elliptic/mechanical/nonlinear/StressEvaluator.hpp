@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "WorkSets.hpp"
 #include "SpatialModel.hpp"
 #include "PlatoStaticsTypes.hpp"
 
@@ -50,21 +51,16 @@ public:
   {}
 
   /// @fn evaluate
-  /// @brief pure virtual method: evaluates current density 
-  /// @param [in]     aSpatialDomain contains meshed model information
-  /// @param [in]     aState         state workset
-  /// @param [in]     aControl       control workset
-  /// @param [in]     aConfig        configuration workset
-  /// @param [in,out] aResult        result workset
-  /// @param [in]     aCycle         scalar 
+  /// @brief evaluate second piola-kirchhoff stress tensor
+  /// @param aWorkSets domain and range workset database
+  /// @param aResult   4D scalar container
+  /// @param aCycle    scalar
   virtual 
   void 
   evaluate(
-      const Plato::ScalarMultiVectorT<StateScalarType>   & aState,
-      const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
-      const Plato::ScalarArray3DT<ConfigScalarType>      & aConfig,
-      const Plato::ScalarArray4DT<ResultScalarType>      & aResult,
-            Plato::Scalar                                  aCycle = 0.0
+    const Plato::WorkSets                         & aWorkSets,
+          Plato::ScalarArray4DT<ResultScalarType> & aResult,
+          Plato::Scalar                             aCycle = 0.0
   ) const = 0;
 
 };
