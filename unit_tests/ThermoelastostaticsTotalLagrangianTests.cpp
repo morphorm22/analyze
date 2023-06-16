@@ -19,48 +19,21 @@
 #include "SpatialModel.hpp"
 #include "GradientMatrix.hpp"
 #include "PlatoMathTypes.hpp"
+#include "base/Database.hpp"
 #include "base/WorksetBase.hpp"
 #include "base/ResidualBase.hpp"
 #include "InterpolateFromNodal.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "ThermalConductivityMaterial.hpp"
 
+#include "element/ThermoElasticElement.hpp"
+#include "elliptic/base/WorksetBuilder.hpp"
 #include "elliptic/mechanical/nonlinear/StateGradient.hpp"
 #include "elliptic/mechanical/nonlinear/DeformationGradient.hpp"
 #include "elliptic/mechanical/nonlinear/FactoryStressEvaluator.hpp"
 
 namespace Plato
 {
-
-/// @class ThermoElasticElement
-/// @brief base class for thermo-elastic element
-/// @tparam TopoElementTypeT topological element type
-/// @tparam NumControls      number of control degree of freedom per node
-template<typename TopoElementTypeT, Plato::OrdinalType NumControls = 1>
-class ThermoElasticElement : public TopoElementTypeT, public ElementBase<TopoElementTypeT>
-{
-public:
-  /// @brief number of nodes per cell
-  using TopoElementTypeT::mNumNodesPerCell;
-  /// @brief number of spatial dimensions
-  using TopoElementTypeT::mNumSpatialDims;
-  /// @brief topological element type
-  using TopoElementType = TopoElementTypeT;
-  /// @brief number of stress-strain components
-  static constexpr Plato::OrdinalType mNumVoigtTerms = (mNumSpatialDims == 3) ? 6 :
-                                                       ((mNumSpatialDims == 2) ? 3 :
-                                                       (((mNumSpatialDims == 1) ? 1 : 0)));
-  /// @brief number of displacement degrees of freedom per node
-  static constexpr Plato::OrdinalType mNumDofsPerNode = mNumSpatialDims;
-  /// @brief number of displacement degrees of freedom per cell
-  static constexpr Plato::OrdinalType mNumDofsPerCell = mNumDofsPerNode * mNumNodesPerCell;
-  /// @brief number of control degrees of freedom per node
-  static constexpr Plato::OrdinalType mNumControl = NumControls;
-  /// @brief number of temperature degrees of freedom per node
-  static constexpr Plato::OrdinalType mNumNodeStatePerNode = 1;
-  /// @brief number of local state degrees of freedom per cell
-  static constexpr Plato::OrdinalType mNumLocalDofsPerCell = 0;
-};
 
 template<typename EvaluationType>
 class ThermalDeformationGradient
@@ -85,7 +58,7 @@ public:
   /// @param [in] aParamList    input problem parameters
   ThermalDeformationGradient(
     const std::string            & aMaterialName,
-          Teuchos::ParameterList & aParamList
+    const Teuchos::ParameterList & aParamList
   )
   {
     Plato::ThermalConductionModelFactory<EvaluationType> tMaterialFactory(aParamList);
@@ -343,20 +316,29 @@ private:
   /// @brief output plot table, contains requested output quantities of interests
   std::vector<std::string> mPlotTable;
   /// @brief input problem parameters
-  const Teuchos::ParameterList & mParamList;
+  Teuchos::ParameterList & mParamList;
 
 public:
   ResidualThermoElastoStaticTotalLagrangian(
     const Plato::SpatialDomain   & aSpatialDomain,
-    const Teuchos::ParameterList & aParamList,
-          Plato::DataMap         & aDataMap
+          Plato::DataMap         & aDataMap,
+          Teuchos::ParameterList & aParamList
   ) : 
     FunctionBaseType(aSpatialDomain, aDataMap),
     mStressEvaluator(nullptr),
     mNaturalBCs     (nullptr),
     mBodyLoads      (nullptr),
     mParamList(aParamList)
-  {}
+  {
+    // obligatory: define dof names in order
+    //
+    mDofNames.push_back("displacement X");
+    if(mNumSpatialDims > 1) mDofNames.push_back("displacement Y");
+    if(mNumSpatialDims > 2) mDofNames.push_back("displacement Z");
+    // initialize member data
+    //
+    this->initialize(aParamList);
+  }
 
   ~ResidualThermoElastoStaticTotalLagrangian(){}
 
@@ -374,6 +356,16 @@ public:
     Plato::Scalar     aCycle = 0.0
   ) const
   {
+    if(mStressEvaluator == nullptr){
+      ANALYZE_THROWERR("ERROR: Stress evaluator is not defined, mechanical stress tensor cannot be computed")
+    }
+    // compute second piola-kirchhoff stress workset in the deformed mechanical configuration
+    Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
+    Plato::OrdinalType tNumGaussPoints = ElementType::mNumGaussPoints;
+    Plato::ScalarArray4DT<ResultScalarType> t2PKS_WS(
+      "2nd Piola-Kirchhoff Stress",tNumCells,tNumGaussPoints,mNumSpatialDims,mNumSpatialDims
+    );
+    mStressEvaluator->evaluate(aWorkSets,t2PKS_WS,aCycle);
     // unpack worksets
     Plato::ScalarArray3DT<ConfigScalarType> tConfigWS  = 
       Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
@@ -382,16 +374,9 @@ public:
     Plato::ScalarMultiVectorT<StateScalarType> tDispWS = 
       Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
     Plato::ScalarMultiVectorT<NodeStateScalarType> tTempWS = 
-      Plato::unpack<Plato::ScalarMultiVectorT<NodeStateScalarType>>(aWorkSets.get("node states"));
+      Plato::unpack<Plato::ScalarMultiVectorT<NodeStateScalarType>>(aWorkSets.get("node_states"));
     Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
       Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
-    // evaluate mechanical stresses
-    Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
-    Plato::OrdinalType tNumGaussPoints = ElementType::mNumGaussPoints;
-    Plato::ScalarArray4DT<ResultScalarType> t2PKS(
-      "2nd Piola-Kirchhoff Stress",tNumCells,tNumGaussPoints,mNumSpatialDims,mNumSpatialDims
-    );
-    mStressEvaluator->evaluate(aWorkSets,t2PKS,aCycle);
     // create local functors
     Plato::StateGradient<EvaluationType> tComputeDispGradient;
     Plato::NominalStress<EvaluationType> tComputeNominalStress;
@@ -433,11 +418,11 @@ public:
       tComputeThermoElasticDeformationGradient(tThermalDefGradient,tMechanicalDefGradient,tThermoElasticDefGradient);
       // pull back second Piola-Kirchhoff stress from deformed to undeformed configuration
       Plato::Matrix<mNumSpatialDims,mNumSpatialDims,ResultScalarType> tDefConfig2PKS(ResultScalarType(0.));
-      Plato::Elliptic::get_cell_2PKS<mNumSpatialDims>(iCellOrdinal,iGpOrdinal,t2PKS,tDefConfig2PKS);
+      Plato::Elliptic::get_cell_2PKS<mNumSpatialDims>(iCellOrdinal,iGpOrdinal,t2PKS_WS,tDefConfig2PKS);
       Plato::Matrix<mNumSpatialDims,mNumSpatialDims,ResultScalarType> tUnDefConfig2PKS(ResultScalarType(0.));
       tApplyKineticPullBackOperation(tThermalDefGradient,tDefConfig2PKS,tUnDefConfig2PKS);
       // compute nominal stress
-      Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ResultScalarType> tNominalStress(ResultScalarType(0.));
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,ResultScalarType> tNominalStress(ResultScalarType(0.));
       tComputeNominalStress(tThermoElasticDefGradient,tUnDefConfig2PKS,tNominalStress);
       // apply integration point weight to element volume
       tVolume *= tCubWeights(iGpOrdinal);
@@ -514,7 +499,6 @@ private:
       mPlotTable = tResidualParams.get<Teuchos::Array<std::string>>("Plottable").toVector();
     }
   }
-
 };
 
 } // namespace Elliptic
@@ -523,6 +507,43 @@ private:
 
 namespace ThermoelastostaticTotalLagrangianTests
 {
+
+Teuchos::RCP<Teuchos::ParameterList> tGenericParamList = Teuchos::getParametersFromXmlString(
+"<ParameterList name='Plato Problem'>                                                                  \n"
+  "<ParameterList name='Spatial Model'>                                                                \n"
+    "<ParameterList name='Domains'>                                                                    \n"
+      "<ParameterList name='Design Volume'>                                                            \n"
+        "<Parameter name='Element Block' type='string' value='body'/>                                  \n"
+        "<Parameter name='Material Model' type='string' value='Unobtainium'/>                          \n"
+      "</ParameterList>                                                                                \n"
+    "</ParameterList>                                                                                  \n"
+  "</ParameterList>                                                                                    \n"
+  "<ParameterList name='Material Models'>                                                              \n"
+    "<ParameterList name='Unobtainium'>                                                                \n"
+      "<ParameterList name='Thermal Conduction'>                                                       \n"
+        "<Parameter  name='Thermal Expansivity'   type='double' value='0.5'/>                          \n"
+        "<Parameter  name='Reference Temperature' type='double' value='1.0'/>                          \n"
+        "<Parameter  name='Thermal Conductivity'  type='double' value='2.0'/>                          \n"
+      "</ParameterList>                                                                                \n"
+      "<ParameterList name='Hyperelastic Kirchhoff'>                                                    \n"
+        "<Parameter  name='Youngs Modulus'  type='double'  value='1.5'/>                               \n"
+        "<Parameter  name='Poissons Ratio'  type='double'  value='0.35'/>                              \n"
+      "</ParameterList>                                                                                \n"
+    "</ParameterList>                                                                                  \n"
+  "</ParameterList>                                                                                    \n"
+  "<ParameterList name='Criteria'>                                                                     \n"
+  "  <ParameterList name='Objective'>                                                                  \n"
+  "    <Parameter name='Type' type='string' value='Weighted Sum'/>                                     \n"
+  "    <Parameter name='Functions' type='Array(string)' value='{My Strain Energy}'/>                   \n"
+  "    <Parameter name='Weights' type='Array(double)' value='{1.0}'/>                                  \n"
+  "  </ParameterList>                                                                                  \n"
+  "  <ParameterList name='My Strain Energy'>                                                           \n"
+  "    <Parameter name='Type'                 type='string' value='Scalar Function'/>                  \n"
+  "    <Parameter name='Scalar Function Type' type='string' value='Strain Energy Potential'/>          \n"
+  "  </ParameterList>                                                                                  \n"
+  "</ParameterList>                                                                                    \n"
+"</ParameterList>                                                                                      \n"
+); 
 
 TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, tComputeThermalDefGrad )
 {
@@ -1016,4 +1037,75 @@ TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, get_cell_2PKS )
   }
 }
 
+TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, Residual )
+{
+  // create mesh
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  // create output database and spatial model
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh, *tGenericParamList, tDataMap);
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  //set ad-types
+  using ElementType  = typename Plato::ThermoElasticElement<Plato::Tri3>;  
+  using ResidualEval = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using VecStateT    = typename ResidualEval::StateScalarType;
+  using ResultT      = typename ResidualEval::ResultScalarType;
+  using ConfigT      = typename ResidualEval::ConfigScalarType;
+  using NodeStateT   = typename ResidualEval::NodeStateScalarType;
+  using StrainT      = typename Plato::fad_type_t<ElementType,VecStateT,ConfigT>;
+  // create displacement workset
+  Plato::Database tDatabase;
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+  Plato::ScalarVector tDisp("Displacements", tNumDofs);
+  Plato::blas1::fill(0.1, tDisp);
+  Kokkos::parallel_for("fill displacements",
+    Kokkos::RangePolicy<>(0, tNumDofs), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+  { tDisp(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  tDatabase.vector("states",tDisp);
+  // create temperature workset
+  Plato::WorksetBase<ElementType> tWorksetBase(tMesh);
+  Plato::ScalarVector tTemp("Temps", tNumVerts);
+  Plato::blas1::fill(1., tTemp);
+  Kokkos::parallel_for("fill temperature",
+    Kokkos::RangePolicy<>(0, tNumVerts), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+  { tTemp(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  tDatabase.vector("node_states",tTemp);
+  // create control workset
+  Plato::ScalarVector tControl("Controls", tNumVerts);
+  Plato::blas1::fill(1.0, tControl);
+  tDatabase.vector("controls",tControl);
+  // create workset database
+  Plato::WorkSets tWorkSets;
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<ResidualEval> tWorksetBuilder(tWorksetFuncs);
+  tWorksetBuilder.build(tOnlyDomainDefined, tDatabase, tWorkSets);
+  auto tNumCells = tMesh->NumElements();
+  auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ResultT> > >
+    ( Plato::ScalarMultiVectorT<ResultT>("Result Workset", tNumCells, ElementType::mNumDofsPerCell) );
+  tWorkSets.set("result",tResultWS);
+  // evaluate residualeval
+  Plato::Elliptic::ResidualThermoElastoStaticTotalLagrangian<ResidualEval> 
+    tResidual(tOnlyDomainDefined,tDataMap,*tGenericParamList);
+  tResidual.evaluate(tWorkSets,/*cycle=*/0.);
+  // test gold values
+  constexpr Plato::Scalar tTolerance = 1e-4;
+  std::vector<std::vector<Plato::Scalar>> tGold = 
+    { 
+      {-1.6049390,-0.567902,0.824691,-0.587654,0.78024773,1.155556}, 
+      {-0.6827165,-1.011111,1.404321, 0.496914,-0.7216045,0.514197} 
+    };
+  auto tHostResultsWS = Kokkos::create_mirror(tResultWS->mData);
+  Kokkos::deep_copy(tHostResultsWS, tResultWS->mData);
+  for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
+    for(Plato::OrdinalType tDof = 0; tDof < ElementType::mNumDofsPerCell; tDof++){
+      TEST_FLOATING_EQUALITY(tGold[tCell][tDof],tHostResultsWS(tCell,tDof),tTolerance);
+    }
+  }
 }
+
+} 

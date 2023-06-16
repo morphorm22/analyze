@@ -25,8 +25,6 @@ private:
   static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
   /// @brief number of spatial dimensions
   static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
-  /// @brief number of voigt stress-strain terms 
-  static constexpr auto mNumVoigtTerms   = ElementType::mNumVoigtTerms;
   /// @brief contains mesh and model information
   using Plato::CriterionBase::mSpatialDomain;
   /// @brief output database

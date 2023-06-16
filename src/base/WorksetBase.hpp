@@ -306,11 +306,15 @@ public:
      * \param [in] aState node state (scalar type), as a 1-D Kokkos::View
      * \param [in/out] aNodeStateWS node state workset (scalar type), as a 2-D Kokkos::View
     **********************************************************************************/
-    void worksetNodeState( const Kokkos::View<Plato::Scalar*, Plato::Layout, Plato::MemSpace> & aState,
-                           Kokkos::View<Plato::Scalar**, Plato::Layout, Plato::MemSpace> & aNodeStateWS ) const
+    void 
+    worksetNodeState( 
+      const ScalarVectorT            <Plato::Scalar> & aState,
+            Plato::ScalarMultiVectorT<Plato::Scalar> & aNodeStateWS 
+    ) const
     {
       Plato::workset_state_scalar_scalar<mNumNodeStatePerNode, mNumNodesPerCell>(
-              mNumCells, mNodeStateEntryOrdinal, aState, aNodeStateWS);
+        mNumCells, mNodeStateEntryOrdinal, aState, aNodeStateWS
+      );
     }
 
     /******************************************************************************//**
@@ -321,9 +325,9 @@ public:
     **********************************************************************************/
     void
     worksetNodeState(
-        const Plato::ScalarVectorT      <Plato::Scalar> & aState,
-              Plato::ScalarMultiVectorT <Plato::Scalar> & aNodeStateWS,
-        const Plato::SpatialDomain                      & aDomain
+      const Plato::ScalarVectorT      <Plato::Scalar> & aState,
+            Plato::ScalarMultiVectorT <Plato::Scalar> & aNodeStateWS,
+      const Plato::SpatialDomain                      & aDomain
     ) const
     {
       Plato::workset_state_scalar_scalar<mNumNodeStatePerNode, mNumNodesPerCell>(
@@ -336,11 +340,15 @@ public:
      * \param [in] aState node state (scalar type), as a 1-D Kokkos::View
      * \param [in/out] aFadStateWS node state workset (AD type), as a 2-D Kokkos::View
     **********************************************************************************/
-    void worksetNodeState( const Kokkos::View<Plato::Scalar*, Plato::Layout, Plato::MemSpace> & aState,
-                           Kokkos::View<NodeStateFad**, Plato::Layout, Plato::MemSpace> & aFadStateWS ) const
+    void 
+    worksetNodeState( 
+      const Plato::ScalarVectorT      <Plato::Scalar> & aState,
+            Plato::ScalarMultiVectorT <NodeStateFad>  & aFadStateWS 
+    ) const
     {
       Plato::workset_state_scalar_fad<mNumNodeStatePerNode, mNumNodesPerCell, NodeStateFad>(
-              mNumCells, mNodeStateEntryOrdinal, aState, aFadStateWS);
+        mNumCells, mNodeStateEntryOrdinal, aState, aFadStateWS
+      );
     }
 
     /******************************************************************************//**
@@ -357,7 +365,8 @@ public:
     ) const
     {
       Plato::workset_state_scalar_fad<mNumNodeStatePerNode, mNumNodesPerCell, NodeStateFad>(
-              aDomain, mNodeStateEntryOrdinal, aState, aFadStateWS);
+        aDomain, mNodeStateEntryOrdinal, aState, aFadStateWS
+      );
     }
 
     /******************************************************************************//**

@@ -28,11 +28,13 @@ private:
   /// @brief topological element type
   using ElementType = typename EvaluationType::ElementType;
   /// @brief number of spatial dimensions 
-  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
-  /// @brief number of degrees of freedom per element
-  static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
+  static constexpr auto mNumSpatialDims = ElementType::mNumSpatialDims;
   /// @brief number of nodes per element
   static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;  
+  /// @brief number of degrees of freedom per element for a multi-dimensional state field; i.e., vector field
+  static constexpr auto mNumVecStateDofsPerCell = ElementType::mNumDofsPerCell;
+  /// @brief number of degrees of freedom per element for a multi-dimensional state field; i.e., vector field
+  static constexpr auto mNumNodeStateDofsPerCell = ElementType::mNumNodeStatePerNode * ElementType::mNumNodesPerCell;
   /// @brief interface to map vector data to worksets
   const Plato::WorksetBase<ElementType> & mWorksetFuncs;
 

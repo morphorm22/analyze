@@ -14,12 +14,14 @@
 #include "MechanicsElement.hpp"
 #include "ThermomechanicsElement.hpp"
 #include "ElectromechanicsElement.hpp"
+#include "element/ThermoElasticElement.hpp"
 #include "elliptic/electrical/ElectricalElement.hpp"
 #include "elliptic/ExpInstMacros.hpp"
 
 PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::WorksetBuilder, Plato::ThermalElement)
 PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::WorksetBuilder, Plato::MechanicsElement)
 PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::WorksetBuilder, Plato::ElectricalElement)
+PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::WorksetBuilder, Plato::ThermoElasticElement)
 PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::WorksetBuilder, Plato::ThermomechanicsElement)
 PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::WorksetBuilder, Plato::ElectromechanicsElement)
 

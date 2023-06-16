@@ -72,8 +72,8 @@ private:
 enum struct material
 {
   /// @brief Supported mechanical material enums
-  KIRCHHOFF=0,
-  NEO_HOOKEAN=1,
+  HYPERELASTIC_KIRCHHOFF=0,
+  HYPERELASTIC_NEOHOOKEAN=1,
 };
 
 /// @struct PropEnum
@@ -83,8 +83,8 @@ struct MaterialEnum
 private:
   /// @brief map from input mechanical material string to supported mechanical material enum
   std::unordered_map<std::string,Plato::mechanical::material> s2e = {
-    {"kirchhoff"  ,Plato::mechanical::material::KIRCHHOFF},
-    {"neo-hookean",Plato::mechanical::material::NEO_HOOKEAN},
+    {"hyperelastic kirchhoff"  ,Plato::mechanical::material::HYPERELASTIC_KIRCHHOFF},
+    {"hyperelastic neo-hookean",Plato::mechanical::material::HYPERELASTIC_NEOHOOKEAN},
   };
 
 public:

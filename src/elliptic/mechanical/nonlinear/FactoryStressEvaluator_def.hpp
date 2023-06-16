@@ -44,13 +44,13 @@ create(
         ANALYZE_THROWERR(tMsg);
     }
     auto tMaterialParamList = tMaterialModelParamList.sublist(mMaterialName);
-    if(tMaterialParamList.isSublist("Kirchhoff")){
+    if(tMaterialParamList.isSublist("Hyperelastic Kirchhoff")){
       auto tStressEvaluator = std::make_shared<Plato::StressEvaluatorKirchhoff<EvaluationType>>
                               (mMaterialName,aParamList,aSpatialDomain,aDataMap);
       return tStressEvaluator;
     }
     else
-    if(tMaterialParamList.isSublist("Neo-Hookean")){
+    if(tMaterialParamList.isSublist("Hyperelastic Neo-Hookean")){
       auto tStressEvaluator = std::make_shared<Plato::StressEvaluatorNeoHookean<EvaluationType>>
                               (mMaterialName,aParamList,aSpatialDomain,aDataMap);
       return tStressEvaluator;

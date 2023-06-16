@@ -41,15 +41,15 @@ create(std::string aMaterialName)
         ANALYZE_THROWERR(tMsg);
     }
     auto tMaterialParamList = tMaterialModelParamList.sublist(aMaterialName);
-    if(tMaterialParamList.isSublist("Kirchhoff")){
+    if(tMaterialParamList.isSublist("Hyperelastic Kirchhoff")){
       auto tMaterial = std::make_shared<Plato::MaterialKirchhoff<EvaluationType>>
-                        (aMaterialName, tMaterialParamList.sublist("Kirchhoff"));
+                        (aMaterialName, tMaterialParamList.sublist("Hyperelastic Kirchhoff"));
       return tMaterial;
     }
     else
-    if(tMaterialParamList.isSublist("Neo-Hookean")){
+    if(tMaterialParamList.isSublist("Hyperelastic Neo-Hookean")){
       auto tMaterial = std::make_shared<Plato::MaterialNeoHookean<EvaluationType>>
-                        (aMaterialName, tMaterialParamList.sublist("Neo-Hookean"));
+                        (aMaterialName, tMaterialParamList.sublist("Hyperelastic Neo-Hookean"));
       return tMaterial;
     }
     else{

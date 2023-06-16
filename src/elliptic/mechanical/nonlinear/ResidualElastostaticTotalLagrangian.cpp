@@ -11,8 +11,10 @@
 #include "elliptic/mechanical/nonlinear/ResidualElastostaticTotalLagrangian_def.hpp"
 
 #include "MechanicsElement.hpp"
+#include "element/ThermoElasticElement.hpp"
 #include "elliptic/ExpInstMacros.hpp"
 
 PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::ResidualElastostaticTotalLagrangian,Plato::MechanicsElement)
+PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::ResidualElastostaticTotalLagrangian,Plato::ThermoElasticElement)
 
 #endif

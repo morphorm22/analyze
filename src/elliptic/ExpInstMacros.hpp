@@ -38,6 +38,10 @@ template class C<Plato::Elliptic::GradientXTypes<T>, Plato::MSIMP >; \
 template class C<Plato::Elliptic::GradientXTypes<T>, Plato::NoPenalty >; \
 template class C<Plato::Elliptic::GradientXTypes<T>, Plato::RAMP >; \
 template class C<Plato::Elliptic::GradientXTypes<T>, Plato::Heaviside >; \
+template class C<Plato::Elliptic::GradientNTypes<T>, Plato::MSIMP >; \
+template class C<Plato::Elliptic::GradientNTypes<T>, Plato::NoPenalty >; \
+template class C<Plato::Elliptic::GradientNTypes<T>, Plato::RAMP >; \
+template class C<Plato::Elliptic::GradientNTypes<T>, Plato::Heaviside >; \
 template class C<Plato::Elliptic::GradientZTypes<T>, Plato::MSIMP >; \
 template class C<Plato::Elliptic::GradientZTypes<T>, Plato::NoPenalty >; \
 template class C<Plato::Elliptic::GradientZTypes<T>, Plato::RAMP >; \
@@ -50,6 +54,8 @@ template class C<Plato::Elliptic::JacobianTypes<T>, Plato::MSIMP >; \
 template class C<Plato::Elliptic::JacobianTypes<T>, Plato::NoPenalty >; \
 template class C<Plato::Elliptic::GradientXTypes<T>, Plato::MSIMP >; \
 template class C<Plato::Elliptic::GradientXTypes<T>, Plato::NoPenalty >; \
+template class C<Plato::Elliptic::GradientNTypes<T>, Plato::MSIMP >; \
+template class C<Plato::Elliptic::GradientNTypes<T>, Plato::NoPenalty >; \
 template class C<Plato::Elliptic::GradientZTypes<T>, Plato::MSIMP >; \
 template class C<Plato::Elliptic::GradientZTypes<T>, Plato::NoPenalty >;
 #endif
@@ -58,7 +64,8 @@ template class C<Plato::Elliptic::GradientZTypes<T>, Plato::NoPenalty >;
 template class C<Plato::Elliptic::ResidualTypes<T>>; \
 template class C<Plato::Elliptic::JacobianTypes<T>>; \
 template class C<Plato::Elliptic::GradientXTypes<T>>; \
-template class C<Plato::Elliptic::GradientZTypes<T>>;
+template class C<Plato::Elliptic::GradientZTypes<T>>; \
+template class C<Plato::Elliptic::GradientNTypes<T>>;
 
 
 #ifdef PLATO_HEX_ELEMENTS

@@ -8,12 +8,14 @@
 #include "MechanicsElement.hpp"
 #include "ThermomechanicsElement.hpp"
 #include "ElectromechanicsElement.hpp"
+#include "element/ThermoElasticElement.hpp"
 #include "elliptic/electrical/ElectricalElement.hpp"
 #include "elliptic/ExpInstMacros.hpp"
 
 PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::CriterionMassMoment, Plato::ThermalElement)
 PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::CriterionMassMoment, Plato::MechanicsElement)
 PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::CriterionMassMoment, Plato::ElectricalElement)
+PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::CriterionMassMoment, Plato::ThermoElasticElement)
 PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::CriterionMassMoment, Plato::ThermomechanicsElement)
 PLATO_ELLIPTIC_EXP_INST_2(Plato::Elliptic::CriterionMassMoment, Plato::ElectromechanicsElement)
 

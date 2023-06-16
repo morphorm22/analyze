@@ -30,9 +30,12 @@ ThermalConductionModel(
 ) : 
   MaterialModel<EvaluationType>(aParamList)
 {
- 
-  this->parseScalar("Thermal Expansivity", aParamList);
-  this->parseScalar("Reference Temperature", aParamList);
+  if(aParamList.isParameter("Thermal Expansivity")){
+    this->parseScalar("Thermal Expansivity", aParamList);
+  }
+  if(aParamList.isParameter("Reference Temperature")){
+    this->parseScalar("Reference Temperature", aParamList);
+  }
   this->parseTensor("Thermal Conductivity", aParamList);
 
 } // constructor ThermalConductionModel
