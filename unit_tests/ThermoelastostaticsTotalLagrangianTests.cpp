@@ -18,11 +18,15 @@
 #include "NaturalBCs.hpp"
 #include "SpatialModel.hpp"
 #include "GradientMatrix.hpp"
+#include "PlatoMathTypes.hpp"
 #include "base/WorksetBase.hpp"
 #include "base/ResidualBase.hpp"
 #include "InterpolateFromNodal.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "ThermalConductivityMaterial.hpp"
+
+#include "elliptic/mechanical/nonlinear/StateGradient.hpp"
+#include "elliptic/mechanical/nonlinear/DeformationGradient.hpp"
 #include "elliptic/mechanical/nonlinear/FactoryStressEvaluator.hpp"
 
 namespace Plato
@@ -164,9 +168,139 @@ public:
   }
 };
 
+/// @class KineticPullBackOperation
+/// @brief apply pull back operation to second order kinetic tensor:
+/// \f[ 
+///   S_{ij}=F^{-1}_{ik}\sigma_{kl}F^{-1}_{jl} J or \mathbf{S}=\mathbf{F}^{-1}\mathbf{\sigma}\mathbf{F}^{-T} J, 
+/// \f]
+/// where \f$J=\det(F)\f$, \f$S\f$ and \f$\sigma\f$ are generic second order kinetic tensors (e.g., stress), 
+/// \f$F\f$ is a generic deformation gradient 
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
+template<typename EvaluationType>
+class KineticPullBackOperation
+{
+private:
+  /// @brief topological element type
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims = ElementType::mNumSpatialDims;
+
+public:
+  /// @brief class constructor
+  KineticPullBackOperation(){}
+  /// @brief class destructor
+  ~KineticPullBackOperation(){}
+
+  /// @fn operator()
+  /// @brief apply pull back operation to second order kinetic tensor
+  /// @tparam DefGradScalarType scalar type for deformation gradient
+  /// @tparam KineticScalarType scalar type for second order kinetic tensor
+  /// @tparam OutputScalarType  scalar type for output second order kinetic tensor
+  /// @param [in]     aDefGrad          deformation gradient
+  /// @param [in]     aInKineticTensor  input second order kinetic tensor
+  /// @param [in,out] aOutKineticTensor output second order kinetic tensor
+  template<typename DefGradScalarType, 
+           typename KineticScalarType, 
+           typename OutputScalarType>
+  KOKKOS_INLINE_FUNCTION
+  void 
+  operator()(
+    const Plato::Matrix<mNumSpatialDims,mNumSpatialDims,DefGradScalarType> & aDefGrad,
+    const Plato::Matrix<mNumSpatialDims,mNumSpatialDims,KineticScalarType> & aInKineticTensor,
+          Plato::Matrix<mNumSpatialDims,mNumSpatialDims,OutputScalarType>  & aOutKineticTensor
+  ) const
+  {
+    // compute deformation gradient inverse
+    Plato::Matrix<mNumSpatialDims,mNumSpatialDims,DefGradScalarType> aInvDefGrad = Plato::invert(aDefGrad);
+    // compute determinant of deformation gradient 
+    DefGradScalarType tDeterminantDefGrad = Plato::determinant(aDefGrad);
+    // apply pull-back operation to kinetic (stress) tensor
+    for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
+      for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
+        for(Plato::OrdinalType tDimK = 0; tDimK < mNumSpatialDims; tDimK++){
+          for(Plato::OrdinalType tDimL = 0; tDimL < mNumSpatialDims; tDimL++){
+            aOutKineticTensor(tDimI,tDimJ) += tDeterminantDefGrad * 
+              aInvDefGrad(tDimI,tDimK) * aInKineticTensor(tDimK,tDimL) * aInvDefGrad(tDimJ,tDimL);
+          }
+        }
+      }
+    }
+  }
+};
+
+/// @class NominalStress
+/// @brief compute nominal (first piola-kirchhoff) stress tensor:
+/// \f[ 
+///   P_{ij}=S_{ik}F_{jk} or \mathbf{P}=\mathbf{S}\mathbf{F}^{T}, 
+/// \f]
+/// where \f$\mathbf{P}\f$ is the first piola-kirchhoff stress, \f$\mathbf{S}\f$ is the second 
+/// piola-kirchhoff stress, and \f$\mathbf{F}\f$ is the deformation gradient 
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
+template<typename EvaluationType>
+class NominalStress
+{
+private:
+  /// @brief topological element type
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims = ElementType::mNumSpatialDims;
+
+public:
+  /// @brief class constructor
+  NominalStress(){}
+  /// @brief class destructor
+  ~NominalStress(){}
+
+  /// @fn operator()
+  /// @brief compute nominal stress
+  /// @tparam DefGradScalarType scalar type for deformation gradient
+  /// @tparam KineticScalarType scalar type for second piola-kirchhoff stress
+  /// @tparam OutputScalarType  scalar type for first piola-kirchhoff stress (nominal stress)
+  /// @param [in]     aDefGrad deformation gradient
+  /// @param [in]     a2PKS    second piola-kirchhoff stress
+  /// @param [in,out] a1PKS    first piola-kirchhoff stress
+  template<typename DefGradScalarType, 
+           typename KineticScalarType, 
+           typename OutputScalarType>
+  KOKKOS_INLINE_FUNCTION
+  void 
+  operator()(
+    const Plato::Matrix<mNumSpatialDims,mNumSpatialDims,DefGradScalarType> & aDefGrad,
+    const Plato::Matrix<mNumSpatialDims,mNumSpatialDims,KineticScalarType> & a2PKS,
+          Plato::Matrix<mNumSpatialDims,mNumSpatialDims,OutputScalarType>  & a1PKS
+  ) const
+  {
+    for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
+      for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
+        for(Plato::OrdinalType tDimK = 0; tDimK < mNumSpatialDims; tDimK++){
+          a1PKS(tDimI,tDimJ) += a2PKS(tDimI,tDimK) * aDefGrad(tDimJ,tDimK);
+        }
+      }
+    }
+  }
+};
+
 namespace Elliptic
 {
-    
+
+template<Plato::OrdinalType NumSpatialDims, typename ScalarType>
+KOKKOS_INLINE_FUNCTION
+void 
+get_cell_2PKS(
+  const Plato::OrdinalType                                      & aCellOrdinal,
+  const Plato::OrdinalType                                      & aIntegrationPointOrdinal,
+  const Plato::ScalarArray4DT<ScalarType>                       & aInSecondPiolaKirchhoffStress,
+        Plato::Matrix<NumSpatialDims,NumSpatialDims,ScalarType> & aOutSecondPiolaKirchhoffStress
+)
+{
+  for(Plato::OrdinalType tDimI = 0; tDimI < NumSpatialDims; tDimI++){
+    for(Plato::OrdinalType tDimJ = 0; tDimJ < NumSpatialDims; tDimJ++){
+      aOutSecondPiolaKirchhoffStress(tDimI,tDimJ) = 
+        aInSecondPiolaKirchhoffStress(aCellOrdinal,aIntegrationPointOrdinal,tDimI,tDimJ);
+    }
+  }
+}
+
 template<typename EvaluationType>
 class ResidualThermoElastoStaticTotalLagrangian : public Plato::ResidualBase
 {
@@ -208,17 +342,20 @@ private:
   std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
   /// @brief output plot table, contains requested output quantities of interests
   std::vector<std::string> mPlotTable;
+  /// @brief input problem parameters
+  const Teuchos::ParameterList & mParamList;
 
 public:
   ResidualThermoElastoStaticTotalLagrangian(
     const Plato::SpatialDomain   & aSpatialDomain,
-          Plato::DataMap         & aDataMap,
-          Teuchos::ParameterList & aParamList
+    const Teuchos::ParameterList & aParamList,
+          Plato::DataMap         & aDataMap
   ) : 
     FunctionBaseType(aSpatialDomain, aDataMap),
     mStressEvaluator(nullptr),
     mNaturalBCs     (nullptr),
-    mBodyLoads      (nullptr)
+    mBodyLoads      (nullptr),
+    mParamList(aParamList)
   {}
 
   ~ResidualThermoElastoStaticTotalLagrangian(){}
@@ -251,36 +388,69 @@ public:
     // evaluate mechanical stresses
     Plato::OrdinalType tNumCells = mSpatialDomain.numCells();
     Plato::OrdinalType tNumGaussPoints = ElementType::mNumGaussPoints;
-    Plato::ScalarArray4DT<ResultScalarType> 
-      tNominalStress("nominal mechanical stress",tNumCells,tNumGaussPoints,mNumSpatialDims,mNumSpatialDims);
-    mStressEvaluator->evaluate(tDispWS,tControlWS,tConfigWS,tNominalStress,aCycle);
+    Plato::ScalarArray4DT<ResultScalarType> t2PKS(
+      "2nd Piola-Kirchhoff Stress",tNumCells,tNumGaussPoints,mNumSpatialDims,mNumSpatialDims
+    );
+    mStressEvaluator->evaluate(aWorkSets,t2PKS,aCycle);
+    // create local functors
+    Plato::StateGradient<EvaluationType> tComputeDispGradient;
+    Plato::NominalStress<EvaluationType> tComputeNominalStress;
+    Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
+    Plato::KineticPullBackOperation<EvaluationType> tApplyKineticPullBackOperation;
+    Plato::DeformationGradient<EvaluationType> tComputeMechanicalDeformationGradient;
+    Plato::ThermoElasticDeformationGradient<EvaluationType> tComputeThermoElasticDeformationGradient;
+    Plato::ThermalDeformationGradient<EvaluationType> tComputeThermalDeformationGradient(
+      mSpatialDomain.getMaterialName(),mParamList
+    );
+    Plato::InterpolateFromNodal<ElementType,mNumNodeStatePerNode> tInterpolateFromNodal;
     // get integration rule data
     auto tCubPoints  = ElementType::getCubPoints();
     auto tCubWeights = ElementType::getCubWeights();
     // evaluate internal forces
-    Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
     Kokkos::parallel_for("compute internal forces", 
       Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0}, {tNumCells,mNumGaussPoints}),
       KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
-      {
-        // compute gradient of interpolation functions
-        ConfigScalarType tVolume(0.0);
-        auto tCubPoint = tCubPoints(iGpOrdinal);
-        Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient;
-        tComputeGradient(iCellOrdinal,tCubPoint,tConfigWS,tGradient,tVolume);
-        // apply integration point weight to element volume
-        tVolume *= tCubWeights(iGpOrdinal);
-        // apply divergence operator to stress tensor
-        for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++){
-          for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
-            Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumSpatialDims + tDimI;
-            for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
-              ResultScalarType tVal = tNominalStress(iCellOrdinal,iGpOrdinal,tDimI,tDimJ) 
-                * tGradient(tNodeIndex,tDimJ) * tVolume;
-              Kokkos::atomic_add( &tResultWS(iCellOrdinal,tLocalOrdinal),tVal );
-            }
+    {
+      // compute gradient of interpolation functions
+      ConfigScalarType tVolume(0.0);
+      auto tCubPoint = tCubPoints(iGpOrdinal);
+      Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient(ConfigScalarType(0.));
+      tComputeGradient(iCellOrdinal,tCubPoint,tConfigWS,tGradient,tVolume);
+      // compute displacement gradient
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> tDispGradient(StrainScalarType(0.));
+      tComputeDispGradient(iCellOrdinal,tDispWS,tGradient,tDispGradient);
+      // compute mechanical deformation gradient 
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> tMechanicalDefGradient(StrainScalarType(0.));
+      tComputeMechanicalDeformationGradient(tDispGradient,tMechanicalDefGradient);
+      // interpolate temperature field from nodes to integration point
+      auto tBasisValues = ElementType::basisValues(tCubPoint);
+      NodeStateScalarType tTemperature = tInterpolateFromNodal(iCellOrdinal,tBasisValues,tTempWS);
+      // compute thermal deformation gradient 
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,NodeStateScalarType> tThermalDefGradient(StrainScalarType(0.));
+      tComputeThermalDeformationGradient(tTemperature,tThermalDefGradient);
+      // compute multiplicative decomposition of the thermo-elastic deformation gradient 
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,ResultScalarType> tThermoElasticDefGradient(ResultScalarType(0.));
+      tComputeThermoElasticDeformationGradient(tThermalDefGradient,tMechanicalDefGradient,tThermoElasticDefGradient);
+      // pull back second Piola-Kirchhoff stress from deformed to undeformed configuration
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,ResultScalarType> tDefConfig2PKS(ResultScalarType(0.));
+      Plato::Elliptic::get_cell_2PKS<mNumSpatialDims>(iCellOrdinal,iGpOrdinal,t2PKS,tDefConfig2PKS);
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,ResultScalarType> tUnDefConfig2PKS(ResultScalarType(0.));
+      tApplyKineticPullBackOperation(tThermalDefGradient,tDefConfig2PKS,tUnDefConfig2PKS);
+      // compute nominal stress
+      Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ResultScalarType> tNominalStress(ResultScalarType(0.));
+      tComputeNominalStress(tThermoElasticDefGradient,tUnDefConfig2PKS,tNominalStress);
+      // apply integration point weight to element volume
+      tVolume *= tCubWeights(iGpOrdinal);
+      // apply divergence operator to nominal stress tensor
+      for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++){
+        for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
+          Plato::OrdinalType tLocalOrdinal = tNodeIndex * mNumSpatialDims + tDimI;
+          for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
+            ResultScalarType tVal = tNominalStress(tDimI,tDimJ) * tGradient(tNodeIndex,tDimJ) * tVolume;
+            Kokkos::atomic_add( &tResultWS(iCellOrdinal,tLocalOrdinal),tVal );
           }
         }
+      }
     });
     // evaluate body forces
     if( mBodyLoads != nullptr )
@@ -412,7 +582,7 @@ TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, tComputeThermalDefGra
     // compute thermal deformation gradient
     Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,NodeStateT> tTempDefGrad;
     tComputeThermalDeformationGradient(tTemperature,tTempDefGrad);
-    // copy result
+    // copy output to result workset
     for( Plato::OrdinalType tDimI = 0; tDimI < tSpaceDim; tDimI++){
       for( Plato::OrdinalType tDimJ = 0; tDimJ < tSpaceDim; tDimJ++){
         tResultsWS(iCellOrdinal,tDimI,tDimJ) = tTempDefGrad(tDimI,tDimJ);
@@ -504,7 +674,7 @@ TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, tComputeThermoElastic
     Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,ResultT> 
       tTMechDefGrad(ResultT(0.));
     tComputeThermoElasticDeformationGradient(tCellTempDefGrad,tCellMechDefGrad,tTMechDefGrad);
-    // copy result
+    // copy output to result workset
     for( Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
       for( Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
         tResultsWS(iCellOrdinal,tDimI,tDimJ) = tTMechDefGrad(tDimI,tDimJ);
@@ -515,6 +685,326 @@ TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, tComputeThermoElastic
   constexpr Plato::Scalar tTolerance = 1e-4;
   std::vector<std::vector<Plato::Scalar>> tGold = 
     { {0.72333333,0.10333333,0.20666667,0.62}, {0.72333333,0.10333333,0.20666667,0.62} };
+  auto tHostResultsWS = Kokkos::create_mirror(tResultsWS);
+  Kokkos::deep_copy(tHostResultsWS, tResultsWS);
+  for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
+    for(Plato::OrdinalType tDimI = 0; tDimI < tSpaceDim; tDimI++){
+      for(Plato::OrdinalType tDimJ = 0; tDimJ < tSpaceDim; tDimJ++){
+        TEST_FLOATING_EQUALITY(tGold[tCell][tDimI*tSpaceDim+tDimJ],tHostResultsWS(tCell,tDimI,tDimJ),tTolerance);
+      }
+    }
+  }
+}
+
+TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, KineticPullBackOperation_1 )
+{
+  // create mesh
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  //set ad-types
+  using ElementType = typename Plato::ThermoElasticElement<Plato::Tri3>;  
+  using Residual    = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using VecStateT   = typename Residual::StateScalarType;
+  using ResultT     = typename Residual::ResultScalarType;
+  using ConfigT     = typename Residual::ConfigScalarType;
+  using StrainT     = typename Plato::fad_type_t<ElementType,VecStateT,ConfigT>;
+  // create mechanical deformation gradient workset
+  std::vector<std::vector<Plato::Scalar>> tDataDefGrad = 
+    { {1.4,0.2,0.4,1.2}, {1.4,0.2,0.4,1.2} };
+  const Plato::OrdinalType tNumCells = tMesh->NumElements();
+  Plato::ScalarArray3DT<StrainT> tDefGradient("mechanical deformation gradient",tNumCells,tSpaceDim,tSpaceDim);
+  auto tHostDefGradWS = Kokkos::create_mirror(tDefGradient);
+  Kokkos::deep_copy(tHostDefGradWS, tDefGradient);
+  for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
+    for(Plato::OrdinalType tDimI = 0; tDimI < tSpaceDim; tDimI++){
+      for(Plato::OrdinalType tDimJ = 0; tDimJ < tSpaceDim; tDimJ++){
+        tHostDefGradWS(tCell,tDimI,tDimJ) = tDataDefGrad[tCell][tDimI*tSpaceDim+tDimJ];
+      }
+    }
+  }
+  Kokkos::deep_copy(tDefGradient,tHostDefGradWS);
+  // create second piola-kirchhoff stress data
+  std::vector<std::vector<Plato::Scalar>> tData2PKS = 
+    { {1.10617,0.281481,0.281481,0.869136}, {1.10617,0.281481,0.281481,0.869136} };  
+  Plato::ScalarArray3DT<ResultT> t2PKS_WS("second piola-kirchhoff stress",tNumCells,tSpaceDim,tSpaceDim);
+  auto tHost2PKS_WS = Kokkos::create_mirror(t2PKS_WS);
+  Kokkos::deep_copy(tHost2PKS_WS, t2PKS_WS);
+  for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
+    for(Plato::OrdinalType tDimI = 0; tDimI < tSpaceDim; tDimI++){
+      for(Plato::OrdinalType tDimJ = 0; tDimJ < tSpaceDim; tDimJ++){
+        tHost2PKS_WS(tCell,tDimI,tDimJ) = tData2PKS[tCell][tDimI*tSpaceDim+tDimJ];
+      }
+    }
+  }
+  Kokkos::deep_copy(t2PKS_WS,tHost2PKS_WS);
+  // create results workset
+  Plato::ScalarArray3DT<ResultT> tResultsWS("results",tNumCells,tSpaceDim,tSpaceDim);
+  // pull back second piola-kirchhoff stress from deformed to undeformed configuration
+  auto tNumPoints = ElementType::mNumGaussPoints;
+  Plato::KineticPullBackOperation<Residual> tApplyKineticPullBackOperation;
+  Kokkos::parallel_for("pull back stress operation", 
+    Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0}, {tNumCells,tNumPoints}),
+    KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal,const Plato::OrdinalType iGpOrdinal)
+  {
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,ResultT> tDefConfig2PKS(ResultT(0.));
+    for( Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
+      for( Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
+        tDefConfig2PKS(tDimI,tDimJ) = t2PKS_WS(iCellOrdinal,tDimI,tDimJ);
+      }
+    }
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> tCellDefGrad(StrainT(0.));
+    for( Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
+      for( Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
+        tCellDefGrad(tDimI,tDimJ) = tDefGradient(iCellOrdinal,tDimI,tDimJ);
+      }
+    }
+    // compute thermo-elastic deformation gradient
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,ResultT> tUndefConfig2PKS(ResultT(0.));
+    tApplyKineticPullBackOperation(tCellDefGrad,tDefConfig2PKS,tUndefConfig2PKS);
+    // copy output to result workset
+    for( Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
+      for( Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
+        tResultsWS(iCellOrdinal,tDimI,tDimJ) = tUndefConfig2PKS(tDimI,tDimJ);
+      }
+    }
+  });
+  // test gold values
+  constexpr Plato::Scalar tTolerance = 1e-4;
+  std::vector<std::vector<Plato::Scalar>> tGold = 
+    { {0.9328371,-0.1743207,-0.1743207,0.9782719}, {0.9328371,-0.1743207,-0.1743207,0.9782719} };
+  auto tHostResultsWS = Kokkos::create_mirror(tResultsWS);
+  Kokkos::deep_copy(tHostResultsWS, tResultsWS);
+  for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
+    for(Plato::OrdinalType tDimI = 0; tDimI < tSpaceDim; tDimI++){
+      for(Plato::OrdinalType tDimJ = 0; tDimJ < tSpaceDim; tDimJ++){
+        TEST_FLOATING_EQUALITY(tGold[tCell][tDimI*tSpaceDim+tDimJ],tHostResultsWS(tCell,tDimI,tDimJ),tTolerance);
+      }
+    }
+  }
+}
+
+TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, KineticPullBackOperation_2 )
+{
+  // create mesh
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  //set ad-types
+  using ElementType = typename Plato::ThermoElasticElement<Plato::Tri3>;  
+  using Residual    = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using VecStateT   = typename Residual::StateScalarType;
+  using ResultT     = typename Residual::ResultScalarType;
+  using ConfigT     = typename Residual::ConfigScalarType;
+  using NodeStateT  = typename Residual::NodeStateScalarType;
+  using StrainT     = typename Plato::fad_type_t<ElementType,VecStateT,ConfigT>;
+  // create thermal gradient workset
+  std::vector<std::vector<Plato::Scalar>> tDataTempDefGrad = 
+    { {0.5166666666666666,0.,0.,0.5166666666666666}, {0.5166666666666666,0.,0.,0.5166666666666666} };
+  const Plato::OrdinalType tNumCells = tMesh->NumElements();
+  Plato::ScalarArray3DT<NodeStateT> tTempDefGradWS("thermal deformation gradient",tNumCells,tSpaceDim,tSpaceDim);
+  auto tHostTempDefGradWS = Kokkos::create_mirror(tTempDefGradWS);
+  Kokkos::deep_copy(tHostTempDefGradWS, tTempDefGradWS);
+  for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
+    for(Plato::OrdinalType tDimI = 0; tDimI < tSpaceDim; tDimI++){
+      for(Plato::OrdinalType tDimJ = 0; tDimJ < tSpaceDim; tDimJ++){
+        tHostTempDefGradWS(tCell,tDimI,tDimJ) = tDataTempDefGrad[tCell][tDimI*tSpaceDim+tDimJ];
+      }
+    }
+  }
+  Kokkos::deep_copy(tTempDefGradWS,tHostTempDefGradWS);
+  // create second piola-kirchhoff stress data
+  std::vector<std::vector<Plato::Scalar>> tData2PKS = 
+    { {1.10617,0.281481,0.281481,0.869136}, {1.10617,0.281481,0.281481,0.869136} };  
+  Plato::ScalarArray3DT<ResultT> t2PKS_WS("second piola-kirchhoff stress",tNumCells,tSpaceDim,tSpaceDim);
+  auto tHost2PKS_WS = Kokkos::create_mirror(t2PKS_WS);
+  Kokkos::deep_copy(tHost2PKS_WS, t2PKS_WS);
+  for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
+    for(Plato::OrdinalType tDimI = 0; tDimI < tSpaceDim; tDimI++){
+      for(Plato::OrdinalType tDimJ = 0; tDimJ < tSpaceDim; tDimJ++){
+        tHost2PKS_WS(tCell,tDimI,tDimJ) = tData2PKS[tCell][tDimI*tSpaceDim+tDimJ];
+      }
+    }
+  }
+  Kokkos::deep_copy(t2PKS_WS,tHost2PKS_WS);
+  // create results workset
+  Plato::ScalarArray3DT<ResultT> tResultsWS("results",tNumCells,tSpaceDim,tSpaceDim);
+  // pull back second piola-kirchhoff stress from deformed to undeformed configuration
+  auto tNumPoints = ElementType::mNumGaussPoints;
+  Plato::KineticPullBackOperation<Residual> tApplyKineticPullBackOperation;
+  Kokkos::parallel_for("pull back stress operation", 
+    Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0}, {tNumCells,tNumPoints}),
+    KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal,const Plato::OrdinalType iGpOrdinal)
+  {
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,ResultT> tDefConfig2PKS(ResultT(0.));
+    for( Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
+      for( Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
+        tDefConfig2PKS(tDimI,tDimJ) = t2PKS_WS(iCellOrdinal,tDimI,tDimJ);
+      }
+    }
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,NodeStateT> 
+      tCellTempDefGrad(NodeStateT(0.));
+    for( Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
+      for( Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
+        tCellTempDefGrad(tDimI,tDimJ) = tTempDefGradWS(iCellOrdinal,tDimI,tDimJ);
+      }
+    }
+    // compute thermo-elastic deformation gradient
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,ResultT> tUndefConfig2PKS(ResultT(0.));
+    tApplyKineticPullBackOperation(tCellTempDefGrad,tDefConfig2PKS,tUndefConfig2PKS);
+    // copy output to result workset
+    for( Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
+      for( Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
+        tResultsWS(iCellOrdinal,tDimI,tDimJ) = tUndefConfig2PKS(tDimI,tDimJ);
+      }
+    }
+  });
+  // test gold values
+  constexpr Plato::Scalar tTolerance = 1e-4;
+  std::vector<std::vector<Plato::Scalar>> tGold = 
+    { {1.10617,0.281481,0.281481,0.869136}, {1.10617,0.281481,0.281481,0.869136} };
+  auto tHostResultsWS = Kokkos::create_mirror(tResultsWS);
+  Kokkos::deep_copy(tHostResultsWS, tResultsWS);
+  for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
+    for(Plato::OrdinalType tDimI = 0; tDimI < tSpaceDim; tDimI++){
+      for(Plato::OrdinalType tDimJ = 0; tDimJ < tSpaceDim; tDimJ++){
+        TEST_FLOATING_EQUALITY(tGold[tCell][tDimI*tSpaceDim+tDimJ],tHostResultsWS(tCell,tDimI,tDimJ),tTolerance);
+      }
+    }
+  }
+}
+
+TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, NominalStress )
+{
+  // create mesh
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  //set ad-types
+  using ElementType = typename Plato::ThermoElasticElement<Plato::Tri3>;  
+  using Residual    = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using VecStateT   = typename Residual::StateScalarType;
+  using ResultT     = typename Residual::ResultScalarType;
+  using ConfigT     = typename Residual::ConfigScalarType;
+  using StrainT     = typename Plato::fad_type_t<ElementType,VecStateT,ConfigT>;
+  // create mechanical deformation gradient workset
+  std::vector<std::vector<Plato::Scalar>> tDataDefGrad = 
+    { {1.4,0.2,0.4,1.2}, {1.4,0.2,0.4,1.2} };
+  const Plato::OrdinalType tNumCells = tMesh->NumElements();
+  Plato::ScalarArray3DT<StrainT> tDefGradient("mechanical deformation gradient",tNumCells,tSpaceDim,tSpaceDim);
+  auto tHostDefGradWS = Kokkos::create_mirror(tDefGradient);
+  Kokkos::deep_copy(tHostDefGradWS, tDefGradient);
+  for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
+    for(Plato::OrdinalType tDimI = 0; tDimI < tSpaceDim; tDimI++){
+      for(Plato::OrdinalType tDimJ = 0; tDimJ < tSpaceDim; tDimJ++){
+        tHostDefGradWS(tCell,tDimI,tDimJ) = tDataDefGrad[tCell][tDimI*tSpaceDim+tDimJ];
+      }
+    }
+  }
+  Kokkos::deep_copy(tDefGradient,tHostDefGradWS);
+  // create second piola-kirchhoff stress data
+  std::vector<std::vector<Plato::Scalar>> tData2PKS = 
+    { {1.10617,0.281481,0.281481,0.869136}, {1.10617,0.281481,0.281481,0.869136} };  
+  Plato::ScalarArray3DT<ResultT> t2PKS_WS("second piola-kirchhoff stress",tNumCells,tSpaceDim,tSpaceDim);
+  auto tHost2PKS_WS = Kokkos::create_mirror(t2PKS_WS);
+  Kokkos::deep_copy(tHost2PKS_WS, t2PKS_WS);
+  for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
+    for(Plato::OrdinalType tDimI = 0; tDimI < tSpaceDim; tDimI++){
+      for(Plato::OrdinalType tDimJ = 0; tDimJ < tSpaceDim; tDimJ++){
+        tHost2PKS_WS(tCell,tDimI,tDimJ) = tData2PKS[tCell][tDimI*tSpaceDim+tDimJ];
+      }
+    }
+  }
+  Kokkos::deep_copy(t2PKS_WS,tHost2PKS_WS);
+  // create results workset
+  Plato::ScalarArray3DT<ResultT> tResultsWS("results",tNumCells,tSpaceDim,tSpaceDim);
+  // pull back second piola-kirchhoff stress from deformed to undeformed configuration
+  auto tNumPoints = ElementType::mNumGaussPoints;
+  Plato::NominalStress<Residual> tComputeNominalStress;
+  Kokkos::parallel_for("pull back stress operation", 
+    Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0}, {tNumCells,tNumPoints}),
+    KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal,const Plato::OrdinalType iGpOrdinal)
+  {
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,ResultT> tCell2PKS(ResultT(0.));
+    for( Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
+      for( Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
+        tCell2PKS(tDimI,tDimJ) = t2PKS_WS(iCellOrdinal,tDimI,tDimJ);
+      }
+    }
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,StrainT> tCellDefGrad(StrainT(0.));
+    for( Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
+      for( Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
+        tCellDefGrad(tDimI,tDimJ) = tDefGradient(iCellOrdinal,tDimI,tDimJ);
+      }
+    }
+    // compute thermo-elastic deformation gradient
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims,ResultT> tNominalStress(ResultT(0.));
+    tComputeNominalStress(tCellDefGrad,tCell2PKS,tNominalStress);
+    // copy output to result workset
+    for( Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
+      for( Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
+        tResultsWS(iCellOrdinal,tDimI,tDimJ) = tNominalStress(tDimI,tDimJ);
+      }
+    }
+  });
+  // test gold values
+  constexpr Plato::Scalar tTolerance = 1e-4;
+  std::vector<std::vector<Plato::Scalar>> tGold = 
+    { {1.6049342,0.7802452,0.5679006,1.1555556}, {1.6049342,0.7802452,0.5679006,1.1555556} };
+  auto tHostResultsWS = Kokkos::create_mirror(tResultsWS);
+  Kokkos::deep_copy(tHostResultsWS, tResultsWS);
+  for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
+    for(Plato::OrdinalType tDimI = 0; tDimI < tSpaceDim; tDimI++){
+      for(Plato::OrdinalType tDimJ = 0; tDimJ < tSpaceDim; tDimJ++){
+        TEST_FLOATING_EQUALITY(tGold[tCell][tDimI*tSpaceDim+tDimJ],tHostResultsWS(tCell,tDimI,tDimJ),tTolerance);
+      }
+    }
+  }
+}
+
+TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, get_cell_2PKS )
+{
+  //set ad-types
+  using ElementType = typename Plato::ThermoElasticElement<Plato::Tri3>;  
+  using Residual    = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  // create second piola-kirchhoff stress data
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tNumCells = 2;
+  std::vector<std::vector<Plato::Scalar>> tData2PKS = 
+    { {1.10617,0.281481,0.281481,0.869136}, {1.10617,0.281481,0.281481,0.869136} };
+  Plato::ScalarArray4D t2PKS_WS("second piola-kirchhoff stress",tNumCells,/*num_intg_pts=*/1,tSpaceDim,tSpaceDim);
+  auto tHost2PKS_WS = Kokkos::create_mirror(t2PKS_WS);
+  Kokkos::deep_copy(tHost2PKS_WS, t2PKS_WS);
+  for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
+    for(Plato::OrdinalType tDimI = 0; tDimI < tSpaceDim; tDimI++){
+      for(Plato::OrdinalType tDimJ = 0; tDimJ < tSpaceDim; tDimJ++){
+        tHost2PKS_WS(tCell,0,tDimI,tDimJ) = tData2PKS[tCell][tDimI*tSpaceDim+tDimJ];
+      }
+    }
+  }
+  Kokkos::deep_copy(t2PKS_WS,tHost2PKS_WS);
+  // create results workset
+  Plato::ScalarArray3D tResultsWS("results",tNumCells,tSpaceDim,tSpaceDim);
+  // get cell 2PKS
+  auto tNumPoints = ElementType::mNumGaussPoints;
+  Kokkos::parallel_for("get cell 2PKS", 
+    Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0}, {tNumCells,tNumPoints}),
+    KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal,const Plato::OrdinalType iGpOrdinal)
+  {
+
+    Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims> tCell2PKS(0.);
+    Plato::Elliptic::get_cell_2PKS(iCellOrdinal,iGpOrdinal,t2PKS_WS,tCell2PKS);
+    // copy output to result workset
+    for( Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
+      for( Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){
+        tResultsWS(iCellOrdinal,tDimI,tDimJ) = tCell2PKS(tDimI,tDimJ);
+      }
+    }
+  });
+  // test gold values
+  constexpr Plato::Scalar tTolerance = 1e-4;
+  std::vector<std::vector<Plato::Scalar>> tGold = 
+    { {1.10617,0.281481,0.281481,0.869136}, {1.10617,0.281481,0.281481,0.869136} };
   auto tHostResultsWS = Kokkos::create_mirror(tResultsWS);
   Kokkos::deep_copy(tHostResultsWS, tResultsWS);
   for(Plato::OrdinalType tCell = 0; tCell < tNumCells; tCell++){
