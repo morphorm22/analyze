@@ -459,7 +459,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_EvalTensileEnergyScalar
    std::make_shared<Plato::Elliptic::CriterionEvaluatorScalarFunction<Plato::Elliptic::Linear::Mechanics<Plato::Tri3>>>(
     tSpatialModel, tDataMap
   );  
-  tPhysicsScalarFunc->setEvaluator(Plato::Elliptic::evaluator_t::VALUE, tCriterion, tOnlyDomain.getDomainName());
+  tPhysicsScalarFunc->setEvaluator(Plato::evaluation_t::VALUE, tCriterion, tOnlyDomain.getDomainName());
   tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFunc);
   tWeightedSum.appendFunctionWeight(1.0);  
   // evaluate criterion
@@ -605,10 +605,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
       (tSpatialModel, tDataMap);
 
     tPhysicsScalarFunc->setEvaluator(
-      Plato::Elliptic::evaluator_t::VALUE, tCriterionResidual, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::VALUE, tCriterionResidual, tOnlyDomain.getDomainName()
     );
     tPhysicsScalarFunc->setEvaluator(
-      Plato::Elliptic::evaluator_t::GRAD_Z, tCriterionGradZ, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::GRAD_Z, tCriterionGradZ, tOnlyDomain.getDomainName()
     );
 
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFunc);
@@ -655,10 +655,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
       (tSpatialModel, tDataMap);
 
     tPhysicsScalarFunc->setEvaluator(
-      Plato::Elliptic::evaluator_t::VALUE, tCriterionResidual, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::VALUE, tCriterionResidual, tOnlyDomain.getDomainName()
     );
     tPhysicsScalarFunc->setEvaluator(
-      Plato::Elliptic::evaluator_t::GRAD_U, tCriterionGradU, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::GRAD_U, tCriterionGradU, tOnlyDomain.getDomainName()
     );
 
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFunc);
@@ -704,10 +704,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_FiniteDiff_TensileEnerg
     (tSpatialModel, tDataMap);
 
     tPhysicsScalarFunc->setEvaluator(
-      Plato::Elliptic::evaluator_t::VALUE, tCriterionResidual, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::VALUE, tCriterionResidual, tOnlyDomain.getDomainName()
     );
     tPhysicsScalarFunc->setEvaluator(
-      Plato::Elliptic::evaluator_t::GRAD_U, tCriterionGradU, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::GRAD_U, tCriterionGradU, tOnlyDomain.getDomainName()
     );
 
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFunc);
@@ -1419,7 +1419,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusTensileEnergy2D)
     const auto tPhysicsScalarFuncMass = 
     std::make_shared<Plato::Elliptic::CriterionEvaluatorScalarFunction<Plato::Elliptic::Linear::Mechanics<Plato::Tri3>>>( tSpatialModel, tDataMap );
     tPhysicsScalarFuncMass->setEvaluator(
-      Plato::Elliptic::evaluator_t::VALUE, tMassCriterion, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::VALUE, tMassCriterion, tOnlyDomain.getDomainName()
     );
     const Plato::Scalar tMassFunctionWeight = 0.75;
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncMass);
@@ -1431,7 +1431,7 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusTensileEnergy2D)
     (tSpatialModel, tDataMap);
     const Plato::Scalar tTensileEnergyFunctionWeight = 0.5;
     tPhysicsScalarFuncTensileEnergy->setEvaluator(
-      Plato::Elliptic::evaluator_t::VALUE, tTensileEnergyCriterion, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::VALUE, tTensileEnergyCriterion, tOnlyDomain.getDomainName()
     );
     tWeightedSum.allocateScalarFunctionBase(tPhysicsScalarFuncTensileEnergy);
     tWeightedSum.appendFunctionWeight(tTensileEnergyFunctionWeight);
@@ -1492,10 +1492,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradZ_2D)
     (tSpatialModel, tDataMap);
 
     tPhysicsScalarFuncVonMises->setEvaluator(
-      Plato::Elliptic::evaluator_t::VALUE, tCriterionResidual, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::VALUE, tCriterionResidual, tOnlyDomain.getDomainName()
     );
     tPhysicsScalarFuncVonMises->setEvaluator(
-      Plato::Elliptic::evaluator_t::GRAD_Z, tCriterionGradZ, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::GRAD_Z, tCriterionGradZ, tOnlyDomain.getDomainName()
     );
 
     const Plato::Scalar tVonMisesFunctionWeight = 1.0;
@@ -1519,10 +1519,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradZ_2D)
       (tSpatialModel, tDataMap);
 
     tPhysicsScalarFuncMass->setEvaluator(
-      Plato::Elliptic::evaluator_t::VALUE, tMassCriterion, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::VALUE, tMassCriterion, tOnlyDomain.getDomainName()
     );
     tPhysicsScalarFuncMass->setEvaluator(
-      Plato::Elliptic::evaluator_t::GRAD_Z, tMassCriterionGradZ, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::GRAD_Z, tMassCriterionGradZ, tOnlyDomain.getDomainName()
     );
 
     const Plato::Scalar tMassFunctionWeight = 0.75;
@@ -1575,10 +1575,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradZ_3D)
       (tSpatialModel, tDataMap);
 
     tPhysicsScalarFuncVonMises->setEvaluator(
-      Plato::Elliptic::evaluator_t::VALUE, tCriterionResidual, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::VALUE, tCriterionResidual, tOnlyDomain.getDomainName()
     );
     tPhysicsScalarFuncVonMises->setEvaluator(
-      Plato::Elliptic::evaluator_t::GRAD_Z, tCriterionGradZ, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::GRAD_Z, tCriterionGradZ, tOnlyDomain.getDomainName()
     );
 
     const Plato::Scalar tVonMisesFunctionWeight = 1.0;
@@ -1600,10 +1600,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradZ_3D)
       (tSpatialModel, tDataMap);
 
     tPhysicsScalarFuncMass->setEvaluator(
-      Plato::Elliptic::evaluator_t::VALUE, tMassCriterion, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::VALUE, tMassCriterion, tOnlyDomain.getDomainName()
     );
     tPhysicsScalarFuncMass->setEvaluator(
-      Plato::Elliptic::evaluator_t::GRAD_Z, tMassCriterionGradZ, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::GRAD_Z, tMassCriterionGradZ, tOnlyDomain.getDomainName()
     );
 
     const Plato::Scalar tMassFunctionWeight = 0.75;
@@ -1658,10 +1658,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradU_2D)
       (tSpatialModel, tDataMap);
 
     tPhysicsScalarFuncVonMises->setEvaluator(
-      Plato::Elliptic::evaluator_t::VALUE, tCriterionResidual, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::VALUE, tCriterionResidual, tOnlyDomain.getDomainName()
     );
     tPhysicsScalarFuncVonMises->setEvaluator(
-      Plato::Elliptic::evaluator_t::GRAD_U, tCriterionGradU, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::GRAD_U, tCriterionGradU, tOnlyDomain.getDomainName()
     );
 
     const Plato::Scalar tVonMisesFunctionWeight = 1.0;
@@ -1684,10 +1684,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradU_2D)
       (tSpatialModel, tDataMap);
 
     tPhysicsScalarFuncMass->setEvaluator(
-      Plato::Elliptic::evaluator_t::VALUE, tMassCriterion, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::VALUE, tMassCriterion, tOnlyDomain.getDomainName()
     );
     tPhysicsScalarFuncMass->setEvaluator(
-      Plato::Elliptic::evaluator_t::GRAD_U, tMassCriterionGradU, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::GRAD_U, tMassCriterionGradU, tOnlyDomain.getDomainName()
     );
 
     const Plato::Scalar tMassFunctionWeight = 0.75;
@@ -1740,10 +1740,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradU_3D)
       (tSpatialModel, tDataMap);
 
     tPhysicsScalarFuncVonMises->setEvaluator(
-      Plato::Elliptic::evaluator_t::VALUE, tCriterionResidual, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::VALUE, tCriterionResidual, tOnlyDomain.getDomainName()
     );
     tPhysicsScalarFuncVonMises->setEvaluator(
-      Plato::Elliptic::evaluator_t::GRAD_U, tCriterionGradU, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::GRAD_U, tCriterionGradU, tOnlyDomain.getDomainName()
     );
 
     const Plato::Scalar tVonMisesFunctionWeight = 1.0;
@@ -1765,10 +1765,10 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, MassPlusVonMises_GradU_3D)
       (tSpatialModel, tDataMap);
 
     tPhysicsScalarFuncMass->setEvaluator(
-      Plato::Elliptic::evaluator_t::VALUE, tMassCriterion, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::VALUE, tMassCriterion, tOnlyDomain.getDomainName()
     );
     tPhysicsScalarFuncMass->setEvaluator(
-      Plato::Elliptic::evaluator_t::GRAD_U, tMassCriterionGradU, tOnlyDomain.getDomainName()
+      Plato::evaluation_t::GRAD_U, tMassCriterionGradU, tOnlyDomain.getDomainName()
     );
 
     const Plato::Scalar tMassFunctionWeight = 0.75;

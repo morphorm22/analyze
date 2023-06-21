@@ -52,60 +52,6 @@ Problem<PhysicsType>::
 ~Problem(){}
 
 template<typename PhysicsType>
-Plato::OrdinalType
-Problem<PhysicsType>::
-numNodes() const
-{
-  const auto tNumNodes = mResidualEvaluator->numNodes();
-  return (tNumNodes);
-}
-
-template<typename PhysicsType>
-Plato::OrdinalType
-Problem<PhysicsType>::
-numCells() const
-{
-  const auto tNumCells = mResidualEvaluator->numCells();
-  return (tNumCells);
-}
-    
-template<typename PhysicsType>
-Plato::OrdinalType
-Problem<PhysicsType>::
-numDofsPerCell() const
-{
-  const auto tNumDofsPerCell = mResidualEvaluator->numDofsPerCell();
-  return (tNumDofsPerCell);
-}
-
-template<typename PhysicsType>
-Plato::OrdinalType
-Problem<PhysicsType>::
-numNodesPerCell() const
-{
-  const auto tNumNodesPerCell = mResidualEvaluator->numNodesPerCell();
-  return (tNumNodesPerCell);
-}
-
-template<typename PhysicsType>
-Plato::OrdinalType
-Problem<PhysicsType>::
-numDofsPerNode() const
-{
-  const auto tNumDofsPerNode = mResidualEvaluator->numStateDofsPerNode();
-  return (tNumDofsPerNode);
-}
-
-template<typename PhysicsType>
-Plato::OrdinalType
-Problem<PhysicsType>::
-numControlDofsPerNode() const
-{
-  const auto tNumControlsPerNode = mResidualEvaluator->numControlDofsPerNode();
-  return (tNumControlsPerNode);
-}
-
-template<typename PhysicsType>
 bool
 Problem<PhysicsType>::
 criterionIsLinear(

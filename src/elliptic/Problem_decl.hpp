@@ -86,36 +86,6 @@ public:
 
   /// class destructor
   ~Problem();
-
-  /// @fn numNodes
-  /// @brief return total number of nodes/vertices
-  /// @return integer
-  Plato::OrdinalType numNodes() const;
-
-  /// @fn numCells
-  /// @brief return total number of cells/elements
-  /// @return integer
-  Plato::OrdinalType numCells() const;
-
-  /// @fn numDofsPerCell
-  /// @brief return number of degrees of freedom per cell
-  /// @return integer
-  Plato::OrdinalType numDofsPerCell() const;
-
-  /// @fn numNodesPerCell
-  /// @brief return number of nodes per cell
-  /// @return integer
-  Plato::OrdinalType numNodesPerCell() const;
-
-  /// @fn numDofsPerNode
-  /// @brief return number of state degrees of freedom per node
-  /// @return integer
-  Plato::OrdinalType numDofsPerNode() const;
-
-  /// @fn numControlDofsPerNode
-  /// @brief return number of control degrees of freedom per node
-  /// @return integer
-  Plato::OrdinalType numControlDofsPerNode() const;
   
   /// @fn criterionIsLinear
   /// @brief return true if criterion is linear

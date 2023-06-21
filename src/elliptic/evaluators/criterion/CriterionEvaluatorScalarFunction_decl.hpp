@@ -2,6 +2,8 @@
 
 #include "base/WorksetBase.hpp"
 #include "base/CriterionBase.hpp"
+#include "base/SupportedParamOptions.hpp"
+
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/evaluators/criterion/CriterionEvaluatorBase.hpp"
 
@@ -95,7 +97,7 @@ public:
   /// @param aDomainName domain name, i.e.; element block name
   void
   setEvaluator(
-    const Plato::Elliptic::evaluator_t          & aEvalType,
+    const Plato::evaluation_t                   & aEvalType,
     const std::shared_ptr<Plato::CriterionBase> & aCriterion,
     const std::string                           & aDomainName
   );

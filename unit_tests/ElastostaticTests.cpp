@@ -1296,9 +1296,9 @@ TEUCHOS_UNIT_TEST( DerivativeTests, ElastostaticResidual2D_InhomogeneousEssentia
         tElasticityProblem(tMesh, *tElasticityParams, tMachine);
 
     // SET ESSENTIAL/DIRICHLET BOUNDARY CONDITIONS 
-    Plato::OrdinalType tDispDofX = 0;
-    Plato::OrdinalType tDispDofY = 1;
-    auto tNumDofsPerNode = tElasticityProblem.numDofsPerNode();
+    constexpr Plato::OrdinalType tDispDofX = 0;
+    constexpr Plato::OrdinalType tDispDofY = 1;
+    constexpr Plato::OrdinalType tNumDofsPerNode = 2;
     auto tDirichletIndicesBoundaryX0 = 
       Plato::TestHelpers::get_dirichlet_indices_on_boundary_2D(tMesh, "x-", tNumDofsPerNode, tDispDofX);
     auto tDirichletIndicesBoundaryY0 = 

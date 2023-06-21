@@ -94,15 +94,6 @@ public:
 
 }; // class CriterionEvaluatorBase
 
-/// @brief evaluation type
-enum struct evaluator_t
-{
-  VALUE=0, 
-  GRAD_U=1, 
-  GRAD_Z=2, 
-  GRAD_X=3,
-};
-
 } // namespace Elliptic
 
 } // namespace Plato

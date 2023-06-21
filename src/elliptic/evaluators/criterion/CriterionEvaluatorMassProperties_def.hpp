@@ -6,6 +6,7 @@
 #include "PlatoEigen.hpp"
 #include "AnalyzeMacros.hpp"
 #include "PlatoStaticsTypes.hpp"
+#include "base/SupportedParamOptions.hpp"
 #include "elliptic/mechanical/linear/CriterionMassMoment.hpp"
 #include "elliptic/evaluators/criterion/CriterionEvaluatorDivision.hpp"
 #include "elliptic/evaluators/criterion/CriterionEvaluatorWeightedSum.hpp"
@@ -408,25 +409,25 @@ namespace Elliptic
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<Residual>>(tDomain, mDataMap);
             tValue->setMaterialDensity(mMaterialDensities[tName]);
             tValue->setCalculationType(tCalculationType);
-            tMassFunction->setEvaluator(Plato::Elliptic::evaluator_t::VALUE, tValue, tName);
+            tMassFunction->setEvaluator(Plato::evaluation_t::VALUE, tValue, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientU>> tGradientU = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientU>>(tDomain, mDataMap);
             tGradientU->setMaterialDensity(mMaterialDensities[tName]);
             tGradientU->setCalculationType(tCalculationType);
-            tMassFunction->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_U, tGradientU, tName);
+            tMassFunction->setEvaluator(Plato::evaluation_t::GRAD_U, tGradientU, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientZ>> tGradientZ = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientZ>>(tDomain, mDataMap);
             tGradientZ->setMaterialDensity(mMaterialDensities[tName]);
             tGradientZ->setCalculationType(tCalculationType);
-            tMassFunction->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_Z, tGradientZ, tName);
+            tMassFunction->setEvaluator(Plato::evaluation_t::GRAD_Z, tGradientZ, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientX>> tGradientX = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientX>>(tDomain, mDataMap);
             tGradientX->setMaterialDensity(mMaterialDensities[tName]);
             tGradientX->setCalculationType(tCalculationType);
-            tMassFunction->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_X, tGradientX, tName);
+            tMassFunction->setEvaluator(Plato::evaluation_t::GRAD_X, tGradientX, tName);
         }
         return tMassFunction;
     }
@@ -458,25 +459,25 @@ namespace Elliptic
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<Residual>>(tDomain, mDataMap);
             tNumeratorValue->setMaterialDensity(mMaterialDensities[tName]);
             tNumeratorValue->setCalculationType(aMomentType);
-            tNumerator->setEvaluator(Plato::Elliptic::evaluator_t::VALUE, tNumeratorValue, tName);
+            tNumerator->setEvaluator(Plato::evaluation_t::VALUE, tNumeratorValue, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientU>> tNumeratorGradientU = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientU>>(tDomain, mDataMap);
             tNumeratorGradientU->setMaterialDensity(mMaterialDensities[tName]);
             tNumeratorGradientU->setCalculationType(aMomentType);
-            tNumerator->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_U, tNumeratorGradientU, tName);
+            tNumerator->setEvaluator(Plato::evaluation_t::GRAD_U, tNumeratorGradientU, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientZ>> tNumeratorGradientZ = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientZ>>(tDomain, mDataMap);
             tNumeratorGradientZ->setMaterialDensity(mMaterialDensities[tName]);
             tNumeratorGradientZ->setCalculationType(aMomentType);
-            tNumerator->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_Z, tNumeratorGradientZ, tName);
+            tNumerator->setEvaluator(Plato::evaluation_t::GRAD_Z, tNumeratorGradientZ, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientX>> tNumeratorGradientX = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientX>>(tDomain, mDataMap);
             tNumeratorGradientX->setMaterialDensity(mMaterialDensities[tName]);
             tNumeratorGradientX->setCalculationType(aMomentType);
-            tNumerator->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_X, tNumeratorGradientX, tName);
+            tNumerator->setEvaluator(Plato::evaluation_t::GRAD_X, tNumeratorGradientX, tName);
         }
 
         const std::string tDenominatorName = std::string("CG Mass Denominator (Moment type = ")
@@ -520,25 +521,25 @@ namespace Elliptic
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<Residual>>(tDomain, mDataMap);
             tValue->setMaterialDensity(mMaterialDensities[tName]);
             tValue->setCalculationType(aMomentType);
-            tSecondMomentFunction->setEvaluator(Plato::Elliptic::evaluator_t::VALUE, tValue, tName);
+            tSecondMomentFunction->setEvaluator(Plato::evaluation_t::VALUE, tValue, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientU>> tGradientU = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientU>>(tDomain, mDataMap);
             tGradientU->setMaterialDensity(mMaterialDensities[tName]);
             tGradientU->setCalculationType(aMomentType);
-            tSecondMomentFunction->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_U, tGradientU, tName);
+            tSecondMomentFunction->setEvaluator(Plato::evaluation_t::GRAD_U, tGradientU, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientZ>> tGradientZ = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientZ>>(tDomain, mDataMap);
             tGradientZ->setMaterialDensity(mMaterialDensities[tName]);
             tGradientZ->setCalculationType(aMomentType);
-            tSecondMomentFunction->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_Z, tGradientZ, tName);
+            tSecondMomentFunction->setEvaluator(Plato::evaluation_t::GRAD_Z, tGradientZ, tName);
 
             std::shared_ptr<Plato::Elliptic::CriterionMassMoment<GradientX>> tGradientX = 
                  std::make_shared<Plato::Elliptic::CriterionMassMoment<GradientX>>(tDomain, mDataMap);
             tGradientX->setMaterialDensity(mMaterialDensities[tName]);
             tGradientX->setCalculationType(aMomentType);
-            tSecondMomentFunction->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_X, tGradientX, tName);
+            tSecondMomentFunction->setEvaluator(Plato::evaluation_t::GRAD_X, tGradientX, tName);
         }
         return tSecondMomentFunction;
     }

@@ -2,6 +2,7 @@
 
 #include "PlatoMeshExpr.hpp"
 #include "base/CriterionBase.hpp"
+#include "base/SupportedParamOptions.hpp"
 #include "elliptic/evaluators/criterion/CriterionEvaluatorDivision.hpp"
 #include "elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.hpp"
 
@@ -43,19 +44,19 @@ getVolumeFunction(
     std::shared_ptr<Plato::CriterionBase> tValue = 
       tFactory.template createScalarFunction<Residual>(tDomain,mDataMap,aInputParams,tFunctionType,mFunctionName);
     tValue->setSpatialWeightFunction(mSpatialWeightingFunctionString);
-    tVolumeFunction->setEvaluator(Plato::Elliptic::evaluator_t::VALUE, tValue, tName);
+    tVolumeFunction->setEvaluator(Plato::evaluation_t::VALUE, tValue, tName);
     std::shared_ptr<Plato::CriterionBase> tGradientU = 
       tFactory.template createScalarFunction<GradientU>(tDomain,mDataMap,aInputParams,tFunctionType,mFunctionName);
     tGradientU->setSpatialWeightFunction(mSpatialWeightingFunctionString);
-    tVolumeFunction->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_U, tGradientU, tName);
+    tVolumeFunction->setEvaluator(Plato::evaluation_t::GRAD_U, tGradientU, tName);
     std::shared_ptr<Plato::CriterionBase> tGradientZ = 
       tFactory.template createScalarFunction<GradientZ>(tDomain,mDataMap,aInputParams,tFunctionType,mFunctionName);
     tGradientZ->setSpatialWeightFunction(mSpatialWeightingFunctionString);
-    tVolumeFunction->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_Z, tGradientZ, tName);
+    tVolumeFunction->setEvaluator(Plato::evaluation_t::GRAD_Z, tGradientZ, tName);
     std::shared_ptr<Plato::CriterionBase> tGradientX = 
       tFactory.template createScalarFunction<GradientX>(tDomain,mDataMap,aInputParams,tFunctionType,mFunctionName);
     tGradientX->setSpatialWeightFunction(mSpatialWeightingFunctionString);
-    tVolumeFunction->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_X, tGradientX, tName);
+    tVolumeFunction->setEvaluator(Plato::evaluation_t::GRAD_X, tGradientX, tName);
   }
   return tVolumeFunction;
 }
@@ -81,19 +82,19 @@ createDivisionFunction(
     std::shared_ptr<Plato::CriterionBase> tNumeratorValue = 
       tFactory.template createScalarFunction<Residual>(tDomain,mDataMap,aInputParams,tFunctionType,mFunctionName);
     tNumeratorValue->setSpatialWeightFunction(mSpatialWeightingFunctionString);
-    tNumerator->setEvaluator(Plato::Elliptic::evaluator_t::VALUE, tNumeratorValue, tName);
+    tNumerator->setEvaluator(Plato::evaluation_t::VALUE, tNumeratorValue, tName);
     std::shared_ptr<Plato::CriterionBase> tNumeratorGradientU = 
       tFactory.template createScalarFunction<GradientU>(tDomain,mDataMap,aInputParams,tFunctionType,mFunctionName);
     tNumeratorGradientU->setSpatialWeightFunction(mSpatialWeightingFunctionString);
-    tNumerator->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_U, tNumeratorGradientU, tName);
+    tNumerator->setEvaluator(Plato::evaluation_t::GRAD_U, tNumeratorGradientU, tName);
     std::shared_ptr<Plato::CriterionBase> tNumeratorGradientZ = 
       tFactory.template createScalarFunction<GradientZ>(tDomain,mDataMap,aInputParams,tFunctionType,mFunctionName);
     tNumeratorGradientZ->setSpatialWeightFunction(mSpatialWeightingFunctionString);
-    tNumerator->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_Z, tNumeratorGradientZ, tName);
+    tNumerator->setEvaluator(Plato::evaluation_t::GRAD_Z, tNumeratorGradientZ, tName);
     std::shared_ptr<Plato::CriterionBase> tNumeratorGradientX = 
       tFactory.template createScalarFunction<GradientX>(tDomain,mDataMap,aInputParams,tFunctionType,mFunctionName);
     tNumeratorGradientX->setSpatialWeightFunction(mSpatialWeightingFunctionString);
-    tNumerator->setEvaluator(Plato::Elliptic::evaluator_t::GRAD_X, tNumeratorGradientX, tName);
+    tNumerator->setEvaluator(Plato::evaluation_t::GRAD_X, tNumeratorGradientX, tName);
   }
   const std::string tDenominatorName = "Volume Function";
   std::shared_ptr<Plato::Elliptic::CriterionEvaluatorScalarFunction<PhysicsType>> tDenominator = 

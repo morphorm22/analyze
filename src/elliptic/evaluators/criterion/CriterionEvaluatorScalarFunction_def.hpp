@@ -78,32 +78,32 @@ template<typename PhysicsType>
 void
 CriterionEvaluatorScalarFunction<PhysicsType>::
 setEvaluator(
-  const Plato::Elliptic::evaluator_t          & aEvalType,
+  const Plato::evaluation_t                   & aEvalType,
   const std::shared_ptr<Plato::CriterionBase> & aCriterion,
   const std::string                           & aDomainName
 )
 {
   switch(aEvalType)
   {
-    case evaluator_t::VALUE:
+    case evaluation_t::VALUE:
     {
       mValueFunctions[aDomainName] = nullptr; // ensures shared_ptr is decremented
       mValueFunctions[aDomainName] = aCriterion;
       break;
     }
-    case evaluator_t::GRAD_U:
+    case evaluation_t::GRAD_U:
     {
       mGradientUFunctions[aDomainName] = nullptr; // ensures shared_ptr is decremented
       mGradientUFunctions[aDomainName] = aCriterion;
       break;
     }
-    case evaluator_t::GRAD_Z:
+    case evaluation_t::GRAD_Z:
     {
       mGradientZFunctions[aDomainName] = nullptr; // ensures shared_ptr is decremented
       mGradientZFunctions[aDomainName] = aCriterion;
       break;
     }
-    case evaluator_t::GRAD_X:
+    case evaluation_t::GRAD_X:
     {
       mGradientXFunctions[aDomainName] = nullptr; // ensures shared_ptr is decremented
       mGradientXFunctions[aDomainName] = aCriterion;
