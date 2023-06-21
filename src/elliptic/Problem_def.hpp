@@ -437,7 +437,8 @@ computeCriterionGradientConfig(
 }
 
 template<typename PhysicsType>
-void Problem<PhysicsType>::
+void 
+Problem<PhysicsType>::
 readEssentialBoundaryConditions(
   Teuchos::ParameterList& aParamList
 )
@@ -455,7 +456,8 @@ readEssentialBoundaryConditions(
 }
 
 template<typename PhysicsType>
-void Problem<PhysicsType>::
+void 
+Problem<PhysicsType>::
 setEssentialBoundaryConditions(
     const Plato::OrdinalVector & aDofs, 
     const Plato::ScalarVector & aValues
