@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "elliptic/mechanical/nonlinear/ResidualThermoElastoStaticTotalLagrangian_decl.hpp"
+#include "elliptic/thermomechanics/nonlinear/ResidualThermoElastoStaticTotalLagrangian_decl.hpp"
 #ifndef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
-#include "elliptic/mechanical/nonlinear/ResidualThermoElastoStaticTotalLagrangian_def.hpp"
+#include "elliptic/thermomechanics/nonlinear/ResidualThermoElastoStaticTotalLagrangian_def.hpp"
 #endif

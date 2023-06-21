@@ -15,8 +15,8 @@
 #include "elliptic/mechanical/nonlinear/DeformationGradient.hpp"
 #include "elliptic/mechanical/nonlinear/FactoryStressEvaluator.hpp"
 #include "elliptic/mechanical/nonlinear/KineticPullBackOperation.hpp"
-#include "elliptic/mechanical/nonlinear/ThermalDeformationGradient.hpp"
-#include "elliptic/mechanical/nonlinear/ThermoElasticDeformationGradient.hpp"
+#include "elliptic/thermomechanics/nonlinear/ThermalDeformationGradient.hpp"
+#include "elliptic/thermomechanics/nonlinear/ThermoElasticDeformationGradient.hpp"
 
 namespace Plato
 {

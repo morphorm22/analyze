@@ -4,11 +4,11 @@
  *  Created on: June 17, 2023
  */
 
-#include "elliptic/mechanical/nonlinear/ResidualThermoElastoStaticTotalLagrangian_decl.hpp"
+#include "elliptic/thermomechanics/nonlinear/ResidualThermoElastoStaticTotalLagrangian_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "elliptic/mechanical/nonlinear/ResidualThermoElastoStaticTotalLagrangian_def.hpp"
+#include "elliptic/thermomechanics/nonlinear/ResidualThermoElastoStaticTotalLagrangian_def.hpp"
 
 #include "MechanicsElement.hpp"
 #include "element/ThermoElasticElement.hpp"
