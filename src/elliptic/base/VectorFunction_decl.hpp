@@ -26,7 +26,7 @@ namespace Elliptic
 
 /// @class VectorFunction
 /// @brief interface for the evaluation of vector functions in elliptic problems
-/// @tparam PhysicsType defines physics-based quantity of interests 
+/// @tparam PhysicsType defines physics and related quantity of interests for this physics 
 template<typename PhysicsType>
 class VectorFunction : public VectorFunctionBase
 {

@@ -893,8 +893,7 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D_Solution )
     Plato::Comm::Machine tMachine(myComm);
 
     Plato::Elliptic::Problem<Plato::Elliptic::Linear::Mechanics<Plato::Tet10>>
-        tElasticityProblem(tMesh, *tParamList, tMachine);
-
+      tElasticityProblem(tMesh, *tParamList, tMachine);
 
     // SOLVE ELASTOSTATICS EQUATIONS
     auto tNumVerts = tMesh->NumNodes();

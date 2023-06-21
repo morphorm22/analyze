@@ -75,9 +75,9 @@ private:
 
 public:
   /// @brief class constructor
-  /// @param aMesh       mesh interface
-  /// @param aParamList input problem parameters
-  /// @param aMachine    mpi wrapper
+  /// @param [in] aMesh       mesh interface
+  /// @param [in] aParamList input problem parameters
+  /// @param [in] aMachine    mpi wrapper
   Problem(
     Plato::Mesh              aMesh,
     Teuchos::ParameterList & aParamList,
