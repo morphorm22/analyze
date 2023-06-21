@@ -147,7 +147,6 @@ if(ELLIPTIC)
     elliptic/mechanical/nonlinear/StressEvaluatorNeoHookean.cpp
     elliptic/mechanical/nonlinear/FactoryStressEvaluator.cpp
     elliptic/mechanical/nonlinear/ResidualElastostaticTotalLagrangian.cpp
-    elliptic/mechanical/nonlinear/ResidualThermoElastoStaticTotalLagrangian.cpp
     elliptic/mechanical/nonlinear/CriterionKirchhoffEnergyPotential.cpp
     elliptic/mechanical/nonlinear/CriterionNeoHookeanEnergyPotential.cpp
     elliptic/thermal/ResidualThermostatic.cpp
@@ -156,6 +155,7 @@ if(ELLIPTIC)
     elliptic/thermomechanics/linear/CriterionThermoMechStressPNorm.cpp
     elliptic/thermomechanics/linear/ResidualThermoelastostatic.cpp
     elliptic/thermomechanics/linear/CriterionInternalThermoelasticEnergy.cpp
+    elliptic/thermomechanics/nonlinear/ResidualThermoElastoStaticTotalLagrangian.cpp
     elliptic/electrical/SupportedParamOptions.cpp
     elliptic/electrical/FactorySourceEvaluator.cpp
     elliptic/electrical/SourceWeightedSum.cpp
