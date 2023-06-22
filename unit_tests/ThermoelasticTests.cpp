@@ -20,6 +20,7 @@
 #include <solver/CrsLinearProblem.hpp>
 #include <solver/ParallelComm.hpp>
 
+#include "Tet4.hpp"
 #include "elliptic/mechanical/linear/Mechanics.hpp"
 #include "Solutions.hpp"
 #include "ScalarProduct.hpp"
@@ -458,7 +459,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormAxial_3D)
     using PhysicsT = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tEllipticProblem(tMesh, *tParamList, tMachine);
-    tEllipticProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
     auto tNumVertices = tMesh->NumNodes();
@@ -624,7 +624,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, VolAvgStressPNormShear_3D)
     using PhysicsT = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tEllipticProblem(tMesh, *tParamList, tMachine);
-    tEllipticProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
     auto tNumVertices = tMesh->NumNodes();

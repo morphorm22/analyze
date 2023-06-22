@@ -15,17 +15,20 @@
 #include <type_traits>
 #include <Sacado.hpp>
 
-#include "solver/ParallelComm.hpp"
 
+#include "Tet4.hpp"
 #include "Solutions.hpp"
 #include "ScalarProduct.hpp"
-#include "base/WorksetBase.hpp"
-#include "elliptic/base/VectorFunction.hpp"
-#include "elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.hpp"
-#include "geometric/GeometryScalarFunction.hpp"
 #include "ApplyConstraints.hpp"
+
+#include "base/WorksetBase.hpp"
+#include "solver/ParallelComm.hpp"
+#include "geometric/GeometryScalarFunction.hpp"
+
 #include "elliptic/Problem.hpp"
 #include "elliptic/thermal/Thermal.hpp"
+#include "elliptic/base/VectorFunction.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.hpp"
 
 #include <fenv.h>
 

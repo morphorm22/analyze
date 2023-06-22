@@ -17,18 +17,141 @@
 #include "PlatoMathTypes.hpp"
 #include "InterpolateFromNodal.hpp"
 
+#include "elliptic/Problem.hpp"
+#include "Analyze_Diagnostics.hpp"
+#include "elliptic/mechanical/linear/Mechanics.hpp"
+
 #include "element/ThermoElasticElement.hpp"
 
+#include "Tet10.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/base/WorksetBuilder.hpp"
 #include "elliptic/mechanical/nonlinear/NominalStressTensor.hpp"
 #include "elliptic/mechanical/nonlinear/KineticPullBackOperation.hpp"
-#include "elliptic/mechanical/nonlinear/ThermalDeformationGradient.hpp"
-#include "elliptic/mechanical/nonlinear/ThermoElasticDeformationGradient.hpp"
-#include "elliptic/mechanical/nonlinear/ResidualThermoElastoStaticTotalLagrangian.hpp"
+#include "elliptic/thermomechanics/nonlinear/ThermalDeformationGradient.hpp"
+#include "elliptic/thermomechanics/nonlinear/ThermoElasticDeformationGradient.hpp"
+#include "elliptic/thermomechanics/nonlinear/ResidualThermoElastoStaticTotalLagrangian.hpp"
 
 namespace ThermoelastostaticTotalLagrangianTests
 {
+
+TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, ElastostaticResidual3D_Solution )
+{
+    // create test mesh
+    //
+    constexpr int meshWidth=2;
+    auto tMesh = Plato::TestHelpers::get_box_mesh("TET10", meshWidth);
+
+    // create input
+    //
+    Teuchos::RCP<Teuchos::ParameterList> tParamList =
+    Teuchos::getParametersFromXmlString(
+      "<ParameterList name='Plato Problem'>                                                          \n"
+      "  <ParameterList name='Spatial Model'>                                                        \n"
+      "    <ParameterList name='Domains'>                                                            \n"
+      "      <ParameterList name='Design Volume'>                                                    \n"
+      "        <Parameter name='Element Block' type='string' value='body'/>                          \n"
+      "        <Parameter name='Material Model' type='string' value='Unobtainium'/>                  \n"
+      "      </ParameterList>                                                                        \n"
+      "    </ParameterList>                                                                          \n"
+      "  </ParameterList>                                                                            \n"
+      "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>                           \n"
+      "  <Parameter name='Physics' type='string' value='Mechanical'/>                                \n"
+      "  <Parameter name='Self-Adjoint' type='bool' value='true'/>                                   \n"
+      "  <ParameterList name='Elliptic'>                                                             \n"
+      "    <ParameterList name='Penalty Function'>                                                   \n"
+      "      <Parameter name='Exponent' type='double' value='1.0'/>                                  \n"
+      "      <Parameter name='Minimum Value' type='double' value='0.0'/>                             \n"
+      "      <Parameter name='Type' type='string' value='SIMP'/>                                     \n"
+      "    </ParameterList>                                                                          \n"
+      "  </ParameterList>                                                                            \n"
+      "  <ParameterList name='Criteria'>                                                             \n"
+      "    <ParameterList name='Internal Elastic Energy'>                                            \n"
+      "      <Parameter name='Type' type='string' value='Scalar Function'/>                          \n"
+      "      <Parameter name='Scalar Function Type' type='string' value='Internal Elastic Energy'/>  \n"
+      "      <ParameterList name='Penalty Function'>                                                 \n"
+      "        <Parameter name='Exponent' type='double' value='1.0'/>                                \n"
+      "        <Parameter name='Minimum Value' type='double' value='0.0'/>                           \n"
+      "        <Parameter name='Type' type='string' value='SIMP'/>                                   \n"
+      "      </ParameterList>                                                                        \n"
+      "    </ParameterList>                                                                          \n"
+      "  </ParameterList>                                                                            \n"
+      "  <ParameterList name='Material Models'>                                                      \n"
+      "    <ParameterList name='Unobtainium'>                                                        \n"
+      "      <ParameterList name='Isotropic Linear Elastic'>                                         \n"
+      "        <Parameter name='Poissons Ratio' type='double' value='0.3'/>                          \n"
+      "        <Parameter name='Youngs Modulus' type='double' value='1.0e6'/>                        \n"
+      "      </ParameterList>                                                                        \n"
+      "    </ParameterList>                                                                          \n"
+      "  </ParameterList>                                                                            \n"
+      "  <ParameterList  name='Natural Boundary Conditions'>                                         \n"
+      "    <ParameterList  name='Traction Vector Boundary Condition'>                                \n"
+      "      <Parameter  name='Type'     type='string'        value='Uniform'/>                      \n"
+      "      <Parameter  name='Values'   type='Array(double)' value='{1.0, 0.0, 0.0}'/>              \n"
+      "      <Parameter  name='Sides'    type='string'        value='x+'/>                           \n"
+      "    </ParameterList>                                                                          \n"
+      "  </ParameterList>                                                                            \n"
+      "  <ParameterList  name='Essential Boundary Conditions'>                                       \n"
+      "    <ParameterList  name='X Fixed Displacement Boundary Condition'>                           \n"
+      "      <Parameter  name='Type'     type='string' value='Zero Value'/>                          \n"
+      "      <Parameter  name='Index'    type='int'    value='0'/>                                   \n"
+      "      <Parameter  name='Sides'    type='string' value='x-'/>                                  \n"
+      "    </ParameterList>                                                                          \n"
+      "    <ParameterList  name='Y Fixed Displacement Boundary Condition'>                           \n"
+      "      <Parameter  name='Type'     type='string' value='Zero Value'/>                          \n"
+      "      <Parameter  name='Index'    type='int'    value='1'/>                                   \n"
+      "      <Parameter  name='Sides'    type='string' value='x-'/>                                  \n"
+      "    </ParameterList>                                                                          \n"
+      "    <ParameterList  name='Z Fixed Displacement Boundary Condition'>                           \n"
+      "      <Parameter  name='Type'     type='string' value='Zero Value'/>                          \n"
+      "      <Parameter  name='Index'    type='int'    value='2'/>                                   \n"
+      "      <Parameter  name='Sides'    type='string' value='x-'/>                                  \n"
+      "    </ParameterList>                                                                          \n"
+      "  </ParameterList>                                                                            \n"
+      "</ParameterList>                                                                              \n"
+    );
+
+
+    MPI_Comm myComm;
+    MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
+    Plato::Comm::Machine tMachine(myComm);
+
+    Plato::Elliptic::Problem<Plato::Elliptic::Linear::Mechanics<Plato::Tet10>>
+      tElasticityProblem(tMesh, *tParamList, tMachine);
+
+    // SOLVE ELASTOSTATICS EQUATIONS
+    auto tNumVerts = tMesh->NumNodes();
+    Plato::ScalarVector tControl("Control", tNumVerts);
+    Plato::blas1::fill(1.0, tControl);
+    auto tElasticitySolution = tElasticityProblem.solution(tControl);
+
+    // TEST RESULTS    
+    const Plato::OrdinalType tTimeStep = 0;
+    auto tState = tElasticitySolution.get("State");
+    auto tSolution = Kokkos::subview(tState, tTimeStep, Kokkos::ALL());
+    auto tHostSolution = Kokkos::create_mirror_view(tSolution);
+    Kokkos::deep_copy(tHostSolution, tSolution);
+
+    std::vector<Plato::Scalar> tGold = 
+    {8.44215e-8, 9.58193e-7, -7.30424e-8, 4.50125e-9, 
+     9.61752e-7, -7.46016e-8, -7.46016e-8, 
+     9.68308e-7, -7.43541e-8, -1.50715e-7, 
+     9.67836e-7, -1.47979e-7, 1.60339e-7, 
+     9.65735e-7, -1.47873e-7, 8.41994e-8, 
+     9.6498e-7, -1.49664e-7, 4.12353e-9, 
+     9.68308e-7, -1.50715e-7, -7.43541e-8, 
+     9.79216e-7, -1.52588e-7, -1.52588e-7};
+
+
+  Plato::OrdinalType tDofOffset = 350; // comparing only the last 25 dofs
+  constexpr Plato::Scalar tTolerance = 1e-4;
+  for(Plato::OrdinalType tDofIndex=0; tDofIndex < tGold.size(); tDofIndex++)
+  {
+      TEST_FLOATING_EQUALITY(tHostSolution(tDofOffset+tDofIndex), tGold[tDofIndex], tTolerance);
+  }
+
+  Plato::test_criterion_grad_wrt_control(tElasticityProblem,tMesh,"Internal Elastic Energy");
+}
 
 Teuchos::RCP<Teuchos::ParameterList> tGenericParamList = Teuchos::getParametersFromXmlString(
 "<ParameterList name='Plato Problem'>                                                                  \n"

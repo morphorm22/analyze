@@ -19,6 +19,7 @@
 #include "PlatoMathHelpers.hpp"
 #include "ImplicitFunctors.hpp"
 
+#include "elliptic/Problem.hpp"
 #include "base/CriterionBase.hpp"
 #include "geometric/ScalarFunctionBase.hpp"
 #include "elliptic/base/WorksetBuilder.hpp"

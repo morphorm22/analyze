@@ -1,3 +1,4 @@
+#include "Tet4.hpp"
 #include "util/PlatoTestHelpers.hpp"
 #include "Teuchos_UnitTestHarness.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
@@ -101,7 +102,6 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressAxial_
     using PhysicsT = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
-    tProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
     auto tNumVertices = tMesh->NumNodes();
@@ -232,7 +232,6 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressShear_
     using PhysicsT = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
-    tProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
     Plato::Scalar tDensity = 0.9;
@@ -358,7 +357,6 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageVonMisesStressGradie
     using PhysicsT = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
-    tProblem.readEssentialBoundaryConditions(*tParamList);
 
     std::string tCriterionName("VolAvgMisesStress");
     auto tApproxError = Plato::test_criterion_grad_wrt_control(tProblem, tMesh, tCriterionName);
@@ -457,7 +455,6 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyAxial_3
     using PhysicsT = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
-    tProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
     auto tNumVertices = tMesh->NumNodes();
@@ -588,7 +585,6 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyShear_3
     using PhysicsT = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
-    tProblem.readEssentialBoundaryConditions(*tParamList);
 
     // 4. Solution
     Plato::Scalar tDensity = 0.9;
@@ -715,7 +711,6 @@ TEUCHOS_UNIT_TEST(VolumeAverageCriterionTests, VolumeAverageTensileEnergyGradien
     using PhysicsT = Plato::Elliptic::Linear::Mechanics<Plato::Tet4>;
 
     Plato::Elliptic::Problem<PhysicsT> tProblem(tMesh, *tParamList, tMachine);
-    tProblem.readEssentialBoundaryConditions(*tParamList);
 
     std::string tCriterionName("VolAvgTensileEnergy");
     auto tApproxError = Plato::test_criterion_grad_wrt_control(tProblem, tMesh, tCriterionName);

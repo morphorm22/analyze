@@ -32,9 +32,9 @@ create(
 {
   if( !aParamList.isSublist("Source Terms") )
   {
-    auto tMsg = std::string("WARNING: Parameter list ('Source Terms') is not defined, ") 
+    /* auto tMsg = std::string("WARNING: Parameter list ('Source Terms') is not defined, ") 
       + "program assumes no source term is needed in the analysis";
-    WARNING(tMsg)
+    WARNING(tMsg)*/
     return nullptr;
   }
   auto tSourceTermsParamList = aParamList.sublist("Source Terms");
