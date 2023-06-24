@@ -19,11 +19,12 @@ class CriterionEvaluatorMassProperties :
 {
 private:
   /// @brief local topological element typename
-  using ElementType = typename PhysicsType::ElementType;  
+  using ElementType = typename PhysicsType::ElementType;
   using Residual  = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
   using GradientU = typename Plato::Elliptic::Evaluation<ElementType>::Jacobian;
   using GradientX = typename Plato::Elliptic::Evaluation<ElementType>::GradientX;
-  using GradientZ = typename Plato::Elliptic::Evaluation<ElementType>::GradientZ;  
+  using GradientZ = typename Plato::Elliptic::Evaluation<ElementType>::GradientZ;
+  using GradientN = typename Plato::Elliptic::Evaluation<ElementType>::GradientN;
   /// @brief least square function evaluiator
   std::shared_ptr<Plato::Elliptic::CriterionEvaluatorLeastSquares<PhysicsType>> mLeastSquaresFunction;  
   /// @brief contains mesh and model information
@@ -231,6 +232,17 @@ public:
   /// @return plato scalar vector
   Plato::ScalarVector
   gradientConfig(
+    const Plato::Database & aDatabase,
+    const Plato::Scalar   & aCycle
+  ) const;
+
+  /// @fn gradientNodeState
+  /// @brief compute partial derivative with respect to the node states
+  /// @param [in] aDatabase function domain and range database
+  /// @param [in] aCycle    scalar, e.g.; time step
+  /// @return plato scalar vector
+  Plato::ScalarVector
+  gradientNodeState(
     const Plato::Database & aDatabase,
     const Plato::Scalar   & aCycle
   ) const;

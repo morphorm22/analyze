@@ -34,6 +34,7 @@ class MicromorphicMechanicsElement : public TopoElementTypeT, public ElementBase
     static constexpr Plato::OrdinalType mNumControl = NumControls;
 
     static constexpr Plato::OrdinalType mNumNodeStatePerNode = 0;
+    static constexpr Plato::OrdinalType mNumNodeStatePerCell = mNumNodeStatePerNode*mNumNodesPerCell;
     static constexpr Plato::OrdinalType mNumLocalDofsPerCell = 0;
 
 };

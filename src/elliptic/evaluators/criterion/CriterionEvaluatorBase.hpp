@@ -69,6 +69,19 @@ public:
     const Plato::Scalar   & aCycle
   ) const = 0;
 
+
+  /// @fn gradientNodeState
+  /// @brief compute partial derivative with respect to the node states
+  /// @param [in] aDatabase function domain and range database
+  /// @param [in] aCycle    scalar, e.g.; time step
+  /// @return plato scalar vector
+  virtual 
+  Plato::ScalarVector
+  gradientNodeState(
+    const Plato::Database & aDatabase,
+    const Plato::Scalar   & aCycle
+  ) const = 0;
+
   /// @fn gradientConfig
   /// @brief compute partial derivative with respect to the configuration
   /// @param [in] aDatabase function domain and range database

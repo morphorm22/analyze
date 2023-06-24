@@ -572,6 +572,20 @@ gradientState(
 template<typename PhysicsType>
 Plato::ScalarVector
 CriterionEvaluatorSolutionFunction<PhysicsType>::
+gradientNodeState(
+  const Plato::Database & aDatabase,
+  const Plato::Scalar   & aCycle
+) const
+{
+  const Plato::OrdinalType tNumNodes = mSpatialModel.Mesh->NumNodes();
+  Plato::ScalarVector tGradientN ("gradient_n", tNumNodes);
+  Kokkos::deep_copy(tGradientN, 0.0);
+  return tGradientN;
+}
+
+template<typename PhysicsType>
+Plato::ScalarVector
+CriterionEvaluatorSolutionFunction<PhysicsType>::
 gradientControl(
   const Plato::Database & aDatabase,
   const Plato::Scalar   & aCycle

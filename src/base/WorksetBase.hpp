@@ -22,26 +22,34 @@ template<typename ElementType>
 class WorksetBase : public ElementType
 {
 protected:
-    Plato::OrdinalType mNumCells; /*!< local number of elements */
-    Plato::OrdinalType mNumNodes; /*!< local number of nodes */
-
-    using ElementType::mNumDofsPerNode;      /*!< number of degrees of freedom per node */
-    using ElementType::mNumControl;          /*!< number of control vectors, i.e. materials */
-    using ElementType::mNumNodesPerCell;     /*!< number of nodes per element */
-    using ElementType::mNumDofsPerCell;      /*!< number of global degrees of freedom, e.g. displacements, per element  */
-    using ElementType::mNumLocalDofsPerCell; /*!< number of local degrees of freedom, e.g. plasticity variables, per element  */
-    using ElementType::mNumNodeStatePerNode; /*!< number of pressure states per node  */
-
-    using StateFad      = typename Plato::FadTypes<ElementType>::StateFad;          /*!< global state AD type */
-    using LocalStateFad = typename Plato::FadTypes<ElementType>::LocalStateFad;     /*!< local state AD type */
-    using NodeStateFad  = typename Plato::FadTypes<ElementType>::NodeStateFad;      /*!< node state AD type */
-    using ControlFad    = typename Plato::FadTypes<ElementType>::ControlFad;        /*!< control AD type */
-    using ConfigFad     = typename Plato::FadTypes<ElementType>::ConfigFad;         /*!< configuration AD type */
-
-    /*!< number of spatial dimensions */
-    static constexpr Plato::OrdinalType mSpaceDim = ElementType::mNumSpatialDims;          
-    /*!< number of configuration degrees of freedom per element  */
-    static constexpr Plato::OrdinalType mNumConfigDofsPerCell = mSpaceDim * mNumNodesPerCell; 
+  /// @brief local number of cells
+  Plato::OrdinalType mNumCells;
+  /// @brief local number of nodes
+  Plato::OrdinalType mNumNodes;
+  /// @brief number of state degrees of freedom per node
+  using ElementType::mNumDofsPerNode;
+  /// @brief number of control degrees of freedom per node
+  using ElementType::mNumControl;
+  /// @brief number of nodes per cell
+  using ElementType::mNumNodesPerCell;
+  /// @brief number of state degrees of freedom per cell
+  using ElementType::mNumDofsPerCell;
+  /// @brief number of local state degrees of freedom per cell; e.g., plasticity states per cell
+  using ElementType::mNumLocalDofsPerCell;
+  /// @brief number of node state degrees of freedom per node
+  using ElementType::mNumNodeStatePerNode;
+  /// @brief number of node state degrees of freedom per cell
+  using ElementType::mNumNodeStatePerCell;
+  /// @brief scalar types associated with the automatic differentation evaluation types
+  using StateFad      = typename Plato::FadTypes<ElementType>::StateFad;
+  using LocalStateFad = typename Plato::FadTypes<ElementType>::LocalStateFad;
+  using NodeStateFad  = typename Plato::FadTypes<ElementType>::NodeStateFad;
+  using ControlFad    = typename Plato::FadTypes<ElementType>::ControlFad;
+  using ConfigFad     = typename Plato::FadTypes<ElementType>::ConfigFad;
+  /// @brief number of spatial dimensions
+  static constexpr Plato::OrdinalType mSpaceDim = ElementType::mNumSpatialDims;          
+  /// @brief number of configuration degrees of freedom per cell
+  static constexpr Plato::OrdinalType mNumConfigDofsPerCell = mSpaceDim * mNumNodesPerCell; 
 
 public:
     /*!< local-to-global ID map for global state */
@@ -618,10 +626,15 @@ public:
      * \param [in/out] aReturnValue assembled residual - Scalar type
     **********************************************************************************/
     template<class WorksetType, class OutType>
-    void assembleScalarGradientFadZ(const WorksetType & aWorkset, OutType & aOutput) const
+    void 
+    assembleScalarGradientFadZ(
+      const WorksetType & aWorkset, 
+            OutType     & aOutput
+    ) const
     {
-        Plato::assemble_scalar_gradient_fad<mNumNodesPerCell>(
-            mNumCells, mControlEntryOrdinal, aWorkset, aOutput);
+      Plato::assemble_scalar_gradient_fad<mNumNodesPerCell>(
+        mNumCells, mControlEntryOrdinal, aWorkset, aOutput
+      );
     }
 
     /// @fn assembleScalarGradientFadZ
@@ -631,16 +644,55 @@ public:
     /// @param [in]     aDomain  contains mesh and model information
     /// @param [in]     aWorkset worset data
     /// @param [in,out] aOutput  assembled partial derivative
-    template<class WorksetType, 
-             class OutType>
-    void assembleScalarGradientFadZ(
+    template<class WorksetType, class OutType>
+    void 
+    assembleScalarGradientFadZ(
       const Plato::SpatialDomain & aDomain,
       const WorksetType          & aWorkset,
             OutType              & aOutput
     ) const
     {
       Plato::assemble_scalar_gradient_fad<mNumNodesPerCell>(
-        aDomain, mControlEntryOrdinal, aWorkset, aOutput);
+        aDomain, mControlEntryOrdinal, aWorkset, aOutput
+      );
+    }
+
+    /// @fn assembleScalarGradientFadN
+    /// @brief assemble partial derivative with respect to node states, specialized for FAD scalar types
+    /// @tparam WorksetType workset typename 
+    /// @tparam OutType     output typename
+    /// @param aWorkset 2D workset container
+    /// @param aOutput  1D output container
+    template<class WorksetType, class OutType>
+    void 
+    assembleScalarGradientFadN(
+      const WorksetType & aWorkset, 
+            OutType     & aOutput
+    ) const
+    {
+      Plato::assemble_scalar_gradient_fad<mNumNodeStatePerCell>(
+        mNumCells, mNodeStateEntryOrdinal, aWorkset, aOutput
+      );
+    }
+
+    /// @fn assembleScalarGradientFadN
+    /// @brief assemble partial derivative with respect to node states, specialized for FAD scalar types
+    /// @tparam WorksetType workset typename 
+    /// @tparam OutType     output typename
+    /// @param aDomain  contains mesh and model information
+    /// @param aWorkset 2D workset container
+    /// @param aOutput  1D output container
+    template<class WorksetType, class OutType>
+    void 
+    assembleScalarGradientFadN(
+      const Plato::SpatialDomain & aDomain,
+      const WorksetType          & aWorkset,
+            OutType              & aOutput
+    ) const
+    {
+      Plato::assemble_scalar_gradient_fad<mNumNodeStatePerCell>(
+        aDomain, mNodeStateEntryOrdinal, aWorkset, aOutput
+      );
     }
 
     /******************************************************************************//**

@@ -173,6 +173,35 @@ gradientState(
 template<typename PhysicsType>
 Plato::ScalarVector
 CriterionEvaluatorDivision<PhysicsType>::
+gradientNodeState(
+  const Plato::Database & aDatabase,
+  const Plato::Scalar   & aCycle
+) const
+{
+  const Plato::OrdinalType tNumDofs = mSpatialModel.Mesh->NumNodes() * mNumNodeStatePerNode;
+  Plato::ScalarVector tGradientN ("gradient wrt node states", tNumDofs);
+  
+  Plato::Scalar tNumeratorValue = 
+    mScalarFunctionBaseNumerator->value(aDatabase,aCycle);
+  Plato::Scalar tDenominatorValue = 
+    mScalarFunctionBaseDenominator->value(aDatabase,aCycle);
+  Plato::Scalar tDenominatorValueSquared = tDenominatorValue * tDenominatorValue;
+  Plato::ScalarVector tNumeratorGradN = 
+    mScalarFunctionBaseNumerator->gradientNodeState(aDatabase,aCycle);
+  Plato::ScalarVector tDenominatorGradN = 
+    mScalarFunctionBaseDenominator->gradientNodeState(aDatabase,aCycle);
+  Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & tDof)
+  {
+    tGradientN(tDof) = (tNumeratorGradN(tDof) * tDenominatorValue - 
+                        tDenominatorGradN(tDof) * tNumeratorValue) 
+                       / (tDenominatorValueSquared);
+  },"Division Function Grad N");
+  return tGradientN;
+}
+
+template<typename PhysicsType>
+Plato::ScalarVector
+CriterionEvaluatorDivision<PhysicsType>::
 gradientControl(
   const Plato::Database & aDatabase,
   const Plato::Scalar   & aCycle

@@ -170,7 +170,8 @@ value(const Plato::Database & aDatabase,
 }
 
 template<typename PhysicsType>
-Plato::ScalarVector CriterionEvaluatorWeightedSum<PhysicsType>::
+Plato::ScalarVector 
+CriterionEvaluatorWeightedSum<PhysicsType>::
 gradientConfig(
   const Plato::Database & aDatabase,
   const Plato::Scalar   & aCycle
@@ -217,7 +218,31 @@ gradientState(
 }
 
 template<typename PhysicsType>
-Plato::ScalarVector CriterionEvaluatorWeightedSum<PhysicsType>::
+Plato::ScalarVector 
+CriterionEvaluatorWeightedSum<PhysicsType>::
+gradientNodeState(
+  const Plato::Database & aDatabase,
+  const Plato::Scalar   & aCycle
+) const
+{
+  const Plato::OrdinalType tNumNodeStateDofs = mSpatialModel.Mesh->NumNodes();
+  Plato::ScalarVector tGradientN ("gradient node states", tNumNodeStateDofs);
+  for (Plato::OrdinalType tFunctionIndex = 0; tFunctionIndex < mScalarFunctionBaseContainer.size(); ++tFunctionIndex)
+  {
+    const Plato::Scalar tFunctionWeight = mFunctionWeights[tFunctionIndex];
+    Plato::ScalarVector tFunctionGradN = 
+      mScalarFunctionBaseContainer[tFunctionIndex]->gradientNodeState(aDatabase,aCycle);
+    Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumNodeStateDofs), KOKKOS_LAMBDA(const Plato::OrdinalType & tDof)
+    {
+      tGradientN(tDof) += tFunctionWeight * tFunctionGradN(tDof);
+    },"Weighted Sum Function Summation Grad N");
+  }
+  return tGradientN;
+}
+
+template<typename PhysicsType>
+Plato::ScalarVector 
+CriterionEvaluatorWeightedSum<PhysicsType>::
 gradientControl(
   const Plato::Database & aDatabase,
   const Plato::Scalar   & aCycle

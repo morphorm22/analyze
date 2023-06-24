@@ -26,6 +26,7 @@ class HelmholtzElement : public TopoElementTypeT, public ElementBase<TopoElement
     static constexpr Plato::OrdinalType mNumControl = 1;
 
     static constexpr Plato::OrdinalType mNumNodeStatePerNode = 0;
+    static constexpr Plato::OrdinalType mNumNodeStatePerCell = mNumNodeStatePerNode*mNumNodesPerCell;
     static constexpr Plato::OrdinalType mNumLocalDofsPerCell = 0;
 
 };

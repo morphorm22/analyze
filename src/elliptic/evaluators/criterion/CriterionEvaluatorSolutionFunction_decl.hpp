@@ -34,12 +34,14 @@ class CriterionEvaluatorSolutionFunction :
 private:
   using ElementType = typename PhysicsType::ElementType;
 
-  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
-  static constexpr auto mNumNodesPerFace = ElementType::mNumNodesPerFace;
-  static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
-  static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
-  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
-  static constexpr auto mNumControl      = ElementType::mNumControl;
+  static constexpr auto mNumNodesPerCell     = ElementType::mNumNodesPerCell;
+  static constexpr auto mNumNodesPerFace     = ElementType::mNumNodesPerFace;
+  static constexpr auto mNumDofsPerNode      = ElementType::mNumDofsPerNode;
+  static constexpr auto mNumDofsPerCell      = ElementType::mNumDofsPerCell;
+  static constexpr auto mNumSpatialDims      = ElementType::mNumSpatialDims;
+  static constexpr auto mNumControl          = ElementType::mNumControl;
+  /// @brief number of node state degrees of freedom per node
+  static constexpr auto mNumNodeStatePerNode = ElementType::mNumNodeStatePerNode;
 
   std::string mFunctionName; /*!< User defined function name */
   std::string mDomainName;   /*!< Name of the node set that represents the domain of interest */
@@ -79,97 +81,108 @@ private:
   );
 
 public:
-    /******************************************************************************//**
-     * \brief Primary solution function constructor
-     * \param [in] aMesh mesh database
-     * \param [in] aSpatialModel Plato Analyze spatial model
-     * \param [in] aDataMap Plato Analyze data map
-     * \param [in] aProblemParams input parameters database
-     * \param [in] aName user defined function name
-    **********************************************************************************/
-    CriterionEvaluatorSolutionFunction(
-        const Plato::SpatialModel    & aSpatialModel,
-              Plato::DataMap         & aDataMap,
-              Teuchos::ParameterList & aProblemParams,
-              std::string            & aName
-    );
+  /******************************************************************************//**
+   * \brief Primary solution function constructor
+   * \param [in] aMesh mesh database
+   * \param [in] aSpatialModel Plato Analyze spatial model
+   * \param [in] aDataMap Plato Analyze data map
+   * \param [in] aProblemParams input parameters database
+   * \param [in] aName user defined function name
+  **********************************************************************************/
+  CriterionEvaluatorSolutionFunction(
+      const Plato::SpatialModel    & aSpatialModel,
+            Plato::DataMap         & aDataMap,
+            Teuchos::ParameterList & aProblemParams,
+            std::string            & aName
+  );
 
-    /// @fn isLinear
-    /// @brief return true if scalar function is linear
-    /// @return boolean
-    bool 
-    isLinear() 
-    const;
+  /// @fn isLinear
+  /// @brief return true if scalar function is linear
+  /// @return boolean
+  bool 
+  isLinear() 
+  const;
 
-    /// @fn value
-    /// @brief evaluate solution criterion
-    /// @param [in] aDatabase function domain and range database
-    /// @param [in] aCycle    scalar, e.g.; time step
-    /// @return scalar
-    Plato::Scalar
-    value(const Plato::Database & aDatabase,
-          const Plato::Scalar   & aCycle
-    ) const;
+  /// @fn value
+  /// @brief evaluate solution criterion
+  /// @param [in] aDatabase function domain and range database
+  /// @param [in] aCycle    scalar, e.g.; time step
+  /// @return scalar
+  Plato::Scalar
+  value(const Plato::Database & aDatabase,
+        const Plato::Scalar   & aCycle
+  ) const;
 
-    /// @fn gradientConfig
-    /// @brief compute partial derivative of the solution function with respect to the configuration
-    /// @param [in] aDatabase function domain and range database
-    /// @param [in] aCycle    scalar, e.g.; time step
-    /// @return plato scalar vector
-    Plato::ScalarVector
-    gradientConfig(
-      const Plato::Database & aDatabase,
-      const Plato::Scalar   & aCycle
-    ) const;
+  /// @fn gradientConfig
+  /// @brief compute partial derivative of the solution function with respect to the configuration
+  /// @param [in] aDatabase function domain and range database
+  /// @param [in] aCycle    scalar, e.g.; time step
+  /// @return plato scalar vector
+  Plato::ScalarVector
+  gradientConfig(
+    const Plato::Database & aDatabase,
+    const Plato::Scalar   & aCycle
+  ) const;
 
-    /// @fn gradientState
-    /// @brief compute partial derivative of the solution function with respect to the states
-    /// @param [in] aDatabase function domain and range database
-    /// @param [in] aCycle    scalar, e.g.; time step
-    /// @return plato scalar vector
-    Plato::ScalarVector
-    gradientState(
-      const Plato::Database & aDatabase,
-      const Plato::Scalar   & aCycle
-    ) const;
+  /// @fn gradientState
+  /// @brief compute partial derivative of the solution function with respect to the states
+  /// @param [in] aDatabase function domain and range database
+  /// @param [in] aCycle    scalar, e.g.; time step
+  /// @return plato scalar vector
+  Plato::ScalarVector
+  gradientState(
+    const Plato::Database & aDatabase,
+    const Plato::Scalar   & aCycle
+  ) const;
 
-    /// @fn gradientControl
-    /// @brief compute partial derivative of the solution function with respect to the controls
-    /// @param [in] aDatabase function domain and range database
-    /// @param [in] aCycle    scalar, e.g.; time step
-    /// @return plato scalar vector
-    Plato::ScalarVector
-    gradientControl(
-      const Plato::Database & aDatabase,
-      const Plato::Scalar   & aCycle
-    ) const;
+  /// @fn gradientNodeState
+  /// @brief compute partial derivative with respect to the node states
+  /// @param [in] aDatabase function domain and range database
+  /// @param [in] aCycle    scalar, e.g.; time step
+  /// @return plato scalar vector
+  Plato::ScalarVector
+  gradientNodeState(
+    const Plato::Database & aDatabase,
+    const Plato::Scalar   & aCycle
+  ) const;
 
-    /// @fn updateProblem
-    /// @brief update criterion parameters at runtime
-    /// @param [in] aDatabase function domain and range database
-    /// @param [in] aCycle    scalar, e.g.; time step
-    void 
-    updateProblem(
-      const Plato::Database & aDatabase,
-      const Plato::Scalar   & aCycle
-    ) const;
+  /// @fn gradientControl
+  /// @brief compute partial derivative of the solution function with respect to the controls
+  /// @param [in] aDatabase function domain and range database
+  /// @param [in] aCycle    scalar, e.g.; time step
+  /// @return plato scalar vector
+  Plato::ScalarVector
+  gradientControl(
+    const Plato::Database & aDatabase,
+    const Plato::Scalar   & aCycle
+  ) const;
 
-    /******************************************************************************//**
-     * \brief Set user defined function name
-     * \param [in] function name
-    **********************************************************************************/
-    void 
-    setFunctionName(
-      const std::string aFunctionName
-    );
+  /// @fn updateProblem
+  /// @brief update criterion parameters at runtime
+  /// @param [in] aDatabase function domain and range database
+  /// @param [in] aCycle    scalar, e.g.; time step
+  void 
+  updateProblem(
+    const Plato::Database & aDatabase,
+    const Plato::Scalar   & aCycle
+  ) const;
 
-    /******************************************************************************//**
-     * \brief Return user defined function name
-     * \return User defined function name
-    **********************************************************************************/
-    std::string 
-    name() 
-    const;
+  /******************************************************************************//**
+   * \brief Set user defined function name
+   * \param [in] function name
+  **********************************************************************************/
+  void 
+  setFunctionName(
+    const std::string aFunctionName
+  );
+
+  /******************************************************************************//**
+   * \brief Return user defined function name
+   * \return User defined function name
+  **********************************************************************************/
+  std::string 
+  name() 
+  const;
 };
 // class CriterionEvaluatorSolutionFunction
 

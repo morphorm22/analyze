@@ -32,6 +32,8 @@ initialize(
       (tDomain, mDataMap, aProblemParams, tFunctionType, mFunctionName);
     mGradientZFunctions[tName] = tFactory.template createScalarFunction<GradZEvalType>
       (tDomain, mDataMap, aProblemParams, tFunctionType, mFunctionName);
+    mGradientNFunctions[tName] = tFactory.template createScalarFunction<GradNEvalType>
+      (tDomain, mDataMap, aProblemParams, tFunctionType, mFunctionName);
   }
 }
 
@@ -109,6 +111,12 @@ setEvaluator(
       mGradientXFunctions[aDomainName] = aCriterion;
       break;
     }
+    case evaluation_t::GRAD_N:
+    {
+      mGradientNFunctions[aDomainName] = nullptr; // ensures shared_ptr is decremented
+      mGradientNFunctions[aDomainName] = aCriterion;
+      break;
+    }
   }
 }
 
@@ -133,6 +141,7 @@ updateProblem(
     mGradientUFunctions.at(tName)->updateProblem(tMyWorkSets,aCycle);
     mGradientZFunctions.at(tName)->updateProblem(tMyWorkSets,aCycle);
     mGradientXFunctions.at(tName)->updateProblem(tMyWorkSets,aCycle);
+    mGradientNFunctions.at(tName)->updateProblem(tMyWorkSets,aCycle);
   }
 }
 
@@ -251,6 +260,47 @@ gradientState(
   auto tDomainName = mSpatialModel.Domains.front().getDomainName();
   mGradientUFunctions.at(tDomainName)->postEvaluate(tGradientU, tValue);
   return tGradientU;
+}
+
+template<typename PhysicsType>
+Plato::ScalarVector
+CriterionEvaluatorScalarFunction<PhysicsType>::
+gradientNodeState(
+  const Plato::Database & aDatabase,
+  const Plato::Scalar   & aCycle
+) const
+{
+  // set local result type
+  using ResultScalarType = typename GradNEvalType::ResultScalarType;
+  // create output
+  auto tNumNodeStateDofs = mSpatialModel.Mesh->NumNodes() * mNumNodeStatePerNode;
+  Plato::ScalarVector tGradientN("criterion gradient wrt node states", tNumNodeStateDofs);
+  // evaluate gradient
+  Plato::Scalar tValue(0.0);
+  Plato::Elliptic::WorksetBuilder<GradNEvalType> tWorksetBuilder(mWorksetFuncs);
+  for(const auto& tDomain : mSpatialModel.Domains)
+  {
+    // build gradient domain worksets
+    Plato::WorkSets tWorksets;
+    tWorksetBuilder.build(tDomain, aDatabase, tWorksets);
+    // build gradient range workset
+    auto tNumCells = tDomain.numCells();
+    auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarVectorT<ResultScalarType>>>
+      ( Plato::ScalarVectorT<ResultScalarType>("Result Workset", tNumCells) );
+    Kokkos::deep_copy(tResultWS->mData, 0.0);
+    tWorksets.set("result", tResultWS);
+    // evaluate gradient
+    auto tName = tDomain.getDomainName();
+    mGradientNFunctions.at(tName)->evaluate(tWorksets, aCycle);
+    // assemble gradient
+    mWorksetFuncs.assembleScalarGradientFadN(tDomain,tResultWS->mData,tGradientN);
+    // assemble value
+    tValue += Plato::assemble_scalar_func_value<Plato::Scalar>(tNumCells,tResultWS->mData);
+  }
+  // apply post operation to return values, if defined
+  auto tName = mSpatialModel.Domains.front().getDomainName();
+  mGradientNFunctions.at(tName)->postEvaluate(tGradientN,tValue);
+  return tGradientN;
 }
 
 template<typename PhysicsType>

@@ -23,28 +23,29 @@ class CriterionEvaluatorScalarFunction :
 private:
   /// @brief local topological element typename
   using ElementType = typename PhysicsType::ElementType;
-
-  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell;
-  static constexpr auto mNumNodesPerFace = ElementType::mNumNodesPerFace;
-  static constexpr auto mNumDofsPerNode  = ElementType::mNumDofsPerNode;
-  static constexpr auto mNumDofsPerCell  = ElementType::mNumDofsPerCell;
-  static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
-  static constexpr auto mNumControl      = ElementType::mNumControl;
-
+  static constexpr auto mNumNodesPerCell     = ElementType::mNumNodesPerCell;
+  static constexpr auto mNumNodesPerFace     = ElementType::mNumNodesPerFace;
+  static constexpr auto mNumDofsPerNode      = ElementType::mNumDofsPerNode;
+  static constexpr auto mNumDofsPerCell      = ElementType::mNumDofsPerCell;
+  static constexpr auto mNumSpatialDims      = ElementType::mNumSpatialDims;
+  static constexpr auto mNumControl          = ElementType::mNumControl;
+  static constexpr auto mNumNodeStatePerNode = ElementType::mNumNodeStatePerNode;
+  /// @brief scalar types associated with the automatic differentation evaluation types
   using ValueEvalType = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
   using GradUEvalType = typename Plato::Elliptic::Evaluation<ElementType>::Jacobian;
   using GradXEvalType = typename Plato::Elliptic::Evaluation<ElementType>::GradientX;
   using GradZEvalType = typename Plato::Elliptic::Evaluation<ElementType>::GradientZ;
-
-  /*!< scalar function value interface */
-  std::map<std::string, std::shared_ptr<Plato::CriterionBase>> mValueFunctions;     
-  /*!< scalar function value partial wrt states */
+  using GradNEvalType = typename Plato::Elliptic::Evaluation<ElementType>::GradientN;
+  /// @brief map from element block name to criterion value evaluator
+  std::map<std::string, std::shared_ptr<Plato::CriterionBase>> mValueFunctions;
+  /// @brief map from element block name to criterion evaluator of gradient with respect to the vector states
   std::map<std::string, std::shared_ptr<Plato::CriterionBase>> mGradientUFunctions; 
-  /*!< scalar function value partial wrt configuration */
+  /// @brief map from element block name to criterion evaluator of gradient with respect to the configuration
   std::map<std::string, std::shared_ptr<Plato::CriterionBase>> mGradientXFunctions;
-  /*!< scalar function value partial wrt controls */
+  /// @brief map from element block name to criterion evaluator of gradient with respect to the control variables
   std::map<std::string, std::shared_ptr<Plato::CriterionBase>> mGradientZFunctions; 
-
+  /// @brief map from element block name to criterion evaluator of gradient with respect to the node states
+  std::map<std::string, std::shared_ptr<Plato::CriterionBase>> mGradientNFunctions; 
   /// @brief contains mesh and model information
   const Plato::SpatialModel & mSpatialModel;
   /// @brief interface to workset builders
@@ -141,6 +142,17 @@ public:
   /// @return plato scalar vector
   Plato::ScalarVector
   gradientState(
+    const Plato::Database & aDatabase,
+    const Plato::Scalar   & aCycle
+  ) const;
+
+  /// @fn gradientNodeState
+  /// @brief compute partial derivative with respect to the node states
+  /// @param [in] aDatabase function domain and range database
+  /// @param [in] aCycle    scalar, e.g.; time step
+  /// @return plato scalar vector
+  Plato::ScalarVector
+  gradientNodeState(
     const Plato::Database & aDatabase,
     const Plato::Scalar   & aCycle
   ) const;
