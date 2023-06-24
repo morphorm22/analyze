@@ -74,7 +74,15 @@ public:
   /// @brief class destructor
   ~ResidualSteadyStateCurrent();
 
-  // @fn getSolutionStateOutputData
+  /// @fn type
+  /// @brief get residual type
+  /// @return residual_t enum
+  Plato::Elliptic::residual_t
+  type() 
+  const
+  { return Plato::Elliptic::residual_t::LINEAR_ELECTRICAL; }
+
+  /// @fn getSolutionStateOutputData
   /// @brief populate state solution map
   /// @param [in] aSolutions state solution map
   /// @return updated solutions

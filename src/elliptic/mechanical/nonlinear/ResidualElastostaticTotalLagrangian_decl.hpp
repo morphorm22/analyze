@@ -84,6 +84,14 @@ public:
   /// @brief class destructor
   ~ResidualElastostaticTotalLagrangian(){}
 
+  /// @fn type
+  /// @brief get residual type
+  /// @return residual_t enum
+  Plato::Elliptic::residual_t
+  type() 
+  const
+  { return Plato::Elliptic::residual_t::NONLINEAR_MECHANICAL; }
+
   /// @fn getSolutionStateOutputData
   /// @brief post-process state solution for output
   /// @param [in,out] aSolutions solution database

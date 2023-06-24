@@ -69,6 +69,14 @@ public:
           Teuchos::ParameterList & aPenaltyParams
   );
 
+  /// @fn type
+  /// @brief get residual type
+  /// @return residual_t enum
+  Plato::Elliptic::residual_t
+  type() 
+  const
+  { return Plato::Elliptic::residual_t::LINEAR_ELECTRO_MECHANICAL; }
+
   /****************************************************************************//**
   * \brief Pure virtual function to get output solution data
   * \param [in] state solution database

@@ -96,7 +96,7 @@ solution(
   if ( mSaveState )
   {
     // evaluate at new state
-    auto tResidual = mProblemEvaluator->residual(tDatabase);
+    mProblemEvaluator->residual(tDatabase);
     mDataMap.saveState();
   }
   Plato::Solutions tSolution = mProblemEvaluator->getSolution();

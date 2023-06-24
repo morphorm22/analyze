@@ -83,7 +83,7 @@ evaluate(
   Plato::ScalarMultiVectorT<StateScalarType> tDispWS = 
     Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
   Plato::ScalarMultiVectorT<NodeStateScalarType> tTempWS = 
-    Plato::unpack<Plato::ScalarMultiVectorT<NodeStateScalarType>>(aWorkSets.get("node_states"));
+    Plato::unpack<Plato::ScalarMultiVectorT<NodeStateScalarType>>(aWorkSets.get("node states"));
   Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
     Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
   // create local functors
@@ -198,10 +198,10 @@ initialize(
   }
   // parse boundary Conditions
   // 
-  if(aParamList.isSublist("Natural Boundary Conditions"))
+  if(aParamList.isSublist("Mechanical Natural Boundary Conditions"))
   {
     mNaturalBCs = 
-      std::make_shared<Plato::NaturalBCs<ElementType>>(aParamList.sublist("Natural Boundary Conditions"));
+      std::make_shared<Plato::NaturalBCs<ElementType>>(aParamList.sublist("Mechanical Natural Boundary Conditions"));
   }
   // parse plot table
   //

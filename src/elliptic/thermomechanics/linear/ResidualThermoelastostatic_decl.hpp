@@ -73,6 +73,14 @@ public:
           Teuchos::ParameterList & aPenaltyParams
   );
 
+  /// @fn type
+  /// @brief get residual type
+  /// @return residual_t enum
+  Plato::Elliptic::residual_t
+  type() 
+  const
+  { return Plato::Elliptic::residual_t::LINEAR_THERMO_MECHANICAL; }
+
   Plato::Solutions 
   getSolutionStateOutputData(
     const Plato::Solutions &aSolutions

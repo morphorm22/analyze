@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "elliptic/evaluators/problem/SupportedEllipticProblemOptions.hpp"
+
 namespace Plato
 {
 
@@ -19,6 +21,30 @@ class VectorFunctionBase
 public:
   /// @brief class destructor
   virtual ~VectorFunctionBase(){}
+
+  /// @fn type
+  /// @brief get vector function type, which is set by the residual evaluator type
+  /// @return residual_t enum
+  virtual
+  Plato::Elliptic::residual_t
+  type() 
+  const = 0;
+
+  /// @fn getDofNames
+  /// @brief return list with the degree of freedom names
+  /// @return standard vector
+  virtual
+  std::vector<std::string> 
+  getDofNames() 
+  const = 0;
+
+  /// @fn numStateDofsPerNode
+  /// @brief get number of state degrees of freedom per node
+  /// @return integer
+  virtual
+  Plato::OrdinalType
+  numStateDofsPerNode() 
+  const = 0;
 
   /// @fn value
   /// @brief evaluate vector function
@@ -41,6 +67,20 @@ public:
   virtual
   Teuchos::RCP<Plato::CrsMatrixType>
   jacobianState(
+    const Plato::Database & aDatabase,
+    const Plato::Scalar   & aCycle,
+          bool              aTranspose
+  ) = 0;
+
+  /// @fn jacobianNodeState
+  /// @brief evaluate jacobian with respect to node states
+  /// @param [in] aDatabase  function domain and range database
+  /// @param [in] aCycle     scalar, e.g.; time step
+  /// @param [in] aTranspose apply transpose
+  /// @return teuchos reference counter pointer 
+  virtual
+  Teuchos::RCP<Plato::CrsMatrixType>
+  jacobianNodeState(
     const Plato::Database & aDatabase,
     const Plato::Scalar   & aCycle,
           bool              aTranspose

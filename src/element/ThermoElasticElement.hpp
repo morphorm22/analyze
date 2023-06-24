@@ -37,6 +37,8 @@ public:
   static constexpr Plato::OrdinalType mNumControl = NumControls;
   /// @brief number of temperature degrees of freedom per node
   static constexpr Plato::OrdinalType mNumNodeStatePerNode = 1;
+  /// @brief number of temperature degrees of freedom per cell
+  static constexpr Plato::OrdinalType mNumNodeStatePerCell = mNumNodeStatePerNode * mNumNodesPerCell;
   /// @brief number of local state degrees of freedom per cell
   static constexpr Plato::OrdinalType mNumLocalDofsPerCell = 0;
 };

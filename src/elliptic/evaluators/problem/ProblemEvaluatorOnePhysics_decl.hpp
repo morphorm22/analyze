@@ -111,10 +111,9 @@ public:
   );
 
   /// @fn residual
-  /// @brief evaluate residual for a single-physics problem
+  /// @brief evaluate residual for a single-physics problem, residual is save into the database
   /// @param [in,out] aDatabase range and domain database
-  /// @return residual vector
-  Plato::ScalarVector 
+  void
   residual(
     Plato::Database & aDatabase
   );

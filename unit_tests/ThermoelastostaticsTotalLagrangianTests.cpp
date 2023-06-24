@@ -15,6 +15,7 @@
 // analyze includes
 #include "Tri3.hpp"
 #include "PlatoMathTypes.hpp"
+#include "ApplyConstraints.hpp"
 #include "InterpolateFromNodal.hpp"
 
 #include "element/ThermoElasticElement.hpp"
@@ -28,53 +29,758 @@
 #include "elliptic/thermomechanics/nonlinear/ThermoElasticDeformationGradient.hpp"
 #include "elliptic/thermomechanics/nonlinear/ResidualThermoElastoStaticTotalLagrangian.hpp"
 
+#include "EssentialBCs.hpp"
+#include "PlatoUtilities.hpp"
+#include "elliptic/thermal/Thermal.hpp"
+#include "solver/PlatoSolverFactory.hpp"
+#include "base/ProblemEvaluatorBase.hpp"
+#include "elliptic/base/VectorFunction.hpp"
+#include "elliptic/evaluators/criterion/CriterionEvaluatorBase.hpp"
+#include "elliptic/evaluators/criterion/FactoryCriterionEvaluator.hpp"
+
+namespace Plato
+{
+
+namespace Elliptic
+{
+
+namespace NonlinearThermoMechanics
+{
+
+struct FunctionFactory
+{
+};
+
+} // namespace NonlinearThermoMechanics
+
+namespace Nonlinear
+{
+
+/// @brief concrete class use to define elliptic thermomechanics physics
+/// @tparam TopoElementType topological element typename 
+template<typename TopoElementType>
+class ThermoMechanics : public Plato::ThermoElasticElement<TopoElementType>
+{
+public:
+  /// @brief residual and criteria factory for elliptic thermomechanics physics
+  typedef Plato::Elliptic::NonlinearThermoMechanics::FunctionFactory FunctionFactory;
+  /// @brief topological element type with additional physics related information 
+  using ElementType = ThermoElasticElement<TopoElementType>;
+  /// @brief typename for linear thermal physics
+  using ThermalPhysics = Plato::Elliptic::Linear::Thermal<TopoElementType>;
+};
+
+} // namespace Nonlinear
+
+template<typename PhysicsType>
+class ProblemEvaluatorThermoMechanics : public Plato::ProblemEvaluatorBase
+{
+private:
+  /// @brief local criterion typename
+  using Criterion = std::shared_ptr<Plato::Elliptic::CriterionEvaluatorBase>;
+  /// @brief local typename for map from criterion name to criterion evaluator
+  using Criteria = std::unordered_map<std::string, Criterion>;
+  /// @brief local typename for physics-based element interface
+  using ElementType = typename PhysicsType::ElementType;
+  /// @brief local typename for topological element
+  using TopoElementType = typename ElementType::TopoElementType;
+  /// @brief local typename for thermal physics type
+  using ThermalPhysicsType = typename PhysicsType::ThermalPhysics;
+  /// @brief local typename for vector function evaluator
+  using Residual = std::shared_ptr<Plato::Elliptic::VectorFunctionBase>;
+  /// @brief local typename for map from residual name to residual evaluator
+  using Residuals = std::unordered_map<Plato::Elliptic::residual_t,Residual>;
+  /// @brief local typename for linear system solver interface
+  using Solver = std::shared_ptr<Plato::AbstractSolver>;
+  /// @brief local typename for map from residual type name to linear system solver interface
+  using Solvers = std::unordered_map<Plato::Elliptic::residual_t,Solver>;
+  
+  /// @brief contains mesh and model information
+  Plato::SpatialModel & mSpatialModel;
+  /// @brief output database
+  Plato::DataMap & mDataMap;
+  /// @brief map from residual type to mechanical residual evaluator
+  Residuals mResidualEvaluators;
+  /// @brief map from criterion name to thermal criterion evaluator
+  Criteria mCriterionEvaluators;
+  /// @brief map from residual type to linear system solver interface
+  Solvers mLinearSolvers;
+
+  /// @brief number of newton steps/cycles
+  Plato::OrdinalType mNumNewtonSteps;
+  /// @brief residual and increment tolerances for newton solver
+  Plato::Scalar mNewtonResTol, mNewtonIncTol;
+
+  /// @brief apply dirichlet boundary condition weakly
+  bool mWeakEBCs = false;
+
+  /// @brief vector state values
+  Plato::ScalarMultiVector mTemperatures; 
+  /// @brief node state values
+  Plato::ScalarMultiVector mDisplacements; 
+
+  /// @brief map from residual type enum to dirichlet degrees of freedom
+  std::unordered_map<Plato::Elliptic::residual_t,Plato::OrdinalVector> mDirichletDofs;
+  /// @brief map from residual type enum to dirichlet degrees of freedom values
+  std::unordered_map<Plato::Elliptic::residual_t,Plato::ScalarVector> mDirichletVals;
+
+  /// @brief partial differential equation type
+  std::string mTypePDE; 
+  /// @brief simulated physics
+  std::string mPhysics; 
+
+  Plato::Elliptic::residual_t mThermalResidualType;
+  Plato::Elliptic::residual_t mMechanicalResidualType;
+
+public:
+  ProblemEvaluatorThermoMechanics(
+    Teuchos::ParameterList & aParamList,
+    Plato::SpatialModel    & aSpatialModel,
+    Plato::DataMap         & aDataMap,
+    Plato::Comm::Machine     aMachine
+  ) : 
+    mSpatialModel  (aSpatialModel),
+    mDataMap       (aDataMap),
+    mNumNewtonSteps(Plato::ParseTools::getSubParam<int>(aParamList,"Newton Iteration","Maximum Iterations",1.)),
+    mNewtonIncTol  (Plato::ParseTools::getSubParam<double>(aParamList,"Newton Iteration","Increment Tolerance",0.)),
+    mNewtonResTol  (Plato::ParseTools::getSubParam<double>(aParamList,"Newton Iteration","Residual Tolerance",0.)),
+    mTypePDE       (aParamList.get<std::string>("PDE Constraint")),
+    mPhysics       (aParamList.get<std::string>("Physics"))
+  {
+    this->initializeThermalResidualEvaluators(aParamList);
+    this->initializeMechanicalResidualEvaluators(aParamList);
+    this->initializeCriterionEvaluators(aParamList);
+    this->readEssentialBoundaryConditions(aParamList);
+    this->initializeSolvers(mSpatialModel.Mesh,aParamList,aMachine);
+  }
+
+  /// @fn getSolution
+  /// @brief get state solution
+  /// @return solutions database
+  Plato::Solutions
+  getSolution()
+  {
+    Plato::Solutions tSolution(mPhysics, mTypePDE);
+    for( auto& tPair : mResidualEvaluators ){
+      this->setSolution(tPair.second,tSolution);
+    }
+    return tSolution;
+  }
+
+  /// @fn updateProblem
+  /// @brief update criterion parameters at runtime
+  /// @param [in,out] aDatabase range and domain database
+  void 
+  updateProblem(
+    Plato::Database & aDatabase
+  )
+  {
+    this->updateDatabase(aDatabase);
+    const Plato::Scalar tCycle = aDatabase.scalar("cycle");
+    for( auto& tCriterion : mCriterionEvaluators ) {
+      tCriterion.second->updateProblem(aDatabase, tCycle);
+    }
+  }
+
+  /// @fn analyze
+  /// @brief analyze physics of interests, solution is saved into the database
+  /// @param [in,out] aDatabase range and domain database
+  void
+  analyze(
+    Plato::Database & aDatabase
+  )
+  {
+    // analyze thermal equations
+    this->analyzeThermalPhysics(aDatabase);
+    // analyze mechanical physics
+    this->analyzeMechanicalPhysics(aDatabase);
+  }
+
+  /// @fn residual
+  /// @brief evaluate thermomechanical residual, residual is save into the database
+  /// @param [in,out] aDatabase range and domain database
+  void
+  residual(
+    Plato::Database & aDatabase
+  )
+  {
+    this->updateDatabase(aDatabase);
+    const Plato::Scalar tCycle = aDatabase.scalar("cycle");
+    // residuals are not saved in the database
+    for(auto& tPair : mResidualEvaluators){
+      auto tResidual = tPair.second->value(aDatabase,tCycle);
+    }
+  }
+
+  /// @fn criterionValue
+  /// @brief evaluate criterion 
+  /// @param [in]     aName     criterion name
+  /// @param [in,out] aDatabase range and domain database
+  /// @return scalar
+  Plato::Scalar
+  criterionValue(
+    const std::string     & aName,
+          Plato::Database & aDatabase
+  )
+  {
+    if( mCriterionEvaluators.find(aName) == mCriterionEvaluators.end() )
+    {
+      auto tErrMsg = this->getCriterionErrorMsg(aName);
+      ANALYZE_THROWERR(tErrMsg)
+    }
+    this->updateDatabase(aDatabase);
+    const Plato::Scalar tCycle = aDatabase.scalar("cycle");
+    auto tValue = mCriterionEvaluators[aName]->value(aDatabase,tCycle);
+    return tValue;
+  }
+
+  /// @fn criterionGradient
+  /// @brief compute criterion gradient
+  /// @param [in]     aEvalType evaluation type, compute gradient with respect to a quantity of interests
+  /// @param [in]     aName     criterion name
+  /// @param [in,out] aDatabase range and domain database
+  /// @return scalar vector
+  Plato::ScalarVector
+  criterionGradient(
+    const Plato::evaluation_t & aEvalType,
+    const std::string         & aName,
+          Plato::Database     & aDatabase
+  )
+  {
+    auto tCriterionItr = mCriterionEvaluators.find(aName);
+    if( tCriterionItr == mCriterionEvaluators.end() )
+    {
+      auto tErrMsg = this->getErrorMsg(aName);
+      ANALYZE_THROWERR(tErrMsg)
+    }
+    this->updateDatabase(aDatabase);
+    switch (aEvalType)
+    {
+      case Plato::evaluation_t::GRAD_Z: 
+        return ( this->criterionGradientControl(tCriterionItr.operator*(),aDatabase) );
+        break;
+      case Plato::evaluation_t::GRAD_X:
+        return ( this->criterionGradientConfig(tCriterionItr.operator*(),aDatabase) );
+        break;
+      default:
+        return ( Plato::ScalarVector("empty",0) );
+        break;
+    }
+  }
+
+  /// @fn criterionIsLinear
+  /// @brief return true if criterion is linear; otherwise, return false
+  /// @param [in] aName criterion name
+  /// @return boolean
+  bool  
+  criterionIsLinear(
+    const std::string & aName
+  )
+  {
+    if( mCriterionEvaluators.find(aName) == mCriterionEvaluators.end() )
+    {
+      auto tErrMsg = this->getCriterionErrorMsg(aName);
+      ANALYZE_THROWERR(tErrMsg)
+    }
+    return ( mCriterionEvaluators.at(aName)->isLinear() );
+  }
+
+private:
+  void
+  analyzeThermalPhysics(
+    Plato::Database & aDatabase
+  )
+  {
+    auto tResidualItr = mResidualEvaluators.find(mThermalResidualType);
+    if(tResidualItr == mResidualEvaluators.end() ){
+      ANALYZE_THROWERR("ERROR: Did not find requested thermal residual evaluator")
+    }
+    auto tTemperatures = this->analyzePhysics(tResidualItr.operator*(),aDatabase);
+    aDatabase.vector("node states",tTemperatures);
+  }
+
+  Plato::ScalarVector 
+  analyzeMechanicalPhysics(
+    Plato::Database & aDatabase
+  )
+  {
+    auto tResidualItr = mResidualEvaluators.find(mMechanicalResidualType);
+    if(tResidualItr == mResidualEvaluators.end() ){
+      ANALYZE_THROWERR("ERROR: Did not find requested mechanical residual evaluator")
+    }
+    auto tTemperatures = this->analyzePhysics(tResidualItr.operator*(),aDatabase);
+    aDatabase.vector("node states",tTemperatures);
+  }
+
+  Plato::ScalarVector 
+  analyzePhysics(
+    const Residual        & aResidual,
+    const Plato::Database & aDatabase
+  )
+  {
+    // initialize displacements values
+    Plato::Database tDatabase(aDatabase);
+    auto tNumStates = mSpatialModel.Mesh->NumNodes() * aResidual->numStateDofsPerNode();
+    Plato::ScalarVector tStates("states",tNumStates);
+    Plato::blas1::fill(0.0, tStates);
+    tDatabase.vector("states",tStates);
+    // inner loop for non-linear models
+    const Plato::Scalar tCycle = aDatabase.scalar("cycle");
+    for(Plato::OrdinalType tNewtonIndex = 0; tNewtonIndex < mNumNewtonSteps; tNewtonIndex++)
+    {
+      Plato::ScalarVector tResidual = aResidual->value(aDatabase,tCycle);
+      Plato::blas1::scale(-1.0, tResidual);
+      if (mNumNewtonSteps > 1) {
+        auto tResidualNorm = Plato::blas1::norm(tResidual);
+        std::cout << " Residual norm: " << tResidualNorm << std::endl;
+        if (tResidualNorm < mNewtonResTol) {
+          std::cout << " Residual norm tolerance satisfied." << std::endl;
+          break;
+        }
+      }
+      Teuchos::RCP<Plato::CrsMatrixType> tJacobianState = 
+        aResidual->jacobianState(aDatabase,tCycle,/*transpose=*/false);
+      // solve linear system of equations
+      Plato::Scalar tScale = (tNewtonIndex == 0) ? 1.0 : 0.0;
+      if( !mWeakEBCs )
+      { this->enforceStrongEssentialBoundaryConditions(aResidual,tJacobianState,tResidual,tScale); }
+      Plato::ScalarVector tDelta("increment", tStates.extent(0));
+      Plato::blas1::fill(static_cast<Plato::Scalar>(0.0), tDelta);
+      mLinearSolvers[aResidual->type()]->solve(*tJacobianState, tDelta, tResidual);
+      Plato::blas1::axpy(1.0, tDelta, tStates);
+      if (mNumNewtonSteps > 1) {
+        auto tIncrementNorm = Plato::blas1::norm(tDelta);
+        std::cout << " Delta norm: " << tIncrementNorm << std::endl;
+        if (tIncrementNorm < mNewtonIncTol) {
+          std::cout << " Solution increment norm tolerance satisfied." << std::endl;
+          break;
+        }
+      }
+    }
+    return tStates;
+  }
+
+  void 
+  enforceStrongEssentialBoundaryConditions(
+    const Residual                           & aResidual,
+    const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
+    const Plato::ScalarVector                & aVector,
+    const Plato::Scalar                      & aMultiplier
+  )
+  {
+    if(aMatrix->isBlockMatrix())
+    {
+      Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(
+        aMatrix, aVector, mDirichletDofs[aResidual->type()], mDirichletVals[aResidual->type()], aMultiplier
+      );
+    }
+    else
+    {
+      Plato::applyConstraints<ElementType::mNumDofsPerNode>(
+        aMatrix, aVector, mDirichletDofs[aResidual->type()], mDirichletVals[aResidual->type()], aMultiplier
+      );
+    }
+  }
+
+  void
+  adjointMechanicalPhysics(
+    const Criterion       & aCriterion,
+    const Plato::Database & aDatabase,
+    Plato::ScalarVector   & aGradControl
+  )
+  {
+    auto tResidualItr = mResidualEvaluators.find(mMechanicalResidualType);
+        // compute gradient with respect to state variables
+    const Plato::Scalar tCycle = aDatabase.scalar("cycle");
+    auto tGradientState = aCriterion->gradientState(aDatabase,tCycle);
+    Plato::blas1::scale(-1.0, tGradientState);
+    // compute jacobian with respect to state variables
+    Teuchos::RCP<Plato::CrsMatrixType> tJacobianState = 
+      tResidualItr->second->jacobianState(aDatabase,tCycle,/*transpose=*/true);
+    if( mWeakEBCs )
+    { this->enforceWeakEssentialAdjointBoundaryConditions(tResidualItr.operator*(),aDatabase); }
+    else
+    { this->enforceStrongEssentialAdjointBoundaryConditions(tResidualItr.operator*(),tJacobianState,tGradientState); }
+    // solve adjoint system of equations
+    auto tNumStates = mSpatialModel.Mesh->NumNodes() * tResidualItr->second->numStateDofsPerNode();
+    Plato::ScalarVector tAdjoints("Adjoint Variables",tNumStates);
+    mLinearSolvers[tResidualItr->second->type()]->solve(
+      *tJacobianState,tAdjoints,tGradientState,/*isAdjointSolve=*/true
+    );
+    // compute jacobian with respect to control variables
+    auto tJacobianControl = tResidualItr->second->jacobianControl(aDatabase,tCycle,/*transpose=*/true);
+    // add mechanical residual contribution to gradient with respect to control variables
+    Plato::MatrixTimesVectorPlusVector(tJacobianControl,tAdjoints,aGradControl);
+  }
+
+  Plato::ScalarVector 
+  criterionGradientControl(
+    const Criterion       & aCriterion,
+          Plato::Database & aDatabase
+  )
+  {
+    if(aCriterion == nullptr){ 
+      ANALYZE_THROWERR("ERROR: Requested criterion is a null pointer"); 
+    }
+    // compute criterion contribution to the gradient
+    const Plato::Scalar tCycle = aDatabase.scalar("cycle");
+    auto tGradientControl = aCriterion->gradientControl(aDatabase,tCycle);
+    // add residual contribution to the gradient
+    if( aCriterion->isLinear() == false )
+    {
+      // compute mechanical adjoints
+      this->adjointMechanicalPhysics(aCriterion,aDatabase,tGradientControl);
+    }
+    return tGradientControl; 
+  }
+
+  Plato::ScalarVector 
+  criterionGradientConfig(
+    const Criterion       & aCriterion,
+          Plato::Database & aDatabase
+  )
+  {
+    if(aCriterion == nullptr){ 
+      ANALYZE_THROWERR("ERROR: Requested criterion is a null pointer"); 
+    }
+    // compute criterion contribution to the gradient
+    const Plato::Scalar tCycle = aDatabase.scalar("cycle");
+    auto tGradientConfig  = aCriterion->gradientConfig(aDatabase, tCycle);
+    // add residual contribution to the gradient
+    if( aCriterion->isLinear() == false )
+    {
+      // compute mechanical adjoints
+    }
+    return tGradientConfig;
+  }
+
+void 
+enforceStrongEssentialAdjointBoundaryConditions(
+  const Residual                           & aResidual,
+  const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
+  const Plato::ScalarVector                & aVector
+)
+{
+  // Essential Boundary Conditions (EBCs)
+  auto tDirichletVals = mDirichletVals[aResidual->type()];
+  Plato::ScalarVector tDirichletAdjointValues("Adjoint EBCs", tDirichletVals.size());
+  Plato::blas1::scale(static_cast<Plato::Scalar>(0.0), tDirichletAdjointValues);
+  if(aMatrix->isBlockMatrix())
+  {
+    Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(
+      aMatrix, aVector, mDirichletDofs[aResidual->type()], tDirichletAdjointValues
+    );
+  }
+  else
+  {
+    Plato::applyConstraints<ElementType::mNumDofsPerNode>(
+      aMatrix, aVector, mDirichletDofs[aResidual->type()], tDirichletAdjointValues
+    );
+  }
+}
+
+  void 
+  enforceWeakEssentialAdjointBoundaryConditions(
+    const Residual        & aResidual,
+          Plato::Database & aDatabase
+  )
+  {
+    // Essential Boundary Conditions (EBCs)
+    auto tNumStates = mSpatialModel.Mesh->NumNodes() * aResidual->numStateDofsPerNode();
+    Plato::ScalarVector tAdjointDirichlet("Adjoint EBCs", tNumStates);
+    Kokkos::deep_copy(tAdjointDirichlet, 0.0);
+    aDatabase.vector("dirichlet",tAdjointDirichlet);
+  }
+
+  bool 
+  isThermalPhysics(
+    const Residual & aResidual
+  )
+  {
+    if(aResidual->type() == Plato::Elliptic::residual_t::LINEAR_THERMAL){
+      return true;
+    }
+    else{
+      return false;
+    }
+  }
+
+  bool 
+  isMechanicalPhysics(
+    const Residual & aResidual
+  )
+  {
+    if( (aResidual->type() == Plato::Elliptic::residual_t::LINEAR_THERMO_MECHANICAL) || 
+        (aResidual->type() == Plato::Elliptic::residual_t::NONLINEAR_THERMO_MECHANICAL) 
+    )
+    {
+      return true;
+    }
+    else{
+      return false;
+    }
+  }
+
+  void 
+  setSolution(
+    const Residual         & aResidual,
+          Plato::Solutions & aSolutions
+  )
+  {
+    switch (aResidual->type())
+    {
+      case Plato::Elliptic::residual_t::LINEAR_THERMO_MECHANICAL:
+      case Plato::Elliptic::residual_t::NONLINEAR_THERMO_MECHANICAL:
+        aSolutions.set("Displacements",mDisplacements,aResidual->getDofNames());
+        break;
+      case Plato::Elliptic::residual_t::LINEAR_THERMAL:
+        aSolutions.set("Temperatures" ,mTemperatures ,aResidual->getDofNames());
+        break;
+    }
+  }
+
+  std::string
+  getCriterionErrorMsg(
+    const std::string & aName
+  ) const
+  {
+    std::string tMsg = std::string("ERROR: Criterion parameter list with name '")
+      + aName + "' is not defined. " + "Defined criterion parameter lists are: ";
+    for(const auto& tPair : mCriterionEvaluators)
+    {
+      tMsg = tMsg + "'" + tPair.first + "', ";
+    }
+    auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+    tSubMsg += ". The parameter list name and criterion ('Functions') arguments must match.";
+    return tSubMsg;
+  }
+
+  void 
+  updateDatabase(
+    Plato::Database & aDatabase
+  )
+  {
+    const Plato::OrdinalType tCycleIndex = aDatabase.scalar("cycle index");
+    auto tMyDisplacement = Kokkos::subview(mDisplacements,tCycleIndex,Kokkos::ALL());
+    aDatabase.vector("states", tMyDisplacement);
+    auto tMyTemperature = Kokkos::subview(mTemperatures,tCycleIndex,Kokkos::ALL());
+    aDatabase.vector("node states", tMyTemperature);
+  }
+
+  void 
+  initializeCriterionEvaluators(
+    Teuchos::ParameterList & aParamList
+  )
+  {
+    if(aParamList.isSublist("Criteria"))
+    {
+      Plato::Elliptic::FactoryCriterionEvaluator<PhysicsType> tCriterionFactory;
+      auto tCriteriaParams = aParamList.sublist("Criteria");
+      for(Teuchos::ParameterList::ConstIterator tIndex=tCriteriaParams.begin(); tIndex!=tCriteriaParams.end(); ++tIndex)
+      {
+        const Teuchos::ParameterEntry & tEntry = tCriteriaParams.entry(tIndex);
+        std::string tCriterionName = tCriteriaParams.name(tIndex);
+        TEUCHOS_TEST_FOR_EXCEPTION(!tEntry.isList(), std::logic_error,
+          " Parameter in ('Criteria') block not valid. Expect parameter lists only.");
+        auto tCriterion = tCriterionFactory.create(mSpatialModel,mDataMap,aParamList,tCriterionName);
+        if( tCriterion != nullptr )
+        {
+          mCriterionEvaluators[tCriterionName] = tCriterion;
+        }
+      }
+    }
+  }
+
+  void 
+  initializeThermalResidualEvaluators(
+    Teuchos::ParameterList & aParamList
+  )
+  {
+    auto tParamList = aParamList.sublist(mTypePDE);
+    if(tParamList.isSublist("Thermal Residual") == false){
+      auto tErrorMsg = std::string("ERROR: ('Thermal Residual') parameter list is not defined'");
+      ANALYZE_THROWERR(tErrorMsg)
+    }
+    auto tMechResParamList = tParamList.sublist("Thermal Residual");
+    // only linear thermal physics are supported/implemented
+    mThermalResidualType = Plato::Elliptic::residual_t::LINEAR_THERMAL;
+    mResidualEvaluators[mThermalResidualType] = 
+      std::make_shared<Plato::Elliptic::VectorFunction<ThermalPhysicsType>>(mTypePDE,mSpatialModel,mDataMap,aParamList);
+  }
+
+  void 
+  initializeMechanicalResidualEvaluators(
+    Teuchos::ParameterList & aParamList
+  )
+  {
+    auto tParamList = aParamList.sublist(mTypePDE);
+    if(tParamList.isSublist("Mechanical Residual") == false){
+      auto tErrorMsg = std::string("ERROR: ('Mechanical Residual') parameter list is not defined'");
+      ANALYZE_THROWERR(tErrorMsg)
+    }
+    Plato::Elliptic::ResidualEnum tS2E;
+    auto tMechResParamList = tParamList.sublist("Mechanical Residual");
+    auto tResponse = tMechResParamList.get<std::string>("Response","linear");
+    auto tResidualStringType = tResponse + " thermomechanical";
+    mMechanicalResidualType = tS2E.get(tResidualStringType);
+    mResidualEvaluators[mMechanicalResidualType] = 
+      std::make_shared<Plato::Elliptic::VectorFunction<PhysicsType>>(mTypePDE,mSpatialModel,mDataMap,aParamList);
+  }
+
+  void 
+  initializeSolvers(
+    Plato::Mesh            & aMesh,
+    Teuchos::ParameterList & aParamList,
+    Comm::Machine          & aMachine
+  )
+  {
+    LinearSystemType tSystemType = LinearSystemType::SYMMETRIC_POSITIVE_DEFINITE;
+    Plato::SolverFactory tSolverFactory(aParamList.sublist("Linear Solver"), tSystemType);
+    for(auto& tPair : mResidualEvaluators)
+    {
+      mLinearSolvers[tPair.first] = 
+        tSolverFactory.create(aMesh->NumNodes(), aMachine, tPair.second->numStateDofsPerNode(), nullptr);
+    }
+  }
+
+  void 
+  readEssentialBoundaryConditions(
+    Teuchos::ParameterList & aParamList
+  )
+  {
+    for(auto& tPair : mResidualEvaluators)
+    {
+      if( this->isThermalPhysics(tPair.second) ){
+        this->readThermalEssentialBoundaryConditions(tPair.second->type(),aParamList);
+      }
+      else
+      if( this->isMechanicalPhysics(tPair.second) ){
+        this->readMechanicalEssentialBoundaryConditions(tPair.second->type(),aParamList);
+      }
+    }
+  }
+
+  void 
+  readMechanicalEssentialBoundaryConditions(
+    Plato::Elliptic::residual_t & aResidualType,
+    Teuchos::ParameterList      & aParamList
+  )
+  {
+    if(aParamList.isSublist("Mechanical Essential Boundary Conditions") == false)
+    { 
+      auto tErrorMsg = std::string("ERROR: Parameter list ('Mechanical Essential Boundary Conditions') ") + 
+        "is not defined in the input deck";
+      ANALYZE_THROWERR(tErrorMsg) 
+    }
+    Plato::EssentialBCs<PhysicsType> tMechanicalEBCs(
+      aParamList.sublist("Mechanical Essential Boundary Conditions", false), mSpatialModel.Mesh
+    );
+
+    Plato::ScalarVector  tDirichletVals;
+    Plato::OrdinalVector tDirichletDofs; 
+    tMechanicalEBCs.get(tDirichletDofs,tDirichletVals);
+    mDirichletDofs[aResidualType] = tDirichletDofs;
+    mDirichletVals[aResidualType] = tDirichletVals;
+    
+    if(aParamList.isType<bool>("Weak Essential Boundary Conditions"))
+    { mWeakEBCs = aParamList.get<bool>("Weak Essential Boundary Conditions",false); }
+  }
+
+  void 
+  readThermalEssentialBoundaryConditions(
+    Plato::Elliptic::residual_t & aResidualType,
+    Teuchos::ParameterList      & aParamList
+  )
+  {
+    if(aParamList.isSublist("Thermal Essential Boundary Conditions") == false)
+    { 
+      auto tErrorMsg = std::string("ERROR: Parameter list ('Thermal Essential Boundary Conditions') ") + 
+        "is not defined in the input deck";
+      ANALYZE_THROWERR(tErrorMsg) 
+    }
+    Plato::EssentialBCs<PhysicsType> tThermalEBCs(
+      aParamList.sublist("Thermal Essential Boundary Conditions", false), mSpatialModel.Mesh
+    );
+    
+    Plato::ScalarVector  tDirichletVals;
+    Plato::OrdinalVector tDirichletDofs; 
+    tThermalEBCs.get(tDirichletDofs,tDirichletVals);
+    mDirichletDofs[aResidualType] = tDirichletDofs;
+    mDirichletVals[aResidualType] = tDirichletVals;
+    
+    if(aParamList.isType<bool>("Weak Essential Boundary Conditions"))
+    { mWeakEBCs = aParamList.get<bool>("Weak Essential Boundary Conditions",false); }
+  }
+
+};
+
+} // namespace Elliptic
+
+} // namespace Plato
+
+
 namespace ThermoelastostaticTotalLagrangianTests
 {
 
 Teuchos::RCP<Teuchos::ParameterList> tGenericParamList = Teuchos::getParametersFromXmlString(
-"<ParameterList name='Plato Problem'>                                                                  \n"
-  "<ParameterList name='Spatial Model'>                                                                \n"
-    "<ParameterList name='Domains'>                                                                    \n"
-      "<ParameterList name='Design Volume'>                                                            \n"
-        "<Parameter name='Element Block' type='string' value='body'/>                                  \n"
-        "<Parameter name='Material Model' type='string' value='Unobtainium'/>                          \n"
-      "</ParameterList>                                                                                \n"
-    "</ParameterList>                                                                                  \n"
-  "</ParameterList>                                                                                    \n"
-  "<Parameter name='PDE Constraint' type='string' value='Elliptic'/>                                   \n"
-  "<Parameter name='Physics' type='string' value='Thermomechanical'/>                                  \n"
-  "<ParameterList name='Elliptic'>                                                                     \n"
-  "  <ParameterList name='Penalty Function'>                                                           \n"
-  "    <Parameter name='Exponent' type='double' value='1.0'/>                                          \n"
-  "    <Parameter name='Minimum Value' type='double' value='0.0'/>                                     \n"
-  "    <Parameter name='Type' type='string' value='SIMP'/>                                             \n"
-  "  </ParameterList>                                                                                  \n"
-  "</ParameterList>                                                                                    \n"
-  "<ParameterList name='Material Models'>                                                              \n"
-    "<ParameterList name='Unobtainium'>                                                                \n"
-      "<ParameterList name='Thermal Conduction'>                                                       \n"
-        "<Parameter  name='Thermal Expansivity'   type='double' value='0.5'/>                          \n"
-        "<Parameter  name='Reference Temperature' type='double' value='1.0'/>                          \n"
-        "<Parameter  name='Thermal Conductivity'  type='double' value='2.0'/>                          \n"
-      "</ParameterList>                                                                                \n"
-      "<ParameterList name='Hyperelastic Kirchhoff'>                                                   \n"
-        "<Parameter  name='Youngs Modulus'  type='double'  value='1.5'/>                               \n"
-        "<Parameter  name='Poissons Ratio'  type='double'  value='0.35'/>                              \n"
-      "</ParameterList>                                                                                \n"
-    "</ParameterList>                                                                                  \n"
-  "</ParameterList>                                                                                    \n"
-  "<ParameterList name='Criteria'>                                                                     \n"
-  "  <ParameterList name='Objective'>                                                                  \n"
-  "    <Parameter name='Type' type='string' value='Weighted Sum'/>                                     \n"
-  "    <Parameter name='Functions' type='Array(string)' value='{My Strain Energy}'/>                   \n"
-  "    <Parameter name='Weights' type='Array(double)' value='{1.0}'/>                                  \n"
-  "  </ParameterList>                                                                                  \n"
-  "  <ParameterList name='My Strain Energy'>                                                           \n"
-  "    <Parameter name='Type'                 type='string' value='Scalar Function'/>                  \n"
-  "    <Parameter name='Scalar Function Type' type='string' value='Strain Energy Potential'/>          \n"
-  "  </ParameterList>                                                                                  \n"
-  "</ParameterList>                                                                                    \n"
-"</ParameterList>                                                                                      \n"
+"<ParameterList name='Plato Problem'>                                                                      \n"
+  "<ParameterList name='Spatial Model'>                                                                    \n"
+    "<ParameterList name='Domains'>                                                                        \n"
+      "<ParameterList name='Design Volume'>                                                                \n"
+        "<Parameter name='Element Block' type='string' value='body'/>                                      \n"
+        "<Parameter name='Material Model' type='string' value='Unobtainium'/>                              \n"
+      "</ParameterList>                                                                                    \n"
+    "</ParameterList>                                                                                      \n"
+  "</ParameterList>                                                                                        \n"
+  "<Parameter name='PDE Constraint' type='string' value='Elliptic'/>                                       \n"
+  "<Parameter name='Physics' type='string' value='Thermomechanical'/>                                      \n"
+  "<ParameterList name='Elliptic'>                                                                         \n"
+  "  <ParameterList name='Mechanical Residual'>                                                            \n"
+  "    <Parameter name='Response' type='string' value='Nonlinear'/>                                        \n"
+  "    <ParameterList name='Penalty Function'>                                                             \n"
+  "      <Parameter name='Exponent' type='double' value='1.0'/>                                            \n"
+  "      <Parameter name='Minimum Value' type='double' value='0.0'/>                                       \n"
+  "      <Parameter name='Type' type='string' value='SIMP'/>                                               \n"
+  "    </ParameterList>                                                                                    \n"
+  "  </ParameterList>                                                                                      \n"
+  "  <ParameterList name='Thermal Residual'>                                                               \n"
+  "    <Parameter name='Response' type='string' value='Linear'/>                                           \n"
+  "    <ParameterList name='Penalty Function'>                                                             \n"
+  "      <Parameter name='Exponent' type='double' value='1.0'/>                                            \n"
+  "      <Parameter name='Minimum Value' type='double' value='0.0'/>                                       \n"
+  "      <Parameter name='Type' type='string' value='SIMP'/>                                               \n"
+  "    </ParameterList>                                                                                    \n"
+  "  </ParameterList>                                                                                      \n"
+  "</ParameterList>                                                                                        \n"
+  "<ParameterList name='Material Models'>                                                                  \n"
+    "<ParameterList name='Unobtainium'>                                                                    \n"
+      "<ParameterList name='Thermal Conduction'>                                                           \n"
+        "<Parameter  name='Thermal Expansivity'   type='double' value='0.5'/>                              \n"
+        "<Parameter  name='Reference Temperature' type='double' value='1.0'/>                              \n"
+        "<Parameter  name='Thermal Conductivity'  type='double' value='2.0'/>                              \n"
+      "</ParameterList>                                                                                    \n"
+      "<ParameterList name='Hyperelastic Kirchhoff'>                                                       \n"
+        "<Parameter  name='Youngs Modulus'  type='double'  value='1.5'/>                                   \n"
+        "<Parameter  name='Poissons Ratio'  type='double'  value='0.35'/>                                  \n"
+      "</ParameterList>                                                                                    \n"
+    "</ParameterList>                                                                                      \n"
+  "</ParameterList>                                                                                        \n"
+  "<ParameterList name='Criteria'>                                                                         \n"
+  "  <ParameterList name='Objective'>                                                                      \n"
+  "    <Parameter name='Type' type='string' value='Weighted Sum'/>                                         \n"
+  "    <Parameter name='Functions' type='Array(string)' value='{My Thermal Energy,My Mechanical Energy}'/> \n"
+  "    <Parameter name='Weights' type='Array(double)' value='{1.0, 1.0}'/>                                 \n"
+  "  </ParameterList>                                                                                      \n"
+  "  <ParameterList name='My Thermal Energy'>                                                              \n"
+  "    <Parameter name='Type'                 type='string' value='Scalar Function'/>                      \n"
+  "    <Parameter name='Scalar Function Type' type='string' value='Internal Thermal Energy'/>              \n"
+  "  </ParameterList>                                                                                      \n"
+  "  <ParameterList name='My Mechanical Energy'>                                                           \n"
+  "    <Parameter name='Type'                 type='string' value='Scalar Function'/>                      \n"
+  "    <Parameter name='Scalar Function Type' type='string' value='Kirchhoff Energy Potential'/>           \n"
+  "  </ParameterList>                                                                                      \n"
+  "</ParameterList>                                                                                        \n"
+"</ParameterList>                                                                                          \n"
 ); 
 
 TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, tComputeThermalDefGrad )
@@ -606,7 +1312,7 @@ TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, Residual )
     Kokkos::RangePolicy<>(0, tNumVerts), 
     KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
   { tTemp(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
-  tDatabase.vector("node_states",tTemp);
+  tDatabase.vector("node states",tTemp);
   // create control workset
   Plato::ScalarVector tControl("Controls", tNumVerts);
   Plato::blas1::fill(1.0, tControl);

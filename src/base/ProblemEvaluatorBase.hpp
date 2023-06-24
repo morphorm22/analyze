@@ -44,11 +44,10 @@ public:
   ) = 0;
 
   /// @fn residual
-  /// @brief evaluate residual
+  /// @brief evaluate residual, residual is save into the database
   /// @param [in,out] aDatabase range and domain database
-  /// @return residual vector
   virtual
-  Plato::ScalarVector 
+  void
   residual(
     Plato::Database & aDatabase
   ) = 0;

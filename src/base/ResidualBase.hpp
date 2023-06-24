@@ -10,6 +10,8 @@
 #include "Solutions.hpp"
 #include "SpatialModel.hpp"
 
+#include "elliptic/evaluators/problem/SupportedEllipticProblemOptions.hpp"
+
 namespace Plato
 {
 
@@ -53,6 +55,7 @@ public:
     return (mSpatialDomain.Mesh);
   }
 
+  /// @fn getDofNames
   /// @brief return database of degree of freedom names
   /// @return 
   const decltype(mDofNames)& 
@@ -61,6 +64,14 @@ public:
   {
     return mDofNames;
   }
+
+  /// @fn type
+  /// @brief get residual type
+  /// @return residual_t enum
+  virtual
+  Plato::Elliptic::residual_t
+  type() 
+  const =0;
 
   /// @fn getSolutionStateOutputData
   /// @brief get output solutions database

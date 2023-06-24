@@ -18,18 +18,18 @@ template<typename TopoElementTypeT, Plato::OrdinalType NumControls = 1>
 class ElectricalElement : public TopoElementTypeT, public ElementBase<TopoElementTypeT>
 {
 public:
-    using TopoElementTypeT::mNumNodesPerCell;
-    using TopoElementTypeT::mNumNodesPerFace;
-    using TopoElementTypeT::mNumSpatialDims;
+  using TopoElementTypeT::mNumNodesPerCell;
+  using TopoElementTypeT::mNumNodesPerFace;
+  using TopoElementTypeT::mNumSpatialDims;
+  using TopoElementType = TopoElementTypeT;
 
-    using TopoElementType = TopoElementTypeT;
+  static constexpr Plato::OrdinalType mNumDofsPerNode = 1;
+  static constexpr Plato::OrdinalType mNumDofsPerCell = mNumDofsPerNode*mNumNodesPerCell;
 
-    static constexpr Plato::OrdinalType mNumDofsPerNode = 1;
-    static constexpr Plato::OrdinalType mNumDofsPerCell = mNumDofsPerNode*mNumNodesPerCell;
-
-    static constexpr Plato::OrdinalType mNumControl = NumControls;
-    static constexpr Plato::OrdinalType mNumLocalDofsPerCell = 0;
-    static constexpr Plato::OrdinalType mNumNodeStatePerNode = 0;
+  static constexpr Plato::OrdinalType mNumControl = NumControls;
+  static constexpr Plato::OrdinalType mNumLocalDofsPerCell = 0;
+  static constexpr Plato::OrdinalType mNumNodeStatePerNode = 0;
+  static constexpr Plato::OrdinalType mNumNodeStatePerCell = mNumNodeStatePerNode * mNumNodesPerCell;
 };
 // class ElectricalElement 
 

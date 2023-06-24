@@ -120,7 +120,7 @@ analyze(
 }
 
 template<typename PhysicsType>
-Plato::ScalarVector 
+void
 ProblemEvaluatorOnePhysics<PhysicsType>::
 residual(
   Plato::Database & aDatabase
@@ -128,7 +128,8 @@ residual(
 {
   this->updateDatabase(aDatabase);
   const Plato::Scalar tCycle = aDatabase.scalar("cycle");
-  return (mResidualEvaluator->value(aDatabase,tCycle));
+  auto tResidual = mResidualEvaluator->value(aDatabase,tCycle);
+  // residual is not saved into the database
 }
 
 template<typename PhysicsType>
@@ -219,7 +220,7 @@ getErrorMsg(
     tMsg = tMsg + "'" + tPair.first + "', ";
   }
   auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
-  tSubMsg += ". The parameter list name and criterion 'Type' argument must match.";
+  tSubMsg += ". The parameter list name and criterion ('Functions') criterion name argument must match.";
   return tSubMsg;
 }
 
@@ -321,7 +322,7 @@ initializeEvaluators(
       const Teuchos::ParameterEntry & tEntry = tCriteriaParams.entry(tIndex);
       std::string tCriterionName = tCriteriaParams.name(tIndex);
       TEUCHOS_TEST_FOR_EXCEPTION(!tEntry.isList(), std::logic_error,
-        " Parameter in Criteria block not valid.  Expect lists only.");
+        " Parameter in Criteria block not valid. Expect parameter lists only.");
       auto tCriterion = tCriterionFactory.create(mSpatialModel,mDataMap,aParamList,tCriterionName);
       if( tCriterion != nullptr )
       {
@@ -340,8 +341,9 @@ readEssentialBoundaryConditions(
 {
   if(aParamList.isSublist("Essential Boundary Conditions") == false)
   { ANALYZE_THROWERR("ERROR: Essential boundary conditions parameter list is not defined in input deck") }
-  Plato::EssentialBCs<ElementType>
-  tEssentialBoundaryConditions(aParamList.sublist("Essential Boundary Conditions", false), mSpatialModel.Mesh);
+  Plato::EssentialBCs<ElementType> tEssentialBoundaryConditions(
+    aParamList.sublist("Essential Boundary Conditions", false), mSpatialModel.Mesh
+  );
   tEssentialBoundaryConditions.get(mDirichletDofs, mDirichletStateVals);
   
   if(aParamList.isType<bool>("Weak Essential Boundary Conditions"))

@@ -33,25 +33,30 @@ class VectorFunction : public VectorFunctionBase
 private:
   /// @brief topological element type
   using ElementType = typename PhysicsType::ElementType;
-  /// @brief number of nodes per element
-  static constexpr auto mNumNodesPerCell       = ElementType::mNumNodesPerCell;
-  /// @brief number of nodes per element face
-  static constexpr auto mNumNodesPerFace       = ElementType::mNumNodesPerFace;
-  /// @brief number of degrees of freedom per node
-  static constexpr auto mNumDofsPerNode        = ElementType::mNumDofsPerNode;
-  /// @brief number of degrees of freedom per cell
-  static constexpr auto mNumDofsPerCell        = ElementType::mNumDofsPerCell;
   /// @brief number of spatial dimensions
-  static constexpr auto mNumSpatialDims        = ElementType::mNumSpatialDims;
+  static constexpr auto mNumSpatialDims          = ElementType::mNumSpatialDims;
+  /// @brief number of nodes per element
+  static constexpr auto mNumNodesPerCell         = ElementType::mNumNodesPerCell;
+  /// @brief number of nodes per element face
+  static constexpr auto mNumNodesPerFace         = ElementType::mNumNodesPerFace;
+  /// @brief number of state degrees of freedom per node
+  static constexpr auto mNumStateDofsPerNode     = ElementType::mNumDofsPerNode;
+  /// @brief number of state degrees of freedom per cell
+  static constexpr auto mNumStateDofsPerCell     = ElementType::mNumDofsPerCell;
+  /// @brief number of node state degrees of freedom per node
+  static constexpr auto mNumNodeStateDofsPerNode = ElementType::mNumNodeStatePerNode;
+  /// @brief number of node state degrees of freedom per cell
+  static constexpr auto mNumNodeStateDofsPerCell = ElementType::mNumNodeStatePerCell;
   /// @brief number of control degree of freedoms per node
-  static constexpr auto mNumControlDofsPerNode = ElementType::mNumControl;
+  static constexpr auto mNumControlDofsPerNode   = ElementType::mNumControl;
   /// @brief number of configuration degress of freedom per element
-  static constexpr auto mNumConfigDofsPerCell = mNumSpatialDims*mNumNodesPerCell;
+  static constexpr auto mNumConfigDofsPerCell    = mNumSpatialDims * mNumNodesPerCell;
   /// @brief scalar types for a given evaluation type
   using ResidualEvalType  = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
   using JacobianUEvalType = typename Plato::Elliptic::Evaluation<ElementType>::Jacobian;
   using JacobianXEvalType = typename Plato::Elliptic::Evaluation<ElementType>::GradientX;
   using JacobianZEvalType = typename Plato::Elliptic::Evaluation<ElementType>::GradientZ;
+  using JacobianNEvalType = typename Plato::Elliptic::Evaluation<ElementType>::GradientN;
   /// @brief domain (element block) to residual map
   std::unordered_map<std::string,std::shared_ptr<Plato::ResidualBase>> mResiduals;
   /// @brief domain (element block) to jacobian with respect to states map
@@ -60,6 +65,8 @@ private:
   std::unordered_map<std::string,std::shared_ptr<Plato::ResidualBase>> mJacobiansX;
   /// @brief domain (element block) to jacobian with respect to controls map
   std::unordered_map<std::string,std::shared_ptr<Plato::ResidualBase>> mJacobiansZ;
+  /// @brief domain (element block) to jacobian with respect to node states map
+  std::unordered_map<std::string,std::shared_ptr<Plato::ResidualBase>> mJacobiansN;
   /// @brief output database
   Plato::DataMap & mDataMap;
   /// @brief contains mesh and model information
@@ -82,6 +89,13 @@ public:
 
   /// @brief class destructor
   ~VectorFunction(){}
+
+  /// @fn type
+  /// @brief get vector function type, which is set by the residual evaluator type
+  /// @return residual_t enum
+  Plato::Elliptic::residual_t
+  type() 
+  const;
 
   /// @fn numDofs
   /// @brief return number of degress of freedom per node
@@ -133,7 +147,7 @@ public:
   const;
 
   /// @fn getDofNames
-  /// @brief return list of degree of freedom names
+  /// @brief return list with the degree of freedom names
   /// @return standard vector
   std::vector<std::string> 
   getDofNames() 
@@ -170,6 +184,19 @@ public:
     const Plato::Database & aDatabase,
     const Plato::Scalar   & aCycle,
           bool              aTranspose = true
+  );
+
+  /// @fn jacobianNodeState
+  /// @brief evaluate jacobian with respect to node states
+  /// @param [in] aDatabase  function domain and range database
+  /// @param [in] aCycle     scalar, e.g.; time step
+  /// @param [in] aTranspose apply transpose
+  /// @return teuchos reference counter pointer 
+  Teuchos::RCP<Plato::CrsMatrixType>
+  jacobianNodeState(
+    const Plato::Database & aDatabase,
+    const Plato::Scalar   & aCycle,
+          bool              aTranspose
   );
 
   /// @fn jacobianConfig
