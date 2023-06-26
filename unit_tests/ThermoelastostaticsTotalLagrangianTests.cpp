@@ -382,21 +382,61 @@ private:
     }
   }
 
-  void
+  Plato::ScalarVector 
+  adjointThermalPhysics(
+    const Criterion           & aCriterion,
+    const Plato::Database     & aDatabase,
+    const Plato::ScalarVector & aMechAdjoints
+  )
+  {
+    // compute gradient with respect to node states
+    const Plato::Scalar tCycle = aDatabase.scalar("cycle");
+    auto tRightHandSideVector = aCriterion->gradientNodeState(aDatabase,tCycle);
+    // compute jacobian of mechanical residual with respect to node states
+    auto tMechanicalResidualItr = mResidualEvaluators.find(mMechanicalResidualType);
+    Teuchos::RCP<Plato::CrsMatrixType> tMechJacobianNodeState = 
+      tMechanicalResidualItr->second->jacobianNodeState(aDatabase,tCycle,/*transpose=*/true);
+    // add mechanical residual contribution to right hand side vector 
+    Plato::MatrixTimesVectorPlusVector(tMechJacobianNodeState,aMechAdjoints,tRightHandSideVector);
+    // compute additive inverse of the right hand side vector 
+    Plato::blas1::scale(-1.0,tRightHandSideVector);
+    // compute jacobian of node state residual with respect to node states
+    auto tThermalResidualItr = mResidualEvaluators.find(mThermalResidualType);
+    Teuchos::RCP<Plato::CrsMatrixType> tTempJacobianState = 
+      tThermalResidualItr->second->jacobianState(aDatabase,tCycle,/*transpose=*/true);
+    // enforce dirichlet boundary conditons 
+    if( mWeakEBCs ){ 
+      this->enforceWeakEssentialAdjointBoundaryConditions(tThermalResidualItr.operator*(),aDatabase); 
+    }
+    else{ 
+      this->enforceStrongEssentialAdjointBoundaryConditions(
+        tThermalResidualItr.operator*(),tTempJacobianState,tRightHandSideVector
+      ); 
+    }
+    // solve adjoint system of equations
+    auto tNumTempStates = mSpatialModel.Mesh->NumNodes() * tThermalResidualItr->second->numStateDofsPerNode();
+    Plato::ScalarVector tTempAdjoints("thermal adjoints",tNumTempStates);
+    mLinearSolvers[tThermalResidualItr->second->type()]->solve(
+      *tTempJacobianState,tTempAdjoints,tRightHandSideVector,/*isAdjointSolve=*/true
+    );
+    return tTempAdjoints;
+  }
+
+  Plato::ScalarVector
   adjointMechanicalPhysics(
     const Criterion       & aCriterion,
-    const Plato::Database & aDatabase,
-    Plato::ScalarVector   & aGradControl
+    const Plato::Database & aDatabase
   )
   {
     auto tResidualItr = mResidualEvaluators.find(mMechanicalResidualType);
-        // compute gradient with respect to state variables
+    // compute gradient with respect to state variables
     const Plato::Scalar tCycle = aDatabase.scalar("cycle");
     auto tGradientState = aCriterion->gradientState(aDatabase,tCycle);
     Plato::blas1::scale(-1.0, tGradientState);
     // compute jacobian with respect to state variables
     Teuchos::RCP<Plato::CrsMatrixType> tJacobianState = 
       tResidualItr->second->jacobianState(aDatabase,tCycle,/*transpose=*/true);
+    // enforce dirichlet boundary conditons 
     if( mWeakEBCs )
     { this->enforceWeakEssentialAdjointBoundaryConditions(tResidualItr.operator*(),aDatabase); }
     else
@@ -407,10 +447,7 @@ private:
     mLinearSolvers[tResidualItr->second->type()]->solve(
       *tJacobianState,tAdjoints,tGradientState,/*isAdjointSolve=*/true
     );
-    // compute jacobian with respect to control variables
-    auto tJacobianControl = tResidualItr->second->jacobianControl(aDatabase,tCycle,/*transpose=*/true);
-    // add mechanical residual contribution to gradient with respect to control variables
-    Plato::MatrixTimesVectorPlusVector(tJacobianControl,tAdjoints,aGradControl);
+    return tAdjoints;
   }
 
   Plato::ScalarVector 
@@ -429,7 +466,21 @@ private:
     if( aCriterion->isLinear() == false )
     {
       // compute mechanical adjoints
-      this->adjointMechanicalPhysics(aCriterion,aDatabase,tGradientControl);
+      Plato::ScalarVector tMechAdjoints = this->adjointMechanicalPhysics(aCriterion,aDatabase);
+      // compute jacobian of mechanical residual with respect to the controls
+      auto tMechResidualItr = mResidualEvaluators.find(mMechanicalResidualType);
+      Teuchos::RCP<Plato::CrsMatrixType> tMechJacobianControl = 
+        tMechResidualItr->second->jacobianControl(aDatabase,tCycle,/*transpose=*/true);
+      // add mechanical residual contribution to gradient with respect to the controls
+      Plato::MatrixTimesVectorPlusVector(tMechJacobianControl,tMechAdjoints,tGradientControl);
+      // compute thermal adjoints
+      Plato::ScalarVector tTempAdjoints = this->adjointThermalPhysics(aCriterion,aDatabase,tMechAdjoints);
+      // compute jacobian of thermal residual with respect to the controls
+      auto tThermalResidualItr = mResidualEvaluators.find(mThermalResidualType);
+      Teuchos::RCP<Plato::CrsMatrixType> tTempJacobianControl = 
+        tThermalResidualItr->second->jacobianControl(aDatabase,tCycle,/*transpose=*/true);
+      // add thermal residual contribution to gradient with respect to the controls
+      Plato::MatrixTimesVectorPlusVector(tTempJacobianControl,tTempAdjoints,tGradientControl);
     }
     return tGradientControl; 
   }
@@ -445,13 +496,28 @@ private:
     }
     // compute criterion contribution to the gradient
     const Plato::Scalar tCycle = aDatabase.scalar("cycle");
-    auto tGradientConfig  = aCriterion->gradientConfig(aDatabase, tCycle);
+    auto tGradientConfig = aCriterion->gradientConfig(aDatabase,tCycle);
     // add residual contribution to the gradient
     if( aCriterion->isLinear() == false )
     {
       // compute mechanical adjoints
+      Plato::ScalarVector tMechAdjoints = this->adjointMechanicalPhysics(aCriterion,aDatabase);
+      // compute jacobian of mechanical residual with respect to the controls
+      auto tMechResidualItr = mResidualEvaluators.find(mMechanicalResidualType);
+      Teuchos::RCP<Plato::CrsMatrixType> tMechJacobianConfig = 
+        tMechResidualItr->second->jacobianConfig(aDatabase,tCycle,/*transpose=*/true);
+      // add mechanical residual contribution to gradient with respect to the controls
+      Plato::MatrixTimesVectorPlusVector(tMechJacobianConfig,tMechAdjoints,tGradientConfig);
+      // compute thermal adjoints
+      Plato::ScalarVector tTempAdjoints = this->adjointThermalPhysics(aCriterion,aDatabase,tMechAdjoints);
+      // compute jacobian of thermal residual with respect to the controls
+      auto tThermalResidualItr = mResidualEvaluators.find(mThermalResidualType);
+      Teuchos::RCP<Plato::CrsMatrixType> tTempJacobianConfig = 
+        tThermalResidualItr->second->jacobianConfig(aDatabase,tCycle,/*transpose=*/true);
+      // add thermal residual contribution to gradient with respect to the controls
+      Plato::MatrixTimesVectorPlusVector(tTempJacobianConfig,tTempAdjoints,tGradientConfig);
     }
-    return tGradientConfig;
+    return tGradientConfig; 
   }
 
 void 

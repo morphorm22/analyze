@@ -45,7 +45,6 @@ VectorFunction(
   }
 }
 
-
 template<typename PhysicsType>
 Plato::Elliptic::residual_t
 VectorFunction<PhysicsType>::
@@ -65,6 +64,7 @@ const
   auto tNumNodes = mSpatialModel.Mesh->NumNodes();
   return (tNumNodes*mNumStateDofsPerNode);
 }
+
 template<typename PhysicsType>
 Plato::OrdinalType 
 VectorFunction<PhysicsType>::
