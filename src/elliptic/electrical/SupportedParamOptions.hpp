@@ -13,6 +13,9 @@
 namespace Plato
 {
 
+namespace Elliptic
+{
+  
 /// @namespace electrical
 /// @brief electrical physics namespace
 namespace electrical 
@@ -31,8 +34,8 @@ struct ResidualEnum
 {
 private:
   /// @brief map from string to supported electrical residual enum
-  std::unordered_map<std::string,Plato::electrical::residual> s2e = {
-      {"elliptic",Plato::electrical::residual::STEADY_STATE_CURRENT}
+  std::unordered_map<std::string,Plato::Elliptic::electrical::residual> s2e = {
+      {"elliptic",Plato::Elliptic::electrical::residual::STEADY_STATE_CURRENT}
   };
 
 public:
@@ -40,8 +43,10 @@ public:
   ///   throw error if requested residual is not supported
   /// @param [in] aInput string residual type
   /// @return electrical residual enum
-  Plato::electrical::residual 
-  get(const std::string &aInput) 
+  Plato::Elliptic::electrical::residual 
+  get(
+    const std::string &aInput
+  ) 
   const;
 
 private:
@@ -49,7 +54,9 @@ private:
   /// @param [in] aInProperty input string - parsed from input file
   /// @return string
   std::string
-  getErrorMsg(const std::string & aInProperty)
+  getErrorMsg(
+    const std::string & aInProperty
+  )
   const;
 };
 
@@ -69,9 +76,9 @@ struct CriterionEnum
 {
 private:
   /// @brief map from string to supported electrical criterion enum
-  std::unordered_map<std::string,Plato::electrical::criterion> s2e = {
-      {"two-phase power surface density",Plato::electrical::criterion::TWO_PHASE_POWER_SURFACE_DENSITY},
-      {"two-phase volume"               ,Plato::electrical::criterion::TWO_PHASE_VOLUME}
+  std::unordered_map<std::string,Plato::Elliptic::electrical::criterion> s2e = {
+      {"two-phase power surface density",Plato::Elliptic::electrical::criterion::TWO_PHASE_POWER_SURFACE_DENSITY},
+      {"two-phase volume"               ,Plato::Elliptic::electrical::criterion::TWO_PHASE_VOLUME}
   };
 
 public:
@@ -79,8 +86,10 @@ public:
   ///   throw error if requested criterion is not supported
   /// @param [in] aInput string property
   /// @return electrical criterion enum
-  Plato::electrical::criterion 
-  get(const std::string &aInput) 
+  Plato::Elliptic::electrical::criterion 
+  get(
+    const std::string &aInput
+  ) 
   const;
 
 private:
@@ -88,7 +97,9 @@ private:
   /// @param [in] aInProperty input string - parsed from input file
   /// @return string
   std::string
-  getErrorMsg(const std::string & aInProperty)
+  getErrorMsg(
+    const std::string & aInProperty
+  )
   const;
 };
 
@@ -109,10 +120,10 @@ struct MaterialEnum
 {
 private:
   /// @brief map from string to supported electrical material constitutive model enum
-  std::unordered_map<std::string,Plato::electrical::material> s2e = {
-      {"two phase conductive",Plato::electrical::material::TWO_PHASE_CONDUCTIVE},
-      {"conductive"          ,Plato::electrical::material::CONDUCTIVE},
-      {"dielectric"          ,Plato::electrical::material::DIELECTRIC}
+  std::unordered_map<std::string,Plato::Elliptic::electrical::material> s2e = {
+      {"two phase conductive",Plato::Elliptic::electrical::material::TWO_PHASE_CONDUCTIVE},
+      {"conductive"          ,Plato::Elliptic::electrical::material::CONDUCTIVE},
+      {"dielectric"          ,Plato::Elliptic::electrical::material::DIELECTRIC}
   };
 
 public:
@@ -120,8 +131,10 @@ public:
   ///   throw error if requested material material constitutive model is not supported
   /// @param [in] aInput input material constitutive model string
   /// @return electrical material constitutive model enum
-  Plato::electrical::material 
-  get(const std::string &aInput) 
+  Plato::Elliptic::electrical::material 
+  get(
+    const std::string &aInput
+  ) 
   const;
 
 private:
@@ -129,7 +142,9 @@ private:
   /// @param [in] aInProperty input string - parsed from input file
   /// @return string
   std::string
-  getErrorMsg(const std::string & aInProperty)
+  getErrorMsg(
+    const std::string & aInProperty
+  )
   const;
 };
 
@@ -155,14 +170,14 @@ struct PropEnum
 {
 private:
   /// @brief map from string to supported electrical property enum
-  std::unordered_map<std::string,Plato::electrical::property> s2e = {
-      {"electrical conductivity"     ,Plato::electrical::property::ELECTRICAL_CONDUCTIVITY},
-      {"out-of-plane thickness"      ,Plato::electrical::property::OUT_OF_PLANE_THICKNESS},
-      {"material name"               ,Plato::electrical::property::MATERIAL_NAME},
-      {"electrical constant"         ,Plato::electrical::property::ELECTRICAL_CONSTANT},
-      {"relative static permittivity",Plato::electrical::property::RELATIVE_STATIC_PERMITTIVITY},
-      {"penalty exponent"            ,Plato::electrical::property::TO_ERSATZ_MATERIAL_EXPONENT},
-      {"minimum value"               ,Plato::electrical::property::TO_MIN_ERSATZ_MATERIAL_VALUE}    
+  std::unordered_map<std::string,Plato::Elliptic::electrical::property> s2e = {
+    {"electrical conductivity"     ,Plato::Elliptic::electrical::property::ELECTRICAL_CONDUCTIVITY},
+    {"out-of-plane thickness"      ,Plato::Elliptic::electrical::property::OUT_OF_PLANE_THICKNESS},
+    {"material name"               ,Plato::Elliptic::electrical::property::MATERIAL_NAME},
+    {"electrical constant"         ,Plato::Elliptic::electrical::property::ELECTRICAL_CONSTANT},
+    {"relative static permittivity",Plato::Elliptic::electrical::property::RELATIVE_STATIC_PERMITTIVITY},
+    {"penalty exponent"            ,Plato::Elliptic::electrical::property::TO_ERSATZ_MATERIAL_EXPONENT},
+    {"minimum value"               ,Plato::Elliptic::electrical::property::TO_MIN_ERSATZ_MATERIAL_VALUE}    
   };
 
 public:
@@ -170,8 +185,10 @@ public:
   ///   throw error if requested material property is not supported
   /// @param [in] aInput string property
   /// @return electrical property enum
-  Plato::electrical::property 
-  get(const std::string &aInput) 
+  Plato::Elliptic::electrical::property 
+  get(
+    const std::string &aInput
+  ) 
   const;
 
 private:
@@ -179,7 +196,9 @@ private:
   /// @param [in] aInProperty input string - parsed from input file
   /// @return string
   std::string
-  getErrorMsg(const std::string & aInProperty)
+  getErrorMsg(
+    const std::string & aInProperty
+  )
   const;
 };
 
@@ -198,8 +217,8 @@ struct SourceEvaluatorEnum
 {
 private:
   /// @brief map from input string to supported electrical source evaluator
-  std::unordered_map<std::string,Plato::electrical::source_evaluator> s2e = {
-    {"weighted sum",Plato::electrical::source_evaluator::WEIGHTED_SUM}
+  std::unordered_map<std::string,Plato::Elliptic::electrical::source_evaluator> s2e = {
+    {"weighted sum",Plato::Elliptic::electrical::source_evaluator::WEIGHTED_SUM}
   };
 
 public:
@@ -207,8 +226,10 @@ public:
   ///   throw error if requested source evaluator is not supported
   /// @param [in] aInput string property
   /// @return source evaluator enum
-  Plato::electrical::source_evaluator 
-  get(const std::string &aInput) 
+  Plato::Elliptic::electrical::source_evaluator 
+  get(
+    const std::string &aInput
+  ) 
   const;
 
 private:
@@ -216,7 +237,9 @@ private:
   /// @param [in] aInProperty input string - parsed from input file
   /// @return string
   std::string
-  getErrorMsg(const std::string & aInProperty)
+  getErrorMsg(
+    const std::string & aInProperty
+  )
   const;
 };
 
@@ -236,12 +259,12 @@ struct CurrentDensitySourceEvaluatorEnum
 {
 private:
   /// @brief map from input string to supported current density evaluator
-  std::unordered_map<std::string,Plato::electrical::current_density_evaluator> s2e = {
+  std::unordered_map<std::string,Plato::Elliptic::electrical::current_density_evaluator> s2e = {
     {"two phase dark current density"           ,
-      Plato::electrical::current_density_evaluator::TWO_PHASE_DARK_CURRENT_DENSITY
+      Plato::Elliptic::electrical::current_density_evaluator::TWO_PHASE_DARK_CURRENT_DENSITY
     },
     {"two phase light-generated current density",
-      Plato::electrical::current_density_evaluator::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY
+      Plato::Elliptic::electrical::current_density_evaluator::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY
     }
   };
 
@@ -250,8 +273,10 @@ public:
   ///   throw error if requested current density evaluator is not supported
   /// @param [in] aInput input string
   /// @return supported enum
-  Plato::electrical::current_density_evaluator 
-  get(const std::string &aInput) 
+  Plato::Elliptic::electrical::current_density_evaluator 
+  get(
+    const std::string &aInput
+  ) 
   const;
 
 private:
@@ -259,7 +284,9 @@ private:
   /// @param [in] aInProperty input string - parsed from input file
   /// @return string
   std::string
-  getErrorMsg(const std::string & aInProperty)
+  getErrorMsg(
+    const std::string & aInProperty
+  )
   const;
 };
 
@@ -298,26 +325,33 @@ struct CurrentDensityEnum
 private:
   /// @brief map from supported current density evaluator enum and supported current density model
   std::unordered_map<
-    Plato::electrical::current_density_evaluator,
-    std::unordered_map<std::string,std::pair<Plato::electrical::current_density,Plato::electrical::response>>
-  > s2e = 
+    Plato::Elliptic::electrical::current_density_evaluator,
+    std::unordered_map<
+      std::string,std::pair<Plato::Elliptic::electrical::current_density,Plato::Elliptic::electrical::response>>> 
+  s2e = 
   {
     {
-      Plato::electrical::current_density_evaluator::TWO_PHASE_DARK_CURRENT_DENSITY, 
+      Plato::Elliptic::electrical::current_density_evaluator::TWO_PHASE_DARK_CURRENT_DENSITY, 
       { 
-        { "quadratic",{Plato::electrical::current_density::DARK,Plato::electrical::response::NONLINEAR} }
+        { 
+          "quadratic",
+          {Plato::Elliptic::electrical::current_density::DARK,Plato::Elliptic::electrical::response::NONLINEAR}
+        }
       } 
     },
     {
-      Plato::electrical::current_density_evaluator::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY, 
+      Plato::Elliptic::electrical::current_density_evaluator::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY, 
       { 
-        { "constant",{Plato::electrical::current_density::LIGHT,Plato::electrical::response::LINEAR} }
+        { 
+          "constant",
+          {Plato::Elliptic::electrical::current_density::LIGHT,Plato::Elliptic::electrical::response::LINEAR} 
+        }
       } 
     }
   };
 
   /// @brief interface between input string and supported current density evaluators
-  Plato::electrical::CurrentDensitySourceEvaluatorEnum mSourceTermEnums;
+  Plato::Elliptic::electrical::CurrentDensitySourceEvaluatorEnum mSourceTermEnums;
 
 public:
   /// @brief Return current density model enum associated with input function and model string,
@@ -325,7 +359,7 @@ public:
   /// @param [in] aFunction current density evaluator string
   /// @param [in] aModel    current density model string
   /// @return enum
-  Plato::electrical::current_density 
+  Plato::Elliptic::electrical::current_density 
   current_density(
     const std::string & aFunction,
     const std::string & aModel
@@ -336,7 +370,7 @@ public:
   /// @param [in] aFunction current density evaluator string
   /// @param [in] aModel    current density model string
   /// @return enum
-  Plato::electrical::response
+  Plato::Elliptic::electrical::response
   response(
     const std::string & aFunction,
     const std::string & aModel
@@ -356,6 +390,8 @@ private:
 
 }
 // namespace electrical 
+
+} // namespace Elliptic
 
 }
 // namespace Plato

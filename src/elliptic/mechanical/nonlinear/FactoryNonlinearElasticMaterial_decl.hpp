@@ -26,7 +26,7 @@ private:
     /// @brief const reference to input problem parameter list
     const Teuchos::ParameterList& mParamList;
     /// @brief supported mechanical materials interface
-    Plato::mechanical::MaterialEnum mS2E;
+    Plato::Elliptic::mechanical::MaterialEnum mS2E;
 
 public:
   /// @brief class constructor

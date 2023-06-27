@@ -47,13 +47,15 @@ createLeastSquaresFunction(
         Teuchos::ParameterList & aInputParams
 )
 {
-  auto tProblemFunctionName = aInputParams.sublist("Criteria").sublist(mFunctionName);
+  auto tProblemFunctionName       = aInputParams.sublist("Criteria").sublist(mFunctionName);
   auto tPropertyNamesTeuchos      = tProblemFunctionName.get<Teuchos::Array<std::string>>("Properties");
   auto tPropertyWeightsTeuchos    = tProblemFunctionName.get<Teuchos::Array<Plato::Scalar>>("Weights");
   auto tPropertyGoldValuesTeuchos = tProblemFunctionName.get<Teuchos::Array<Plato::Scalar>>("Gold Values");
+
   auto tPropertyNames      = tPropertyNamesTeuchos.toVector();
   auto tPropertyWeights    = tPropertyWeightsTeuchos.toVector();
   auto tPropertyGoldValues = tPropertyGoldValuesTeuchos.toVector();
+  
   if (tPropertyNames.size() != tPropertyWeights.size())
   {
     const std::string tErrorString = std::string("Number of 'Properties' in '") + mFunctionName + 

@@ -24,9 +24,9 @@ private:
     /// @brief number of spatial dimensions 
     static constexpr int mNumSpatialDims = ElementType::mNumSpatialDims;
     /// @brief map from input string to supported electrical material property
-    Plato::electrical::PropEnum mS2E;
+    Plato::Elliptic::electrical::PropEnum mS2E;
     /// @brief map from electrical material property enum to list of material property values saved as a string
-    std::unordered_map<Plato::electrical::property,std::vector<std::string>> mProperties;
+    std::unordered_map<Plato::Elliptic::electrical::property,std::vector<std::string>> mProperties;
 
 public:
     /// @brief class constructor

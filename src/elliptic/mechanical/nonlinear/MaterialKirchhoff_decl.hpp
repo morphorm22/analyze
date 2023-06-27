@@ -28,9 +28,9 @@ private:
     /// @brief number of spatial dimensions 
     static constexpr int mNumSpatialDims = ElementType::mNumSpatialDims;
     /// @brief map from input string to supported mechanical property
-    Plato::mechanical::PropEnum mS2E;
+    Plato::Elliptic::mechanical::PropEnum mS2E;
     /// @brief map from mechanical property enum to list of property values in string format
-    std::unordered_map<Plato::mechanical::property,std::vector<std::string>> mProperties;
+    std::unordered_map<Plato::Elliptic::mechanical::property,std::vector<std::string>> mProperties;
 
 public:
   /// @brief class constructor

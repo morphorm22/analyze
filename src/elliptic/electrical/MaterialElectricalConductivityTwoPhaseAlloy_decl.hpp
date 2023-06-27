@@ -48,9 +48,9 @@ private:
     /// @brief list of out-of-plane material thicknesses
     std::vector<Plato::Scalar> mOutofPlaneThickness;
     /// @brief map from input property string to supported material property enum
-    Plato::electrical::PropEnum mS2E; 
+    Plato::Elliptic::electrical::PropEnum mS2E; 
     /// @brief map from material property to list of material property values in string format
-    std::unordered_map<Plato::electrical::property,std::vector<std::string>> mProperties;
+    std::unordered_map<Plato::Elliptic::electrical::property,std::vector<std::string>> mProperties;
 
 public:
     /// @brief class constructor

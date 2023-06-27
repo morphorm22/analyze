@@ -51,12 +51,12 @@ struct FunctionFactory
           std::string              aTypePDE
   )
   {
-    Plato::electrical::ResidualEnum tSupportedResidual;
+    Plato::Elliptic::electrical::ResidualEnum tSupportedResidual;
     auto tResidual = tSupportedResidual.get(aTypePDE);
     switch (tResidual)
     {
     default:
-    case Plato::electrical::residual::STEADY_STATE_CURRENT:
+    case Plato::Elliptic::electrical::residual::STEADY_STATE_CURRENT:
       return 
         (std::make_shared<Plato::ResidualSteadyStateCurrent<EvaluationType>>(aSpatialDomain, aDataMap, aParamList));
       break;
@@ -82,15 +82,15 @@ struct FunctionFactory
           std::string              aFuncName
   )
   {
-    Plato::electrical::CriterionEnum tSupportedCriterion;
+    Plato::Elliptic::electrical::CriterionEnum tSupportedCriterion;
     auto tCriterion = tSupportedCriterion.get(aCriterionType);
     switch (tCriterion)
     {
-    case Plato::electrical::criterion::TWO_PHASE_POWER_SURFACE_DENSITY:
+    case Plato::Elliptic::electrical::criterion::TWO_PHASE_POWER_SURFACE_DENSITY:
       return ( std::make_shared<Plato::CriterionPowerSurfaceDensityTwoPhase<EvaluationType>>(
         aSpatialDomain, aDataMap, aParamList, aFuncName) );
       break;
-    case Plato::electrical::criterion::TWO_PHASE_VOLUME:
+    case Plato::Elliptic::electrical::criterion::TWO_PHASE_VOLUME:
       return ( std::make_shared<Plato::CriterionVolumeTwoPhase<EvaluationType>>(
         aSpatialDomain, aDataMap, aParamList, aFuncName) );
       break;  

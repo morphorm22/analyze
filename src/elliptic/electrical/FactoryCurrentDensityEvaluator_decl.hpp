@@ -22,7 +22,7 @@ private:
   /// @brief input material parameter list name
   std::string mMaterialName;
   /// @brief map from input material constitutive model string to supported material constitutive model enum
-  Plato::electrical::MaterialEnum mS2E;
+  Plato::Elliptic::electrical::MaterialEnum mS2E;
   /// @brief reference to input problem parameter database
   Teuchos::ParameterList & mParamList;
 

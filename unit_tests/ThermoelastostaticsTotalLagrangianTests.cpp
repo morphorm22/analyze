@@ -44,11 +44,122 @@ namespace Plato
 namespace Elliptic
 {
 
+namespace thermomechanical
+{
+
+/// @enum residual
+/// @brief supported residual enums for thermomechanical physics
+enum struct residual
+{
+  LINEAR_THERMO_MECHANICS=0,
+  NONLINEAR_THERMO_MECHANICS=1
+};
+
+/// @struct ResidualEnum
+/// @brief Interface between input state response type input and supported thermomechanical residual 
+struct ResidualEnum
+{
+private:
+  /// @brief map from state response type to supported thermomechanical residual enum
+  std::unordered_map<std::string,Plato::Elliptic::thermomechanical::residual> s2e = 
+  {
+    {"linear"   ,Plato::Elliptic::thermomechanical::residual::LINEAR_THERMO_MECHANICS},
+    {"nonlinear",Plato::Elliptic::thermomechanical::residual::NONLINEAR_THERMO_MECHANICS}
+  };
+
+public:
+  /// @brief return supported  elliptic thermomechanical residual enum
+  /// @param [in] aResponse state response, linear or nonlinear
+  /// @return residual enum
+  Plato::Elliptic::thermomechanical::residual 
+  get(
+    const std::string & aResponse
+  ) 
+  const
+  {
+    auto tLowerResponse = Plato::tolower(aResponse);
+    auto tItrResponse = s2e.find(tLowerResponse);
+    if( tItrResponse == s2e.end() ){
+      auto tMsg = this->getErrorMsg(tLowerResponse);
+      ANALYZE_THROWERR(tMsg)
+    }
+    return tItrResponse->second;
+  }
+
+private:
+  /// @fn getErrorMsg
+  /// @brief Return error message if response is not supported
+  /// @param [in] aResponse string - response type, linear or nonlinear
+  /// @return error message string
+  std::string
+  getErrorMsg(
+    const std::string & aResponse
+  )
+  const
+  {
+    auto tMsg = std::string("Did not find response '") + aResponse 
+      + "'. Supported response options are: ";
+    for(const auto& tPair : s2e){
+      tMsg = tMsg + "'" + tPair.first + "', ";
+    }
+    auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
+    return tSubMsg;
+  }
+};
+
+} // namespace thermomechanical
+
 namespace NonlinearThermoMechanics
 {
 
 struct FunctionFactory
 {
+  template<typename EvaluationType>
+  std::shared_ptr<Plato::ResidualBase>
+  createVectorFunction(
+    const Plato::SpatialDomain   & aSpatialDomain,
+          Plato::DataMap         & aDataMap,
+          Teuchos::ParameterList & aParamList,
+          std::string              aTypePDE
+  )
+  {  
+    if( !aParamList.sublist(aTypePDE).isSublist("Mechanical Residual") ){ 
+      ANALYZE_THROWERR("ERROR: 'Mechanical Residual' parameter list not found!"); 
+    }
+    else{
+      auto tMechResidualParamList = aParamList.sublist(aTypePDE).sublist("Mechanical Residual");
+      auto tResponse = tMechResidualParamList.get<std::string>("Response","linear");
+      Plato::Elliptic::thermomechanical::ResidualEnum tSupportedResidual;
+      auto tResidual = tSupportedResidual.get(tResponse);
+      switch (tResidual)
+      {
+      case Plato::Elliptic::thermomechanical::residual::NONLINEAR_THERMO_MECHANICS:
+        return 
+          (std::make_shared<Plato::Elliptic::ResidualThermoElastoStaticTotalLagrangian<EvaluationType>>(
+            aSpatialDomain, aDataMap, aParamList
+          ));
+        break;
+      case Plato::Elliptic::thermomechanical::residual::LINEAR_THERMO_MECHANICS:
+      default:
+        ANALYZE_THROWERR("ERROR: Requested 'Mechanical Residual' is not supported!"); 
+        break;
+      }
+    }
+  }
+
+  template<typename EvaluationType>
+  std::shared_ptr<Plato::CriterionBase>
+  createScalarFunction(
+    const Plato::SpatialDomain   & aSpatialDomain,
+          Plato::DataMap         & aDataMap, 
+          Teuchos::ParameterList & aProblemParams, 
+          std::string              aFuncType,
+          std::string              aFuncName
+  )
+  {  
+    ANALYZE_THROWERR("ERROR: Requested 'Scalar Function' is not supported");
+  }
+
 };
 
 } // namespace NonlinearThermoMechanics

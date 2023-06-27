@@ -81,15 +81,15 @@ struct FunctionFactory
           std::string              aFuncName
   )
   {
-    Plato::mechanical::CriterionEnum tSupportedCriterion;
+    Plato::Elliptic::mechanical::CriterionEnum tSupportedCriterion;
     auto tCriterion = tSupportedCriterion.get(aFuncType);
     switch (tCriterion)
     {
-      case Plato::mechanical::criterion::KIRCHHOFF_ENERGY_POTENTIAL:
+      case Plato::Elliptic::mechanical::criterion::KIRCHHOFF_ENERGY_POTENTIAL:
         return ( std::make_shared<Plato::Elliptic::CriterionKirchhoffEnergyPotential<EvaluationType>>(
           aSpatialDomain, aDataMap, aParamList, aFuncName) );
         break;
-      case Plato::mechanical::criterion::NEO_HOOKEAN_ENERGY_POTENTIAL:
+      case Plato::Elliptic::mechanical::criterion::NEO_HOOKEAN_ENERGY_POTENTIAL:
         return ( std::make_shared<Plato::Elliptic::CriterionNeoHookeanEnergyPotential<EvaluationType>>(
           aSpatialDomain, aDataMap, aParamList, aFuncName) );
         break;  

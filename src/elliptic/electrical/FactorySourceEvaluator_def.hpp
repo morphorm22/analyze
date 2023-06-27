@@ -50,13 +50,13 @@ create(
       + "source evaluator cannot be determined";
     ANALYZE_THROWERR(tMsg)
   }
-  Plato::electrical::SourceEvaluatorEnum tS2E;
+  Plato::Elliptic::electrical::SourceEvaluatorEnum tS2E;
   auto tType = tSourceParamList.get<std::string>("Type");
   auto tLowerType = Plato::tolower(tType);
   auto tSupportedSourceEvaluatorEnum = tS2E.get(tLowerType);
   switch (tSupportedSourceEvaluatorEnum)
   {
-    case Plato::electrical::source_evaluator::WEIGHTED_SUM:
+    case Plato::Elliptic::electrical::source_evaluator::WEIGHTED_SUM:
       return std::make_shared<Plato::SourceWeightedSum<EvaluationType>>(aMaterialName,aParamList);
       break;
     default:

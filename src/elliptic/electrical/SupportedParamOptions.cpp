@@ -11,11 +11,14 @@
 namespace Plato
 {
 
+namespace Elliptic
+{
+  
 namespace electrical 
 {
 
 // begin: functions associated with ResidualEnum struct
-Plato::electrical::residual
+Plato::Elliptic::electrical::residual
 ResidualEnum::get(
     const std::string &aInput
 ) const
@@ -45,7 +48,7 @@ ResidualEnum::getErrorMsg(
 // end: functions associated with ResidualEnum struct
 
 // begin: functions associated with CriterionEnum struct
-Plato::electrical::criterion
+Plato::Elliptic::electrical::criterion
 CriterionEnum::get(
     const std::string &aInput
 ) const
@@ -75,7 +78,7 @@ CriterionEnum::getErrorMsg(
 // end: functions associated with CriterionEnum struct
 
 // begin: functions associated with MaterialEnum struct
-Plato::electrical::material 
+Plato::Elliptic::electrical::material 
 MaterialEnum::get(
     const std::string &aInput
 ) const
@@ -106,7 +109,7 @@ MaterialEnum::getErrorMsg(
 // end: functions associated with MaterialEnum struct
 
 // begin: functions associated with PropEnum struct
-Plato::electrical::property 
+Plato::Elliptic::electrical::property 
 PropEnum::get(
     const std::string &aInput
 ) const
@@ -137,7 +140,7 @@ PropEnum::getErrorMsg(
 // end: functions associated with PropEnum struct
 
 // begin: functions associated with SourceEvaluatorEnum struct
-Plato::electrical::source_evaluator 
+Plato::Elliptic::electrical::source_evaluator 
 SourceEvaluatorEnum::get(
     const std::string &aInput
 ) const
@@ -170,7 +173,7 @@ SourceEvaluatorEnum::getErrorMsg(
 
 // begin: functions associated with CurrentDensitySourceEvaluatorEnum struct
 
-Plato::electrical::current_density_evaluator 
+Plato::Elliptic::electrical::current_density_evaluator 
 CurrentDensitySourceEvaluatorEnum::get(
     const std::string &aInput
 ) const
@@ -204,13 +207,13 @@ const
 
 // begin: functions associated with CurrentDensityEnum struct
 
-Plato::electrical::current_density 
+Plato::Elliptic::electrical::current_density 
 CurrentDensityEnum::current_density(
   const std::string & aFunction,
   const std::string & aModel
 ) const
 {
-  Plato::electrical::current_density_evaluator tSourceEnum = mSourceTermEnums.get(aFunction);
+  Plato::Elliptic::electrical::current_density_evaluator tSourceEnum = mSourceTermEnums.get(aFunction);
   auto tLowerModel = Plato::tolower(aModel);
   auto tItr = s2e.find(tSourceEnum)->second.find(tLowerModel);
   if( tItr == s2e.find(tSourceEnum)->second.end() ){
@@ -220,13 +223,13 @@ CurrentDensityEnum::current_density(
   return tItr->second.first;
 }
 
-Plato::electrical::response
+Plato::Elliptic::electrical::response
 CurrentDensityEnum::response(
   const std::string & aFunction,
   const std::string & aModel
 ) const
 {
-  Plato::electrical::current_density_evaluator tSourceEnum = mSourceTermEnums.get(aFunction);
+  Plato::Elliptic::electrical::current_density_evaluator tSourceEnum = mSourceTermEnums.get(aFunction);
   auto tLowerModel = Plato::tolower(aModel);
   auto tItr = s2e.find(tSourceEnum)->second.find(tLowerModel);
   if( tItr == s2e.find(tSourceEnum)->second.end() ){
@@ -246,7 +249,7 @@ CurrentDensityEnum::getErrorMsg(
       + "') does not support current density model of type ('" + aModel 
       + "'), supported current density models for current density evaluator ('" 
       + aFunction + "') are: ";
-    Plato::electrical::current_density_evaluator tSourceEnum = mSourceTermEnums.get(aFunction);
+    Plato::Elliptic::electrical::current_density_evaluator tSourceEnum = mSourceTermEnums.get(aFunction);
     for(const auto& tPair : s2e.find(tSourceEnum)->second)
     {
         tMsg = tMsg + "'" + tPair.first + "', ";
@@ -259,6 +262,8 @@ CurrentDensityEnum::getErrorMsg(
 
 }
 // namespace electrical 
+
+} // namespace Elliptic
 
 }
 // namespace Plato

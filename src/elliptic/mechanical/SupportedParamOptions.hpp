@@ -12,8 +12,53 @@
 namespace Plato
 {
 
+namespace Elliptic
+{
+  
 namespace mechanical
 {
+
+/// @enum residual
+/// @brief supported residual enums for mechanical physics
+enum struct residual
+{
+  LINEAR_MECHANICS=0,
+  NONLINEAR_MECHANICS=1
+};
+
+/// @struct ResidualEnum
+/// @brief Interface between input response type and supported mechanical residual 
+struct ResidualEnum
+{
+private:
+  /// @brief map from state response type to supported mechanical residual enum
+  std::unordered_map<std::string,Plato::Elliptic::mechanical::residual> s2e = 
+  {
+    {"linear"   ,Plato::Elliptic::mechanical::residual::LINEAR_MECHANICS},
+    {"nonlinear",Plato::Elliptic::mechanical::residual::NONLINEAR_MECHANICS}
+  };
+
+public:
+  /// @brief return supported mechanical residual enum
+  /// @param [in] aResponse state response, linear or nonlinear
+  /// @return residual enum
+  Plato::Elliptic::mechanical::residual 
+  get(
+    const std::string & aResponse
+  ) 
+  const;
+
+private:
+  /// @fn getErrorMsg
+  /// @brief Return error message if response is not supported
+  /// @param [in] aResponse string - response type, linear or nonlinear
+  /// @return error message string
+  std::string
+  getErrorMsg(
+    const std::string & aResponse
+  )
+  const;
+};
 
 /// @enum property
 /// @brief supported mechanical material property enums
@@ -35,14 +80,14 @@ struct PropEnum
 {
 private:
   /// @brief map from input mechanical material property string to supported mechanical material property enum
-  std::unordered_map<std::string,Plato::mechanical::property> s2e = {
-      {"youngs modulus"  ,Plato::mechanical::property::YOUNGS_MODULUS},
-      {"poissons ratio"  ,Plato::mechanical::property::POISSON_RATIO},
-      {"density"         ,Plato::mechanical::property::MASS_DENSITY},
-      {"lame lambda"     ,Plato::mechanical::property::LAME_LAMBDA},
-      {"lame mu"         ,Plato::mechanical::property::LAME_MU},
-      {"penalty exponent",Plato::mechanical::property::TO_ERSATZ_MATERIAL_EXPONENT},
-      {"minimum value"   ,Plato::mechanical::property::TO_MIN_ERSATZ_MATERIAL_VALUE}    
+  std::unordered_map<std::string,Plato::Elliptic::mechanical::property> s2e = {
+    {"youngs modulus"  ,Plato::Elliptic::mechanical::property::YOUNGS_MODULUS},
+    {"poissons ratio"  ,Plato::Elliptic::mechanical::property::POISSON_RATIO},
+    {"density"         ,Plato::Elliptic::mechanical::property::MASS_DENSITY},
+    {"lame lambda"     ,Plato::Elliptic::mechanical::property::LAME_LAMBDA},
+    {"lame mu"         ,Plato::Elliptic::mechanical::property::LAME_MU},
+    {"penalty exponent",Plato::Elliptic::mechanical::property::TO_ERSATZ_MATERIAL_EXPONENT},
+    {"minimum value"   ,Plato::Elliptic::mechanical::property::TO_MIN_ERSATZ_MATERIAL_VALUE}    
   };
 
 public:
@@ -51,7 +96,7 @@ public:
   ///   throw if requested mechanical property is not supported
   /// @param [in] aInput property identifier
   /// @return mechanical property enum
-  Plato::mechanical::property 
+  Plato::Elliptic::mechanical::property 
   get(
     const std::string &aInput
   ) const;
@@ -82,9 +127,9 @@ struct MaterialEnum
 {
 private:
   /// @brief map from input mechanical material string to supported mechanical material enum
-  std::unordered_map<std::string,Plato::mechanical::material> s2e = {
-    {"hyperelastic kirchhoff"  ,Plato::mechanical::material::HYPERELASTIC_KIRCHHOFF},
-    {"hyperelastic neo-hookean",Plato::mechanical::material::HYPERELASTIC_NEOHOOKEAN},
+  std::unordered_map<std::string,Plato::Elliptic::mechanical::material> s2e = {
+    {"hyperelastic kirchhoff"  ,Plato::Elliptic::mechanical::material::HYPERELASTIC_KIRCHHOFF},
+    {"hyperelastic neo-hookean",Plato::Elliptic::mechanical::material::HYPERELASTIC_NEOHOOKEAN},
   };
 
 public:
@@ -93,7 +138,7 @@ public:
   ///   throw if requested mechanical material is not supported
   /// @param [in] aInput mechanical material identifier
   /// @return mechanical material enum
-  Plato::mechanical::material 
+  Plato::Elliptic::mechanical::material 
   get(
     const std::string &aInput
   ) const;
@@ -125,10 +170,10 @@ struct CriterionEnum
 {
 private:
   /// @brief map from string to supported mechanical criterion enum
-  std::unordered_map<std::string,Plato::mechanical::criterion> s2e = {
-    {"volume"                      ,Plato::mechanical::criterion::VOLUME},
-    {"kirchhoff energy potential"  ,Plato::mechanical::criterion::KIRCHHOFF_ENERGY_POTENTIAL},
-    {"neo-hookean energy potential",Plato::mechanical::criterion::NEO_HOOKEAN_ENERGY_POTENTIAL}
+  std::unordered_map<std::string,Plato::Elliptic::mechanical::criterion> s2e = {
+    {"volume"                      ,Plato::Elliptic::mechanical::criterion::VOLUME},
+    {"kirchhoff energy potential"  ,Plato::Elliptic::mechanical::criterion::KIRCHHOFF_ENERGY_POTENTIAL},
+    {"neo-hookean energy potential",Plato::Elliptic::mechanical::criterion::NEO_HOOKEAN_ENERGY_POTENTIAL}
   };
 
 public:
@@ -136,7 +181,7 @@ public:
   ///   throw error if requested criterion is not supported
   /// @param [in] aInput string property
   /// @return mechanical criterion enum
-  Plato::mechanical::criterion 
+  Plato::Elliptic::mechanical::criterion 
   get(const std::string &aInput) 
   const;
 
@@ -151,6 +196,8 @@ private:
 
 }
 // namespace mechanical
+
+} // namespace Elliptic
 
 }
 // namespace Plato

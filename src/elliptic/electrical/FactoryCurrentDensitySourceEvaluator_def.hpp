@@ -50,17 +50,17 @@ create(
       + aFunctionName + "'), current density evaluator cannot be determined";
     ANALYZE_THROWERR(tMsg)
   }
-  Plato::electrical::CurrentDensitySourceEvaluatorEnum tS2E;
+  Plato::Elliptic::electrical::CurrentDensitySourceEvaluatorEnum tS2E;
   auto tType = mCurrentDensitySourceEvaluatorParamList.get<std::string>("Function");
   auto tLowerType = Plato::tolower(tType);
   auto tSupportedSourceTermEnum = tS2E.get(tLowerType);
   switch (tSupportedSourceTermEnum)
   {
-    case Plato::electrical::current_density_evaluator::TWO_PHASE_DARK_CURRENT_DENSITY:
+    case Plato::Elliptic::electrical::current_density_evaluator::TWO_PHASE_DARK_CURRENT_DENSITY:
       return std::make_shared<Plato::DarkCurrentDensityTwoPhaseAlloy<EvaluationType>>(
         aMaterialName,aFunctionName,aParamList);
       break;
-    case Plato::electrical::current_density_evaluator::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY:
+    case Plato::Elliptic::electrical::current_density_evaluator::TWO_PHASE_LIGHT_GENERATED_CURRENT_DENSITY:
       return std::make_shared<Plato::LightCurrentDensityTwoPhaseAlloy<EvaluationType>>(
         aMaterialName,aFunctionName,aParamList);
       break;

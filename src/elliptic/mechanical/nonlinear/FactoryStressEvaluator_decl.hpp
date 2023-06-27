@@ -24,7 +24,7 @@ private:
   /// @brief name of input material parameter list
   std::string mMaterialName; 
   /// @brief supported mechanical materials interface
-  Plato::mechanical::MaterialEnum mS2E;
+  Plato::Elliptic::mechanical::MaterialEnum mS2E;
 
 public:
   /// @brief class constructor
