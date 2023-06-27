@@ -131,7 +131,7 @@ if(ELLIPTIC)
     elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.cpp
     elliptic/evaluators/criterion/CriterionEvaluatorMassProperties.cpp
     elliptic/evaluators/criterion/CriterionEvaluatorSolutionFunction.cpp
-    elliptic/evaluators/problem/ProblemEvaluatorOnePhysics.cpp
+    elliptic/evaluators/problem/ProblemEvaluatorVectorState.cpp
     elliptic/evaluators/problem/SupportedEllipticProblemOptions.cpp
     elliptic/mechanical/SupportedParamOptions.cpp
     elliptic/mechanical/linear/ResidualElastostatic.cpp

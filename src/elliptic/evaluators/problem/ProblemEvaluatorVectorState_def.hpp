@@ -1,5 +1,5 @@
 /*
- * ProblemEvaluatorOnePhysics_def.hpp
+ * ProblemEvaluatorVectorState_def.hpp
  *
  *  Created on: June 21, 2023
  */
@@ -26,8 +26,8 @@ namespace Elliptic
 {
 
 template<typename PhysicsType>
-ProblemEvaluatorOnePhysics<PhysicsType>::
-ProblemEvaluatorOnePhysics(
+ProblemEvaluatorVectorState<PhysicsType>::
+ProblemEvaluatorVectorState(
   Teuchos::ParameterList & aParamList,
   Plato::SpatialModel    & aSpatialModel,
   Plato::DataMap         & aDataMap,
@@ -50,7 +50,7 @@ ProblemEvaluatorOnePhysics(
 
 template<typename PhysicsType>
 Plato::Solutions
-ProblemEvaluatorOnePhysics<PhysicsType>::
+ProblemEvaluatorVectorState<PhysicsType>::
 getSolution()
 {
   Plato::Solutions tSolution(mPhysics, mTypePDE);
@@ -60,7 +60,7 @@ getSolution()
 
 template<typename PhysicsType>
 bool
-ProblemEvaluatorOnePhysics<PhysicsType>::
+ProblemEvaluatorVectorState<PhysicsType>::
 criterionIsLinear(
   const std::string & aName
 )
@@ -75,7 +75,7 @@ criterionIsLinear(
 
 template<typename PhysicsType>
 void
-ProblemEvaluatorOnePhysics<PhysicsType>::
+ProblemEvaluatorVectorState<PhysicsType>::
 analyze(
   Plato::Database & aDatabase
 )
@@ -121,7 +121,7 @@ analyze(
 
 template<typename PhysicsType>
 void
-ProblemEvaluatorOnePhysics<PhysicsType>::
+ProblemEvaluatorVectorState<PhysicsType>::
 residual(
   Plato::Database & aDatabase
 )
@@ -134,7 +134,7 @@ residual(
 
 template<typename PhysicsType>
 Plato::Scalar
-ProblemEvaluatorOnePhysics<PhysicsType>::
+ProblemEvaluatorVectorState<PhysicsType>::
 criterionValue(
   const std::string     & aName,
         Plato::Database & aDatabase
@@ -153,7 +153,7 @@ criterionValue(
 
 template<typename PhysicsType>
 Plato::ScalarVector
-ProblemEvaluatorOnePhysics<PhysicsType>::
+ProblemEvaluatorVectorState<PhysicsType>::
 criterionGradient(
   const Plato::evaluation_t & aEvalType,
   const std::string         & aName,
@@ -182,7 +182,7 @@ criterionGradient(
 
 template<typename PhysicsType>
 void 
-ProblemEvaluatorOnePhysics<PhysicsType>::
+ProblemEvaluatorVectorState<PhysicsType>::
 updateProblem(
   Plato::Database & aDatabase
 )
@@ -196,7 +196,7 @@ updateProblem(
 
 template<typename PhysicsType>
 void 
-ProblemEvaluatorOnePhysics<PhysicsType>::
+ProblemEvaluatorVectorState<PhysicsType>::
 updateDatabase(
   Plato::Database & aDatabase
 )
@@ -208,7 +208,7 @@ updateDatabase(
 
 template<typename PhysicsType>
 std::string
-ProblemEvaluatorOnePhysics<PhysicsType>::
+ProblemEvaluatorVectorState<PhysicsType>::
 getErrorMsg(
   const std::string & aName
 ) const
@@ -226,7 +226,7 @@ getErrorMsg(
 
 template<typename PhysicsType>
 Plato::ScalarVector 
-ProblemEvaluatorOnePhysics<PhysicsType>::
+ProblemEvaluatorVectorState<PhysicsType>::
 criterionGradientControl(
   const Criterion       & aCriterion,
         Plato::Database & aDatabase
@@ -264,7 +264,7 @@ criterionGradientControl(
 
 template<typename PhysicsType>
 Plato::ScalarVector 
-ProblemEvaluatorOnePhysics<PhysicsType>:: 
+ProblemEvaluatorVectorState<PhysicsType>:: 
 criterionGradientConfig(
   const Criterion       & aCriterion,
         Plato::Database & aDatabase
@@ -302,7 +302,7 @@ criterionGradientConfig(
 
 template<typename PhysicsType>
 void 
-ProblemEvaluatorOnePhysics<PhysicsType>:: 
+ProblemEvaluatorVectorState<PhysicsType>:: 
 initializeEvaluators(
   Teuchos::ParameterList& aParamList
 )
@@ -334,7 +334,7 @@ initializeEvaluators(
 
 template<typename PhysicsType>
 void 
-ProblemEvaluatorOnePhysics<PhysicsType>:: 
+ProblemEvaluatorVectorState<PhysicsType>:: 
 readEssentialBoundaryConditions(
   Teuchos::ParameterList & aParamList
 )
@@ -354,7 +354,7 @@ readEssentialBoundaryConditions(
 
 template<typename PhysicsType>
 void 
-ProblemEvaluatorOnePhysics<PhysicsType>::
+ProblemEvaluatorVectorState<PhysicsType>::
 setEssentialBoundaryConditions(
   const Plato::OrdinalVector & aDofs, 
   const Plato::ScalarVector  & aValues
@@ -373,7 +373,7 @@ setEssentialBoundaryConditions(
 
 template<typename PhysicsType>
 void 
-ProblemEvaluatorOnePhysics<PhysicsType>::
+ProblemEvaluatorVectorState<PhysicsType>::
 initializeMultiPointConstraints(
   Teuchos::ParameterList & aParamList
 )
@@ -389,7 +389,7 @@ initializeMultiPointConstraints(
 
 template<typename PhysicsType>
 void 
-ProblemEvaluatorOnePhysics<PhysicsType>::
+ProblemEvaluatorVectorState<PhysicsType>::
 initializeSolver(
   Plato::Mesh            & aMesh,
   Teuchos::ParameterList & aParamList,
@@ -407,7 +407,7 @@ initializeSolver(
 
 template<typename PhysicsType>
 void 
-ProblemEvaluatorOnePhysics<PhysicsType>::
+ProblemEvaluatorVectorState<PhysicsType>::
 enforceStrongEssentialBoundaryConditions(
   const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
   const Plato::ScalarVector                & aVector,
@@ -430,7 +430,7 @@ enforceStrongEssentialBoundaryConditions(
 
 template<typename PhysicsType>
 void 
-ProblemEvaluatorOnePhysics<PhysicsType>::
+ProblemEvaluatorVectorState<PhysicsType>::
 enforceStrongEssentialAdjointBoundaryConditions(
   const Teuchos::RCP<Plato::CrsMatrixType> & aMatrix,
   const Plato::ScalarVector                & aVector
@@ -451,7 +451,7 @@ enforceStrongEssentialAdjointBoundaryConditions(
 
 template<typename PhysicsType>
 void 
-ProblemEvaluatorOnePhysics<PhysicsType>::
+ProblemEvaluatorVectorState<PhysicsType>::
 enforceWeakEssentialAdjointBoundaryConditions(
   Plato::Database & aDatabase
 )

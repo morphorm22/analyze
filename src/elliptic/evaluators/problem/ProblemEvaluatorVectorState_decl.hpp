@@ -1,5 +1,5 @@
 /*
- * ProblemEvaluatorOnePhysics_decl.hpp
+ * ProblemEvaluatorVectorState_decl.hpp
  *
  *  Created on: June 21, 2023
  */
@@ -23,11 +23,11 @@ namespace Plato
 namespace Elliptic
 {
 
-/// @class ProblemEvaluatorOnePhysics
+/// @class ProblemEvaluatorVectorState
 /// @brief problem evaluator class for elliptic, single-physics problems
 /// @tparam PhysicsType defines physics and related quantity of interests for this physics 
 template<typename PhysicsType>
-class ProblemEvaluatorOnePhysics : public Plato::ProblemEvaluatorBase
+class ProblemEvaluatorVectorState : public Plato::ProblemEvaluatorBase
 {
 private:
   /// @brief local criterion typename
@@ -77,7 +77,7 @@ public:
   /// @param [in] aSpatialModel contains mesh and model information
   /// @param [in] aDataMap      output database
   /// @param [in] aMachine      mpi wrapper
-  ProblemEvaluatorOnePhysics(
+  ProblemEvaluatorVectorState(
     Teuchos::ParameterList & aParamList,
     Plato::SpatialModel    & aSpatialModel,
     Plato::DataMap         & aDataMap,
@@ -85,7 +85,7 @@ public:
   );
 
   /// @brief class destructor
-  ~ProblemEvaluatorOnePhysics(){}
+  ~ProblemEvaluatorVectorState(){}
 
   /// @fn getSolution
   /// @brief get state solution

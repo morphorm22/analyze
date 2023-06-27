@@ -7,7 +7,7 @@
 #pragma once
 
 #include "AnalyzeOutput.hpp"
-#include "elliptic/evaluators/problem/ProblemEvaluatorOnePhysics.hpp"
+#include "elliptic/evaluators/problem/ProblemEvaluatorVectorState.hpp"
 
 namespace Plato
 {
@@ -27,7 +27,7 @@ Problem(
   mTypePDE(aParamList.get<std::string>("PDE Constraint")),
   mPhysics(aParamList.get<std::string>("Physics"))
 {
-  mProblemEvaluator = std::make_shared<Plato::Elliptic::ProblemEvaluatorOnePhysics<PhysicsType>>(
+  mProblemEvaluator = std::make_shared<Plato::Elliptic::ProblemEvaluatorVectorState<PhysicsType>>(
     aParamList,mSpatialModel,mDataMap,aMachine
   );
   this->parseSaveOutput(aParamList);
