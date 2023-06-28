@@ -151,6 +151,7 @@ struct FunctionFactory
 
 } // namespace Plato
 
+#include "elliptic/thermal/Thermal.hpp"
 #include "ThermomechanicsElement.hpp"
 
 namespace Plato
@@ -172,6 +173,8 @@ public:
   typedef Plato::Elliptic::LinearThermoMechanics::FunctionFactory FunctionFactory;
   /// @brief topological element type with additional physics related information 
   using ElementType = ThermomechanicsElement<TopoElementType>;
+  /// @brief typename for possible extra physics in the analysis; e.g., coupled physics analysis
+  using OtherPhysics = Plato::Elliptic::Linear::Thermal<TopoElementType>;
 };
 
 } // namespace Linear

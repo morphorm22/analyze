@@ -45,7 +45,8 @@ private:
   IndicatorFunctionType mIndicatorFunction;
   ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyWeighting;
 
-  std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
+  /// @brief volumetric heat source
+  std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mHeatSource;
   std::shared_ptr<Plato::NaturalBCs<ElementType, mNumDofsPerNode>> mBoundaryLoads;
 
   Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
@@ -94,6 +95,31 @@ public:
           Plato::WorkSets     & aWorkSets,
           Plato::Scalar         aCycle = 0.0
   ) const;
+
+private:
+  /// @fn parseHeatSource
+  /// @brief parse volumetric heat source
+  /// @param [in] aProblemParams input problem parameters
+  void
+  parseHeatSource(
+    Teuchos::ParameterList & aProblemParams
+  );
+
+  /// @fn parseNaturalBCs
+  /// @brief parse thermal natural boundary conditions
+  /// @param [in] aProblemParams input problem parameters
+  void
+  parseNaturalBCs(
+    Teuchos::ParameterList & aProblemParams
+  );
+
+  /// @fn parseOutputs
+  /// @brief parse thermal natural boundary conditions
+  /// @param [in] aProblemParams input problem parameters
+  void
+  parseOutputs(
+    Teuchos::ParameterList & aProblemParams
+  );
 
 }; // class ResidualThermostatic
 

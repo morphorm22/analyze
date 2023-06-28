@@ -25,7 +25,7 @@ namespace Elliptic
 
 /// @class ProblemEvaluatorVectorState
 /// @brief problem evaluator class for elliptic, single-physics problems
-/// @tparam PhysicsType defines physics and related quantity of interests for this physics 
+/// @tparam PhysicsType defines physics and related physical quantity of interests for this problem
 template<typename PhysicsType>
 class ProblemEvaluatorVectorState : public Plato::ProblemEvaluatorBase
 {

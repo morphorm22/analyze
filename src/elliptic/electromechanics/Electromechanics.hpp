@@ -104,6 +104,8 @@ public:
   typedef Plato::Elliptic::LinearElectroMechanics::FunctionFactory FunctionFactory;
   /// @brief topological element type with additional physics related information 
   using ElementType = ElectromechanicsElement<TopoElementType>;
+  /// @brief typename for possible extra physics in the analysis; e.g., coupled physics analysis
+  using OtherPhysics = Plato::Elliptic::Linear::Electromechanics<TopoElementType>;
 };
 
 } // namespace Linear

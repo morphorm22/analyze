@@ -46,6 +46,7 @@ set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
 set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
     WorkSets.cpp
     base/Database.cpp
+    base/SupportedParamOptions.cpp
     Solutions.cpp
     AnalyzeAppUtils.cpp
     PlatoMask.cpp
@@ -131,7 +132,9 @@ if(ELLIPTIC)
     elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.cpp
     elliptic/evaluators/criterion/CriterionEvaluatorMassProperties.cpp
     elliptic/evaluators/criterion/CriterionEvaluatorSolutionFunction.cpp
+    elliptic/evaluators/problem/FactoryProblemEvaluator.cpp
     elliptic/evaluators/problem/ProblemEvaluatorVectorState.cpp
+    elliptic/evaluators/problem/ProblemEvaluatorThermoMechanics.cpp
     elliptic/evaluators/problem/SupportedEllipticProblemOptions.cpp
     elliptic/mechanical/SupportedParamOptions.cpp
     elliptic/mechanical/linear/ResidualElastostatic.cpp
@@ -154,6 +157,7 @@ if(ELLIPTIC)
     elliptic/thermal/ResidualThermostatic.cpp
     elliptic/thermal/CriterionFluxPNorm.cpp
     elliptic/thermal/CriterionInternalThermalEnergy.cpp
+    elliptic/thermomechanics/SupportedParamOptions.cpp
     elliptic/thermomechanics/linear/CriterionThermoMechStressPNorm.cpp
     elliptic/thermomechanics/linear/ResidualThermoelastostatic.cpp
     elliptic/thermomechanics/linear/CriterionInternalThermoelasticEnergy.cpp

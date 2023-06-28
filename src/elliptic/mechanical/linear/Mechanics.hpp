@@ -330,6 +330,8 @@ public:
   typedef Plato::Elliptic::LinearMechanics::FunctionFactory FunctionFactory;
   /// @brief physics-based topological element typename
   using ElementType = MechanicsElement<TopoElementType>;
+  /// @brief typename for possible extra physics in the analysis; e.g., coupled physics analysis
+  using OtherPhysics = Plato::Elliptic::Linear::Mechanics<TopoElementType>;
 };
 
 } // namespace Linear

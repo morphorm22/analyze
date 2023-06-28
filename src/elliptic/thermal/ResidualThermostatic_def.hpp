@@ -25,34 +25,22 @@ ResidualThermostatic(
   FunctionBaseType   (aSpatialDomain, aDataMap),
   mIndicatorFunction (penaltyParams),
   mApplyWeighting    (mIndicatorFunction),
-  mBodyLoads         (nullptr),
+  mHeatSource         (nullptr),
   mBoundaryLoads     (nullptr)
 {
   // obligatory: define dof names in order
   mDofNames.push_back("temperature");
   Plato::ThermalConductionModelFactory<EvaluationType> tMaterialFactory(aProblemParams);
   mMaterialModel = tMaterialFactory.create(aSpatialDomain.getMaterialName());
-  // parse body loads
+  // parse heat source
   // 
-  if(aProblemParams.isSublist("Body Loads"))
-  {
-    mBodyLoads = std::make_shared<Plato::BodyLoads<EvaluationType, ElementType>>(
-      aProblemParams.sublist("Body Loads")
-    );
-  }
-  // parse boundary Conditions
+  this->parseHeatSource(aProblemParams);
+  // parse natural boundary conditions
   // 
-  if(aProblemParams.isSublist("Natural Boundary Conditions"))
-  {
-    mBoundaryLoads = std::make_shared<Plato::NaturalBCs<ElementType, mNumDofsPerNode>>(
-      aProblemParams.sublist("Natural Boundary Conditions")
-    );
-  }
-  auto tResidualParams = aProblemParams.sublist("Elliptic");
-  if( tResidualParams.isType<Teuchos::Array<std::string>>("Plottable") )
-  {
-    mPlottable = tResidualParams.get<Teuchos::Array<std::string>>("Plottable").toVector();
-  }
+  this->parseNaturalBCs(aProblemParams);
+  // parse outputs
+  //
+  this->parseOutputs(aProblemParams);
 }
 
 template<typename EvaluationType, typename IndicatorFunctionType>
@@ -140,9 +128,9 @@ evaluate(
     }
   });
   // evaluate body forces
-  if( mBodyLoads != nullptr )
+  if( mHeatSource != nullptr )
   {
-    mBodyLoads->get( mSpatialDomain, tStateWS, tControlWS, tConfigWS, tResultWS, -1.0 );
+    mHeatSource->get( mSpatialDomain, tStateWS, tControlWS, tConfigWS, tResultWS, -1.0 );
   }
   // save output quantities of interests
   if( std::count(mPlottable.begin(),mPlottable.end(),"tgrad") ) 
@@ -173,6 +161,55 @@ evaluateBoundary(
   if( mBoundaryLoads != nullptr )
   {
     mBoundaryLoads->get(aSpatialModel,tStateWS,tControlWS,tConfigWS,tResultWS,1.0);
+  }
+}
+
+template<typename EvaluationType, typename IndicatorFunctionType>
+void
+ResidualThermostatic<EvaluationType, IndicatorFunctionType>::
+parseHeatSource(
+  Teuchos::ParameterList & aProblemParams
+)
+{
+  if(aProblemParams.isSublist("Heat Source"))
+  {
+    mHeatSource = std::make_shared<Plato::BodyLoads<EvaluationType, ElementType>>(
+      aProblemParams.sublist("Heat Source")
+    );
+  }
+}
+
+template<typename EvaluationType, typename IndicatorFunctionType>
+void
+ResidualThermostatic<EvaluationType, IndicatorFunctionType>::
+parseNaturalBCs(
+  Teuchos::ParameterList & aProblemParams
+)
+{
+  if(aProblemParams.isSublist("Natural Boundary Conditions")){
+    mBoundaryLoads = std::make_shared<Plato::NaturalBCs<ElementType, mNumDofsPerNode>>(
+      aProblemParams.sublist("Natural Boundary Conditions")
+    );
+  }
+  else 
+  if(aProblemParams.isSublist("Thermal Natural Boundary Conditions")){
+    mBoundaryLoads = std::make_shared<Plato::NaturalBCs<ElementType, mNumDofsPerNode>>(
+      aProblemParams.sublist("Thermal Natural Boundary Conditions")
+    );
+  } 
+}
+
+template<typename EvaluationType, typename IndicatorFunctionType>
+void
+ResidualThermostatic<EvaluationType, IndicatorFunctionType>::
+parseOutputs(
+  Teuchos::ParameterList & aProblemParams
+)
+{
+  auto tResidualParams = aProblemParams.sublist("Elliptic");
+  if( tResidualParams.isType<Teuchos::Array<std::string>>("Plottable") )
+  {
+    mPlottable = tResidualParams.get<Teuchos::Array<std::string>>("Plottable").toVector();
   }
 }
 

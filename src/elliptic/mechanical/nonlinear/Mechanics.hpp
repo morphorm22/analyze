@@ -129,6 +129,8 @@ public:
   typedef Plato::Elliptic::NonlinearMechanics::FunctionFactory FunctionFactory;
   /// @brief physics-based topological element typename
   using ElementType = Plato::MechanicsElement<TopoElementType>;
+  /// @brief typename for possible extra physics in the analysis; e.g., coupled physics analysis
+  using OtherPhysics = Plato::Elliptic::Nonlinear::Mechanics<TopoElementType>;
 };
 
 } // namespace Nonlinear

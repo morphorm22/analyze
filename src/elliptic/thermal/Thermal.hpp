@@ -98,6 +98,8 @@ public:
   typedef Plato::Elliptic::LinearThermal::FunctionFactory FunctionFactory;
   /// @brief topological element type with additional physics related information 
   using ElementType = ThermalElement<TopoElementType>;
+  /// @brief typename for possible extra physics in the analysis; e.g., coupled physics analysis
+  using OtherPhysics = Plato::Elliptic::Linear::Thermal<TopoElementType>;
 };
 
 } // namespace Linear
