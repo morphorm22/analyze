@@ -159,9 +159,10 @@ enum struct property
   OUT_OF_PLANE_THICKNESS=1, 
   MATERIAL_NAME=2, 
   ELECTRICAL_CONSTANT=3, 
-  RELATIVE_STATIC_PERMITTIVITY=4,
-  TO_ERSATZ_MATERIAL_EXPONENT=5,
-  TO_MIN_ERSATZ_MATERIAL_VALUE=6
+  ELECTRICAL_RESISTANCE=4,
+  RELATIVE_STATIC_PERMITTIVITY=5,
+  TO_ERSATZ_MATERIAL_EXPONENT=6,
+  TO_MIN_ERSATZ_MATERIAL_VALUE=7
 };
 
 /// @struct PropEnum
@@ -175,6 +176,7 @@ private:
     {"out-of-plane thickness"      ,Plato::Elliptic::electrical::property::OUT_OF_PLANE_THICKNESS},
     {"material name"               ,Plato::Elliptic::electrical::property::MATERIAL_NAME},
     {"electrical constant"         ,Plato::Elliptic::electrical::property::ELECTRICAL_CONSTANT},
+    {"electrical resistance"       ,Plato::Elliptic::electrical::property::ELECTRICAL_RESISTANCE},
     {"relative static permittivity",Plato::Elliptic::electrical::property::RELATIVE_STATIC_PERMITTIVITY},
     {"penalty exponent"            ,Plato::Elliptic::electrical::property::TO_ERSATZ_MATERIAL_EXPONENT},
     {"minimum value"               ,Plato::Elliptic::electrical::property::TO_MIN_ERSATZ_MATERIAL_VALUE}    

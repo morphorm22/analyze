@@ -30,6 +30,15 @@ public:
   type() 
   const = 0;
 
+  /// @fn postProcess
+  /// @brief post process solution database before output
+  /// @param [in] aSolutions solution database
+  virtual
+  void
+  postProcess(
+    const Plato::Solutions & aSolutions
+  ) = 0;
+
   /// @fn getDofNames
   /// @brief return list with the degree of freedom names
   /// @return standard vector

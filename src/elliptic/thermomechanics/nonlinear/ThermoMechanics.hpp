@@ -12,6 +12,7 @@
 
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/thermal/Thermal.hpp"
+#include "elliptic/thermomechanics/SupportedParamOptions.hpp"
 #include "elliptic/thermomechanics/nonlinear/ResidualThermoElastoStaticTotalLagrangian.hpp"
 
 namespace Plato

@@ -87,15 +87,13 @@ public:
   const
   { return Plato::Elliptic::residual_t::LINEAR_MECHANICAL; }
 
-  /****************************************************************************//**
-  * \brief Pure virtual function to get output solution data
-  * \param [in] state solution database
-  * \return output state solution database
-  ********************************************************************************/
-  Plato::Solutions 
-  getSolutionStateOutputData(
+  /// @fn postProcess
+  /// @brief post process solution database before output
+  /// @param [in] aSolutions solution database
+  void
+  postProcess(
     const Plato::Solutions &aSolutions
-  ) const;
+  );
 
   /// @fn evaluate
   /// @brief evaluate elastostatics residual, internal forces only

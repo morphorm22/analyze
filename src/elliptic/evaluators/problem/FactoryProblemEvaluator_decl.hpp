@@ -45,6 +45,21 @@ public:
     Plato::Comm::Machine   & aMachine
   );
 
+private:
+  /// @fn createThermoMechanicalProblemEvaluator 
+  /// @brief create thermo-mechanical problem evaluator
+  /// @param [in] aParamList    input problem parameters
+  /// @param [in] aSpatialModel contains mesh and model information
+  /// @param [in] aDataMap      output database
+  /// @param [in] aMachine      mpi wrapper
+  /// @return standard shared pointer to problem evaluator
+  std::shared_ptr<Plato::ProblemEvaluatorBase>
+  createThermoMechanicalProblemEvaluator(
+    Teuchos::ParameterList & aParamList,
+    Plato::SpatialModel    & aSpatialModel,
+    Plato::DataMap         & aDataMap,
+    Plato::Comm::Machine   & aMachine
+  );
 };
 
 } // namespace Elliptic

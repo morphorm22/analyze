@@ -72,15 +72,12 @@ ResidualElastostatic(
 }
 
 template<typename EvaluationType, typename IndicatorFunctionType>
-Plato::Solutions
+void
 ResidualElastostatic<EvaluationType, IndicatorFunctionType>::
-getSolutionStateOutputData(
+postProcess(
   const Plato::Solutions &aSolutions
-) const
-{
-  // No scaling, addition, or removal of data necessary for this physics.
-  return aSolutions;
-}
+)
+{ return; }
 
 template<typename EvaluationType, typename IndicatorFunctionType>
 void

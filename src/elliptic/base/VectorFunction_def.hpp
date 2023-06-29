@@ -130,11 +130,11 @@ const
 }
 
 template<typename PhysicsType>
-Plato::Solutions 
+void
 VectorFunction<PhysicsType>::
-getSolutionStateOutputData(
+postProcess(
   const Plato::Solutions & aSolutions
-) const
+)
 {
   auto tFirstBlockName = mSpatialModel.Domains.front().getDomainName();
   auto tItr = mResiduals.find(tFirstBlockName);
@@ -143,7 +143,7 @@ getSolutionStateOutputData(
       ANALYZE_THROWERR(std::string("Element block with name '") + tFirstBlockName 
       + "is not defined in residual function to element block map.") 
   }
-  return tItr->second->getSolutionStateOutputData(aSolutions);
+  tItr->second->postProcess(aSolutions);
 }
 
 template<typename PhysicsType>

@@ -51,7 +51,7 @@ struct FunctionFactory
     if(tLowerPDE == "elliptic")
     {
       auto tResidual = std::make_shared<Plato::Elliptic::ResidualElastostaticTotalLagrangian<EvaluationType>>
-                        (aSpatialDomain,aDataMap, aParamList,aTypePDE);
+                        (aSpatialDomain,aDataMap,aParamList);
       return tResidual;
     }
     else

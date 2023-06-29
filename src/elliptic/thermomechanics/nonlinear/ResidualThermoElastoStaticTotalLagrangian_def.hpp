@@ -48,14 +48,12 @@ ResidualThermoElastoStaticTotalLagrangian(
 }
 
 template<typename EvaluationType>
-Plato::Solutions
+void
 ResidualThermoElastoStaticTotalLagrangian<EvaluationType>::
-getSolutionStateOutputData(
+postProcess(
   const Plato::Solutions & aSolutions
-) const
-{
-  return aSolutions;
-}
+)
+{ return; }
 
 template<typename EvaluationType>
 void
@@ -168,7 +166,7 @@ evaluateBoundary(
   Plato::ScalarMultiVectorT<ControlScalarType> tControlWS = 
     Plato::unpack<Plato::ScalarMultiVectorT<ControlScalarType>>(aWorkSets.get("controls"));
   Plato::ScalarMultiVectorT<StateScalarType> tDispWS = 
-    Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("state"));
+    Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
   Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
     Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
   // evaluate boundary forces

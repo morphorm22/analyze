@@ -93,6 +93,14 @@ public:
   Plato::Solutions
   getSolution();
 
+  /// @fn postProcess
+  /// @brief post process solution database before output
+  /// @param [in] aSolutions solution database
+  void
+  postProcess(
+    Plato::Solutions & aSolutions
+  );
+
   /// @fn criterionIsLinear
   /// @brief return true if criterion is linear; otherwise, return false
   /// @param [in] aName criterion name

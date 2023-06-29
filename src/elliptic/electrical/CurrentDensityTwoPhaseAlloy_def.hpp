@@ -5,6 +5,7 @@
  */
 
 #include "Simp.hpp"
+#include "BLAS2.hpp"
 #include "ToMap.hpp"
 #include "ScalarGrad.hpp"
 #include "GradientMatrix.hpp"
@@ -100,7 +101,7 @@ evaluate(
     tCellVolume *= tCubWeights(iGpOrdinal);
     Kokkos::atomic_add(&tVolume(iCellOrdinal),tCellVolume);
     for(Plato::OrdinalType tDim=0; tDim<ElementType::mNumSpatialDims; tDim++){
-      Kokkos::atomic_add(&tElectricField(iCellOrdinal,tDim),-1.0*tCellVolume*tCellElectricField(tDim));
+      Kokkos::atomic_add(&tElectricField(iCellOrdinal,tDim) , -1.0*tCellVolume*tCellElectricField(tDim));
       Kokkos::atomic_add(&tCurrentDensity(iCellOrdinal,tDim), -1.0*tCellVolume*aResult(iCellOrdinal,iGpOrdinal,tDim));
     }
   });

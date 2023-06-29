@@ -9,6 +9,7 @@
 #include "AnalyzeMacros.hpp"
 #include "base/SupportedParamOptions.hpp"
 #include "elliptic/evaluators/problem/ProblemEvaluatorVectorState.hpp"
+#include "elliptic/evaluators/problem/ProblemEvaluatorThermoMechanics.hpp"
 
 namespace Plato
 {
@@ -31,7 +32,6 @@ create(
 )
 {
   auto tPhysics  = aParamList.get<std::string>("Physics","");
-  auto tCoupling = aParamList.get<std::string>("Coupling","monolithic");
   if( tPhysics.empty() ){
     ANALYZE_THROWERR("ERROR: Problem ('Physics') were not defined, analysis cannot be performed")
   }
@@ -43,15 +43,49 @@ create(
   case Plato::physics_t::THERMAL:
   case Plato::physics_t::ELECTRICAL:
   case Plato::physics_t::MECHANICAL:
-  case Plato::physics_t::THERMOMECHANICAL:
     return (
       std::make_shared<Plato::Elliptic::ProblemEvaluatorVectorState<PhysicsType>>(
         aParamList,aSpatialModel,aDataMap,aMachine) 
     );
     break;
+  case Plato::physics_t::THERMOMECHANICAL:
+    return ( this->createThermoMechanicalProblemEvaluator(aParamList,aSpatialModel,aDataMap,aMachine) );
+    break;
   default:
     ANALYZE_THROWERR("ERROR: Fail to create an elliptic problem evaluator, check input physics")
     break;
+  }
+}
+
+template<typename PhysicsType>
+std::shared_ptr<Plato::ProblemEvaluatorBase>
+FactoryProblemEvaluator<PhysicsType>::
+createThermoMechanicalProblemEvaluator(
+  Teuchos::ParameterList & aParamList,
+  Plato::SpatialModel    & aSpatialModel,
+  Plato::DataMap         & aDataMap,
+  Plato::Comm::Machine   & aMachine
+)
+{
+  Plato::PhysicsEnum tS2E;
+  auto tCoupling = aParamList.get<std::string>("Coupling","monolithic");
+  auto tLowerCoupling = Plato::tolower(tCoupling);
+  auto tMyCoupling = tS2E.coupling(tLowerCoupling);
+  switch (tMyCoupling)
+  {
+    case Plato::coupling_t::STAGGERED:
+      return (
+        std::make_shared<Plato::Elliptic::ProblemEvaluatorThermoMechanics<PhysicsType>>(
+          aParamList,aSpatialModel,aDataMap,aMachine) 
+      );
+      break;
+    default:
+    case Plato::coupling_t::MONOLITHIC:
+      return (
+        std::make_shared<Plato::Elliptic::ProblemEvaluatorVectorState<PhysicsType>>(
+          aParamList,aSpatialModel,aDataMap,aMachine) 
+      );
+      break;
   }
 }
 

@@ -18,13 +18,15 @@
 #include "ApplyConstraints.hpp"
 #include "InterpolateFromNodal.hpp"
 
-#include "element/ThermoElasticElement.hpp"
-
 #include "Tet10.hpp"
+#include "elliptic/Problem.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/base/WorksetBuilder.hpp"
+
 #include "elliptic/mechanical/nonlinear/NominalStressTensor.hpp"
 #include "elliptic/mechanical/nonlinear/KineticPullBackOperation.hpp"
+
+#include "elliptic/thermomechanics/nonlinear/ThermoMechanics.hpp"
 #include "elliptic/thermomechanics/nonlinear/ThermalDeformationGradient.hpp"
 #include "elliptic/thermomechanics/nonlinear/ThermoElasticDeformationGradient.hpp"
 #include "elliptic/thermomechanics/nonlinear/ResidualThermoElastoStaticTotalLagrangian.hpp"
@@ -43,7 +45,8 @@ Teuchos::RCP<Teuchos::ParameterList> tGenericParamList = Teuchos::getParametersF
     "</ParameterList>                                                                                      \n"
   "</ParameterList>                                                                                        \n"
   "<Parameter name='PDE Constraint' type='string' value='Elliptic'/>                                       \n"
-  "<Parameter name='Physics' type='string' value='Thermomechanical'/>                                      \n"
+  "<Parameter name='Physics'  type='string' value='Thermomechanical'/>                                     \n"
+  "<Parameter name='Coupling' type='string' value='Staggered'/>                                            \n"
   "<ParameterList name='Elliptic'>                                                                         \n"
   "  <ParameterList name='Mechanical Residual'>                                                            \n"
   "    <Parameter name='Response' type='string' value='Nonlinear'/>                                        \n"
@@ -75,23 +78,64 @@ Teuchos::RCP<Teuchos::ParameterList> tGenericParamList = Teuchos::getParametersF
       "</ParameterList>                                                                                    \n"
     "</ParameterList>                                                                                      \n"
   "</ParameterList>                                                                                        \n"
-  "<ParameterList name='Criteria'>                                                                         \n"
-  "  <ParameterList name='Objective'>                                                                      \n"
-  "    <Parameter name='Type' type='string' value='Weighted Sum'/>                                         \n"
-  "    <Parameter name='Functions' type='Array(string)' value='{My Thermal Energy,My Mechanical Energy}'/> \n"
-  "    <Parameter name='Weights' type='Array(double)' value='{1.0, 1.0}'/>                                 \n"
+  "<ParameterList name='Mechanical Natural Boundary Conditions'>                                           \n"
+  "  <ParameterList name='Uniform Traction Force'>                                                         \n"
+  "    <Parameter name='Type'   type='string'        value='Uniform'/>                                     \n"
+  "    <Parameter name='Values' type='Array(string)' value='{0,1e5,0}'/>                                   \n"
+  "    <Parameter name='Sides'  type='string'        value='x+'/>                                          \n"
   "  </ParameterList>                                                                                      \n"
-  "  <ParameterList name='My Thermal Energy'>                                                              \n"
-  "    <Parameter name='Type'                 type='string' value='Scalar Function'/>                      \n"
-  "    <Parameter name='Scalar Function Type' type='string' value='Internal Thermal Energy'/>              \n"
+  "</ParameterList>                                                                                        \n"
+  "<ParameterList name='Thermal Natural Boundary Conditions'>                                              \n"
+  "  <ParameterList name='Uniform Thermal Flux'>                                                           \n"
+  "    <Parameter name='Type'  type='string' value='Uniform'/>                                             \n"
+  "    <Parameter name='Value' type='string' value='-1.0e3'/>                                              \n"
+  "    <Parameter name='Sides' type='string' value='x+'/>                                                  \n"
   "  </ParameterList>                                                                                      \n"
-  "  <ParameterList name='My Mechanical Energy'>                                                           \n"
-  "    <Parameter name='Type'                 type='string' value='Scalar Function'/>                      \n"
-  "    <Parameter name='Scalar Function Type' type='string' value='Kirchhoff Energy Potential'/>           \n"
+  "</ParameterList>                                                                                        \n"
+  "<ParameterList name='Mechanical Essential Boundary Conditions'>                                         \n"
+  "  <ParameterList name='Displacement X'>                                                                 \n"
+  "    <Parameter name='Type'  type='string' value='Fixed Value'/>                                         \n"
+  "    <Parameter name='Index' type='int'    value='0'/>                                                   \n"
+  "    <Parameter name='Sides' type='string' value='x-'/>                                                  \n"
+  "    <Parameter name='Value' type='double' value='0.0'/>                                                 \n"
+  "  </ParameterList>                                                                                      \n"
+  "  <ParameterList name='Displacement Y'>                                                                 \n"
+  "    <Parameter name='Type'  type='string' value='Fixed Value'/>                                         \n"
+  "    <Parameter name='Index' type='int'    value='1'/>                                                   \n"
+  "    <Parameter name='Sides' type='string' value='x-' />                                                 \n"
+  "    <Parameter name='Value' type='double' value='0.0' />                                                \n"
+  "  </ParameterList>                                                                                      \n"
+  "</ParameterList>                                                                                        \n"
+  "<ParameterList name='Thermal Essential Boundary Conditions'>                                            \n"
+  "  <ParameterList name='Temperature'>                                                                    \n"
+  "    <Parameter name='Type'  type='string' value='Fixed Value'/>                                         \n"
+  "    <Parameter name='Index' type='int'    value='0'/>                                                   \n"
+  "    <Parameter name='Sides' type='string' value='x-'/>                                                  \n"
+  "    <Parameter name='Value' type='double' value='0.0'/>                                                 \n"
   "  </ParameterList>                                                                                      \n"
   "</ParameterList>                                                                                        \n"
 "</ParameterList>                                                                                          \n"
 ); 
+
+TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, ThermoElastoStaticResidual2D_Solution )
+{
+  // create mesh
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  // mpi wrapper
+  MPI_Comm myComm;
+  MPI_Comm_dup(MPI_COMM_WORLD, &myComm);
+  Plato::Comm::Machine tMachine(myComm);
+  // create elliptic problem evaluator
+  Plato::Elliptic::Problem<Plato::Elliptic::Nonlinear::ThermoMechanics<Plato::Tri3>>
+    tThermoMechanicsProblem(tMesh,*tGenericParamList,tMachine);
+  // solve system of equations
+  auto tNumVerts = tMesh->NumNodes();
+  Plato::ScalarVector tControl("Control",tNumVerts);
+  Plato::blas1::fill(1.0,tControl);
+  auto tSolution = tThermoMechanicsProblem.solution(tControl);
+}
 
 TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, tComputeThermalDefGrad )
 {

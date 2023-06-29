@@ -92,14 +92,13 @@ public:
   const
   { return Plato::Elliptic::residual_t::NONLINEAR_MECHANICAL; }
 
-  /// @fn getSolutionStateOutputData
-  /// @brief post-process state solution for output
-  /// @param [in,out] aSolutions solution database
-  /// @return solution database
-  Plato::Solutions
-  getSolutionStateOutputData(
+  /// @fn postProcess
+  /// @brief post process solution database before output
+  /// @param [in] aSolutions solution database
+  void
+  postProcess(
     const Plato::Solutions & aSolutions
-  ) const;
+  );
 
   /// @fn evaluate
   /// @brief evaluate internal forces

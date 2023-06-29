@@ -73,14 +73,12 @@ ElectroelastostaticResidual(
 }
 
 template<typename EvaluationType, typename IndicatorFunctionType>
-Plato::Solutions 
+void
 ElectroelastostaticResidual<EvaluationType, IndicatorFunctionType>::
-getSolutionStateOutputData(
+postProcess(
   const Plato::Solutions &aSolutions
-) const
-{
-  return aSolutions;
-}
+)
+{ return; }
 
 template<typename EvaluationType, typename IndicatorFunctionType>
 void 

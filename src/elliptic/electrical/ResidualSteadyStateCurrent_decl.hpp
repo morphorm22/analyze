@@ -7,6 +7,7 @@
 #pragma once
 
 #include "NaturalBCs.hpp"
+#include "MaterialModel.hpp"
 #include "base/ResidualBase.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/electrical/SourceEvaluator.hpp"
@@ -53,6 +54,8 @@ private:
   using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
   using ResultScalarType  = typename EvaluationType::ResultScalarType;
   using GradScalarType    = typename Plato::fad_type_t<ElementType,StateScalarType,ConfigScalarType>;
+  /// @brief material constitutive model interface
+  std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterial;
   /// @brief source evaluator interface
   std::shared_ptr<Plato::SourceEvaluator<EvaluationType>> mSourceEvaluator; 
   /// @brief surface boundary condition (Neumann) interface
@@ -82,14 +85,13 @@ public:
   const
   { return Plato::Elliptic::residual_t::LINEAR_ELECTRICAL; }
 
-  /// @fn getSolutionStateOutputData
-  /// @brief populate state solution map
-  /// @param [in] aSolutions state solution map
-  /// @return updated solutions
-  Plato::Solutions 
-  getSolutionStateOutputData(
-      const Plato::Solutions & aSolutions
-  ) const;
+  /// @fn postProcess
+  /// @brief post process solution database before output
+  /// @param [in] aSolutions solution database
+  void 
+  postProcess(
+    const Plato::Solutions & aSolutions
+  );
 
   /// @fn evaluate
   /// @brief evaluate inner (volume) steady state current residual

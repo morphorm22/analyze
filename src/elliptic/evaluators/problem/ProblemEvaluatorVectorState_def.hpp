@@ -54,8 +54,18 @@ ProblemEvaluatorVectorState<PhysicsType>::
 getSolution()
 {
   Plato::Solutions tSolution(mPhysics, mTypePDE);
-  tSolution.set("State", mStates, mResidualEvaluator->getDofNames());
+  tSolution.set("states", mStates, mResidualEvaluator->getDofNames());
   return tSolution;
+}
+
+template<typename PhysicsType>
+void
+ProblemEvaluatorVectorState<PhysicsType>::
+postProcess(
+  Plato::Solutions & aSolutions
+)
+{
+  mResidualEvaluator->postProcess(aSolutions);
 }
 
 template<typename PhysicsType>

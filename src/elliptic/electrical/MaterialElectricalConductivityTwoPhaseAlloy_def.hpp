@@ -66,29 +66,29 @@ parseMaterialProperties(
   bool tIsArray = aParamList.isType<Teuchos::Array<Plato::Scalar>>("Electrical Conductivity");
   if (tIsArray)
   {
-      // parse inputs
-      Teuchos::Array<Plato::Scalar> tConductivities = 
-        aParamList.get<Teuchos::Array<Plato::Scalar>>("Electrical Conductivity");
-      if(tConductivities.size() != 2){
-        auto tMaterialName = this->name();
-        auto tMsg = std::string("Size of electrical conductivity array must equal two. ") 
-          + "Check electrical conductivity inputs in material block with name '" + tMaterialName
-          + "'. Material tensor cannnot be computed.";
-        ANALYZE_THROWERR(tMsg)
-      }
-      // create mirror 
-      for(size_t tIndex = 0; tIndex < tConductivities.size(); tIndex++)
-      {
-        mProperties[mS2E.get("Electrical Conductivity")].push_back( std::to_string(tConductivities[tIndex]) );
-        mConductivities.push_back(tConductivities[tIndex]);
-      }
+    // parse inputs
+    Teuchos::Array<Plato::Scalar> tConductivities = 
+      aParamList.get<Teuchos::Array<Plato::Scalar>>("Electrical Conductivity");
+    if(tConductivities.size() != 2){
+      auto tMaterialName = this->name();
+      auto tMsg = std::string("Size of electrical conductivity array must equal two. ") 
+        + "Check electrical conductivity inputs in material block with name '" + tMaterialName
+        + "'. Material tensor cannnot be computed.";
+      ANALYZE_THROWERR(tMsg)
+    }
+    // create mirror 
+    for(size_t tIndex = 0; tIndex < tConductivities.size(); tIndex++)
+    {
+      mProperties[mS2E.get("Electrical Conductivity")].push_back( std::to_string(tConductivities[tIndex]) );
+      mConductivities.push_back(tConductivities[tIndex]);
+    }
   }
   else
   {
-      auto tMaterialName = this->name();
-      auto tMsg = std::string("Array of electrical conductivities is not defined in material block with name '") 
-        + tMaterialName + "'. Material tensor for a two-phase alloy cannnot be computed.";
-      ANALYZE_THROWERR(tMsg)
+    auto tMaterialName = this->name();
+    auto tMsg = std::string("Array of electrical conductivities is not defined in material block with name '") 
+      + tMaterialName + "'. Material tensor for a two-phase alloy cannnot be computed.";
+    ANALYZE_THROWERR(tMsg)
   }
 }
 
@@ -102,31 +102,31 @@ parseMaterialNames(
   bool tIsArray = aParamList.isType<Teuchos::Array<Plato::Scalar>>("Material Name");
   if (tIsArray)
   {
-      // parse inputs
-      Teuchos::Array<std::string> tMaterialNames = 
-        aParamList.get<Teuchos::Array<std::string>>("Material Name");
-      // create mirror 
-      for(size_t tIndex = 0; tIndex < mMaterialNames.size(); tIndex++){
-          mMaterialNames.push_back(tMaterialNames[tIndex]);
+    // parse inputs
+    Teuchos::Array<std::string> tMaterialNames = 
+      aParamList.get<Teuchos::Array<std::string>>("Material Name");
+    // create mirror 
+    for(size_t tIndex = 0; tIndex < mMaterialNames.size(); tIndex++){
+      mMaterialNames.push_back(tMaterialNames[tIndex]);
+    }
+    if( mConductivities.size() > mMaterialNames.size() ){
+      // assume default values for missing names
+      for(Plato::OrdinalType tIndex = mMaterialNames.size() - 1u; tIndex < mConductivities.size(); tIndex++){
+        auto tName = std::string("material ") + std::to_string(tIndex);
+        mProperties[mS2E.get("Material Name")].push_back(tName);
+        mMaterialNames.push_back(tName);
       }
-      if( mConductivities.size() > mMaterialNames.size() ){
-          // assume default values for missing names
-          for(Plato::OrdinalType tIndex = mMaterialNames.size() - 1u; tIndex < mConductivities.size(); tIndex++){
-              auto tName = std::string("material ") + std::to_string(tIndex);
-              mProperties[mS2E.get("Material Name")].push_back(tName);
-              mMaterialNames.push_back(tName);
-          }
-      }
+    }
   }
   else
   {
-      // assuming default names
-      for(Plato::OrdinalType tIndex = 0; tIndex < mConductivities.size(); tIndex++)
-      {
-          auto tName = std::string("material ") + std::to_string(tIndex);
-          mProperties[mS2E.get("Material Name")].push_back(tName);
-          mMaterialNames.push_back(tName);
-      }
+    // assuming default names
+    for(Plato::OrdinalType tIndex = 0; tIndex < mConductivities.size(); tIndex++)
+    {
+      auto tName = std::string("material ") + std::to_string(tIndex);
+      mProperties[mS2E.get("Material Name")].push_back(tName);
+      mMaterialNames.push_back(tName);
+    }
   }
 }
 

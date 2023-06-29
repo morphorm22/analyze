@@ -73,15 +73,14 @@ public:
   type() 
   const =0;
 
-  /// @fn getSolutionStateOutputData
-  /// @brief get output solutions database
-  /// @param [in] aSolutions function domain solution database
-  /// @return output solutions database
+  /// @fn postProcess
+  /// @brief post process solution database before output
+  /// @param [in] aSolutions solution database
   virtual 
-  Plato::Solutions 
-  getSolutionStateOutputData(
+  void
+  postProcess(
     const Plato::Solutions & aSolutions
-  ) const = 0;
+  ) = 0;
 
   /// @fn evaluate
   /// @brief evaluate internal forces, pure virtual function

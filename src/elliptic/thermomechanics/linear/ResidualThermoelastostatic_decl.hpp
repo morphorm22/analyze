@@ -81,10 +81,13 @@ public:
   const
   { return Plato::Elliptic::residual_t::LINEAR_THERMO_MECHANICAL; }
 
-  Plato::Solutions 
-  getSolutionStateOutputData(
+  /// @fn postProcess
+  /// @brief post process solution database before output
+  /// @param [in] aSolutions solution database
+  void
+  postProcess(
     const Plato::Solutions &aSolutions
-  ) const;
+  );
 
   /// @fn evaluate
   /// @brief evaluate internal forces

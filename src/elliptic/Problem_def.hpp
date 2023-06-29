@@ -94,8 +94,10 @@ solution(
   // save state data if requested
   if ( mSaveState )
   {
-    // evaluate at new state
+    // evaluate state equations at new state
     mProblemEvaluator->residual(tDatabase);
+    Plato::Solutions tSolution = mProblemEvaluator->getSolution();
+    mProblemEvaluator->postProcess(tSolution);
     mDataMap.saveState();
   }
   Plato::Solutions tSolution = mProblemEvaluator->getSolution();

@@ -44,14 +44,12 @@ ResidualThermostatic(
 }
 
 template<typename EvaluationType, typename IndicatorFunctionType>
-Plato::Solutions 
+void
 ResidualThermostatic<EvaluationType, IndicatorFunctionType>::
-getSolutionStateOutputData(
-  const Plato::Solutions &aSolutions) 
-const 
-{
-  return aSolutions;
-}
+postProcess(
+  const Plato::Solutions &aSolutions
+)  
+{ return; }
 
 template<typename EvaluationType, typename IndicatorFunctionType>
 void

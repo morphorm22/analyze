@@ -113,6 +113,14 @@ public:
   Plato::Solutions
   getSolution();
 
+  /// @fn postProcess
+  /// @brief post process solution database before output
+  /// @param [in] aSolutions solution database
+  void
+  postProcess(
+    Plato::Solutions & aSolutions
+  );
+
   /// @fn updateProblem
   /// @brief update criterion parameters at runtime
   /// @param [in,out] aDatabase range and domain database

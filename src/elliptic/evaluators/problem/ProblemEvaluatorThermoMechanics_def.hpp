@@ -61,6 +61,18 @@ getSolution()
 template<typename PhysicsType>
 void
 ProblemEvaluatorThermoMechanics<PhysicsType>::
+postProcess(
+  Plato::Solutions & aSolutions
+)
+{
+  for(auto& tPair : mResidualEvaluators){
+    tPair.second->postProcess(aSolutions);
+  }
+}
+
+template<typename PhysicsType>
+void
+ProblemEvaluatorThermoMechanics<PhysicsType>::
 updateProblem(
   Plato::Database & aDatabase
 )
@@ -171,11 +183,19 @@ analyzeThermalPhysics(
   Plato::Database & aDatabase
 )
 {
+  // initialize database for thermal analysis
+  Plato::Database tThermalDatabase(aDatabase);
+  const Plato::OrdinalType tCycleIndex = tThermalDatabase.scalar("cycle index");
+  auto tTempStates = Kokkos::subview(mTemperatures, tCycleIndex, Kokkos::ALL());
+  Plato::blas1::fill(0.0, tTempStates);
+  tThermalDatabase.vector("states", tTempStates);
+  // solve for thermal states; i.e., temperatures
   auto tResidualItr = mResidualEvaluators.find(mThermalResidualType);
   if(tResidualItr == mResidualEvaluators.end() ){
     ANALYZE_THROWERR("ERROR: Did not find requested thermal residual evaluator")
   }
-  auto tTemperatures = this->analyzePhysics(tResidualItr->second,aDatabase);
+  auto tTemperatures = this->analyzePhysics(tResidualItr->second,tThermalDatabase);
+  // update thermo-mechanical database
   aDatabase.vector("node states",tTemperatures);
 }
 
@@ -186,11 +206,18 @@ analyzeMechanicalPhysics(
   Plato::Database & aDatabase
 )
 {
+  // initialize database for mechanical analysis
+  Plato::Database tMechanicalDatabase(aDatabase);
+  const Plato::OrdinalType tCycleIndex = tMechanicalDatabase.scalar("cycle index");
+  auto tDispStates = Kokkos::subview(mDisplacements, tCycleIndex, Kokkos::ALL());
+  Plato::blas1::fill(0.0,tDispStates);
+  tMechanicalDatabase.vector("states",tDispStates);
+  // solve for thermal states; i.e., temperatures
   auto tResidualItr = mResidualEvaluators.find(mMechanicalResidualType);
   if(tResidualItr == mResidualEvaluators.end() ){
     ANALYZE_THROWERR("ERROR: Did not find requested mechanical residual evaluator")
   }
-  auto tDisplacements = this->analyzePhysics(tResidualItr->second,aDatabase);
+  auto tDisplacements = this->analyzePhysics(tResidualItr->second,tMechanicalDatabase);
   aDatabase.vector("states",tDisplacements);
 }
 
@@ -547,6 +574,10 @@ initializeThermalResidualEvaluators(
   mThermalResidualType = Plato::Elliptic::residual_t::LINEAR_THERMAL;
   mResidualEvaluators[mThermalResidualType] = 
     std::make_shared<Plato::Elliptic::VectorFunction<ThermalPhysicsType>>(mTypePDE,mSpatialModel,mDataMap,aParamList);
+  // allocate memory for thermal states
+  mTemperatures = Plato::ScalarMultiVector(
+    "Temperatures",/*number of cycles=*/1, mResidualEvaluators[mThermalResidualType]->numStateDofsPerNode()
+  );
 }
 
 template<typename PhysicsType>
@@ -568,6 +599,10 @@ initializeMechanicalResidualEvaluators(
   mMechanicalResidualType = tS2E.get(tResidualStringType);
   mResidualEvaluators[mMechanicalResidualType] = 
     std::make_shared<Plato::Elliptic::VectorFunction<PhysicsType>>(mTypePDE,mSpatialModel,mDataMap,aParamList);
+  // allocate memory for mechanical states
+  mDisplacements = Plato::ScalarMultiVector(
+    "Displacements",/*number of cycles=*/1, mResidualEvaluators[mMechanicalResidualType]->numStateDofsPerNode()
+  );
 }
 
 template<typename PhysicsType>

@@ -6,12 +6,16 @@
 
 #pragma once
 
+#include "BLAS1.hpp"
 #include "MetaData.hpp"
 #include "ScalarGrad.hpp"
+#include "MaterialModel.hpp"
 #include "GradientMatrix.hpp"
 #include "InterpolateFromNodal.hpp"
 #include "GeneralFluxDivergence.hpp"
+
 #include "elliptic/electrical/FactorySourceEvaluator.hpp"
+#include "elliptic/electrical/FactoryElectricalMaterial.hpp"
 #include "elliptic/electrical/FactoryCurrentDensityEvaluator.hpp"
 
 namespace Plato
@@ -34,13 +38,21 @@ ResidualSteadyStateCurrent<EvaluationType>::
 ~ResidualSteadyStateCurrent(){}
 
 template<typename EvaluationType>
-Plato::Solutions 
+void
 ResidualSteadyStateCurrent<EvaluationType>::
-getSolutionStateOutputData(
-  const Plato::Solutions &aSolutions
-) const 
+postProcess(
+  const Plato::Solutions & aSolutions
+) 
 { 
-  return aSolutions; 
+  Plato::ScalarMultiVector tElectricalPotential = aSolutions.get("states");
+  Plato::ScalarVector tMyElectricalPotential = Kokkos::subview(tElectricalPotential,/*cycle index=*/0,Kokkos::ALL());
+  if( mMaterial->scalarConstantExists("Electrical Resistance") ){
+    Plato::Scalar tElectricalResistance = std::stod(mMaterial->property("Electrical Resistance").front());
+    auto tOneOverElectricalResistance = 1.0 / tElectricalResistance;
+    Plato::ScalarVector tElectricalCurrent("Current",tMyElectricalPotential.extent(0));
+    Plato::blas1::update(tOneOverElectricalResistance,tMyElectricalPotential,0.0,tElectricalCurrent);
+    mDataMap.scalarNodeFields["electrical current"] = tElectricalCurrent;
+  }
 }
 
 template<typename EvaluationType>
@@ -135,6 +147,9 @@ initialize(
   auto tMaterialName = mSpatialDomain.getMaterialName();
   Plato::FactoryCurrentDensityEvaluator<EvaluationType> tCurrentDensityFactory(tMaterialName,aParamList);
   mCurrentDensityEvaluator = tCurrentDensityFactory.create(mSpatialDomain,mDataMap);
+  // create material model
+  Plato::FactoryElectricalMaterial<EvaluationType> tFactory(aParamList);
+  mMaterial = tFactory.create(tMaterialName);
   // create source evaluator
   Plato::FactorySourceEvaluator<EvaluationType> tFactorySourceEvaluator;
   mSourceEvaluator = tFactorySourceEvaluator.create(tMaterialName,aParamList);

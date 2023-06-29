@@ -41,15 +41,12 @@ ResidualElastostaticTotalLagrangian(
 }
 
 template<typename EvaluationType>
-Plato::Solutions
+void
 ResidualElastostaticTotalLagrangian<EvaluationType>::
-getSolutionStateOutputData(
+postProcess(
   const Plato::Solutions & aSolutions
-) const
-{
-  // No scaling, addition, or removal of data necessary for this physics.
-  return aSolutions;
-}
+)
+{ return; }
 
 template<typename EvaluationType>
 void

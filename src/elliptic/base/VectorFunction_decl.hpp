@@ -153,14 +153,13 @@ public:
   getDofNames() 
   const;
 
-  /// @fn getSolutionStateOutputData
-  /// @brief get output solutions database
-  /// @param [in,out] aSolutions function domain solution database
-  /// @return output solutions database
-  Plato::Solutions 
-  getSolutionStateOutputData(
+  /// @fn postProcess
+  /// @brief post process solution database before output
+  /// @param [in] aSolutions solution database
+  void
+  postProcess(
     const Plato::Solutions & aSolutions
-  ) const;
+  );
 
   /// @fn value
   /// @brief return vector function evaluation

@@ -45,14 +45,19 @@ initialize(
     Teuchos::ParameterList & aParamList
 )
 {
-    this->parseScalar("Electrical Constant", aParamList);
-    this->parseScalar("Relative Static Permittivity", aParamList);
-    auto tElectricConstant = this->getScalarConstant("Electrical Constant");
-    auto tRelativeStaticPermittivity = this->getScalarConstant("Relative Static Permittivity");
-    auto tValue = tElectricConstant * tRelativeStaticPermittivity;
-    this->setTensorConstant("material tensor",Plato::TensorConstant<mNumSpatialDims>(tValue));
-    mProperties[mS2E.get("Electrical Constant")].push_back(std::to_string(tElectricConstant));
-    mProperties[mS2E.get("Relative Static Permittivity")].push_back(std::to_string(tRelativeStaticPermittivity));
+  if(aParamList.isParameter("Electrical Resistance")){
+    this->parseScalar("Electrical Resistance", aParamList);
+    auto tElectricalResistance = this->getScalarConstant("Electrical Resistance");
+    mProperties[mS2E.get("Electrical Resistance")].push_back(std::to_string(tElectricalResistance));
+  }
+  this->parseScalar("Electrical Constant", aParamList);
+  this->parseScalar("Relative Static Permittivity", aParamList);
+  auto tElectricConstant = this->getScalarConstant("Electrical Constant");
+  auto tRelativeStaticPermittivity = this->getScalarConstant("Relative Static Permittivity");
+  auto tValue = tElectricConstant * tRelativeStaticPermittivity;
+  this->setTensorConstant("material tensor",Plato::TensorConstant<mNumSpatialDims>(tValue));
+  mProperties[mS2E.get("Electrical Constant")].push_back(std::to_string(tElectricConstant));
+  mProperties[mS2E.get("Relative Static Permittivity")].push_back(std::to_string(tRelativeStaticPermittivity));
 }
 
 }
