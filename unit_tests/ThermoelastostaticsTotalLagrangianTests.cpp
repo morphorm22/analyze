@@ -36,6 +36,10 @@ namespace ThermoelastostaticTotalLagrangianTests
 
 Teuchos::RCP<Teuchos::ParameterList> tGenericParamList = Teuchos::getParametersFromXmlString(
 "<ParameterList name='Plato Problem'>                                                                      \n"
+  "<Parameter name='PDE Constraint' type='string' value='Elliptic'/>                                       \n"
+  "<Parameter name='Physics'        type='string' value='Thermomechanical'/>                               \n"
+  "<Parameter name='Response'       type='string' value='Nonlinear'/>                                      \n"
+  "<Parameter name='Coupling'       type='string' value='Staggered'/>                                      \n"
   "<ParameterList name='Spatial Model'>                                                                    \n"
     "<ParameterList name='Domains'>                                                                        \n"
       "<ParameterList name='Design Volume'>                                                                \n"
@@ -44,9 +48,6 @@ Teuchos::RCP<Teuchos::ParameterList> tGenericParamList = Teuchos::getParametersF
       "</ParameterList>                                                                                    \n"
     "</ParameterList>                                                                                      \n"
   "</ParameterList>                                                                                        \n"
-  "<Parameter name='PDE Constraint' type='string' value='Elliptic'/>                                       \n"
-  "<Parameter name='Physics'  type='string' value='Thermomechanical'/>                                     \n"
-  "<Parameter name='Coupling' type='string' value='Staggered'/>                                            \n"
   "<ParameterList name='Elliptic'>                                                                         \n"
   "  <ParameterList name='Mechanical Residual'>                                                            \n"
   "    <Parameter name='Response' type='string' value='Nonlinear'/>                                        \n"

@@ -903,7 +903,7 @@ TEUCHOS_UNIT_TEST( Tet10, ElastostaticResidual3D_Solution )
 
     // TEST RESULTS    
     const Plato::OrdinalType tTimeStep = 0;
-    auto tState = tElasticitySolution.get("State");
+    auto tState = tElasticitySolution.get("States");
     auto tSolution = Kokkos::subview(tState, tTimeStep, Kokkos::ALL());
     auto tHostSolution = Kokkos::create_mirror_view(tSolution);
     Kokkos::deep_copy(tHostSolution, tSolution);
