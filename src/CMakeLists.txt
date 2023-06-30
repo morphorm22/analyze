@@ -241,16 +241,6 @@ if(HYPERBOLIC)
       hyperbolic/fluids/CriterionMeanSurfaceTemperature.cpp
     )
   endif()
-
-  if(MICROMORPHIC)
-    set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-      hyperbolic/micromorphic/MicromorphicLinearElasticMaterial.cpp
-      hyperbolic/micromorphic/CubicMicromorphicLinearElasticMaterial.cpp
-      hyperbolic/micromorphic/MicromorphicInertiaMaterial.cpp
-      hyperbolic/micromorphic/CubicMicromorphicInertiaMaterial.cpp
-      hyperbolic/micromorphic/RelaxedMicromorphicResidual.cpp
-    )
-  endif()
 endif()
 
 ## helmholtz sources
