@@ -5,7 +5,7 @@
 #include "LinearElectroelasticMaterial.hpp"
 
 #include "base/ResidualBase.hpp"
-#include "bcs/neumann/NaturalBCs.hpp"
+#include "bcs/neumann/NeumannBCs.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 
 namespace Plato
@@ -54,8 +54,8 @@ private:
 
   std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
 
-  std::shared_ptr<Plato::NaturalBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>> mBoundaryLoads;
-  std::shared_ptr<Plato::NaturalBCs<ElementType, NElecDims, mNumDofsPerNode, EDofOffset>> mBoundaryCharges;
+  std::shared_ptr<Plato::NeumannBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>> mBoundaryLoads;
+  std::shared_ptr<Plato::NeumannBCs<ElementType, NElecDims, mNumDofsPerNode, EDofOffset>> mBoundaryCharges;
 
   Teuchos::RCP<Plato::LinearElectroelasticMaterial<mNumSpatialDims>> mMaterialModel;
 

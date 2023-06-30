@@ -3,7 +3,7 @@
 #include "BodyLoads.hpp"
 #include "ApplyWeighting.hpp"
 #include "ElasticModelFactory.hpp"
-#include "bcs/neumann/NaturalBCs.hpp"
+#include "bcs/neumann/NeumannBCs.hpp"
 #include "hyperbolic/VectorFunction.hpp"
 #include "hyperbolic/EvaluationTypes.hpp"
 
@@ -43,7 +43,7 @@ class TransientMechanicsResidual :
     Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyMassWeighting;
 
     std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
-    std::shared_ptr<Plato::NaturalBCs<ElementType>> mBoundaryLoads;
+    std::shared_ptr<Plato::NeumannBCs<ElementType>> mBoundaryLoads;
 
     bool mRayleighDamping;
 

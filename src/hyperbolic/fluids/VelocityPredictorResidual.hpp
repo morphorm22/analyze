@@ -15,7 +15,7 @@
 #include "InterpolateFromNodal.hpp"
 #include "LinearTetCubRuleDegreeOne.hpp"
 
-#include "bcs/neumann/NaturalBCs.hpp"
+#include "bcs/neumann/NeumannBCs.hpp"
 #include "hyperbolic/fluids/FluidsUtils.hpp"
 #include "hyperbolic/fluids/SimplexFluids.hpp"
 #include "hyperbolic/fluids/BrinkmanForces.hpp"
@@ -111,7 +111,7 @@ private:
     Plato::LinearTetCubRuleDegreeOne<mNumSpatialDims> mCubatureRule; /*!< cubature rule evaluator */
 
     // set right hand side force evaluators
-    std::shared_ptr<Plato::NaturalBCs<mNumSpatialDims, mNumDofsPerNode>> mPrescribedBCs; /*!< prescribed boundary conditions, e.g. tractions */
+    std::shared_ptr<Plato::NeumannBCs<mNumSpatialDims, mNumDofsPerNode>> mPrescribedBCs; /*!< prescribed boundary conditions, e.g. tractions */
     std::shared_ptr<Plato::Fluids::BrinkmanForces<PhysicsT,EvaluationT>> mBrinkmanForces; /*!< Brinkman force evaluator */
     std::shared_ptr<Plato::Fluids::ThermalBuoyancy<PhysicsT,EvaluationT>> mThermalBuoyancy; /*!< thermal buoyancy force evaluator */
 
@@ -385,8 +385,8 @@ private:
    {
        if(aInputs.isSublist("Momentum Natural Boundary Conditions"))
        {
-           auto tInputsNaturalBCs = aInputs.sublist("Momentum Natural Boundary Conditions");
-           mPrescribedBCs = std::make_shared<Plato::NaturalBCs<mNumSpatialDims, mNumDofsPerNode>>(tInputsNaturalBCs);
+           auto tInputsNeumannBCs = aInputs.sublist("Momentum Natural Boundary Conditions");
+           mPrescribedBCs = std::make_shared<Plato::NeumannBCs<mNumSpatialDims, mNumDofsPerNode>>(tInputsNeumannBCs);
        }
    }
 };

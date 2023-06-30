@@ -53,7 +53,7 @@ ElectroelastostaticResidual(
   // 
   if(aProblemParams.isSublist("Mechanical Natural Boundary Conditions"))
   {
-    mBoundaryLoads = std::make_shared<Plato::NaturalBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>>(
+    mBoundaryLoads = std::make_shared<Plato::NeumannBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>>(
       aProblemParams.sublist("Mechanical Natural Boundary Conditions")
     );
   }
@@ -61,7 +61,7 @@ ElectroelastostaticResidual(
   // 
   if(aProblemParams.isSublist("Electrical Natural Boundary Conditions"))
   {
-    mBoundaryCharges = std::make_shared<Plato::NaturalBCs<ElementType, NElecDims, mNumDofsPerNode, EDofOffset>>(
+    mBoundaryCharges = std::make_shared<Plato::NeumannBCs<ElementType, NElecDims, mNumDofsPerNode, EDofOffset>>(
       aProblemParams.sublist("Electrical Natural Boundary Conditions")
     );
   }

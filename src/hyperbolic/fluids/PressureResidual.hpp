@@ -15,7 +15,7 @@
 #include "ExpInstMacros.hpp"
 #include "LinearTetCubRuleDegreeOne.hpp"
 
-#include "bcs/neumann/NaturalBCs.hpp"
+#include "bcs/neumann/NeumannBCs.hpp"
 #include "hyperbolic/fluids/AbstractVolumeIntegrand.hpp"
 #include "hyperbolic/fluids/SimplexFluids.hpp"
 #include "hyperbolic/fluids/MassConservationUtils.hpp"

@@ -2,7 +2,7 @@
 
 #include "MaterialModel.hpp"
 #include "ApplyWeighting.hpp"
-#include "bcs/neumann/NaturalBCs.hpp"
+#include "bcs/neumann/NeumannBCs.hpp"
 #include "parabolic/AbstractVectorFunction.hpp"
 
 namespace Plato
@@ -53,8 +53,8 @@ class TransientThermomechResidual :
     Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyFluxWeighting;
     Plato::ApplyWeighting<mNumNodesPerCell, NThrmDims,       IndicatorFunctionType> mApplyMassWeighting;
 
-    std::shared_ptr<Plato::NaturalBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>> mBoundaryLoads;
-    std::shared_ptr<Plato::NaturalBCs<ElementType, NThrmDims, mNumDofsPerNode, TDofOffset>> mBoundaryFluxes;
+    std::shared_ptr<Plato::NeumannBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>> mBoundaryLoads;
+    std::shared_ptr<Plato::NeumannBCs<ElementType, NThrmDims, mNumDofsPerNode, TDofOffset>> mBoundaryFluxes;
 
     Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
     Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mThermalMassMaterialModel;

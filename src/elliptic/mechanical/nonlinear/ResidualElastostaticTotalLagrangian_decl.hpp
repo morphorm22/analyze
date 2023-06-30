@@ -10,7 +10,7 @@
 #include "SpatialModel.hpp"
 
 #include "base/ResidualBase.hpp"
-#include "bcs/neumann/NaturalBCs.hpp"
+#include "bcs/neumann/NeumannBCs.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/mechanical/nonlinear/StressEvaluator.hpp"
 
@@ -64,7 +64,7 @@ private:
   /// @brief stress evaluator
   std::shared_ptr<Plato::StressEvaluator<EvaluationType>> mStressEvaluator;
   /// @brief natural boundary conditions evaluator
-  std::shared_ptr<Plato::NaturalBCs<ElementType>> mNaturalBCs;
+  std::shared_ptr<Plato::NeumannBCs<ElementType>> mNeumannBCs;
   /// @brief body loads evaluator
   std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
   /// @brief output plot table, contains requested output quantities of interests

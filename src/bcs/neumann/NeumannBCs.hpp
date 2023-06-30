@@ -3,13 +3,13 @@
 #include <vector>
 #include <memory>
 
-#include "bcs/neumann/NaturalBC.hpp"
+#include "bcs/neumann/NeumannBC.hpp"
 
 namespace Plato 
 {
 
 /***************************************************************************//**
- * \brief Owner class that contains a vector of NaturalBC objects.
+ * \brief Owner class that contains a vector of NeumannBC objects.
  *
  * \tparam ElementType  Element type
  * \tparam NumDofs      number degrees of freedom per natural boundary condition force vector
@@ -22,12 +22,12 @@ template<
   Plato::OrdinalType NumDofs=ElementType::mNumSpatialDims,
   Plato::OrdinalType DofsPerNode=NumDofs,
   Plato::OrdinalType DofOffset=0>
-class NaturalBCs
+class NeumannBCs
 {
 // private member data
 private:
     /*!< list of natural boundary condition */
-    std::vector<std::shared_ptr<Plato::NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>> mBCs;
+    std::vector<std::shared_ptr<Plato::NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>> mBCs;
 
 // private functions
 private:
@@ -37,7 +37,7 @@ private:
      * \param  [in] aName    user-defined name for natural boundary condition sublist
      * \param  [in] aSubList natural boundary condition parameter sublist
     *******************************************************************************/
-    void appendNaturalBC(const std::string & aName, Teuchos::ParameterList &aSubList);
+    void appendNeumannBC(const std::string & aName, Teuchos::ParameterList &aSubList);
 
     /***************************************************************************//**
      * \brief Return natural boundary condition type: uniform.
@@ -47,8 +47,8 @@ private:
      *
      * \return shared pointer to an uniform natural boundary condition
     *******************************************************************************/
-    std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
-    setUniformNaturalBC(const std::string & aName, Teuchos::ParameterList &aSubList);
+    std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
+    setUniformNeumannBC(const std::string & aName, Teuchos::ParameterList &aSubList);
 
     /***************************************************************************//**
      * \brief Return natural boundary condition type: uniform pressure.
@@ -58,8 +58,8 @@ private:
      *
      * \return shared pointer to an uniform pressure natural boundary condition
     *******************************************************************************/
-    std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
-    setUniformPressureNaturalBC(const std::string & aName, Teuchos::ParameterList &aSubList);
+    std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
+    setUniformPressureNeumannBC(const std::string & aName, Teuchos::ParameterList &aSubList);
 
     /***************************************************************************//**
      * \brief Return natural boundary condition type: uniform component.
@@ -69,16 +69,16 @@ private:
      *
      * \return shared pointer to an uniform component natural boundary condition
     *******************************************************************************/
-    std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
-    setUniformComponentNaturalBC(const std::string & aName, Teuchos::ParameterList &aSubList);
+    std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
+    setUniformComponentNeumannBC(const std::string & aName, Teuchos::ParameterList &aSubList);
 
 // public functions
 public :
     /***************************************************************************//**
-     * \brief Constructor that parses and creates a vector of NaturalBC objects.
+     * \brief Constructor that parses and creates a vector of NeumannBC objects.
      * \param [in] aParams input parameter list
     *******************************************************************************/
-    NaturalBCs(Teuchos::ParameterList &aParams);
+    NeumannBCs(Teuchos::ParameterList &aParams);
 
     /***************************************************************************//**
      * \brief Get the contribution to the assembled forcing vector from the owned
@@ -109,33 +109,33 @@ public :
               Plato::Scalar aScale = 1.0,
               Plato::Scalar aCurrentTime = 0.0) const;
 };
-// class NaturalBCs
+// class NeumannBCs
 
 /***************************************************************************//**
- * \brief NaturalBC::appendNaturalBC function definition
+ * \brief NeumannBC::appendNeumannBC function definition
 *******************************************************************************/
 template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-void NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::appendNaturalBC
+void NeumannBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::appendNeumannBC
 (const std::string & aName, Teuchos::ParameterList &aSubList)
 {
     const auto tType = aSubList.get<std::string>("Type");
     const auto tNeumannType = Plato::natural_boundary_condition_type(tType);
-    std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>> tBC;
+    std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>> tBC;
     switch(tNeumannType)
     {
         case Plato::Neumann::UNIFORM:
         {
-            tBC = this->setUniformNaturalBC(aName, aSubList);
+            tBC = this->setUniformNeumannBC(aName, aSubList);
             break;
         }
         case Plato::Neumann::UNIFORM_PRESSURE:
         {
-            tBC = this->setUniformPressureNaturalBC(aName, aSubList);
+            tBC = this->setUniformPressureNeumannBC(aName, aSubList);
             break;
         }
         case Plato::Neumann::UNIFORM_COMPONENT:
         {
-            tBC = this->setUniformComponentNaturalBC(aName, aSubList);
+            tBC = this->setUniformComponentNeumannBC(aName, aSubList);
             break;
         }
         default:
@@ -149,11 +149,11 @@ void NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::appendNaturalBC
 }
 
 /***************************************************************************//**
- * \brief NaturalBC::setUniformNaturalBC function definition
+ * \brief NeumannBC::setUniformNeumannBC function definition
 *******************************************************************************/
 template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
-NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::setUniformNaturalBC
+std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
+NeumannBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::setUniformNeumannBC
 (const std::string & aName, Teuchos::ParameterList &aSubList)
 {
     bool tBC_Value = (aSubList.isType<Plato::Scalar>("Value") || aSubList.isType<std::string>("Value"));
@@ -162,7 +162,7 @@ NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::setUniformNaturalBC
                        aSubList.isType<Teuchos::Array<std::string>>("Values"));
 
     const auto tType = aSubList.get < std::string > ("Type");
-    std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>> tBC;
+    std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>> tBC;
     if (tBC_Values && tBC_Value)
     {
         std::stringstream tMsg;
@@ -223,16 +223,16 @@ NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::setUniformNaturalBC
         ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
-    tBC = std::make_shared<Plato::NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>(aName, aSubList);
+    tBC = std::make_shared<Plato::NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>(aName, aSubList);
     return tBC;
 }
 
 /***************************************************************************//**
- * \brief NaturalBC::setUniformPressureNaturalBC function definition
+ * \brief NeumannBC::setUniformPressureNeumannBC function definition
 *******************************************************************************/
 template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
-NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::setUniformPressureNaturalBC
+std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
+NeumannBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::setUniformPressureNeumannBC
 (const std::string & aName, Teuchos::ParameterList &aSubList)
 {
     if(aSubList.isParameter("Value") == false)
@@ -260,16 +260,16 @@ NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::setUniformPressureNatu
         ANALYZE_THROWERR(tMsg.str().c_str())
     }
 
-    auto tBC = std::make_shared<Plato::NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>(aName, aSubList);
+    auto tBC = std::make_shared<Plato::NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>(aName, aSubList);
     return tBC;
 }
 
 /***************************************************************************//**
- * \brief NaturalBC::setUniformComponentNaturalBC function definition
+ * \brief NeumannBC::setUniformComponentNeumannBC function definition
 *******************************************************************************/
 template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
-NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::setUniformComponentNaturalBC
+std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
+NeumannBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::setUniformComponentNeumannBC
 (const std::string & aName, Teuchos::ParameterList &aSubList)
 {
     if(aSubList.isParameter("Value") == false)
@@ -291,7 +291,7 @@ NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::setUniformComponentNat
     Teuchos::Array<Plato::Scalar> tFluxVector(NumDofs, 0.0);
     auto tFluxComponent = aSubList.get<std::string>("Component");
 
-    std::shared_ptr<NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>> tBC;
+    std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>> tBC;
     if( (tFluxComponent == "x" || tFluxComponent == "X") )
     {
         tFluxVector[0] = tValue;
@@ -316,15 +316,15 @@ NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::setUniformComponentNat
     }
 
     aSubList.set("Vector", tFluxVector);
-    tBC = std::make_shared<Plato::NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>>(aName, aSubList);
+    tBC = std::make_shared<Plato::NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>(aName, aSubList);
     return tBC;
 }
 
 /***************************************************************************//**
- * \brief NaturalBCs Constructor definition
+ * \brief NeumannBCs Constructor definition
 *******************************************************************************/
 template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::NaturalBCs(Teuchos::ParameterList &aParams) :
+NeumannBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::NeumannBCs(Teuchos::ParameterList &aParams) :
 mBCs()
 {
     for (Teuchos::ParameterList::ConstIterator tItr = aParams.begin(); tItr != aParams.end(); ++tItr)
@@ -352,19 +352,19 @@ mBCs()
             ANALYZE_THROWERR(tMsg.str().c_str())
         }
 
-        this->appendNaturalBC(tName, tSubList);
+        this->appendNeumannBC(tName, tSubList);
     }
 }
 
 /***************************************************************************//**
- * \brief NaturalBCs::get function definition
+ * \brief NeumannBCs::get function definition
 *******************************************************************************/
 template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
 template<typename StateScalarType,
          typename ControlScalarType,
          typename ConfigScalarType,
          typename ResultScalarType>
-void NaturalBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::get(
+void NeumannBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::get(
      const Plato::SpatialModel                           & aSpatialModel,
      const Plato::ScalarMultiVectorT <  StateScalarType> & aState,
      const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,

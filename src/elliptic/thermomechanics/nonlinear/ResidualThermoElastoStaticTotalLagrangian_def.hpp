@@ -33,7 +33,7 @@ ResidualThermoElastoStaticTotalLagrangian(
 ) : 
   FunctionBaseType(aSpatialDomain, aDataMap),
   mStressEvaluator(nullptr),
-  mNaturalBCs     (nullptr),
+  mNeumannBCs     (nullptr),
   mBodyLoads      (nullptr),
   mParamList(aParamList)
 {
@@ -170,9 +170,9 @@ evaluateBoundary(
   Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
     Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
   // evaluate boundary forces
-  if( mNaturalBCs != nullptr )
+  if( mNeumannBCs != nullptr )
   {
-    mNaturalBCs->get(aSpatialModel, tDispWS, tControlWS, tConfigWS, tResultWS, -1.0 );
+    mNeumannBCs->get(aSpatialModel, tDispWS, tControlWS, tConfigWS, tResultWS, -1.0 );
   }
 }
 
@@ -198,8 +198,8 @@ initialize(
   // 
   if(aParamList.isSublist("Mechanical Natural Boundary Conditions"))
   {
-    mNaturalBCs = 
-      std::make_shared<Plato::NaturalBCs<ElementType>>(aParamList.sublist("Mechanical Natural Boundary Conditions"));
+    mNeumannBCs = 
+      std::make_shared<Plato::NeumannBCs<ElementType>>(aParamList.sublist("Mechanical Natural Boundary Conditions"));
   }
   // parse plot table
   //

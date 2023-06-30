@@ -10,7 +10,7 @@
 #include "ToMap.hpp"
 #include "Strain.hpp"
 #include "BodyLoads.hpp"
-#include "bcs/neumann/NaturalBCs.hpp"
+#include "bcs/neumann/NeumannBCs.hpp"
 #include "ScalarGrad.hpp"
 #include "ProjectToNode.hpp"
 #include "FluxDivergence.hpp"
@@ -100,7 +100,7 @@ private:
     using CubatureType = typename SimplexPhysicsType::CubatureType;
     std::shared_ptr<CubatureType> mCubatureRule;                                        /*!< linear cubature rule */
 
-    std::shared_ptr<Plato::NaturalBCs<mSpaceDim, mNumMechDims, mNumGlobalDofsPerNode, mMechDofOffset>> mNeumannLoads; /*!< Neumann loads interface */
+    std::shared_ptr<Plato::NeumannBCs<mSpaceDim, mNumMechDims, mNumGlobalDofsPerNode, mMechDofOffset>> mNeumannLoads; /*!< Neumann loads interface */
 
 // Private access functions
 private:
@@ -175,13 +175,13 @@ private:
         // Parse Neumman loads
         if(aProblemParams.isSublist("Natural Boundary Conditions"))
         {
-            auto tNaturalBCsParams = aProblemParams.sublist("Natural Boundary Conditions");
+            auto tNeumannBCsParams = aProblemParams.sublist("Natural Boundary Conditions");
 
             // Parse mechanical Neumann loads
-            if(tNaturalBCsParams.isSublist("Mechanical Natural Boundary Conditions"))
+            if(tNeumannBCsParams.isSublist("Mechanical Natural Boundary Conditions"))
             {
                 mNeumannLoads =
-                std::make_shared<Plato::NaturalBCs<mSpaceDim, mNumMechDims, mNumGlobalDofsPerNode, mMechDofOffset>> (tNaturalBCsParams.sublist("Mechanical Natural Boundary Conditions"));
+                std::make_shared<Plato::NeumannBCs<mSpaceDim, mNumMechDims, mNumGlobalDofsPerNode, mMechDofOffset>> (tNeumannBCsParams.sublist("Mechanical Natural Boundary Conditions"));
             }
 
         }

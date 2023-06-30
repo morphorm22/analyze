@@ -10,7 +10,7 @@
 #include "ToMap.hpp"
 #include "Strain.hpp"
 #include "BodyLoads.hpp"
-#include "bcs/neumann/NaturalBCs.hpp"
+#include "bcs/neumann/NeumannBCs.hpp"
 #include "ScalarGrad.hpp"
 #include "ProjectToNode.hpp"
 #include "FluxDivergence.hpp"
@@ -95,9 +95,9 @@ private:
 
     std::shared_ptr<Plato::BodyLoads<EvaluationType, SimplexPhysicsType>> mBodyLoads;                       /*!< body loads interface */
     std::shared_ptr<CubatureType> mCubatureRule;                                        /*!< linear cubature rule */
-    std::shared_ptr<Plato::NaturalBCs<mSpaceDim, mNumDisplacementDims, mNumGlobalDofsPerNode, mDisplacementDofOffset>>
+    std::shared_ptr<Plato::NeumannBCs<mSpaceDim, mNumDisplacementDims, mNumGlobalDofsPerNode, mDisplacementDofOffset>>
                     mNeumannMechanicalLoads; /*!< Neumann mechanical loads interface */
-    std::shared_ptr<Plato::NaturalBCs<mSpaceDim, mNumThermalDims, mNumGlobalDofsPerNode, mTemperatureDofOffset>>
+    std::shared_ptr<Plato::NeumannBCs<mSpaceDim, mNumThermalDims, mNumGlobalDofsPerNode, mTemperatureDofOffset>>
                     mNeumannThermalLoads; /*!< Neumann thermal loads interface */
 
 // Private access functions
@@ -172,22 +172,22 @@ private:
 
         if(aProblemParams.isSublist("Natural Boundary Conditions"))
         {
-            auto tNaturalBCsParams = aProblemParams.sublist("Natural Boundary Conditions");
+            auto tNeumannBCsParams = aProblemParams.sublist("Natural Boundary Conditions");
 
             // Parse mechanical Neumann loads
-            if(tNaturalBCsParams.isSublist("Mechanical Natural Boundary Conditions"))
+            if(tNeumannBCsParams.isSublist("Mechanical Natural Boundary Conditions"))
             {
                 mNeumannMechanicalLoads =
-                        std::make_shared<Plato::NaturalBCs<mSpaceDim, mNumDisplacementDims, mNumGlobalDofsPerNode, mDisplacementDofOffset>>
-                        (tNaturalBCsParams.sublist("Mechanical Natural Boundary Conditions"));
+                        std::make_shared<Plato::NeumannBCs<mSpaceDim, mNumDisplacementDims, mNumGlobalDofsPerNode, mDisplacementDofOffset>>
+                        (tNeumannBCsParams.sublist("Mechanical Natural Boundary Conditions"));
             }
 
             // Parse thermal Neumann loads
-            if(tNaturalBCsParams.isSublist("Thermal Natural Boundary Conditions"))
+            if(tNeumannBCsParams.isSublist("Thermal Natural Boundary Conditions"))
             {
                 mNeumannThermalLoads =
-                        std::make_shared<Plato::NaturalBCs<mSpaceDim, mNumThermalDims, mNumGlobalDofsPerNode, mTemperatureDofOffset>>
-                        (tNaturalBCsParams.sublist("Thermal Natural Boundary Conditions"));
+                        std::make_shared<Plato::NeumannBCs<mSpaceDim, mNumThermalDims, mNumGlobalDofsPerNode, mTemperatureDofOffset>>
+                        (tNeumannBCsParams.sublist("Thermal Natural Boundary Conditions"));
             }
 
         }

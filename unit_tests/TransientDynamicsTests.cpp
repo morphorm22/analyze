@@ -31,7 +31,7 @@
 #include "hyperbolic/InertialContent.hpp"
 
 #include "BodyLoads.hpp"
-#include "bcs/neumann/NaturalBCs.hpp"
+#include "bcs/neumann/NeumannBCs.hpp"
 
 #include "hyperbolic/Problem.hpp"
 #include "hyperbolic/VectorFunction.hpp"
@@ -1617,7 +1617,7 @@ TEUCHOS_UNIT_TEST( TimeDependentBCsTests, EssentialBoundaryDofValuesMatchFunctio
 
 }
 
-TEUCHOS_UNIT_TEST( TransientMechanicsFormulationTests, UFormAndAFormEquivalenceWithConstantNaturalBCs )
+TEUCHOS_UNIT_TEST( TransientMechanicsFormulationTests, UFormAndAFormEquivalenceWithConstantNeumannBCs )
 {
   // create comm
   //
@@ -2064,7 +2064,7 @@ TEUCHOS_UNIT_TEST( TransientMechanicsFormulationTests, UFormAndAFormEquivalenceW
 
 }
 
-TEUCHOS_UNIT_TEST( TransientMechanicsFormulationTests, UFormAndAFormEquivalenceWithTimeDependentNaturalBCs )
+TEUCHOS_UNIT_TEST( TransientMechanicsFormulationTests, UFormAndAFormEquivalenceWithTimeDependentNeumannBCs )
 {
   // create comm
   //

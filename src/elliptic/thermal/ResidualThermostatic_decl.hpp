@@ -5,7 +5,7 @@
 #include "ThermalConductivityMaterial.hpp"
 
 #include "base/ResidualBase.hpp"
-#include "bcs/neumann/NaturalBCs.hpp"
+#include "bcs/neumann/NeumannBCs.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 
 namespace Plato
@@ -47,7 +47,7 @@ private:
 
   /// @brief volumetric heat source
   std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mHeatSource;
-  std::shared_ptr<Plato::NaturalBCs<ElementType, mNumDofsPerNode>> mBoundaryLoads;
+  std::shared_ptr<Plato::NeumannBCs<ElementType, mNumDofsPerNode>> mBoundaryLoads;
 
   Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
@@ -108,11 +108,11 @@ private:
     Teuchos::ParameterList & aProblemParams
   );
 
-  /// @fn parseNaturalBCs
+  /// @fn parseNeumannBCs
   /// @brief parse thermal natural boundary conditions
   /// @param [in] aProblemParams input problem parameters
   void
-  parseNaturalBCs(
+  parseNeumannBCs(
     Teuchos::ParameterList & aProblemParams
   );
 

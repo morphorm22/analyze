@@ -8,7 +8,7 @@
 
 #include "MaterialModel.hpp"
 #include "base/ResidualBase.hpp"
-#include "bcs/neumann/NaturalBCs.hpp"
+#include "bcs/neumann/NeumannBCs.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/electrical/SourceEvaluator.hpp"
 #include "elliptic/electrical/CurrentDensityEvaluator.hpp"
@@ -59,7 +59,7 @@ private:
   /// @brief source evaluator interface
   std::shared_ptr<Plato::SourceEvaluator<EvaluationType>> mSourceEvaluator; 
   /// @brief surface boundary condition (Neumann) interface
-  std::shared_ptr<Plato::NaturalBCs<ElementType,mNumDofsPerNode>> mSurfaceLoads;  
+  std::shared_ptr<Plato::NeumannBCs<ElementType,mNumDofsPerNode>> mSurfaceLoads;  
   /// @brief current density evaluator
   std::shared_ptr<Plato::CurrentDensityEvaluator<EvaluationType>> mCurrentDensityEvaluator;  
 

@@ -140,12 +140,12 @@ struct ElasticProblemParameters
 ElasticProblemParameters elastic_2d_parameters(const Plato::Scalar aMeshPhysicalWidth)
 {
     const Teuchos::RCP<const Teuchos::ParameterList> tParams = elastic_2d_xml_parameters();
-    const Teuchos::ParameterList tNaturalBCs = 
+    const Teuchos::ParameterList tNeumannBCs = 
         tParams->sublist("Natural Boundary Conditions").sublist("Traction Vector Boundary Condition");
     const Teuchos::ParameterList tMaterial = 
         tParams->sublist("Material Models").sublist("Unobtainium").sublist("Isotropic Linear Elastic");
     // Use designated initializers in C++20:
-    return {/*.mTraction =*/ tNaturalBCs.get<Teuchos::Array<double>>("Values")[0], 
+    return {/*.mTraction =*/ tNeumannBCs.get<Teuchos::Array<double>>("Values")[0], 
         /*.mYoungsModulus =*/ tMaterial.get<double>("Youngs Modulus"),
         /*.mPoissonsRatio =*/ tMaterial.get<double>("Poissons Ratio"),
         /*.mMeshWidth = */ aMeshPhysicalWidth};

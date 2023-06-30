@@ -2,7 +2,7 @@
 
 #include "ApplyWeighting.hpp"
 #include "ThermalMassMaterial.hpp"
-#include "bcs/neumann/NaturalBCs.hpp"
+#include "bcs/neumann/NeumannBCs.hpp"
 #include "parabolic/EvaluationTypes.hpp"
 #include "ThermalConductivityMaterial.hpp"
 #include "parabolic/AbstractVectorFunction.hpp"
@@ -45,7 +45,7 @@ class HeatEquationResidual :
     Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyFluxWeighting;
     Plato::ApplyWeighting<mNumNodesPerCell, mNumDofsPerNode, IndicatorFunctionType> mApplyMassWeighting;
 
-    std::shared_ptr<Plato::NaturalBCs<ElementType, mNumDofsPerNode>> mBoundaryLoads;
+    std::shared_ptr<Plato::NeumannBCs<ElementType, mNumDofsPerNode>> mBoundaryLoads;
 
     Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mThermalMassMaterialModel;
     Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mThermalConductivityMaterialModel;

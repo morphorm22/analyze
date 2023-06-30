@@ -12,7 +12,7 @@
 #include "ExpInstMacros.hpp"
 #include "LinearTetCubRuleDegreeOne.hpp"
 
-#include "bcs/neumann/NaturalBCs.hpp"
+#include "bcs/neumann/NeumannBCs.hpp"
 #include "hyperbolic/fluids/FluidsUtils.hpp"
 #include "hyperbolic/fluids/SimplexFluids.hpp"
 #include "hyperbolic/fluids/FluidsThermalSources.hpp"
@@ -64,7 +64,7 @@ private:
     // member evaluators
     Plato::LinearTetCubRuleDegreeOne<mNumSpatialDims> mCubatureRule; /*!< cubature integration rule */
     Plato::Fluids::ThermalSources<PhysicsT, EvaluationT> mThermalSources; /*!< interface to thermal source evaluator */
-    std::shared_ptr<Plato::NaturalBCs<mNumSpatialDims, mNumTempDofsPerNode>> mHeatFlux; /*!< natural boundary condition evaluator */
+    std::shared_ptr<Plato::NeumannBCs<mNumSpatialDims, mNumTempDofsPerNode>> mHeatFlux; /*!< natural boundary condition evaluator */
 
 public:
     /***************************************************************************//**
@@ -182,7 +182,7 @@ private:
         if(aInputs.isSublist("Thermal Natural Boundary Conditions"))
         {
             auto tSublist = aInputs.sublist("Thermal Natural Boundary Conditions");
-            mHeatFlux = std::make_shared<Plato::NaturalBCs<mNumSpatialDims, mNumTempDofsPerNode>>(tSublist);
+            mHeatFlux = std::make_shared<Plato::NeumannBCs<mNumSpatialDims, mNumTempDofsPerNode>>(tSublist);
         }
     }
 };

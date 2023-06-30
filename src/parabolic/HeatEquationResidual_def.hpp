@@ -49,7 +49,7 @@ namespace Parabolic
       // 
       if(problemParams.isSublist("Natural Boundary Conditions"))
       {
-          mBoundaryLoads = std::make_shared<Plato::NaturalBCs<ElementType, mNumDofsPerNode>>(problemParams.sublist("Natural Boundary Conditions"));
+          mBoundaryLoads = std::make_shared<Plato::NeumannBCs<ElementType, mNumDofsPerNode>>(problemParams.sublist("Natural Boundary Conditions"));
       }
     }
 

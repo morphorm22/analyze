@@ -155,7 +155,7 @@ initialize(
   mSourceEvaluator = tFactorySourceEvaluator.create(tMaterialName,aParamList);
   // parse neumann boundary conditions
   if(aParamList.isSublist("Natural Boundary Conditions")){
-    mSurfaceLoads = std::make_shared<Plato::NaturalBCs<ElementType,mNumDofsPerNode>>(
+    mSurfaceLoads = std::make_shared<Plato::NeumannBCs<ElementType,mNumDofsPerNode>>(
       aParamList.sublist("Natural Boundary Conditions")
     );
   }

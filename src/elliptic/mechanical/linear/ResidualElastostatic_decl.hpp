@@ -8,7 +8,7 @@
 #include "ElasticModelFactory.hpp"
 
 #include "base/ResidualBase.hpp"
-#include "bcs/neumann/NaturalBCs.hpp"
+#include "bcs/neumann/NeumannBCs.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 
 namespace Plato
@@ -58,7 +58,7 @@ private:
   Plato::CellForcing<ElementType> mCellForcing;
 
   std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
-  std::shared_ptr<Plato::NaturalBCs<ElementType>> mBoundaryLoads;
+  std::shared_ptr<Plato::NeumannBCs<ElementType>> mBoundaryLoads;
 
   Teuchos::RCP<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterialModel;
 

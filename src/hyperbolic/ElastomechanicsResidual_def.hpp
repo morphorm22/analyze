@@ -54,7 +54,7 @@ namespace Hyperbolic
 
         if(aProblemParams.isSublist("Natural Boundary Conditions"))
         {
-            mBoundaryLoads = std::make_shared<Plato::NaturalBCs<ElementType>>
+            mBoundaryLoads = std::make_shared<Plato::NeumannBCs<ElementType>>
                              (aProblemParams.sublist("Natural Boundary Conditions"));
         }
 

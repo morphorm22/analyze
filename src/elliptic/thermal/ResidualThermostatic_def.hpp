@@ -37,7 +37,7 @@ ResidualThermostatic(
   this->parseHeatSource(aProblemParams);
   // parse natural boundary conditions
   // 
-  this->parseNaturalBCs(aProblemParams);
+  this->parseNeumannBCs(aProblemParams);
   // parse outputs
   //
   this->parseOutputs(aProblemParams);
@@ -180,18 +180,18 @@ parseHeatSource(
 template<typename EvaluationType, typename IndicatorFunctionType>
 void
 ResidualThermostatic<EvaluationType, IndicatorFunctionType>::
-parseNaturalBCs(
+parseNeumannBCs(
   Teuchos::ParameterList & aProblemParams
 )
 {
   if(aProblemParams.isSublist("Natural Boundary Conditions")){
-    mBoundaryLoads = std::make_shared<Plato::NaturalBCs<ElementType, mNumDofsPerNode>>(
+    mBoundaryLoads = std::make_shared<Plato::NeumannBCs<ElementType, mNumDofsPerNode>>(
       aProblemParams.sublist("Natural Boundary Conditions")
     );
   }
   else 
   if(aProblemParams.isSublist("Thermal Natural Boundary Conditions")){
-    mBoundaryLoads = std::make_shared<Plato::NaturalBCs<ElementType, mNumDofsPerNode>>(
+    mBoundaryLoads = std::make_shared<Plato::NeumannBCs<ElementType, mNumDofsPerNode>>(
       aProblemParams.sublist("Thermal Natural Boundary Conditions")
     );
   } 

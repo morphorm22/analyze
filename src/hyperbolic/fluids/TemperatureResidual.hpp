@@ -13,7 +13,7 @@
 #include "ExpInstMacros.hpp"
 #include "LinearTetCubRuleDegreeOne.hpp"
 
-#include "bcs/neumann/NaturalBCs.hpp"
+#include "bcs/neumann/NeumannBCs.hpp"
 #include "hyperbolic/fluids/AbstractVolumeIntegrand.hpp"
 #include "hyperbolic/fluids/SimplexFluids.hpp"
 #include "hyperbolic/fluids/FluidsThermalSources.hpp"
@@ -52,7 +52,7 @@ private:
 
     const Plato::SpatialDomain& mSpatialDomain; /*!< spatial domain metadata */
     Plato::Fluids::ThermalSources<PhysicsT, EvaluationT> mThermalSources; /*!< interface to thermal source evaluator */
-    std::shared_ptr<Plato::NaturalBCs<mNumSpatialDims, mNumDofsPerNode>> mHeatFlux; /*!< natural boundary condition evaluator */
+    std::shared_ptr<Plato::NeumannBCs<mNumSpatialDims, mNumDofsPerNode>> mHeatFlux; /*!< natural boundary condition evaluator */
     std::shared_ptr<Plato::AbstractVolumeIntegrand<PhysicsT,EvaluationT>> mInternalForces; /*!< internal force evaluator */
 
 public:
@@ -164,7 +164,7 @@ private:
         if(aInputs.isSublist("Thermal Natural Boundary Conditions"))
         {
             auto tSublist = aInputs.sublist("Thermal Natural Boundary Conditions");
-            mHeatFlux = std::make_shared<Plato::NaturalBCs<mNumSpatialDims, mNumDofsPerNode>>(tSublist);
+            mHeatFlux = std::make_shared<Plato::NeumannBCs<mNumSpatialDims, mNumDofsPerNode>>(tSublist);
         }
     }
 };

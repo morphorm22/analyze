@@ -27,7 +27,7 @@ ResidualElastostaticTotalLagrangian(
 ) :
   FunctionBaseType(aSpatialDomain, aDataMap),
   mStressEvaluator(nullptr),
-  mNaturalBCs     (nullptr),
+  mNeumannBCs     (nullptr),
   mBodyLoads      (nullptr)
 {
   // obligatory: define dof names in order
@@ -146,9 +146,9 @@ evaluateBoundary(
   Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
     Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
   // evaluate boundary forces
-  if( mNaturalBCs != nullptr )
+  if( mNeumannBCs != nullptr )
   {
-    mNaturalBCs->get(aSpatialModel, tStateWS, tControlWS, tConfigWS, tResultWS, -1.0 );
+    mNeumannBCs->get(aSpatialModel, tStateWS, tControlWS, tConfigWS, tResultWS, -1.0 );
   }
 }
 
@@ -174,8 +174,8 @@ initialize(
   // 
   if(aParamList.isSublist("Natural Boundary Conditions"))
   {
-    mNaturalBCs = 
-      std::make_shared<Plato::NaturalBCs<ElementType>>(aParamList.sublist("Natural Boundary Conditions"));
+    mNeumannBCs = 
+      std::make_shared<Plato::NeumannBCs<ElementType>>(aParamList.sublist("Natural Boundary Conditions"));
   }
   // parse plot table
   //

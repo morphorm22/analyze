@@ -1,5 +1,5 @@
 /*
- * NaturalBC.hpp
+ * NeumannBC.hpp
  *
  *  Created on: Mar 15, 2020
  */
@@ -74,7 +74,7 @@ template<
   Plato::OrdinalType NumDofs=ElementType::mNumSpatialDims,
   Plato::OrdinalType DofsPerNode=NumDofs,
   Plato::OrdinalType DofOffset=0>
-class NaturalBC
+class NeumannBC
 {
     const std::string mName;         /*!< user-defined load sublist name */
     const std::string mType;         /*!< natural boundary condition type */
@@ -88,7 +88,7 @@ public:
      * \param [in] aLoadName user-defined name for natural boundary condition sublist
      * \param [in] aSubList  natural boundary condition input parameter sublist
     *******************************************************************************/
-    NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>(const std::string & aLoadName, Teuchos::ParameterList &aSubList) :
+    NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>(const std::string & aLoadName, Teuchos::ParameterList &aSubList) :
         mName(aLoadName),
         mType(aSubList.get<std::string>("Type")),
         mSideSetName(aSubList.get<std::string>("Sides")),
@@ -120,7 +120,7 @@ public:
     /***************************************************************************//**
      * \brief Destructor
     *******************************************************************************/
-    ~NaturalBC(){}
+    ~NeumannBC(){}
 
     /***************************************************************************//**
      * \brief Get the contribution to the assembled forcing vector.
@@ -176,17 +176,17 @@ public:
     *******************************************************************************/
     decltype(mSideSetName) const& getSideSetName() const { return mSideSetName; }
 
-}; // class NaturalBC
+}; // class NeumannBC
 
 /***************************************************************************//**
- * \brief NaturalBC::get function definition
+ * \brief NeumannBC::get function definition
 *******************************************************************************/
 template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
 template<typename StateScalarType,
          typename ControlScalarType,
          typename ConfigScalarType,
          typename ResultScalarType>
-void NaturalBC<ElementType, NumDofs, DofsPerNode, DofOffset>::get(
+void NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>::get(
     const Plato::SpatialModel                          & aSpatialModel,
     const Plato::ScalarMultiVectorT<  StateScalarType> & aState,
     const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,

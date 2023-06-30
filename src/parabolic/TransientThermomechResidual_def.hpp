@@ -67,14 +67,14 @@ namespace Parabolic
         // 
         if(aProblemParams.isSublist("Mechanical Natural Boundary Conditions"))
         {
-            mBoundaryLoads = std::make_shared<Plato::NaturalBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>>
+            mBoundaryLoads = std::make_shared<Plato::NeumannBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>>
                 (aProblemParams.sublist("Mechanical Natural Boundary Conditions"));
         }
         // parse thermal boundary Conditions
         // 
         if(aProblemParams.isSublist("Thermal Natural Boundary Conditions"))
         {
-            mBoundaryFluxes = std::make_shared<Plato::NaturalBCs<ElementType, NThrmDims, mNumDofsPerNode, TDofOffset>>
+            mBoundaryFluxes = std::make_shared<Plato::NeumannBCs<ElementType, NThrmDims, mNumDofsPerNode, TDofOffset>>
                 (aProblemParams.sublist("Thermal Natural Boundary Conditions"));
         }
 
