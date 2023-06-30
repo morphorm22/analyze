@@ -3,12 +3,12 @@
 #include <memory>
 
 #include "BodyLoads.hpp"
-#include "NaturalBCs.hpp"
 #include "CellForcing.hpp"
 #include "ApplyWeighting.hpp"
 #include "ElasticModelFactory.hpp"
 
 #include "base/ResidualBase.hpp"
+#include "bcs/neumann/NaturalBCs.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 
 namespace Plato

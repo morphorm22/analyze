@@ -1,8 +1,8 @@
 #pragma once
 
-#include "NaturalBCs.hpp"
 #include "ApplyWeighting.hpp"
 #include "ThermalMassMaterial.hpp"
+#include "bcs/neumann/NaturalBCs.hpp"
 #include "parabolic/EvaluationTypes.hpp"
 #include "ThermalConductivityMaterial.hpp"
 #include "parabolic/AbstractVectorFunction.hpp"

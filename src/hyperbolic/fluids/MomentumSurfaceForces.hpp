@@ -8,13 +8,13 @@
 
 #include "BLAS2.hpp"
 #include "WorkSets.hpp"
-#include "NaturalBCs.hpp"
 #include "UtilsOmegaH.hpp"
 #include "SpatialModel.hpp"
 #include "ExpInstMacros.hpp"
 #include "InterpolateFromNodal.hpp"
 #include "LinearTetCubRuleDegreeOne.hpp"
 
+#include "bcs/neumann/NaturalBCs.hpp"
 #include "hyperbolic/fluids/AbstractVolumeIntegrand.hpp"
 #include "hyperbolic/fluids/SimplexFluids.hpp"
 #include "hyperbolic/fluids/SimplexFluidsFadTypes.hpp"

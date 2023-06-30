@@ -7,12 +7,12 @@
 #pragma once
 
 #include "BLAS2.hpp"
-#include "NaturalBCs.hpp"
 #include "SpatialModel.hpp"
 #include "UtilsTeuchos.hpp"
 #include "ExpInstMacros.hpp"
 #include "LinearTetCubRuleDegreeOne.hpp"
 
+#include "bcs/neumann/NaturalBCs.hpp"
 #include "hyperbolic/fluids/FluidsUtils.hpp"
 #include "hyperbolic/fluids/SimplexFluids.hpp"
 #include "hyperbolic/fluids/FluidsThermalSources.hpp"

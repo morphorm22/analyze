@@ -8,11 +8,11 @@
 
 #include "Solutions.hpp"
 #include "BodyLoads.hpp"
-#include "NaturalBCs.hpp"
 
 #include "base/WorksetBase.hpp"
 #include "base/ResidualBase.hpp"
 
+#include "bcs/neumann/NaturalBCs.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/mechanical/nonlinear/StressEvaluator.hpp"
 

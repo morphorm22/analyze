@@ -3,11 +3,11 @@
 #include <memory>
 
 #include "BodyLoads.hpp"
-#include "NaturalBCs.hpp"
 #include "ApplyWeighting.hpp"
 #include "ThermoelasticMaterial.hpp"
 
 #include "base/ResidualBase.hpp"
+#include "bcs/neumann/NaturalBCs.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 
 namespace Plato

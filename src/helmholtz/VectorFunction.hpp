@@ -5,7 +5,7 @@
 
 #include "base/WorksetBase.hpp"
 
-#include "NaturalBCs.hpp"
+#include "bcs/neumann/NaturalBCs.hpp"
 #include "helmholtz/AbstractVectorFunction.hpp"
 #include "helmholtz/EvaluationTypes.hpp"
 

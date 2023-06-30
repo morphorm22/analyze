@@ -31,7 +31,7 @@
 #include "hyperbolic/InertialContent.hpp"
 
 #include "BodyLoads.hpp"
-#include "NaturalBCs.hpp"
+#include "bcs/neumann/NaturalBCs.hpp"
 
 #include "hyperbolic/Problem.hpp"
 #include "hyperbolic/VectorFunction.hpp"

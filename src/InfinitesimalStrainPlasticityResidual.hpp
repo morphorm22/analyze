@@ -10,7 +10,7 @@
 #include "ToMap.hpp"
 #include "Strain.hpp"
 #include "BodyLoads.hpp"
-#include "NaturalBCs.hpp"
+#include "bcs/neumann/NaturalBCs.hpp"
 #include "ScalarGrad.hpp"
 #include "ProjectToNode.hpp"
 #include "FluxDivergence.hpp"

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "NaturalBCs.hpp"
 #include "MaterialModel.hpp"
 #include "ApplyWeighting.hpp"
+#include "bcs/neumann/NaturalBCs.hpp"
 #include "parabolic/AbstractVectorFunction.hpp"
 
 namespace Plato

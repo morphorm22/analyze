@@ -11,11 +11,11 @@
 #include "BLAS2.hpp"
 #include "MetaData.hpp"
 #include "WorkSets.hpp"
-#include "NaturalBCs.hpp"
 #include "SpatialModel.hpp"
 #include "ExpInstMacros.hpp"
 #include "LinearTetCubRuleDegreeOne.hpp"
 
+#include "bcs/neumann/NaturalBCs.hpp"
 #include "hyperbolic/fluids/AbstractVolumeIntegrand.hpp"
 #include "hyperbolic/fluids/SimplexFluids.hpp"
 #include "hyperbolic/fluids/MassConservationUtils.hpp"

@@ -3,7 +3,7 @@
 #include <vector>
 #include <memory>
 
-#include "NaturalBC.hpp"
+#include "bcs/neumann/NaturalBC.hpp"
 
 namespace Plato 
 {

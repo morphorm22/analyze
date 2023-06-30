@@ -1,9 +1,9 @@
 #pragma once
 
 #include "BodyLoads.hpp"
-#include "NaturalBCs.hpp"
 #include "ApplyWeighting.hpp"
 #include "ElasticModelFactory.hpp"
+#include "bcs/neumann/NaturalBCs.hpp"
 #include "hyperbolic/VectorFunction.hpp"
 #include "hyperbolic/EvaluationTypes.hpp"
 

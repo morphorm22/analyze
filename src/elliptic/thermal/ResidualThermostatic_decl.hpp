@@ -1,11 +1,11 @@
 #pragma once
 
 #include "BodyLoads.hpp"
-#include "NaturalBCs.hpp"
 #include "ApplyWeighting.hpp"
 #include "ThermalConductivityMaterial.hpp"
 
 #include "base/ResidualBase.hpp"
+#include "bcs/neumann/NaturalBCs.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 
 namespace Plato
