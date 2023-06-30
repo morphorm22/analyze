@@ -7,12 +7,12 @@
 #pragma once
 
 #include "BLAS1.hpp"
-#include "EssentialBCs.hpp"
 #include "AnalyzeMacros.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "ApplyConstraints.hpp"
 
 #include "solver/PlatoSolverFactory.hpp"
+#include "bcs/dirichlet/EssentialBCs.hpp"
 
 #include "elliptic/base/VectorFunction.hpp"
 #include "elliptic/evaluators/criterion/FactoryCriterionEvaluator.hpp"

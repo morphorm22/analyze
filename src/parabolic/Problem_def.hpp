@@ -5,11 +5,11 @@
 #include "PlatoMesh.hpp"
 #include "ParseTools.hpp"
 #include "Geometrical.hpp"
-#include "EssentialBCs.hpp"
 #include "AnalyzeOutput.hpp"
 #include "AnalyzeMacros.hpp"
 #include "ApplyConstraints.hpp"
 #include "solver/PlatoAbstractSolver.hpp"
+#include "bcs/dirichlet/EssentialBCs.hpp"
 #include "parabolic/ScalarFunctionBaseFactory.hpp"
 #include "geometric/ScalarFunctionBaseFactory.hpp"
 

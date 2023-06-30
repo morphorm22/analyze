@@ -2,7 +2,7 @@
 
 #include "PlatoStaticsTypes.hpp"
 #include "Solutions.hpp"
-#include "EssentialBCs.hpp"
+#include "bcs/dirichlet/EssentialBCs.hpp"
 #include "SpatialModel.hpp"
 #include "PlatoAbstractProblem.hpp"
 #include "solver/PlatoSolverFactory.hpp"

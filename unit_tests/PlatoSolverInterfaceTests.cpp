@@ -6,7 +6,7 @@
 
 #include "base/Database.hpp"
 #include "elliptic/mechanical/linear/Mechanics.hpp"
-#include "EssentialBCs.hpp"
+#include "bcs/dirichlet/EssentialBCs.hpp"
 #include "elliptic/base/VectorFunction.hpp"
 #include "ApplyConstraints.hpp"
 #include "LinearElasticMaterial.hpp"

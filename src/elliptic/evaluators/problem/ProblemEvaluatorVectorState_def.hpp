@@ -10,13 +10,13 @@
 #include "BLAS1.hpp"
 #include "Solutions.hpp"
 #include "ParseTools.hpp"
-#include "EssentialBCs.hpp"
 #include "AnalyzeMacros.hpp"
 #include "AnalyzeOutput.hpp"
 #include "ImplicitFunctors.hpp"
 #include "ApplyConstraints.hpp"
 #include "MultipointConstraints.hpp"
 #include "solver/PlatoSolverFactory.hpp"
+#include "bcs/dirichlet/EssentialBCs.hpp"
 #include "elliptic/evaluators/criterion/FactoryCriterionEvaluator.hpp"
 
 namespace Plato

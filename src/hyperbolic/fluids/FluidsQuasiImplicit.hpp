@@ -18,7 +18,7 @@
 #include "Solutions.hpp"
 #include "PlatoMesh.hpp"
 #include "SpatialModel.hpp"
-#include "EssentialBCs.hpp"
+#include "bcs/dirichlet/EssentialBCs.hpp"
 #include "AnalyzeOutput.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "ApplyConstraints.hpp"

@@ -5,7 +5,7 @@
 #include "BLAS1.hpp"
 
 #include "ApplyConstraints.hpp"
-#include "EssentialBCs.hpp"
+#include "bcs/dirichlet/EssentialBCs.hpp"
 #include "AnalyzeOutput.hpp"
 #include "AnalyzeMacros.hpp"
 #include "solver/PlatoSolverFactory.hpp"

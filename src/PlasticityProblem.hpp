@@ -13,7 +13,7 @@
 #include "Solutions.hpp"
 #include "UtilsOmegaH.hpp"
 #include "SpatialModel.hpp"
-#include "EssentialBCs.hpp"
+#include "bcs/dirichlet/EssentialBCs.hpp"
 #include "AnalyzeOutput.hpp"
 #include "NewtonRaphsonSolver.hpp"
 #include "PlatoAbstractProblem.hpp"

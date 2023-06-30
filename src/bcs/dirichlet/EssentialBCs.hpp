@@ -11,7 +11,7 @@
 #include "PlatoStaticsTypes.hpp"
 #include "PlatoTypes.hpp"
 
-#include "EssentialBC.hpp"
+#include "bcs/dirichlet/EssentialBC.hpp"
 
 namespace Plato
 {
