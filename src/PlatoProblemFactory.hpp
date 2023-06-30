@@ -462,6 +462,12 @@ public:
   }
 
 private:
+  /// createSupportedProblem
+  /// @brief create supported problem evaluator
+  /// @param [in] aMesh       mesh database
+  /// @param [in] aProbParams input problem parameters
+  /// @param [in] aMachine    mpi wrapper
+  /// @return standard shared pointer to problem evaluator
   std::shared_ptr<Plato::AbstractProblem>
   createSupportedProblem(
     Plato::Mesh            & aMesh,
@@ -484,6 +490,12 @@ private:
     }
   }
 
+  /// createSupportedLinearPhysics
+  /// @brief create supported linear physics evaluator
+  /// @param [in] aMesh       mesh database
+  /// @param [in] aProbParams input problem parameters
+  /// @param [in] aMachine    mpi wrapper
+  /// @return standard shared pointer to problem evaluator
   std::shared_ptr<Plato::AbstractProblem>
   createSupportedLinearPhysics(
     Plato::Mesh            & aMesh,
@@ -514,6 +526,12 @@ private:
     }
   }
 
+  /// createSupportedNonlinearPhysics
+  /// @brief create supported nonlinear physics evaluator
+  /// @param [in] aMesh       mesh database
+  /// @param [in] aProbParams input problem parameters
+  /// @param [in] aMachine    mpi wrapper
+  /// @return standard shared pointer to problem evaluator
   std::shared_ptr<Plato::AbstractProblem>
   createSupportedNonlinearPhysics(
     Plato::Mesh            & aMesh,
@@ -538,6 +556,12 @@ private:
     }
   }
 
+  /// createNonlinearMechanicalProblem
+  /// @brief create nonlinear mechanical physics evaluator
+  /// @param [in] aMesh       mesh database
+  /// @param [in] aProbParams input problem parameters
+  /// @param [in] aMachine    mpi wrapper
+  /// @return standard shared pointer to problem evaluator
   std::shared_ptr<Plato::AbstractProblem>
   createNonlinearMechanicalProblem(
     Plato::Mesh              aMesh,
@@ -557,6 +581,12 @@ private:
     }
   }
 
+  /// createNonlinearThermoMechanicalProblem
+  /// @brief create nonlinear thermomechanical physics evaluator
+  /// @param [in] aMesh       mesh database
+  /// @param [in] aProbParams input problem parameters
+  /// @param [in] aMachine    mpi wrapper
+  /// @return standard shared pointer to problem evaluator
   std::shared_ptr<Plato::AbstractProblem>
   createNonlinearThermoMechanicalProblem(
     Plato::Mesh              aMesh,
@@ -578,6 +608,12 @@ private:
     }
   }
 
+  /// createExperimentalProblem
+  /// @brief create experimental physics evaluator
+  /// @param [in] aMesh       mesh database
+  /// @param [in] aProbParams input problem parameters
+  /// @param [in] aMachine    mpi wrapper
+  /// @return standard shared pointer to problem evaluator
   std::shared_ptr<Plato::AbstractProblem>
   createExperimentalProblem(
     Plato::Mesh            & aMesh,
@@ -607,6 +643,12 @@ private:
     }
   }
 
+  /// createExperimentalLinearPhysics
+  /// @brief create experimental linear physics evaluator
+  /// @param [in] aMesh       mesh database
+  /// @param [in] aProbParams input problem parameters
+  /// @param [in] aMachine    mpi wrapper
+  /// @return standard shared pointer to problem evaluator
   std::shared_ptr<Plato::AbstractProblem>
   createExperimentalLinearPhysics(
     Plato::Mesh            & aMesh,
@@ -634,6 +676,12 @@ private:
     }
   }
 
+  /// createExperimentalNonlinearPhysics
+  /// @brief create experimental nonlinear physics evaluator
+  /// @param [in] aMesh       mesh database
+  /// @param [in] aProbParams input problem parameters
+  /// @param [in] aMachine    mpi wrapper
+  /// @return standard shared pointer to problem evaluator
   std::shared_ptr<Plato::AbstractProblem>
   createExperimentalNonlinearPhysics(
     Plato::Mesh            & aMesh,
@@ -658,6 +706,12 @@ private:
     }
   }
 
+  /// createHelmholtzFilter
+  /// @brief create helmholtz problem evaluator
+  /// @param [in] aMesh       mesh database
+  /// @param [in] aProbParams input problem parameters
+  /// @param [in] aMachine    mpi wrapper
+  /// @return standard shared pointer to problem evaluator
   std::shared_ptr<Plato::AbstractProblem>
   createHelmholtzFilter(
     Plato::Mesh            & aMesh,
