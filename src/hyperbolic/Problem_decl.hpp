@@ -2,7 +2,7 @@
 
 #include "PlatoStaticsTypes.hpp"
 #include "Solutions.hpp"
-#include "bcs/dirichlet/EssentialBCs.hpp"
+#include "bcs/dirichlet/DirichletBCs.hpp"
 #include "SpatialModel.hpp"
 #include "PlatoAbstractProblem.hpp"
 #include "solver/PlatoSolverFactory.hpp"
@@ -61,15 +61,15 @@ class Problem: public Plato::AbstractProblem
 
     Teuchos::RCP<Plato::ComputedFields<ElementType::mNumSpatialDims>> mComputedFields;
 
-    Plato::EssentialBCs<ElementType> mStateBoundaryConditions;
+    Plato::DirichletBCs<ElementType> mStateBoundaryConditions;
     Plato::OrdinalVector mStateBcDofs;
     Plato::ScalarVector mStateBcValues;
 
-    Plato::EssentialBCs<ElementType> mStateDotBoundaryConditions;
+    Plato::DirichletBCs<ElementType> mStateDotBoundaryConditions;
     Plato::OrdinalVector mStateDotBcDofs;
     Plato::ScalarVector mStateDotBcValues;
 
-    Plato::EssentialBCs<ElementType> mStateDotDotBoundaryConditions;
+    Plato::DirichletBCs<ElementType> mStateDotDotBoundaryConditions;
     Plato::OrdinalVector mStateDotDotBcDofs;
     Plato::ScalarVector mStateDotDotBcValues;
 

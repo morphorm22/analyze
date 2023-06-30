@@ -16,12 +16,12 @@ namespace Plato
  \brief Class for essential boundary conditions.
  */
 template<typename ElementType>
-class EssentialBC
+class DirichletBC
 /******************************************************************************/
 {
 public:
 
-    EssentialBC(
+    DirichletBC(
         const std::string            & aName,
               Teuchos::ParameterList & aParam,
               Plato::Scalar            aScaleFactor = 1.0

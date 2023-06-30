@@ -9,7 +9,7 @@
 #include "AnalyzeMacros.hpp"
 #include "ApplyConstraints.hpp"
 #include "solver/PlatoAbstractSolver.hpp"
-#include "bcs/dirichlet/EssentialBCs.hpp"
+#include "bcs/dirichlet/DirichletBCs.hpp"
 #include "parabolic/ScalarFunctionBaseFactory.hpp"
 #include "geometric/ScalarFunctionBaseFactory.hpp"
 
@@ -48,9 +48,9 @@ namespace Parabolic
         {
             // parse boundary constraints
             //
-            Plato::EssentialBCs<ElementType>
-                tEssentialBoundaryConditions(aProblemParams.sublist("Essential Boundary Conditions",false), mSpatialModel.Mesh);
-            tEssentialBoundaryConditions.get(mStateBcDofs, mStateBcValues);
+            Plato::DirichletBCs<ElementType>
+                tDirichletBoundaryConditions(aProblemParams.sublist("Essential Boundary Conditions",false), mSpatialModel.Mesh);
+            tDirichletBoundaryConditions.get(mStateBcDofs, mStateBcValues);
 
             // parse criteria
             //

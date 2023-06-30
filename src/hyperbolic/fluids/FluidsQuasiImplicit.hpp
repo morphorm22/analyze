@@ -18,7 +18,7 @@
 #include "Solutions.hpp"
 #include "PlatoMesh.hpp"
 #include "SpatialModel.hpp"
-#include "bcs/dirichlet/EssentialBCs.hpp"
+#include "bcs/dirichlet/DirichletBCs.hpp"
 #include "AnalyzeOutput.hpp"
 #include "PlatoMathHelpers.hpp"
 #include "ApplyConstraints.hpp"
@@ -119,9 +119,9 @@ private:
     using MomentumConservationT = typename Plato::MomentumConservation<PhysicsT::mNumSpatialDims, PhysicsT::mNumControlDofsPerNode>; /*!< local momentum conservation equation type */
 
     // essential boundary conditions accessors
-    Plato::EssentialBCs<MassConservationT>     mPressureEssentialBCs; /*!< pressure essential/Dirichlet boundary condition interface */
-    Plato::EssentialBCs<MomentumConservationT> mVelocityEssentialBCs; /*!< velocity essential/Dirichlet boundary condition interface */
-    Plato::EssentialBCs<EnergyConservationT>   mTemperatureEssentialBCs; /*!< temperature essential/Dirichlet boundary condition interface */
+    Plato::DirichletBCs<MassConservationT>     mPressureDirichletBCs; /*!< pressure essential/Dirichlet boundary condition interface */
+    Plato::DirichletBCs<MomentumConservationT> mVelocityDirichletBCs; /*!< velocity essential/Dirichlet boundary condition interface */
+    Plato::DirichletBCs<EnergyConservationT>   mTemperatureDirichletBCs; /*!< temperature essential/Dirichlet boundary condition interface */
 
 public:
     /******************************************************************************//**
@@ -140,9 +140,9 @@ public:
          mPressureResidual("Pressure", mSpatialModel, mDataMap, aInputs),
          mCorrectorResidual("Velocity Corrector", mSpatialModel, mDataMap, aInputs),
          mPredictorResidual("Velocity Predictor", mSpatialModel, mDataMap, aInputs),
-         mPressureEssentialBCs(aInputs.sublist("Pressure Essential Boundary Conditions",false),aMesh),
-         mVelocityEssentialBCs(aInputs.sublist("Velocity Essential Boundary Conditions",false),aMesh),
-         mTemperatureEssentialBCs(aInputs.sublist("Temperature Essential Boundary Conditions",false),aMesh)
+         mPressureDirichletBCs(aInputs.sublist("Pressure Essential Boundary Conditions",false),aMesh),
+         mVelocityDirichletBCs(aInputs.sublist("Velocity Essential Boundary Conditions",false),aMesh),
+         mTemperatureDirichletBCs(aInputs.sublist("Temperature Essential Boundary Conditions",false),aMesh)
     {
         this->initialize(aInputs);
     }
@@ -680,14 +680,14 @@ private:
 
         Plato::ScalarVector tVelBcValues;
         Plato::OrdinalVector tVelBcDofs;
-        mVelocityEssentialBCs.get(tVelBcDofs, tVelBcValues, tTime);
+        mVelocityDirichletBCs.get(tVelBcDofs, tVelBcValues, tTime);
         auto tPreviouVel = Kokkos::subview(mVelocity, tTimeStep, Kokkos::ALL());
         Plato::enforce_boundary_condition(tVelBcDofs, tVelBcValues, tPreviouVel);
         aPrimal.vector("previous velocity", tPreviouVel);
 
         Plato::ScalarVector tPressBcValues;
         Plato::OrdinalVector tPressBcDofs;
-        mPressureEssentialBCs.get(tPressBcDofs, tPressBcValues, tTime);
+        mPressureDirichletBCs.get(tPressBcDofs, tPressBcValues, tTime);
         auto tPreviousPress = Kokkos::subview(mPressure, tTimeStep, Kokkos::ALL());
         Plato::enforce_boundary_condition(tPressBcDofs, tPressBcValues, tPreviousPress);
         aPrimal.vector("previous pressure", tPreviousPress);
@@ -699,7 +699,7 @@ private:
         {
             Plato::ScalarVector tTempBcValues;
             Plato::OrdinalVector tTempBcDofs;
-            mTemperatureEssentialBCs.get(tTempBcDofs, tTempBcValues, tTime);
+            mTemperatureDirichletBCs.get(tTempBcDofs, tTempBcValues, tTime);
             auto tPreviousTemp  = Kokkos::subview(mTemperature, tTimeStep, Kokkos::ALL());
             Plato::enforce_boundary_condition(tTempBcDofs, tTempBcValues, tPreviousTemp);
             aPrimal.vector("previous temperature", tPreviousTemp);
@@ -905,13 +905,13 @@ private:
      **********************************************************************************/
     void checkProblemSetup()
     {
-        if(mVelocityEssentialBCs.empty())
+        if(mVelocityDirichletBCs.empty())
         {
             ANALYZE_THROWERR("Velocity essential boundary conditions are not defined.")
         }
         if(mCalculateHeatTransfer)
         {
-            if(mTemperatureEssentialBCs.empty())
+            if(mTemperatureDirichletBCs.empty())
             {
                 ANALYZE_THROWERR("Temperature essential boundary conditions are not defined.")
             }
@@ -1254,7 +1254,7 @@ private:
             // Solver-computed initial critical time step
             Plato::ScalarVector tBcValues;
             Plato::OrdinalVector tBcDofs;
-            mVelocityEssentialBCs.get(tBcDofs, tBcValues);
+            mVelocityDirichletBCs.get(tBcDofs, tBcValues);
 
             auto tPreviousVelocity = aPrimal.vector("previous velocity");
             Plato::ScalarVector tInitialVelocity("initial velocity", tPreviousVelocity.size());
@@ -1487,7 +1487,7 @@ private:
         // apply constraints
         Plato::ScalarVector tBcValues;
         Plato::OrdinalVector tBcDofs;
-        mVelocityEssentialBCs.get(tBcDofs, tBcValues);
+        mVelocityDirichletBCs.get(tBcDofs, tBcValues);
 
         // create linear solver
         if( mInputs.isSublist("Linear Solver") == false )
@@ -1714,7 +1714,7 @@ private:
         // prepare constraints dofs
         Plato::ScalarVector tBcValues;
         Plato::OrdinalVector tBcDofs;
-        mPressureEssentialBCs.get(tBcDofs, tBcValues);
+        mPressureDirichletBCs.get(tBcDofs, tBcValues);
 
         // create linear solver
         if( mInputs.isSublist("Linear Solver") == false )
@@ -1809,7 +1809,7 @@ private:
         // apply constraints
         Plato::ScalarVector tBcValues;
         Plato::OrdinalVector tBcDofs;
-        mTemperatureEssentialBCs.get(tBcDofs, tBcValues);
+        mTemperatureDirichletBCs.get(tBcDofs, tBcValues);
 
         // solve energy equation (consistent or mass lumped)
         if( mInputs.isSublist("Linear Solver") == false )
@@ -1958,7 +1958,7 @@ private:
         // prepare constraints dofs
         Plato::ScalarVector tBcValues;
         Plato::OrdinalVector tBcDofs;
-        mPressureEssentialBCs.get(tBcDofs, tBcValues);
+        mPressureDirichletBCs.get(tBcDofs, tBcValues);
         Plato::blas1::fill(0.0, tBcValues);
 
         // solve adjoint system of equations
@@ -2022,7 +2022,7 @@ private:
         // prepare constraints dofs
         Plato::ScalarVector tBcValues;
         Plato::OrdinalVector tBcDofs;
-        mTemperatureEssentialBCs.get(tBcDofs, tBcValues);
+        mTemperatureDirichletBCs.get(tBcDofs, tBcValues);
         Plato::blas1::fill(0.0, tBcValues);
 
         // solve adjoint system of equations
@@ -2096,7 +2096,7 @@ private:
         // prepare constraints dofs
         Plato::ScalarVector tBcValues;
         Plato::OrdinalVector tBcDofs;
-        mVelocityEssentialBCs.get(tBcDofs, tBcValues);
+        mVelocityDirichletBCs.get(tBcDofs, tBcValues);
         Plato::blas1::fill(0.0, tBcValues);
 
         // solve adjoint system of equations

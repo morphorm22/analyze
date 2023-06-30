@@ -16,7 +16,7 @@
 #include "ApplyConstraints.hpp"
 #include "MultipointConstraints.hpp"
 #include "solver/PlatoSolverFactory.hpp"
-#include "bcs/dirichlet/EssentialBCs.hpp"
+#include "bcs/dirichlet/DirichletBCs.hpp"
 #include "elliptic/evaluators/criterion/FactoryCriterionEvaluator.hpp"
 
 namespace Plato
@@ -351,7 +351,7 @@ readEssentialBoundaryConditions(
 {
   if(aParamList.isSublist("Essential Boundary Conditions") == false)
   { ANALYZE_THROWERR("ERROR: Essential boundary conditions parameter list is not defined in input deck") }
-  Plato::EssentialBCs<ElementType> tEssentialBoundaryConditions(
+  Plato::DirichletBCs<ElementType> tEssentialBoundaryConditions(
     aParamList.sublist("Essential Boundary Conditions", false), mSpatialModel.Mesh
   );
   tEssentialBoundaryConditions.get(mDirichletDofs, mDirichletStateVals);

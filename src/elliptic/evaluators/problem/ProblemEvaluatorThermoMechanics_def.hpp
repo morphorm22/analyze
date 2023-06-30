@@ -12,7 +12,7 @@
 #include "ApplyConstraints.hpp"
 
 #include "solver/PlatoSolverFactory.hpp"
-#include "bcs/dirichlet/EssentialBCs.hpp"
+#include "bcs/dirichlet/DirichletBCs.hpp"
 
 #include "elliptic/base/VectorFunction.hpp"
 #include "elliptic/evaluators/criterion/FactoryCriterionEvaluator.hpp"
@@ -647,7 +647,7 @@ readMechanicalEssentialBoundaryConditions(
       "is not defined in the input deck";
     ANALYZE_THROWERR(tErrorMsg) 
   }
-  Plato::EssentialBCs<PhysicsType> tMechanicalEBCs(
+  Plato::DirichletBCs<PhysicsType> tMechanicalEBCs(
     aParamList.sublist("Mechanical Essential Boundary Conditions", false), mSpatialModel.Mesh
   );
   Plato::ScalarVector  tDirichletVals;
@@ -673,7 +673,7 @@ readThermalEssentialBoundaryConditions(
       "is not defined in the input deck";
     ANALYZE_THROWERR(tErrorMsg) 
   }
-  Plato::EssentialBCs<PhysicsType> tThermalEBCs(
+  Plato::DirichletBCs<PhysicsType> tThermalEBCs(
     aParamList.sublist("Thermal Essential Boundary Conditions", false), mSpatialModel.Mesh
   );
   

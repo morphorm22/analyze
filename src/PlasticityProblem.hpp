@@ -13,7 +13,7 @@
 #include "Solutions.hpp"
 #include "UtilsOmegaH.hpp"
 #include "SpatialModel.hpp"
-#include "bcs/dirichlet/EssentialBCs.hpp"
+#include "bcs/dirichlet/DirichletBCs.hpp"
 #include "AnalyzeOutput.hpp"
 #include "NewtonRaphsonSolver.hpp"
 #include "PlatoAbstractProblem.hpp"
@@ -84,7 +84,7 @@ private:
     Plato::ScalarMultiVector mReactionForce;      /*!< reaction */
     Plato::ScalarMultiVector mProjectedPressGrad; /*!< projected pressure gradient (# Time Steps, # Projected Pressure Gradient dofs) */
 
-    std::shared_ptr<Plato::EssentialBCs<PhysicsT>> mEssentialBCs; /*!< essential boundary conditions shared pointer */
+    std::shared_ptr<Plato::DirichletBCs<PhysicsT>> mDirichletBCs; /*!< essential boundary conditions shared pointer */
     Plato::ScalarVector mPreviousStepDirichletValues;            /*!< previous time step values associated with the Dirichlet boundary conditions */
     Plato::ScalarVector mDirichletValues;         /*!< values associated with the Dirichlet boundary conditions */
     Plato::OrdinalVector mDirichletDofs;     /*!< list of degrees of freedom associated with the Dirichlet boundary conditions */
@@ -138,7 +138,7 @@ public:
       mStopOptimization(false),
       mPDEType(aInputs.get<std::string>("PDE Constraint")),
       mPhysics(aInputs.get<std::string>("Physics")),
-      mEssentialBCs(nullptr)
+      mDirichletBCs(nullptr)
     {
         this->initialize(aInputs);
     }
@@ -178,10 +178,10 @@ public:
         tDofOffsetToScaleFactor[tPressureDofOffset]    = mPressureScaling;
         tDofOffsetToScaleFactor[tTemperatureDofOffset] = mTemperatureScaling;
 
-        mEssentialBCs =
-        std::make_shared<Plato::EssentialBCs<PhysicsT>>
+        mDirichletBCs =
+        std::make_shared<Plato::DirichletBCs<PhysicsT>>
              (aInputs.sublist("Essential Boundary Conditions", false), mSpatialModel.Mesh, tDofOffsetToScaleFactor);
-        mEssentialBCs->get(mDirichletDofs, mDirichletValues); // BCs at time = 0
+        mDirichletBCs->get(mDirichletDofs, mDirichletValues); // BCs at time = 0
         Kokkos::resize(mPreviousStepDirichletValues, mDirichletValues.size());
         Plato::blas1::fill(0.0, mPreviousStepDirichletValues);
     }
@@ -852,10 +852,10 @@ private:
           Plato::blas1::fill(0.0, mPreviousStepDirichletValues);
 
         auto tCurrentTime = tLoadControlConstant;
-        if (mEssentialBCs != nullptr)
-          mEssentialBCs->get(mDirichletDofs, mDirichletValues, tCurrentTime);
+        if (mDirichletBCs != nullptr)
+          mDirichletBCs->get(mDirichletDofs, mDirichletValues, tCurrentTime);
         else
-          ANALYZE_THROWERR("EssentialBCs pointer is null!")
+          ANALYZE_THROWERR("DirichletBCs pointer is null!")
 
         Plato::ScalarVector tNewtonUpdateDirichletValues("Dirichlet Increment Values", mDirichletValues.size());
         Plato::blas1::copy(mDirichletValues, tNewtonUpdateDirichletValues);

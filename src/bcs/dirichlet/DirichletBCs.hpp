@@ -11,26 +11,26 @@
 #include "PlatoStaticsTypes.hpp"
 #include "PlatoTypes.hpp"
 
-#include "bcs/dirichlet/EssentialBC.hpp"
+#include "bcs/dirichlet/DirichletBC.hpp"
 
 namespace Plato
 {
 
 /******************************************************************************/
 /*!
- \brief Owner class that contains a vector of EssentialBC objects.
+ \brief Owner class that contains a vector of DirichletBC objects.
  */
-template<typename SimplexPhysicsType>
-class EssentialBCs
+template<typename PhysicsType>
+class DirichletBCs
 /******************************************************************************/
 {
 public:
 
     /*!
-     \brief Constructor that parses and creates a vector of EssentialBC objects
+     \brief Constructor that parses and creates a vector of DirichletBC objects
      based on the ParameterList.
      */
-    EssentialBCs(
+    DirichletBCs(
               Teuchos::ParameterList & aParams,
         const Plato::Mesh              aMesh
     ) : 
@@ -49,9 +49,9 @@ public:
     }
 
     /*!
-     \brief Constructor that parses and creates a vector of EssentialBC objects with scale factors
+     \brief Constructor that parses and creates a vector of DirichletBC objects with scale factors
      */
-    EssentialBCs(
+    DirichletBCs(
               Teuchos::ParameterList                      & aParams,
         const Plato::Mesh                                   aMesh,
         const std::map<Plato::OrdinalType, Plato::Scalar> & aDofOffsetToScaleFactor
@@ -77,15 +77,15 @@ public:
               Plato::Scalar            aScaleFactor = 1.0)
     {
         const std::string tType = aEssentialBCParams.get<std::string>("Type");
-        std::shared_ptr<EssentialBC<SimplexPhysicsType>> tMyBC;
+        std::shared_ptr<DirichletBC<PhysicsType>> tMyBC;
         if("Zero Value" == tType)
         {
             const std::string tValueDocument = "solution component set to zero.";
             aEssentialBCParams.set("Value", static_cast<Plato::Scalar>(0.0), tValueDocument);
-            tMyBC.reset(new EssentialBC<SimplexPhysicsType>(aName, aEssentialBCParams, aScaleFactor));
+            tMyBC.reset(new DirichletBC<PhysicsType>(aName, aEssentialBCParams, aScaleFactor));
         }
         else if(tType == "Fixed Value" || tType == "Time Dependent")
-            tMyBC.reset(new EssentialBC<SimplexPhysicsType>(aName, aEssentialBCParams, aScaleFactor));
+            tMyBC.reset(new DirichletBC<PhysicsType>(aName, aEssentialBCParams, aScaleFactor));
         else
             TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, " Boundary Condition type invalid: Not 'Zero Value' or 'Fixed Value'.");
         mBCs.push_back(tMyBC);
@@ -151,7 +151,7 @@ public:
 private:
     const Plato::Mesh mMesh;
 
-    std::vector<std::shared_ptr<EssentialBC<SimplexPhysicsType>>> mBCs;
+    std::vector<std::shared_ptr<DirichletBC<PhysicsType>>> mBCs;
 };
 
 } // namespace Plato

@@ -6,7 +6,7 @@
 
 #include "base/Database.hpp"
 #include "elliptic/mechanical/linear/Mechanics.hpp"
-#include "bcs/dirichlet/EssentialBCs.hpp"
+#include "bcs/dirichlet/DirichletBCs.hpp"
 #include "elliptic/base/VectorFunction.hpp"
 #include "ApplyConstraints.hpp"
 #include "LinearElasticMaterial.hpp"
@@ -195,7 +195,7 @@ test_elastic_problem_solution(const Plato::Mesh& aMesh, const std::string& aSolv
     //
     Plato::OrdinalVector tBcDofs;
     Plato::ScalarVector tBcValues;
-    Plato::EssentialBCs<ElementType>
+    Plato::DirichletBCs<ElementType>
         tEssentialBoundaryConditions(tParamList->sublist("Essential Boundary Conditions",false), aMesh);
     tEssentialBoundaryConditions.get(tBcDofs, tBcValues);
     Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(tJacobian, tResidual, tBcDofs, tBcValues);
@@ -1159,7 +1159,7 @@ TEUCHOS_UNIT_TEST( SolverInterfaceTests, TpetraSolver_accept_parameterlist_input
   //
   Plato::OrdinalVector mBcDofs;
   Plato::ScalarVector mBcValues;
-  Plato::EssentialBCs<ElementType>
+  Plato::DirichletBCs<ElementType>
       tEssentialBoundaryConditions(tParamList->sublist("Essential Boundary Conditions",false), tMesh);
   tEssentialBoundaryConditions.get(mBcDofs, mBcValues);
   Plato::applyBlockConstraints<ElementType::mNumDofsPerNode>(jacobian, residual, mBcDofs, mBcValues);
