@@ -1,5 +1,5 @@
 /*
- * SurfaceLoadIntegral.hpp
+ * NeumannForce.hpp
  *
  *  Created on: Mar 15, 2020
  */
@@ -27,7 +27,7 @@ template<
   Plato::OrdinalType NumDofs=ElementType::mNumSpatialDims,
   Plato::OrdinalType DofsPerNode=NumDofs,
   Plato::OrdinalType DofOffset=0 >
-class SurfaceLoadIntegral
+class NeumannForce
 {
 private:
     const std::string mSideSetName; /*!< side set name */
@@ -37,7 +37,7 @@ public:
     /******************************************************************************//**
      * \brief Constructor
      **********************************************************************************/
-    SurfaceLoadIntegral(const std::string & aSideSetName, const Plato::Array<NumDofs>& aFlux);
+    NeumannForce(const std::string & aSideSetName, const Plato::Array<NumDofs>& aFlux);
 
     /***************************************************************************//**
      * \brief Evaluate natural boundary condition surface integrals.
@@ -67,29 +67,29 @@ public:
         const Plato::ScalarMultiVectorT< ResultScalarType> & aResult,
               Plato::Scalar aScale) const;
 };
-// class SurfaceLoadIntegral
+// class NeumannForce
 
 /***************************************************************************//**
- * \brief SurfaceLoadIntegral::SurfaceLoadIntegral constructor definition
+ * \brief NeumannForce::NeumannForce constructor definition
 *******************************************************************************/
 template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-SurfaceLoadIntegral<ElementType, NumDofs, DofsPerNode, DofOffset>::SurfaceLoadIntegral
+NeumannForce<ElementType, NumDofs, DofsPerNode, DofOffset>::NeumannForce
 (const std::string & aSideSetName, const Plato::Array<NumDofs>& aFlux) :
     mSideSetName(aSideSetName),
     mFlux(aFlux)
 {
 }
-// class SurfaceLoadIntegral::SurfaceLoadIntegral
+// class NeumannForce::NeumannForce
 
 /***************************************************************************//**
- * \brief SurfaceLoadIntegral::operator() function definition
+ * \brief NeumannForce::operator() function definition
 *******************************************************************************/
 template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
 template<typename StateScalarType,
          typename ControlScalarType,
          typename ConfigScalarType,
          typename ResultScalarType>
-void SurfaceLoadIntegral<ElementType, NumDofs, DofsPerNode, DofOffset>::operator()(
+void NeumannForce<ElementType, NumDofs, DofsPerNode, DofOffset>::operator()(
     const Plato::SpatialModel                          & aSpatialModel,
     const Plato::ScalarMultiVectorT<  StateScalarType> & aState,
     const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
@@ -109,15 +109,16 @@ void SurfaceLoadIntegral<ElementType, NumDofs, DofsPerNode, DofOffset>::operator
     auto tCubaturePoints  = ElementType::Face::getCubPoints();
     auto tNumPoints = tCubatureWeights.size();
 
-    Kokkos::parallel_for(Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumFaces, tNumPoints}),
-    KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
+    Kokkos::parallel_for("surface integral",
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumFaces, tNumPoints}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
     {
       auto tElementOrdinal = tElementOrds(aSideOrdinal);
 
       Plato::Array<ElementType::mNumNodesPerFace, Plato::OrdinalType> tLocalNodeOrds;
       for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<ElementType::mNumNodesPerFace; tNodeOrd++)
       {
-          tLocalNodeOrds(tNodeOrd) = tNodeOrds(aSideOrdinal*ElementType::mNumNodesPerFace+tNodeOrd);
+        tLocalNodeOrds(tNodeOrd) = tNodeOrds(aSideOrdinal*ElementType::mNumNodesPerFace+tNodeOrd);
       }
 
       auto tCubatureWeight = tCubatureWeights(aPointOrdinal);
@@ -140,9 +141,9 @@ void SurfaceLoadIntegral<ElementType, NumDofs, DofsPerNode, DofOffset>::operator
               Kokkos::atomic_add(&aResult(tElementOrdinal,tElementDofOrdinal), tResult);
           }
       }
-    }, "surface load integral");
+    });
 }
-// class SurfaceLoadIntegral::operator()
+// class NeumannForce::operator()
 
 }
 // namespace Plato

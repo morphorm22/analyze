@@ -13,8 +13,8 @@
 #include "AnalyzeMacros.hpp"
 #include "PlatoMathExpr.hpp"
 #include "PlatoUtilities.hpp"
-#include "SurfaceLoadIntegral.hpp"
-#include "SurfacePressureIntegral.hpp"
+#include "bcs/neumann/NeumannForce.hpp"
+#include "bcs/neumann/NeumannPressure.hpp"
 
 namespace Plato
 {
@@ -211,13 +211,13 @@ void NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>::get(
         case Plato::Neumann::UNIFORM:
         case Plato::Neumann::UNIFORM_COMPONENT:
         {
-            Plato::SurfaceLoadIntegral<ElementType, NumDofs, DofsPerNode, DofOffset> tSurfaceLoad(mSideSetName, mFlux);
+            Plato::NeumannForce<ElementType, NumDofs, DofsPerNode, DofOffset> tSurfaceLoad(mSideSetName, mFlux);
             tSurfaceLoad(aSpatialModel, aState, aControl, aConfig, aResult, aScale);
             break;
         }
         case Plato::Neumann::UNIFORM_PRESSURE:
         {
-             Plato::SurfacePressureIntegral<ElementType, NumDofs, DofsPerNode, DofOffset> tSurfacePress(mSideSetName, mFlux);
+             Plato::NeumannPressure<ElementType, NumDofs, DofsPerNode, DofOffset> tSurfacePress(mSideSetName, mFlux);
              tSurfacePress(aSpatialModel, aState, aControl, aConfig, aResult, aScale);
             break;
         }
