@@ -119,18 +119,9 @@ evaluateBoundary(
         Plato::Scalar         aCycle
 ) const
 {
-  // unpack worksets
-  Plato::ScalarArray3DT<ConfigScalarType> tConfigWS  = 
-    Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
-  Plato::ScalarMultiVectorT<ControlScalarType> tControlWS = 
-    Plato::unpack<Plato::ScalarMultiVectorT<ControlScalarType>>(aWorkSets.get("controls"));
-  Plato::ScalarMultiVectorT<StateScalarType> tStateWS = 
-    Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
-  Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
-    Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
   // add contributions from natural boundary conditions
-  if( mSurfaceLoads != nullptr ){
-    mSurfaceLoads->get(aSpatialModel,tStateWS,tControlWS,tConfigWS,tResultWS,-1.0);
+  if( mBoundaryForces != nullptr ){
+    mBoundaryForces->get(aSpatialModel,aWorkSets,aCycle,-1.0);
   }
 }
 
@@ -155,7 +146,7 @@ initialize(
   mSourceEvaluator = tFactorySourceEvaluator.create(tMaterialName,aParamList);
   // parse neumann boundary conditions
   if(aParamList.isSublist("Natural Boundary Conditions")){
-    mSurfaceLoads = std::make_shared<Plato::NeumannBCs<ElementType,mNumDofsPerNode>>(
+    mBoundaryForces = std::make_shared<Plato::NeumannBCs<EvaluationType>>(
       aParamList.sublist("Natural Boundary Conditions")
     );
   }

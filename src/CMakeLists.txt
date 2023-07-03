@@ -105,16 +105,6 @@ if(PLATOANALYZE_ENABLE_MESHMAP)
   set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
       MultipointConstraints.cpp
   )
-
-  set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    geometric/DivisionFunction.cpp
-    geometric/GeometryScalarFunction.cpp
-    geometric/LeastSquaresFunction.cpp
-    geometric/MassMoment.cpp
-    geometric/MassPropertiesFunction.cpp
-    geometric/ScalarFunctionBaseFactory.cpp
-    geometric/WeightedSumFunction.cpp
-  )
 endif()
 
 ## elliptic sources
@@ -183,64 +173,6 @@ if(ELLIPTIC)
     elliptic/electromechanics/ElectroelastostaticResidual.cpp
   )
   
-endif()
-
-## parabolic sources
-if(PARABOLIC)
-  set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    parabolic/Problem.cpp
-    parabolic/InternalThermalEnergy.cpp
-    parabolic/InternalThermoelasticEnergy.cpp
-    parabolic/TemperatureAverage.cpp
-    parabolic/ScalarFunctionBaseFactory.cpp
-    parabolic/PhysicsScalarFunction.cpp
-    parabolic/HeatEquationResidual.cpp
-    parabolic/TransientThermomechResidual.cpp
-  )
-endif()
-
-## hyperbolic sources
-if(HYPERBOLIC)
-  set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-    hyperbolic/ElastomechanicsResidual.cpp
-    hyperbolic/InternalElasticEnergy.cpp
-    hyperbolic/PhysicsScalarFunction.cpp
-    hyperbolic/Problem.cpp
-    hyperbolic/ScalarFunctionFactory.cpp
-    hyperbolic/StressPNorm.cpp
-  )
-
-  if(FLUIDS)
-    set(ANALYZE_SOURCES ${ANALYZE_SOURCES}
-      hyperbolic/fluids/AbstractScalarFunction.cpp
-      hyperbolic/fluids/AbstractVectorFunction.cpp
-      hyperbolic/fluids/AbstractVolumetricSource.cpp
-      hyperbolic/fluids/BrinkmanForces.cpp
-      hyperbolic/fluids/FluidsQuasiImplicit.cpp
-      hyperbolic/fluids/FluidsScalarFunction.cpp
-      hyperbolic/fluids/FluidsVectorFunction.cpp
-      hyperbolic/fluids/FluidsThermalSources.cpp
-      hyperbolic/fluids/FluidsWorkSetBuilders.cpp
-      hyperbolic/fluids/FluidsCriterionFactory.cpp
-      hyperbolic/fluids/FluidsUniformThermalSource.cpp
-      hyperbolic/fluids/FluidsWeightedScalarFunction.cpp
-      hyperbolic/fluids/FluidsLeastSquaresScalarFunction.cpp
-      hyperbolic/fluids/FluidsStabilizedUniformThermalSource.cpp
-      hyperbolic/fluids/CriterionVolume.cpp
-      hyperbolic/fluids/ThermalBuoyancy.cpp
-      hyperbolic/fluids/PressureResidual.cpp
-      hyperbolic/fluids/CriterionFlowRate.cpp
-      hyperbolic/fluids/TemperatureResidual.cpp
-      hyperbolic/fluids/InternalThermalForces.cpp
-      hyperbolic/fluids/MomentumSurfaceForces.cpp
-      hyperbolic/fluids/VelocityCorrectorResidual.cpp
-      hyperbolic/fluids/VelocityPredictorResidual.cpp
-      hyperbolic/fluids/CriterionThermalCompliance.cpp
-      hyperbolic/fluids/CriterionSurfaceThermalFlux.cpp
-      hyperbolic/fluids/CriterionMeanSurfacePressure.cpp
-      hyperbolic/fluids/CriterionMeanSurfaceTemperature.cpp
-    )
-  endif()
 endif()
 
 ## helmholtz sources

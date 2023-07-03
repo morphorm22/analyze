@@ -56,10 +56,10 @@ private:
   Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyFluxWeighting;
   Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms,  IndicatorFunctionType> mApplyStressWeighting;
 
-  std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
+  std::shared_ptr<Plato::BodyLoads<EvaluationType,ElementType>> mBodyLoads;
 
-  std::shared_ptr<Plato::NeumannBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>> mBoundaryLoads;
-  std::shared_ptr<Plato::NeumannBCs<ElementType, NThrmDims, mNumDofsPerNode, TDofOffset>> mBoundaryFluxes;
+  std::shared_ptr<Plato::NeumannBCs<EvaluationType,NMechDims,MDofOffset>> mBoundaryLoads;
+  std::shared_ptr<Plato::NeumannBCs<EvaluationType,NThrmDims,TDofOffset>> mBoundaryFluxes;
 
   Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 

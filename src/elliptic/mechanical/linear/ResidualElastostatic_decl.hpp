@@ -57,8 +57,8 @@ private:
   Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms, IndicatorFunctionType> mApplyWeighting;
   Plato::CellForcing<ElementType> mCellForcing;
 
+  std::shared_ptr<Plato::NeumannBCs<EvaluationType>> mBoundaryForces;
   std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
-  std::shared_ptr<Plato::NeumannBCs<ElementType>> mBoundaryLoads;
 
   Teuchos::RCP<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterialModel;
 

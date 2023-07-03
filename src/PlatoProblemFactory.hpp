@@ -39,21 +39,6 @@
   #include "elliptic/Problem.hpp"
 #endif
 
-#ifdef PLATO_PARABOLIC
-  #include "parabolic/Thermal.hpp"
-  #include "parabolic/Mechanics.hpp"
-  #include "parabolic/Thermomechanics.hpp"
-  #include "parabolic/Problem.hpp"
-#endif
-
-#ifdef PLATO_HYPERBOLIC
-  #include "hyperbolic/Problem.hpp"
-  #include "hyperbolic/Mechanics.hpp"
-    #ifdef PLATO_FLUIDS
-      #include "hyperbolic/fluids/FluidsQuasiImplicit.hpp"
-    #endif
-#endif
-
 #ifdef PLATO_HELMHOLTZ
   #include "helmholtz/Helmholtz.hpp"
   #include "helmholtz/Problem.hpp"
@@ -160,14 +145,9 @@ create_linear_mechanical_problem
   if (tLowerPDE == "elliptic")
   {
     return makeProblem<Plato::Elliptic::Problem,Plato::Elliptic::Linear::Mechanics>(aMesh, aProbParams, aMachine);
-  }
+  } 
 #endif
-#ifdef PLATO_HYPERBOLIC
-  if (tLowerPDE == "hyperbolic")
-  {
-    return makeProblem<Plato::Hyperbolic::Problem,Plato::Hyperbolic::Mechanics>(aMesh, aProbParams, aMachine);
-  }
-#endif
+  else
   {
     ANALYZE_THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
   }
@@ -302,12 +282,6 @@ create_linear_thermal_problem
  {
      auto tLowerPDE = Plato::get_pde_type(aProbParams);
 
-#ifdef PLATO_PARABOLIC
-    if(tLowerPDE == "parabolic")
-    {
-        return makeProblem<Plato::Parabolic::Problem, Plato::Parabolic::Linear::Thermal>(aMesh, aProbParams, aMachine);
-    }
-#endif
 #ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
     {
@@ -364,14 +338,6 @@ create_linear_thermomechanical_problem
  {
     auto tLowerPDE = Plato::get_pde_type(aProbParams);
 
-#ifdef PLATO_PARABOLIC
-    if(tLowerPDE == "parabolic")
-    {
-      return ( 
-        makeProblem<Plato::Parabolic::Problem, Plato::Parabolic::Linear::Thermomechanics>(aMesh,aProbParams,aMachine) 
-      );
-    }
-#endif
 #ifdef PLATO_ELLIPTIC
     if(tLowerPDE == "elliptic")
     {
@@ -385,36 +351,6 @@ create_linear_thermomechanical_problem
     }
  }
  // function create_linear_thermomechanical_problem
-
-/******************************************************************************//**
-* \brief Create a abstract problem of type incompressible fluid.
-* \param [in] aMesh      mesh metadata
-* \param [in] aProbParams input xml metadata
-* \param [in] aMachine   mpi wrapper 
-* \returns shared pointer to abstract problem of type incompressible fluid
-**********************************************************************************/
-inline
-std::shared_ptr<Plato::AbstractProblem>
-create_incompressible_fluid_problem(
-  Plato::Mesh            & aMesh,
-  Teuchos::ParameterList & aProbParams,
-  Comm::Machine          & aMachine)
- {
-    auto tLowerPDE = Plato::get_pde_type(aProbParams);
-
-#ifdef PLATO_HYPERBOLIC
-#ifdef PLATO_FLUIDS
-    if (tLowerPDE == "hyperbolic")
-    {
-        return makeProblem<Plato::Fluids::QuasiImplicit, Plato::IncompressibleFluids>(aMesh, aProbParams, aMachine);
-    }
-#endif
-#endif
-    {
-        ANALYZE_THROWERR(std::string("'PDE Constraint' of type '") + tLowerPDE + "' is not supported.");
-    }
- }
- // function create_incompressible_fluid_problem
 
 /// @class ProblemFactory
 /// @brief create the problem evaluator facilitating analysis and optimization
@@ -663,9 +599,6 @@ private:
       break;
     case Plato::physics_t::ELECTROMECHANICAL:
       return ( Plato::create_linear_electromechanical_problem(aMesh,aProbParams,aMachine) );
-      break;
-    case Plato::physics_t::INCOMPRESSIBLE_FLUID: 
-      return ( Plato::create_incompressible_fluid_problem(aMesh,aProbParams,aMachine) );
       break;
     default:
       return nullptr;

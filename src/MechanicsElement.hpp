@@ -22,12 +22,13 @@ public:
                                                        ((mNumSpatialDims == 2) ? 3 :
                                                        (((mNumSpatialDims == 1) ? 1 : 0)));
 
-  static constexpr Plato::OrdinalType mNumDofsPerNode  = mNumSpatialDims;
-  static constexpr Plato::OrdinalType mNumDofsPerCell  = mNumDofsPerNode*mNumNodesPerCell;
+  static constexpr Plato::OrdinalType mNumDofsPerNode = mNumSpatialDims;
+  static constexpr Plato::OrdinalType mNumDofsPerCell = mNumDofsPerNode*mNumNodesPerCell;
   static constexpr Plato::OrdinalType mNumControl = NumControls;
   static constexpr Plato::OrdinalType mNumNodeStatePerNode = 0;
   static constexpr Plato::OrdinalType mNumNodeStatePerCell = mNumNodeStatePerNode * mNumNodesPerCell;
   static constexpr Plato::OrdinalType mNumLocalDofsPerCell = 0;
+  
 };
 
 }

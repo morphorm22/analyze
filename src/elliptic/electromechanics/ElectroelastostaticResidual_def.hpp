@@ -53,7 +53,7 @@ ElectroelastostaticResidual(
   // 
   if(aProblemParams.isSublist("Mechanical Natural Boundary Conditions"))
   {
-    mBoundaryLoads = std::make_shared<Plato::NeumannBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>>(
+    mBoundaryLoads = std::make_shared<Plato::NeumannBCs<EvaluationType,NMechDims,MDofOffset>>(
       aProblemParams.sublist("Mechanical Natural Boundary Conditions")
     );
   }
@@ -61,7 +61,7 @@ ElectroelastostaticResidual(
   // 
   if(aProblemParams.isSublist("Electrical Natural Boundary Conditions"))
   {
-    mBoundaryCharges = std::make_shared<Plato::NeumannBCs<ElementType, NElecDims, mNumDofsPerNode, EDofOffset>>(
+    mBoundaryCharges = std::make_shared<Plato::NeumannBCs<EvaluationType,NElecDims,EDofOffset>>(
       aProblemParams.sublist("Electrical Natural Boundary Conditions")
     );
   }
@@ -195,24 +195,14 @@ evaluateBoundary(
         Plato::WorkSets     & aWorkSets,
         Plato::Scalar         aCycle
 ) const
-{
-  // unpack worksets
-  Plato::ScalarArray3DT<ConfigScalarType> tConfigWS  = 
-    Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
-  Plato::ScalarMultiVectorT<ControlScalarType> tControlWS = 
-    Plato::unpack<Plato::ScalarMultiVectorT<ControlScalarType>>(aWorkSets.get("controls"));
-  Plato::ScalarMultiVectorT<StateScalarType> tStateWS = 
-    Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
-  Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
-    Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
-  
+{ 
   if( mBoundaryLoads != nullptr )
   {
-    mBoundaryLoads->get(aSpatialModel, tStateWS, tControlWS, tConfigWS, tResultWS, -1.0 );
+    mBoundaryLoads->get(aSpatialModel, aWorkSets, aCycle, -1.0 );
   }
   if( mBoundaryCharges != nullptr )
   {
-    mBoundaryCharges->get(aSpatialModel, tStateWS, tControlWS, tConfigWS, tResultWS, -1.0 );
+    mBoundaryCharges->get(aSpatialModel, aWorkSets, aCycle, -1.0 );
   }
 }
 

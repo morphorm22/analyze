@@ -18,130 +18,117 @@ namespace Plato
  * of type: UNIFORM and UNIFORM COMPONENT.
  *
  * \tparam ElementType  Element type (e.g., MechanicsElement<Tet10>)
- * \tparam DofsPerNode  number degrees of freedom per node
+ * \tparam mNumDofsPerNode  number degrees of freedom per node
  * \tparam DofOffset    degrees of freedom offset
  *
 *******************************************************************************/
-template<
-  typename ElementType,
-  Plato::OrdinalType NumDofs=ElementType::mNumSpatialDims,
-  Plato::OrdinalType DofsPerNode=NumDofs,
-  Plato::OrdinalType DofOffset=0 >
+template<typename EvaluationType,
+         Plato::OrdinalType NumForceDof=EvaluationType::ElementType::mNumDofsPerNode,
+         Plato::OrdinalType DofOffset=0>
 class NeumannForce
 {
 private:
-    const std::string mSideSetName; /*!< side set name */
-    const Plato::Array<NumDofs> mFlux; /*!< force vector values */
+  /// @brief topological element typename
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims = ElementType::mNumSpatialDims;
+  /// @brief number of degrees of freedom per node
+  static constexpr auto mNumDofsPerNode = ElementType::mNumDofsPerNode;
+  /// @brief scalar types associated with the automatic differentation evaluation type
+  using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  /// @brief side set name
+  const std::string mSideSetName;
+  /// @brief force values
+  const Plato::Array<NumForceDof> mFlux;
 
 public:
-    /******************************************************************************//**
-     * \brief Constructor
-     **********************************************************************************/
-    NeumannForce(const std::string & aSideSetName, const Plato::Array<NumDofs>& aFlux);
+  NeumannForce(
+    const std::string               & aSideSetName, 
+    const Plato::Array<NumForceDof> & aFlux
+  );
 
-    /***************************************************************************//**
-     * \brief Evaluate natural boundary condition surface integrals.
-     *
-     * \tparam StateScalarType   state forward automatically differentiated (FAD) type
-     * \tparam ControlScalarType control FAD type
-     * \tparam ConfigScalarType  configuration FAD type
-     * \tparam ResultScalarType  result FAD type
-     *
-     * \param [in]  aSpatialModel Plato spatial model
-     * \param [in]  aState        2-D view of state variables.
-     * \param [in]  aControl      2-D view of control variables.
-     * \param [in]  aConfig       3-D view of configuration variables.
-     * \param [out] aResult       Assembled vector to which the boundary terms will be added
-     * \param [in]  aScale        scalar multiplier
-     *
-    *******************************************************************************/
-    template<typename StateScalarType,
-             typename ControlScalarType,
-             typename ConfigScalarType,
-             typename ResultScalarType>
-    void operator()(
-        const Plato::SpatialModel                          & aSpatialModel,
-        const Plato::ScalarMultiVectorT<  StateScalarType> & aState,
-        const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
-        const Plato::ScalarArray3DT    < ConfigScalarType> & aConfig,
-        const Plato::ScalarMultiVectorT< ResultScalarType> & aResult,
-              Plato::Scalar aScale) const;
+  void operator()(
+    const Plato::SpatialModel & aSpatialModel,
+          Plato::WorkSets     & aWorkSets,
+          Plato::Scalar         aScale,
+          Plato::Scalar         aCycle
+  ) const;
 };
 // class NeumannForce
 
-/***************************************************************************//**
- * \brief NeumannForce::NeumannForce constructor definition
-*******************************************************************************/
-template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-NeumannForce<ElementType, NumDofs, DofsPerNode, DofOffset>::NeumannForce
-(const std::string & aSideSetName, const Plato::Array<NumDofs>& aFlux) :
-    mSideSetName(aSideSetName),
-    mFlux(aFlux)
+template<typename EvaluationType,
+         Plato::OrdinalType NumForceDof,
+         Plato::OrdinalType DofOffset>
+NeumannForce<EvaluationType,NumForceDof,DofOffset>::
+NeumannForce(
+  const std::string               & aSideSetName, 
+  const Plato::Array<NumForceDof> & aFlux
+) :
+  mSideSetName(aSideSetName),
+  mFlux(aFlux)
 {
 }
 // class NeumannForce::NeumannForce
 
-/***************************************************************************//**
- * \brief NeumannForce::operator() function definition
-*******************************************************************************/
-template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-template<typename StateScalarType,
-         typename ControlScalarType,
-         typename ConfigScalarType,
-         typename ResultScalarType>
-void NeumannForce<ElementType, NumDofs, DofsPerNode, DofOffset>::operator()(
-    const Plato::SpatialModel                          & aSpatialModel,
-    const Plato::ScalarMultiVectorT<  StateScalarType> & aState,
-    const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
-    const Plato::ScalarArray3DT    < ConfigScalarType> & aConfig,
-    const Plato::ScalarMultiVectorT< ResultScalarType> & aResult,
-          Plato::Scalar aScale
+template<typename EvaluationType,
+         Plato::OrdinalType NumForceDof,
+         Plato::OrdinalType DofOffset>
+void 
+NeumannForce<EvaluationType,NumForceDof,DofOffset>::
+operator()(
+  const Plato::SpatialModel & aSpatialModel,
+        Plato::WorkSets     & aWorkSets,
+        Plato::Scalar         aScale,
+        Plato::Scalar         aCycle
 ) const
 {
-    auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
-    auto tNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
-    Plato::OrdinalType tNumFaces = tElementOrds.size();
+  // unpack worksets
+  Plato::ScalarArray3DT<ConfigScalarType> tConfigWS = 
+    Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+  Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
+    Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
 
-    Plato::SurfaceArea<ElementType> surfaceArea;
+  auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
+  auto tNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
+  Plato::OrdinalType tNumFaces = tElementOrds.size();
 
-    auto tFlux = mFlux;
-    auto tCubatureWeights = ElementType::Face::getCubWeights();
-    auto tCubaturePoints  = ElementType::Face::getCubPoints();
-    auto tNumPoints = tCubatureWeights.size();
+  Plato::SurfaceArea<ElementType> surfaceArea;
 
-    Kokkos::parallel_for("surface integral",
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumFaces, tNumPoints}),
-      KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
+  auto tFlux = mFlux;
+  auto tCubatureWeights = ElementType::Face::getCubWeights();
+  auto tCubaturePoints  = ElementType::Face::getCubPoints();
+  auto tNumPoints = tCubatureWeights.size();
+
+  Kokkos::parallel_for("surface integral",
+    Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumFaces, tNumPoints}),
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
+  {
+    auto tElementOrdinal = tElementOrds(aSideOrdinal);
+    Plato::Array<ElementType::mNumNodesPerFace, Plato::OrdinalType> tLocalNodeOrds;
+    for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<ElementType::mNumNodesPerFace; tNodeOrd++)
     {
-      auto tElementOrdinal = tElementOrds(aSideOrdinal);
-
-      Plato::Array<ElementType::mNumNodesPerFace, Plato::OrdinalType> tLocalNodeOrds;
-      for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<ElementType::mNumNodesPerFace; tNodeOrd++)
+      tLocalNodeOrds(tNodeOrd) = tNodeOrds(aSideOrdinal*ElementType::mNumNodesPerFace+tNodeOrd);
+    }
+    auto tCubatureWeight = tCubatureWeights(aPointOrdinal);
+    auto tCubaturePoint = tCubaturePoints(aPointOrdinal);
+    auto tBasisValues = ElementType::Face::basisValues(tCubaturePoint);
+    auto tBasisGrads  = ElementType::Face::basisGrads(tCubaturePoint);
+    ResultScalarType tSurfaceArea(0.0);
+    surfaceArea(tElementOrdinal, tLocalNodeOrds, tBasisGrads, tConfigWS, tSurfaceArea);
+    tSurfaceArea *= aScale;
+    tSurfaceArea *= tCubatureWeight;
+    // project into result workset
+    for( Plato::OrdinalType tNode=0; tNode<ElementType::mNumNodesPerFace; tNode++)
+    {
+      for( Plato::OrdinalType tDof=0; tDof<NumForceDof; tDof++)
       {
-        tLocalNodeOrds(tNodeOrd) = tNodeOrds(aSideOrdinal*ElementType::mNumNodesPerFace+tNodeOrd);
+        auto tElementDofOrdinal = tLocalNodeOrds[tNode] * mNumDofsPerNode + tDof + DofOffset;
+        ResultScalarType tResult = tBasisValues(tNode)*tFlux[tDof]*tSurfaceArea;
+        Kokkos::atomic_add(&tResultWS(tElementOrdinal,tElementDofOrdinal), tResult);
       }
-
-      auto tCubatureWeight = tCubatureWeights(aPointOrdinal);
-      auto tCubaturePoint = tCubaturePoints(aPointOrdinal);
-      auto tBasisValues = ElementType::Face::basisValues(tCubaturePoint);
-      auto tBasisGrads  = ElementType::Face::basisGrads(tCubaturePoint);
-
-      ResultScalarType tSurfaceArea(0.0);
-      surfaceArea(tElementOrdinal, tLocalNodeOrds, tBasisGrads, aConfig, tSurfaceArea);
-      tSurfaceArea *= aScale;
-      tSurfaceArea *= tCubatureWeight;
-
-      // project into aResult workset
-      for( Plato::OrdinalType tNode=0; tNode<ElementType::mNumNodesPerFace; tNode++)
-      {
-          for( Plato::OrdinalType tDof=0; tDof<NumDofs; tDof++)
-          {
-              auto tElementDofOrdinal = tLocalNodeOrds[tNode] * DofsPerNode + tDof + DofOffset;
-              ResultScalarType tResult = tBasisValues(tNode)*tFlux[tDof]*tSurfaceArea;
-              Kokkos::atomic_add(&aResult(tElementOrdinal,tElementDofOrdinal), tResult);
-          }
-      }
-    });
+    }
+  });
 }
 // class NeumannForce::operator()
 

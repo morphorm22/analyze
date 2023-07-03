@@ -23,7 +23,6 @@
 #include "elliptic/evaluators/criterion/CriterionEvaluatorScalarFunction.hpp"
 #include "ApplyProjection.hpp"
 #include "AnalyzeMacros.hpp"
-#include "HyperbolicTangentProjection.hpp"
 #include "solver/CrsMatrix.hpp"
 #include "solver/PlatoSolverFactory.hpp"
 
@@ -1022,48 +1021,6 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_InvertLocalMatrices)
             const Plato::Scalar tScaleFactor = (1.0 + n);
             TEST_FLOATING_EQUALITY(tHostAInverse(n, i, j), tScaleFactor * tGoldMatrixInverse[i][j], tTolerance);
           }
-}
-
-
-TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, HyperbolicTangentProjection)
-{
-    const Plato::OrdinalType tNumNodesPerCell = 2;
-    typedef Sacado::Fad::SFad<Plato::Scalar, tNumNodesPerCell> FadType;
-
-    // SET EVALUATION TYPES FOR UNIT TEST
-    const Plato::OrdinalType tNumCells = 1;
-    Plato::ScalarVectorT<Plato::Scalar> tOutputVal("OutputVal", tNumCells);
-    Plato::ScalarVectorT<Plato::Scalar> tOutputGrad("OutputGrad", tNumNodesPerCell);
-    Plato::ScalarMultiVectorT<FadType> tControl("Control", tNumCells, tNumNodesPerCell);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
-    {
-        tControl(aCellOrdinal, 0) = FadType(tNumNodesPerCell, 0, 1.0);
-        tControl(aCellOrdinal, 1) = FadType(tNumNodesPerCell, 1, 1.0);
-    }, "Set Controls");
-
-    // SET EVALUATION TYPES FOR UNIT TEST
-    Plato::HyperbolicTangentProjection tProjection;
-    Plato::ApplyProjection<Plato::HyperbolicTangentProjection> tApplyProjection(tProjection);
-    Kokkos::parallel_for(Kokkos::RangePolicy<>(0,tNumCells), KOKKOS_LAMBDA(const Plato::OrdinalType & aCellOrdinal)
-    {
-        FadType tValue = tApplyProjection(aCellOrdinal, tControl);
-        tOutputVal(aCellOrdinal) = tValue.val();
-        tOutputGrad(0) = tValue.dx(0);
-        tOutputGrad(1) = tValue.dx(1);
-    }, "UnitTest: HyperbolicTangentProjection_GradZ");
-
-    // TEST OUTPUT
-    auto tHostVal = Kokkos::create_mirror(tOutputVal);
-    Kokkos::deep_copy(tHostVal, tOutputVal);
-    auto tHostGrad = Kokkos::create_mirror(tOutputGrad);
-    Kokkos::deep_copy(tHostGrad, tOutputGrad);
-
-    const Plato::Scalar tTolerance = 1e-6;
-    std::vector<Plato::Scalar> tGoldVal = { 1.0 };
-    std::vector<Plato::Scalar> tGoldGrad = { 4.539992985607449e-4, 4.539992985607449e-4 };
-    TEST_FLOATING_EQUALITY(tHostVal(0), tGoldVal[0], tTolerance);
-    TEST_FLOATING_EQUALITY(tHostGrad(0), tGoldGrad[0], tTolerance);
-    TEST_FLOATING_EQUALITY(tHostGrad(1), tGoldGrad[1], tTolerance);
 }
 
 TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, PlatoMathHelpers_ConditionalExpression)

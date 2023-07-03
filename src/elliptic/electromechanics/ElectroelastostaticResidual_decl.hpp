@@ -40,6 +40,7 @@ private:
 
   static constexpr Plato::OrdinalType NElecDims = 1;
   static constexpr Plato::OrdinalType NMechDims = mNumSpatialDims;  
+
   static constexpr Plato::OrdinalType EDofOffset = mNumSpatialDims;
   static constexpr Plato::OrdinalType MDofOffset = 0;
 
@@ -52,10 +53,10 @@ private:
   ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyEDispWeighting;
   ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms,  IndicatorFunctionType> mApplyStressWeighting;
 
-  std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
+  std::shared_ptr<Plato::BodyLoads<EvaluationType,ElementType>> mBodyLoads;
 
-  std::shared_ptr<Plato::NeumannBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>> mBoundaryLoads;
-  std::shared_ptr<Plato::NeumannBCs<ElementType, NElecDims, mNumDofsPerNode, EDofOffset>> mBoundaryCharges;
+  std::shared_ptr<Plato::NeumannBCs<EvaluationType,NMechDims,MDofOffset>> mBoundaryLoads;
+  std::shared_ptr<Plato::NeumannBCs<EvaluationType,NElecDims,EDofOffset>> mBoundaryCharges;
 
   Teuchos::RCP<Plato::LinearElectroelasticMaterial<mNumSpatialDims>> mMaterialModel;
 

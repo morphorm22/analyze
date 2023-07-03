@@ -23,7 +23,6 @@
 
 #include "base/WorksetBase.hpp"
 #include "solver/ParallelComm.hpp"
-#include "geometric/GeometryScalarFunction.hpp"
 
 #include "elliptic/Problem.hpp"
 #include "elliptic/thermal/Thermal.hpp"

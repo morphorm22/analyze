@@ -27,7 +27,7 @@ ResidualElastostaticTotalLagrangian(
 ) :
   FunctionBaseType(aSpatialDomain, aDataMap),
   mStressEvaluator(nullptr),
-  mNeumannBCs     (nullptr),
+  mBoundaryForces     (nullptr),
   mBodyLoads      (nullptr)
 {
   // obligatory: define dof names in order
@@ -136,19 +136,10 @@ evaluateBoundary(
         Plato::Scalar         aCycle
 ) const
 {
-  // unpack worksets
-  Plato::ScalarArray3DT<ConfigScalarType> tConfigWS  = 
-    Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
-  Plato::ScalarMultiVectorT<ControlScalarType> tControlWS = 
-    Plato::unpack<Plato::ScalarMultiVectorT<ControlScalarType>>(aWorkSets.get("controls"));
-  Plato::ScalarMultiVectorT<StateScalarType> tStateWS = 
-    Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
-  Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
-    Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
   // evaluate boundary forces
-  if( mNeumannBCs != nullptr )
+  if( mBoundaryForces != nullptr )
   {
-    mNeumannBCs->get(aSpatialModel, tStateWS, tControlWS, tConfigWS, tResultWS, -1.0 );
+    mBoundaryForces->get( aSpatialModel, aWorkSets, aCycle, -1.0 );
   }
 }
 
@@ -174,8 +165,8 @@ initialize(
   // 
   if(aParamList.isSublist("Natural Boundary Conditions"))
   {
-    mNeumannBCs = 
-      std::make_shared<Plato::NeumannBCs<ElementType>>(aParamList.sublist("Natural Boundary Conditions"));
+    mBoundaryForces = 
+      std::make_shared<Plato::NeumannBCs<EvaluationType>>(aParamList.sublist("Natural Boundary Conditions"));
   }
   // parse plot table
   //

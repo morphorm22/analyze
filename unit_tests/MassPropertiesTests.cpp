@@ -12,7 +12,6 @@
 #include "Tri3.hpp"
 #include "Tet4.hpp"
 #include "BLAS1.hpp"
-#include "Geometrical.hpp"
 #include "Analyze_Diagnostics.hpp"
 #include "geometric/MassMoment.hpp"
 #include "geometric/GeometricalElement.hpp"

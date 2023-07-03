@@ -93,12 +93,12 @@ private:
 
     std::vector<std::string> mPlotTable;           /*!< array of output element data identifiers*/
 
-    std::shared_ptr<Plato::BodyLoads<EvaluationType, SimplexPhysicsType>> mBodyLoads;                       /*!< body loads interface */
-    std::shared_ptr<CubatureType> mCubatureRule;                                        /*!< linear cubature rule */
-    std::shared_ptr<Plato::NeumannBCs<mSpaceDim, mNumDisplacementDims, mNumGlobalDofsPerNode, mDisplacementDofOffset>>
-                    mNeumannMechanicalLoads; /*!< Neumann mechanical loads interface */
-    std::shared_ptr<Plato::NeumannBCs<mSpaceDim, mNumThermalDims, mNumGlobalDofsPerNode, mTemperatureDofOffset>>
-                    mNeumannThermalLoads; /*!< Neumann thermal loads interface */
+    std::shared_ptr<CubatureType> mCubatureRule;  /*!< linear cubature rule */
+    std::shared_ptr<Plato::BodyLoads<EvaluationType, SimplexPhysicsType>> mBodyLoads; /*!< body loads interface */
+    std::shared_ptr<Plato::NeumannBCs<EvaluationType, mNumDisplacementDims, mDisplacementDofOffset>> 
+      mBoundaryMechForces; /*!< Neumann mechanical loads interface */
+    std::shared_ptr<Plato::NeumannBCs<EvaluationType, mNumThermalDims, mTemperatureDofOffset>> 
+      mBoundaryTempForces; /*!< Neumann thermal loads interface */
 
 // Private access functions
 private:
@@ -177,16 +177,16 @@ private:
             // Parse mechanical Neumann loads
             if(tNeumannBCsParams.isSublist("Mechanical Natural Boundary Conditions"))
             {
-                mNeumannMechanicalLoads =
-                        std::make_shared<Plato::NeumannBCs<mSpaceDim, mNumDisplacementDims, mNumGlobalDofsPerNode, mDisplacementDofOffset>>
+                mBoundaryMechForces =
+                        std::make_shared<Plato::NeumannBCs<EvaluationType,mNumDisplacementDims,mDisplacementDofOffset>>
                         (tNeumannBCsParams.sublist("Mechanical Natural Boundary Conditions"));
             }
 
             // Parse thermal Neumann loads
             if(tNeumannBCsParams.isSublist("Thermal Natural Boundary Conditions"))
             {
-                mNeumannThermalLoads =
-                        std::make_shared<Plato::NeumannBCs<mSpaceDim, mNumThermalDims, mNumGlobalDofsPerNode, mTemperatureDofOffset>>
+                mBoundaryTempForces =
+                        std::make_shared<Plato::NeumannBCs<EvaluationType,mNumThermalDims,mTemperatureDofOffset>>
                         (tNeumannBCsParams.sublist("Thermal Natural Boundary Conditions"));
             }
 
@@ -278,14 +278,14 @@ private:
     {
         const Plato::Scalar tCurrentTime = aTimeData.mCurrentTime;
         const Plato::Scalar tMinusOne    = -1.0;
-        if( mNeumannMechanicalLoads != nullptr )
+        if( mBoundaryMechForces != nullptr )
         {
-            mNeumannMechanicalLoads->get( aSpatialModel, aGlobalState, aControl, aConfig, aResult, tMinusOne, tCurrentTime );
+            mBoundaryMechForces->get( aSpatialModel, aGlobalState, aControl, aConfig, aResult, tMinusOne, tCurrentTime );
         }
 
-        if( mNeumannThermalLoads != nullptr )
+        if( mBoundaryTempForces != nullptr )
         {
-            mNeumannThermalLoads->get( aSpatialModel, aGlobalState, aControl, aConfig, aResult, tMinusOne, tCurrentTime );
+            mBoundaryTempForces->get( aSpatialModel, aGlobalState, aControl, aConfig, aResult, tMinusOne, tCurrentTime );
         }
     }
 
@@ -376,8 +376,8 @@ public:
         mAdditiveContinuationParam(0.1),
         mBodyLoads(nullptr),
         mCubatureRule(std::make_shared<CubatureType>()),
-        mNeumannMechanicalLoads(nullptr),
-        mNeumannThermalLoads(nullptr)
+        mBoundaryMechForces(nullptr),
+        mBoundaryTempForces(nullptr)
     {
         this->initialize(aProblemParams);
     }

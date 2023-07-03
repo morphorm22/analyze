@@ -21,7 +21,6 @@ public:
                                                         ((mNumSpatialDims == 2) ? 3 :
                                                        (((mNumSpatialDims == 1) ? 1 : 0)));
 
-  static constexpr Plato::OrdinalType mEDofOffset      = mNumSpatialDims;
   static constexpr Plato::OrdinalType mNumDofsPerNode  = mNumSpatialDims + 1;
   static constexpr Plato::OrdinalType mNumDofsPerCell  = mNumDofsPerNode*mNumNodesPerCell;
   static constexpr Plato::OrdinalType mNumControl = NumControls;

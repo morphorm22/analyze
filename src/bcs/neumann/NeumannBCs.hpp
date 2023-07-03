@@ -8,376 +8,364 @@
 namespace Plato 
 {
 
-/***************************************************************************//**
- * \brief Owner class that contains a vector of NeumannBC objects.
- *
- * \tparam ElementType  Element type
- * \tparam NumDofs      number degrees of freedom per natural boundary condition force vector
- * \tparam DofsPerNode  number degrees of freedom per node
- * \tparam DofOffset    degrees of freedom offset
- *
-*******************************************************************************/
-template<
-  typename ElementType,
-  Plato::OrdinalType NumDofs=ElementType::mNumSpatialDims,
-  Plato::OrdinalType DofsPerNode=NumDofs,
-  Plato::OrdinalType DofOffset=0>
+/// @brief natural boundary condition evaluator
+template<typename EvaluationType,
+         Plato::OrdinalType NumForceDof=EvaluationType::ElementType::mNumDofsPerNode,
+         Plato::OrdinalType DofOffset=0>
 class NeumannBCs
 {
 // private member data
 private:
-    /*!< list of natural boundary condition */
-    std::vector<std::shared_ptr<Plato::NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>> mBCs;
+  /// @brief topological element type
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief number of degrees of freedom per node
+  static constexpr auto mNumDofsPerNode = ElementType::mNumDofsPerNode;
+  /// @brief list of natural boundary conditions
+  std::vector<std::shared_ptr<Plato::NeumannBC<EvaluationType,NumForceDof,DofOffset>>> mBCs;
 
 // private functions
 private:
-    /***************************************************************************//**
-     * \brief Append natural boundary condition to natural boundary condition list.
-     *
-     * \param  [in] aName    user-defined name for natural boundary condition sublist
-     * \param  [in] aSubList natural boundary condition parameter sublist
-    *******************************************************************************/
-    void appendNeumannBC(const std::string & aName, Teuchos::ParameterList &aSubList);
+  /// @brief append neumann boundary condition
+  /// @param aName    neumann boundary conditon name
+  /// @param aSubList input parameter list
+  void 
+  appendNeumannBC(
+    const std::string            & aName, 
+          Teuchos::ParameterList & aSubList
+  );
 
-    /***************************************************************************//**
-     * \brief Return natural boundary condition type: uniform.
-     *
-     * \param  [in] aName    user-defined name for natural boundary condition sublist
-     * \param  [in] aSubList natural boundary condition parameter sublist
-     *
-     * \return shared pointer to an uniform natural boundary condition
-    *******************************************************************************/
-    std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
-    setUniformNeumannBC(const std::string & aName, Teuchos::ParameterList &aSubList);
+  /// @fn setUniformNeumannBC
+  /// @brief create uniform neumann boundary condition
+  /// @param [in] aName    neumann boundary condition name
+  /// @param [in] aSubList input problem parameter 
+  /// @return neumann boundary condition evaluator
+  std::shared_ptr<NeumannBC<EvaluationType,NumForceDof,DofOffset>>
+  setUniformNeumannBC(
+    const std::string            & aName, 
+          Teuchos::ParameterList & aSubList
+  );
 
-    /***************************************************************************//**
-     * \brief Return natural boundary condition type: uniform pressure.
-     *
-     * \param  [in] aName    user-defined name for natural boundary condition sublist
-     * \param  [in] aSubList natural boundary condition parameter sublist
-     *
-     * \return shared pointer to an uniform pressure natural boundary condition
-    *******************************************************************************/
-    std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
-    setUniformPressureNeumannBC(const std::string & aName, Teuchos::ParameterList &aSubList);
+  /// @fn setUniformPressureNeumannBC
+  /// @brief create uniform component neumann boundary conditions
+  /// @param [in] aName    neumann boundary condition name
+  /// @param [in] aSubList input problem parameters
+  /// @return natural boundary condition evaluator
+  std::shared_ptr<NeumannBC<EvaluationType,NumForceDof,DofOffset>>
+  setUniformPressureNeumannBC(
+    const std::string            & aName, 
+          Teuchos::ParameterList & aSubList
+  );
 
-    /***************************************************************************//**
-     * \brief Return natural boundary condition type: uniform component.
-     *
-     * \param  [in] aName    user-defined name for natural boundary condition sublist
-     * \param  [in] aSubList natural boundary condition parameter sublist
-     *
-     * \return shared pointer to an uniform component natural boundary condition
-    *******************************************************************************/
-    std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
-    setUniformComponentNeumannBC(const std::string & aName, Teuchos::ParameterList &aSubList);
+  /// @fn setUniformComponentNeumannBC
+  /// @brief set uniform component neumann boundary conditions
+  /// @param [in] aName    neumann boundary condition name
+  /// @param [in] aSubList input problem parameters
+  /// @return natural boundary condition evaluator
+  std::shared_ptr<NeumannBC<EvaluationType,NumForceDof,DofOffset>>
+  setUniformComponentNeumannBC(
+    const std::string            & aName, 
+          Teuchos::ParameterList & aSubList
+  );
 
 // public functions
 public :
-    /***************************************************************************//**
-     * \brief Constructor that parses and creates a vector of NeumannBC objects.
-     * \param [in] aParams input parameter list
-    *******************************************************************************/
-    NeumannBCs(Teuchos::ParameterList &aParams);
+  /// @brief class constructor
+  /// @param [in] aParams input problem parameters
+  NeumannBCs(
+    Teuchos::ParameterList & aParams
+  );
 
-    /***************************************************************************//**
-     * \brief Get the contribution to the assembled forcing vector from the owned
-     * boundary conditions.
-     *
-     * \tparam StateScalarType   state forward automatically differentiated (FAD) type
-     * \tparam ControlScalarType control FAD type
-     * \tparam ConfigScalarType  configuration FAD type
-     * \tparam ResultScalarType  result FAD type
-     *
-     * \param [in]  aState        2-D view of state variables.
-     * \param [in]  aControl      2-D view of control variables.
-     * \param [in]  aConfig       3-D view of configuration variables.
-     * \param [out] aResult       Assembled vector to which the boundary terms will be added
-     * \param [in]  aScale        scalar multiplier
-     *
-    *******************************************************************************/
-    template<typename StateScalarType,
-             typename ControlScalarType,
-             typename ConfigScalarType,
-             typename ResultScalarType>
-    void get(
-        const Plato::SpatialModel &,
-        const Plato::ScalarMultiVectorT<  StateScalarType> &,
-        const Plato::ScalarMultiVectorT<ControlScalarType> &,
-        const Plato::ScalarArray3DT    < ConfigScalarType> &,
-        const Plato::ScalarMultiVectorT< ResultScalarType> &,
-              Plato::Scalar aScale = 1.0,
-              Plato::Scalar aCurrentTime = 0.0) const;
+  /// @fn get
+  /// @brief evaluate neumann boundary conditions
+  /// @param [in] aSpatialModel contains mesh and model informaiton
+  /// @param [in] aWorkSets     domain and range workset database
+  /// @param [in] aScale        scalar multiplier
+  /// @param [in] aCycle  scalar cycle
+  void 
+  get(  
+    const Plato::SpatialModel & aSpatialModel,
+          Plato::WorkSets     & aWorkSets,
+          Plato::Scalar         aCycle = 0.0,
+          Plato::Scalar         aScale = 1.0
+  ) 
+  const;
 };
 // class NeumannBCs
 
-/***************************************************************************//**
- * \brief NeumannBC::appendNeumannBC function definition
-*******************************************************************************/
-template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-void NeumannBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::appendNeumannBC
-(const std::string & aName, Teuchos::ParameterList &aSubList)
+template<typename EvaluationType,
+         Plato::OrdinalType NumForceDof,
+         Plato::OrdinalType DofOffset>
+void 
+NeumannBCs<EvaluationType,NumForceDof,DofOffset>::
+appendNeumannBC(
+  const std::string            & aName, 
+        Teuchos::ParameterList & aSubList
+)
 {
-    const auto tType = aSubList.get<std::string>("Type");
-    const auto tNeumannType = Plato::natural_boundary_condition_type(tType);
-    std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>> tBC;
-    switch(tNeumannType)
+  const auto tType = aSubList.get<std::string>("Type");
+  const auto tNeumannType = Plato::natural_boundary_condition_type(tType);
+  std::shared_ptr<NeumannBC<EvaluationType,NumForceDof,DofOffset>> tBC;
+  switch(tNeumannType)
+  {
+    case Plato::Neumann::UNIFORM:
     {
-        case Plato::Neumann::UNIFORM:
-        {
-            tBC = this->setUniformNeumannBC(aName, aSubList);
-            break;
-        }
-        case Plato::Neumann::UNIFORM_PRESSURE:
-        {
-            tBC = this->setUniformPressureNeumannBC(aName, aSubList);
-            break;
-        }
-        case Plato::Neumann::UNIFORM_COMPONENT:
-        {
-            tBC = this->setUniformComponentNeumannBC(aName, aSubList);
-            break;
-        }
-        default:
-        {
-            std::stringstream tMsg;
-            tMsg << "Natural Boundary Condition Type '" << tType.c_str() << "' is NOT supported.";
-            ANALYZE_THROWERR(tMsg.str().c_str())
-        }
+      tBC = this->setUniformNeumannBC(aName, aSubList);
+      break;
     }
-    mBCs.push_back(tBC);
+    case Plato::Neumann::UNIFORM_PRESSURE:
+    {
+      tBC = this->setUniformPressureNeumannBC(aName, aSubList);
+      break;
+    }
+    case Plato::Neumann::UNIFORM_COMPONENT:
+    {
+      tBC = this->setUniformComponentNeumannBC(aName, aSubList);
+      break;
+    }
+    default:
+    {
+      std::stringstream tMsg;
+      tMsg << "Natural Boundary Condition Type '" << tType.c_str() << "' is NOT supported.";
+      ANALYZE_THROWERR(tMsg.str().c_str())
+    }
+  }
+  mBCs.push_back(tBC);
 }
 
-/***************************************************************************//**
- * \brief NeumannBC::setUniformNeumannBC function definition
-*******************************************************************************/
-template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
-NeumannBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::setUniformNeumannBC
-(const std::string & aName, Teuchos::ParameterList &aSubList)
+template<typename EvaluationType,
+         Plato::OrdinalType NumForceDof,
+         Plato::OrdinalType DofOffset>
+std::shared_ptr<NeumannBC<EvaluationType,NumForceDof,DofOffset>>
+NeumannBCs<EvaluationType,NumForceDof,DofOffset>::
+setUniformNeumannBC(
+  const std::string            & aName, 
+        Teuchos::ParameterList & aSubList
+)
 {
-    bool tBC_Value = (aSubList.isType<Plato::Scalar>("Value") || aSubList.isType<std::string>("Value"));
+  bool tBC_Value = (aSubList.isType<Plato::Scalar>("Value") || aSubList.isType<std::string>("Value"));
 
-    bool tBC_Values = (aSubList.isType<Teuchos::Array<Plato::Scalar>>("Values") ||
-                       aSubList.isType<Teuchos::Array<std::string>>("Values"));
+  bool tBC_Values = (aSubList.isType<Teuchos::Array<Plato::Scalar>>("Values") ||
+                     aSubList.isType<Teuchos::Array<std::string>>("Values"));
 
-    const auto tType = aSubList.get < std::string > ("Type");
-    std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>> tBC;
-    if (tBC_Values && tBC_Value)
+  const auto tType = aSubList.get < std::string > ("Type");
+  if (tBC_Values && tBC_Value)
+  {
+    std::stringstream tMsg;
+    tMsg << "Natural Boundary Condition: 'Values' OR 'Value' Parameter Keyword in "
+        << "Parameter Sublist: '" << aName.c_str() << "' is NOT defined.";
+    ANALYZE_THROWERR(tMsg.str().c_str())
+  }
+  else 
+  if (tBC_Values)
+  {
+    if(aSubList.isType<Teuchos::Array<Plato::Scalar>>("Values"))
     {
-        std::stringstream tMsg;
-        tMsg << "Natural Boundary Condition: 'Values' OR 'Value' Parameter Keyword in "
-            << "Parameter Sublist: '" << aName.c_str() << "' is NOT defined.";
-        ANALYZE_THROWERR(tMsg.str().c_str())
-    }
-    else if (tBC_Values)
+      auto tValues = aSubList.get<Teuchos::Array<Plato::Scalar>>("Values");
+      aSubList.set("Vector", tValues);
+    } 
+    else
+    if(aSubList.isType<Teuchos::Array<std::string>>("Values"))
     {
-        if(aSubList.isType<Teuchos::Array<Plato::Scalar>>("Values"))
-        {
-            auto tValues = aSubList.get<Teuchos::Array<Plato::Scalar>>("Values");
-            aSubList.set("Vector", tValues);
-        } else
-        if(aSubList.isType<Teuchos::Array<std::string>>("Values"))
-        {
-            auto tValues = aSubList.get<Teuchos::Array<std::string>>("Values");
-            aSubList.set("Vector", tValues);
-        } else
-        {
-            std::stringstream tMsg;
-            tMsg << "Natural Boundary Condition: unexpected type encountered for 'Values' Parameter Keyword."
-                 << "Specify 'type' of 'Array(double)' or 'Array(string)'.";
-            ANALYZE_THROWERR(tMsg.str().c_str())
-        }
-    }
-    else if (tBC_Value)
-    {
-
-        auto tDof = aSubList.get<Plato::OrdinalType>("Index", 0);
-
-        if(aSubList.isType<Plato::Scalar>("Value"))
-        {
-            Teuchos::Array<Plato::Scalar> tFluxVector(NumDofs, 0.0);
-            auto tValue = aSubList.get<Plato::Scalar>("Value");
-            tFluxVector[tDof] = tValue;
-            aSubList.set("Vector", tFluxVector);
-        } else
-        if(aSubList.isType<std::string>("Value"))
-        {
-            Teuchos::Array<std::string> tFluxVector(NumDofs, "0.0");
-            auto tValue = aSubList.get<std::string>("Value");
-            tFluxVector[tDof] = tValue;
-            aSubList.set("Vector", tFluxVector);
-        } else
-        {
-            std::stringstream tMsg;
-            tMsg << "Natural Boundary Condition: unexpected type encountered for 'Value' Parameter Keyword."
-                 << "Specify 'type' of 'double' or 'string'.";
-            ANALYZE_THROWERR(tMsg.str().c_str())
-        }
-    }
+      auto tValues = aSubList.get<Teuchos::Array<std::string>>("Values");
+      aSubList.set("Vector", tValues);
+    } 
     else
     {
-        std::stringstream tMsg;
-        tMsg << "Natural Boundary Condition: Uniform Boundary Condition in Parameter Sublist: '"
-            << aName.c_str() << "' was NOT parsed. Check input Parameter Keywords.";
-        ANALYZE_THROWERR(tMsg.str().c_str())
+      std::stringstream tMsg;
+      tMsg << "Natural Boundary Condition: unexpected type encountered for 'Values' Parameter Keyword."
+           << "Specify 'type' of 'Array(double)' or 'Array(string)'.";
+      ANALYZE_THROWERR(tMsg.str().c_str())
     }
-
-    tBC = std::make_shared<Plato::NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>(aName, aSubList);
-    return tBC;
-}
-
-/***************************************************************************//**
- * \brief NeumannBC::setUniformPressureNeumannBC function definition
-*******************************************************************************/
-template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
-NeumannBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::setUniformPressureNeumannBC
-(const std::string & aName, Teuchos::ParameterList &aSubList)
-{
-    if(aSubList.isParameter("Value") == false)
-    {
-        std::stringstream tMsg;
-        tMsg << "Natural Boundary Condition: 'Value' Parameter Keyword in "
-            << "Parameter Sublist: '" << aName.c_str() << "' is NOT defined.";
-        ANALYZE_THROWERR(tMsg.str().c_str())
-    }
-
+  }
+  else 
+  if (tBC_Value)
+  {
+    auto tDof = aSubList.get<Plato::OrdinalType>("Index", 0);
     if(aSubList.isType<Plato::Scalar>("Value"))
     {
-        Teuchos::Array<Plato::Scalar> tFluxVector(NumDofs, aSubList.get<Plato::Scalar>("Value"));
-        aSubList.set("Vector", tFluxVector);
-    } else
+      Teuchos::Array<Plato::Scalar> tFluxVector(NumForceDof, 0.0);
+      auto tValue = aSubList.get<Plato::Scalar>("Value");
+      tFluxVector[tDof] = tValue;
+      aSubList.set("Vector", tFluxVector);
+    } 
+    else
     if(aSubList.isType<std::string>("Value"))
     {
-        Teuchos::Array<std::string> tFluxVector(NumDofs, aSubList.get<std::string>("Value"));
-        aSubList.set("Vector", tFluxVector);
-    } else
+      Teuchos::Array<std::string> tFluxVector(NumForceDof, "0.0");
+      auto tValue = aSubList.get<std::string>("Value");
+      tFluxVector[tDof] = tValue;
+      aSubList.set("Vector", tFluxVector);
+    } 
+    else
     {
-        std::stringstream tMsg;
-        tMsg << "Natural Boundary Condition: unexpected type encountered for 'Value' Parameter Keyword."
-                << "Specify 'type' of 'double' or 'string'.";
-        ANALYZE_THROWERR(tMsg.str().c_str())
+      std::stringstream tMsg;
+      tMsg << "Natural Boundary Condition: unexpected type encountered for 'Value' Parameter Keyword."
+           << "Specify 'type' of 'double' or 'string'.";
+      ANALYZE_THROWERR(tMsg.str().c_str())
     }
-
-    auto tBC = std::make_shared<Plato::NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>(aName, aSubList);
-    return tBC;
+  }
+  else
+  {
+    std::stringstream tMsg;
+    tMsg << "Natural Boundary Condition: Uniform Boundary Condition in Parameter Sublist: '"
+        << aName.c_str() << "' was NOT parsed. Check input Parameter Keywords.";
+    ANALYZE_THROWERR(tMsg.str().c_str())
+  }
+  auto tBC = std::make_shared<Plato::NeumannBC<EvaluationType,NumForceDof,DofOffset>>(aName, aSubList);
+  return tBC;
 }
 
-/***************************************************************************//**
- * \brief NeumannBC::setUniformComponentNeumannBC function definition
-*******************************************************************************/
-template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>
-NeumannBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::setUniformComponentNeumannBC
-(const std::string & aName, Teuchos::ParameterList &aSubList)
+template<typename EvaluationType,
+         Plato::OrdinalType NumForceDof,
+         Plato::OrdinalType DofOffset>
+std::shared_ptr<NeumannBC<EvaluationType,NumForceDof,DofOffset>>
+NeumannBCs<EvaluationType,NumForceDof,DofOffset>::
+setUniformPressureNeumannBC(
+  const std::string            & aName, 
+        Teuchos::ParameterList & aSubList
+)
 {
-    if(aSubList.isParameter("Value") == false)
-    {
-        std::stringstream tMsg;
-        tMsg << "Natural Boundary Condition: 'Value' Parameter Keyword in "
-            << "Parameter Sublist: '" << aName.c_str() << "' is NOT defined.";
-        ANALYZE_THROWERR(tMsg.str().c_str())
-    }
-    auto tValue = aSubList.get<Plato::Scalar>("Value");
+  if(aSubList.isParameter("Value") == false)
+  {
+    std::stringstream tMsg;
+    tMsg << "Natural Boundary Condition: 'Value' Parameter Keyword in "
+        << "Parameter Sublist: '" << aName.c_str() << "' is NOT defined.";
+    ANALYZE_THROWERR(tMsg.str().c_str())
+  }
 
-    if(aSubList.isParameter("Component") == false)
-    {
-        std::stringstream tMsg;
-        tMsg << "Natural Boundary Condition: 'Component' Parameter Keyword in "
-            << "Parameter Sublist: '" << aName.c_str() << "' is NOT defined.";
-        ANALYZE_THROWERR(tMsg.str().c_str())
-    }
-    Teuchos::Array<Plato::Scalar> tFluxVector(NumDofs, 0.0);
-    auto tFluxComponent = aSubList.get<std::string>("Component");
-
-    std::shared_ptr<NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>> tBC;
-    if( (tFluxComponent == "x" || tFluxComponent == "X") )
-    {
-        tFluxVector[0] = tValue;
-    }
-    else
-    if( (tFluxComponent == "y" || tFluxComponent == "Y") && DofsPerNode > 1 )
-    {
-        tFluxVector[1] = tValue;
-    }
-    else
-    if( (tFluxComponent == "z" || tFluxComponent == "Z") && DofsPerNode > 2 )
-    {
-        tFluxVector[2] = tValue;
-    }
-    else
-    {
-        std::stringstream tMsg;
-        tMsg << "Natural Boundary Condition: 'Component' Parameter Keyword: '" << tFluxComponent.c_str()
-            << "' in Parameter Sublist: '" << aName.c_str() << "' is NOT supported. "
-            << "Options are: 'X' or 'x', 'Y' or 'y', and 'Z' or 'z'.";
-        ANALYZE_THROWERR(tMsg.str().c_str())
-    }
-
+  if(aSubList.isType<Plato::Scalar>("Value"))
+  {
+    Teuchos::Array<Plato::Scalar> tFluxVector(NumForceDof, aSubList.get<Plato::Scalar>("Value"));
     aSubList.set("Vector", tFluxVector);
-    tBC = std::make_shared<Plato::NeumannBC<ElementType, NumDofs, DofsPerNode, DofOffset>>(aName, aSubList);
-    return tBC;
+  } else
+  if(aSubList.isType<std::string>("Value"))
+  {
+    Teuchos::Array<std::string> tFluxVector(NumForceDof, aSubList.get<std::string>("Value"));
+    aSubList.set("Vector", tFluxVector);
+  } else
+  {
+    std::stringstream tMsg;
+    tMsg << "Natural Boundary Condition: unexpected type encountered for 'Value' Parameter Keyword."
+            << "Specify 'type' of 'double' or 'string'.";
+    ANALYZE_THROWERR(tMsg.str().c_str())
+  }
+
+  auto tBC = std::make_shared<Plato::NeumannBC<EvaluationType,NumForceDof,DofOffset>>(aName, aSubList);
+  return tBC;
 }
 
-/***************************************************************************//**
- * \brief NeumannBCs Constructor definition
-*******************************************************************************/
-template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-NeumannBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::NeumannBCs(Teuchos::ParameterList &aParams) :
+template<typename EvaluationType,
+         Plato::OrdinalType NumForceDof,
+         Plato::OrdinalType DofOffset>
+std::shared_ptr<NeumannBC<EvaluationType,NumForceDof,DofOffset>>
+NeumannBCs<EvaluationType,NumForceDof,DofOffset>::
+setUniformComponentNeumannBC(
+  const std::string      & aName, 
+  Teuchos::ParameterList & aSubList
+)
+{
+  if(aSubList.isParameter("Value") == false)
+  {
+    std::stringstream tMsg;
+    tMsg << "Natural Boundary Condition: 'Value' Parameter Keyword in "
+        << "Parameter Sublist: '" << aName.c_str() << "' is NOT defined.";
+    ANALYZE_THROWERR(tMsg.str().c_str())
+  }
+  auto tValue = aSubList.get<Plato::Scalar>("Value");
+
+  if(aSubList.isParameter("Component") == false)
+  {
+    std::stringstream tMsg;
+    tMsg << "Natural Boundary Condition: 'Component' Parameter Keyword in "
+        << "Parameter Sublist: '" << aName.c_str() << "' is NOT defined.";
+    ANALYZE_THROWERR(tMsg.str().c_str())
+  }
+  Teuchos::Array<Plato::Scalar> tFluxVector(NumForceDof, 0.0);
+  auto tFluxComponent = aSubList.get<std::string>("Component");
+
+  if( (tFluxComponent == "x" || tFluxComponent == "X") )
+  {
+    tFluxVector[0] = tValue;
+  }
+  else
+  if( (tFluxComponent == "y" || tFluxComponent == "Y") && mNumDofsPerNode > 1 )
+  {
+    tFluxVector[1] = tValue;
+  }
+  else
+  if( (tFluxComponent == "z" || tFluxComponent == "Z") && mNumDofsPerNode > 2 )
+  {
+    tFluxVector[2] = tValue;
+  }
+  else
+  {
+    std::stringstream tMsg;
+    tMsg << "Natural Boundary Condition: 'Component' Parameter Keyword: '" << tFluxComponent.c_str()
+        << "' in Parameter Sublist: '" << aName.c_str() << "' is NOT supported. "
+        << "Options are: 'X' or 'x', 'Y' or 'y', and 'Z' or 'z'.";
+    ANALYZE_THROWERR(tMsg.str().c_str())
+  }
+
+  aSubList.set("Vector", tFluxVector);
+  auto tBC = std::make_shared<Plato::NeumannBC<EvaluationType,NumForceDof,DofOffset>>(aName, aSubList);
+  return tBC;
+}
+
+/// @brief class constructor
+/// @tparam ElementType topological element type
+/// @tparam NumForceDof number of degrees of freedom
+/// @tparam DofOffset   degrees of freedom offset
+/// @param [in] aParams input problem parameters
+template<typename EvaluationType,
+         Plato::OrdinalType NumForceDof,
+         Plato::OrdinalType DofOffset>
+NeumannBCs<EvaluationType,NumForceDof,DofOffset>::
+NeumannBCs(
+  Teuchos::ParameterList &aParams
+) :
 mBCs()
 {
-    for (Teuchos::ParameterList::ConstIterator tItr = aParams.begin(); tItr != aParams.end(); ++tItr)
+  for (Teuchos::ParameterList::ConstIterator tItr = aParams.begin(); tItr != aParams.end(); ++tItr)
+  {
+    const Teuchos::ParameterEntry &tEntry = aParams.entry(tItr);
+    if (!tEntry.isList())
     {
-        const Teuchos::ParameterEntry &tEntry = aParams.entry(tItr);
-        if (!tEntry.isList())
-        {
-            ANALYZE_THROWERR("Natural Boundary Condition: Parameter in Boundary Conditions block not valid.  Expect lists only.")
-        }
-
-        const std::string &tName = aParams.name(tItr);
-        if(aParams.isSublist(tName) == false)
-        {
-            std::stringstream tMsg;
-            tMsg << "Natural Boundary Condition: Sublist: '" << tName.c_str() << "' is NOT defined.";
-            ANALYZE_THROWERR(tMsg.str().c_str())
-        }
-        Teuchos::ParameterList &tSubList = aParams.sublist(tName);
-
-        if(tSubList.isParameter("Type") == false)
-        {
-            std::stringstream tMsg;
-            tMsg << "Natural Boundary Condition: 'Type' Parameter Keyword in Parameter Sublist: '"
-                << tName.c_str() << "' is NOT defined.";
-            ANALYZE_THROWERR(tMsg.str().c_str())
-        }
-
-        this->appendNeumannBC(tName, tSubList);
+      ANALYZE_THROWERR("ERROR: Parameter in Boundary Conditions block not valid.  Expect lists only.")
     }
+    const std::string &tName = aParams.name(tItr);
+    if(aParams.isSublist(tName) == false)
+    {
+      std::stringstream tMsg;
+      tMsg << "ERROR: Sublist: '" << tName.c_str() << "' is NOT defined.";
+      ANALYZE_THROWERR(tMsg.str().c_str())
+    }
+    Teuchos::ParameterList &tSubList = aParams.sublist(tName);
+    if(tSubList.isParameter("Type") == false)
+    {
+      std::stringstream tMsg;
+      tMsg << "ERROR: 'Type' Parameter Keyword in Parameter Sublist: '"
+          << tName.c_str() << "' is NOT defined.";
+      ANALYZE_THROWERR(tMsg.str().c_str())
+    }
+    this->appendNeumannBC(tName, tSubList);
+  }
 }
 
-/***************************************************************************//**
- * \brief NeumannBCs::get function definition
-*******************************************************************************/
-template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-template<typename StateScalarType,
-         typename ControlScalarType,
-         typename ConfigScalarType,
-         typename ResultScalarType>
-void NeumannBCs<ElementType, NumDofs, DofsPerNode, DofOffset>::get(
-     const Plato::SpatialModel                           & aSpatialModel,
-     const Plato::ScalarMultiVectorT <  StateScalarType> & aState,
-     const Plato::ScalarMultiVectorT <ControlScalarType> & aControl,
-     const Plato::ScalarArray3DT     < ConfigScalarType> & aConfig,
-     const Plato::ScalarMultiVectorT < ResultScalarType> & aResult,
-           Plato::Scalar aScale,
-           Plato::Scalar aCurrentTime
+template<typename EvaluationType,
+         Plato::OrdinalType NumForceDof,
+         Plato::OrdinalType DofOffset>
+void 
+NeumannBCs<EvaluationType,NumForceDof,DofOffset>::
+get(
+  const Plato::SpatialModel & aSpatialModel,
+        Plato::WorkSets     & aWorkSets,
+        Plato::Scalar         aCycle,
+        Plato::Scalar         aScale
 ) const
 {
-    for (const auto &tMyBC : mBCs)
-    {
-        tMyBC->get(aSpatialModel, aState, aControl, aConfig, aResult, aScale, aCurrentTime);
-    }
+  for (const auto &tMyBC : mBCs){
+    tMyBC->get(aSpatialModel, aWorkSets, aCycle, aScale);
+  }
 }
 
 }

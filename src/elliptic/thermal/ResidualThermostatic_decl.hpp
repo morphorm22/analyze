@@ -46,8 +46,8 @@ private:
   ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyWeighting;
 
   /// @brief volumetric heat source
+  std::shared_ptr<Plato::NeumannBCs<EvaluationType>> mBoundaryForces;
   std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mHeatSource;
-  std::shared_ptr<Plato::NeumannBCs<ElementType, mNumDofsPerNode>> mBoundaryLoads;
 
   Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 

@@ -30,6 +30,7 @@ public:
   static constexpr Plato::OrdinalType mNumLocalDofsPerCell = 0;
   static constexpr Plato::OrdinalType mNumNodeStatePerNode = 0;
   static constexpr Plato::OrdinalType mNumNodeStatePerCell = mNumNodeStatePerNode * mNumNodesPerCell;
+
 };
 // class ElectricalElement 
 

@@ -501,8 +501,8 @@ TEUCHOS_UNIT_TEST(PlatoAnalyzeUnitTests, AugLagQuadratic_CheckThermalVonMises3D)
     Plato::ScalarMultiVectorT<ControlT> tControlWS("control workset", tNumCells, tNodesPerCell);
     Kokkos::deep_copy(tControlWS, 1.0);
 
+    Plato::OrdinalType tDofToSet  = tSpaceDim;
     Plato::OrdinalType tDofStride = tDofsPerNode;
-    Plato::OrdinalType tDofToSet = ElementType::mTDofOffset;
     Plato::Scalar tTemperature = 11.0;
     Kokkos::parallel_for(Kokkos::RangePolicy<>(0, tNumDofs / tDofStride),
                          KOKKOS_LAMBDA(const Plato::OrdinalType & aNodeIndex)

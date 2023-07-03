@@ -17,93 +17,87 @@ namespace Plato
  * of type: UNIFORM PRESSURE.
  *
  * \tparam SpatialDim   spatial dimension
- * \tparam NumDofs      number degrees of freedom per natural boundary condition force vector
- * \tparam DofsPerNode  number degrees of freedom per node
+ * \tparam mNumPhysicsDofs      number degrees of freedom per natural boundary condition force vector
+ * \tparam mNumDofsPerNode  number degrees of freedom per node
  * \tparam DofOffset    degrees of freedom offset
  *
 *******************************************************************************/
-template<
-  typename ElementType,
-  Plato::OrdinalType NumDofs=ElementType::mNumSpatialDims,
-  Plato::OrdinalType DofsPerNode=NumDofs,
-  Plato::OrdinalType DofOffset=0 >
+template<typename EvaluationType,
+         Plato::OrdinalType NumForceDof=EvaluationType::ElementType::mNumDofsPerNode,
+         Plato::OrdinalType DofOffset=0>
 class NeumannPressure
 {
 private:
-    const std::string mSideSetName; /*!< side set name */
-    const Plato::Array<NumDofs> mFlux; /*!< force vector values */
+  /// @brief topological element typename
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims = ElementType::mNumSpatialDims;
+  /// @brief number of degrees of freedom per node
+  static constexpr auto mNumDofsPerNode = ElementType::mNumDofsPerNode;
+  /// @brief scalar types associated with the automatic differentation evaluation type
+  using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  /// @brief side set name
+  const std::string mSideSetName;
+  /// @brief force magnitudes
+  const Plato::Array<NumForceDof> mFlux;
 
 public:
-  /******************************************************************************//**
-   * \brief Constructor
-   **********************************************************************************/
-  NeumannPressure(const std::string & aSideSetName, const Plato::Array<NumDofs>& aFlux);
+  NeumannPressure(
+    const std::string               & aSideSetName, 
+    const Plato::Array<NumForceDof> & aFlux
+  );
 
-  /***************************************************************************//**
-   * \brief Evaluate natural boundary condition surface integrals.
-   *
-   * \tparam StateScalarType   state forward automatically differentiated (FAD) type
-   * \tparam ControlScalarType control FAD type
-   * \tparam ConfigScalarType  configuration FAD type
-   * \tparam ResultScalarType  result FAD type
-   *
-   * \param [in]  aSpatialModel Plato Analyze spatial model.
-   * \param [in]  aState        2-D view of state variables.
-   * \param [in]  aControl      2-D view of control variables.
-   * \param [in]  aConfig       3-D view of configuration variables.
-   * \param [out] aResult       Assembled vector to which the boundary terms will be added
-   * \param [in]  aScale        scalar multiplier
-   *
-  *******************************************************************************/
-  template<typename StateScalarType,
-           typename ControlScalarType,
-           typename ConfigScalarType,
-           typename ResultScalarType>
   void operator()(
-      const Plato::SpatialModel                          & aSpatialModel,
-      const Plato::ScalarMultiVectorT<  StateScalarType> & aState,
-      const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
-      const Plato::ScalarArray3DT    < ConfigScalarType> & aConfig,
-      const Plato::ScalarMultiVectorT< ResultScalarType> & aResult,
-            Plato::Scalar aScale) const;
+    const Plato::SpatialModel & aSpatialModel,
+          Plato::WorkSets     & aWorkSets,
+          Plato::Scalar         aScale,
+          Plato::Scalar         aCycle
+  ) const;
 };
 // class NeumannPressure
 
 /***************************************************************************//**
  * \brief NeumannPressure::NeumannPressure constructor definition
 *******************************************************************************/
-template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-NeumannPressure<ElementType, NumDofs, DofsPerNode, DofOffset>::NeumannPressure
-(const std::string & aSideSetName, const Plato::Array<NumDofs>& aFlux) :
+template<typename EvaluationType,
+         Plato::OrdinalType NumForceDof,
+         Plato::OrdinalType DofOffset>
+NeumannPressure<EvaluationType,NumForceDof,DofOffset>::
+NeumannPressure(
+  const std::string               & aSideSetName, 
+  const Plato::Array<NumForceDof> & aFlux
+) :
   mSideSetName(aSideSetName),
   mFlux(aFlux)
-{
-}
-// class NeumannPressure::NeumannPressure
+{}
 
 /***************************************************************************//**
  * \brief NeumannPressure::operator() function definition
 *******************************************************************************/
-template<typename ElementType, Plato::OrdinalType NumDofs, Plato::OrdinalType DofsPerNode, Plato::OrdinalType DofOffset>
-template<typename StateScalarType,
-         typename ControlScalarType,
-         typename ConfigScalarType,
-         typename ResultScalarType>
-void NeumannPressure<ElementType, NumDofs, DofsPerNode, DofOffset>::operator()(
-  const Plato::SpatialModel                          & aSpatialModel,
-  const Plato::ScalarMultiVectorT<  StateScalarType> & aState,
-  const Plato::ScalarMultiVectorT<ControlScalarType> & aControl,
-  const Plato::ScalarArray3DT    < ConfigScalarType> & aConfig,
-  const Plato::ScalarMultiVectorT< ResultScalarType> & aResult,
-        Plato::Scalar aScale
+template<typename EvaluationType,
+         Plato::OrdinalType NumForceDof,
+         Plato::OrdinalType DofOffset>
+void 
+NeumannPressure<EvaluationType,NumForceDof,DofOffset>::
+operator()(
+  const Plato::SpatialModel & aSpatialModel,
+        Plato::WorkSets     & aWorkSets,
+        Plato::Scalar         aScale,
+        Plato::Scalar         aCycle
 ) const
 {
+  // unpack worksets
+  Plato::ScalarArray3DT<ConfigScalarType> tConfigWS  = 
+    Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+  Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
+    Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
+
   auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
   auto tNodeOrds    = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
   auto tFaceOrds    = aSpatialModel.Mesh->GetSideSetFaces(mSideSetName);
 
   Plato::OrdinalType tNumFaces = tElementOrds.size();
-
   Plato::WeightedNormalVector<ElementType> weightedNormalVector;
 
   auto tFlux = mFlux;
@@ -122,24 +116,24 @@ void NeumannPressure<ElementType, NumDofs, DofsPerNode, DofOffset>::operator()(
     Plato::Array<ElementType::mNumNodesPerFace, Plato::OrdinalType> tLocalNodeOrds;
     for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<ElementType::mNumNodesPerFace; tNodeOrd++)
     {
-        tLocalNodeOrds(tNodeOrd) = tNodeOrds(aSideOrdinal*ElementType::mNumNodesPerFace+tNodeOrd);
+      tLocalNodeOrds(tNodeOrd) = tNodeOrds(aSideOrdinal*ElementType::mNumNodesPerFace+tNodeOrd);
     }
     auto tCubatureWeight = tCubatureWeights(aPointOrdinal);
     auto tCubaturePoint = tCubaturePoints(aPointOrdinal);
     auto tBasisValues = ElementType::Face::basisValues(tCubaturePoint);
     auto tBasisGrads  = ElementType::Face::basisGrads(tCubaturePoint);
     // compute area weighted normal vector
-    Plato::Array<ElementType::mNumSpatialDims, ConfigScalarType> tWeightedNormalVec;
-    weightedNormalVector(tElementOrdinal, tLocalNodeOrds, tBasisGrads, aConfig, tWeightedNormalVec);
-    // project into aResult workset
+    Plato::Array<mNumSpatialDims, ConfigScalarType> tWeightedNormalVec;
+    weightedNormalVector(tElementOrdinal, tLocalNodeOrds, tBasisGrads, tConfigWS, tWeightedNormalVec);
+    // project into result workset
     for( Plato::OrdinalType tNode=0; tNode<ElementType::mNumNodesPerFace; tNode++)
     {
-      for( Plato::OrdinalType tDof=0; tDof<NumDofs; tDof++)
+      for( Plato::OrdinalType tDof=0; tDof<NumForceDof; tDof++)
       {
-        auto tElementDofOrdinal = (tLocalNodeOrds[tNode] * DofsPerNode) + tDof + DofOffset;
+        auto tElementDofOrdinal = (tLocalNodeOrds[tNode] * mNumDofsPerNode) + tDof + DofOffset;
         ResultScalarType tVal = tWeightedNormalVec(tDof) * tFlux(tDof) * aScale 
           * tCubatureWeight * tNormalMultiplier * tBasisValues(tNode);
-        Kokkos::atomic_add(&aResult(tElementOrdinal, tElementDofOrdinal), tVal);
+        Kokkos::atomic_add(&tResultWS(tElementOrdinal, tElementDofOrdinal), tVal);
       }
     }
   });

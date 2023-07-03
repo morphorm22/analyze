@@ -93,7 +93,7 @@ private:
   /// @brief stress evaluator
   std::shared_ptr<Plato::StressEvaluator<EvaluationType>> mStressEvaluator;
   /// @brief natural boundary conditions evaluator
-  std::shared_ptr<Plato::NeumannBCs<ElementType>> mNeumannBCs;
+  std::shared_ptr<Plato::NeumannBCs<EvaluationType>> mBoundaryForces;
   /// @brief body loads evaluator
   std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
   /// @brief output plot table, contains requested output quantities of interests

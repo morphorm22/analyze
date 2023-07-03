@@ -54,7 +54,7 @@ ResidualThermoelastostatic(
   // 
   if(aProblemParams.isSublist("Mechanical Natural Boundary Conditions"))
   {
-    mBoundaryLoads = std::make_shared<Plato::NeumannBCs<ElementType, NMechDims, mNumDofsPerNode, MDofOffset>>(
+    mBoundaryLoads = std::make_shared<Plato::NeumannBCs<EvaluationType,NMechDims,MDofOffset>>(
       aProblemParams.sublist("Mechanical Natural Boundary Conditions")
     );
   }  
@@ -62,7 +62,7 @@ ResidualThermoelastostatic(
   // 
   if(aProblemParams.isSublist("Thermal Natural Boundary Conditions"))
   {
-    mBoundaryFluxes = std::make_shared<Plato::NeumannBCs<ElementType, NThrmDims, mNumDofsPerNode, TDofOffset>>(
+    mBoundaryFluxes = std::make_shared<Plato::NeumannBCs<EvaluationType,NThrmDims,TDofOffset>>(
       aProblemParams.sublist("Thermal Natural Boundary Conditions")
     );
   }  
@@ -219,23 +219,14 @@ evaluateBoundary(
         Plato::Scalar         aCycle
 ) const
 {
-  // unpack worksets
-  Plato::ScalarArray3DT<ConfigScalarType> tConfigWS  = 
-    Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
-  Plato::ScalarMultiVectorT<ControlScalarType> tControlWS = 
-    Plato::unpack<Plato::ScalarMultiVectorT<ControlScalarType>>(aWorkSets.get("controls"));
-  Plato::ScalarMultiVectorT<StateScalarType> tStateWS = 
-    Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
-  Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
-    Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
   // evaluate boundary forces
   if( mBoundaryLoads != nullptr )
   {
-    mBoundaryLoads->get( aSpatialModel, tStateWS, tControlWS, tConfigWS, tResultWS, -1.0 );
+    mBoundaryLoads->get( aSpatialModel, aWorkSets, aCycle, -1.0 );
   }
   if( mBoundaryFluxes != nullptr )
   {
-    mBoundaryFluxes->get( aSpatialModel, tStateWS, tControlWS, tConfigWS, tResultWS, -1.0 );
+    mBoundaryFluxes->get( aSpatialModel, aWorkSets, aCycle, -1.0 );
   }
 }
 
