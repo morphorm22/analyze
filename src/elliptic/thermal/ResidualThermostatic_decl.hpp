@@ -1,10 +1,10 @@
 #pragma once
 
-#include "BodyLoads.hpp"
 #include "ApplyWeighting.hpp"
 #include "ThermalConductivityMaterial.hpp"
 
 #include "base/ResidualBase.hpp"
+#include "bcs/body/BodyLoads.hpp"
 #include "bcs/neumann/NeumannBCs.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 
@@ -47,7 +47,7 @@ private:
 
   /// @brief volumetric heat source
   std::shared_ptr<Plato::NeumannBCs<EvaluationType>> mBoundaryForces;
-  std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mHeatSource;
+  std::shared_ptr<Plato::BodyLoads<EvaluationType>> mHeatSource;
 
   Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 

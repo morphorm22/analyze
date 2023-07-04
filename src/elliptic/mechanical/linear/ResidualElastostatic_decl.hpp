@@ -2,12 +2,12 @@
 
 #include <memory>
 
-#include "BodyLoads.hpp"
 #include "CellForcing.hpp"
 #include "ApplyWeighting.hpp"
 #include "ElasticModelFactory.hpp"
 
 #include "base/ResidualBase.hpp"
+#include "bcs/body/BodyLoads.hpp"
 #include "bcs/neumann/NeumannBCs.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 
@@ -58,7 +58,7 @@ private:
   Plato::CellForcing<ElementType> mCellForcing;
 
   std::shared_ptr<Plato::NeumannBCs<EvaluationType>> mBoundaryForces;
-  std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
+  std::shared_ptr<Plato::BodyLoads<EvaluationType>> mBodyLoads;
 
   Teuchos::RCP<Plato::LinearElasticMaterial<mNumSpatialDims>> mMaterialModel;
 

@@ -45,7 +45,7 @@ ElectroelastostaticResidual(
   // 
   if(aProblemParams.isSublist("Body Loads"))
   {
-    mBodyLoads = std::make_shared<Plato::BodyLoads<EvaluationType, ElementType>>(
+    mBodyLoads = std::make_shared<Plato::BodyLoads<EvaluationType>>(
       aProblemParams.sublist("Body Loads")
     );
   }
@@ -175,7 +175,7 @@ evaluate(
   });
   if( mBodyLoads != nullptr )
   {
-    mBodyLoads->get( mSpatialDomain, tStateWS, tControlWS, tConfigWS, tResultWS, -1.0 );
+    mBodyLoads->get( mSpatialDomain, aWorkSets, aCycle, -1.0 );
   }
   if( std::count(mPlottable.begin(),mPlottable.end(),"strain") ) 
     toMap(mDataMap, tCellStrain, "strain", mSpatialDomain);

@@ -128,7 +128,7 @@ evaluate(
   // evaluate body forces
   if( mHeatSource != nullptr )
   {
-    mHeatSource->get( mSpatialDomain, tStateWS, tControlWS, tConfigWS, tResultWS, -1.0 );
+    mHeatSource->get( mSpatialDomain, aWorkSets, aCycle, -1.0 );
   }
   // save output quantities of interests
   if( std::count(mPlottable.begin(),mPlottable.end(),"tgrad") ) 
@@ -162,7 +162,7 @@ parseHeatSource(
 {
   if(aProblemParams.isSublist("Heat Source"))
   {
-    mHeatSource = std::make_shared<Plato::BodyLoads<EvaluationType, ElementType>>(
+    mHeatSource = std::make_shared<Plato::BodyLoads<EvaluationType>>(
       aProblemParams.sublist("Heat Source")
     );
   }

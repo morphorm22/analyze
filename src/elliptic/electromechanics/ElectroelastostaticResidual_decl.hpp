@@ -1,10 +1,10 @@
 #pragma once
 
-#include "BodyLoads.hpp"
 #include "ApplyWeighting.hpp"
 #include "LinearElectroelasticMaterial.hpp"
 
 #include "base/ResidualBase.hpp"
+#include "bcs/body/BodyLoads.hpp"
 #include "bcs/neumann/NeumannBCs.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 
@@ -53,7 +53,7 @@ private:
   ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyEDispWeighting;
   ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms,  IndicatorFunctionType> mApplyStressWeighting;
 
-  std::shared_ptr<Plato::BodyLoads<EvaluationType,ElementType>> mBodyLoads;
+  std::shared_ptr<Plato::BodyLoads<EvaluationType>> mBodyLoads;
 
   std::shared_ptr<Plato::NeumannBCs<EvaluationType,NMechDims,MDofOffset>> mBoundaryLoads;
   std::shared_ptr<Plato::NeumannBCs<EvaluationType,NElecDims,EDofOffset>> mBoundaryCharges;

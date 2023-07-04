@@ -10,6 +10,7 @@
 #include "ToMap.hpp"
 #include "Strain.hpp"
 #include "BodyLoads.hpp"
+#include "bcs/body/BodyLoads.hpp"
 #include "bcs/neumann/NeumannBCs.hpp"
 #include "ScalarGrad.hpp"
 #include "ProjectToNode.hpp"

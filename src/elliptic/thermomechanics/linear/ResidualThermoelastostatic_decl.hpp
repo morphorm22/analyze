@@ -2,11 +2,11 @@
 
 #include <memory>
 
-#include "BodyLoads.hpp"
 #include "ApplyWeighting.hpp"
 #include "ThermoelasticMaterial.hpp"
 
 #include "base/ResidualBase.hpp"
+#include "bcs/body/BodyLoads.hpp"
 #include "bcs/neumann/NeumannBCs.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 
@@ -56,7 +56,7 @@ private:
   Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyFluxWeighting;
   Plato::ApplyWeighting<mNumNodesPerCell, mNumVoigtTerms,  IndicatorFunctionType> mApplyStressWeighting;
 
-  std::shared_ptr<Plato::BodyLoads<EvaluationType,ElementType>> mBodyLoads;
+  std::shared_ptr<Plato::BodyLoads<EvaluationType>> mBodyLoads;
 
   std::shared_ptr<Plato::NeumannBCs<EvaluationType,NMechDims,MDofOffset>> mBoundaryLoads;
   std::shared_ptr<Plato::NeumannBCs<EvaluationType,NThrmDims,TDofOffset>> mBoundaryFluxes;

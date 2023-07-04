@@ -6,10 +6,10 @@
 
 #pragma once
 
-#include "BodyLoads.hpp"
 #include "SpatialModel.hpp"
 
 #include "base/ResidualBase.hpp"
+#include "bcs/body/BodyLoads.hpp"
 #include "bcs/neumann/NeumannBCs.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/mechanical/nonlinear/StressEvaluator.hpp"
@@ -66,7 +66,7 @@ private:
   /// @brief natural boundary conditions evaluator
   std::shared_ptr<Plato::NeumannBCs<EvaluationType>> mBoundaryForces;
   /// @brief body loads evaluator
-  std::shared_ptr<Plato::BodyLoads<EvaluationType, ElementType>> mBodyLoads;
+  std::shared_ptr<Plato::BodyLoads<EvaluationType>> mBodyLoads;
   /// @brief output plot table, contains requested output quantities of interests
   std::vector<std::string> mPlotTable;
 

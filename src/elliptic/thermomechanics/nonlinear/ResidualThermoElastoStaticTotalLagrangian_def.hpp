@@ -147,7 +147,7 @@ evaluate(
   // evaluate body forces
   if( mBodyLoads != nullptr )
   {
-    mBodyLoads->get( mSpatialDomain,tDispWS,tControlWS,tConfigWS,tResultWS,-1.0 );
+    mBodyLoads->get( mSpatialDomain, aWorkSets, aCycle, -1.0 );
   }
 }
 
@@ -183,7 +183,7 @@ initialize(
   if(aParamList.isSublist("Body Loads"))
   {
     mBodyLoads = 
-      std::make_shared<Plato::BodyLoads<EvaluationType, ElementType>>(aParamList.sublist("Body Loads"));
+      std::make_shared<Plato::BodyLoads<EvaluationType>>(aParamList.sublist("Body Loads"));
   }
   // parse boundary Conditions
   // 
