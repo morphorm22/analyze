@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "SpatialModel.hpp"
 #include "WeightedNormalVector.hpp"
+#include "bcs/neumann/NeumannBoundaryConditionBase.hpp"
 
 namespace Plato
 {
@@ -25,7 +25,7 @@ namespace Plato
 template<typename EvaluationType,
          Plato::OrdinalType NumForceDof=EvaluationType::ElementType::mNumDofsPerNode,
          Plato::OrdinalType DofOffset=0>
-class NeumannPressure
+class NeumannPressure : public Plato::NeumannBoundaryConditionBase<NumForceDof>
 {
 private:
   /// @brief topological element typename
@@ -37,54 +37,59 @@ private:
   /// @brief scalar types associated with the automatic differentation evaluation type
   using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
   using ResultScalarType  = typename EvaluationType::ResultScalarType;
-  /// @brief side set name
-  const std::string mSideSetName;
-  /// @brief force magnitudes
-  const Plato::Array<NumForceDof> mFlux;
+  // set local base class type
+  using BaseClassType = Plato::NeumannBoundaryConditionBase<NumForceDof>;
+  // set natural boundary condition base class member data
+  using BaseClassType::mFlux;
+  using BaseClassType::mSideSetName;
 
 public:
   NeumannPressure(
-    const std::string               & aSideSetName, 
-    const Plato::Array<NumForceDof> & aFlux
+    Teuchos::ParameterList & aSubList
   );
 
-  void operator()(
+  void 
+  evaluate(
     const Plato::SpatialModel & aSpatialModel,
           Plato::WorkSets     & aWorkSets,
-          Plato::Scalar         aScale,
-          Plato::Scalar         aCycle
+          Plato::Scalar         aCycle = 0.0,
+          Plato::Scalar         aScale = 1.0
   ) const;
+
+  void
+  flux(
+    const Plato::Array<NumForceDof> & aFlux
+  );
 };
 // class NeumannPressure
 
-/***************************************************************************//**
- * \brief NeumannPressure::NeumannPressure constructor definition
-*******************************************************************************/
+// function definitions
+
 template<typename EvaluationType,
          Plato::OrdinalType NumForceDof,
          Plato::OrdinalType DofOffset>
 NeumannPressure<EvaluationType,NumForceDof,DofOffset>::
 NeumannPressure(
-  const std::string               & aSideSetName, 
-  const Plato::Array<NumForceDof> & aFlux
-) :
-  mSideSetName(aSideSetName),
-  mFlux(aFlux)
-{}
+  Teuchos::ParameterList & aSubList
+)
+{
+  if(!aSubList.isParameter("Sides")){
+    ANALYZE_THROWERR(std::string("ERROR: Input argument ('Sides') is not defined in Neumann boundary condition ") +   
+      "parameter list, side sets for Neumann boundary conditions cannot be determined")
+  }
+  mSideSetName = aSubList.get<std::string>("Sides");
+}
 
-/***************************************************************************//**
- * \brief NeumannPressure::operator() function definition
-*******************************************************************************/
 template<typename EvaluationType,
          Plato::OrdinalType NumForceDof,
          Plato::OrdinalType DofOffset>
 void 
 NeumannPressure<EvaluationType,NumForceDof,DofOffset>::
-operator()(
+evaluate(
   const Plato::SpatialModel & aSpatialModel,
         Plato::WorkSets     & aWorkSets,
-        Plato::Scalar         aScale,
-        Plato::Scalar         aCycle
+        Plato::Scalar         aCycle,
+        Plato::Scalar         aScale
 ) const
 {
   // unpack worksets
@@ -138,7 +143,18 @@ operator()(
     }
   });
 }
-// class NeumannPressure::operator()
+
+template<typename EvaluationType,
+         Plato::OrdinalType NumForceDof,
+         Plato::OrdinalType DofOffset>
+void 
+NeumannPressure<EvaluationType,NumForceDof,DofOffset>::
+flux(
+  const Plato::Array<NumForceDof> & aFlux
+)
+{
+  mFlux = aFlux;
+}
 
 }
 // namespace Plato

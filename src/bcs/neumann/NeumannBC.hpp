@@ -13,57 +13,11 @@
 #include "AnalyzeMacros.hpp"
 #include "PlatoMathExpr.hpp"
 #include "PlatoUtilities.hpp"
-#include "bcs/neumann/NeumannForce.hpp"
-#include "bcs/neumann/NeumannPressure.hpp"
+#include "bcs/neumann/FactoryNeumannBC.hpp"
+#include "bcs/neumann/NeumannBoundaryConditionBase.hpp"
 
 namespace Plato
 {
-
-/***************************************************************************//**
- * \brief Natural boundary condition type ENUM
-*******************************************************************************/
-struct Neumann
-{
-  enum bc_t
-  {
-    UNDEFINED = 0,
-    UNIFORM = 1,
-    UNIFORM_PRESSURE = 2,
-    UNIFORM_COMPONENT = 3,
-  };
-};
-// struct Neumann
-
-/// @fn natural_boundary_condition_type
-/// @brief return natural boundary conditions 
-/// @param [in] aType input name string
-/// @return natural boundary condition type
-inline 
-Plato::Neumann::bc_t 
-natural_boundary_condition_type(
-  const std::string & aType
-)
-{
-  auto tLowerTag = Plato::tolower(aType);
-  if(tLowerTag == "uniform")
-  {
-    return Plato::Neumann::UNIFORM;
-  }
-  else if(tLowerTag == "uniform pressure")
-  {
-    return Plato::Neumann::UNIFORM_PRESSURE;
-  }
-  else if(tLowerTag == "uniform component")
-  {
-    return Plato::Neumann::UNIFORM_COMPONENT;
-  }
-  else
-  {
-    ANALYZE_THROWERR(std::string("Natural Boundary Condition: 'Type' Parameter Keyword: '") 
-      + tLowerTag + "' is not supported.")
-  }
-}
-// function natural_boundary_condition_type
 
 /***************************************************************************//**
  * \brief Class for natural boundary conditions.
@@ -85,14 +39,12 @@ private:
   static constexpr auto mNumDofsPerNode = ElementType::mNumDofsPerNode;
   /// @brief natural boundary condition name
   const std::string mName;
-  /// @brief natural boundary condition type
-  const std::string mType;
-  /// @brief side set name
-  const std::string mSideSetName;
   /// @brief force values
   Plato::Array<NumForceDof> mFlux;
   /// @brief expression evaluators
   std::shared_ptr<Plato::MathExpr> mFluxExpr[NumForceDof];
+  /// @brief neumann boundary condition evaluator
+  std::shared_ptr<Plato::NeumannBoundaryConditionBase<NumForceDof>> mNeumannBC;
 
 public:
   /// @brief class constructor
@@ -103,30 +55,15 @@ public:
           Teuchos::ParameterList & aSubList
   ) :
     mName(aLoadName),
-    mType(aSubList.get<std::string>("Type")),
-    mSideSetName(aSubList.get<std::string>("Sides")),
     mFluxExpr{nullptr}
   {
-    auto tIsValue = aSubList.isType<Teuchos::Array<Plato::Scalar>>("Vector");
-    auto tIsExpr  = aSubList.isType<Teuchos::Array<std::string>>("Vector");
-    if (tIsValue)
-    {
-      auto tFlux = aSubList.get<Teuchos::Array<Plato::Scalar>>("Vector");
-      for(Plato::OrdinalType tDof=0; tDof<NumForceDof; tDof++)
-      {
-        mFlux(tDof) = tFlux[tDof];
-      }
+    Plato::FactoryNeumannBC<EvaluationType,NumForceDof,DofOffset> tFactory;
+    mNeumannBC = tFactory.create(aSubList);
+    if(mNeumannBC == nullptr){
+      ANALYZE_THROWERR(std::string("ERROR: Neumann boundary condition factory return a null pointer, ") 
+        + "unsupported Neumann boundary condition requested!")
     }
-    else
-    if (tIsExpr)
-    {
-      auto tExpr = aSubList.get<Teuchos::Array<std::string>>("Vector");
-      for(Plato::OrdinalType tDof=0; tDof<NumForceDof; tDof++)
-      {
-        mFluxExpr[tDof] = std::make_shared<Plato::MathExpr>(tExpr[tDof]);
-        mFlux(tDof) = mFluxExpr[tDof]->value(0.0);
-      }
-    }
+    this->initialize(aSubList);
   }
 
   /// @brief class destructor
@@ -156,16 +93,52 @@ public:
   /// @fn getSideSetName
   /// @brief get side set name
   /// @return side set name string
-  decltype(mSideSetName) const& 
+  std::string 
   getSideSetName() 
   const 
-  { return mSideSetName; }
+  { return (mNeumannBC->sideset()); }
+
+private:
+  void 
+  initialize(
+    Teuchos::ParameterList & aSubList
+  );
 
 }; // class NeumannBC
 
-/***************************************************************************//**
- * \brief NeumannBC::get function definition
-*******************************************************************************/
+// function definitions
+
+template<typename EvaluationType,
+         Plato::OrdinalType NumForceDof,
+         Plato::OrdinalType DofOffset>
+void 
+NeumannBC<EvaluationType,NumForceDof,DofOffset>::
+initialize(
+  Teuchos::ParameterList & aSubList
+)
+{
+  auto tIsValue = aSubList.isType<Teuchos::Array<Plato::Scalar>>("Vector");
+  auto tIsExpr  = aSubList.isType<Teuchos::Array<std::string>>("Vector");
+  if (tIsValue)
+  {
+    auto tFlux = aSubList.get<Teuchos::Array<Plato::Scalar>>("Vector");
+    for(Plato::OrdinalType tDof=0; tDof<NumForceDof; tDof++)
+    {
+      mFlux(tDof) = tFlux[tDof];
+    }
+  }
+  else
+  if (tIsExpr)
+  {
+    auto tExpr = aSubList.get<Teuchos::Array<std::string>>("Vector");
+    for(Plato::OrdinalType tDof=0; tDof<NumForceDof; tDof++)
+    {
+      mFluxExpr[tDof] = std::make_shared<Plato::MathExpr>(tExpr[tDof]);
+      mFlux(tDof) = mFluxExpr[tDof]->value(0.0);
+    }
+  }
+}
+
 template<typename EvaluationType,
          Plato::OrdinalType NumForceDof,
          Plato::OrdinalType DofOffset>
@@ -178,38 +151,13 @@ get(
         Plato::Scalar         aCycle
 )
 {
-  for(int iDim=0; iDim<NumForceDof; iDim++)
-  {
-    if(mFluxExpr[iDim])
-    {
+  for(int iDim=0; iDim<NumForceDof; iDim++){
+    if(mFluxExpr[iDim]){
       mFlux(iDim) = mFluxExpr[iDim]->value(aCycle);
     }
   }
-
-  auto tType = Plato::natural_boundary_condition_type(mType);
-  switch(tType)
-  {
-    case Plato::Neumann::UNIFORM:
-    case Plato::Neumann::UNIFORM_COMPONENT:
-    {
-      Plato::NeumannForce<EvaluationType,NumForceDof,DofOffset> tSurfaceLoad(mSideSetName, mFlux);
-      tSurfaceLoad(aSpatialModel, aWorkSets, aCycle, aScale);
-      break;
-    }
-    case Plato::Neumann::UNIFORM_PRESSURE:
-    {
-      Plato::NeumannPressure<EvaluationType,NumForceDof,DofOffset> tSurfacePress(mSideSetName, mFlux);
-      tSurfacePress(aSpatialModel, aWorkSets, aCycle, aScale);
-      break;
-    }
-    default:
-    {
-      std::stringstream tMsg;
-      tMsg << "Natural Boundary Condition: Natural Boundary Condition Type '" 
-        << mType.c_str() << "' is NOT supported.";
-      ANALYZE_THROWERR(tMsg.str().c_str())
-    }
-  }
+  mNeumannBC->flux(mFlux);
+  mNeumannBC->evaluate(aSpatialModel,aWorkSets,aScale,aCycle);
 }
 
 }

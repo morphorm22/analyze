@@ -39,7 +39,7 @@ private:
   /// @param [in] aName    neumann boundary condition name
   /// @param [in] aSubList input problem parameter 
   /// @return neumann boundary condition evaluator
-  std::shared_ptr<NeumannBC<EvaluationType,NumForceDof,DofOffset>>
+  void
   setUniformNeumannBC(
     const std::string            & aName, 
           Teuchos::ParameterList & aSubList
@@ -50,7 +50,7 @@ private:
   /// @param [in] aName    neumann boundary condition name
   /// @param [in] aSubList input problem parameters
   /// @return natural boundary condition evaluator
-  std::shared_ptr<NeumannBC<EvaluationType,NumForceDof,DofOffset>>
+  void
   setUniformPressureNeumannBC(
     const std::string            & aName, 
           Teuchos::ParameterList & aSubList
@@ -61,7 +61,7 @@ private:
   /// @param [in] aName    neumann boundary condition name
   /// @param [in] aSubList input problem parameters
   /// @return natural boundary condition evaluator
-  std::shared_ptr<NeumannBC<EvaluationType,NumForceDof,DofOffset>>
+  void
   setUniformComponentNeumannBC(
     const std::string            & aName, 
           Teuchos::ParameterList & aSubList
@@ -102,24 +102,24 @@ appendNeumannBC(
         Teuchos::ParameterList & aSubList
 )
 {
+  Plato::NeumannBCEnum tS2E;
   const auto tType = aSubList.get<std::string>("Type");
-  const auto tNeumannType = Plato::natural_boundary_condition_type(tType);
-  std::shared_ptr<NeumannBC<EvaluationType,NumForceDof,DofOffset>> tBC;
+  const auto tNeumannType = tS2E.bc(tType);
   switch(tNeumannType)
   {
-    case Plato::Neumann::UNIFORM:
+    case Plato::neumann_bc::UNIFORM:
     {
-      tBC = this->setUniformNeumannBC(aName, aSubList);
+      this->setUniformNeumannBC(aName, aSubList);
       break;
     }
-    case Plato::Neumann::UNIFORM_PRESSURE:
+    case Plato::neumann_bc::UNIFORM_PRESSURE:
     {
-      tBC = this->setUniformPressureNeumannBC(aName, aSubList);
+      this->setUniformPressureNeumannBC(aName, aSubList);
       break;
     }
-    case Plato::Neumann::UNIFORM_COMPONENT:
+    case Plato::neumann_bc::UNIFORM_COMPONENT:
     {
-      tBC = this->setUniformComponentNeumannBC(aName, aSubList);
+      this->setUniformComponentNeumannBC(aName, aSubList);
       break;
     }
     default:
@@ -129,13 +129,15 @@ appendNeumannBC(
       ANALYZE_THROWERR(tMsg.str().c_str())
     }
   }
+  std::shared_ptr<Plato::NeumannBC<EvaluationType,NumForceDof,DofOffset>> tBC = 
+    std::make_shared<Plato::NeumannBC<EvaluationType,NumForceDof,DofOffset>>(aName,aSubList);
   mBCs.push_back(tBC);
 }
 
 template<typename EvaluationType,
          Plato::OrdinalType NumForceDof,
          Plato::OrdinalType DofOffset>
-std::shared_ptr<NeumannBC<EvaluationType,NumForceDof,DofOffset>>
+void
 NeumannBCs<EvaluationType,NumForceDof,DofOffset>::
 setUniformNeumannBC(
   const std::string            & aName, 
@@ -211,14 +213,12 @@ setUniformNeumannBC(
         << aName.c_str() << "' was NOT parsed. Check input Parameter Keywords.";
     ANALYZE_THROWERR(tMsg.str().c_str())
   }
-  auto tBC = std::make_shared<Plato::NeumannBC<EvaluationType,NumForceDof,DofOffset>>(aName, aSubList);
-  return tBC;
 }
 
 template<typename EvaluationType,
          Plato::OrdinalType NumForceDof,
          Plato::OrdinalType DofOffset>
-std::shared_ptr<NeumannBC<EvaluationType,NumForceDof,DofOffset>>
+void
 NeumannBCs<EvaluationType,NumForceDof,DofOffset>::
 setUniformPressureNeumannBC(
   const std::string            & aName, 
@@ -249,15 +249,12 @@ setUniformPressureNeumannBC(
             << "Specify 'type' of 'double' or 'string'.";
     ANALYZE_THROWERR(tMsg.str().c_str())
   }
-
-  auto tBC = std::make_shared<Plato::NeumannBC<EvaluationType,NumForceDof,DofOffset>>(aName, aSubList);
-  return tBC;
 }
 
 template<typename EvaluationType,
          Plato::OrdinalType NumForceDof,
          Plato::OrdinalType DofOffset>
-std::shared_ptr<NeumannBC<EvaluationType,NumForceDof,DofOffset>>
+void
 NeumannBCs<EvaluationType,NumForceDof,DofOffset>::
 setUniformComponentNeumannBC(
   const std::string      & aName, 
@@ -307,8 +304,6 @@ setUniformComponentNeumannBC(
   }
 
   aSubList.set("Vector", tFluxVector);
-  auto tBC = std::make_shared<Plato::NeumannBC<EvaluationType,NumForceDof,DofOffset>>(aName, aSubList);
-  return tBC;
 }
 
 /// @brief class constructor
