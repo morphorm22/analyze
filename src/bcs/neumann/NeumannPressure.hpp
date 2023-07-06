@@ -140,7 +140,7 @@ evaluate(
     auto tCubaturePoint = tCubaturePoints(aPointOrdinal);
     auto tBasisValues = ElementType::Face::basisValues(tCubaturePoint);
     auto tBasisGrads  = ElementType::Face::basisGrads(tCubaturePoint);
-    // compute weighthed normal vector: (n/||n||)*||n||, i.e. normal vector is already multiplied by the surface area
+    // area weighthed normal vector: (n/||n||)*||n||, i.e. normal vector is already multiplied by the surface area
     //
     Plato::Array<mNumSpatialDims, ConfigScalarType> tWeighthedNormalVector;
     tComputeWeighthedNormalVector(tElementOrdinal, tLocalNodeOrds, tBasisGrads, tConfigWS, tWeighthedNormalVector);

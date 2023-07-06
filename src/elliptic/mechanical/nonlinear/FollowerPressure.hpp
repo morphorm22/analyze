@@ -121,11 +121,11 @@ public:
     auto tSideSetLocalFaceOrds = aSpatialModel.Mesh->GetSideSetFaces(mSideSetName);
     auto tSideSetLocalElemOrds = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
     auto tSideSetLocalNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
-    // get integration rule
+    // get parent body and face element integration rules
     //
-        auto tCubPointsOnParentFaceElem = FaceElementBase::getCubPoints();
-        auto tCubPointsOnParentBodyElemSurfaces = BodyElementBase::getFaceCubPoints();
-        auto tCubWeightsOnParentBodyElemSurface = BodyElementBase::getFaceCubWeights();
+    auto tCubPointsOnParentFaceElem = FaceElementBase::getCubPoints();
+    auto tCubPointsOnParentBodyElemSurfaces = BodyElementBase::getFaceCubPoints();
+    auto tCubWeightsOnParentBodyElemSurface = BodyElementBase::getFaceCubWeights();
     // pressure acts towards the surface; therefore, -1.0 is used to invert the outward facing normal inwards.
     //
     auto tFlux = mFlux;
