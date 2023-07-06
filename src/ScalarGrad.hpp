@@ -47,6 +47,32 @@ public:
         }
     }
 
+    /***********************************************************************************
+     * \brief Compute virtual scalar field gradient
+     * \param [in/out] aOutput scalar field gradient workset
+     * \param [in] aGradient configuration gradient workset
+     **********************************************************************************/
+    template<typename OutputScalarType, typename ConfigScalarType>
+    KOKKOS_INLINE_FUNCTION void
+    operator()(
+            Plato::Array<ElementType::mNumSpatialDims, OutputScalarType> & aOutput,
+      const Plato::Matrix<ElementType::mNumNodesPerCell,
+                          ElementType::mNumSpatialDims,
+                          ConfigScalarType>                              & aGradient
+    ) const
+    {
+        // compute virtual scalar gradient
+        //
+        for(Plato::OrdinalType tDimIndex = 0; tDimIndex < ElementType::mNumSpatialDims; tDimIndex++)
+        {
+            aOutput(tDimIndex) = 0.0;
+            for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < ElementType::mNumNodesPerCell; tNodeIndex++)
+            {
+                aOutput(tDimIndex) += Plato::Scalar(1.0) * aGradient(tNodeIndex, tDimIndex);
+            }
+        }
+    }
+
 # ifdef NOPE /* update or delete below */
     /***********************************************************************************
      * \brief Compute scalar field gradient

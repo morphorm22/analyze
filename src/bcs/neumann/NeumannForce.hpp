@@ -116,7 +116,7 @@ evaluate(
   auto tNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
   Plato::OrdinalType tNumFaces = tElementOrds.size();
 
-  Plato::SurfaceArea<ElementType> surfaceArea;
+  Plato::SurfaceArea<ElementType> tComputeSurfaceArea;
 
   auto tFlux = mFlux;
   auto tCubatureWeights = ElementType::Face::getCubWeights();
@@ -138,7 +138,7 @@ evaluate(
     auto tBasisValues = ElementType::Face::basisValues(tCubaturePoint);
     auto tBasisGrads  = ElementType::Face::basisGrads(tCubaturePoint);
     ResultScalarType tSurfaceArea(0.0);
-    surfaceArea(tElementOrdinal, tLocalNodeOrds, tBasisGrads, tConfigWS, tSurfaceArea);
+    tComputeSurfaceArea(tElementOrdinal, tLocalNodeOrds, tBasisGrads, tConfigWS, tSurfaceArea);
     tSurfaceArea *= aScale;
     tSurfaceArea *= tCubatureWeight;
     // project into result workset

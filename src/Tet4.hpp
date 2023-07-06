@@ -7,6 +7,10 @@ namespace Plato {
 
 /******************************************************************************/
 /*! Tet4 Element
+ *
+ * \brief Gauss point coordinates and weights are derived on integration
+ *     domain 0<=t<=1.
+ *
 */
 /******************************************************************************/
 class Tet4
@@ -18,8 +22,11 @@ class Tet4
 
     static constexpr Plato::OrdinalType mNumSpatialDims  = 3;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 4;
-    static constexpr Plato::OrdinalType mNumNodesPerFace = 3;
     static constexpr Plato::OrdinalType mNumGaussPoints  = 1;
+
+    static constexpr Plato::OrdinalType mNumFacesPerCell       = 4;
+    static constexpr Plato::OrdinalType mNumNodesPerFace       = Face::mNumNodesPerCell;
+    static constexpr Plato::OrdinalType mNumGaussPointsPerFace = Face::mNumGaussPoints;
 
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
 
@@ -29,9 +36,27 @@ class Tet4
     static inline Plato::Matrix<mNumGaussPoints,mNumSpatialDims>
     getCubPoints()
     {
-        return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>({
-            Plato::Scalar(1.0)/4, Plato::Scalar(1.0)/4, Plato::Scalar(1.0)/4
+        constexpr Plato::Scalar tPt = Plato::Scalar(1.0)/4;
+        return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>( {tPt, tPt, tPt} );
+    }
+
+    static inline Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>
+    getFaceCubPoints()
+    {
+        constexpr Plato::Scalar tZero = 0.0;
+        constexpr Plato::Scalar tPt = Plato::Scalar(1.0)/3;
+        return Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>({
+            /*GP1=*/tPt  , tZero, tPt,/*Face 1*/
+            /*GP1=*/tPt  , tPt  , tPt,/*Face 2*/
+            /*GP1=*/tZero, tPt  , tPt,/*Face 3*/
+            /*GP1=*/tPt  , tPt  , tZero/*Face 4*/
         });
+    }
+
+    static inline Plato::Array<mNumGaussPointsPerFace>
+    getFaceCubWeights()
+    {
+        return Face::getCubWeights();
     }
 
     KOKKOS_INLINE_FUNCTION static Plato::Array<mNumNodesPerCell>

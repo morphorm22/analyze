@@ -8,6 +8,10 @@ namespace Plato {
 
 /******************************************************************************/
 /*! Tet10 Element
+ *
+ * \brief Gauss point coordinates and weights are derived on integration
+ *     domain 0<=t<=1.
+ *
 */
 /******************************************************************************/
 class Tet10
@@ -19,8 +23,11 @@ class Tet10
 
     static constexpr Plato::OrdinalType mNumSpatialDims  = 3;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 10;
-    static constexpr Plato::OrdinalType mNumNodesPerFace = 6;
     static constexpr Plato::OrdinalType mNumGaussPoints  = 4;
+
+    static constexpr Plato::OrdinalType mNumFacesPerCell       = 4;
+    static constexpr Plato::OrdinalType mNumNodesPerFace       = Face::mNumNodesPerCell;
+    static constexpr Plato::OrdinalType mNumGaussPointsPerFace = Face::mNumGaussPoints;
 
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
 
@@ -40,6 +47,27 @@ class Tet10
             0.138196601125011, 0.138196601125011, 0.585410196624969,
             0.138196601125011, 0.138196601125011, 0.138196601125011
         });
+    }
+
+
+    static inline Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>
+    getFaceCubPoints()
+    {
+        constexpr Plato::Scalar tZero = Plato::Scalar(0.0);
+        constexpr Plato::Scalar tPt1   = Plato::Scalar(1.0)/6;
+        constexpr Plato::Scalar tPt2   = Plato::Scalar(2.0)/3;
+        return Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>({
+            /*GP1=*/tPt2,tZero,tPt1, /*GP2=*/ tPt1,tZero,tPt1, /*GP3=*/tPt1,tZero,tPt2,
+            /*GP1=*/tPt2,tPt1,tPt1  , /*GP2=*/ tPt1,tPt2,tPt1  , /*GP3=*/tPt1,tPt1,tPt2,
+            /*GP1=*/tZero,tPt2,tPt1, /*GP2=*/ tZero,tPt1,tPt1, /*GP3=*/tZero,tPt1,tPt2,
+            /*GP1=*/tPt2,tPt1,tZero, /*GP2=*/ tPt1,tPt1,tZero, /*GP3=*/tPt1,tPt2,tZero
+        });
+    }
+
+    static inline Plato::Array<mNumGaussPointsPerFace>
+    getFaceCubWeights()
+    {
+        return Face::getCubWeights();
     }
 
     KOKKOS_INLINE_FUNCTION static Plato::Array<mNumNodesPerCell>

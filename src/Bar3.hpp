@@ -1,40 +1,48 @@
-#pragma once
+/*
+ * Bar3.hpp
+ *
+ *  Created on: Jan 22, 2023
+ */
 
 #include "PlatoMathTypes.hpp"
 
-namespace Plato {
+#pragma once
+
+namespace Plato
+{
 
 /******************************************************************************/
-/*! Bar2 Element
+/*! Bar3 Element (Quadratic)
  *
  * \brief Gauss point coordinates and weights are derived on integration
- *     domain -1<=t<=1.
+ *     domain -1<=t<=1
 */
 /******************************************************************************/
-class Bar2
+class Bar3
 {
   public:
 
     static constexpr Plato::OrdinalType mNumSpatialDims  = 1;
-    static constexpr Plato::OrdinalType mNumNodesPerCell = 2;
+    static constexpr Plato::OrdinalType mNumNodesPerCell = 3;
+    static constexpr Plato::OrdinalType mNumGaussPoints  = 3;
     static constexpr Plato::OrdinalType mNumNodesPerFace = 1;
-    static constexpr Plato::OrdinalType mNumGaussPoints  = 2;
 
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
 
     static inline Plato::Array<mNumGaussPoints>
     getCubWeights()
     {
-        return Plato::Array<mNumGaussPoints>({
-            Plato::Scalar(1.0), Plato::Scalar(1.0)
-        });
+        constexpr Plato::Scalar tW1 = Plato::Scalar(5.0)/9;
+        constexpr Plato::Scalar tW2 = Plato::Scalar(8.0)/9;
+        return Plato::Array<mNumGaussPoints>( {tW1, tW2, tW1} );
     }
 
     static inline Plato::Matrix<mNumGaussPoints,mNumSpatialDims>
     getCubPoints()
     {
-        const Plato::Scalar sqt = 0.57735026918962584208117050366127; // sqrt(1.0/3.0)
-        return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>({ -sqt,  sqt });
+        constexpr Plato::Scalar tPt1 = 0.77459666924148340427791481488384; // sqrt(3.0/5.0)
+        constexpr Plato::Scalar tPt2 = 0.0;
+        return Plato::Matrix<mNumGaussPoints,mNumSpatialDims>( {-tPt1, tPt2, tPt1} );
     }
 
     KOKKOS_INLINE_FUNCTION static Plato::Array<mNumNodesPerCell>
@@ -44,8 +52,11 @@ class Bar2
 
         Plato::Array<mNumNodesPerCell> tN;
 
-        tN(0) = (1-x)/2.0;
-        tN(1) = (1+x)/2.0;
+        constexpr Plato::Scalar tHalf = 0.5;
+        constexpr Plato::Scalar tOne  = 1.0;
+        tN(0) = tHalf * ( x*x - x );
+        tN(1) = ( tOne - x*x );
+        tN(2) = tHalf * ( x*x + x );
 
         return tN;
     }
@@ -57,8 +68,12 @@ class Bar2
 
         Plato::Matrix<mNumNodesPerCell, mNumSpatialDims> tG;
 
-        tG(0,0) = Plato::Scalar(-1)/2.0;
-        tG(1,0) = Plato::Scalar(1)/2.0;
+        constexpr Plato::Scalar tHalf = 0.5;
+        constexpr Plato::Scalar tOne  = 1.0;
+        constexpr Plato::Scalar tTwo  = 2.0;
+        tG(0,0) = tHalf * ( tTwo*x - tOne );
+        tG(1,0) = -tTwo*x;
+        tG(2,0) = tHalf * ( tTwo*x + tOne );
 
         return tG;
     }
@@ -89,6 +104,7 @@ class Bar2
         return tReturnVec;
     }
 };
-// class Bar2
+// class Bar3
 
-} // end namespace Plato
+}
+// namespace Plato

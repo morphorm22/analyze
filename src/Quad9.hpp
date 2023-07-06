@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Bar3.hpp"
 #include "Quad4.hpp"
 #include "PlatoMathTypes.hpp"
 
@@ -7,17 +8,23 @@ namespace Plato {
 
 /******************************************************************************/
 /*! Quad9 Element
+ * \brief Gauss point coordinates and weights are derived on integration
+ *     domain -1<=t<=1.
 */
 /******************************************************************************/
 class Quad9
 {
   public:
-    using C1 = Plato::Quad4;
+    using Face = Plato::Bar3;
+    using C1   = Plato::Quad4;
 
     static constexpr Plato::OrdinalType mNumSpatialDims  = 2;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 9;
-    static constexpr Plato::OrdinalType mNumNodesPerFace = 3;
     static constexpr Plato::OrdinalType mNumGaussPoints  = 9;
+
+    static constexpr Plato::OrdinalType mNumFacesPerCell       = 4;
+    static constexpr Plato::OrdinalType mNumNodesPerFace       = Face::mNumNodesPerCell;
+    static constexpr Plato::OrdinalType mNumGaussPointsPerFace = Face::mNumGaussPoints;
 
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
 
@@ -42,6 +49,26 @@ class Quad9
             -p,  0,   0,  0,   p,  0,
             -p,  p,   0,  p,   p,  p
         });
+    }
+
+    static inline Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>
+    getFaceCubPoints()
+    {
+        constexpr Plato::Scalar tPt1 = 0.77459666924148340427791481488384; // +/- sqrt(3.0/5.0)
+        constexpr Plato::Scalar tPt2 = 0.0;
+        constexpr Plato::Scalar tOne = 1.0;
+        return Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>({
+            /*GP1=*/-tPt1,-tOne, /*GP2=*/ tPt2,-tOne, /*GP3=*/ tPt1,-tOne,
+            /*GP1=*/ tOne,-tPt1, /*GP2=*/ tOne, tPt2, /*GP3=*/ tOne,tPt1,
+            /*GP1=*/-tPt1,tOne , /*GP2=*/ tPt2, tOne, /*GP3=*/ tPt1,tOne,
+            /*GP1=*/-tOne,-tPt1, /*GP2=*/-tOne, tPt2, /*GP3=*/-tOne,tPt1
+        });
+    }
+
+    static inline Plato::Array<mNumGaussPointsPerFace>
+    getFaceCubWeights()
+    {
+        return Face::getCubWeights();
     }
 
     KOKKOS_INLINE_FUNCTION static Plato::Array<mNumNodesPerCell>

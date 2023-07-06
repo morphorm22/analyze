@@ -7,6 +7,9 @@ namespace Plato {
 
 /******************************************************************************/
 /*! Quad4 Element
+ *
+ * \brief Gauss point coordinates and weights are derived on integration
+ *     domain -1<=t<=1.
 */
 /******************************************************************************/
 class Quad4
@@ -17,8 +20,11 @@ class Quad4
 
     static constexpr Plato::OrdinalType mNumSpatialDims  = 2;
     static constexpr Plato::OrdinalType mNumNodesPerCell = 4;
-    static constexpr Plato::OrdinalType mNumNodesPerFace = 2;
     static constexpr Plato::OrdinalType mNumGaussPoints  = 4;
+
+    static constexpr Plato::OrdinalType mNumFacesPerCell       = 4;
+    static constexpr Plato::OrdinalType mNumNodesPerFace       = Face::mNumNodesPerCell;
+    static constexpr Plato::OrdinalType mNumGaussPointsPerFace = Face::mNumGaussPoints;
 
     static constexpr Plato::OrdinalType mNumSpatialDimsOnFace = mNumSpatialDims-1;
 
@@ -40,6 +46,25 @@ class Quad4
              sqt,  sqt,
             -sqt,  sqt
         });
+    }
+
+    static inline Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>
+    getFaceCubPoints()
+    {
+        constexpr Plato::Scalar tOne = 1.0;
+        constexpr Plato::Scalar tSqt  = 0.57735026918962584208117050366127; // sqrt(1.0/3.0)
+        return Plato::Matrix<mNumFacesPerCell,mNumSpatialDims*mNumGaussPointsPerFace>({
+            /*GP1=*/-tSqt,-tOne, /*GP2=*/tSqt,-tOne,
+            /*GP1=*/ tOne,-tSqt, /*GP2=*/ tOne,tSqt,
+            /*GP1=*/-tSqt, tOne, /*GP2=*/ tSqt, tOne,
+            /*GP1=*/-tOne,-tSqt, /*GP2=*/-tOne,tSqt
+        });
+    }
+
+    static inline Plato::Array<mNumGaussPointsPerFace>
+    getFaceCubWeights()
+    {
+        return Face::getCubWeights();
     }
 
     KOKKOS_INLINE_FUNCTION static Plato::Array<mNumNodesPerCell>
