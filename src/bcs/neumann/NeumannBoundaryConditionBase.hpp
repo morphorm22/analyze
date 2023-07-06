@@ -9,6 +9,7 @@
 
 #include "WorkSets.hpp"
 #include "SpatialModel.hpp"
+#include "PlatoMathTypes.hpp"
 
 namespace Plato
 {

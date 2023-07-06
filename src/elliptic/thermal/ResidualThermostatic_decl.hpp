@@ -57,7 +57,7 @@ public:
   ResidualThermostatic(
     const Plato::SpatialDomain   & aSpatialDomain,
           Plato::DataMap         & aDataMap,
-          Teuchos::ParameterList & aProblemParams,
+          Teuchos::ParameterList & aParamList,
           Teuchos::ParameterList & penaltyParams
   );
 
@@ -102,26 +102,26 @@ public:
 private:
   /// @fn parseHeatSource
   /// @brief parse volumetric heat source
-  /// @param [in] aProblemParams input problem parameters
+  /// @param [in] aParamList input problem parameters
   void
   parseHeatSource(
-    Teuchos::ParameterList & aProblemParams
+    Teuchos::ParameterList & aParamList
   );
 
   /// @fn parseNeumannBCs
   /// @brief parse thermal natural boundary conditions
-  /// @param [in] aProblemParams input problem parameters
+  /// @param [in] aParamList input problem parameters
   void
   parseNeumannBCs(
-    Teuchos::ParameterList & aProblemParams
+    Teuchos::ParameterList & aParamList
   );
 
   /// @fn parseOutputs
   /// @brief parse thermal natural boundary conditions
-  /// @param [in] aProblemParams input problem parameters
+  /// @param [in] aParamList input problem parameters
   void
   parseOutputs(
-    Teuchos::ParameterList & aProblemParams
+    Teuchos::ParameterList & aParamList
   );
 
 }; // class ResidualThermostatic

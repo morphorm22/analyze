@@ -66,7 +66,7 @@ public:
   ElectroelastostaticResidual(
     const Plato::SpatialDomain   & aSpatialDomain,
           Plato::DataMap         & aDataMap,
-          Teuchos::ParameterList & aProblemParams,
+          Teuchos::ParameterList & aParamList,
           Teuchos::ParameterList & aPenaltyParams
   );
 

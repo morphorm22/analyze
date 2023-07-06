@@ -44,10 +44,20 @@ private:
   using BaseClassType::mSideSetName;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList input problem parameters
+  /// @param [in] aSubList   neumann boundary condition parameter list
   NeumannPressure(
+    Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aSubList
   );
 
+  /// @fn evaluate
+  /// @brief evaluate neumann boundary condition - pressure
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     range and domain database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar
   void 
   evaluate(
     const Plato::SpatialModel & aSpatialModel,
@@ -56,6 +66,9 @@ public:
           Plato::Scalar         aScale = 1.0
   ) const;
 
+  /// @fn flux
+  /// @brief update flux vector values
+  /// @param [in] aFlux flux vector
   void
   flux(
     const Plato::Array<NumForceDof> & aFlux
@@ -70,6 +83,7 @@ template<typename EvaluationType,
          Plato::OrdinalType DofOffset>
 NeumannPressure<EvaluationType,NumForceDof,DofOffset>::
 NeumannPressure(
+  Teuchos::ParameterList & aParamList,
   Teuchos::ParameterList & aSubList
 )
 {
@@ -117,7 +131,6 @@ evaluate(
     KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
   {
     auto tElementOrdinal = tElementOrds(aSideOrdinal);
-    auto tElemFaceOrdinal = tFaceOrds(aSideOrdinal);
     Plato::Array<ElementType::mNumNodesPerFace, Plato::OrdinalType> tLocalNodeOrds;
     for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<ElementType::mNumNodesPerFace; tNodeOrd++)
     {

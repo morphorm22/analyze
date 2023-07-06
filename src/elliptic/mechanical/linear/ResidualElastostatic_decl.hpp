@@ -69,13 +69,13 @@ public:
    * \brief Constructor
    * \param [in] aSpatialDomain Plato Analyze spatial domain
    * \param [in] aDataMap Plato Analyze database
-   * \param [in] aProblemParams input parameters for overall problem
+   * \param [in] aParamList input parameters for overall problem
    * \param [in] aPenaltyParams input parameters for penalty function
   **********************************************************************************/
   ResidualElastostatic(
     const Plato::SpatialDomain   & aSpatialDomain,
           Plato::DataMap         & aDataMap,
-          Teuchos::ParameterList & aProblemParams,
+          Teuchos::ParameterList & aParamList,
           Teuchos::ParameterList & aPenaltyParams
   );
 

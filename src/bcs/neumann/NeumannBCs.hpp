@@ -4,11 +4,16 @@
 #include <memory>
 
 #include "bcs/neumann/NeumannBC.hpp"
+#include "bcs/neumann/SupportedParamOptions.hpp"
 
 namespace Plato 
 {
 
-/// @brief natural boundary condition evaluator
+/// @class NeumannBCs
+/// @brief evaluates natural boundary conditions
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types 
+/// @tparam NumForceDof    number of force degrees of freedom
+/// @tparam DofOffset      degree of freedom offset
 template<typename EvaluationType,
          Plato::OrdinalType NumForceDof=EvaluationType::ElementType::mNumDofsPerNode,
          Plato::OrdinalType DofOffset=0>
@@ -25,13 +30,24 @@ private:
 
 // private functions
 private:
-  /// @brief append neumann boundary condition
-  /// @param aName    neumann boundary conditon name
-  /// @param aSubList input parameter list
+  /// @brief add flux vector to neumann boundary condition (bc) parameter list
+  /// @param [in] aName    neumann bc parameter list name
+  /// @param [in] aSubList neumann bc parameter list
   void 
-  appendNeumannBC(
+  updateNeumannForceParamList(
     const std::string            & aName, 
           Teuchos::ParameterList & aSubList
+  );
+
+  /// @brief append neumann boundary condition (bc) to neumann bc list
+  /// @param [in] aName      neumann bc parameter list name
+  /// @param [in] aParamList input problem parameters
+  /// @param [in] aSubList   neumann bc parameter list
+  void 
+  appendNeumannBC(
+  const std::string            & aName, 
+        Teuchos::ParameterList & aParamList,
+        Teuchos::ParameterList & aSubList
   );
 
   /// @fn setUniformNeumannBC
@@ -70,9 +86,11 @@ private:
 // public functions
 public :
   /// @brief class constructor
-  /// @param [in] aParams input problem parameters
+  /// @param [in] aParamList  input problem parameters
+  /// @param [in] aSubListNBC neumann boundary condition (nbc) parameter list
   NeumannBCs(
-    Teuchos::ParameterList & aParams
+    Teuchos::ParameterList & aParamList,
+    Teuchos::ParameterList & aSubListNBC
   );
 
   /// @fn get
@@ -92,6 +110,40 @@ public :
 };
 // class NeumannBCs
 
+template<
+  typename EvaluationType,
+  Plato::OrdinalType NumForceDof,
+  Plato::OrdinalType DofOffset>
+void 
+NeumannBCs<EvaluationType,NumForceDof,DofOffset>::
+updateNeumannForceParamList(
+  const std::string            & aName, 
+        Teuchos::ParameterList & aSubList
+)
+{
+  Plato::NeumannEnum tS2E;
+  const auto tType = aSubList.get<std::string>("Type");
+  const auto tNeumannType = tS2E.bc(tType);
+  switch(tNeumannType)
+  {
+    case Plato::neumann_bc::UNIFORM:
+    {
+      this->setUniformNeumannBC(aName,aSubList);
+      break;
+    }
+    case Plato::neumann_bc::UNIFORM_PRESSURE:
+    {
+      this->setUniformPressureNeumannBC(aName,aSubList);
+      break;
+    }
+    case Plato::neumann_bc::UNIFORM_COMPONENT:
+    {
+      this->setUniformComponentNeumannBC(aName,aSubList);
+      break;
+    }
+  }
+}
+
 template<typename EvaluationType,
          Plato::OrdinalType NumForceDof,
          Plato::OrdinalType DofOffset>
@@ -99,38 +151,13 @@ void
 NeumannBCs<EvaluationType,NumForceDof,DofOffset>::
 appendNeumannBC(
   const std::string            & aName, 
+        Teuchos::ParameterList & aParamList,
         Teuchos::ParameterList & aSubList
 )
 {
-  Plato::NeumannBCEnum tS2E;
-  const auto tType = aSubList.get<std::string>("Type");
-  const auto tNeumannType = tS2E.bc(tType);
-  switch(tNeumannType)
-  {
-    case Plato::neumann_bc::UNIFORM:
-    {
-      this->setUniformNeumannBC(aName, aSubList);
-      break;
-    }
-    case Plato::neumann_bc::UNIFORM_PRESSURE:
-    {
-      this->setUniformPressureNeumannBC(aName, aSubList);
-      break;
-    }
-    case Plato::neumann_bc::UNIFORM_COMPONENT:
-    {
-      this->setUniformComponentNeumannBC(aName, aSubList);
-      break;
-    }
-    default:
-    {
-      std::stringstream tMsg;
-      tMsg << "Natural Boundary Condition Type '" << tType.c_str() << "' is NOT supported.";
-      ANALYZE_THROWERR(tMsg.str().c_str())
-    }
-  }
+  this->updateNeumannForceParamList(aName,aSubList);
   std::shared_ptr<Plato::NeumannBC<EvaluationType,NumForceDof,DofOffset>> tBC = 
-    std::make_shared<Plato::NeumannBC<EvaluationType,NumForceDof,DofOffset>>(aName,aSubList);
+    std::make_shared<Plato::NeumannBC<EvaluationType,NumForceDof,DofOffset>>(aName,aParamList,aSubList);
   mBCs.push_back(tBC);
 }
 
@@ -306,43 +333,39 @@ setUniformComponentNeumannBC(
   aSubList.set("Vector", tFluxVector);
 }
 
-/// @brief class constructor
-/// @tparam ElementType topological element type
-/// @tparam NumForceDof number of degrees of freedom
-/// @tparam DofOffset   degrees of freedom offset
-/// @param [in] aParams input problem parameters
 template<typename EvaluationType,
          Plato::OrdinalType NumForceDof,
          Plato::OrdinalType DofOffset>
 NeumannBCs<EvaluationType,NumForceDof,DofOffset>::
 NeumannBCs(
-  Teuchos::ParameterList &aParams
+  Teuchos::ParameterList & aParamList,
+  Teuchos::ParameterList & aSubListNBC
 ) :
 mBCs()
 {
-  for (Teuchos::ParameterList::ConstIterator tItr = aParams.begin(); tItr != aParams.end(); ++tItr)
+  for (Teuchos::ParameterList::ConstIterator tItr = aSubListNBC.begin(); tItr != aSubListNBC.end(); ++tItr)
   {
-    const Teuchos::ParameterEntry &tEntry = aParams.entry(tItr);
+    const Teuchos::ParameterEntry &tEntry = aSubListNBC.entry(tItr);
     if (!tEntry.isList())
     {
       ANALYZE_THROWERR("ERROR: Parameter in Boundary Conditions block not valid.  Expect lists only.")
     }
-    const std::string &tName = aParams.name(tItr);
-    if(aParams.isSublist(tName) == false)
+    const std::string &tName = aSubListNBC.name(tItr);
+    if(aSubListNBC.isSublist(tName) == false)
     {
       std::stringstream tMsg;
       tMsg << "ERROR: Sublist: '" << tName.c_str() << "' is NOT defined.";
       ANALYZE_THROWERR(tMsg.str().c_str())
     }
-    Teuchos::ParameterList &tSubList = aParams.sublist(tName);
-    if(tSubList.isParameter("Type") == false)
+    Teuchos::ParameterList &tMySubListNBC = aSubListNBC.sublist(tName);
+    if(tMySubListNBC.isParameter("Type") == false)
     {
       std::stringstream tMsg;
       tMsg << "ERROR: 'Type' Parameter Keyword in Parameter Sublist: '"
           << tName.c_str() << "' is NOT defined.";
       ANALYZE_THROWERR(tMsg.str().c_str())
     }
-    this->appendNeumannBC(tName, tSubList);
+    this->appendNeumannBC(tName,aParamList,tMySubListNBC);
   }
 }
 

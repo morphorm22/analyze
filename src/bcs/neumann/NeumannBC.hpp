@@ -19,14 +19,11 @@
 namespace Plato
 {
 
-/***************************************************************************//**
- * \brief Class for natural boundary conditions.
- *
- * \tparam ElementType  Element type
- * \tparam mNumDofsPerNode  number degrees of freedom per node
- * \tparam mNumDofsOffset    degrees of freedom offset
- *
-*******************************************************************************/
+/// @class NeumannBC
+/// @brief natural boundary condition evaluator
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types 
+/// @tparam NumForceDof    number of force degrees of freedom
+/// @tparam DofOffset      degree of freedom offset
 template<typename EvaluationType,
          Plato::OrdinalType NumForceDof=EvaluationType::ElementType::mNumDofsPerNode,
          Plato::OrdinalType DofOffset=0>
@@ -49,21 +46,23 @@ private:
 public:
   /// @brief class constructor
   /// @param [in] aLoadName side set name
-  /// @param [in] aSubList  input parameter sublist name
+  /// @param [in] aParamList  input problem parameters
+  /// @param [in] aSubListNBC neumann boundary condition (nbc) parameter sublist
   NeumannBC(
     const std::string            & aLoadName, 
-          Teuchos::ParameterList & aSubList
+          Teuchos::ParameterList & aParamList,
+          Teuchos::ParameterList & aSubListNBC
   ) :
     mName(aLoadName),
     mFluxExpr{nullptr}
   {
     Plato::FactoryNeumannBC<EvaluationType,NumForceDof,DofOffset> tFactory;
-    mNeumannBC = tFactory.create(aSubList);
+    mNeumannBC = tFactory.create(aParamList,aSubListNBC);
     if(mNeumannBC == nullptr){
       ANALYZE_THROWERR(std::string("ERROR: Neumann boundary condition factory return a null pointer, ") 
         + "unsupported Neumann boundary condition requested!")
     }
-    this->initialize(aSubList);
+    this->initialize(aSubListNBC);
   }
 
   /// @brief class destructor

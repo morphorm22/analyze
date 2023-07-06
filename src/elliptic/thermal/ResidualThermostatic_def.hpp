@@ -19,7 +19,7 @@ ResidualThermostatic<EvaluationType, IndicatorFunctionType>::
 ResidualThermostatic(
   const Plato::SpatialDomain   & aSpatialDomain,
         Plato::DataMap         & aDataMap,
-        Teuchos::ParameterList & aProblemParams,
+        Teuchos::ParameterList & aParamList,
         Teuchos::ParameterList & penaltyParams
 ) :
   FunctionBaseType   (aSpatialDomain, aDataMap),
@@ -30,17 +30,17 @@ ResidualThermostatic(
 {
   // obligatory: define dof names in order
   mDofNames.push_back("temperature");
-  Plato::ThermalConductionModelFactory<EvaluationType> tMaterialFactory(aProblemParams);
+  Plato::ThermalConductionModelFactory<EvaluationType> tMaterialFactory(aParamList);
   mMaterialModel = tMaterialFactory.create(aSpatialDomain.getMaterialName());
   // parse heat source
   // 
-  this->parseHeatSource(aProblemParams);
+  this->parseHeatSource(aParamList);
   // parse natural boundary conditions
   // 
-  this->parseNeumannBCs(aProblemParams);
+  this->parseNeumannBCs(aParamList);
   // parse outputs
   //
-  this->parseOutputs(aProblemParams);
+  this->parseOutputs(aParamList);
 }
 
 template<typename EvaluationType, typename IndicatorFunctionType>
@@ -157,13 +157,13 @@ template<typename EvaluationType, typename IndicatorFunctionType>
 void
 ResidualThermostatic<EvaluationType, IndicatorFunctionType>::
 parseHeatSource(
-  Teuchos::ParameterList & aProblemParams
+  Teuchos::ParameterList & aParamList
 )
 {
-  if(aProblemParams.isSublist("Heat Source"))
+  if(aParamList.isSublist("Heat Source"))
   {
     mHeatSource = std::make_shared<Plato::BodyLoads<EvaluationType>>(
-      aProblemParams.sublist("Heat Source")
+      aParamList.sublist("Heat Source")
     );
   }
 }
@@ -172,18 +172,18 @@ template<typename EvaluationType, typename IndicatorFunctionType>
 void
 ResidualThermostatic<EvaluationType, IndicatorFunctionType>::
 parseNeumannBCs(
-  Teuchos::ParameterList & aProblemParams
+  Teuchos::ParameterList & aParamList
 )
 {
-  if(aProblemParams.isSublist("Natural Boundary Conditions")){
+  if(aParamList.isSublist("Natural Boundary Conditions")){
     mBoundaryForces = std::make_shared<Plato::NeumannBCs<EvaluationType>>(
-      aProblemParams.sublist("Natural Boundary Conditions")
+      aParamList,aParamList.sublist("Natural Boundary Conditions")
     );
   }
   else 
-  if(aProblemParams.isSublist("Thermal Natural Boundary Conditions")){
+  if(aParamList.isSublist("Thermal Natural Boundary Conditions")){
     mBoundaryForces = std::make_shared<Plato::NeumannBCs<EvaluationType>>(
-      aProblemParams.sublist("Thermal Natural Boundary Conditions")
+      aParamList,aParamList.sublist("Thermal Natural Boundary Conditions")
     );
   } 
 }
@@ -192,10 +192,10 @@ template<typename EvaluationType, typename IndicatorFunctionType>
 void
 ResidualThermostatic<EvaluationType, IndicatorFunctionType>::
 parseOutputs(
-  Teuchos::ParameterList & aProblemParams
+  Teuchos::ParameterList & aParamList
 )
 {
-  auto tResidualParams = aProblemParams.sublist("Elliptic");
+  auto tResidualParams = aParamList.sublist("Elliptic");
   if( tResidualParams.isType<Teuchos::Array<std::string>>("Plottable") )
   {
     mPlottable = tResidualParams.get<Teuchos::Array<std::string>>("Plottable").toVector();

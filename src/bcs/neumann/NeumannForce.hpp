@@ -44,10 +44,20 @@ private:
   using BaseClassType::mSideSetName;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList input problem parameters
+  /// @param [in] aSubList   neumann boundary condition parameter list
   NeumannForce(
+    Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aSubList
   );
 
+  /// @fn evaluate
+  /// @brief evaluate neumann boundary condition - force
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     range and domain database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar
   void 
   evaluate(
     const Plato::SpatialModel & aSpatialModel,
@@ -56,6 +66,9 @@ public:
           Plato::Scalar         aScale = 1.0
   ) const;
 
+  /// @fn flux
+  /// @brief update flux vector values
+  /// @param [in] aFlux flux vector
   void
   flux(
     const Plato::Array<NumForceDof> & aFlux
@@ -69,6 +82,7 @@ template<typename EvaluationType,
          Plato::OrdinalType DofOffset>
 NeumannForce<EvaluationType,NumForceDof,DofOffset>::
 NeumannForce(
+  Teuchos::ParameterList & aParamList,
   Teuchos::ParameterList & aSubList
 )
 {

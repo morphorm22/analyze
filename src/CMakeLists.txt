@@ -20,6 +20,7 @@ set(ANALYZE_SOURCES
     AbstractTMKinetics.cpp
     LinearTMKinetics.cpp
     NonLinearTMKinetics.cpp
+    bcs/neumann/SupportedParamOptions.cpp
 )
 
 if(EXPRESSION)

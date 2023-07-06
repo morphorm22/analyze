@@ -21,7 +21,7 @@ ElectroelastostaticResidual<EvaluationType, IndicatorFunctionType>::
 ElectroelastostaticResidual(
   const Plato::SpatialDomain   & aSpatialDomain,
         Plato::DataMap         & aDataMap,
-        Teuchos::ParameterList & aProblemParams,
+        Teuchos::ParameterList & aParamList,
         Teuchos::ParameterList & aPenaltyParams
 ) :
   FunctionBaseType      (aSpatialDomain, aDataMap),
@@ -39,33 +39,33 @@ ElectroelastostaticResidual(
   mDofNames.push_back("electric potential");
   // create material model and get stiffness
   //
-  Plato::ElectroelasticModelFactory<mNumSpatialDims> mmfactory(aProblemParams);
+  Plato::ElectroelasticModelFactory<mNumSpatialDims> mmfactory(aParamList);
   mMaterialModel = mmfactory.create(mSpatialDomain.getMaterialName());
   // parse body loads
   // 
-  if(aProblemParams.isSublist("Body Loads"))
+  if(aParamList.isSublist("Body Loads"))
   {
     mBodyLoads = std::make_shared<Plato::BodyLoads<EvaluationType>>(
-      aProblemParams.sublist("Body Loads")
+      aParamList.sublist("Body Loads")
     );
   }
   // parse mechanical boundary Conditions
   // 
-  if(aProblemParams.isSublist("Mechanical Natural Boundary Conditions"))
+  if(aParamList.isSublist("Mechanical Natural Boundary Conditions"))
   {
     mBoundaryLoads = std::make_shared<Plato::NeumannBCs<EvaluationType,NMechDims,MDofOffset>>(
-      aProblemParams.sublist("Mechanical Natural Boundary Conditions")
+      aParamList,aParamList.sublist("Mechanical Natural Boundary Conditions")
     );
   }
   // parse electrical boundary Conditions
   // 
-  if(aProblemParams.isSublist("Electrical Natural Boundary Conditions"))
+  if(aParamList.isSublist("Electrical Natural Boundary Conditions"))
   {
     mBoundaryCharges = std::make_shared<Plato::NeumannBCs<EvaluationType,NElecDims,EDofOffset>>(
-      aProblemParams.sublist("Electrical Natural Boundary Conditions")
+      aParamList,aParamList.sublist("Electrical Natural Boundary Conditions")
     );
   }
-  auto tResidualParams = aProblemParams.sublist("Electroelastostatics");
+  auto tResidualParams = aParamList.sublist("Electroelastostatics");
   if( tResidualParams.isType<Teuchos::Array<std::string>>("Plottable") )
   {
     mPlottable = tResidualParams.get<Teuchos::Array<std::string>>("Plottable").toVector();

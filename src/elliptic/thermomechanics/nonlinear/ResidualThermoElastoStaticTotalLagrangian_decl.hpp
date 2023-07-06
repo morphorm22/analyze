@@ -47,6 +47,7 @@ get_cell_2PKS(
 }
 
 /// @brief evaluate thermo-elasto-static residual for a total lagrangian formulation:
+///
 /// \f[ 
 ///   R_i = \int_{\Omega_0}\delta{F}_{ij}P_{ji}\ d\Omega_0 - \int_{\Omega_0}\delta{u}_i\rho_0 b_i\ d\Omega_0 
 ///        -\int_{\Gamma_0}\delta{u}_i\bar{t}_i^0\ d\Gamma_0 = 0, \quad{i,j}=1,\dots,d
@@ -56,6 +57,7 @@ get_cell_2PKS(
 /// \f$\delta{u}_i\f$ is the trial displacement field, \f$\rho_0\f$ is the mass density, \f$b_i\f$ are 
 /// the body forces, $\Gamma_0$ is a boundary on body \f$\Omega_0\f$ in the reference configuration,
 /// and \f$\bar{t}_i^0f\$ are the traction forces applied on boundary \f$\Gamma_0\f$. 
+///
 /// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types 
 template<typename EvaluationType>
 class ResidualThermoElastoStaticTotalLagrangian : public Plato::ResidualBase

@@ -20,7 +20,7 @@ ResidualElastostatic<EvaluationType, IndicatorFunctionType>::
 ResidualElastostatic(
   const Plato::SpatialDomain   & aSpatialDomain,
         Plato::DataMap         & aDataMap,
-        Teuchos::ParameterList & aProblemParams,
+        Teuchos::ParameterList & aParamList,
         Teuchos::ParameterList & aPenaltyParams
 ) :
   FunctionBaseType   (aSpatialDomain, aDataMap),
@@ -35,36 +35,36 @@ ResidualElastostatic(
   if(mNumSpatialDims > 2) mDofNames.push_back("displacement Z");
   // create material model and get stiffness
   //
-  Plato::ElasticModelFactory<mNumSpatialDims> tMaterialModelFactory(aProblemParams);
+  Plato::ElasticModelFactory<mNumSpatialDims> tMaterialModelFactory(aParamList);
   mMaterialModel = tMaterialModelFactory.create(aSpatialDomain.getMaterialName());
   // parse body loads
   // 
-  if(aProblemParams.isSublist("Body Loads"))
+  if(aParamList.isSublist("Body Loads"))
   {
     mBodyLoads = std::make_shared<Plato::BodyLoads<EvaluationType>>(
-      aProblemParams.sublist("Body Loads")
+      aParamList.sublist("Body Loads")
     );
   }
   // parse boundary Conditions
   // 
-  if(aProblemParams.isSublist("Natural Boundary Conditions"))
+  if(aParamList.isSublist("Natural Boundary Conditions"))
   {
     mBoundaryForces = std::make_shared<Plato::NeumannBCs<EvaluationType>>(
-      aProblemParams.sublist("Natural Boundary Conditions")
+      aParamList,aParamList.sublist("Natural Boundary Conditions")
     );
   }
   // parse cell problem forcing
   //
-  if(aProblemParams.isSublist("Cell Problem Forcing"))
+  if(aParamList.isSublist("Cell Problem Forcing"))
   {
     Plato::OrdinalType tColumnIndex = 
-      aProblemParams.sublist("Cell Problem Forcing").get<Plato::OrdinalType>("Column Index");
+      aParamList.sublist("Cell Problem Forcing").get<Plato::OrdinalType>("Column Index");
     mCellForcing.setCellStiffness(mMaterialModel->getStiffnessMatrix());
     mCellForcing.setColumnIndex(tColumnIndex);
   }
   // parse requested output quantities of interests
   //
-  auto tResidualParams = aProblemParams.sublist("Elliptic");
+  auto tResidualParams = aParamList.sublist("Elliptic");
   if( tResidualParams.isType<Teuchos::Array<std::string>>("Plottable") )
   {
     mPlotTable = tResidualParams.get<Teuchos::Array<std::string>>("Plottable").toVector();

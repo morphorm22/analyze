@@ -189,8 +189,9 @@ initialize(
   // 
   if(aParamList.isSublist("Mechanical Natural Boundary Conditions"))
   {
-    mBoundaryForces = 
-      std::make_shared<Plato::NeumannBCs<EvaluationType>>(aParamList.sublist("Mechanical Natural Boundary Conditions"));
+    mBoundaryForces = std::make_shared<Plato::NeumannBCs<EvaluationType>>(
+      aParamList,aParamList.sublist("Mechanical Natural Boundary Conditions")
+    );
   }
   // parse plot table
   //
