@@ -48,6 +48,10 @@ private:
   static constexpr auto mNumDofsPerNode = BodyElementBase::mNumDofsPerNode;
   /// @brief number of nodes per cell
   static constexpr auto mNumNodesPerCell = BodyElementBase::mNumNodesPerCell;
+  /// @brief number of nodes per parent element face
+  static constexpr auto mNumNodesPerFace = BodyElementBase::mNumNodesPerFace;
+  /// @brief number of integration points per face
+  static constexpr auto mNumGaussPointsPerFace = BodyElementBase::mNumGaussPointsPerFace;
   /// @brief scalar types associated with the automatic differentation evaluation type
   using StateScalarType  = typename EvaluationType::StateScalarType;
   using ConfigScalarType = typename EvaluationType::ConfigScalarType;
@@ -98,7 +102,6 @@ public:
           Plato::Scalar         aScale = 1.0
   ) const
   {
-    /*
     // unpack worksets
     //
     Plato::ScalarArray3DT<ConfigScalarType> tConfigWS  = 
@@ -107,50 +110,58 @@ public:
       Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
     Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
       Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
-    // local functors
+    // create local functors
     //
-    Plato::SurfaceArea<BodyElementBase> tComputeFaceArea;
     Plato::StateGradient<EvaluationType> tComputeStateGradient;
     Plato::ComputeGradientMatrix<BodyElementBase> tComputeGradient;
-    Plato::WeightedNormalVector<BodyElementBase> tComputeNormalVector;
     Plato::DeformationGradient<EvaluationType> tComputeDeformationGradient;
+    Plato::WeightedNormalVector<BodyElementBase> tComputeWeightedNormalVector;
     // get side set information
     //
-    auto tElementOrds = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
-    auto tNumFaces    = tElementOrds.size();
-    auto tNodeOrds    = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
-    auto tFaceOrds    = aSpatialModel.Mesh->GetSideSetFaces(mSideSetName);
+    auto tSideSetLocalFaceOrds = aSpatialModel.Mesh->GetSideSetFaces(mSideSetName);
+    auto tSideSetLocalElemOrds = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
+    auto tSideSetLocalNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
     // get integration rule
     //
+        auto tCubPointsOnParentFaceElem = FaceElementBase::getCubPoints();
+        auto tCubPointsOnParentBodyElemSurfaces = BodyElementBase::getFaceCubPoints();
+        auto tCubWeightsOnParentBodyElemSurface = BodyElementBase::getFaceCubWeights();
+    // pressure acts towards the surface; therefore, -1.0 is used to invert the outward facing normal inwards.
+    //
     auto tFlux = mFlux;
-    auto tCubatureWeights = ElementType::Face::getCubWeights();
-    auto tCubaturePoints  = ElementType::Face::getCubPoints();
-    auto tNumPoints = tCubatureWeights.size();
-    // pressure acts towards the surface; therefore, -1.0
-    // is used to invert the outward facing normal inwards.
     Plato::Scalar tNormalMultiplier(-1.0);
-    Kokkos::parallel_for("surface integral",
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumFaces, tNumPoints}),
+    Plato::OrdinalType tNumCellsOnSideSet = tSideSetLocalElemOrds.size();
+    Kokkos::parallel_for("follower pressure",
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumCellsOnSideSet, mNumGaussPointsPerFace}),
       KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
     {
-      Plato::OrdinalType tElementOrdinal = tElementOrds(aSideOrdinal);
-      Plato::Array<ElementType::mNumNodesPerFace, Plato::OrdinalType> tLocalNodeOrds;
-      for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<ElementType::mNumNodesPerFace; tNodeOrd++)
-      {
-        tLocalNodeOrds(tNodeOrd) = tNodeOrds(aSideOrdinal*ElementType::mNumNodesPerFace+tNodeOrd);
-      }
-      // get cubature rule
+      // quadrature point on parent body surface of interest
       //
-      auto tCubatureWeight = tCubatureWeights(aPointOrdinal);
-      auto tCubaturePoint = tCubaturePoints(aPointOrdinal);
-      auto tBasisValues = ElementType::Face::basisValues(tCubaturePoint);
-      auto tBasisGrads  = ElementType::Face::basisGrads(tCubaturePoint);
+      Plato::Array<mNumSpatialDims> tCubPointOnParentBodyElemSurface;
+      Plato::OrdinalType tLocalFaceOrdinal = tSideSetLocalFaceOrds(aSideOrdinal);
+      auto tCubPointsOnParentBodyElemSurface = tCubPointsOnParentBodyElemSurfaces(tLocalFaceOrdinal);
+      for( Plato::OrdinalType tDim=0; tDim < mNumSpatialDims; tDim++ ){
+        Plato::OrdinalType tIndex = mNumGaussPointsPerFace * aPointOrdinal + tDim;
+        tCubPointOnParentBodyElemSurface(tDim) = tCubPointsOnParentBodyElemSurface(tIndex);
+      }
+      // get quadrature weights and basis functions on parent body element surface of interest
+      //
+      auto tCubWeightOnParentBodyElemSurface   = tCubWeightsOnParentBodyElemSurface(aPointOrdinal);
+      auto tBasisGradsOnParentBodyElemSurface  = BodyElementBase::basisGrads(tCubPointOnParentBodyElemSurface);
+      auto tBasisValuesOnParentBodyElemSurface = BodyElementBase::basisValues(tCubPointOnParentBodyElemSurface);
+      // get node ordinals on parent body surface of interest 
+      //
+      Plato::OrdinalType tElementOrdinal = tSideSetLocalElemOrds(aSideOrdinal);
+      Plato::Array<mNumNodesPerFace, Plato::OrdinalType> tFaceLocalNodeOrds;
+      for( Plato::OrdinalType tNodeOrd=0; tNodeOrd<mNumNodesPerFace; tNodeOrd++){
+        tFaceLocalNodeOrds(tNodeOrd) = tSideSetLocalNodeOrds(aSideOrdinal*mNumNodesPerFace+tNodeOrd);
+      }
       // compute interpolation function gradient
       //
       ConfigScalarType tVolume(0.0);
       Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> 
         tGradient(ConfigScalarType(0.));
-      tComputeGradient(tElementOrdinal,tCubaturePoint,tConfigWS,tGradient,tVolume);
+      tComputeGradient(tElementOrdinal,tCubPointOnParentBodyElemSurface,tConfigWS,tGradient,tVolume);
       // compute state gradient
       //
       Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> 
@@ -168,28 +179,31 @@ public:
         tDefGradientT = Plato::transpose(tDefGradient);
       Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> 
         tInverseDefGradientT = Plato::invert(tDefGradientT);
-      // compute area weighted normal vector
+      // evaluate basis function gradients on parent face element
       //
-      Plato::Array<mNumSpatialDims, ConfigScalarType> tWeightedNormalVec;
-      tWeightedNormalVector(tElementOrdinal, tLocalNodeOrds, tBasisGrads, tConfigWS, tWeightedNormalVec);
-      // project into result workset
+      auto tCubPointOnParentFaceElem   = tCubPointsOnParentFaceElem(aPointOrdinal);
+      auto tBasisGradsOnParentFaceElem = FaceElementBase::basisGrads(tCubPointOnParentFaceElem);
+      // compute area weighted normal vector, i.e., surface area is already applied to normal vector
       //
-      for( Plato::OrdinalType tNode=0; tNode<ElementType::mNumNodesPerFace; tNode++)
-      {
-        for( Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
-        {
+      Plato::Array<mNumSpatialDims, ConfigScalarType> tWeightedNormalVector;
+      tComputeWeightedNormalVector(
+        tElementOrdinal,tFaceLocalNodeOrds,tBasisGradsOnParentFaceElem,tConfigWS,tWeightedNormalVector
+      );
+      // evaluate follower pressure and save result to result workset
+      //
+      for( Plato::OrdinalType tNode=0; tNode<mNumNodesPerFace; tNode++){
+        for( Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++){
           ResultScalarType tValue(0.0);
-          auto tDofOrdinal = (tLocalNodeOrds[tNode] * mNumSpatialDims) + tDimI + DofOffset;
-          for( Plato::OrdinalType tDimJ=0; tDimJ<mNumSpatialDims; tDimJ++)
-          {
-            tValue += tInverseDefGradientT(tDimI,tDimJ) * ( tWeightedNormalVec(tDimJ) * tFlux(tDimJ) );
+          auto tDofOrdinal = (tFaceLocalNodeOrds[tNode] * mNumSpatialDims) + tDimI + DofOffset;
+          for( Plato::OrdinalType tDimJ=0; tDimJ<mNumSpatialDims; tDimJ++){
+            tValue += tInverseDefGradientT(tDimI,tDimJ) * ( tWeightedNormalVector(tDimJ) * tFlux(tDimJ) );
           }
-          tValue =  tBasisValues(tNode) * tDetDefGrad * tValue * tCubatureWeight * aScale * tNormalMultiplier;
+          tValue = tBasisValuesOnParentBodyElemSurface(tNode) * tDetDefGrad * tValue *
+            tCubWeightOnParentBodyElemSurface * aScale * tNormalMultiplier;
           Kokkos::atomic_add( &tResultWS(tElementOrdinal,tDofOrdinal), tValue );
         }
       }
     });
-  */
   }
 };
 
