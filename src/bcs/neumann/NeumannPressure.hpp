@@ -117,7 +117,7 @@ evaluate(
   auto tFaceOrds    = aSpatialModel.Mesh->GetSideSetFaces(mSideSetName);
 
   Plato::OrdinalType tNumFaces = tElementOrds.size();
-  Plato::WeightedNormalVector<ElementType> tComputeNormalVector;
+  Plato::WeightedNormalVector<ElementType> tComputeWeighthedNormalVector;
 
   auto tFlux = mFlux;
   auto tCubatureWeights = ElementType::Face::getCubWeights();
@@ -140,16 +140,17 @@ evaluate(
     auto tCubaturePoint = tCubaturePoints(aPointOrdinal);
     auto tBasisValues = ElementType::Face::basisValues(tCubaturePoint);
     auto tBasisGrads  = ElementType::Face::basisGrads(tCubaturePoint);
-    // compute area weighted normal vector
-    Plato::Array<mNumSpatialDims, ConfigScalarType> tNormalVector;
-    tComputeNormalVector(tElementOrdinal, tLocalNodeOrds, tBasisGrads, tConfigWS, tNormalVector);
+    // compute weighthed normal vector: (n/||n||)*||n||, i.e. normal vector is already multiplied by the surface area
+    //
+    Plato::Array<mNumSpatialDims, ConfigScalarType> tWeighthedNormalVector;
+    tComputeWeighthedNormalVector(tElementOrdinal, tLocalNodeOrds, tBasisGrads, tConfigWS, tWeighthedNormalVector);
     // project into result workset
     for( Plato::OrdinalType tNode=0; tNode<ElementType::mNumNodesPerFace; tNode++)
     {
       for( Plato::OrdinalType tDof=0; tDof<NumForceDof; tDof++)
       {
         auto tElementDofOrdinal = (tLocalNodeOrds[tNode] * mNumDofsPerNode) + tDof + DofOffset;
-        ResultScalarType tVal = tNormalVector(tDof) * tFlux(tDof) * aScale 
+        ResultScalarType tVal = tWeighthedNormalVector(tDof) * tFlux(tDof) * aScale 
           * tCubatureWeight * tNormalMultiplier * tBasisValues(tNode);
         Kokkos::atomic_add(&tResultWS(tElementOrdinal, tElementDofOrdinal), tVal);
       }
