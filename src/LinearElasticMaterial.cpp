@@ -34,9 +34,7 @@ void LinearElasticMaterial<1>::setReferenceStrainTensor(const Teuchos::Parameter
 template<>
 LinearElasticMaterial<1>::LinearElasticMaterial() :
         mCellDensity(1.0),
-        mPressureScaling(1.0),
-        mRayleighA(0.0),
-        mRayleighB(0.0)
+        mPressureScaling(1.0)
 {
     this->initialize();
 }
@@ -44,21 +42,10 @@ LinearElasticMaterial<1>::LinearElasticMaterial() :
 template<>
 LinearElasticMaterial<1>::LinearElasticMaterial(const Teuchos::ParameterList& aParamList) :
         mCellDensity(1.0),
-        mPressureScaling(1.0),
-        mRayleighA(0.0),
-        mRayleighB(0.0)
+        mPressureScaling(1.0)
 {
     this->initialize();
     this->setReferenceStrainTensor(aParamList);
-
-    if(aParamList.isType<Plato::Scalar>("RayleighA"))
-    {
-        mRayleighA = aParamList.get<Plato::Scalar>("RayleighA");
-    }
-    if(aParamList.isType<Plato::Scalar>("RayleighB"))
-    {
-        mRayleighB = aParamList.get<Plato::Scalar>("RayleighB");
-    }
 }
 
 //*********************************************************************************
@@ -96,9 +83,7 @@ void LinearElasticMaterial<2>::setReferenceStrainTensor(const Teuchos::Parameter
 template<>
 LinearElasticMaterial<2>::LinearElasticMaterial() :
         mCellDensity(1.0),
-        mPressureScaling(1.0),
-        mRayleighA(0.0),
-        mRayleighB(0.0)
+        mPressureScaling(1.0)
 {
     this->initialize();
 }
@@ -106,21 +91,10 @@ LinearElasticMaterial<2>::LinearElasticMaterial() :
 template<>
 LinearElasticMaterial<2>::LinearElasticMaterial(const Teuchos::ParameterList& aParamList) :
         mCellDensity(1.0),
-        mPressureScaling(1.0),
-        mRayleighA(0.0),
-        mRayleighB(0.0)
+        mPressureScaling(1.0)
 {
     this->initialize();
     this->setReferenceStrainTensor(aParamList);
-
-    if(aParamList.isType<Plato::Scalar>("RayleighA"))
-    {
-        mRayleighA = aParamList.get<Plato::Scalar>("RayleighA");
-    }
-    if(aParamList.isType<Plato::Scalar>("RayleighB"))
-    {
-        mRayleighB = aParamList.get<Plato::Scalar>("RayleighB");
-    }
 }
 
 
@@ -165,9 +139,7 @@ void LinearElasticMaterial<3>::setReferenceStrainTensor(const Teuchos::Parameter
 template<>
 LinearElasticMaterial<3>::LinearElasticMaterial() :
         mCellDensity(1.0),
-        mPressureScaling(1.0),
-        mRayleighA(0.0),
-        mRayleighB(0.0)
+        mPressureScaling(1.0)
 {
     this->initialize();
 }
@@ -175,21 +147,10 @@ LinearElasticMaterial<3>::LinearElasticMaterial() :
 template<>
 LinearElasticMaterial<3>::LinearElasticMaterial(const Teuchos::ParameterList& aParamList) :
         mCellDensity(1.0),
-        mPressureScaling(1.0),
-        mRayleighA(0.0),
-        mRayleighB(0.0)
+        mPressureScaling(1.0)
 {
     this->initialize();
     this->setReferenceStrainTensor(aParamList);
-
-    if(aParamList.isType<Plato::Scalar>("RayleighA"))
-    {
-        mRayleighA = aParamList.get<Plato::Scalar>("RayleighA");
-    }
-    if(aParamList.isType<Plato::Scalar>("RayleighB"))
-    {
-        mRayleighB = aParamList.get<Plato::Scalar>("RayleighB");
-    }
 }
 
 } // namespace Plato

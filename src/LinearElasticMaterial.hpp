@@ -33,9 +33,6 @@ protected:
     Plato::Scalar mCellDensity;     /*!< material density */
     Plato::Scalar mPressureScaling; /*!< pressure term scaling */
 
-    Plato::Scalar mRayleighA; // mass coefficient
-    Plato::Scalar mRayleighB; // stiffness coefficient
-
 public:
     /******************************************************************************//**
      * \brief Linear elastic material model constructor.
@@ -65,9 +62,6 @@ public:
      * \return reference strain tensor
     **********************************************************************************/
     decltype(mReferenceStrain) getReferenceStrain() const {return mReferenceStrain;}
-
-    decltype(mRayleighA)       getRayleighA()       const {return mRayleighA;}
-    decltype(mRayleighB)       getRayleighB()       const {return mRayleighB;}
 
 private:
     /******************************************************************************//**
