@@ -34,20 +34,26 @@ build(
 const
 {
   // number of cells in the spatial domain
+  //
   auto tNumCells = aDomain.numCells();
-  // build control workset
-  using ControlScalarType = typename EvaluationType::ControlScalarType;
-  auto tControlWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ControlScalarType> > >
-    ( Plato::ScalarMultiVectorT<ControlScalarType>("Control Workset", tNumCells, mNumNodesPerCell) );
-  mWorksetFuncs.worksetControl(aDatabase.vector("controls"), tControlWS->mData, aDomain);
-  aWorkSets.set("controls", tControlWS);
   // build configuration workset
+  //
   using ConfigScalarType = typename EvaluationType::ConfigScalarType;
   auto tConfigWS = std::make_shared< Plato::MetaData< Plato::ScalarArray3DT<ConfigScalarType> > >
     ( Plato::ScalarArray3DT<ConfigScalarType>("Config Workset", tNumCells, mNumNodesPerCell, mNumSpatialDims) );
   mWorksetFuncs.worksetConfig(tConfigWS->mData, aDomain);
   aWorkSets.set("configuration", tConfigWS);
+  // build control workset
+  //
+  if( aDatabase.isScalarVectorDefined("controls") ){
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
+    auto tControlWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ControlScalarType> > >
+      ( Plato::ScalarMultiVectorT<ControlScalarType>("Control Workset", tNumCells, mNumNodesPerCell) );
+    mWorksetFuncs.worksetControl(aDatabase.vector("controls"), tControlWS->mData, aDomain);
+    aWorkSets.set("controls", tControlWS);
+  }
   // if defined, build states (vector states) workset
+  //
   if( aDatabase.isScalarVectorDefined("states") ){
     using StateScalarType = typename EvaluationType::StateScalarType;
     auto tStateWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<StateScalarType> > >
@@ -56,6 +62,7 @@ const
     aWorkSets.set("states", tStateWS);
   }
   // if defined, build node states workset
+  //
   if( aDatabase.isScalarVectorDefined("node states") ){
     using NodeStateScalarType = typename EvaluationType::NodeStateScalarType;
     auto tNodeStateWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<NodeStateScalarType> > >
@@ -74,19 +81,24 @@ build(
         Plato::WorkSets    & aWorkSets
 ) const
 {
-  // build control workset
-  using ControlScalarType = typename EvaluationType::ControlScalarType;
-  auto tControlWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ControlScalarType> > >
-    ( Plato::ScalarMultiVectorT<ControlScalarType>("Control Workset", aNumCells, mNumNodesPerCell) );
-  mWorksetFuncs.worksetControl(aDatabase.vector("controls"), tControlWS->mData);
-  aWorkSets.set("controls", tControlWS);  
   // build configuration workset
+  //
   using ConfigScalarType = typename EvaluationType::ConfigScalarType;
   auto tConfigWS = std::make_shared< Plato::MetaData< Plato::ScalarArray3DT<ConfigScalarType> > >
     ( Plato::ScalarArray3DT<ConfigScalarType>("Config Workset", aNumCells, mNumNodesPerCell, mNumSpatialDims) );
   mWorksetFuncs.worksetConfig(tConfigWS->mData);
   aWorkSets.set("configuration", tConfigWS);  
+  // build control workset
+  //
+  if( aDatabase.isScalarVectorDefined("controls") ){
+    using ControlScalarType = typename EvaluationType::ControlScalarType;
+    auto tControlWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ControlScalarType> > >
+      ( Plato::ScalarMultiVectorT<ControlScalarType>("Control Workset", aNumCells, mNumNodesPerCell) );
+    mWorksetFuncs.worksetControl(aDatabase.vector("controls"), tControlWS->mData);
+    aWorkSets.set("controls", tControlWS);
+  }
   // if defined, build state workset
+  //
   if( aDatabase.isScalarVectorDefined("states") ){
     using StateScalarType = typename EvaluationType::StateScalarType;
     auto tStateWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<StateScalarType> > >
@@ -95,6 +107,7 @@ build(
     aWorkSets.set("states", tStateWS);
   }
   // if defined, build node state workset
+  //
   if( aDatabase.isScalarVectorDefined("node states") ){
     using NodeStateScalarType = typename EvaluationType::NodeStateScalarType;
     auto tNodeStateWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<NodeStateScalarType> > >
@@ -103,6 +116,7 @@ build(
     aWorkSets.set("node states", tNodeStateWS);
   }
   // if essential boundary conditions are enforced weakly, set essential states workset
+  //
   if( aDatabase.isScalarVectorDefined("dirichlet") ){
     auto tEssentialStateWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVector > >
       ( Plato::ScalarMultiVector("Dirichlet Workset", aNumCells, mNumVecStateDofsPerCell) );
