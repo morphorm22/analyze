@@ -7,6 +7,7 @@
 #include "GradientMatrix.hpp"
 #include "InterpolateFromNodal.hpp"
 #include "GeneralFluxDivergence.hpp"
+#include "elliptic/thermal/FactoryThermalConductionMaterial.hpp"
 
 namespace Plato
 {
@@ -30,7 +31,7 @@ ResidualThermostatic(
 {
   // obligatory: define dof names in order
   mDofNames.push_back("temperature");
-  Plato::ThermalConductionModelFactory<EvaluationType> tMaterialFactory(aParamList);
+  Plato::FactoryThermalConductionMaterial<EvaluationType> tMaterialFactory(aParamList);
   mMaterialModel = tMaterialFactory.create(aSpatialDomain.getMaterialName());
   // parse heat source
   // 

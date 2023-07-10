@@ -6,6 +6,7 @@
 #include "ScalarProduct.hpp"
 #include "GradientMatrix.hpp"
 #include "InterpolateFromNodal.hpp"
+#include "elliptic/thermal/FactoryThermalConductionMaterial.hpp"
 
 namespace Plato
 {
@@ -26,7 +27,7 @@ CriterionInternalThermalEnergy(
     mIndicatorFunction (aPenaltyParams),
     mApplyWeighting    (mIndicatorFunction)
 {
-  Plato::ThermalConductionModelFactory<EvaluationType> tMaterialModelFactory(aProblemParams);
+  Plato::FactoryThermalConductionMaterial<EvaluationType> tMaterialModelFactory(aProblemParams);
   mMaterialModel = tMaterialModelFactory.create(aSpatialDomain.getMaterialName());
 }
 

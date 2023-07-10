@@ -1,7 +1,7 @@
 #pragma once
 
+#include "MaterialModel.hpp"
 #include "ApplyWeighting.hpp"
-#include "ThermalConductivityMaterial.hpp"
 
 #include "base/ResidualBase.hpp"
 #include "bcs/body/BodyLoads.hpp"
@@ -44,13 +44,13 @@ private:
 
   IndicatorFunctionType mIndicatorFunction;
   ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyWeighting;
-
-  /// @brief volumetric heat source
+  /// @brief neumann boundary condition evaluator
   std::shared_ptr<Plato::NeumannBCs<EvaluationType>> mBoundaryForces;
+  /// @brief heat source evaluator
   std::shared_ptr<Plato::BodyLoads<EvaluationType>> mHeatSource;
-
-  Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
-
+  /// @brief material constitutive model
+  std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;
+  /// @brief requested output quantities of interests
   std::vector<std::string> mPlottable;
 
 public:

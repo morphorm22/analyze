@@ -1,7 +1,7 @@
 #pragma once
 
+#include "MaterialModel.hpp"
 #include "ApplyWeighting.hpp"
-#include "ThermalConductivityMaterial.hpp"
 
 #include "base/CriterionBase.hpp"
 #include "elliptic/EvaluationTypes.hpp"
@@ -47,7 +47,7 @@ private:
   IndicatorFunctionType mIndicatorFunction; /*!< penalty function */
   Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyWeighting; /*!< applies penalty function */
   
-  Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
+  std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
 public:
   /// @brief class constructor

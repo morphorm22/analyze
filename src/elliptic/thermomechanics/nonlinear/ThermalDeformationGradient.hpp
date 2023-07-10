@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "ThermalConductivityMaterial.hpp"
+#include "elliptic/thermal/FactoryThermalConductionMaterial.hpp"
 
 namespace Plato
 {
@@ -47,7 +47,7 @@ public:
     const Teuchos::ParameterList & aParamList
   )
   {
-    Plato::ThermalConductionModelFactory<EvaluationType> tMaterialFactory(aParamList);
+    Plato::FactoryThermalConductionMaterial<EvaluationType> tMaterialFactory(aParamList);
     auto tMaterialModel = tMaterialFactory.create(aMaterialName);
     if( !tMaterialModel->scalarConstantExists("Thermal Expansivity") ){
       auto tMsg = std::string("Material parameter ('Thermal Expansivity') is not defined, thermal deformation ") 

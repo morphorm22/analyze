@@ -1,7 +1,7 @@
 #pragma once
 
+#include "MaterialModel.hpp"
 #include "ApplyWeighting.hpp"
-#include "ThermalConductivityMaterial.hpp"
 
 #include "base/CriterionBase.hpp"
 #include "elliptic/EvaluationTypes.hpp"
@@ -42,7 +42,7 @@ private:
   
   Plato::ApplyWeighting<mNumNodesPerCell, mNumSpatialDims, IndicatorFunctionType> mApplyWeighting;
   
-  Teuchos::RCP<Plato::MaterialModel<EvaluationType>> mMaterialModel;
+  std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;
   
   Plato::OrdinalType mExponent;
 

@@ -6,6 +6,7 @@
 #include "ThermalFlux.hpp"
 #include "GradientMatrix.hpp"
 #include "InterpolateFromNodal.hpp"
+#include "elliptic/thermal/FactoryThermalConductionMaterial.hpp"
 
 
 namespace Plato
@@ -27,7 +28,7 @@ CriterionFluxPNorm(
   mIndicatorFunction(aPenaltyParams),
   mApplyWeighting(mIndicatorFunction)
 {
-  Plato::ThermalConductionModelFactory<EvaluationType> mmfactory(aProblemParams);
+  Plato::FactoryThermalConductionMaterial<EvaluationType> mmfactory(aProblemParams);
   mMaterialModel = mmfactory.create(mSpatialDomain.getMaterialName());
   auto params = aProblemParams.sublist("Criteria").get<Teuchos::ParameterList>(aFunctionName);
   mExponent = params.get<Plato::Scalar>("Exponent");
