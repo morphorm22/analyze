@@ -24,6 +24,8 @@
 #include "WeightedNormalVector.hpp"
 #include "InterpolateFromNodal.hpp"
 
+#include "base/SupportedParamOptions.hpp"
+
 #include "base/WorksetBase.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/base/WorksetBuilder.hpp"
@@ -1418,6 +1420,140 @@ public:
   }
 };
 
+template<typename EvaluationType>
+class NitscheLinearThermal : public Plato::NitscheEvaluator
+{
+private:
+  /// @brief local typename for base class
+  using BaseClassType = Plato::NitscheEvaluator;
+  /// @brief list of nitsche boundary condition evaluators 
+  std::vector<std::shared_ptr<Plato::NitscheEvaluator>> mEvaluators;
+
+public:
+  NitscheLinearThermal(
+    const Teuchos::ParameterList& aParamList,
+    const Teuchos::ParameterList& aNitscheParams
+  ) : 
+    BaseClassType(aNitscheParams)
+  {
+    // heat flux evaluator
+    //
+    mEvaluators.push_back(
+      std::make_shared<Plato::Elliptic::NitscheHeatFluxEvaluator<EvaluationType>>(aParamList,aNitscheParams)
+    );
+    // virtual heat flux evaluator
+    //
+    mEvaluators.push_back(
+      std::make_shared<Plato::Elliptic::NitscheVirtualHeatFluxEvaluator<EvaluationType>>(aParamList,aNitscheParams)
+    );
+    // temperature misfit evaluator
+    //
+    mEvaluators.push_back(
+      std::make_shared<Plato::Elliptic::NitscheTempMisfitEvaluator<EvaluationType>>(aParamList,aNitscheParams)
+    );
+  }
+
+  void 
+  evaluate(
+    const Plato::SpatialModel & aSpatialModel,
+    const Plato::WorkSets     & aWorkSets,
+          Plato::Scalar         aCycle = 0.0,
+          Plato::Scalar         aScale = 1.0
+  )
+  {
+    if(mEvaluators.empty()){
+      ANALYZE_THROWERR( std::string("ERROR: Found an empty list of Nitsche evaluators, weak Dirichlet boundary " )
+        + "conditions cannot be enforced" )
+    }
+    for(auto& tEvaluator : mEvaluators){
+      tEvaluator->evaluate(aSpatialModel,aWorkSets,aCycle,aScale);
+    }
+  }
+};
+
+template<typename EvaluationType>
+class NitscheLinearMechanical : public Plato::NitscheEvaluator
+{
+private:
+  /// @brief local typename for base class
+  using BaseClassType = Plato::NitscheEvaluator;
+  /// @brief list of nitsche boundary condition evaluators 
+  std::vector<std::shared_ptr<Plato::NitscheEvaluator>> mEvaluators;
+
+public:
+  NitscheLinearMechanical(
+    const Teuchos::ParameterList& aParamList,
+    const Teuchos::ParameterList& aNitscheParams
+  ) : 
+    BaseClassType(aNitscheParams)
+  {
+    // stress evaluator
+    //
+    mEvaluators.push_back(
+      std::make_shared<Plato::Elliptic::NitscheStressEvaluator<EvaluationType>>(aParamList,aNitscheParams)
+    );
+    // virtual stress evaluator
+    //
+    mEvaluators.push_back(
+      std::make_shared<Plato::Elliptic::NitscheVirtualStressEvaluator<EvaluationType>>(aParamList,aNitscheParams)
+    );
+    // displacement misfit evaluator
+    //
+    mEvaluators.push_back(
+      std::make_shared<Plato::Elliptic::NitscheDispMisfitEvaluator<EvaluationType>>(aParamList,aNitscheParams)
+    );
+  }
+
+  void 
+  evaluate(
+    const Plato::SpatialModel & aSpatialModel,
+    const Plato::WorkSets     & aWorkSets,
+          Plato::Scalar         aCycle = 0.0,
+          Plato::Scalar         aScale = 1.0
+  )
+  {
+    if(mEvaluators.empty()){
+      ANALYZE_THROWERR( std::string("ERROR: Found an empty list of Nitsche evaluators, weak Dirichlet boundary " )
+        + "conditions cannot be enforced" )
+    }
+    for(auto& tEvaluator : mEvaluators){
+      tEvaluator->evaluate(aSpatialModel,aWorkSets,aCycle,aScale);
+    }
+  }
+};
+
+template<typename EvaluationType>
+class FactoryNitscheEvaluator
+{
+public:
+  std::shared_ptr<Plato::NitscheEvaluator>
+  create(
+    const Teuchos::ParameterList& aParamList,
+    const Teuchos::ParameterList& aNitscheParams
+  )
+  {
+    if( !aParamList.isParameter("Physics") ){
+      ANALYZE_THROWERR("ERROR: Argument ('Physics') is not defined, nitsche's evaluator cannot be created")
+    }
+    Plato::PhysicsEnum tS2E;
+    auto tPhysics = aParamList.get<std::string>("Physics");
+    auto tPhysicsEnum = tS2E.physics(tPhysics);
+    switch (tPhysicsEnum)
+    {
+    case Plato::physics_t::THERMAL:
+      return ( std::make_shared<Plato::Elliptic::NitscheLinearThermal<EvaluationType>>(aParamList,aNitscheParams) );
+      break;
+    case Plato::physics_t::MECHANICAL:
+      return ( std::make_shared<Plato::Elliptic::NitscheLinearMechanical<EvaluationType>>(aParamList,aNitscheParams) );
+      break;
+    default:
+      ANALYZE_THROWERR(std::string("ERROR: Physics '") + tPhysics 
+        + "' do not support weak enforcement of the Dirichlet boundary conditions")
+      break;
+    }
+  }
+};
+
 /// @class NitscheBC
 ///
 /// @brief weak enforcement of the diriechlet boundary conditions in linear mechanical problems with nitsche's method:
@@ -1438,9 +1574,7 @@ template<typename EvaluationType>
 class NitscheBC : public NitscheBase
 {
 private:
-  std::shared_ptr<Plato::Elliptic::NitscheStressEvaluator<EvaluationType>>        mStressEvaluator;
-  std::shared_ptr<Plato::Elliptic::NitscheDispMisfitEvaluator<EvaluationType>>    mDispMisfitEvaluator;
-  std::shared_ptr<Plato::Elliptic::NitscheVirtualStressEvaluator<EvaluationType>> mVirtualStressEvaluator;
+  std::shared_ptr<Plato::NitscheEvaluator> mNitscheBC;
 
 public:
   NitscheBC(
@@ -1448,15 +1582,10 @@ public:
     const Teuchos::ParameterList& aNitscheParams
   )
   {
-    mStressEvaluator = 
-      std::make_shared<Plato::Elliptic::NitscheStressEvaluator<EvaluationType>>(aParamList,aNitscheParams);
-    mDispMisfitEvaluator = 
-      std::make_shared<Plato::Elliptic::NitscheDispMisfitEvaluator<EvaluationType>>(aParamList,aNitscheParams);
-    mVirtualStressEvaluator = 
-      std::make_shared<Plato::Elliptic::NitscheVirtualStressEvaluator<EvaluationType>>(aParamList,aNitscheParams);
+    Plato::Elliptic::FactoryNitscheEvaluator<EvaluationType> tFactory;
+    mNitscheBC = tFactory.create(aParamList,aNitscheParams);
   }
-  ~NitscheBC()
-  {}
+  ~NitscheBC(){}
 
   void 
   evaluate(
@@ -1466,9 +1595,7 @@ public:
           Plato::Scalar         aScale = 1.0
   )
   {
-    mStressEvaluator->evaluate(aSpatialModel,aWorkSets,aCycle,aScale);
-    mVirtualStressEvaluator->evaluate(aSpatialModel,aWorkSets,aCycle,aScale);
-    mDispMisfitEvaluator->evaluate(aSpatialModel,aWorkSets,aCycle,aScale);
+    mNitscheBC->evaluate(aSpatialModel,aWorkSets,aCycle,aScale);
   }
 
 };
@@ -2193,7 +2320,7 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheDispMisfitEvaluator )
   }
 }
 
-TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheBC )
+TEUCHOS_UNIT_TEST( EllipticNitscheTests, LinearMechanicalNitscheBC )
 {
   // create input
   //
@@ -2302,26 +2429,26 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheHeatFluxEvaluator )
   //
   Teuchos::RCP<Teuchos::ParameterList> tParamList =
   Teuchos::getParametersFromXmlString(
-    "<ParameterList name='Plato Problem'>                                             \n"
-    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>              \n"
-    "  <Parameter name='Physics' type='string' value='Mechanical'/>                   \n"
+    "<ParameterList name='Plato Problem'>                                              \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>               \n"
+    "  <Parameter name='Physics' type='string' value='Thermal'/>                       \n"
     "  <Parameter name='Weak Essential Boundary Conditions' type='bool' value='true'/> \n"
-    "  <ParameterList name='Spatial Model'>                                           \n"
-    "    <ParameterList name='Domains'>                                               \n"
-    "      <ParameterList name='Design Volume'>                                       \n"
-    "        <Parameter name='Element Block' type='string' value='body'/>             \n"
-    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>     \n"
-    "      </ParameterList>                                                           \n"
-    "    </ParameterList>                                                             \n"
-    "  </ParameterList>                                                               \n"
-    "  <ParameterList name='Material Models'>                                         \n"
-    "    <ParameterList name='Unobtainium'>                                           \n"
-    "      <ParameterList name='Thermal Conduction'>                                  \n"
-    "        <Parameter name='Thermal Conductivity' type='double' value='1.0'/>       \n"
-    "      </ParameterList>                                                           \n"
-    "    </ParameterList>                                                             \n"
-    "  </ParameterList>                                                               \n"
-    "</ParameterList>                                                                 \n"
+    "  <ParameterList name='Spatial Model'>                                            \n"
+    "    <ParameterList name='Domains'>                                                \n"
+    "      <ParameterList name='Design Volume'>                                        \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>              \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>      \n"
+    "      </ParameterList>                                                            \n"
+    "    </ParameterList>                                                              \n"
+    "  </ParameterList>                                                                \n"
+    "  <ParameterList name='Material Models'>                                          \n"
+    "    <ParameterList name='Unobtainium'>                                            \n"
+    "      <ParameterList name='Thermal Conduction'>                                   \n"
+    "        <Parameter name='Thermal Conductivity' type='double' value='1.0'/>        \n"
+    "      </ParameterList>                                                            \n"
+    "    </ParameterList>                                                              \n"
+    "  </ParameterList>                                                                \n"
+    "</ParameterList>                                                                  \n"
     );
   // create mesh
   //
@@ -2400,26 +2527,26 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheVirtualHeatFluxEvaluator )
   //
   Teuchos::RCP<Teuchos::ParameterList> tParamList =
   Teuchos::getParametersFromXmlString(
-    "<ParameterList name='Plato Problem'>                                             \n"
-    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>              \n"
-    "  <Parameter name='Physics' type='string' value='Mechanical'/>                   \n"
+    "<ParameterList name='Plato Problem'>                                              \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>               \n"
+    "  <Parameter name='Physics' type='string' value='Thermal'/>                       \n"
     "  <Parameter name='Weak Essential Boundary Conditions' type='bool' value='true'/> \n"
-    "  <ParameterList name='Spatial Model'>                                           \n"
-    "    <ParameterList name='Domains'>                                               \n"
-    "      <ParameterList name='Design Volume'>                                       \n"
-    "        <Parameter name='Element Block' type='string' value='body'/>             \n"
-    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>     \n"
-    "      </ParameterList>                                                           \n"
-    "    </ParameterList>                                                             \n"
-    "  </ParameterList>                                                               \n"
-    "  <ParameterList name='Material Models'>                                         \n"
-    "    <ParameterList name='Unobtainium'>                                           \n"
-    "      <ParameterList name='Thermal Conduction'>                                  \n"
-    "        <Parameter name='Thermal Conductivity' type='double' value='1.0'/>       \n"
-    "      </ParameterList>                                                           \n"
-    "    </ParameterList>                                                             \n"
-    "  </ParameterList>                                                               \n"
-    "</ParameterList>                                                                 \n"
+    "  <ParameterList name='Spatial Model'>                                            \n"
+    "    <ParameterList name='Domains'>                                                \n"
+    "      <ParameterList name='Design Volume'>                                        \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>              \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>      \n"
+    "      </ParameterList>                                                            \n"
+    "    </ParameterList>                                                              \n"
+    "  </ParameterList>                                                                \n"
+    "  <ParameterList name='Material Models'>                                          \n"
+    "    <ParameterList name='Unobtainium'>                                            \n"
+    "      <ParameterList name='Thermal Conduction'>                                   \n"
+    "        <Parameter name='Thermal Conductivity' type='double' value='1.0'/>        \n"
+    "      </ParameterList>                                                            \n"
+    "    </ParameterList>                                                              \n"
+    "  </ParameterList>                                                                \n"
+    "</ParameterList>                                                                  \n"
     );
   // create mesh
   //
@@ -2503,26 +2630,26 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheTempMisfitEvaluator )
   //
   Teuchos::RCP<Teuchos::ParameterList> tParamList =
   Teuchos::getParametersFromXmlString(
-    "<ParameterList name='Plato Problem'>                                             \n"
-    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>              \n"
-    "  <Parameter name='Physics' type='string' value='Mechanical'/>                   \n"
+    "<ParameterList name='Plato Problem'>                                              \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>               \n"
+    "  <Parameter name='Physics' type='string' value='Thermal'/>                       \n"
     "  <Parameter name='Weak Essential Boundary Conditions' type='bool' value='true'/> \n"
-    "  <ParameterList name='Spatial Model'>                                           \n"
-    "    <ParameterList name='Domains'>                                               \n"
-    "      <ParameterList name='Design Volume'>                                       \n"
-    "        <Parameter name='Element Block' type='string' value='body'/>             \n"
-    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>     \n"
-    "      </ParameterList>                                                           \n"
-    "    </ParameterList>                                                             \n"
-    "  </ParameterList>                                                               \n"
-    "  <ParameterList name='Material Models'>                                         \n"
-    "    <ParameterList name='Unobtainium'>                                           \n"
-    "      <ParameterList name='Thermal Conduction'>                                  \n"
-    "        <Parameter name='Thermal Conductivity' type='double' value='1.0'/>       \n"
-    "      </ParameterList>                                                           \n"
-    "    </ParameterList>                                                             \n"
-    "  </ParameterList>                                                               \n"
-    "</ParameterList>                                                                 \n"
+    "  <ParameterList name='Spatial Model'>                                            \n"
+    "    <ParameterList name='Domains'>                                                \n"
+    "      <ParameterList name='Design Volume'>                                        \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>              \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>      \n"
+    "      </ParameterList>                                                            \n"
+    "    </ParameterList>                                                              \n"
+    "  </ParameterList>                                                                \n"
+    "  <ParameterList name='Material Models'>                                          \n"
+    "    <ParameterList name='Unobtainium'>                                            \n"
+    "      <ParameterList name='Thermal Conduction'>                                   \n"
+    "        <Parameter name='Thermal Conductivity' type='double' value='1.0'/>        \n"
+    "      </ParameterList>                                                            \n"
+    "    </ParameterList>                                                              \n"
+    "  </ParameterList>                                                                \n"
+    "</ParameterList>                                                                  \n"
     );
   // create mesh
   //
@@ -2598,6 +2725,108 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheTempMisfitEvaluator )
       TEST_ASSERT(tDiff < tTol);
     }
   } 
+}
+
+TEUCHOS_UNIT_TEST( EllipticNitscheTests, LinearThermalNitscheBC )
+{
+  // create input
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+  Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                              \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>               \n"
+    "  <Parameter name='Physics' type='string' value='Thermal'/>                       \n"
+    "  <Parameter name='Weak Essential Boundary Conditions' type='bool' value='true'/> \n"
+    "  <ParameterList name='Spatial Model'>                                            \n"
+    "    <ParameterList name='Domains'>                                                \n"
+    "      <ParameterList name='Design Volume'>                                        \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>              \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>      \n"
+    "      </ParameterList>                                                            \n"
+    "    </ParameterList>                                                              \n"
+    "  </ParameterList>                                                                \n"
+    "  <ParameterList name='Material Models'>                                          \n"
+    "    <ParameterList name='Unobtainium'>                                            \n"
+    "      <ParameterList name='Thermal Conduction'>                                   \n"
+    "        <Parameter name='Thermal Conductivity' type='double' value='1.0'/>        \n"
+    "      </ParameterList>                                                            \n"
+    "    </ParameterList>                                                              \n"
+    "  </ParameterList>                                                                \n"
+    "</ParameterList>                                                                  \n"
+    );
+  // create mesh
+  //
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  // create output database and spatial model
+  //
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh,*tParamList,tDataMap);
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  // create evaluation and scalar types
+  //
+  using ElementType = typename Plato::ThermalElement<Plato::Tri3>;  
+  using Residual    = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using StateScalarType  = typename Residual::StateScalarType;
+  using ResultScalarType = typename Residual::ResultScalarType;
+  using ConfigScalarType = typename Residual::ConfigScalarType;
+  TEST_ASSERT(ElementType::mNumDofsPerCell == 3);
+  // create temperature data
+  //
+  Plato::Database tDatabase;
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  Plato::ScalarVector tTemp("Temperature", tNumVerts);
+  Plato::blas1::fill(0.1, tTemp);
+  Kokkos::parallel_for("fill temperature dofs",
+    Kokkos::RangePolicy<>(0, tNumVerts), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+  { tTemp(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  tDatabase.vector("states",tTemp);
+  // create dirichlet temperature data
+  //
+  Plato::ScalarVector tDirichlet("Dirichlet", tNumVerts);
+  Plato::blas1::fill(0.,tDirichlet);
+  tDatabase.vector("dirichlet",tDirichlet);
+  // create workset database
+  //
+  Plato::WorkSets tWorkSets;
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  auto tNumCells = tMesh->NumElements();
+  tWorksetBuilder.build(tNumCells,tDatabase,tWorkSets);
+  // create results workset
+  //
+  auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ResultScalarType> > >
+    ( Plato::ScalarMultiVectorT<ResultScalarType>("Result Workset", tNumCells, ElementType::mNumDofsPerCell) );
+  Kokkos::deep_copy(tResultWS->mData,0.);
+  tWorkSets.set("result",tResultWS);
+  // create inputs for nitsche's method
+  //
+  auto tSideSetName = std::string("y-");
+  Teuchos::ParameterList tNitscheParams;
+  tNitscheParams.set("Sides",tSideSetName);
+  tNitscheParams.set("Material Model",tOnlyDomainDefined.getMaterialName());
+  // create evaluator and evaluate nitsche's stress term
+  //
+  Plato::Elliptic::NitscheBC<Residual> tNitscheBC(*tParamList,tNitscheParams);
+  tNitscheBC.evaluate(tSpatialModel,tWorkSets);
+  // test gold values
+  //
+  constexpr Plato::Scalar tTol = 1e-8;
+  std::vector<std::vector<Plato::Scalar>> tGold = 
+    { {0.11666666667,0.183333333333,0.} };
+  auto tHostResultWS = Kokkos::create_mirror(tResultWS->mData);
+  Kokkos::deep_copy(tHostResultWS,tResultWS->mData);
+  //
+  auto tSideCellOrdinals = tMesh->GetSideSetElements(tSideSetName);
+  Plato::OrdinalType tNumSideCells = tSideCellOrdinals.size();
+  for(Plato::OrdinalType tCell = 0; tCell < tNumSideCells; tCell++){
+    for(Plato::OrdinalType tDof = 0; tDof < ElementType::mNumDofsPerCell; tDof++){
+      auto tDiff = std::abs(tGold[tCell][tDof] - tHostResultWS(tCell,tDof));
+      TEST_ASSERT(tDiff < tTol);
+    }
+  }
 }
 
 } // namespace EllipticNitscheTests
