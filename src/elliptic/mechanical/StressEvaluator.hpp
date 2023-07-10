@@ -35,6 +35,9 @@ protected:
   Plato::DataMap & mDataMap;
 
 public:
+  /// @brief base class constructor
+  StressEvaluator(){}
+
   /// @brief base class construtor
   /// @param [in] aSpatialDomain contains mesh and model information
   /// @param [in] aDataMap       output database
@@ -46,15 +49,15 @@ public:
     mSpatialDomain(aSpatialDomain),
     mDataMap(aDataMap)
   {}
+
   /// @brief base class destructor
-  virtual ~StressEvaluator()
-  {}
+  virtual ~StressEvaluator(){}
 
   /// @fn evaluate
-  /// @brief evaluate second piola-kirchhoff stress tensor
-  /// @param aWorkSets domain and range workset database
-  /// @param aResult   4D scalar container
-  /// @param aCycle    scalar
+  /// @brief evaluate stress tensor - volume integral use case
+  /// @param [in]     aWorkSets domain and range workset database
+  /// @param [in,out] aResult   4D scalar container
+  /// @param [in]     aCycle    scalar
   virtual 
   void 
   evaluate(
