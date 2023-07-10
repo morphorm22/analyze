@@ -14,7 +14,7 @@
 #include "bcs/body/BodyLoads.hpp"
 #include "bcs/neumann/NeumannBCs.hpp"
 #include "elliptic/EvaluationTypes.hpp"
-#include "elliptic/mechanical/nonlinear/StressEvaluator.hpp"
+#include "elliptic/mechanical/StressEvaluator.hpp"
 
 namespace Plato
 {

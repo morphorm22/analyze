@@ -10,7 +10,7 @@
 
 #include "MaterialModel.hpp"
 #include "elliptic/EvaluationTypes.hpp"
-#include "elliptic/mechanical/nonlinear/StressEvaluator.hpp"
+#include "elliptic/mechanical/StressEvaluator.hpp"
 
 namespace Plato
 {

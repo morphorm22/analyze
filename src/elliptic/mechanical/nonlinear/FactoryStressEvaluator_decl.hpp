@@ -8,8 +8,8 @@
 
 #include "SpatialModel.hpp"
 
+#include "elliptic/mechanical/StressEvaluator.hpp"
 #include "elliptic/mechanical/SupportedParamOptions.hpp"
-#include "elliptic/mechanical/nonlinear/StressEvaluator.hpp"
 
 namespace Plato
 {
