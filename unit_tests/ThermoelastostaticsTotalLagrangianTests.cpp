@@ -27,6 +27,7 @@
 #include "elliptic/mechanical/nonlinear/KineticPullBackOperation.hpp"
 
 #include "elliptic/thermomechanics/nonlinear/ThermoMechanics.hpp"
+#include "elliptic/thermomechanics/nonlinear/UtilitiesThermoMechanics.hpp"
 #include "elliptic/thermomechanics/nonlinear/ThermalDeformationGradient.hpp"
 #include "elliptic/thermomechanics/nonlinear/ThermoElasticDeformationGradient.hpp"
 #include "elliptic/thermomechanics/nonlinear/ResidualThermoElastoStaticTotalLagrangian.hpp"
@@ -577,7 +578,7 @@ TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, NominalStressTensor )
   }
 }
 
-TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, get_cell_2PKS )
+TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, getCell2PKS )
 {
   //set ad-types
   using ElementType = typename Plato::ThermoElasticElement<Plato::Tri3>;  
@@ -608,7 +609,7 @@ TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, get_cell_2PKS )
   {
 
     Plato::Matrix<ElementType::mNumSpatialDims,ElementType::mNumSpatialDims> tCell2PKS(0.);
-    Plato::Elliptic::get_cell_2PKS(iCellOrdinal,iGpOrdinal,t2PKS_WS,tCell2PKS);
+    Plato::Elliptic::getCell2PKS(iCellOrdinal,iGpOrdinal,t2PKS_WS,tCell2PKS);
     // copy output to result workset
     for( Plato::OrdinalType tDimI = 0; tDimI < ElementType::mNumSpatialDims; tDimI++){
       for( Plato::OrdinalType tDimJ = 0; tDimJ < ElementType::mNumSpatialDims; tDimJ++){

@@ -15,6 +15,7 @@
 #include "elliptic/mechanical/nonlinear/DeformationGradient.hpp"
 #include "elliptic/mechanical/nonlinear/FactoryStressEvaluator.hpp"
 #include "elliptic/mechanical/nonlinear/KineticPullBackOperation.hpp"
+#include "elliptic/thermomechanics/nonlinear/UtilitiesThermoMechanics.hpp"
 #include "elliptic/thermomechanics/nonlinear/ThermalDeformationGradient.hpp"
 #include "elliptic/thermomechanics/nonlinear/ThermoElasticDeformationGradient.hpp"
 
@@ -125,7 +126,7 @@ evaluate(
     tComputeThermoElasticDeformationGradient(tThermalDefGradient,tMechanicalDefGradient,tThermoElasticDefGradient);
     // pull back second Piola-Kirchhoff stress from deformed to undeformed configuration
     Plato::Matrix<mNumSpatialDims,mNumSpatialDims,ResultScalarType> tDefConfig2PKS(ResultScalarType(0.));
-    Plato::Elliptic::get_cell_2PKS<mNumSpatialDims>(iCellOrdinal,iGpOrdinal,t2PKS_WS,tDefConfig2PKS);
+    Plato::Elliptic::getCell2PKS<mNumSpatialDims>(iCellOrdinal,iGpOrdinal,t2PKS_WS,tDefConfig2PKS);
     Plato::Matrix<mNumSpatialDims,mNumSpatialDims,ResultScalarType> tUnDefConfig2PKS(ResultScalarType(0.));
     tApplyKineticPullBackOperation(tThermalDefGradient,tDefConfig2PKS,tUnDefConfig2PKS);
     // compute nominal stress

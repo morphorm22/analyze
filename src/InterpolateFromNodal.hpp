@@ -25,18 +25,34 @@ template<typename ElementType,
          Plato::OrdinalType NumDofs=1>
 class InterpolateFromNodal : public ElementType
 {
-    using ElementType::mNumNodesPerCell;
+private:
+  using ElementType::mNumNodesPerCell;
 
 public:
-    /*******************************************************************************
-    * 
-    * \brief Constructor
-    *
-    *******************************************************************************/
-    InterpolateFromNodal()
+  /// @brief class constructor
+  InterpolateFromNodal(){}
+
+  /// @brief interpolate test (virtual) field from nodes to integration point
+  /// @param aCellOrdinal     local cell ordinal
+  /// @param aBasisFunctions  interpolation functions
+  /// @return interpolated test field
+  KOKKOS_INLINE_FUNCTION 
+  Plato::Scalar
+  operator()(
+    const Plato::OrdinalType             & aCellOrdinal,
+    const Plato::Array<mNumNodesPerCell> & aBasisFunctions) 
+  const
+  {
+    Plato::Scalar tOne(1.0);
+    Plato::Scalar tStateValue = 0.0;
+    for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
     {
+      Plato::OrdinalType tCellDofIndex = (NumDofsPerNode * tNodeIndex) + DofOffset;
+      tStateValue += aBasisFunctions(tNodeIndex) * tOne;
     }
-    
+    return tStateValue;
+  }
+
     /*******************************************************************************
     * 
     * \brief Compute state values at cubature points 

@@ -24,7 +24,7 @@ class FactoryNonlinearElasticMaterial
 {
 private:
     /// @brief const reference to input problem parameter list
-    const Teuchos::ParameterList& mParamList;
+    Teuchos::ParameterList& mParamList;
     /// @brief supported mechanical materials interface
     Plato::Elliptic::mechanical::MaterialEnum mS2E;
 
