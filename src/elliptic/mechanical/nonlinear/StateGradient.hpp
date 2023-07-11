@@ -34,7 +34,7 @@ private:
 
 public:
   /// @fn operator()()
-  /// @brief compute state gradient
+  /// @brief compute trial state gradient
   /// @param [in]     aCellIndex local element ordinal
   /// @param [in]     aStates    2D state workset
   /// @param [in]     aGradient  gradient functions
@@ -60,6 +60,34 @@ public:
       }
     }
   }
+
+  /// @fn operator()()
+  /// @brief compute test state gradient
+  /// @param [in]     aCellIndex local element ordinal
+  /// @param [in]     aGradient  gradient functions
+  /// @param [in,out] aStateGrad state gradient
+  KOKKOS_INLINE_FUNCTION
+  void 
+  operator()(
+    const Plato::OrdinalType                                               & aCellIndex,
+    const Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> & aGradient,
+          Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType>  & aStateGrad
+  ) const
+  {
+    constexpr Plato::Scalar tOne(1.0);
+    for(Plato::OrdinalType tNode = 0; tNode < mNumNodesPerCell; tNode++)
+    {
+      for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++)
+      {
+        Plato::OrdinalType tDof = (tNode * mNumDofsPerNode) + tDimI;
+        for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++)
+        {
+          aStateGrad(tDimI,tDimJ) += tOne * aGradient(tNode,tDimJ);
+        }
+      }
+    }
+  }
+
 };
 
 }

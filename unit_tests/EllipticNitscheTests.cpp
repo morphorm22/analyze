@@ -33,7 +33,16 @@
 #include "elliptic/thermal/Thermal.hpp"
 #include "elliptic/mechanical/StressEvaluator.hpp"
 #include "elliptic/mechanical/linear/Mechanics.hpp"
+#include "elliptic/mechanical/SupportedParamOptions.hpp"
 #include "elliptic/thermal/FactoryThermalConductionMaterial.hpp"
+
+#include "elliptic/mechanical/nonlinear/StateGradient.hpp"
+#include "elliptic/mechanical/nonlinear/NominalStressTensor.hpp"
+#include "elliptic/mechanical/nonlinear/DeformationGradient.hpp"
+#include "elliptic/mechanical/nonlinear/GreenLagrangeStrainTensor.hpp"
+#include "elliptic/mechanical/nonlinear/KirchhoffSecondPiolaStress.hpp"
+#include "elliptic/mechanical/nonlinear/NeoHookeanSecondPiolaStress.hpp"
+#include "elliptic/mechanical/nonlinear/FactoryNonlinearElasticMaterial.hpp"
 
 /// @include analyze unit test includes
 #include "util/PlatoTestHelpers.hpp"
@@ -306,6 +315,8 @@ public:
     }
   }
 };
+
+
 
 template<typename EvaluationType>
 class ComputeSideCellVolumes
@@ -620,7 +631,7 @@ private:
 };
 
 template<typename EvaluationType>
-class BoundarEvaluatorIsotropicElasticTrialStress : public Plato::BoundaryFluxEvaluator<EvaluationType>
+class BoundarEvaluatoryTrialIsotropicElasticStress : public Plato::BoundaryFluxEvaluator<EvaluationType>
 {
 private:
   /// @brief topological element typename
@@ -650,7 +661,7 @@ private:
   using BaseClassType::mMaterialName;
 
 public:
-  BoundarEvaluatorIsotropicElasticTrialStress(
+  BoundarEvaluatoryTrialIsotropicElasticStress(
     const Teuchos::ParameterList& aParamList,
     const Teuchos::ParameterList& aNitscheParams
   ) : 
@@ -680,7 +691,7 @@ public:
     auto tSideLocalFaceOrds = aSpatialModel.Mesh->GetSideSetFaces(mSideSetName);
     // create local functors
     //
-    Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
+    Plato::ComputeGradientMatrix<BodyElementBase> tComputeGradient;
     Plato::ComputeStrainTensor<EvaluationType> tComputeStrainTensor;
     Plato::ComputeIsotropicElasticStressTensor<EvaluationType> tComputeStressTensor(mMaterialModel.operator*());
     // get integration points and weights
@@ -725,7 +736,7 @@ public:
 };
 
 template<typename EvaluationType>
-class BoundarEvaluatorIsotropicElasticTestStress : public Plato::BoundaryFluxEvaluator<EvaluationType>
+class BoundarEvaluatoryTestIsotropicElasticStress : public Plato::BoundaryFluxEvaluator<EvaluationType>
 {
 private:
   /// @brief topological element typename
@@ -755,7 +766,7 @@ private:
   using BaseClassType::mMaterialName;
 
 public:
-  BoundarEvaluatorIsotropicElasticTestStress(
+  BoundarEvaluatoryTestIsotropicElasticStress(
     const Teuchos::ParameterList& aParamList,
     const Teuchos::ParameterList& aNitscheParams
   ) : 
@@ -777,15 +788,13 @@ public:
     //
     Plato::ScalarArray3DT<ConfigScalarType> tConfigWS  = 
       Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
-    Plato::ScalarMultiVectorT<StateScalarType> tStateWS = 
-      Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
     // get side set connectivity information
     //
     auto tSideCellOrdinals  = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
     auto tSideLocalFaceOrds = aSpatialModel.Mesh->GetSideSetFaces(mSideSetName);
     // create local functors
     //
-    Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
+    Plato::ComputeGradientMatrix<BodyElementBase> tComputeGradient;
     Plato::ComputeStrainTensor<EvaluationType> tComputeStrainTensor;
     Plato::ComputeIsotropicElasticStressTensor<EvaluationType> tComputeStressTensor(mMaterialModel.operator*());
     // get integration points and weights
@@ -829,12 +838,494 @@ public:
   }
 };
 
+template<typename EvaluationType>
+class BoundaryEvaluatoryTrialKirchhoffStress : public Plato::BoundaryFluxEvaluator<EvaluationType>
+{
+private:
+  /// @brief topological element typename
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief local topological parent body and face element typenames
+  using BodyElementBase = typename EvaluationType::ElementType;
+  using FaceElementBase = typename BodyElementBase::Face;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims = BodyElementBase::mNumSpatialDims;
+  /// @brief number of nodes per parent body element
+  static constexpr auto mNumNodesPerCell = BodyElementBase::mNumNodesPerCell;
+  /// @brief number of integration points per parent body element surface
+  static constexpr auto mNumGaussPointsPerFace = BodyElementBase::mNumGaussPointsPerFace;
+  /// @brief scalar types for an evaluation type
+  using StateScalarType   = typename EvaluationType::StateScalarType;
+  using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  using ControlScalarType = typename EvaluationType::ControlScalarType;
+  using StrainScalarType  = typename Plato::fad_type_t<ElementType,StateScalarType,ConfigScalarType>;
+  /// @brief material constitutive model interface
+  std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;
+  /// @brief local typename for base class
+  using BaseClassType = Plato::BoundaryFluxEvaluator<EvaluationType>;
+  /// @brief side set name where dirichlet boundary conditions are 
+  using BaseClassType::mSideSetName;
+  /// @brief name assigned to the material constitutive model
+  using BaseClassType::mMaterialName;
+
+public:
+  BoundaryEvaluatoryTrialKirchhoffStress(
+    const Teuchos::ParameterList& aParamList,
+    const Teuchos::ParameterList& aNitscheParams
+  ) : 
+    BaseClassType(aNitscheParams)
+  {
+    Plato::FactoryNonlinearElasticMaterial<EvaluationType> tFactory(aParamList);
+    mMaterialModel = tFactory.create(mMaterialName);
+  }
+
+  void 
+  evaluate(
+    const Plato::SpatialModel                     & aSpatialModel,
+    const Plato::WorkSets                         & aWorkSets,
+          Plato::ScalarArray4DT<ResultScalarType> & aResult,
+          Plato::Scalar                             aCycle
+  ) const
+  {
+    // unpack worksets
+    //
+    Plato::ScalarArray3DT<ConfigScalarType> tConfigWS  = 
+      Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+    Plato::ScalarMultiVectorT<StateScalarType> tStateWS = 
+      Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
+    // get side set connectivity information
+    //
+    auto tSideCellOrdinals  = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
+    auto tSideLocalFaceOrds = aSpatialModel.Mesh->GetSideSetFaces(mSideSetName);
+    // create local functors
+    //
+    Plato::StateGradient<EvaluationType> tComputeStateGradient;
+    Plato::ComputeGradientMatrix<BodyElementBase> tComputeGradient;
+    Plato::DeformationGradient<EvaluationType> tComputeDeformationGradient;
+    Plato::GreenLagrangeStrainTensor<EvaluationType> tGreenLagrangeStrainTensor;
+    Plato::KirchhoffSecondPiolaStress<EvaluationType> tComputeSecondPiolaKirchhoffStress(*mMaterialModel);
+    // get integration points and weights
+    //
+    auto tCubPointsOnParentFaceElem = FaceElementBase::getCubPoints();
+    auto tCubPointsOnParentBodyElemSurfaces = BodyElementBase::getFaceCubPoints();
+    auto tCubWeightsOnParentBodyElemSurface = BodyElementBase::getFaceCubWeights();
+    // evaluate integral
+    //
+    Plato::OrdinalType tNumCellsOnSideSet = tSideCellOrdinals.size();
+    Kokkos::parallel_for("boundary test stress evaluator", 
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumCellsOnSideSet, mNumGaussPointsPerFace}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
+    {
+      // quadrature data to evaluate integral on the body surface of interest
+      //
+      Plato::Array<mNumSpatialDims> tCubPointOnParentBodyElemSurface;
+      Plato::OrdinalType tLocalFaceOrdinal = tSideLocalFaceOrds(aSideOrdinal);
+      auto tCubPointsOnBodyParentElemSurface = tCubPointsOnParentBodyElemSurfaces(tLocalFaceOrdinal);
+      for( Plato::OrdinalType tDim=0; tDim < mNumSpatialDims; tDim++ ){
+        Plato::OrdinalType tIndex = BodyElementBase::mNumGaussPointsPerFace * aPointOrdinal + tDim;
+        tCubPointOnParentBodyElemSurface(tDim) = tCubPointsOnBodyParentElemSurface(tIndex);
+      }
+      // compute gradient of interpolation functions
+      //
+      ConfigScalarType tVolume(0.0);
+      auto tCellOrdinal = tSideCellOrdinals(aSideOrdinal);
+      Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient;
+      tComputeGradient(tCellOrdinal,tCubPointOnParentBodyElemSurface,tConfigWS,tGradient,tVolume);
+      // compute state gradient
+      //
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> 
+        tStateGradient(StrainScalarType(0.));
+      tComputeStateGradient(tCellOrdinal,tStateWS,tGradient,tStateGradient);
+      // compute deformation gradient 
+      //
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> 
+        tDefGradient(StrainScalarType(0.));
+      tComputeDeformationGradient(tStateGradient,tDefGradient);
+      // compute green-lagrange strain tensor
+      //
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> 
+        tStrainTensor(StrainScalarType(0.));
+      tGreenLagrangeStrainTensor(tStateGradient,tStrainTensor);
+      // compute second piola-kirchhoff stress
+      //
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,ResultScalarType> 
+        tStressTensor2PK(ResultScalarType(0.));
+      tComputeSecondPiolaKirchhoffStress(tStrainTensor,tStressTensor2PK);
+      // copy stress tensor to output workset
+      //
+      for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
+        for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
+          aResult(tCellOrdinal,aPointOrdinal,tDimI,tDimJ) = tStressTensor2PK(tDimI,tDimJ);
+        }
+      }
+    });
+  }
+};
+
+template<typename EvaluationType>
+class BoundaryEvaluatorTestKirchhoffStress : public Plato::BoundaryFluxEvaluator<EvaluationType>
+{
+private:
+  /// @brief topological element typename
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief local topological parent body and face element typenames
+  using BodyElementBase = typename EvaluationType::ElementType;
+  using FaceElementBase = typename BodyElementBase::Face;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims = BodyElementBase::mNumSpatialDims;
+  /// @brief number of nodes per parent body element
+  static constexpr auto mNumNodesPerCell = BodyElementBase::mNumNodesPerCell;
+  /// @brief number of integration points per parent body element surface
+  static constexpr auto mNumGaussPointsPerFace = BodyElementBase::mNumGaussPointsPerFace;
+  /// @brief scalar types for an evaluation type
+  using StateScalarType   = typename EvaluationType::StateScalarType;
+  using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  using ControlScalarType = typename EvaluationType::ControlScalarType;
+  using StrainScalarType  = typename Plato::fad_type_t<ElementType,StateScalarType,ConfigScalarType>;
+  /// @brief material constitutive model interface
+  std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;
+  /// @brief local typename for base class
+  using BaseClassType = Plato::BoundaryFluxEvaluator<EvaluationType>;
+  /// @brief side set name where dirichlet boundary conditions are 
+  using BaseClassType::mSideSetName;
+  /// @brief name assigned to the material constitutive model
+  using BaseClassType::mMaterialName;
+
+public:
+  BoundaryEvaluatorTestKirchhoffStress(
+    const Teuchos::ParameterList& aParamList,
+    const Teuchos::ParameterList& aNitscheParams
+  ) : 
+    BaseClassType(aNitscheParams)
+  {
+    Plato::FactoryNonlinearElasticMaterial<EvaluationType> tFactory(aParamList);
+    mMaterialModel = tFactory.create(mMaterialName);
+  }
+
+  void 
+  evaluate(
+    const Plato::SpatialModel                     & aSpatialModel,
+    const Plato::WorkSets                         & aWorkSets,
+          Plato::ScalarArray4DT<ResultScalarType> & aResult,
+          Plato::Scalar                             aCycle
+  ) const
+  {
+    // unpack worksets
+    //
+    Plato::ScalarArray3DT<ConfigScalarType> tConfigWS  = 
+      Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+    // get side set connectivity information
+    //
+    auto tSideCellOrdinals  = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
+    auto tSideLocalFaceOrds = aSpatialModel.Mesh->GetSideSetFaces(mSideSetName);
+    // create local functors
+    //
+    Plato::StateGradient<EvaluationType> tComputeStateGradient;
+    Plato::ComputeGradientMatrix<BodyElementBase> tComputeGradient;
+    Plato::DeformationGradient<EvaluationType> tComputeDeformationGradient;
+    Plato::GreenLagrangeStrainTensor<EvaluationType> tGreenLagrangeStrainTensor;
+    Plato::KirchhoffSecondPiolaStress<EvaluationType> tComputeSecondPiolaKirchhoffStress(*mMaterialModel);
+    // get integration points and weights
+    //
+    auto tCubPointsOnParentFaceElem = FaceElementBase::getCubPoints();
+    auto tCubPointsOnParentBodyElemSurfaces = BodyElementBase::getFaceCubPoints();
+    auto tCubWeightsOnParentBodyElemSurface = BodyElementBase::getFaceCubWeights();
+    // evaluate integral
+    //
+    Plato::OrdinalType tNumCellsOnSideSet = tSideCellOrdinals.size();
+    Kokkos::parallel_for("boundary test stress evaluator", 
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumCellsOnSideSet, mNumGaussPointsPerFace}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
+    {
+      // quadrature data to evaluate integral on the body surface of interest
+      //
+      Plato::Array<mNumSpatialDims> tCubPointOnParentBodyElemSurface;
+      Plato::OrdinalType tLocalFaceOrdinal = tSideLocalFaceOrds(aSideOrdinal);
+      auto tCubPointsOnBodyParentElemSurface = tCubPointsOnParentBodyElemSurfaces(tLocalFaceOrdinal);
+      for( Plato::OrdinalType tDim=0; tDim < mNumSpatialDims; tDim++ ){
+        Plato::OrdinalType tIndex = BodyElementBase::mNumGaussPointsPerFace * aPointOrdinal + tDim;
+        tCubPointOnParentBodyElemSurface(tDim) = tCubPointsOnBodyParentElemSurface(tIndex);
+      }
+      // compute gradient of interpolation functions
+      //
+      ConfigScalarType tVolume(0.0);
+      auto tCellOrdinal = tSideCellOrdinals(aSideOrdinal);
+      Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient;
+      tComputeGradient(tCellOrdinal,tCubPointOnParentBodyElemSurface,tConfigWS,tGradient,tVolume);
+      // compute state gradient
+      //
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> 
+        tStateGradient(StrainScalarType(0.));
+      tComputeStateGradient(tCellOrdinal,tGradient,tStateGradient);
+      // compute deformation gradient 
+      //
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> 
+        tDefGradient(StrainScalarType(0.));
+      tComputeDeformationGradient(tStateGradient,tDefGradient);
+      // compute green-lagrange strain tensor
+      //
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> 
+        tStrainTensor(StrainScalarType(0.));
+      tGreenLagrangeStrainTensor(tStateGradient,tStrainTensor);
+      // compute second piola-kirchhoff stress
+      //
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,ResultScalarType> 
+        tStressTensor2PK(ResultScalarType(0.));
+      tComputeSecondPiolaKirchhoffStress(tStrainTensor,tStressTensor2PK);
+      // copy stress tensor to output workset
+      //
+      for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
+        for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
+          aResult(tCellOrdinal,aPointOrdinal,tDimI,tDimJ) = tStressTensor2PK(tDimI,tDimJ);
+        }
+      }
+    });
+  }
+};
+
+
+template<typename EvaluationType>
+class BoundaryEvaluatorTrialNeoHookeanStress : public Plato::BoundaryFluxEvaluator<EvaluationType>
+{
+private:
+  /// @brief topological element typename
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief local topological parent body and face element typenames
+  using BodyElementBase = typename EvaluationType::ElementType;
+  using FaceElementBase = typename BodyElementBase::Face;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims = BodyElementBase::mNumSpatialDims;
+  /// @brief number of nodes per parent body element
+  static constexpr auto mNumNodesPerCell = BodyElementBase::mNumNodesPerCell;
+  /// @brief number of integration points per parent body element surface
+  static constexpr auto mNumGaussPointsPerFace = BodyElementBase::mNumGaussPointsPerFace;
+  /// @brief scalar types for an evaluation type
+  using StateScalarType   = typename EvaluationType::StateScalarType;
+  using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  using ControlScalarType = typename EvaluationType::ControlScalarType;
+  using StrainScalarType  = typename Plato::fad_type_t<ElementType,StateScalarType,ConfigScalarType>;
+  /// @brief material constitutive model interface
+  std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;
+  /// @brief local typename for base class
+  using BaseClassType = Plato::BoundaryFluxEvaluator<EvaluationType>;
+  /// @brief side set name where dirichlet boundary conditions are 
+  using BaseClassType::mSideSetName;
+  /// @brief name assigned to the material constitutive model
+  using BaseClassType::mMaterialName;
+
+public:
+  BoundaryEvaluatorTrialNeoHookeanStress(
+    const Teuchos::ParameterList& aParamList,
+    const Teuchos::ParameterList& aNitscheParams
+  ) : 
+    BaseClassType(aNitscheParams)
+  {
+    Plato::FactoryNonlinearElasticMaterial<EvaluationType> tFactory(aParamList);
+    mMaterialModel = tFactory.create(mMaterialName);
+  }
+
+  void 
+  evaluate(
+    const Plato::SpatialModel                     & aSpatialModel,
+    const Plato::WorkSets                         & aWorkSets,
+          Plato::ScalarArray4DT<ResultScalarType> & aResult,
+          Plato::Scalar                             aCycle
+  ) const
+  {
+    // unpack worksets
+    //
+    Plato::ScalarArray3DT<ConfigScalarType> tConfigWS  = 
+      Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+    Plato::ScalarMultiVectorT<StateScalarType> tStateWS = 
+      Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
+    // get side set connectivity information
+    //
+    auto tSideCellOrdinals  = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
+    auto tSideLocalFaceOrds = aSpatialModel.Mesh->GetSideSetFaces(mSideSetName);
+    // create local functors
+    //
+    Plato::StateGradient<EvaluationType> tComputeStateGradient;
+    Plato::ComputeGradientMatrix<BodyElementBase> tComputeGradient;
+    Plato::DeformationGradient<EvaluationType> tComputeDeformationGradient;
+    Plato::NeoHookeanSecondPiolaStress<EvaluationType> tComputeSecondPiolaKirchhoffStress(*mMaterialModel);
+    // get integration points and weights
+    //
+    auto tCubPointsOnParentFaceElem = FaceElementBase::getCubPoints();
+    auto tCubPointsOnParentBodyElemSurfaces = BodyElementBase::getFaceCubPoints();
+    auto tCubWeightsOnParentBodyElemSurface = BodyElementBase::getFaceCubWeights();
+    // evaluate integral
+    //
+    Plato::OrdinalType tNumCellsOnSideSet = tSideCellOrdinals.size();
+    Kokkos::parallel_for("boundary test stress evaluator", 
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumCellsOnSideSet, mNumGaussPointsPerFace}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
+    {
+      // quadrature data to evaluate integral on the body surface of interest
+      //
+      Plato::Array<mNumSpatialDims> tCubPointOnParentBodyElemSurface;
+      Plato::OrdinalType tLocalFaceOrdinal = tSideLocalFaceOrds(aSideOrdinal);
+      auto tCubPointsOnBodyParentElemSurface = tCubPointsOnParentBodyElemSurfaces(tLocalFaceOrdinal);
+      for( Plato::OrdinalType tDim=0; tDim < mNumSpatialDims; tDim++ ){
+        Plato::OrdinalType tIndex = BodyElementBase::mNumGaussPointsPerFace * aPointOrdinal + tDim;
+        tCubPointOnParentBodyElemSurface(tDim) = tCubPointsOnBodyParentElemSurface(tIndex);
+      }
+      // compute gradient of interpolation functions
+      //
+      ConfigScalarType tVolume(0.0);
+      auto tCellOrdinal = tSideCellOrdinals(aSideOrdinal);
+      Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient;
+      tComputeGradient(tCellOrdinal,tCubPointOnParentBodyElemSurface,tConfigWS,tGradient,tVolume);
+      // compute state gradient
+      //
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> 
+        tStateGradient(StrainScalarType(0.));
+      tComputeStateGradient(tCellOrdinal,tStateWS,tGradient,tStateGradient);
+      // compute deformation gradient 
+      //
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> 
+        tDefGradient(StrainScalarType(0.));
+      tComputeDeformationGradient(tStateGradient,tDefGradient);
+      // compute second piola-kirchhoff stress
+      //
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,ResultScalarType> 
+        tStressTensor2PK(ResultScalarType(0.));
+      tComputeSecondPiolaKirchhoffStress(tDefGradient,tStressTensor2PK);
+      // copy stress tensor to output workset
+      //
+      for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
+        for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
+          aResult(tCellOrdinal,aPointOrdinal,tDimI,tDimJ) = tStressTensor2PK(tDimI,tDimJ);
+        }
+      }
+    });
+  }
+};
+
+
+template<typename EvaluationType>
+class BoundaryEvaluatorTestNeoHookeanStress : public Plato::BoundaryFluxEvaluator<EvaluationType>
+{
+private:
+  /// @brief topological element typename
+  using ElementType = typename EvaluationType::ElementType;
+  /// @brief local topological parent body and face element typenames
+  using BodyElementBase = typename EvaluationType::ElementType;
+  using FaceElementBase = typename BodyElementBase::Face;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims = BodyElementBase::mNumSpatialDims;
+  /// @brief number of nodes per parent body element
+  static constexpr auto mNumNodesPerCell = BodyElementBase::mNumNodesPerCell;
+  /// @brief number of integration points per parent body element surface
+  static constexpr auto mNumGaussPointsPerFace = BodyElementBase::mNumGaussPointsPerFace;
+  /// @brief scalar types for an evaluation type
+  using StateScalarType   = typename EvaluationType::StateScalarType;
+  using ConfigScalarType  = typename EvaluationType::ConfigScalarType;
+  using ResultScalarType  = typename EvaluationType::ResultScalarType;
+  using ControlScalarType = typename EvaluationType::ControlScalarType;
+  using StrainScalarType  = typename Plato::fad_type_t<ElementType,StateScalarType,ConfigScalarType>;
+  /// @brief material constitutive model interface
+  std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;
+  /// @brief local typename for base class
+  using BaseClassType = Plato::BoundaryFluxEvaluator<EvaluationType>;
+  /// @brief side set name where dirichlet boundary conditions are 
+  using BaseClassType::mSideSetName;
+  /// @brief name assigned to the material constitutive model
+  using BaseClassType::mMaterialName;
+
+public:
+  BoundaryEvaluatorTestNeoHookeanStress(
+    const Teuchos::ParameterList& aParamList,
+    const Teuchos::ParameterList& aNitscheParams
+  ) : 
+    BaseClassType(aNitscheParams)
+  {
+    Plato::FactoryNonlinearElasticMaterial<EvaluationType> tFactory(aParamList);
+    mMaterialModel = tFactory.create(mMaterialName);
+  }
+
+  void 
+  evaluate(
+    const Plato::SpatialModel                     & aSpatialModel,
+    const Plato::WorkSets                         & aWorkSets,
+          Plato::ScalarArray4DT<ResultScalarType> & aResult,
+          Plato::Scalar                             aCycle
+  ) const
+  {
+    // unpack worksets
+    //
+    Plato::ScalarArray3DT<ConfigScalarType> tConfigWS  = 
+      Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+    // get side set connectivity information
+    //
+    auto tSideCellOrdinals  = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
+    auto tSideLocalFaceOrds = aSpatialModel.Mesh->GetSideSetFaces(mSideSetName);
+    // create local functors
+    //
+    Plato::StateGradient<EvaluationType> tComputeStateGradient;
+    Plato::ComputeGradientMatrix<BodyElementBase> tComputeGradient;
+    Plato::DeformationGradient<EvaluationType> tComputeDeformationGradient;
+    Plato::NeoHookeanSecondPiolaStress<EvaluationType> tComputeSecondPiolaKirchhoffStress(*mMaterialModel);
+    // get integration points and weights
+    //
+    auto tCubPointsOnParentFaceElem = FaceElementBase::getCubPoints();
+    auto tCubPointsOnParentBodyElemSurfaces = BodyElementBase::getFaceCubPoints();
+    auto tCubWeightsOnParentBodyElemSurface = BodyElementBase::getFaceCubWeights();
+    // evaluate integral
+    //
+    Plato::OrdinalType tNumCellsOnSideSet = tSideCellOrdinals.size();
+    Kokkos::parallel_for("boundary test stress evaluator", 
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumCellsOnSideSet, mNumGaussPointsPerFace}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
+    {
+      // quadrature data to evaluate integral on the body surface of interest
+      //
+      Plato::Array<mNumSpatialDims> tCubPointOnParentBodyElemSurface;
+      Plato::OrdinalType tLocalFaceOrdinal = tSideLocalFaceOrds(aSideOrdinal);
+      auto tCubPointsOnBodyParentElemSurface = tCubPointsOnParentBodyElemSurfaces(tLocalFaceOrdinal);
+      for( Plato::OrdinalType tDim=0; tDim < mNumSpatialDims; tDim++ ){
+        Plato::OrdinalType tIndex = BodyElementBase::mNumGaussPointsPerFace * aPointOrdinal + tDim;
+        tCubPointOnParentBodyElemSurface(tDim) = tCubPointsOnBodyParentElemSurface(tIndex);
+      }
+      // compute gradient of interpolation functions
+      //
+      ConfigScalarType tVolume(0.0);
+      auto tCellOrdinal = tSideCellOrdinals(aSideOrdinal);
+      Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient;
+      tComputeGradient(tCellOrdinal,tCubPointOnParentBodyElemSurface,tConfigWS,tGradient,tVolume);
+      // compute state gradient
+      //
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> 
+        tStateGradient(StrainScalarType(0.));
+      tComputeStateGradient(tCellOrdinal,tGradient,tStateGradient);
+      // compute deformation gradient 
+      //
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> 
+        tDefGradient(StrainScalarType(0.));
+      tComputeDeformationGradient(tStateGradient,tDefGradient);
+      // compute second piola-kirchhoff stress
+      //
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,ResultScalarType> 
+        tStressTensor2PK(ResultScalarType(0.));
+      tComputeSecondPiolaKirchhoffStress(tDefGradient,tStressTensor2PK);
+      // copy stress tensor to output workset
+      //
+      for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
+        for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
+          aResult(tCellOrdinal,aPointOrdinal,tDimI,tDimJ) = tStressTensor2PK(tDimI,tDimJ);
+        }
+      }
+    });
+  }
+};
+
 namespace Elliptic
 {
   
 
 template<typename EvaluationType>
-class NitscheStressEvaluator : public Plato::NitscheEvaluator
+class NitscheTrialElasticStressEvaluator : public Plato::NitscheEvaluator
 {
 private:
   /// @brief local topological parent body and face element typenames
@@ -862,10 +1353,10 @@ private:
   using ConfigScalarType = typename EvaluationType::ConfigScalarType;
   using StrainScalarType = typename Plato::fad_type_t<BodyElementBase,StateScalarType,ConfigScalarType>;
   /// @brief evaluates boundary trial and test stress tensors
-  std::shared_ptr<Plato::BoundarEvaluatorIsotropicElasticTrialStress<EvaluationType>> mBoundaryStressEvaluator;
+  std::shared_ptr<Plato::BoundarEvaluatoryTrialIsotropicElasticStress<EvaluationType>> mBoundaryStressEvaluator;
 
 public:
-  NitscheStressEvaluator(
+  NitscheTrialElasticStressEvaluator(
     const Teuchos::ParameterList& aParamList,
     const Teuchos::ParameterList& aNitscheParams
   ) : 
@@ -874,9 +1365,9 @@ public:
     // create boundary stress evaluator
     //
     mBoundaryStressEvaluator = 
-      std::make_shared<Plato::BoundarEvaluatorIsotropicElasticTrialStress<EvaluationType>>(aParamList,aNitscheParams);
+      std::make_shared<Plato::BoundarEvaluatoryTrialIsotropicElasticStress<EvaluationType>>(aParamList,aNitscheParams);
   }
-  ~NitscheStressEvaluator()
+  ~NitscheTrialElasticStressEvaluator()
   {}
 
   void 
@@ -962,7 +1453,7 @@ public:
 };
 
 template<typename EvaluationType>
-class NitscheVirtualStressEvaluator : public Plato::NitscheEvaluator
+class NitscheTestElasticStressEvaluator : public Plato::NitscheEvaluator
 {
 private:
   /// @brief local topological parent body and face element typenames
@@ -990,10 +1481,10 @@ private:
   using ConfigScalarType = typename EvaluationType::ConfigScalarType;
   using StrainScalarType = typename Plato::fad_type_t<BodyElementBase,StateScalarType,ConfigScalarType>;
   /// @brief evaluates boundary trial and test stress tensors
-  std::shared_ptr<Plato::BoundarEvaluatorIsotropicElasticTestStress<EvaluationType>> mBoundaryStressEvaluator;
+  std::shared_ptr<Plato::BoundarEvaluatoryTestIsotropicElasticStress<EvaluationType>> mBoundaryStressEvaluator;
 
 public:
-  NitscheVirtualStressEvaluator(
+  NitscheTestElasticStressEvaluator(
     const Teuchos::ParameterList& aParamList,
     const Teuchos::ParameterList& aNitscheParams
   ) : 
@@ -1002,9 +1493,9 @@ public:
     // create boundary stress evaluator
     //
     mBoundaryStressEvaluator = 
-      std::make_shared<Plato::BoundarEvaluatorIsotropicElasticTestStress<EvaluationType>>(aParamList,aNitscheParams);
+      std::make_shared<Plato::BoundarEvaluatoryTestIsotropicElasticStress<EvaluationType>>(aParamList,aNitscheParams);
   }
-  ~NitscheVirtualStressEvaluator()
+  ~NitscheTestElasticStressEvaluator()
   {}
 
   void 
@@ -1107,6 +1598,434 @@ public:
     });
   }
 };
+
+
+
+template<typename EvaluationType>
+class FactoryNitscheHyperElasticStressEvaluator
+{
+public:
+  std::shared_ptr<Plato::BoundaryFluxEvaluator<EvaluationType>> 
+  createTrialEvaluator(
+    Teuchos::ParameterList & aParamList,
+    Teuchos::ParameterList & aNitscheParams
+  )
+  {
+    if (!aParamList.isSublist("Material Models"))
+    {
+      ANALYZE_THROWERR("ERROR: 'Material Models' parameter list not found! Returning 'nullptr'");
+    }
+    else
+    {
+      auto tMaterialName = this->getMaterialName(aNitscheParams);
+      auto tMaterialModelParamList = aParamList.get<Teuchos::ParameterList>("Material Models");
+      if (!tMaterialModelParamList.isSublist(tMaterialName))
+      {
+          auto tMsg = std::string("Requested a material model with name ('") + tMaterialName 
+            + "') that is not defined in the input deck";
+          ANALYZE_THROWERR(tMsg);
+      }
+      auto tMaterialParamList = tMaterialModelParamList.sublist(tMaterialName);
+      if(tMaterialParamList.isSublist("Hyperelastic Kirchhoff")){
+        auto tStressEvaluator = 
+          std::make_shared<Plato::BoundaryEvaluatoryTrialKirchhoffStress<EvaluationType>>(
+            aParamList,aNitscheParams
+          );
+        return tStressEvaluator;
+      }
+      else
+      if(tMaterialParamList.isSublist("Hyperelastic Neo-Hookean")){
+        auto tStressEvaluator = 
+          std::make_shared<Plato::BoundaryEvaluatorTrialNeoHookeanStress<EvaluationType>>(
+            aParamList,aNitscheParams
+          );
+        return tStressEvaluator;
+      }
+      else{
+        Plato::Elliptic::mechanical::MaterialEnum tS2E;
+        tS2E.get("Not Supported"); // throws
+        return nullptr;
+      }
+    }
+  }
+
+  std::shared_ptr<Plato::BoundaryFluxEvaluator<EvaluationType>> 
+  createTestEvaluator(
+    Teuchos::ParameterList & aParamList,
+    Teuchos::ParameterList & aNitscheParams
+  )
+  {
+    if (!aParamList.isSublist("Material Models"))
+    {
+      ANALYZE_THROWERR("ERROR: 'Material Models' parameter list not found! Returning 'nullptr'");
+    }
+    else
+    {
+      auto tMaterialName = this->getMaterialName(aNitscheParams);
+      auto tMaterialModelParamList = aParamList.get<Teuchos::ParameterList>("Material Models");
+      if (!tMaterialModelParamList.isSublist(tMaterialName))
+      {
+          auto tMsg = std::string("Requested a material model with name ('") + tMaterialName 
+            + "') that is not defined in the input deck";
+          ANALYZE_THROWERR(tMsg);
+      }
+      auto tMaterialParamList = tMaterialModelParamList.sublist(tMaterialName);
+      if(tMaterialParamList.isSublist("Hyperelastic Kirchhoff")){
+        auto tStressEvaluator = 
+          std::make_shared<Plato::BoundaryEvaluatorTestKirchhoffStress<EvaluationType>>(
+            aParamList,aNitscheParams
+          );
+        return tStressEvaluator;
+      }
+      else
+      if(tMaterialParamList.isSublist("Hyperelastic Neo-Hookean")){
+        auto tStressEvaluator = 
+          std::make_shared<Plato::BoundaryEvaluatorTestNeoHookeanStress<EvaluationType>>(
+            aParamList,aNitscheParams
+          );
+        return tStressEvaluator;
+      }
+      else{
+        Plato::Elliptic::mechanical::MaterialEnum tS2E;
+        tS2E.get("Not Supported"); // throws
+        return nullptr;
+      }
+    }
+  }
+
+  /// @fn initialize
+  /// @brief return material name
+  /// @param [in] aParamList input problem parameters
+  /// @return string
+  std::string 
+  getMaterialName(
+    const Teuchos::ParameterList & aParamList
+  )
+  {
+    if( !aParamList.isParameter("Material Model") ){
+      ANALYZE_THROWERR( std::string("ERROR: Input argument ('Material Model') is not defined, ") + 
+        "material constitutive model for Nitsche's method cannot be determined" )
+    }
+    auto tMaterialName = aParamList.get<std::string>("Material Model");
+    return (tMaterialName);
+  }
+};
+
+
+template<typename EvaluationType>
+class NitscheTrialHyperElasticStressEvaluator : public Plato::NitscheEvaluator
+{
+private:
+  /// @brief local topological parent body and face element typenames
+  using BodyElementBase = typename EvaluationType::ElementType;
+  using FaceElementBase = typename BodyElementBase::Face;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims = BodyElementBase::mNumSpatialDims;
+  /// @brief number of degrees of freedom per parent body element vertex/node
+  static constexpr auto mNumDofsPerNode = BodyElementBase::mNumDofsPerNode;
+  /// @brief number of nodes per parent body element
+  static constexpr auto mNumNodesPerCell = BodyElementBase::mNumNodesPerCell;
+  /// @brief number of nodes per parent body element surface
+  static constexpr auto mNumNodesPerFace = BodyElementBase::mNumNodesPerFace;
+  /// @brief number of integration points per parent body element surface
+  static constexpr auto mNumGaussPointsPerFace = BodyElementBase::mNumGaussPointsPerFace;
+  /// @brief local typename for base class
+  using BaseClassType = Plato::NitscheEvaluator;
+  /// @brief side set name where dirichlet boundary conditions are 
+  using BaseClassType::mSideSetName;
+  /// @brief name assigned to the material constitutive model
+  using BaseClassType::mMaterialName;
+  /// @brief scalar types associated with the automatic differentation evaluation type
+  using StateScalarType  = typename EvaluationType::StateScalarType;
+  using ResultScalarType = typename EvaluationType::ResultScalarType;
+  using ConfigScalarType = typename EvaluationType::ConfigScalarType;
+  using StrainScalarType = typename Plato::fad_type_t<BodyElementBase,StateScalarType,ConfigScalarType>;
+  /// @brief evaluates boundary trial and test stress tensors
+  std::shared_ptr<Plato::BoundaryFluxEvaluator<EvaluationType>> mBoundaryStressEvaluator;
+
+public:
+  NitscheTrialHyperElasticStressEvaluator(
+    const Teuchos::ParameterList& aParamList,
+    const Teuchos::ParameterList& aNitscheParams
+  ) : 
+    BaseClassType(aNitscheParams)
+  {
+    // create boundary stress evaluator
+    //
+    Plato::Elliptic::FactoryNitscheHyperElasticStressEvaluator<EvaluationType> tFactory;
+    mBoundaryStressEvaluator = tFactory.createTrialEvaluator(aParamList,aNitscheParams);
+  }
+  ~NitscheTrialHyperElasticStressEvaluator()
+  {}
+
+  void 
+  evaluate(
+    const Plato::SpatialModel & aSpatialModel,
+    const Plato::WorkSets     & aWorkSets,
+          Plato::Scalar         aCycle = 0.0,
+          Plato::Scalar         aScale = 1.0
+  )
+  {
+    // unpack worksets
+    //
+    Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
+      Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
+    Plato::ScalarArray3DT<ConfigScalarType> tConfigWS = 
+      Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+    Plato::ScalarMultiVectorT<StateScalarType> tStateWS = 
+      Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
+    // get side set connectivity information
+    //
+    auto tSideCellOrdinals  = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
+    auto tSideLocalFaceOrds = aSpatialModel.Mesh->GetSideSetFaces(mSideSetName);
+    auto tSideLocalNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
+    // create local functors
+    //
+    Plato::StateGradient<EvaluationType> tComputeStateGradient;
+    Plato::ComputeGradientMatrix<BodyElementBase> tComputeGradient;
+    Plato::DeformationGradient<EvaluationType> tComputeDeformationGradient;
+    Plato::WeightedNormalVector<BodyElementBase> tComputeWeightedNormalVector;
+    // get integration points and weights
+    //
+    auto tCubPointsOnParentFaceElem = FaceElementBase::getCubPoints();
+    auto tCubPointsOnParentBodyElemSurfaces = BodyElementBase::getFaceCubPoints();
+    auto tCubWeightsOnParentBodyElemSurface = BodyElementBase::getFaceCubWeights();
+    // evaluate boundary trial stress tensors
+    //
+    Plato::OrdinalType tNumCellsOnSideSet = tSideCellOrdinals.size();
+    Plato::ScalarArray4DT<ResultScalarType> tStressTensors(
+      "stress tensors",tNumCellsOnSideSet,mNumGaussPointsPerFace,mNumSpatialDims,mNumSpatialDims
+    );
+    mBoundaryStressEvaluator->evaluate(aSpatialModel,aWorkSets,tStressTensors,aCycle);
+    // evaluate integral
+    //
+    Kokkos::parallel_for("nitsche stress evaluator", 
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumCellsOnSideSet, mNumGaussPointsPerFace}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
+    {
+      auto tCubPointOnParentFaceElem = tCubPointsOnParentFaceElem(aPointOrdinal);
+      auto tBasisGradsOnParentFaceElem = FaceElementBase::basisGrads(tCubPointOnParentFaceElem);
+      // quadrature data to evaluate integral on the body surface of interest
+      Plato::Array<mNumSpatialDims> tCubPointOnParentBodyElemSurface;
+      Plato::OrdinalType tLocalFaceOrdinal = tSideLocalFaceOrds(aSideOrdinal);
+      auto tCubPointsOnBodyParentElemSurface = tCubPointsOnParentBodyElemSurfaces(tLocalFaceOrdinal);
+      for( Plato::OrdinalType tDim=0; tDim < mNumSpatialDims; tDim++ ){
+        Plato::OrdinalType tIndex = BodyElementBase::mNumGaussPointsPerFace * aPointOrdinal + tDim;
+        tCubPointOnParentBodyElemSurface(tDim) = tCubPointsOnBodyParentElemSurface(tIndex);
+      }
+      auto tCubWeightOnParentBodyElemSurface = tCubWeightsOnParentBodyElemSurface(aPointOrdinal);
+      auto tBasisValuesOnParentBodyElemSurface = BodyElementBase::basisValues(tCubPointOnParentBodyElemSurface);
+      Plato::Array<mNumNodesPerFace, Plato::OrdinalType> tFaceLocalNodeOrds;
+      for( Plato::OrdinalType tIndex=0; tIndex<mNumNodesPerFace; tIndex++){
+        tFaceLocalNodeOrds(tIndex) = tSideLocalNodeOrds(aSideOrdinal*mNumNodesPerFace+tIndex);
+      }
+      // compute surface area weighted normal vector
+      //
+      auto tCellOrdinal = tSideCellOrdinals(aSideOrdinal);
+      Plato::Array<mNumSpatialDims, ConfigScalarType> tWeightedNormalVector;
+      tComputeWeightedNormalVector(
+        tCellOrdinal,tFaceLocalNodeOrds,tBasisGradsOnParentFaceElem,tConfigWS,tWeightedNormalVector
+      );
+      // compute gradient of interpolation functions
+      //
+      ConfigScalarType tVolume(0.0);
+      Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient;
+      tComputeGradient(tCellOrdinal,tCubPointOnParentBodyElemSurface,tConfigWS,tGradient,tVolume);
+      // compute state gradient
+      //
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> 
+        tStateGradient(StrainScalarType(0.));
+      tComputeStateGradient(tCellOrdinal,tStateWS,tGradient,tStateGradient);
+      // compute deformation gradient 
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> 
+        tDefGradient(StrainScalarType(0.));
+      tComputeDeformationGradient(tStateGradient,tDefGradient);
+      // compute nominal stress
+      Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ResultScalarType> 
+        tNominalStress(ResultScalarType(0.));
+      for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
+        for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
+          for(Plato::OrdinalType tDimK = 0; tDimK < mNumSpatialDims; tDimK++){
+            tNominalStress(tDimI,tDimJ) += 
+              tStressTensors(tCellOrdinal,aPointOrdinal,tDimI,tDimK) * tDefGradient(tDimJ,tDimK);
+          }
+        }
+      }
+      // evaluate: int_{\Gamma_D} \delta{u}\cdot(\mathbf{P}\cdot{n}) d\Gamma_D
+      //
+      for( Plato::OrdinalType tNode=0; tNode<mNumNodesPerCell; tNode++){
+        for( Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++){
+          auto tLocalDofOrdinal = ( tNode * mNumSpatialDims ) + tDimI;
+          ResultScalarType tStressTimesSurfaceWeightedNormal(0.0);
+          for( Plato::OrdinalType tDimJ=0; tDimJ<mNumSpatialDims; tDimJ++){
+            tStressTimesSurfaceWeightedNormal += tNominalStress(tDimI,tDimJ) * tWeightedNormalVector[tDimJ];
+          }
+          ResultScalarType tValue = -aScale * tBasisValuesOnParentBodyElemSurface(tNode) 
+            * tCubWeightOnParentBodyElemSurface * tStressTimesSurfaceWeightedNormal;
+          Kokkos::atomic_add(&tResultWS(tCellOrdinal,tLocalDofOrdinal), tValue);
+        }
+      }
+    });
+  }
+};
+
+template<typename EvaluationType>
+class NitscheTestHyperElasticStressEvaluator : public Plato::NitscheEvaluator
+{
+private:
+  /// @brief local topological parent body and face element typenames
+  using BodyElementBase = typename EvaluationType::ElementType;
+  using FaceElementBase = typename BodyElementBase::Face;
+  /// @brief number of spatial dimensions
+  static constexpr auto mNumSpatialDims = BodyElementBase::mNumSpatialDims;
+  /// @brief number of degrees of freedom per parent body element vertex/node
+  static constexpr auto mNumDofsPerNode = BodyElementBase::mNumDofsPerNode;
+  /// @brief number of nodes per parent body element
+  static constexpr auto mNumNodesPerCell = BodyElementBase::mNumNodesPerCell;
+  /// @brief number of nodes per parent body element surface
+  static constexpr auto mNumNodesPerFace = BodyElementBase::mNumNodesPerFace;
+  /// @brief number of integration points per parent body element surface
+  static constexpr auto mNumGaussPointsPerFace = BodyElementBase::mNumGaussPointsPerFace;
+  /// @brief local typename for base class
+  using BaseClassType = Plato::NitscheEvaluator;
+  /// @brief side set name where dirichlet boundary conditions are 
+  using BaseClassType::mSideSetName;
+  /// @brief name assigned to the material constitutive model
+  using BaseClassType::mMaterialName;
+  /// @brief scalar types associated with the automatic differentation evaluation type
+  using StateScalarType  = typename EvaluationType::StateScalarType;
+  using ResultScalarType = typename EvaluationType::ResultScalarType;
+  using ConfigScalarType = typename EvaluationType::ConfigScalarType;
+  using StrainScalarType = typename Plato::fad_type_t<BodyElementBase,StateScalarType,ConfigScalarType>;
+  /// @brief evaluates boundary trial and test stress tensors
+  std::shared_ptr<Plato::BoundaryFluxEvaluator<EvaluationType>> mBoundaryStressEvaluator;
+
+public:
+  NitscheTestHyperElasticStressEvaluator(
+    const Teuchos::ParameterList& aParamList,
+    const Teuchos::ParameterList& aNitscheParams
+  ) : 
+    BaseClassType(aNitscheParams)
+  {
+    // create boundary stress evaluator
+    //
+    Plato::Elliptic::FactoryNitscheHyperElasticStressEvaluator<EvaluationType> tFactory;
+    mBoundaryStressEvaluator = tFactory.createTestEvaluator(aParamList,aNitscheParams);
+  }
+  ~NitscheTestHyperElasticStressEvaluator()
+  {}
+
+  void 
+  evaluate(
+    const Plato::SpatialModel & aSpatialModel,
+    const Plato::WorkSets     & aWorkSets,
+          Plato::Scalar         aCycle = 0.0,
+          Plato::Scalar         aScale = 1.0
+  )
+  {
+    // unpack worksets
+    //
+    Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
+      Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
+    Plato::ScalarArray3DT<ConfigScalarType> tConfigWS = 
+      Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
+    // get side set connectivity information
+    //
+    auto tSideCellOrdinals  = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
+    auto tSideLocalFaceOrds = aSpatialModel.Mesh->GetSideSetFaces(mSideSetName);
+    auto tSideLocalNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
+    // create local functors
+    //
+    Plato::StateGradient<EvaluationType> tComputeStateGradient;
+    Plato::ComputeGradientMatrix<BodyElementBase> tComputeGradient;
+    Plato::DeformationGradient<EvaluationType> tComputeDeformationGradient;
+    Plato::WeightedNormalVector<BodyElementBase> tComputeWeightedNormalVector;
+    // get integration points and weights
+    //
+    auto tCubPointsOnParentFaceElem = FaceElementBase::getCubPoints();
+    auto tCubPointsOnParentBodyElemSurfaces = BodyElementBase::getFaceCubPoints();
+    auto tCubWeightsOnParentBodyElemSurface = BodyElementBase::getFaceCubWeights();
+    // evaluate boundary trial stress tensors
+    //
+    Plato::OrdinalType tNumCellsOnSideSet = tSideCellOrdinals.size();
+    Plato::ScalarArray4DT<ResultScalarType> tStressTensors(
+      "stress tensors",tNumCellsOnSideSet,mNumGaussPointsPerFace,mNumSpatialDims,mNumSpatialDims
+    );
+    mBoundaryStressEvaluator->evaluate(aSpatialModel,aWorkSets,tStressTensors,aCycle);
+    // evaluate integral
+    //
+    Kokkos::parallel_for("nitsche stress evaluator", 
+      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumCellsOnSideSet, mNumGaussPointsPerFace}),
+      KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
+    {
+      auto tCubPointOnParentFaceElem = tCubPointsOnParentFaceElem(aPointOrdinal);
+      auto tBasisGradsOnParentFaceElem = FaceElementBase::basisGrads(tCubPointOnParentFaceElem);
+      // quadrature data to evaluate integral on the body surface of interest
+      Plato::Array<mNumSpatialDims> tCubPointOnParentBodyElemSurface;
+      Plato::OrdinalType tLocalFaceOrdinal = tSideLocalFaceOrds(aSideOrdinal);
+      auto tCubPointsOnBodyParentElemSurface = tCubPointsOnParentBodyElemSurfaces(tLocalFaceOrdinal);
+      for( Plato::OrdinalType tDim=0; tDim < mNumSpatialDims; tDim++ ){
+        Plato::OrdinalType tIndex = BodyElementBase::mNumGaussPointsPerFace * aPointOrdinal + tDim;
+        tCubPointOnParentBodyElemSurface(tDim) = tCubPointsOnBodyParentElemSurface(tIndex);
+      }
+      auto tCubWeightOnParentBodyElemSurface = tCubWeightsOnParentBodyElemSurface(aPointOrdinal);
+      auto tBasisValuesOnParentBodyElemSurface = BodyElementBase::basisValues(tCubPointOnParentBodyElemSurface);
+      Plato::Array<mNumNodesPerFace, Plato::OrdinalType> tFaceLocalNodeOrds;
+      for( Plato::OrdinalType tIndex=0; tIndex<mNumNodesPerFace; tIndex++){
+        tFaceLocalNodeOrds(tIndex) = tSideLocalNodeOrds(aSideOrdinal*mNumNodesPerFace+tIndex);
+      }
+      // compute surface area weighted normal vector
+      //
+      auto tCellOrdinal = tSideCellOrdinals(aSideOrdinal);
+      Plato::Array<mNumSpatialDims, ConfigScalarType> tWeightedNormalVector;
+      tComputeWeightedNormalVector(
+        tCellOrdinal,tFaceLocalNodeOrds,tBasisGradsOnParentFaceElem,tConfigWS,tWeightedNormalVector
+      );
+      // compute gradient of interpolation functions
+      //
+      ConfigScalarType tVolume(0.0);
+      Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ConfigScalarType> tGradient;
+      tComputeGradient(tCellOrdinal,tCubPointOnParentBodyElemSurface,tConfigWS,tGradient,tVolume);
+      // compute state gradient
+      //
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> 
+        tStateGradient(StrainScalarType(0.));
+      tComputeStateGradient(tCellOrdinal,tGradient,tStateGradient);
+      // compute deformation gradient 
+      Plato::Matrix<mNumSpatialDims,mNumSpatialDims,StrainScalarType> 
+        tDefGradient(StrainScalarType(0.));
+      tComputeDeformationGradient(tStateGradient,tDefGradient);
+      // compute nominal stress
+      Plato::Matrix<mNumNodesPerCell,mNumSpatialDims,ResultScalarType> 
+        tNominalStress(ResultScalarType(0.));
+      for(Plato::OrdinalType tDimI = 0; tDimI < mNumSpatialDims; tDimI++){
+        for(Plato::OrdinalType tDimJ = 0; tDimJ < mNumSpatialDims; tDimJ++){
+          for(Plato::OrdinalType tDimK = 0; tDimK < mNumSpatialDims; tDimK++){
+            tNominalStress(tDimI,tDimJ) += 
+              tStressTensors(tCellOrdinal,aPointOrdinal,tDimI,tDimK) * tDefGradient(tDimJ,tDimK);
+          }
+        }
+      }
+      // evaluate: int_{\Gamma_D} \delta{u}\cdot(\mathbf{P}\cdot{n}) d\Gamma_D
+      //
+      for( Plato::OrdinalType tNode=0; tNode<mNumNodesPerCell; tNode++){
+        for( Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++){
+          auto tLocalDofOrdinal = ( tNode * mNumSpatialDims ) + tDimI;
+          ResultScalarType tStressTimesSurfaceWeightedNormal(0.0);
+          for( Plato::OrdinalType tDimJ=0; tDimJ<mNumSpatialDims; tDimJ++){
+            tStressTimesSurfaceWeightedNormal += tNominalStress(tDimI,tDimJ) * tWeightedNormalVector[tDimJ];
+          }
+          ResultScalarType tValue = -aScale * tBasisValuesOnParentBodyElemSurface(tNode) 
+            * tCubWeightOnParentBodyElemSurface * tStressTimesSurfaceWeightedNormal;
+          Kokkos::atomic_add(&tResultWS(tCellOrdinal,tLocalDofOrdinal), tValue);
+        }
+      }
+    });
+  }
+};
+
+
+
 
 template<typename EvaluationType>
 class NitscheDispMisfitEvaluator : public Plato::NitscheEvaluator
@@ -1258,7 +2177,7 @@ public:
 };
 
 template<typename EvaluationType>
-class NitscheHeatFluxEvaluator : public Plato::NitscheEvaluator
+class NitscheTrialHeatFluxEvaluator : public Plato::NitscheEvaluator
 {
 private:
   /// @brief local topological parent body and face element typenames
@@ -1289,7 +2208,7 @@ private:
   std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
 public:
-  NitscheHeatFluxEvaluator(
+  NitscheTrialHeatFluxEvaluator(
     const Teuchos::ParameterList& aParamList,
     const Teuchos::ParameterList& aNitscheParams
   ) : 
@@ -1301,7 +2220,7 @@ public:
     mMaterialModel = tFactory.create(mMaterialName);
   }
 
-  ~NitscheHeatFluxEvaluator()
+  ~NitscheTrialHeatFluxEvaluator()
   {}
 
   void 
@@ -1401,7 +2320,7 @@ public:
 };
 
 template<typename EvaluationType>
-class NitscheVirtualHeatFluxEvaluator : public Plato::NitscheEvaluator
+class NitscheTestHeatFluxEvaluator : public Plato::NitscheEvaluator
 {
 private:
   /// @brief local topological parent body and face element typenames
@@ -1432,7 +2351,7 @@ private:
   std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
 public:
-  NitscheVirtualHeatFluxEvaluator(
+  NitscheTestHeatFluxEvaluator(
     const Teuchos::ParameterList& aParamList,
     const Teuchos::ParameterList& aNitscheParams
   ) : 
@@ -1444,7 +2363,7 @@ public:
     mMaterialModel = tFactory.create(mMaterialName);
   }
 
-  ~NitscheVirtualHeatFluxEvaluator()
+  ~NitscheTestHeatFluxEvaluator()
   {}
 
   void 
@@ -1713,20 +2632,26 @@ public:
   ) : 
     BaseClassType(aNitscheParams)
   {
-    // heat flux evaluator
+    // trial heat flux evaluator
     //
     mEvaluators.push_back(
-      std::make_shared<Plato::Elliptic::NitscheHeatFluxEvaluator<EvaluationType>>(aParamList,aNitscheParams)
+      std::make_shared<Plato::Elliptic::NitscheTrialHeatFluxEvaluator<EvaluationType>>(
+        aParamList,aNitscheParams
+      )
     );
-    // virtual heat flux evaluator
+    // test heat flux evaluator
     //
     mEvaluators.push_back(
-      std::make_shared<Plato::Elliptic::NitscheVirtualHeatFluxEvaluator<EvaluationType>>(aParamList,aNitscheParams)
+      std::make_shared<Plato::Elliptic::NitscheTestHeatFluxEvaluator<EvaluationType>>(
+        aParamList,aNitscheParams
+      )
     );
     // temperature misfit evaluator
     //
     mEvaluators.push_back(
-      std::make_shared<Plato::Elliptic::NitscheTempMisfitEvaluator<EvaluationType>>(aParamList,aNitscheParams)
+      std::make_shared<Plato::Elliptic::NitscheTempMisfitEvaluator<EvaluationType>>(
+        aParamList,aNitscheParams
+      )
     );
   }
 
@@ -1749,7 +2674,7 @@ public:
 };
 
 template<typename EvaluationType>
-class NitscheLinearMechanical : public Plato::NitscheEvaluator
+class NitscheElasticMechanical : public Plato::NitscheEvaluator
 {
 private:
   /// @brief local typename for base class
@@ -1758,21 +2683,21 @@ private:
   std::vector<std::shared_ptr<Plato::NitscheEvaluator>> mEvaluators;
 
 public:
-  NitscheLinearMechanical(
+  NitscheElasticMechanical(
     const Teuchos::ParameterList& aParamList,
     const Teuchos::ParameterList& aNitscheParams
   ) : 
     BaseClassType(aNitscheParams)
   {
-    // stress evaluator
+    // trial stress evaluator
     //
     mEvaluators.push_back(
-      std::make_shared<Plato::Elliptic::NitscheStressEvaluator<EvaluationType>>(aParamList,aNitscheParams)
+      std::make_shared<Plato::Elliptic::NitscheTrialElasticStressEvaluator<EvaluationType>>(aParamList,aNitscheParams)
     );
-    // virtual stress evaluator
+    // test stress evaluator
     //
     mEvaluators.push_back(
-      std::make_shared<Plato::Elliptic::NitscheVirtualStressEvaluator<EvaluationType>>(aParamList,aNitscheParams)
+      std::make_shared<Plato::Elliptic::NitscheTestElasticStressEvaluator<EvaluationType>>(aParamList,aNitscheParams)
     );
     // displacement misfit evaluator
     //
@@ -1800,13 +2725,98 @@ public:
 };
 
 template<typename EvaluationType>
+class NitscheHyperElasticMechanical : public Plato::NitscheEvaluator
+{
+private:
+  /// @brief local typename for base class
+  using BaseClassType = Plato::NitscheEvaluator;
+  /// @brief list of nitsche boundary condition evaluators 
+  std::vector<std::shared_ptr<Plato::NitscheEvaluator>> mEvaluators;
+
+public:
+  NitscheHyperElasticMechanical(
+    const Teuchos::ParameterList& aParamList,
+    const Teuchos::ParameterList& aNitscheParams
+  ) : 
+    BaseClassType(aNitscheParams)
+  {
+    // trial stress evaluator
+    //
+    mEvaluators.push_back(
+      std::make_shared<Plato::Elliptic::NitscheTrialHyperElasticStressEvaluator<EvaluationType>>(
+        aParamList,aNitscheParams
+      )
+    );
+    // test stress evaluator
+    //
+    mEvaluators.push_back(
+      std::make_shared<Plato::Elliptic::NitscheTestHyperElasticStressEvaluator<EvaluationType>>(
+        aParamList,aNitscheParams
+      )
+    );
+    // displacement misfit evaluator
+    //
+    mEvaluators.push_back(
+      std::make_shared<Plato::Elliptic::NitscheDispMisfitEvaluator<EvaluationType>>(
+        aParamList,aNitscheParams
+      )
+    );
+  }
+
+  void 
+  evaluate(
+    const Plato::SpatialModel & aSpatialModel,
+    const Plato::WorkSets     & aWorkSets,
+          Plato::Scalar         aCycle = 0.0,
+          Plato::Scalar         aScale = 1.0
+  )
+  {
+    if(mEvaluators.empty()){
+      ANALYZE_THROWERR( std::string("ERROR: Found an empty list of Nitsche evaluators, weak Dirichlet boundary " )
+        + "conditions cannot be enforced" )
+    }
+    for(auto& tEvaluator : mEvaluators){
+      tEvaluator->evaluate(aSpatialModel,aWorkSets,aCycle,aScale);
+    }
+  }
+};
+
+template<typename EvaluationType>
 class FactoryNitscheEvaluator
 {
 public:
   std::shared_ptr<Plato::NitscheEvaluator>
   create(
-    const Teuchos::ParameterList& aParamList,
-    const Teuchos::ParameterList& aNitscheParams
+    Teuchos::ParameterList & aParamList,
+    Teuchos::ParameterList & aNitscheParams
+  )
+  {
+    if( !aParamList.isParameter("Physics") ){
+      ANALYZE_THROWERR("ERROR: Argument ('Physics') is not defined, nitsche's evaluator cannot be created")
+    }
+    Plato::PhysicsEnum tS2E;
+    auto tResponse = aParamList.get<std::string>("Response","Linear");
+    auto tResponseEnum = tS2E.response(tResponse);
+    switch (tResponseEnum)
+    {
+    case Plato::response_t::LINEAR:
+      return ( this->createLinearNitscheEvaluator(aParamList,aNitscheParams) );
+      break;
+    case Plato::response_t::NONLINEAR:
+      return ( std::make_shared<Plato::Elliptic::NitscheElasticMechanical<EvaluationType>>(aParamList,aNitscheParams) );
+      break;
+    default:
+      ANALYZE_THROWERR(std::string("ERROR: Response '") + tResponse 
+        + "' does not support weak enforcement of Dirichlet boundary conditions")
+      break;
+    }
+  }
+
+private:
+  std::shared_ptr<Plato::NitscheEvaluator>
+  createLinearNitscheEvaluator(
+    Teuchos::ParameterList & aParamList,
+    Teuchos::ParameterList & aNitscheParams
   )
   {
     if( !aParamList.isParameter("Physics") ){
@@ -1821,11 +2831,40 @@ public:
       return ( std::make_shared<Plato::Elliptic::NitscheLinearThermal<EvaluationType>>(aParamList,aNitscheParams) );
       break;
     case Plato::physics_t::MECHANICAL:
-      return ( std::make_shared<Plato::Elliptic::NitscheLinearMechanical<EvaluationType>>(aParamList,aNitscheParams) );
+      return ( std::make_shared<Plato::Elliptic::NitscheElasticMechanical<EvaluationType>>(aParamList,aNitscheParams) );
       break;
     default:
       ANALYZE_THROWERR(std::string("ERROR: Physics '") + tPhysics 
-        + "' do not support weak enforcement of the Dirichlet boundary conditions")
+        + "' does not support weak enforcement of Dirichlet boundary conditions")
+      break;
+    }
+  }
+
+  std::shared_ptr<Plato::NitscheEvaluator>
+  createNonlinearNitscheEvaluator(
+    const Teuchos::ParameterList& aParamList,
+    const Teuchos::ParameterList& aNitscheParams
+  )
+  {
+    if( !aParamList.isParameter("Physics") ){
+      ANALYZE_THROWERR("ERROR: Argument ('Physics') is not defined, nitsche's evaluator cannot be created")
+    }
+    Plato::PhysicsEnum tS2E;
+    auto tPhysics = aParamList.get<std::string>("Physics");
+    auto tPhysicsEnum = tS2E.physics(tPhysics);
+    switch (tPhysicsEnum)
+    {
+    case Plato::physics_t::MECHANICAL:
+      return 
+      ( 
+        std::make_shared<Plato::Elliptic::NitscheHyperElasticMechanical<EvaluationType>>(
+          aParamList,aNitscheParams) 
+      );
+      break;
+    case Plato::physics_t::THERMOMECHANICAL:
+    default:
+      ANALYZE_THROWERR(std::string("ERROR: Physics '") + tPhysics 
+        + "' does not support weak enforcement of Dirichlet boundary conditions")
       break;
     }
   }
@@ -1855,8 +2894,8 @@ private:
 
 public:
   NitscheBC(
-    const Teuchos::ParameterList& aParamList,
-    const Teuchos::ParameterList& aNitscheParams
+    Teuchos::ParameterList & aParamList,
+    Teuchos::ParameterList & aNitscheParams
   )
   {
     Plato::Elliptic::FactoryNitscheEvaluator<EvaluationType> tFactory;
@@ -2293,7 +3332,7 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, ComputeCharacteristicLength )
   }
 }
 
-TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheStressEvaluator )
+TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheTrialElasticStressEvaluator )
 {
   // create input
   //
@@ -2371,8 +3410,9 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheStressEvaluator )
   tNitscheParams.set("Material Model",tOnlyDomainDefined.getMaterialName());
   // create evaluator and evaluate nitsche's stress term
   //
-  Plato::Elliptic::NitscheStressEvaluator<Residual> tNitscheStressEvaluator(*tParamList,tNitscheParams);
-  tNitscheStressEvaluator.evaluate(tSpatialModel,tWorkSets);
+  Plato::Elliptic::NitscheTrialElasticStressEvaluator<Residual> 
+    tNitscheTrialElasticStressEvaluator(*tParamList,tNitscheParams);
+  tNitscheTrialElasticStressEvaluator.evaluate(tSpatialModel,tWorkSets);
   // test gold values
   //
   constexpr Plato::Scalar tTol = 1e-8;
@@ -2391,7 +3431,7 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheStressEvaluator )
   }
 }
 
-TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheVirtualStressEvaluator )
+TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheTestElasticStressEvaluator )
 {
   // create input
   //
@@ -2474,8 +3514,9 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheVirtualStressEvaluator )
   tNitscheParams.set("Material Model",tOnlyDomainDefined.getMaterialName());
   // create evaluator and evaluate nitsche's stress term
   //
-  Plato::Elliptic::NitscheVirtualStressEvaluator<Residual> tNitscheVirtualStressEvaluator(*tParamList,tNitscheParams);
-  tNitscheVirtualStressEvaluator.evaluate(tSpatialModel,tWorkSets);
+  Plato::Elliptic::NitscheTestElasticStressEvaluator<Residual> 
+    tNitscheTestElasticStressEvaluator(*tParamList,tNitscheParams);
+  tNitscheTestElasticStressEvaluator.evaluate(tSpatialModel,tWorkSets);
   // test gold values
   //
   constexpr Plato::Scalar tTol = 1e-8;
@@ -2700,7 +3741,7 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, LinearMechanicalNitscheBC )
   }
 }
 
-TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheHeatFluxEvaluator )
+TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheTrialHeatFluxEvaluator )
 {
   // create input
   //
@@ -2777,7 +3818,7 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheHeatFluxEvaluator )
   tNitscheParams.set("Material Model",tOnlyDomainDefined.getMaterialName());
   // create evaluator and evaluate nitsche's stress term
   //
-  Plato::Elliptic::NitscheHeatFluxEvaluator<Residual> 
+  Plato::Elliptic::NitscheTrialHeatFluxEvaluator<Residual> 
     tNitscheHeatFluxEvaluator(*tParamList,tNitscheParams);
   tNitscheHeatFluxEvaluator.evaluate(tSpatialModel,tWorkSets);
   // test gold values
@@ -2798,7 +3839,7 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheHeatFluxEvaluator )
   } 
 }
 
-TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheVirtualHeatFluxEvaluator )
+TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheTestHeatFluxEvaluator )
 {
   // create input
   //
@@ -2880,7 +3921,7 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheVirtualHeatFluxEvaluator )
   tNitscheParams.set("Material Model",tOnlyDomainDefined.getMaterialName());
   // create evaluator and evaluate nitsche's stress term
   //
-  Plato::Elliptic::NitscheVirtualHeatFluxEvaluator<Residual> 
+  Plato::Elliptic::NitscheTestHeatFluxEvaluator<Residual> 
     tNitscheVirtualHeatFluxEvaluator(*tParamList,tNitscheParams);
   tNitscheVirtualHeatFluxEvaluator.evaluate(tSpatialModel,tWorkSets);
   // test gold values
