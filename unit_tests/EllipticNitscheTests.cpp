@@ -45,6 +45,7 @@
 #include "elliptic/mechanical/nonlinear/NeoHookeanSecondPiolaStress.hpp"
 #include "elliptic/mechanical/nonlinear/FactoryNonlinearElasticMaterial.hpp"
 
+#include "elliptic/thermomechanics/nonlinear/ThermoMechanics.hpp"
 #include "elliptic/thermomechanics/nonlinear/UtilitiesThermoMechanics.hpp"
 #include "elliptic/thermomechanics/nonlinear/ThermalDeformationGradient.hpp"
 #include "elliptic/thermomechanics/nonlinear/ThermoElasticDeformationGradient.hpp"
@@ -182,7 +183,7 @@ private:
   const
   {
     std::string tMsg = std::string("ERROR: Requested material constitutive model is not supported. ")
-      + "Supported material constitutive models for mechanical analysis are: ";
+      + "Supported material constitutive models for mechanical analyses are: ";
     for(const auto& tElement : mSupportedMaterials)
     {
       tMsg = tMsg + "'" + tElement + "', ";
@@ -192,7 +193,40 @@ private:
   }
 };
 
-
+template<typename EvaluationType>
+class FactoryMechanicalMaterials
+{
+public:
+  std::shared_ptr<Plato::MaterialModel<EvaluationType>>
+  create(
+    const std::string            & aMaterialName,
+          Teuchos::ParameterList & aParamList
+  )
+  {
+    Plato::PhysicsEnum tS2E;
+    auto tResponse = aParamList.get<std::string>("Response","Linear");
+    auto tResponseEnum = tS2E.response(tResponse);
+    switch (tResponseEnum)
+    {
+    case Plato::response_t::LINEAR:
+    {
+      Plato::FactoryElasticMaterial<EvaluationType> tFactory(aParamList);
+      return ( tFactory.create(aMaterialName) );
+      break;
+    }
+    case Plato::response_t::NONLINEAR:
+    {
+      Plato::FactoryNonlinearElasticMaterial<EvaluationType> tFactory(aParamList);
+      return ( tFactory.create(aMaterialName) );
+      break;
+    }
+    default:
+      ANALYZE_THROWERR(std::string("ERROR: Response '") + tResponse 
+        + "' does not support weak enforcement of Dirichlet boundary conditions")
+      break;
+    }
+  }
+};
 
 template<typename EvaluationType>
 class ComputeStrainTensor
@@ -2032,7 +2066,7 @@ public:
 
 
 template<typename EvaluationType>
-class NitscheTrialThermoHyperElasticStressEvaluator : public Plato::NitscheEvaluator
+class NitscheTrialThermalHyperElasticStressEvaluator : public Plato::NitscheEvaluator
 {
 private:
   /// @brief local topological parent body and face element typenames
@@ -2068,7 +2102,7 @@ private:
   std::shared_ptr<Plato::BoundaryFluxEvaluator<EvaluationType>> mBoundaryStressEvaluator;
 
 public:
-  NitscheTrialThermoHyperElasticStressEvaluator(
+  NitscheTrialThermalHyperElasticStressEvaluator(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
   ) : 
@@ -2080,7 +2114,7 @@ public:
     Plato::Elliptic::FactoryNitscheHyperElasticStressEvaluator<EvaluationType> tFactory;
     mBoundaryStressEvaluator = tFactory.createTrialEvaluator(aParamList,aNitscheParams);
   }
-  ~NitscheTrialThermoHyperElasticStressEvaluator()
+  ~NitscheTrialThermalHyperElasticStressEvaluator()
   {}
 
   void 
@@ -2213,7 +2247,7 @@ public:
 
 
 template<typename EvaluationType>
-class NitscheTestThermoHyperElasticStressEvaluator : public Plato::NitscheEvaluator
+class NitscheTestThermalHyperElasticStressEvaluator : public Plato::NitscheEvaluator
 {
 private:
   /// @brief local topological parent body and face element typenames
@@ -2249,7 +2283,7 @@ private:
   std::shared_ptr<Plato::BoundaryFluxEvaluator<EvaluationType>> mBoundaryStressEvaluator;
 
 public:
-  NitscheTestThermoHyperElasticStressEvaluator(
+  NitscheTestThermalHyperElasticStressEvaluator(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
   ) : 
@@ -2261,7 +2295,7 @@ public:
     Plato::Elliptic::FactoryNitscheHyperElasticStressEvaluator<EvaluationType> tFactory;
     mBoundaryStressEvaluator = tFactory.createTrialEvaluator(aParamList,aNitscheParams);
   }
-  ~NitscheTestThermoHyperElasticStressEvaluator()
+  ~NitscheTestThermalHyperElasticStressEvaluator()
   {}
 
   void 
@@ -2428,8 +2462,8 @@ public:
   {
     // create material constitutive model
     //
-    Plato::FactoryElasticMaterial<EvaluationType> tFactory(aParamList);
-    mMaterialModel = tFactory.create(mMaterialName);
+    Plato::FactoryMechanicalMaterials<EvaluationType> tFactory;
+    mMaterialModel = tFactory.create(mMaterialName,aParamList);
     // parse penalty parameter
     //
     if(aParamList.isType<Plato::Scalar>("Penalty")){
@@ -3161,14 +3195,14 @@ public:
     // trial stress evaluator
     //
     mEvaluators.push_back(
-      std::make_shared<Plato::Elliptic::NitscheTrialThermoHyperElasticStressEvaluator<EvaluationType>>(
+      std::make_shared<Plato::Elliptic::NitscheTrialThermalHyperElasticStressEvaluator<EvaluationType>>(
         aParamList,aNitscheParams
       )
     );
     // test stress evaluator
     //
     mEvaluators.push_back(
-      std::make_shared<Plato::Elliptic::NitscheTestHyperElasticStressEvaluator<EvaluationType>>(
+      std::make_shared<Plato::Elliptic::NitscheTestThermalHyperElasticStressEvaluator<EvaluationType>>(
         aParamList,aNitscheParams
       )
     );
@@ -4366,6 +4400,109 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheTestHeatFluxEvaluator )
   } 
 }
 
+TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheDispMisfitEvaluator2 )
+{
+  // create input
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+  Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                             \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>              \n"
+    "  <Parameter name='Physics' type='string' value='Mechanical'/>                   \n"
+    "  <Parameter name='Weak Essential Boundary Conditions' type='bool' value='true'/> \n"
+    "  <ParameterList name='Spatial Model'>                                           \n"
+    "    <ParameterList name='Domains'>                                               \n"
+    "      <ParameterList name='Design Volume'>                                       \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>             \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>     \n"
+    "      </ParameterList>                                                           \n"
+    "    </ParameterList>                                                             \n"
+    "  </ParameterList>                                                               \n"
+    "  <ParameterList name='Material Models'>                                         \n"
+    "    <ParameterList name='Unobtainium'>                                           \n"
+    "      <ParameterList name='Isotropic Linear Elastic'>                            \n"
+    "        <Parameter name='Poissons Ratio' type='double' value='0.3'/>             \n"
+    "        <Parameter name='Youngs Modulus' type='double' value='1.0'/>           \n"
+    "      </ParameterList>                                                           \n"
+    "    </ParameterList>                                                             \n"
+    "  </ParameterList>                                                               \n"
+    "</ParameterList>                                                                 \n"
+    );
+  // create mesh
+  //
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  // create output database and spatial model
+  //
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh,*tParamList,tDataMap);
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  // create evaluation and scalar types
+  //
+  using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;  
+  using Residual    = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using StateScalarType  = typename Residual::StateScalarType;
+  using ResultScalarType = typename Residual::ResultScalarType;
+  using ConfigScalarType = typename Residual::ConfigScalarType;
+  // create displacement data
+  //
+  Plato::Database tDatabase;
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+  Plato::ScalarVector tDisp("Displacements", tNumDofs);
+  Plato::blas1::fill(0.1, tDisp);
+  Kokkos::parallel_for("fill displacements",
+    Kokkos::RangePolicy<>(0, tNumDofs), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+  { tDisp(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  tDatabase.vector("states",tDisp);
+  // create dirichlet displacement data
+  //
+  Plato::ScalarVector tDirichlet("Dirichlet", tNumDofs);
+  Plato::blas1::fill(0.,tDirichlet);
+  tDatabase.vector("dirichlet",tDirichlet);
+  // create workset database
+  //
+  Plato::WorkSets tWorkSets;
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  auto tNumCells = tMesh->NumElements();
+  tWorksetBuilder.build(tNumCells,tDatabase,tWorkSets);
+  // create results workset
+  //
+  auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ResultScalarType> > >
+    ( Plato::ScalarMultiVectorT<ResultScalarType>("Result Workset", tNumCells, ElementType::mNumDofsPerCell) );
+  Kokkos::deep_copy(tResultWS->mData,0.);
+  tWorkSets.set("result",tResultWS);
+  // create inputs for nitsche's method
+  //
+  auto tSideSetName = std::string("y-");
+  Teuchos::ParameterList tNitscheParams;
+  tNitscheParams.set("Sides",tSideSetName);
+  tNitscheParams.set("Material Model",tOnlyDomainDefined.getMaterialName());
+  // create evaluator and evaluate nitsche's stress term
+  //
+  Plato::Elliptic::NitscheDispMisfitEvaluator<Residual> tNitscheDispMisfitEvaluator(*tParamList,tNitscheParams);
+  tNitscheDispMisfitEvaluator.evaluate(tSpatialModel,tWorkSets);
+  // test gold values
+  //
+  constexpr Plato::Scalar tTol = 1e-8;
+  std::vector<std::vector<Plato::Scalar>> tGold = 
+    { {0.066666666666667,0.116666666666667,0.133333333333333,0.183333333333333,0.,0.} };
+  auto tHostResultWS = Kokkos::create_mirror(tResultWS->mData);
+  Kokkos::deep_copy(tHostResultWS,tResultWS->mData);
+  //
+  auto tSideCellOrdinals = tMesh->GetSideSetElements(tSideSetName);
+  Plato::OrdinalType tNumSideCells = tSideCellOrdinals.size();
+  for(Plato::OrdinalType tCell = 0; tCell < tNumSideCells; tCell++){
+    for(Plato::OrdinalType tDof = 0; tDof < ElementType::mNumDofsPerCell; tDof++){
+      auto tDiff = std::abs(tGold[tCell][tDof] - tHostResultWS(tCell,tDof));
+      TEST_ASSERT(tDiff < tTol);
+    }
+  }
+}
+
 TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheTempMisfitEvaluator )
 {
   // create input
@@ -4558,6 +4695,786 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, LinearThermalNitscheBC )
   constexpr Plato::Scalar tTol = 1e-8;
   std::vector<std::vector<Plato::Scalar>> tGold = 
     { {0.11666666667,0.183333333333,0.} };
+  auto tHostResultWS = Kokkos::create_mirror(tResultWS->mData);
+  Kokkos::deep_copy(tHostResultWS,tResultWS->mData);
+  //
+  auto tSideCellOrdinals = tMesh->GetSideSetElements(tSideSetName);
+  Plato::OrdinalType tNumSideCells = tSideCellOrdinals.size();
+  for(Plato::OrdinalType tCell = 0; tCell < tNumSideCells; tCell++){
+    for(Plato::OrdinalType tDof = 0; tDof < ElementType::mNumDofsPerCell; tDof++){
+      auto tDiff = std::abs(tGold[tCell][tDof] - tHostResultWS(tCell,tDof));
+      TEST_ASSERT(tDiff < tTol);
+    }
+  }
+}
+
+TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheTrialHyperElasticStressEvaluator )
+{
+  // create input
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+  Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                              \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>               \n"
+    "  <Parameter name='Physics'  type='string' value='Mechanical'/>                   \n"
+    "  <Parameter name='Response' type='string' value='Nonlinear'/>                    \n"
+    "  <Parameter name='Weak Essential Boundary Conditions' type='bool' value='true'/> \n"
+    "  <ParameterList name='Spatial Model'>                                            \n"
+    "    <ParameterList name='Domains'>                                                \n"
+    "      <ParameterList name='Design Volume'>                                        \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>              \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>      \n"
+    "      </ParameterList>                                                            \n"
+    "    </ParameterList>                                                              \n"
+    "  </ParameterList>                                                                \n"
+    "<ParameterList name='Material Models'>                                            \n"
+      "<ParameterList name='Unobtainium'>                                              \n"
+        "<ParameterList name='Hyperelastic Kirchhoff'>                                 \n"
+          "<Parameter  name='Poissons Ratio' type='double' value='0.35'/>              \n"
+          "<Parameter  name='Youngs Modulus' type='double' value='1.0'/>               \n"
+        "</ParameterList>                                                              \n"
+      "</ParameterList>                                                                \n"
+    "</ParameterList>                                                                  \n"
+    "</ParameterList>                                                                  \n"
+    );
+  // create mesh
+  //
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  // create output database and spatial model
+  //
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh,*tParamList,tDataMap);
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  // create evaluation and scalar types
+  //
+  using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;  
+  using Residual    = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using StateScalarType  = typename Residual::StateScalarType;
+  using ResultScalarType = typename Residual::ResultScalarType;
+  using ConfigScalarType = typename Residual::ConfigScalarType;
+  TEST_ASSERT(ElementType::mNumDofsPerCell == 6);
+  // create displacement data
+  //
+  Plato::Database tDatabase;
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+  Plato::ScalarVector tDisp("Displacements", tNumDofs);
+  Plato::blas1::fill(0.1, tDisp);
+  Kokkos::parallel_for("fill displacements",
+    Kokkos::RangePolicy<>(0, tNumDofs), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+  { tDisp(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  tDatabase.vector("states",tDisp);
+  // create workset database
+  //
+  Plato::WorkSets tWorkSets;
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  auto tNumCells = tMesh->NumElements();
+  tWorksetBuilder.build(tNumCells,tDatabase,tWorkSets);
+  // create results workset
+  //
+  auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ResultScalarType> > >
+    ( Plato::ScalarMultiVectorT<ResultScalarType>("Result Workset", tNumCells, ElementType::mNumDofsPerCell) );
+  Kokkos::deep_copy(tResultWS->mData,0.);
+  tWorkSets.set("result",tResultWS);
+  // create inputs for nitsche's method
+  //
+  auto tSideSetName = std::string("y-");
+  Teuchos::ParameterList tNitscheParams;
+  tNitscheParams.set("Sides",tSideSetName);
+  tNitscheParams.set("Material Model",tOnlyDomainDefined.getMaterialName());
+  // create evaluator and evaluate nitsche's stress term
+  //
+  Plato::Elliptic::NitscheTrialHyperElasticStressEvaluator<Residual> 
+    tNitscheEvaluator(*tParamList,tNitscheParams);
+  tNitscheEvaluator.evaluate(tSpatialModel,tWorkSets);
+  // test gold values
+  //
+  constexpr Plato::Scalar tTol = 1e-8;
+  std::vector<std::vector<Plato::Scalar>> tGold = 
+    { {-0.40123454,-0.14197522, -0.40123454,-0.14197522,0.,0.} };
+  auto tHostResultWS = Kokkos::create_mirror(tResultWS->mData);
+  Kokkos::deep_copy(tHostResultWS,tResultWS->mData);
+  //
+  auto tSideCellOrdinals = tMesh->GetSideSetElements(tSideSetName);
+  Plato::OrdinalType tNumSideCells = tSideCellOrdinals.size();
+  for(Plato::OrdinalType tCell = 0; tCell < tNumSideCells; tCell++){
+    for(Plato::OrdinalType tDof = 0; tDof < ElementType::mNumDofsPerCell; tDof++){
+      auto tDiff = std::abs(tGold[tCell][tDof] - tHostResultWS(tCell,tDof));
+      TEST_ASSERT(tDiff < tTol);
+    }
+  }
+}
+
+TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheTestHyperElasticStressEvaluator )
+{
+  // create input
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+  Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                              \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>               \n"
+    "  <Parameter name='Physics'  type='string' value='Mechanical'/>                   \n"
+    "  <Parameter name='Response' type='string' value='Nonlinear'/>                    \n"
+    "  <Parameter name='Weak Essential Boundary Conditions' type='bool' value='true'/> \n"
+    "  <ParameterList name='Spatial Model'>                                            \n"
+    "    <ParameterList name='Domains'>                                                \n"
+    "      <ParameterList name='Design Volume'>                                        \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>              \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>      \n"
+    "      </ParameterList>                                                            \n"
+    "    </ParameterList>                                                              \n"
+    "  </ParameterList>                                                                \n"
+    "<ParameterList name='Material Models'>                                            \n"
+      "<ParameterList name='Unobtainium'>                                              \n"
+        "<ParameterList name='Hyperelastic Kirchhoff'>                                 \n"
+          "<Parameter  name='Poissons Ratio' type='double' value='0.35'/>              \n"
+          "<Parameter  name='Youngs Modulus' type='double' value='1.0'/>               \n"
+        "</ParameterList>                                                              \n"
+      "</ParameterList>                                                                \n"
+    "</ParameterList>                                                                  \n"
+    "</ParameterList>                                                                  \n"
+    );
+  // create mesh
+  //
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  // create output database and spatial model
+  //
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh,*tParamList,tDataMap);
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  // create evaluation and scalar types
+  //
+  using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;  
+  using Residual    = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using StateScalarType  = typename Residual::StateScalarType;
+  using ResultScalarType = typename Residual::ResultScalarType;
+  using ConfigScalarType = typename Residual::ConfigScalarType;
+  TEST_ASSERT(ElementType::mNumDofsPerCell == 6);
+  // create displacement data
+  //
+  Plato::Database tDatabase;
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+  Plato::ScalarVector tDisp("Displacements", tNumDofs);
+  Plato::blas1::fill(0.1, tDisp);
+  Kokkos::parallel_for("fill displacements",
+    Kokkos::RangePolicy<>(0, tNumDofs), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+  { tDisp(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  tDatabase.vector("states",tDisp);
+  // create workset database
+  //
+  Plato::WorkSets tWorkSets;
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  auto tNumCells = tMesh->NumElements();
+  tWorksetBuilder.build(tNumCells,tDatabase,tWorkSets);
+  // create results workset
+  //
+  auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ResultScalarType> > >
+    ( Plato::ScalarMultiVectorT<ResultScalarType>("Result Workset", tNumCells, ElementType::mNumDofsPerCell) );
+  Kokkos::deep_copy(tResultWS->mData,0.);
+  tWorkSets.set("result",tResultWS);
+  // create inputs for nitsche's method
+  //
+  auto tSideSetName = std::string("y-");
+  Teuchos::ParameterList tNitscheParams;
+  tNitscheParams.set("Sides",tSideSetName);
+  tNitscheParams.set("Material Model",tOnlyDomainDefined.getMaterialName());
+  // create evaluator and evaluate nitsche's stress term
+  //
+  Plato::Elliptic::NitscheTestHyperElasticStressEvaluator<Residual> 
+    tNitscheEvaluator(*tParamList,tNitscheParams);
+  tNitscheEvaluator.evaluate(tSpatialModel,tWorkSets);
+  // test gold values
+  //
+  constexpr Plato::Scalar tTol = 1e-8;
+  std::vector<std::vector<Plato::Scalar>> tGold = 
+    { {0.,0.,0.,0.,0.,0.} };
+  auto tHostResultWS = Kokkos::create_mirror(tResultWS->mData);
+  Kokkos::deep_copy(tHostResultWS,tResultWS->mData);
+  //
+  auto tSideCellOrdinals = tMesh->GetSideSetElements(tSideSetName);
+  Plato::OrdinalType tNumSideCells = tSideCellOrdinals.size();
+  for(Plato::OrdinalType tCell = 0; tCell < tNumSideCells; tCell++){
+    for(Plato::OrdinalType tDof = 0; tDof < ElementType::mNumDofsPerCell; tDof++){
+      auto tDiff = std::abs(tGold[tCell][tDof] - tHostResultWS(tCell,tDof));
+      TEST_ASSERT(tDiff < tTol);
+    }
+  }
+}
+
+TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheTrialThermalHyperElasticStressEvaluator )
+{
+  // create input
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+  Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                              \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>               \n"
+    "  <Parameter name='Physics'  type='string' value='Thermomechanical'/>             \n"
+    "  <Parameter name='Response' type='string' value='Nonlinear'/>                    \n"
+    "  <Parameter name='Weak Essential Boundary Conditions' type='bool' value='true'/> \n"
+    "  <ParameterList name='Spatial Model'>                                            \n"
+    "    <ParameterList name='Domains'>                                                \n"
+    "      <ParameterList name='Design Volume'>                                        \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>              \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>      \n"
+    "      </ParameterList>                                                            \n"
+    "    </ParameterList>                                                              \n"
+    "  </ParameterList>                                                                \n"
+    "<ParameterList name='Material Models'>                                            \n"
+      "<ParameterList name='Unobtainium'>                                              \n"
+        "<ParameterList name='Thermal Conduction'>                                     \n"
+          "<Parameter  name='Thermal Expansivity'   type='double' value='0.5'/>        \n"
+          "<Parameter  name='Reference Temperature' type='double' value='1.0'/>        \n"
+          "<Parameter  name='Thermal Conductivity'  type='double' value='2.0'/>        \n"
+        "</ParameterList>                                                              \n"
+        "<ParameterList name='Hyperelastic Kirchhoff'>                                 \n"
+          "<Parameter  name='Poissons Ratio' type='double' value='0.35'/>              \n"
+          "<Parameter  name='Youngs Modulus' type='double' value='1.0'/>               \n"
+        "</ParameterList>                                                              \n"
+      "</ParameterList>                                                                \n"
+    "</ParameterList>                                                                  \n"
+    "</ParameterList>                                                                  \n"
+    );
+  // create mesh
+  //
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  // create output database and spatial model
+  //
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh,*tParamList,tDataMap);
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  // create evaluation and scalar types
+  //
+  using ElementType         = typename Plato::ThermoElasticElement<Plato::Tri3>;  
+  using Residual            = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using StateScalarType     = typename Residual::StateScalarType;
+  using ResultScalarType    = typename Residual::ResultScalarType;
+  using ConfigScalarType    = typename Residual::ConfigScalarType;
+  using NodeStateScalarType = typename Residual::NodeStateScalarType;
+  TEST_ASSERT(ElementType::mNumDofsPerCell == 6);
+  // create displacement data
+  //
+  Plato::Database tDatabase;
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+  Plato::ScalarVector tDisp("Displacements", tNumDofs);
+  Plato::blas1::fill(0.1, tDisp);
+  Kokkos::parallel_for("fill displacements",
+    Kokkos::RangePolicy<>(0, tNumDofs), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+  { tDisp(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  tDatabase.vector("states",tDisp);
+  // create temperature data
+  //
+  Plato::ScalarVector tTemp("Temperature", tNumVerts);
+  Plato::blas1::fill(0.1, tTemp);
+  Kokkos::parallel_for("fill temperature dofs",
+    Kokkos::RangePolicy<>(0, tNumVerts), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+  { tTemp(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  tDatabase.vector("node states",tTemp);
+  // create workset database
+  //
+  Plato::WorkSets tWorkSets;
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  auto tNumCells = tMesh->NumElements();
+  tWorksetBuilder.build(tNumCells,tDatabase,tWorkSets);
+  // create results workset
+  //
+  auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ResultScalarType> > >
+    ( Plato::ScalarMultiVectorT<ResultScalarType>("Result Workset", tNumCells, ElementType::mNumDofsPerCell) );
+  Kokkos::deep_copy(tResultWS->mData,0.);
+  tWorkSets.set("result",tResultWS);
+  // create inputs for nitsche's method
+  //
+  auto tSideSetName = std::string("y-");
+  Teuchos::ParameterList tNitscheParams;
+  tNitscheParams.set("Sides",tSideSetName);
+  tNitscheParams.set("Material Model",tOnlyDomainDefined.getMaterialName());
+  // create evaluator and evaluate nitsche's stress term
+  //
+  Plato::Elliptic::NitscheTrialThermalHyperElasticStressEvaluator<Residual> 
+    tNitscheEvaluator(*tParamList,tNitscheParams);
+  tNitscheEvaluator.evaluate(tSpatialModel,tWorkSets);
+  // test gold values
+  //
+  constexpr Plato::Scalar tTol = 1e-8;
+  std::vector<std::vector<Plato::Scalar>> tGold = 
+    { {-0.213991754666667,-0.075720117333333,-0.227366239333333,-0.080452624666667,0.,0.} };
+  auto tHostResultWS = Kokkos::create_mirror(tResultWS->mData);
+  Kokkos::deep_copy(tHostResultWS,tResultWS->mData);
+  //
+  auto tSideCellOrdinals = tMesh->GetSideSetElements(tSideSetName);
+  Plato::OrdinalType tNumSideCells = tSideCellOrdinals.size();
+  for(Plato::OrdinalType tCell = 0; tCell < tNumSideCells; tCell++){
+    for(Plato::OrdinalType tDof = 0; tDof < ElementType::mNumDofsPerCell; tDof++){
+      auto tDiff = std::abs(tGold[tCell][tDof] - tHostResultWS(tCell,tDof));
+      TEST_ASSERT(tDiff < tTol);
+    }
+  }
+}
+
+TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheTestThermalHyperElasticStressEvaluator )
+{
+  // create input
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+  Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                              \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>               \n"
+    "  <Parameter name='Physics'  type='string' value='Thermomechanical'/>             \n"
+    "  <Parameter name='Response' type='string' value='Nonlinear'/>                    \n"
+    "  <Parameter name='Weak Essential Boundary Conditions' type='bool' value='true'/> \n"
+    "  <ParameterList name='Spatial Model'>                                            \n"
+    "    <ParameterList name='Domains'>                                                \n"
+    "      <ParameterList name='Design Volume'>                                        \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>              \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>      \n"
+    "      </ParameterList>                                                            \n"
+    "    </ParameterList>                                                              \n"
+    "  </ParameterList>                                                                \n"
+    "<ParameterList name='Material Models'>                                            \n"
+      "<ParameterList name='Unobtainium'>                                              \n"
+        "<ParameterList name='Thermal Conduction'>                                     \n"
+          "<Parameter  name='Thermal Expansivity'   type='double' value='0.5'/>        \n"
+          "<Parameter  name='Reference Temperature' type='double' value='1.0'/>        \n"
+          "<Parameter  name='Thermal Conductivity'  type='double' value='2.0'/>        \n"
+        "</ParameterList>                                                              \n"
+        "<ParameterList name='Hyperelastic Kirchhoff'>                                 \n"
+          "<Parameter  name='Poissons Ratio' type='double' value='0.35'/>              \n"
+          "<Parameter  name='Youngs Modulus' type='double' value='1.0'/>               \n"
+        "</ParameterList>                                                              \n"
+      "</ParameterList>                                                                \n"
+    "</ParameterList>                                                                  \n"
+    "</ParameterList>                                                                  \n"
+    );
+  // create mesh
+  //
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  // create output database and spatial model
+  //
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh,*tParamList,tDataMap);
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  // create evaluation and scalar types
+  //
+  using ElementType         = typename Plato::ThermoElasticElement<Plato::Tri3>;  
+  using Residual            = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using StateScalarType     = typename Residual::StateScalarType;
+  using ResultScalarType    = typename Residual::ResultScalarType;
+  using ConfigScalarType    = typename Residual::ConfigScalarType;
+  using NodeStateScalarType = typename Residual::NodeStateScalarType;
+  TEST_ASSERT(ElementType::mNumDofsPerCell == 6);
+  // create displacement data
+  //
+  Plato::Database tDatabase;
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+  Plato::ScalarVector tDisp("Displacements", tNumDofs);
+  Plato::blas1::fill(0.1, tDisp);
+  Kokkos::parallel_for("fill displacements",
+    Kokkos::RangePolicy<>(0, tNumDofs), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+  { tDisp(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  tDatabase.vector("states",tDisp);
+  // create temperature data
+  //
+  Plato::ScalarVector tTemp("Temperature", tNumVerts);
+  Plato::blas1::fill(0.1, tTemp);
+  Kokkos::parallel_for("fill temperature dofs",
+    Kokkos::RangePolicy<>(0, tNumVerts), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+  { tTemp(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  tDatabase.vector("node states",tTemp);
+  // create workset database
+  //
+  Plato::WorkSets tWorkSets;
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  auto tNumCells = tMesh->NumElements();
+  tWorksetBuilder.build(tNumCells,tDatabase,tWorkSets);
+  // create results workset
+  //
+  auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ResultScalarType> > >
+    ( Plato::ScalarMultiVectorT<ResultScalarType>("Result Workset", tNumCells, ElementType::mNumDofsPerCell) );
+  Kokkos::deep_copy(tResultWS->mData,0.);
+  tWorkSets.set("result",tResultWS);
+  // create inputs for nitsche's method
+  //
+  auto tSideSetName = std::string("y-");
+  Teuchos::ParameterList tNitscheParams;
+  tNitscheParams.set("Sides",tSideSetName);
+  tNitscheParams.set("Material Model",tOnlyDomainDefined.getMaterialName());
+  // create evaluator and evaluate nitsche's stress term
+  //
+  Plato::Elliptic::NitscheTestThermalHyperElasticStressEvaluator<Residual> 
+    tNitscheEvaluator(*tParamList,tNitscheParams);
+  tNitscheEvaluator.evaluate(tSpatialModel,tWorkSets);
+  // test gold values
+  //
+  constexpr Plato::Scalar tTol = 1e-8;
+  std::vector<std::vector<Plato::Scalar>> tGold = 
+    { {-0.2765432,-0.0703703,-0.2765432,-0.0703703,0.,0.} };
+  auto tHostResultWS = Kokkos::create_mirror(tResultWS->mData);
+  Kokkos::deep_copy(tHostResultWS,tResultWS->mData);
+  //
+  auto tSideCellOrdinals = tMesh->GetSideSetElements(tSideSetName);
+  Plato::OrdinalType tNumSideCells = tSideCellOrdinals.size();
+  for(Plato::OrdinalType tCell = 0; tCell < tNumSideCells; tCell++){
+    for(Plato::OrdinalType tDof = 0; tDof < ElementType::mNumDofsPerCell; tDof++){
+      auto tDiff = std::abs(tGold[tCell][tDof] - tHostResultWS(tCell,tDof));
+      TEST_ASSERT(tDiff < tTol);
+    }
+  }
+}
+
+TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheHyperElasticMechanics )
+{
+  // create input
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+  Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                              \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>               \n"
+    "  <Parameter name='Physics'  type='string' value='Mechanical'/>                   \n"
+    "  <Parameter name='Response' type='string' value='Nonlinear'/>                    \n"
+    "  <Parameter name='Weak Essential Boundary Conditions' type='bool' value='true'/> \n"
+    "  <ParameterList name='Spatial Model'>                                            \n"
+    "    <ParameterList name='Domains'>                                                \n"
+    "      <ParameterList name='Design Volume'>                                        \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>              \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>      \n"
+    "      </ParameterList>                                                            \n"
+    "    </ParameterList>                                                              \n"
+    "  </ParameterList>                                                                \n"
+    "<ParameterList name='Material Models'>                                            \n"
+      "<ParameterList name='Unobtainium'>                                              \n"
+        "<ParameterList name='Hyperelastic Kirchhoff'>                                 \n"
+          "<Parameter  name='Poissons Ratio' type='double' value='0.35'/>              \n"
+          "<Parameter  name='Youngs Modulus' type='double' value='1.0'/>               \n"
+        "</ParameterList>                                                              \n"
+      "</ParameterList>                                                                \n"
+    "</ParameterList>                                                                  \n"
+    "</ParameterList>                                                                  \n"
+    );
+  // create mesh
+  //
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  // create output database and spatial model
+  //
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh,*tParamList,tDataMap);
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  // create evaluation and scalar types
+  //
+  using ElementType = typename Plato::MechanicsElement<Plato::Tri3>;  
+  using Residual    = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using StateScalarType  = typename Residual::StateScalarType;
+  using ResultScalarType = typename Residual::ResultScalarType;
+  using ConfigScalarType = typename Residual::ConfigScalarType;
+  TEST_ASSERT(ElementType::mNumDofsPerCell == 6);
+  // create displacement data
+  //
+  Plato::Database tDatabase;
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+  Plato::ScalarVector tDisp("Displacements", tNumDofs);
+  Plato::blas1::fill(0.1, tDisp);
+  Kokkos::parallel_for("fill displacements",
+    Kokkos::RangePolicy<>(0, tNumDofs), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+  { tDisp(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  tDatabase.vector("states",tDisp);
+  // create dirichlet displacement data
+  //
+  Plato::ScalarVector tDirichlet("Dirichlet", tNumDofs);
+  Plato::blas1::fill(0.,tDirichlet);
+  tDatabase.vector("dirichlet",tDirichlet);
+  // create workset database
+  //
+  Plato::WorkSets tWorkSets;
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  auto tNumCells = tMesh->NumElements();
+  tWorksetBuilder.build(tNumCells,tDatabase,tWorkSets);
+  // create results workset
+  //
+  auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ResultScalarType> > >
+    ( Plato::ScalarMultiVectorT<ResultScalarType>("Result Workset", tNumCells, ElementType::mNumDofsPerCell) );
+  Kokkos::deep_copy(tResultWS->mData,0.);
+  tWorkSets.set("result",tResultWS);
+  // create inputs for nitsche's method
+  //
+  auto tSideSetName = std::string("y-");
+  Teuchos::ParameterList tNitscheParams;
+  tNitscheParams.set("Sides",tSideSetName);
+  tNitscheParams.set("Material Model",tOnlyDomainDefined.getMaterialName());
+  // create evaluator and evaluate nitsche's stress term
+  //
+  Plato::Elliptic::NitscheHyperElasticMechanics<Residual> 
+    tNitscheEvaluator(*tParamList,tNitscheParams);
+  tNitscheEvaluator.evaluate(tSpatialModel,tWorkSets);
+  // test gold values
+  //
+  constexpr Plato::Scalar tTol = 1e-8;
+  std::vector<std::vector<Plato::Scalar>> tGold = 
+    { {-0.334567873333333,-0.02530855333333301,-0.26790120666666695,0.041358113333332974,0.,0.} };
+  auto tHostResultWS = Kokkos::create_mirror(tResultWS->mData);
+  Kokkos::deep_copy(tHostResultWS,tResultWS->mData);
+  //
+  auto tSideCellOrdinals = tMesh->GetSideSetElements(tSideSetName);
+  Plato::OrdinalType tNumSideCells = tSideCellOrdinals.size();
+  for(Plato::OrdinalType tCell = 0; tCell < tNumSideCells; tCell++){
+    for(Plato::OrdinalType tDof = 0; tDof < ElementType::mNumDofsPerCell; tDof++){
+      auto tDiff = std::abs(tGold[tCell][tDof] - tHostResultWS(tCell,tDof));
+      TEST_ASSERT(tDiff < tTol);
+    }
+  }
+}
+
+TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheHyperElasticThermoMechanics )
+{
+  // create input
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+  Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                              \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>               \n"
+    "  <Parameter name='Physics'  type='string' value='Thermomechanical'/>             \n"
+    "  <Parameter name='Response' type='string' value='Nonlinear'/>                    \n"
+    "  <Parameter name='Weak Essential Boundary Conditions' type='bool' value='true'/> \n"
+    "  <ParameterList name='Spatial Model'>                                            \n"
+    "    <ParameterList name='Domains'>                                                \n"
+    "      <ParameterList name='Design Volume'>                                        \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>              \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>      \n"
+    "      </ParameterList>                                                            \n"
+    "    </ParameterList>                                                              \n"
+    "  </ParameterList>                                                                \n"
+    "<ParameterList name='Material Models'>                                            \n"
+      "<ParameterList name='Unobtainium'>                                              \n"
+        "<ParameterList name='Hyperelastic Kirchhoff'>                                 \n"
+          "<Parameter  name='Poissons Ratio' type='double' value='0.35'/>              \n"
+          "<Parameter  name='Youngs Modulus' type='double' value='1.0'/>               \n"
+        "</ParameterList>                                                              \n"
+        "<ParameterList name='Thermal Conduction'>                                     \n"
+          "<Parameter  name='Thermal Expansivity'   type='double' value='0.5'/>        \n"
+          "<Parameter  name='Reference Temperature' type='double' value='1.0'/>        \n"
+          "<Parameter  name='Thermal Conductivity'  type='double' value='2.0'/>        \n"
+        "</ParameterList>                                                              \n"
+      "</ParameterList>                                                                \n"
+    "</ParameterList>                                                                  \n"
+    "</ParameterList>                                                                  \n"
+    );
+  // create mesh
+  //
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  // create output database and spatial model
+  //
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh,*tParamList,tDataMap);
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  // create evaluation and scalar types
+  //
+  using ElementType = typename Plato::ThermoElasticElement<Plato::Tri3>;  
+  using Residual    = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using StateScalarType  = typename Residual::StateScalarType;
+  using ResultScalarType = typename Residual::ResultScalarType;
+  using ConfigScalarType = typename Residual::ConfigScalarType;
+  TEST_ASSERT(ElementType::mNumDofsPerCell == 6);
+  // create displacement data
+  //
+  Plato::Database tDatabase;
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+  Plato::ScalarVector tDisp("Displacements", tNumDofs);
+  Plato::blas1::fill(0.1, tDisp);
+  Kokkos::parallel_for("fill displacements",
+    Kokkos::RangePolicy<>(0, tNumDofs), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+  { tDisp(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  tDatabase.vector("states",tDisp);
+  // create temperature data
+  //
+  Plato::ScalarVector tTemp("Temperature", tNumVerts);
+  Plato::blas1::fill(0.1, tTemp);
+  Kokkos::parallel_for("fill temperature dofs",
+    Kokkos::RangePolicy<>(0, tNumVerts), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+  { tTemp(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  tDatabase.vector("node states",tTemp);
+  // create dirichlet displacement data
+  //
+  Plato::ScalarVector tDirichlet("Dirichlet", tNumDofs);
+  Plato::blas1::fill(0.,tDirichlet);
+  tDatabase.vector("dirichlet",tDirichlet);
+  // create workset database
+  //
+  Plato::WorkSets tWorkSets;
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  auto tNumCells = tMesh->NumElements();
+  tWorksetBuilder.build(tNumCells,tDatabase,tWorkSets);
+  // create results workset
+  //
+  auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ResultScalarType> > >
+    ( Plato::ScalarMultiVectorT<ResultScalarType>("Result Workset", tNumCells, ElementType::mNumDofsPerCell) );
+  Kokkos::deep_copy(tResultWS->mData,0.);
+  tWorkSets.set("result",tResultWS);
+  // create inputs for nitsche's method
+  //
+  auto tSideSetName = std::string("y-");
+  Teuchos::ParameterList tNitscheParams;
+  tNitscheParams.set("Sides",tSideSetName);
+  tNitscheParams.set("Material Model",tOnlyDomainDefined.getMaterialName());
+  // create evaluator and evaluate nitsche's stress term
+  //
+  Plato::Elliptic::NitscheHyperElasticThermoMechanics<Residual> 
+    tNitscheEvaluator(*tParamList,tNitscheParams);
+  tNitscheEvaluator.evaluate(tSpatialModel,tWorkSets);
+  // test gold values
+  //
+  constexpr Plato::Scalar tTol = 1e-8;
+  std::vector<std::vector<Plato::Scalar>> tGold = 
+    { {-0.423868288,-0.029423750666666,-0.370576106,0.03251040866666599,0.,0.} };
+  auto tHostResultWS = Kokkos::create_mirror(tResultWS->mData);
+  Kokkos::deep_copy(tHostResultWS,tResultWS->mData);
+  //
+  auto tSideCellOrdinals = tMesh->GetSideSetElements(tSideSetName);
+  Plato::OrdinalType tNumSideCells = tSideCellOrdinals.size();
+  for(Plato::OrdinalType tCell = 0; tCell < tNumSideCells; tCell++){
+    for(Plato::OrdinalType tDof = 0; tDof < ElementType::mNumDofsPerCell; tDof++){
+      auto tDiff = std::abs(tGold[tCell][tDof] - tHostResultWS(tCell,tDof));
+      TEST_ASSERT(tDiff < tTol);
+    }
+  }
+}
+
+TEUCHOS_UNIT_TEST( EllipticNitscheTests, FactoryNitscheEvaluator_NonlinearThermoMechanics )
+{
+  // create input
+  //
+  Teuchos::RCP<Teuchos::ParameterList> tParamList =
+  Teuchos::getParametersFromXmlString(
+    "<ParameterList name='Plato Problem'>                                              \n"
+    "  <Parameter name='PDE Constraint' type='string' value='Elliptic'/>               \n"
+    "  <Parameter name='Physics'  type='string' value='Thermomechanical'/>             \n"
+    "  <Parameter name='Response' type='string' value='Nonlinear'/>                    \n"
+    "  <Parameter name='Weak Essential Boundary Conditions' type='bool' value='true'/> \n"
+    "  <ParameterList name='Spatial Model'>                                            \n"
+    "    <ParameterList name='Domains'>                                                \n"
+    "      <ParameterList name='Design Volume'>                                        \n"
+    "        <Parameter name='Element Block' type='string' value='body'/>              \n"
+    "        <Parameter name='Material Model' type='string' value='Unobtainium'/>      \n"
+    "      </ParameterList>                                                            \n"
+    "    </ParameterList>                                                              \n"
+    "  </ParameterList>                                                                \n"
+    "<ParameterList name='Material Models'>                                            \n"
+      "<ParameterList name='Unobtainium'>                                              \n"
+        "<ParameterList name='Hyperelastic Kirchhoff'>                                 \n"
+          "<Parameter  name='Poissons Ratio' type='double' value='0.35'/>              \n"
+          "<Parameter  name='Youngs Modulus' type='double' value='1.0'/>               \n"
+        "</ParameterList>                                                              \n"
+        "<ParameterList name='Thermal Conduction'>                                     \n"
+          "<Parameter  name='Thermal Expansivity'   type='double' value='0.5'/>        \n"
+          "<Parameter  name='Reference Temperature' type='double' value='1.0'/>        \n"
+          "<Parameter  name='Thermal Conductivity'  type='double' value='2.0'/>        \n"
+        "</ParameterList>                                                              \n"
+      "</ParameterList>                                                                \n"
+    "</ParameterList>                                                                  \n"
+    "</ParameterList>                                                                  \n"
+    );
+  // create mesh
+  //
+  constexpr Plato::OrdinalType tSpaceDim = 2;
+  constexpr Plato::OrdinalType tMeshWidth = 1;
+  auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
+  // create output database and spatial model
+  //
+  Plato::DataMap tDataMap;
+  Plato::SpatialModel tSpatialModel(tMesh,*tParamList,tDataMap);
+  auto tOnlyDomainDefined = tSpatialModel.Domains.front();
+  // create evaluation and scalar types
+  //
+  using ElementType = typename Plato::ThermoElasticElement<Plato::Tri3>;  
+  using Residual    = typename Plato::Elliptic::Evaluation<ElementType>::Residual;
+  using StateScalarType  = typename Residual::StateScalarType;
+  using ResultScalarType = typename Residual::ResultScalarType;
+  using ConfigScalarType = typename Residual::ConfigScalarType;
+  TEST_ASSERT(ElementType::mNumDofsPerCell == 6);
+  // create displacement data
+  //
+  Plato::Database tDatabase;
+  const Plato::OrdinalType tNumVerts = tMesh->NumNodes();
+  const Plato::OrdinalType tNumDofs = tNumVerts * tSpaceDim;
+  Plato::ScalarVector tDisp("Displacements", tNumDofs);
+  Plato::blas1::fill(0.1, tDisp);
+  Kokkos::parallel_for("fill displacements",
+    Kokkos::RangePolicy<>(0, tNumDofs), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+  { tDisp(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  tDatabase.vector("states",tDisp);
+  // create temperature data
+  //
+  Plato::ScalarVector tTemp("Temperature", tNumVerts);
+  Plato::blas1::fill(0.1, tTemp);
+  Kokkos::parallel_for("fill temperature dofs",
+    Kokkos::RangePolicy<>(0, tNumVerts), 
+    KOKKOS_LAMBDA(const Plato::OrdinalType & aOrdinal)
+  { tTemp(aOrdinal) *= static_cast<Plato::Scalar>(aOrdinal); });
+  tDatabase.vector("node states",tTemp);
+  // create dirichlet displacement data
+  //
+  Plato::ScalarVector tDirichlet("Dirichlet", tNumDofs);
+  Plato::blas1::fill(0.,tDirichlet);
+  tDatabase.vector("dirichlet",tDirichlet);
+  // create workset database
+  //
+  Plato::WorkSets tWorkSets;
+  Plato::WorksetBase<ElementType> tWorksetFuncs(tMesh);
+  Plato::Elliptic::WorksetBuilder<Residual> tWorksetBuilder(tWorksetFuncs);
+  auto tNumCells = tMesh->NumElements();
+  tWorksetBuilder.build(tNumCells,tDatabase,tWorkSets);
+  // create results workset
+  //
+  auto tResultWS = std::make_shared< Plato::MetaData< Plato::ScalarMultiVectorT<ResultScalarType> > >
+    ( Plato::ScalarMultiVectorT<ResultScalarType>("Result Workset", tNumCells, ElementType::mNumDofsPerCell) );
+  Kokkos::deep_copy(tResultWS->mData,0.);
+  tWorkSets.set("result",tResultWS);
+  // create inputs for nitsche's method
+  //
+  auto tSideSetName = std::string("y-");
+  Teuchos::ParameterList tNitscheParams;
+  tNitscheParams.set("Sides",tSideSetName);
+  tNitscheParams.set("Material Model",tOnlyDomainDefined.getMaterialName());
+  // create evaluator
+  //
+  Plato::Elliptic::FactoryNitscheEvaluator<Residual> tFactory;
+  auto tEvaluator = tFactory.create(*tParamList,tNitscheParams);
+  tEvaluator->evaluate(tSpatialModel,tWorkSets);
+  // test gold values
+  //
+  constexpr Plato::Scalar tTol = 1e-8;
+  std::vector<std::vector<Plato::Scalar>> tGold = 
+    { {-0.423868288,-0.029423750666666,-0.370576106,0.03251040866666599,0.,0.} };
   auto tHostResultWS = Kokkos::create_mirror(tResultWS->mData);
   Kokkos::deep_copy(tHostResultWS,tResultWS->mData);
   //
