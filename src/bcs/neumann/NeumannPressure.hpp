@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "WeightedNormalVector.hpp"
+#include "utilities/WeightedNormalVector.hpp"
 #include "bcs/neumann/NeumannBoundaryConditionBase.hpp"
 
 namespace Plato

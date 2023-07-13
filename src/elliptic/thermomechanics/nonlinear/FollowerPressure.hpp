@@ -10,9 +10,9 @@
 
 #include "AnalyzeMacros.hpp"
 #include "GradientMatrix.hpp"
-#include "WeightedNormalVector.hpp"
 #include "InterpolateFromNodal.hpp"
 
+#include "utilities/WeightedNormalVector.hpp"
 #include "elliptic/mechanical/nonlinear/StateGradient.hpp"
 #include "elliptic/mechanical/nonlinear/DeformationGradient.hpp"
 #include "elliptic/thermomechanics/nonlinear/ThermalDeformationGradient.hpp"

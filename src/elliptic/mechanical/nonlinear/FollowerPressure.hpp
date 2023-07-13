@@ -11,7 +11,7 @@
 #include "bcs/neumann/NeumannBoundaryConditionBase.hpp"
 
 #include "GradientMatrix.hpp"
-#include "WeightedNormalVector.hpp"
+#include "utilities/WeightedNormalVector.hpp"
 #include "elliptic/mechanical/nonlinear/StateGradient.hpp"
 #include "elliptic/mechanical/nonlinear/DeformationGradient.hpp"
 

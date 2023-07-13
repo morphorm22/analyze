@@ -143,6 +143,8 @@ if(ELLIPTIC)
     elliptic/mechanical/linear/CriterionInternalElasticEnergy.cpp
     elliptic/mechanical/linear/CriterionVolAvgStressPNormDenominator.cpp
     elliptic/mechanical/linear/CriterionVolumeAverageDenominator.cpp
+    elliptic/mechanical/linear/nitsche/NitscheTestElasticStressEvaluator.cpp
+    elliptic/mechanical/linear/nitsche/NitscheTrialElasticStressEvaluator.cpp
     elliptic/mechanical/linear/nitsche/BoundaryEvaluatorTestIsotropicElasticStress.cpp
     elliptic/mechanical/linear/nitsche/BoundaryEvaluatorTrialIsotropicElasticStress.cpp
     elliptic/mechanical/nonlinear/StressEvaluatorKirchhoff.cpp
