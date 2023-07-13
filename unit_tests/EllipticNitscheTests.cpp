@@ -56,12 +56,26 @@
 namespace Plato
 {
 
+/// @class MaterialIsotropicElastic
+/// 
+/// @brief material constitutive model for isotropic elastic materials:
+///
+///  \f[
+///    C_{ijkl}=\lambda\delta_{ij}\delta_{kl} + \mu\left(\delta_{ik}\delta_{jl} + \delta_{il}\delta_{jk}\right)
+///  \f]
+///
+/// where \f$\lambda\f$ and \f$\mu\f$ are the Lame constants, \f$\delta\f$ is the Kronecker delta, and 
+/// \f$C_{ijkl}\f$ is the fourth-order isotropic material tensor.  
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class MaterialIsotropicElastic : public MaterialModel<EvaluationType>
 {
 public:
+  /// @brief class constructor
   MaterialIsotropicElastic(){}
 
+  /// @brief class constructor
+  /// @param [in] aParamList input problem parameters
   MaterialIsotropicElastic(
     const Teuchos::ParameterList& aParamList
   )
@@ -70,24 +84,37 @@ public:
     this->computeLameConstants();
   }
 
+  /// @brief class destructor
   ~MaterialIsotropicElastic(){}
 
+  /// @fn mu
+  /// @brief return value of lame constant mu
+  /// @return scalar
   Plato::Scalar 
   mu() 
   const
   { return this->getScalarConstant("mu"); }
   
+  /// @fn mu
+  /// @brief set value for lame constant mu
+  /// @param [in] aValue scalar 
   void 
   mu(
     const Plato::Scalar & aValue
   )
   { this->setScalarConstant("mu",aValue); }
 
+  /// @fn lambda
+  /// @brief return value of lame constant lambda
+  /// @return scalar
   Plato::Scalar 
   lambda() 
   const
   { return this->getScalarConstant("lambda"); }
   
+  /// @fn lambda
+  /// @brief set value of lame constant lambda
+  /// @param [in] aValue scalar 
   void 
   lambda(
     const Plato::Scalar & aValue
@@ -95,6 +122,9 @@ public:
   { this->setScalarConstant("lambda",aValue); }
 
 private:
+  /// @fn parse
+  /// @brief parse input material parameters
+  /// @param [in] aParamList input problem parameters 
   void 
   parse(
     const Teuchos::ParameterList& aParamList
@@ -104,6 +134,9 @@ private:
     this->parseScalarConstant("Poissons Ratio", aParamList);
   }
 
+  /// @fn computeLameConstants
+  /// @brief compute lame constants lambda and mu from input material constants 
+  /// E (Young's modulus) and nu (Poisson's ratio) 
   void 
   computeLameConstants()
   {
@@ -128,18 +161,31 @@ private:
 
 };
 
+/// @class FactoryElasticMaterial
+/// @brief factory for elastic material constitutive models
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class FactoryElasticMaterial
 {
 private:
+  /// @brief const reference to input problem parameters
   const Teuchos::ParameterList& mParamList;
+  /// @brief supported elastic material constitutive models
+  std::vector<std::string> mSupportedMaterials =
+    {"isotropic linear elastic"};
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList input problem parameters
   FactoryElasticMaterial(
     const Teuchos::ParameterList& aParamList
   ) :
     mParamList(aParamList){}
-
+  
+  /// @fn create
+  /// @brief create elastic material constitutive model
+  /// @param [in] aModelName user assigned name for material model 
+  /// @return standard shared pointer
   std::shared_ptr<Plato::MaterialModel<EvaluationType>>
   create(
     std::string aModelName
@@ -174,10 +220,9 @@ public:
   }
 
 private:
-  /*!< map from input force type string to supported enum */
-  std::vector<std::string> mSupportedMaterials =
-    {"isotropic linear elastic"};
-
+  /// @fn getErrorMsg
+  /// @brief error message if requested elastic material constitutive model is not supported
+  /// @return string
   std::string
   getErrorMsg()
   const
@@ -193,10 +238,18 @@ private:
   }
 };
 
+/// @class FactoryMechanicalMaterials
+/// @brief factory for mechanical material constitutive models
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class FactoryMechanicalMaterials
 {
 public:
+  /// @fn create
+  /// @brief create mechanical material constitutive model
+  /// @param [in] aMaterialName user assigned name for mechanical material constitutive model
+  /// @param [in] aParamList    input problem parameters
+  /// @return standard shared pointer to material model
   std::shared_ptr<Plato::MaterialModel<EvaluationType>>
   create(
     const std::string            & aMaterialName,
@@ -228,21 +281,40 @@ public:
   }
 };
 
+/// @class ComputeStrainTensor
+/// @brief compute strain tensor for small strains:
+///
+/// \f[
+///   \epsilon_{ij}=\left( \frac{\partial u_i}{partial x_j} + \frac{\partial u_j}{partial x_i} \right)
+/// \f]
+///
+/// where \f$u_i\f$ is the i-th displacement component and \f$x_i\f$ is the i-th spatial coordinate
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class ComputeStrainTensor
 {
 private:
-  // set local element type
+  /// @brief local topological element type
   using ElementType = typename EvaluationType::ElementType;
-  // set local static parameters
+  /// @brief number of spatial dimensions
   static constexpr auto mNumSpatialDims  = ElementType::mNumSpatialDims;
-  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell; /*!< number of nodes per element */
+  /// @brief number of nodes per element
+  static constexpr auto mNumNodesPerCell = ElementType::mNumNodesPerCell; 
 
 public:
+  /// @fn operator()
+  /// @brief compute test (virtual) strain tensor, a constant value of 1.0 is assumed 
+  /// for each virtual displacement component
+  /// @tparam StrainScalarType   strains scalar type
+  /// @tparam GradientScalarType gradient scalar type
+  /// @param [in]     aCellOrdinal    local element ordinal
+  /// @param [in]     aGradient       interpolation function gradient matrix
+  /// @param [in,out] aVirtualStrains test strain tensor
   template
   <typename StrainScalarType,
    typename GradientScalarType>
-  KOKKOS_INLINE_FUNCTION void
+  KOKKOS_INLINE_FUNCTION 
+  void
   operator()(
     const Plato::OrdinalType                                                  & aCellOrdinal,
     const Plato::Matrix<mNumNodesPerCell,mNumSpatialDims, GradientScalarType> & aGradient,
@@ -265,11 +337,21 @@ public:
     }
   }
 
+  /// @fn operator()
+  /// @brief compute trial strain tensor
+  /// @tparam StrainScalarType   trial strain scalar type
+  /// @tparam DispScalarType     displacement scalar type
+  /// @tparam GradientScalarType gradient scalar type
+  /// @param [in]     aCellOrdinal local element ordinal
+  /// @param [in]     aState       displacement workset
+  /// @param [in]     aGradient    interpolation function gradient matrix
+  /// @param [in,out] aStrains     trial strain tensor
   template
   <typename StrainScalarType,
    typename DispScalarType,
    typename GradientScalarType>
-  KOKKOS_INLINE_FUNCTION void
+  KOKKOS_INLINE_FUNCTION 
+  void
   operator()(
     const Plato::OrdinalType                                                  & aCellOrdinal,
     const Plato::ScalarMultiVectorT<DispScalarType>                           & aState,
@@ -295,23 +377,36 @@ public:
   }
 };
 
+/// @brief compute seond-order isotropic stress tensor:
+///
+/// \f[
+///   \sigma_{ij}=C_{ijkl}\epsilon_{kl}\quad (i,j,k,l)\in\{1,2,3\}\in,
+/// \f]
+///
+/// where \f$\sigma_{ij}\f$ is the second-order stress tensor, \f$\epsilon_{kl}\f$ is the second-order strain tensor, 
+/// and \f$C_{ijkl}\f$ is the fourth-order material tensor for isotropic elastic materials
+/// @tparam EvaluationType 
 template< typename EvaluationType>
 class ComputeIsotropicElasticStressTensor
 {
 private:
-  // set local element type
+  /// @brief topological element type
   using ElementType = typename EvaluationType::ElementType;
-  // set local static parameters
+  /// @brief number of spatial dimensions
   static constexpr auto mNumSpatialDims   = ElementType::mNumSpatialDims;
-  static constexpr auto mNumNodesPerCell  = ElementType::mNumNodesPerCell; /*!< number of nodes per element */
+  /// @brief number of nodes per cell
+  static constexpr auto mNumNodesPerCell  = ElementType::mNumNodesPerCell;
+  /// @brief scalar types associated with the automatic differentation evaluation type
   using StateScalarType  = typename EvaluationType::StateScalarType;  
   using ConfigScalarType = typename EvaluationType::ConfigScalarType; 
   using ResultScalarType = typename EvaluationType::ResultScalarType; 
   using StrainScalarType = typename Plato::fad_type_t<ElementType, StateScalarType, ConfigScalarType>; 
-  // set local member data
+  /// @brief lame constants
   Plato::Scalar mMu = 1.0;
   Plato::Scalar mLambda = 1.0;
 public:
+  /// @brief class constructor
+  /// @param [in] aMaterialModel material constitutive model interface 
   ComputeIsotropicElasticStressTensor(
     Plato::MaterialModel<EvaluationType> & aMaterialModel
   )
@@ -330,9 +425,16 @@ public:
     }
   }
 
+  /// @fn operator()
+  /// @brief compute stress tensor
+  /// @tparam ResultScalarType result scalar type
+  /// @tparam StrainScalarType strain scalar type
+  /// @param [in]     aStrainTensor trial strain tensor
+  /// @param [in,out] aStressTensor trial stress tensor
   template<typename ResultScalarType,
            typename StrainScalarType>
-  KOKKOS_INLINE_FUNCTION void
+  KOKKOS_INLINE_FUNCTION 
+  void
   operator()
   (const Plato::Matrix<mNumSpatialDims, mNumSpatialDims, StrainScalarType> & aStrainTensor,
          Plato::Matrix<mNumSpatialDims, mNumSpatialDims, ResultScalarType> & aStressTensor) const
@@ -355,27 +457,41 @@ public:
   }
 };
 
-
-
+/// @class ComputeSideCellVolumes
+/// @brief compute volume of cells/elements along the surface
+///
+/// \f[
+///   \Omega_{V}=\int_{\Omega}\det(J) d\Omega
+/// \f]
+///
+/// where \f$J\f$ is the element Jacobian. 
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class ComputeSideCellVolumes
 {
 private:
-  // set local element types
+  /// @brief topological element type
   using ElementType = typename EvaluationType::ElementType;
-  // set local fad type definitions
+  /// @brief scalar types associated with the automatic differentation evaluation type
   using ResultScalarType = typename EvaluationType::ResultScalarType;
   using ConfigScalarType = typename EvaluationType::ConfigScalarType;
-  // set local member data
+  /// @brief user assigned name for side set
   std::string mSideSetName;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aEntitySetName side set name
   ComputeSideCellVolumes(
     const std::string& aEntitySetName
   ) :
     mSideSetName(aEntitySetName)
   {}
 
+  /// @fn operator()
+  /// @brief compute cell volumes
+  /// @param [in]     aSpatialModel    contains mesh and model information
+  /// @param [in]     aWorkSets        range and domain database
+  /// @param [in,out] aSideCellVolumes side cell volumes
   void 
   operator()(
     const Plato::SpatialModel                    & aSpatialModel,
@@ -409,28 +525,38 @@ public:
   }
 };
 
+/// @class ComputeSideCellFaceAreas
+/// @brief compute area of cells on side set
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class ComputeSideCellFaceAreas
 {
 private:
-  // set local element types
+  /// @brief topological element type for body and surface elements
   using BodyElementType = typename EvaluationType::ElementType;
   using FaceElementType = typename BodyElementType::Face;
-  // set local constexpr members
+  /// @brief number of nodes per face
   static constexpr auto mNumNodesPerFace = BodyElementType::mNumNodesPerFace;
-  // set local fad type definitions
+  /// @brief scalar types associated with the automatic differentation evaluation type
   using ResultScalarType = typename EvaluationType::ResultScalarType;
   using ConfigScalarType = typename EvaluationType::ConfigScalarType;
-  // set local member data
+  /// @brief user assigned side set name
   std::string mSideSetName;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aEntitySetName side set name
   ComputeSideCellFaceAreas(
     const std::string& aEntitySetName
   ) :
     mSideSetName(aEntitySetName)
   {}
 
+  /// @fn operator()
+  /// @brief compute cell volumes
+  /// @param [in]     aSpatialModel      contains mesh and model information
+  /// @param [in]     aWorkSets          range and domain database
+  /// @param [in,out] aSideCellFaceAreas side cell areas
   void 
   operator()(
     const Plato::SpatialModel                    & aSpatialModel,
@@ -476,24 +602,34 @@ public:
 };
 
 
-
+/// @class ComputeCharacteristicLength
+/// @brief compute cell characteristic length \f$L=V/A\f$, where \f$V\f$ is the element volume, 
+/// \f$A\f$ is the element area
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class ComputeCharacteristicLength
 {
 private:
-  // set local fad type definitions
+  /// @brief scalar types associated with the automatic differentation evaluation type
   using ResultScalarType = typename EvaluationType::ResultScalarType;
   using ConfigScalarType = typename EvaluationType::ConfigScalarType;
-  // set local member data
+  /// @brief user assigned side set name
   std::string mSideSetName;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aEntitySetName side set name 
   ComputeCharacteristicLength(
     const std::string& aEntitySetName
   ) :
     mSideSetName(aEntitySetName)
   {}
-
+  
+  /// @fn operator()
+  /// @brief compute characteristic length of all the side cells 
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in]     aWorkSets     range and domain database
+  /// @param [in,out] aCharLength   characteristic length
   void operator()(
     const Plato::SpatialModel                    & aSpatialModel,
     const Plato::WorkSets                        & aWorkSets,
@@ -562,6 +698,11 @@ public:
   const 
   { return mMaterialName; }
 
+  /// @brief evaluate nitsche integral
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar 
   virtual
   void 
   evaluate(
@@ -669,8 +810,11 @@ private:
 
 };
 
+/// @class BoundaryEvaluatorTrialIsotropicElasticStress
+/// @brief evaluate trial stresses at the integration points using an isotropic elastic material
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
-class BoundarEvaluatoryTrialIsotropicElasticStress : public Plato::BoundaryFluxEvaluator<EvaluationType>
+class BoundaryEvaluatorTrialIsotropicElasticStress : public Plato::BoundaryFluxEvaluator<EvaluationType>
 {
 private:
   /// @brief topological element typename
@@ -700,16 +844,25 @@ private:
   using BaseClassType::mMaterialName;
 
 public:
-  BoundarEvaluatoryTrialIsotropicElasticStress(
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
+  BoundaryEvaluatorTrialIsotropicElasticStress(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
   ) : 
     BaseClassType(aNitscheParams)
   {
-    Plato::FactoryElasticMaterial<EvaluationType> tFactory(aParamList);
-    mMaterialModel = tFactory.create(mMaterialName);
+    Plato::FactoryMechanicalMaterials<EvaluationType> tFactory;
+    mMaterialModel = tFactory.create(mMaterialName,aParamList);
   }
 
+  /// @fn evaluate
+  /// @brief evaluate trial stresses for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in]     aWorkSets     domain and range workset database
+  /// @param [in,out] aResult       4D scalar container
+  /// @param [in]     aCycle        scalar
   void 
   evaluate(
     const Plato::SpatialModel                     & aSpatialModel,
@@ -774,8 +927,11 @@ public:
   }
 };
 
+/// @class BoundaryEvaluatorTestIsotropicElasticStress
+/// @brief evaluate test stresses at the integration points using an isotropic elastic material
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
-class BoundarEvaluatoryTestIsotropicElasticStress : public Plato::BoundaryFluxEvaluator<EvaluationType>
+class BoundaryEvaluatorTestIsotropicElasticStress : public Plato::BoundaryFluxEvaluator<EvaluationType>
 {
 private:
   /// @brief topological element typename
@@ -805,16 +961,25 @@ private:
   using BaseClassType::mMaterialName;
 
 public:
-  BoundarEvaluatoryTestIsotropicElasticStress(
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
+  BoundaryEvaluatorTestIsotropicElasticStress(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
   ) : 
     BaseClassType(aNitscheParams)
   {
-    Plato::FactoryElasticMaterial<EvaluationType> tFactory(aParamList);
-    mMaterialModel = tFactory.create(mMaterialName);
+    Plato::FactoryMechanicalMaterials<EvaluationType> tFactory;
+    mMaterialModel = tFactory.create(mMaterialName,aParamList);
   }
 
+  /// @fn evaluate
+  /// @brief evaluate test stresses for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in]     aWorkSets     domain and range workset database
+  /// @param [in,out] aResult       4D scalar container
+  /// @param [in]     aCycle        scalar
   void 
   evaluate(
     const Plato::SpatialModel                     & aSpatialModel,
@@ -877,6 +1042,9 @@ public:
   }
 };
 
+/// @class BoundaryEvaluatoryTrialKirchhoffStress
+/// @brief evaluate trial stresses at the integration points using a hyperelastic-kirchhoff material model
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class BoundaryEvaluatoryTrialKirchhoffStress : public Plato::BoundaryFluxEvaluator<EvaluationType>
 {
@@ -908,16 +1076,25 @@ private:
   using BaseClassType::mMaterialName;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
   BoundaryEvaluatoryTrialKirchhoffStress(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
   ) : 
     BaseClassType(aNitscheParams)
   {
-    Plato::FactoryNonlinearElasticMaterial<EvaluationType> tFactory(aParamList);
-    mMaterialModel = tFactory.create(mMaterialName);
+    Plato::FactoryMechanicalMaterials<EvaluationType> tFactory;
+    mMaterialModel = tFactory.create(mMaterialName,aParamList);
   }
 
+  /// @fn evaluate
+  /// @brief evaluate trial stresses for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in]     aWorkSets     domain and range workset database
+  /// @param [in,out] aResult       4D scalar container
+  /// @param [in]     aCycle        scalar
   void 
   evaluate(
     const Plato::SpatialModel                     & aSpatialModel,
@@ -1001,6 +1178,9 @@ public:
   }
 };
 
+/// @class BoundaryEvaluatorTestKirchhoffStress
+/// @brief evaluate test stresses at the integration points using a hyperelastic-kirchhoff material model
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class BoundaryEvaluatorTestKirchhoffStress : public Plato::BoundaryFluxEvaluator<EvaluationType>
 {
@@ -1032,16 +1212,25 @@ private:
   using BaseClassType::mMaterialName;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
   BoundaryEvaluatorTestKirchhoffStress(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
   ) : 
     BaseClassType(aNitscheParams)
   {
-    Plato::FactoryNonlinearElasticMaterial<EvaluationType> tFactory(aParamList);
-    mMaterialModel = tFactory.create(mMaterialName);
+    Plato::FactoryMechanicalMaterials<EvaluationType> tFactory;
+    mMaterialModel = tFactory.create(mMaterialName,aParamList);
   }
 
+  /// @fn evaluate
+  /// @brief evaluate test stresses for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in]     aWorkSets     domain and range workset database
+  /// @param [in,out] aResult       4D scalar container
+  /// @param [in]     aCycle        scalar
   void 
   evaluate(
     const Plato::SpatialModel                     & aSpatialModel,
@@ -1124,6 +1313,9 @@ public:
 };
 
 
+/// @class BoundaryEvaluatorTrialNeoHookeanStress
+/// @brief evaluate trial stresses at the integration points using a hyperelastic-neohookean material model
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class BoundaryEvaluatorTrialNeoHookeanStress : public Plato::BoundaryFluxEvaluator<EvaluationType>
 {
@@ -1155,16 +1347,25 @@ private:
   using BaseClassType::mMaterialName;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
   BoundaryEvaluatorTrialNeoHookeanStress(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
   ) : 
     BaseClassType(aNitscheParams)
   {
-    Plato::FactoryNonlinearElasticMaterial<EvaluationType> tFactory(aParamList);
-    mMaterialModel = tFactory.create(mMaterialName);
+    Plato::FactoryMechanicalMaterials<EvaluationType> tFactory;
+    mMaterialModel = tFactory.create(mMaterialName,aParamList);
   }
 
+  /// @fn evaluate
+  /// @brief evaluate trial stresses for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in]     aWorkSets     domain and range workset database
+  /// @param [in,out] aResult       4D scalar container
+  /// @param [in]     aCycle        scalar
   void 
   evaluate(
     const Plato::SpatialModel                     & aSpatialModel,
@@ -1243,6 +1444,9 @@ public:
 };
 
 
+/// @class BoundaryEvaluatorTestNeoHookeanStress
+/// @brief evaluate test stresses at the integration points using a hyperelastic-neohookean material model
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class BoundaryEvaluatorTestNeoHookeanStress : public Plato::BoundaryFluxEvaluator<EvaluationType>
 {
@@ -1274,16 +1478,25 @@ private:
   using BaseClassType::mMaterialName;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
   BoundaryEvaluatorTestNeoHookeanStress(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
   ) : 
     BaseClassType(aNitscheParams)
   {
-    Plato::FactoryNonlinearElasticMaterial<EvaluationType> tFactory(aParamList);
-    mMaterialModel = tFactory.create(mMaterialName);
+    Plato::FactoryMechanicalMaterials<EvaluationType> tFactory;
+    mMaterialModel = tFactory.create(mMaterialName,aParamList);
   }
 
+  /// @fn evaluate
+  /// @brief evaluate test stresses for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in]     aWorkSets     domain and range workset database
+  /// @param [in,out] aResult       4D scalar container
+  /// @param [in]     aCycle        scalar
   void 
   evaluate(
     const Plato::SpatialModel                     & aSpatialModel,
@@ -1361,8 +1574,19 @@ public:
 
 namespace Elliptic
 {
-  
 
+/// @class NitscheTrialElasticStressEvaluator
+/// @brief evaluate nitsche's trial stress integral 
+///
+/// \f[
+///   - \int_{\Gamma_D}\delta\mathbf{u}_i\left(\sigma_{ij}n_j\right)d\Gamma
+/// \f]
+///
+///  where \f$\delta{u}_i\f$ is the test displacement field, \f$n_j\f$ is the normal, 
+/// \f$\sigma_{ij}\f$ is the stress tensor, and \f$\Gamma_D\f$ is the surface where 
+/// dirichlet boundary conditions are enforced. 
+///
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class NitscheTrialElasticStressEvaluator : public Plato::NitscheEvaluator
 {
@@ -1392,9 +1616,12 @@ private:
   using ConfigScalarType = typename EvaluationType::ConfigScalarType;
   using StrainScalarType = typename Plato::fad_type_t<BodyElementBase,StateScalarType,ConfigScalarType>;
   /// @brief evaluates boundary trial and test stress tensors
-  std::shared_ptr<Plato::BoundarEvaluatoryTrialIsotropicElasticStress<EvaluationType>> mBoundaryStressEvaluator;
+  std::shared_ptr<Plato::BoundaryEvaluatorTrialIsotropicElasticStress<EvaluationType>> mBoundaryStressEvaluator;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
   NitscheTrialElasticStressEvaluator(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
@@ -1404,11 +1631,19 @@ public:
     // create boundary stress evaluator
     //
     mBoundaryStressEvaluator = 
-      std::make_shared<Plato::BoundarEvaluatoryTrialIsotropicElasticStress<EvaluationType>>(aParamList,aNitscheParams);
+      std::make_shared<Plato::BoundaryEvaluatorTrialIsotropicElasticStress<EvaluationType>>(aParamList,aNitscheParams);
   }
+
+  /// @brief class destructor
   ~NitscheTrialElasticStressEvaluator()
   {}
 
+  /// @fn evaluate
+  /// @brief evaluate test stresses for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar
   void 
   evaluate(
     const Plato::SpatialModel & aSpatialModel,
@@ -1491,6 +1726,19 @@ public:
   }
 };
 
+
+/// @class NitscheTestElasticStressEvaluator
+/// @brief evaluate nitsche's trial stress integral 
+///
+/// \f[
+///   -\int_{\Gamma_D}\delta\left(\sigma_{ij}n_j\right)\left(u_i-u_i^D\right) d\Gamma
+/// \f]
+///
+///  where \f$\delta\sigma_{ij}\f$ is the test stress tensor, \f$n_j\f$ is the normal vector, 
+/// \f$u_i\f$ is the trial displacement, \f$u_i^D\f$ is the enforced dirichlet displacement, 
+/// and \f$\Gamma_D\f$ is the surface where dirichlet boundary conditions are enforced. 
+///
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class NitscheTestElasticStressEvaluator : public Plato::NitscheEvaluator
 {
@@ -1520,9 +1768,12 @@ private:
   using ConfigScalarType = typename EvaluationType::ConfigScalarType;
   using StrainScalarType = typename Plato::fad_type_t<BodyElementBase,StateScalarType,ConfigScalarType>;
   /// @brief evaluates boundary trial and test stress tensors
-  std::shared_ptr<Plato::BoundarEvaluatoryTestIsotropicElasticStress<EvaluationType>> mBoundaryStressEvaluator;
+  std::shared_ptr<Plato::BoundaryEvaluatorTestIsotropicElasticStress<EvaluationType>> mBoundaryStressEvaluator;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
   NitscheTestElasticStressEvaluator(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
@@ -1532,11 +1783,19 @@ public:
     // create boundary stress evaluator
     //
     mBoundaryStressEvaluator = 
-      std::make_shared<Plato::BoundarEvaluatoryTestIsotropicElasticStress<EvaluationType>>(aParamList,aNitscheParams);
+      std::make_shared<Plato::BoundaryEvaluatorTestIsotropicElasticStress<EvaluationType>>(aParamList,aNitscheParams);
   }
+
+  /// @brief class destructor
   ~NitscheTestElasticStressEvaluator()
   {}
 
+  /// @fn evaluate
+  /// @brief evaluate test stresses for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar
   void 
   evaluate(
     const Plato::SpatialModel & aSpatialModel,
@@ -1639,11 +1898,19 @@ public:
 };
 
 
-
+/// @class FactoryNitscheHyperElasticStressEvaluator
+/// @brief creates stress evaluator use to weakly enforce dirichlet boundary conditions 
+/// in nonlinear mechanical problems via nitsche's method
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class FactoryNitscheHyperElasticStressEvaluator
 {
 public:
+  /// @fn createTrialEvaluator
+  /// @brief create trial stress evaluator
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
+  /// @return standard shared pointer
   std::shared_ptr<Plato::BoundaryFluxEvaluator<EvaluationType>> 
   createTrialEvaluator(
     Teuchos::ParameterList & aParamList,
@@ -1688,6 +1955,11 @@ public:
     }
   }
 
+  /// @fn createTestEvaluator
+  /// @brief create test stress evaluator
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
+  /// @return standard shared pointer
   std::shared_ptr<Plato::BoundaryFluxEvaluator<EvaluationType>> 
   createTestEvaluator(
     Teuchos::ParameterList & aParamList,
@@ -1732,7 +2004,7 @@ public:
     }
   }
 
-  /// @fn initialize
+  /// @fn getMaterialName
   /// @brief return material name
   /// @param [in] aParamList input problem parameters
   /// @return string
@@ -1750,7 +2022,18 @@ public:
   }
 };
 
-
+/// @class NitscheTrialElasticStressEvaluator
+/// @brief evaluate nitsche's trial stress integral 
+///
+/// \f[
+///   - \int_{\Gamma_D}\delta\mathbf{u}_i\left(P_{ij}n_j\right)d\Gamma
+/// \f]
+///
+///  where \f$\delta{u}_i\f$ is the test displacement field, \f$n_j\f$ is the normal, 
+/// \f$P_{ij}\f$ is the first piola-kirchhoff stress tensor; i.e., nominal stress tensor, 
+/// and \f$\Gamma_D\f$ is the surface where dirichlet boundary conditions are enforced. 
+///
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class NitscheTrialHyperElasticStressEvaluator : public Plato::NitscheEvaluator
 {
@@ -1783,6 +2066,9 @@ private:
   std::shared_ptr<Plato::BoundaryFluxEvaluator<EvaluationType>> mBoundaryStressEvaluator;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
   NitscheTrialHyperElasticStressEvaluator(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
@@ -1794,9 +2080,17 @@ public:
     Plato::Elliptic::FactoryNitscheHyperElasticStressEvaluator<EvaluationType> tFactory;
     mBoundaryStressEvaluator = tFactory.createTrialEvaluator(aParamList,aNitscheParams);
   }
+
+  /// @brief class destructor
   ~NitscheTrialHyperElasticStressEvaluator()
   {}
 
+  /// @fn evaluate
+  /// @brief evaluate trial stresses for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar
   void 
   evaluate(
     const Plato::SpatialModel & aSpatialModel,
@@ -1908,6 +2202,19 @@ public:
   }
 };
 
+
+/// @class NitscheTestHyperElasticStressEvaluator
+/// @brief evaluate nitsche's test stress integral 
+///
+/// \f[
+///   -\int_{\Gamma_D}\delta\left(P_{ij}n_j\right)\left(u_i-u_i^D\right) d\Gamma
+/// \f]
+///
+///  where \f$\delta{P}_{ij}\f$ is the test first piola-kirchhoff stress tensor, \f$n_j\f$ is 
+/// the normal vector, \f$u_i\f$ is the trial displacement, \f$u_i^D\f$ is the enforced dirichlet 
+/// displacement, and \f$\Gamma_D\f$ is the surface where dirichlet boundary conditions are enforced. 
+///
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class NitscheTestHyperElasticStressEvaluator : public Plato::NitscheEvaluator
 {
@@ -1940,6 +2247,9 @@ private:
   std::shared_ptr<Plato::BoundaryFluxEvaluator<EvaluationType>> mBoundaryStressEvaluator;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
   NitscheTestHyperElasticStressEvaluator(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
@@ -1951,9 +2261,17 @@ public:
     Plato::Elliptic::FactoryNitscheHyperElasticStressEvaluator<EvaluationType> tFactory;
     mBoundaryStressEvaluator = tFactory.createTestEvaluator(aParamList,aNitscheParams);
   }
+
+  /// @brief class destructor
   ~NitscheTestHyperElasticStressEvaluator()
   {}
 
+  /// @fn evaluate
+  /// @brief evaluate trial stresses for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar
   void 
   evaluate(
     const Plato::SpatialModel & aSpatialModel,
@@ -2064,7 +2382,18 @@ public:
 };
 
 
-
+/// @class NitscheTrialThermalHyperElasticStressEvaluator
+/// @brief evaluate nitsche's trial thermal stress integral 
+///
+/// \f[
+///   - \int_{\Gamma_D}\delta\mathbf{u}_i\left(P_{ij}n_j\right)d\Gamma
+/// \f]
+///
+///  where \f$\delta{u}_i\f$ is the test displacement field, \f$n_j\f$ is the normal, 
+/// \f$P_{ij}\f$ is the first piola-kirchhoff stress tensor; i.e., nominal stress tensor, 
+/// and \f$\Gamma_D\f$ is the surface where dirichlet boundary conditions are enforced. 
+///
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class NitscheTrialThermalHyperElasticStressEvaluator : public Plato::NitscheEvaluator
 {
@@ -2102,6 +2431,9 @@ private:
   std::shared_ptr<Plato::BoundaryFluxEvaluator<EvaluationType>> mBoundaryStressEvaluator;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
   NitscheTrialThermalHyperElasticStressEvaluator(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
@@ -2114,9 +2446,17 @@ public:
     Plato::Elliptic::FactoryNitscheHyperElasticStressEvaluator<EvaluationType> tFactory;
     mBoundaryStressEvaluator = tFactory.createTrialEvaluator(aParamList,aNitscheParams);
   }
+
+  /// @brief class destructor
   ~NitscheTrialThermalHyperElasticStressEvaluator()
   {}
 
+  /// @fn evaluate
+  /// @brief evaluate trial stresses for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar
   void 
   evaluate(
     const Plato::SpatialModel & aSpatialModel,
@@ -2246,6 +2586,18 @@ public:
 };
 
 
+/// @class NitscheTestThermalHyperElasticStressEvaluator
+/// @brief evaluate nitsche's test thermal stress integral 
+///
+/// \f[
+///   -\int_{\Gamma_D}\delta\left(P_{ij}n_j\right)\left(u_i-u_i^D\right) d\Gamma
+/// \f]
+///
+///  where \f$\delta{P}_{ij}\f$ is the test first piola-kirchhoff stress tensor, \f$n_j\f$ is 
+/// the normal vector, \f$u_i\f$ is the trial displacement, \f$u_i^D\f$ is the enforced dirichlet 
+/// displacement, and \f$\Gamma_D\f$ is the surface where dirichlet boundary conditions are enforced. 
+///
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class NitscheTestThermalHyperElasticStressEvaluator : public Plato::NitscheEvaluator
 {
@@ -2283,6 +2635,9 @@ private:
   std::shared_ptr<Plato::BoundaryFluxEvaluator<EvaluationType>> mBoundaryStressEvaluator;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
   NitscheTestThermalHyperElasticStressEvaluator(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
@@ -2295,9 +2650,17 @@ public:
     Plato::Elliptic::FactoryNitscheHyperElasticStressEvaluator<EvaluationType> tFactory;
     mBoundaryStressEvaluator = tFactory.createTrialEvaluator(aParamList,aNitscheParams);
   }
+
+  /// @brief class destructor
   ~NitscheTestThermalHyperElasticStressEvaluator()
   {}
 
+  /// @fn evaluate
+  /// @brief evaluate test stresses for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar
   void 
   evaluate(
     const Plato::SpatialModel & aSpatialModel,
@@ -2422,6 +2785,18 @@ public:
 };
 
 
+/// @class NitscheDispMisfitEvaluator
+/// @brief evaluate nitsche's displacement misfit integral 
+///
+/// \f[
+///   \int_{\Gamma_D}\gamma_{N}^{u}\delta{u}_i\left(u_i-u_i^{D}\right)
+/// \f]
+///
+///  where \f$\delta{u}_i\f$ is the test displacement, \f$u_i\f$ is the trial displacement, \f$u_i^D\f$ 
+/// is the enforced dirichlet displacement, \f$\Gamma_D\f$ is the surface where dirichlet boundary conditions 
+/// are enforced, and \gamma_{N}^{u} is the nitsche penalty parameter. 
+///
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class NitscheDispMisfitEvaluator : public Plato::NitscheEvaluator
 {
@@ -2454,6 +2829,9 @@ private:
   std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
   NitscheDispMisfitEvaluator(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
@@ -2471,9 +2849,16 @@ public:
     }
   }
 
+  /// @brief class destructor
   ~NitscheDispMisfitEvaluator()
   {}
 
+  /// @fn evaluate
+  /// @brief evaluate integral for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar
   void 
   evaluate(
     const Plato::SpatialModel & aSpatialModel,
@@ -2571,6 +2956,19 @@ public:
   }
 };
 
+
+/// @class NitscheTrialHeatFluxEvaluator
+/// @brief evaluate nitsche's trial heat flux integral 
+///
+/// \f[
+///   -\int_{\Gamma_D}\delta\theta\left(q_i n_i\right)d\Gamma
+/// \f]
+///
+///  where \f$\delta\theta\f$ is the test temperature field, \f$n_j\f$ is the normal vector, 
+/// \f$q_{i}\f$ is the internal heat flux, and \f$\Gamma_D\f$ is the surface where dirichlet 
+/// boundary conditions are enforced. 
+///
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class NitscheTrialHeatFluxEvaluator : public Plato::NitscheEvaluator
 {
@@ -2603,6 +3001,9 @@ private:
   std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
   NitscheTrialHeatFluxEvaluator(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
@@ -2615,9 +3016,16 @@ public:
     mMaterialModel = tFactory.create(mMaterialName);
   }
 
+  /// @brief class destructor
   ~NitscheTrialHeatFluxEvaluator()
   {}
 
+  /// @fn evaluate
+  /// @brief evaluate integral for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar
   void 
   evaluate(
     const Plato::SpatialModel & aSpatialModel,
@@ -2714,6 +3122,19 @@ public:
   }
 };
 
+
+/// @class NitscheTestHeatFluxEvaluator
+/// @brief evaluate nitsche's test heat flux integral 
+///
+/// \f[
+///   \int_{\Gamma_D}\delta\left(q_i n_i\right)\left(\theta-\theta^{D}\right)d\Gamma
+/// \f]
+///
+/// where \f$\delta{q}_i\f$ is the test heat flux, \f$n_j\f$ is the normal vector, 
+/// \f$\theta\f$ is the temperature field, and \f$\theta^D\f$ is the dirichlet temperature 
+/// field, and \f$\Gamma_D\f$ is the surface where dirichlet boundary conditions are enforced. 
+///
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class NitscheTestHeatFluxEvaluator : public Plato::NitscheEvaluator
 {
@@ -2746,6 +3167,9 @@ private:
   std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
   NitscheTestHeatFluxEvaluator(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
@@ -2758,9 +3182,16 @@ public:
     mMaterialModel = tFactory.create(mMaterialName);
   }
 
+  /// @brief class destructor
   ~NitscheTestHeatFluxEvaluator()
   {}
 
+  /// @fn evaluate
+  /// @brief evaluate integral for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar
   void 
   evaluate(
     const Plato::SpatialModel & aSpatialModel,
@@ -2862,7 +3293,18 @@ public:
 };
 
 
-
+/// @class NitscheTempMisfitEvaluator
+/// @brief evaluate nitsche's test heat flux integral 
+///
+/// \f[
+///   \int_{\Gamma_D}\gamma_{N}^{\theta}\delta\theta\left(\theta-\theta^{D}\right)d\Gamma
+/// \f]
+///
+/// where \f$\gamma_{N}^{\theta}\f$ is the nitsche penalty parameter, \f$\delta\theta\f$ is the 
+/// test temperature field, \f$\theta\f$ is the temperature field, \f$\theta^D\f$ is the dirichlet 
+/// temperature field, and \f$\Gamma_D\f$ is the surface where dirichlet boundary conditions are enforced. 
+///
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class NitscheTempMisfitEvaluator : public Plato::NitscheEvaluator
 {
@@ -2899,6 +3341,9 @@ private:
 public:
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
   NitscheTempMisfitEvaluator(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
@@ -2916,9 +3361,16 @@ public:
     }
   }
 
+  /// @brief class destructor
   ~NitscheTempMisfitEvaluator()
   {}
 
+  /// @fn evaluate
+  /// @brief evaluate integral for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar
   void 
   evaluate(
     const Plato::SpatialModel & aSpatialModel,
@@ -3011,6 +3463,22 @@ public:
   }
 };
 
+/// @class NitscheLinearThermoStatics
+/// @brief weak enforcement of the dirichlet boundary conditions in linear thermostatic problems using nitsche's method
+///
+/// \f[
+///   -\int_{\Gamma_D}\delta\theta\left(q_i n_i}\right)d\Gamma
+///   +\int_{\Gamma_D}\delta\left(q_i n_i\right)\left(\theta-\theta^{D}\right)d\Gamma
+///   +\int_{\Gamma_D}\gamma_{N}^{\theta}\delta\theta\left(\theta-\theta^{D}\right)d\Gamma
+/// \f]
+///
+/// where \f$\theta^D\f$ is the dirichlet temperature field enforced on dirichlet boundary \f$\Gamma_D\f$, 
+/// \f$\gamma_{N}^{\theta}\f$ is a penalty parameter chosen to achieve a desired accuracy in satisfying the Dirichlet
+/// boundary conditions, \f$\theta\f$ is the temperature field, \f$n_i\f$ is the normal vector to the surface where
+/// dirichlet boundary conditions are applied, and \f$q_i\f$ is the heat flux. A non-symmetric nitsche formulation is
+/// considered in this work, see for example Burman (2012) and Schillinger et al. (2016a).
+///
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class NitscheLinearThermoStatics : public Plato::NitscheEvaluator
 {
@@ -3021,6 +3489,9 @@ private:
   std::vector<std::shared_ptr<Plato::NitscheEvaluator>> mEvaluators;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
   NitscheLinearThermoStatics(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
@@ -3050,6 +3521,12 @@ public:
     );
   }
 
+  /// @fn evaluate
+  /// @brief evaluate nitsche's integral for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar
   void 
   evaluate(
     const Plato::SpatialModel & aSpatialModel,
@@ -3068,8 +3545,26 @@ public:
   }
 };
 
+
+/// @class NitscheLinearMechanics
+/// @brief weak enforcement of the dirichlet boundary conditions in linear elastostatic problems using nitsche's method
+///
+/// \f[
+///   -\int_{\Gamma_D}\delta{u}_i\left(\sigma_{ij} n_j}\right)d\Gamma
+///   +\int_{\Gamma_D}\delta\left(\sigma_{ij} n_j\right)\left(u_i-u_i^{D}\right)d\Gamma
+///   +\int_{\Gamma_D}\gamma_{N}^{u}\delta{u}_i\left(u_i-u_i^{D}\right)d\Gamma
+/// \f]
+///
+/// where \f$u_i^D\f$ is the dirichlet displacement enforced on dirichlet boundary \f$\Gamma_D\f$, 
+/// \f$\gamma_{N}^{u}\f$ is a penalty parameter chosen to achieve a desired accuracy in satisfying the dirichlet
+/// boundary conditions, \f$u_i\f$ is the displacement field, \f$n_j\f$ is the normal vector to the surface where
+/// dirichlet boundary conditions are applied, and \f$\sigma_{ij}\f$ is the second order stress tensor. A 
+/// non-symmetric nitsche formulation is considered in this work, see for example Burman (2012) and Schillinger 
+/// et al. (2016a).
+///
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
-class NitscheElasticMechanics : public Plato::NitscheEvaluator
+class NitscheLinearMechanics : public Plato::NitscheEvaluator
 {
 private:
   /// @brief local typename for base class
@@ -3078,7 +3573,10 @@ private:
   std::vector<std::shared_ptr<Plato::NitscheEvaluator>> mEvaluators;
 
 public:
-  NitscheElasticMechanics(
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
+  NitscheLinearMechanics(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
   ) : 
@@ -3101,6 +3599,12 @@ public:
     );
   }
 
+  /// @fn evaluate
+  /// @brief evaluate nitsche's integral for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar
   void 
   evaluate(
     const Plato::SpatialModel & aSpatialModel,
@@ -3119,8 +3623,27 @@ public:
   }
 };
 
+
+/// @class NitscheLinearMechanics
+/// @brief weak enforcement of the dirichlet boundary conditions in nonlinear elastostatics problems 
+/// using nitsche's method
+///
+/// \f[
+///   -\int_{\Gamma_D}\delta{u}_i\left(P_{ij} n_j}\right)d\Gamma
+///   +\int_{\Gamma_D}\delta\left(P_{ij} n_j\right)\left(u_i-u_i^{D}\right)d\Gamma
+///   +\int_{\Gamma_D}\gamma_{N}^{u}\delta{u}_i\left(u_i-u_i^{D}\right)d\Gamma
+/// \f]
+///
+/// where \f$u_i^D\f$ is the dirichlet displacement enforced on dirichlet boundary \f$\Gamma_D\f$, 
+/// \f$\gamma_{N}^{u}\f$ is a penalty parameter chosen to achieve a desired accuracy in satisfying the dirichlet
+/// boundary conditions, \f$u_i\f$ is the displacement field, \f$n_j\f$ is the normal vector to the surface where
+/// dirichlet boundary conditions are applied, and \f$P_{ij}\f$ is the first piola-kirchhoff stress tensor. A 
+/// non-symmetric nitsche formulation is considered in this work, see for example Burman (2012) and Schillinger 
+/// et al. (2016a).
+///
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
-class NitscheHyperElasticMechanics : public Plato::NitscheEvaluator
+class NitscheNonlinearMechanics : public Plato::NitscheEvaluator
 {
 private:
   /// @brief local typename for base class
@@ -3129,7 +3652,10 @@ private:
   std::vector<std::shared_ptr<Plato::NitscheEvaluator>> mEvaluators;
 
 public:
-  NitscheHyperElasticMechanics(
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
+  NitscheNonlinearMechanics(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
   ) : 
@@ -3158,6 +3684,12 @@ public:
     );
   }
 
+  /// @fn evaluate
+  /// @brief evaluate nitsche's integral for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar
   void 
   evaluate(
     const Plato::SpatialModel & aSpatialModel,
@@ -3176,8 +3708,27 @@ public:
   }
 };
 
+
+/// @class NitscheNonlinearThermoMechanics
+/// @brief weak enforcement of the dirichlet boundary conditions in nonlinear elastostatics problems 
+/// using nitsche's method
+///
+/// \f[
+///   -\int_{\Gamma_D}\delta{u}_i\left(P_{ij} n_j}\right)d\Gamma
+///   +\int_{\Gamma_D}\delta\left(P_{ij} n_j\right)\left(u_i-u_i^{D}\right)d\Gamma
+///   +\int_{\Gamma_D}\gamma_{N}^{u}\delta{u}_i\left(u_i-u_i^{D}\right)d\Gamma
+/// \f]
+///
+/// where \f$u_i^D\f$ is the dirichlet displacement enforced on dirichlet boundary \f$\Gamma_D\f$, 
+/// \f$\gamma_{N}^{u}\f$ is a penalty parameter chosen to achieve a desired accuracy in satisfying the dirichlet
+/// boundary conditions, \f$u_i\f$ is the displacement field, \f$n_j\f$ is the normal vector to the surface where
+/// dirichlet boundary conditions are applied, and \f$P_{ij}\f$ is the first piola-kirchhoff stress tensor. A 
+/// non-symmetric nitsche formulation is considered in this work, see for example Burman (2012) and Schillinger 
+/// et al. (2016a).
+///
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
-class NitscheHyperElasticThermoMechanics : public Plato::NitscheEvaluator
+class NitscheNonlinearThermoMechanics : public Plato::NitscheEvaluator
 {
 private:
   /// @brief local typename for base class
@@ -3186,7 +3737,10 @@ private:
   std::vector<std::shared_ptr<Plato::NitscheEvaluator>> mEvaluators;
 
 public:
-  NitscheHyperElasticThermoMechanics(
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
+  NitscheNonlinearThermoMechanics(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
   ) : 
@@ -3215,6 +3769,12 @@ public:
     );
   }
 
+  /// @fn evaluate
+  /// @brief evaluate nitsche's integral for all side set cells
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar
   void 
   evaluate(
     const Plato::SpatialModel & aSpatialModel,
@@ -3233,10 +3793,18 @@ public:
   }
 };
 
+/// @class FactoryNitscheEvaluator
+/// @brief creates evaluator used to weakly enforce dirichlet boundary conditions via nitsche's method
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class FactoryNitscheEvaluator
 {
 public:
+  /// @fn create
+  /// @brief create nitsche integral evaluator
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
+  /// @return standard shared pointer
   std::shared_ptr<Plato::NitscheEvaluator>
   create(
     Teuchos::ParameterList & aParamList,
@@ -3265,6 +3833,11 @@ public:
   }
 
 private:
+  /// @fn createLinearNitscheEvaluator
+  /// @brief create nitsche integral evaluator for linear elliptic problems
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
+  /// @return standard shared pointer
   std::shared_ptr<Plato::NitscheEvaluator>
   createLinearNitscheEvaluator(
     Teuchos::ParameterList & aParamList,
@@ -3283,7 +3856,7 @@ private:
       return ( std::make_shared<Plato::Elliptic::NitscheLinearThermoStatics<EvaluationType>>(aParamList,aNitscheParams) );
       break;
     case Plato::physics_t::MECHANICAL:
-      return ( std::make_shared<Plato::Elliptic::NitscheElasticMechanics<EvaluationType>>(aParamList,aNitscheParams) );
+      return ( std::make_shared<Plato::Elliptic::NitscheLinearMechanics<EvaluationType>>(aParamList,aNitscheParams) );
       break;
     default:
       ANALYZE_THROWERR(std::string("ERROR: Physics '") + tPhysics 
@@ -3292,6 +3865,11 @@ private:
     }
   }
 
+  /// @fn createNonlinearNitscheEvaluator
+  /// @brief create nitsche integral evaluator for nonlinear elliptic problems
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
+  /// @return standard shared pointer
   std::shared_ptr<Plato::NitscheEvaluator>
   createNonlinearNitscheEvaluator(
     Teuchos::ParameterList & aParamList,
@@ -3309,14 +3887,14 @@ private:
     case Plato::physics_t::MECHANICAL:
       return 
       ( 
-        std::make_shared<Plato::Elliptic::NitscheHyperElasticMechanics<EvaluationType>>(
+        std::make_shared<Plato::Elliptic::NitscheNonlinearMechanics<EvaluationType>>(
           aParamList,aNitscheParams) 
       );
       break;
     case Plato::physics_t::THERMOMECHANICAL:
       return 
       ( 
-        std::make_shared<Plato::Elliptic::NitscheHyperElasticThermoMechanics<EvaluationType>>(
+        std::make_shared<Plato::Elliptic::NitscheNonlinearThermoMechanics<EvaluationType>>(
           aParamList,aNitscheParams) 
       );
       break;
@@ -3328,29 +3906,20 @@ private:
   }
 };
 
-/// @class NitscheBC
-///
-/// @brief weak enforcement of the diriechlet boundary conditions in linear mechanical problems with nitsche's method:
-///
-/// \[
-///  -\int_{\Gamma_D}\delta\mathbf{u}\cdot\left(\sigma\cdot\mathbf{n}_{\Gamma}\right) d\Gamma
-///  + \int_{\Gamma_D}\delta\left(\sigma\mathbf{n}_{\Gamma}\right)\cdot\left(\mathbf{u}-\mathbf{u}_{D}\right) d\Gamma
-///  + \int_{\Gamma_D}\gamma_{N}^{\mathbf{u}}\delta\mathbf{u}\cdot\left(\mathbf{u}-\mathbf{u}_{D}\right) d\Gamma
-/// \]
-///
-/// A non-symmetric nitsche formulation is considered in this work, see Burman (2012) and Schillinger et al. 
-/// (2016a). The term \f$\mathbf{u}_D\f$ is the displacement imposed on boundary \f$\Gamma_D\f$. The parameter 
-/// \f$\gamma_{N}^{\mathbf{u}}\f$ is chosen to reach a desired accuracy in satisfying the weakly enforce 
-/// dirichlet boundary condition values.
-///
-/// @tparam EvaluationType automatic differentiation evaluation type, which sets the scalar types for the problem
+/// NitscheBC
+/// @brief weak enforcement of dirichlet boundary conditions via nitsche's method
+/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
 template<typename EvaluationType>
 class NitscheBC : public NitscheBase
 {
 private:
+  /// @brief nitsche's integral evaluator
   std::shared_ptr<Plato::NitscheEvaluator> mNitscheBC;
 
 public:
+  /// @brief class constructor
+  /// @param [in] aParamList     input problem parameters
+  /// @param [in] aNitscheParams input parameters for nitsche's method
   NitscheBC(
     Teuchos::ParameterList & aParamList,
     Teuchos::ParameterList & aNitscheParams
@@ -3359,8 +3928,16 @@ public:
     Plato::Elliptic::FactoryNitscheEvaluator<EvaluationType> tFactory;
     mNitscheBC = tFactory.create(aParamList,aNitscheParams);
   }
+
+  /// @brief class destructor
   ~NitscheBC(){}
 
+  /// @fn evaluate
+  /// @brief enforces weak dirichlet boundary conditions via nitsche's method
+  /// @param [in]     aSpatialModel contains mesh and model information
+  /// @param [in,out] aWorkSets     domain and range workset database
+  /// @param [in]     aCycle        scalar
+  /// @param [in]     aScale        scalar
   void 
   evaluate(
     const Plato::SpatialModel & aSpatialModel,
@@ -5142,7 +5719,7 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheTestThermalHyperElasticStressEva
   }
 }
 
-TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheHyperElasticMechanics )
+TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheNonlinearMechanics )
 {
   // create input
   //
@@ -5227,7 +5804,7 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheHyperElasticMechanics )
   tNitscheParams.set("Material Model",tOnlyDomainDefined.getMaterialName());
   // create evaluator and evaluate nitsche's stress term
   //
-  Plato::Elliptic::NitscheHyperElasticMechanics<Residual> 
+  Plato::Elliptic::NitscheNonlinearMechanics<Residual> 
     tNitscheEvaluator(*tParamList,tNitscheParams);
   tNitscheEvaluator.evaluate(tSpatialModel,tWorkSets);
   // test gold values
@@ -5248,7 +5825,7 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheHyperElasticMechanics )
   }
 }
 
-TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheHyperElasticThermoMechanics )
+TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheNonlinearThermoMechanics )
 {
   // create input
   //
@@ -5347,7 +5924,7 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheHyperElasticThermoMechanics )
   tNitscheParams.set("Material Model",tOnlyDomainDefined.getMaterialName());
   // create evaluator and evaluate nitsche's stress term
   //
-  Plato::Elliptic::NitscheHyperElasticThermoMechanics<Residual> 
+  Plato::Elliptic::NitscheNonlinearThermoMechanics<Residual> 
     tNitscheEvaluator(*tParamList,tNitscheParams);
   tNitscheEvaluator.evaluate(tSpatialModel,tWorkSets);
   // test gold values
