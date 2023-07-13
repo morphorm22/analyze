@@ -21,6 +21,7 @@ set(ANALYZE_SOURCES
     LinearTMKinetics.cpp
     NonLinearTMKinetics.cpp
     bcs/neumann/SupportedParamOptions.cpp
+    bcs/dirichlet/nitsche/NitscheEvaluator.cpp
     materials/mechanical/MaterialKirchhoff.cpp
     materials/mechanical/MaterialNeoHookean.cpp
     materials/mechanical/FactoryElasticMaterial.cpp
@@ -142,12 +143,18 @@ if(ELLIPTIC)
     elliptic/mechanical/linear/CriterionInternalElasticEnergy.cpp
     elliptic/mechanical/linear/CriterionVolAvgStressPNormDenominator.cpp
     elliptic/mechanical/linear/CriterionVolumeAverageDenominator.cpp
+    elliptic/mechanical/linear/nitsche/BoundaryEvaluatorTestIsotropicElasticStress.cpp
+    elliptic/mechanical/linear/nitsche/BoundaryEvaluatorTrialIsotropicElasticStress.cpp
     elliptic/mechanical/nonlinear/StressEvaluatorKirchhoff.cpp
     elliptic/mechanical/nonlinear/StressEvaluatorNeoHookean.cpp
     elliptic/mechanical/nonlinear/FactoryStressEvaluator.cpp
     elliptic/mechanical/nonlinear/ResidualElastostaticTotalLagrangian.cpp
     elliptic/mechanical/nonlinear/CriterionKirchhoffEnergyPotential.cpp
     elliptic/mechanical/nonlinear/CriterionNeoHookeanEnergyPotential.cpp
+    elliptic/mechanical/nonlinear/nitsche/BoundaryEvaluatorTestKirchhoffStress.cpp
+    elliptic/mechanical/nonlinear/nitsche/BoundaryEvaluatorTrialKirchhoffStress.cpp
+    elliptic/mechanical/nonlinear/nitsche/BoundaryEvaluatorTestNeoHookeanStress.cpp
+    elliptic/mechanical/nonlinear/nitsche/BoundaryEvaluatorTrialNeoHookeanStress.cpp
     elliptic/thermal/ResidualThermostatic.cpp
     elliptic/thermal/CriterionFluxPNorm.cpp
     elliptic/thermal/CriterionInternalThermalEnergy.cpp
