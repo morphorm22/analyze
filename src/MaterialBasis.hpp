@@ -2,7 +2,7 @@
 
 #include "VoigtUtils.hpp"
 #include "SpatialModel.hpp"
-#include "MaterialModel.hpp"
+#include "materials/MaterialModel.hpp"
 
 namespace Plato {
 

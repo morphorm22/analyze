@@ -14,7 +14,7 @@
 #include "elliptic/mechanical/nonlinear/DeformationGradient.hpp"
 #include "elliptic/mechanical/nonlinear/GreenLagrangeStrainTensor.hpp"
 #include "elliptic/mechanical/nonlinear/KirchhoffSecondPiolaStress.hpp"
-#include "elliptic/mechanical/nonlinear/FactoryNonlinearElasticMaterial.hpp"
+#include "materials/mechanical/FactoryNonlinearElasticMaterial.hpp"
 
 namespace Plato
 {

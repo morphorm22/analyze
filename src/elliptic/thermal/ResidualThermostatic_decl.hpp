@@ -1,11 +1,11 @@
 #pragma once
 
-#include "MaterialModel.hpp"
 #include "ApplyWeighting.hpp"
 
 #include "base/ResidualBase.hpp"
 #include "bcs/body/BodyLoads.hpp"
 #include "bcs/neumann/NeumannBCs.hpp"
+#include "materials/MaterialModel.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 
 namespace Plato

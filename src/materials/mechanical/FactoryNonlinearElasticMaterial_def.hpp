@@ -8,8 +8,8 @@
 
 #include "AnalyzeMacros.hpp"
 
-#include "elliptic/mechanical/nonlinear/MaterialKirchhoff.hpp"
-#include "elliptic/mechanical/nonlinear/MaterialNeoHookean.hpp"
+#include "materials/mechanical/MaterialKirchhoff.hpp"
+#include "materials/mechanical/MaterialNeoHookean.hpp"
 
 namespace Plato
 {

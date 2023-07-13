@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "MaterialModel.hpp"
+#include "materials/MaterialModel.hpp"
 #include "elliptic/electrical/CurrentDensityEvaluator.hpp"
 
 namespace Plato

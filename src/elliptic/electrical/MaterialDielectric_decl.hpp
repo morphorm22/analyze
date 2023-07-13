@@ -12,7 +12,7 @@
 #include <unordered_map>
 
 /// @include analyze includes
-#include "MaterialModel.hpp"
+#include "materials/MaterialModel.hpp"
 #include "elliptic/electrical/SupportedParamOptions.hpp"
 
 namespace Plato

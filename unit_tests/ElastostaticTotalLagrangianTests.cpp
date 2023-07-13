@@ -15,11 +15,11 @@
 // plato
 #include "Tri3.hpp"
 #include "BLAS1.hpp"
-#include "MaterialModel.hpp"
 #include "GradientMatrix.hpp"
 #include "MechanicsElement.hpp"
 #include "base/WorksetBase.hpp"
 
+#include "materials/MaterialModel.hpp"
 #include "elliptic/base/WorksetBuilder.hpp"
 #include "elliptic/mechanical/nonlinear/StateGradient.hpp"
 #include "elliptic/mechanical/nonlinear/DeformationGradient.hpp"

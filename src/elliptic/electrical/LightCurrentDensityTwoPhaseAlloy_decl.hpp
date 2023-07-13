@@ -7,9 +7,9 @@
 #pragma once
 
 /// @include analyze includes
-#include "MaterialModel.hpp"
 #include "Plato_TopOptFunctors.hpp"
 
+#include "materials/MaterialModel.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/electrical/CurrentDensitySourceEvaluator.hpp"
 #include "elliptic/electrical/LightGeneratedCurrentDensityConstant.hpp"

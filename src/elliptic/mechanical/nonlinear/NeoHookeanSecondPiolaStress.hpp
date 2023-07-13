@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "MaterialModel.hpp"
 #include "PlatoMathTypes.hpp"
+#include "materials/MaterialModel.hpp"
 #include "elliptic/mechanical/nonlinear/RightDeformationTensor.hpp"
 
 namespace Plato

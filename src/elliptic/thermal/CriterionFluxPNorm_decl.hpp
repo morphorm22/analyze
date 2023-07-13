@@ -1,9 +1,9 @@
 #pragma once
 
-#include "MaterialModel.hpp"
 #include "ApplyWeighting.hpp"
 
 #include "base/CriterionBase.hpp"
+#include "materials/MaterialModel.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 
 namespace Plato

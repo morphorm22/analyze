@@ -10,7 +10,7 @@
 #include "elliptic/mechanical/nonlinear/StateGradient.hpp"
 #include "elliptic/mechanical/nonlinear/DeformationGradient.hpp"
 #include "elliptic/mechanical/nonlinear/RightDeformationTensor.hpp"
-#include "elliptic/mechanical/nonlinear/FactoryNonlinearElasticMaterial.hpp"
+#include "materials/mechanical/FactoryNonlinearElasticMaterial.hpp"
 
 namespace Plato
 {

@@ -9,11 +9,11 @@
 #include "BLAS1.hpp"
 #include "MetaData.hpp"
 #include "ScalarGrad.hpp"
-#include "MaterialModel.hpp"
 #include "GradientMatrix.hpp"
 #include "InterpolateFromNodal.hpp"
 #include "GeneralFluxDivergence.hpp"
 
+#include "materials/MaterialModel.hpp"
 #include "elliptic/electrical/FactorySourceEvaluator.hpp"
 #include "elliptic/electrical/FactoryElectricalMaterial.hpp"
 #include "elliptic/electrical/FactoryCurrentDensityEvaluator.hpp"

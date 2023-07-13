@@ -8,7 +8,7 @@
 
 #include <memory>
 
-#include "MaterialModel.hpp"
+#include "materials/MaterialModel.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/mechanical/StressEvaluator.hpp"
 

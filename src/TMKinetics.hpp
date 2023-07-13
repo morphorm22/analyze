@@ -1,9 +1,9 @@
 #ifndef PLATO_TMKINETICS_HPP
 #define PLATO_TMKINETICS_HPP
 
-#include "LinearThermoelasticMaterial.hpp"
 #include "VoigtMap.hpp"
-#include "MaterialModel.hpp"
+#include "materials/MaterialModel.hpp"
+#include "LinearThermoelasticMaterial.hpp"
 
 namespace Plato
 {

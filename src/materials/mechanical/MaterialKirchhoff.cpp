@@ -4,11 +4,11 @@
  *  Created on: May 31, 2023
  */
 
-#include "elliptic/mechanical/nonlinear/MaterialKirchhoff_decl.hpp"
+#include "materials/mechanical/MaterialKirchhoff_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "elliptic/mechanical/nonlinear/MaterialKirchhoff_def.hpp"
+#include "materials/mechanical/MaterialKirchhoff_def.hpp"
 
 #include "ThermalElement.hpp"
 #include "MechanicsElement.hpp"

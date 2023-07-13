@@ -1,5 +1,5 @@
 /*
- * GreenLagrangeStrainTensor.hpp
+ * MaterialKirchhoff_decl.hpp
  *
  *  Created on: May 31, 2023
  */
@@ -10,7 +10,7 @@
 
 #include <Teuchos_ParameterList.hpp>
 
-#include "MaterialModel.hpp"
+#include "materials/MaterialModel.hpp"
 #include "elliptic/mechanical/SupportedParamOptions.hpp"
 
 namespace Plato

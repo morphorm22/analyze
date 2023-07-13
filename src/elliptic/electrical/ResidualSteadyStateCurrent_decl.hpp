@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include "MaterialModel.hpp"
 #include "base/ResidualBase.hpp"
 #include "bcs/neumann/NeumannBCs.hpp"
+#include "materials/MaterialModel.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/electrical/SourceEvaluator.hpp"
 #include "elliptic/electrical/CurrentDensityEvaluator.hpp"

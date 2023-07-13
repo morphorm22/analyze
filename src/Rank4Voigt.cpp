@@ -4,7 +4,7 @@
  *  Created on: Jul 11, 2020
  */
 
-#include "MaterialModel.hpp"
+#include "materials/MaterialModel.hpp"
 
 namespace Plato {
 

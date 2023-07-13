@@ -5,7 +5,7 @@
  */
 
 #include "AnalyzeMacros.hpp"
-#include "MaterialModel.hpp"
+#include "materials/MaterialModel.hpp"
 #include "ThermalConductivityMaterial.hpp"
 
 #pragma once

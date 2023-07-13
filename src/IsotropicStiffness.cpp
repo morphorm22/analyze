@@ -1,5 +1,6 @@
-#include "MaterialModel.hpp"
+
 #include "ParseTools.hpp"
+#include "materials/MaterialModel.hpp"
 
 namespace Plato {
 

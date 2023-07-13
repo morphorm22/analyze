@@ -21,6 +21,12 @@ set(ANALYZE_SOURCES
     LinearTMKinetics.cpp
     NonLinearTMKinetics.cpp
     bcs/neumann/SupportedParamOptions.cpp
+    materials/mechanical/MaterialKirchhoff.cpp
+    materials/mechanical/MaterialNeoHookean.cpp
+    materials/mechanical/FactoryElasticMaterial.cpp
+    materials/mechanical/MaterialIsotropicElastic.cpp
+    materials/mechanical/FactoryMechanicalMaterials.cpp
+    materials/mechanical/FactoryNonlinearElasticMaterial.cpp
 )
 
 if(EXPRESSION)
@@ -136,9 +142,6 @@ if(ELLIPTIC)
     elliptic/mechanical/linear/CriterionInternalElasticEnergy.cpp
     elliptic/mechanical/linear/CriterionVolAvgStressPNormDenominator.cpp
     elliptic/mechanical/linear/CriterionVolumeAverageDenominator.cpp
-    elliptic/mechanical/nonlinear/MaterialKirchhoff.cpp
-    elliptic/mechanical/nonlinear/MaterialNeoHookean.cpp
-    elliptic/mechanical/nonlinear/FactoryNonlinearElasticMaterial.cpp
     elliptic/mechanical/nonlinear/StressEvaluatorKirchhoff.cpp
     elliptic/mechanical/nonlinear/StressEvaluatorNeoHookean.cpp
     elliptic/mechanical/nonlinear/FactoryStressEvaluator.cpp

@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "MaterialModel.hpp"
 #include "base/CriterionBase.hpp"
+#include "materials/MaterialModel.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/electrical/CurrentDensitySourceEvaluator.hpp"
 

@@ -10,7 +10,7 @@
 
 #include <memory>
 
-#include "MaterialModel.hpp"
+#include "materials/MaterialModel.hpp"
 #include "elliptic/mechanical/SupportedParamOptions.hpp"
 
 namespace Plato

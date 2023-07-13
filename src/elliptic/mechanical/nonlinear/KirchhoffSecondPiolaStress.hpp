@@ -1,5 +1,5 @@
 /*
- * FactoryNonlinearElasticMaterial.hpp
+ * KirchhoffSecondPiolaStress.hpp
  *
  *  Created on: May 31, 2023
  */
@@ -8,7 +8,7 @@
 
 #include <string>
 
-#include "MaterialModel.hpp"
+#include "materials/MaterialModel.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 
 namespace Plato

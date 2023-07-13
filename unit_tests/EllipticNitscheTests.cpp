@@ -19,12 +19,15 @@
 #include "SurfaceArea.hpp"
 #include "SpatialModel.hpp"
 #include "AnalyzeMacros.hpp"
-#include "MaterialModel.hpp"
 #include "GradientMatrix.hpp"
 #include "WeightedNormalVector.hpp"
 #include "InterpolateFromNodal.hpp"
 
 #include "base/SupportedParamOptions.hpp"
+
+#include "materials/mechanical/MaterialIsotropicElastic.hpp"
+#include "materials/mechanical/FactoryElasticMaterial.hpp"
+#include "materials/mechanical/FactoryMechanicalMaterials.hpp"
 
 #include "base/WorksetBase.hpp"
 #include "elliptic/EvaluationTypes.hpp"
@@ -43,7 +46,6 @@
 #include "elliptic/mechanical/nonlinear/GreenLagrangeStrainTensor.hpp"
 #include "elliptic/mechanical/nonlinear/KirchhoffSecondPiolaStress.hpp"
 #include "elliptic/mechanical/nonlinear/NeoHookeanSecondPiolaStress.hpp"
-#include "elliptic/mechanical/nonlinear/FactoryNonlinearElasticMaterial.hpp"
 
 #include "elliptic/thermomechanics/nonlinear/ThermoMechanics.hpp"
 #include "elliptic/thermomechanics/nonlinear/UtilitiesThermoMechanics.hpp"
@@ -55,231 +57,6 @@
 
 namespace Plato
 {
-
-/// @class MaterialIsotropicElastic
-/// 
-/// @brief material constitutive model for isotropic elastic materials:
-///
-///  \f[
-///    C_{ijkl}=\lambda\delta_{ij}\delta_{kl} + \mu\left(\delta_{ik}\delta_{jl} + \delta_{il}\delta_{jk}\right)
-///  \f]
-///
-/// where \f$\lambda\f$ and \f$\mu\f$ are the Lame constants, \f$\delta\f$ is the Kronecker delta, and 
-/// \f$C_{ijkl}\f$ is the fourth-order isotropic material tensor.  
-/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
-template<typename EvaluationType>
-class MaterialIsotropicElastic : public MaterialModel<EvaluationType>
-{
-public:
-  /// @brief class constructor
-  MaterialIsotropicElastic(){}
-
-  /// @brief class constructor
-  /// @param [in] aParamList input problem parameters
-  MaterialIsotropicElastic(
-    const Teuchos::ParameterList& aParamList
-  )
-  {
-    this->parse(aParamList);
-    this->computeLameConstants();
-  }
-
-  /// @brief class destructor
-  ~MaterialIsotropicElastic(){}
-
-  /// @fn mu
-  /// @brief return value of lame constant mu
-  /// @return scalar
-  Plato::Scalar 
-  mu() 
-  const
-  { return this->getScalarConstant("mu"); }
-  
-  /// @fn mu
-  /// @brief set value for lame constant mu
-  /// @param [in] aValue scalar 
-  void 
-  mu(
-    const Plato::Scalar & aValue
-  )
-  { this->setScalarConstant("mu",aValue); }
-
-  /// @fn lambda
-  /// @brief return value of lame constant lambda
-  /// @return scalar
-  Plato::Scalar 
-  lambda() 
-  const
-  { return this->getScalarConstant("lambda"); }
-  
-  /// @fn lambda
-  /// @brief set value of lame constant lambda
-  /// @param [in] aValue scalar 
-  void 
-  lambda(
-    const Plato::Scalar & aValue
-  )
-  { this->setScalarConstant("lambda",aValue); }
-
-private:
-  /// @fn parse
-  /// @brief parse input material parameters
-  /// @param [in] aParamList input problem parameters 
-  void 
-  parse(
-    const Teuchos::ParameterList& aParamList
-  )
-  {
-    this->parseScalarConstant("Youngs Modulus", aParamList);
-    this->parseScalarConstant("Poissons Ratio", aParamList);
-  }
-
-  /// @fn computeLameConstants
-  /// @brief compute lame constants lambda and mu from input material constants 
-  /// E (Young's modulus) and nu (Poisson's ratio) 
-  void 
-  computeLameConstants()
-  {
-    auto tYoungsModulus = this->getScalarConstant("youngs modulus");
-    if(tYoungsModulus <= std::numeric_limits<Plato::Scalar>::epsilon())
-    {
-      ANALYZE_THROWERR(std::string("ERROR: The Young's Modulus is less than the machine epsilon. ")
-        + "The input material properties were not parsed properly.");
-    }
-
-    auto tPoissonsRatio = this->getScalarConstant("poissons ratio");
-    if(tPoissonsRatio <= std::numeric_limits<Plato::Scalar>::epsilon())
-    {
-      ANALYZE_THROWERR(std::string("ERROR: The Poisson's Ratio is less than the machine epsilon. ")
-        + "The input material properties were not parsed properly.");
-    }
-    auto tMu = tYoungsModulus / (2.0 * (1.0 + tPoissonsRatio) );
-    this->setScalarConstant("mu",tMu);
-    auto tLambda = (tYoungsModulus * tPoissonsRatio) / ( (1.0 + tPoissonsRatio) * (1.0 - 2.0 * tPoissonsRatio) );
-    this->setScalarConstant("lambda",tLambda);
-  }
-
-};
-
-/// @class FactoryElasticMaterial
-/// @brief factory for elastic material constitutive models
-/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
-template<typename EvaluationType>
-class FactoryElasticMaterial
-{
-private:
-  /// @brief const reference to input problem parameters
-  const Teuchos::ParameterList& mParamList;
-  /// @brief supported elastic material constitutive models
-  std::vector<std::string> mSupportedMaterials =
-    {"isotropic linear elastic"};
-
-public:
-  /// @brief class constructor
-  /// @param [in] aParamList input problem parameters
-  FactoryElasticMaterial(
-    const Teuchos::ParameterList& aParamList
-  ) :
-    mParamList(aParamList){}
-  
-  /// @fn create
-  /// @brief create elastic material constitutive model
-  /// @param [in] aModelName user assigned name for material model 
-  /// @return standard shared pointer
-  std::shared_ptr<Plato::MaterialModel<EvaluationType>>
-  create(
-    std::string aModelName
-  ) const
-  {
-    if (!mParamList.isSublist("Material Models"))
-    {
-      ANALYZE_THROWERR("ERROR: 'Material Models' parameter list not found! Returning 'nullptr'");
-    }
-    else
-    {
-      auto tModelsParamList = mParamList.get<Teuchos::ParameterList>("Material Models");
-      if (!tModelsParamList.isSublist(aModelName))
-      {
-        std::stringstream tSS;
-        tSS << "ERROR: Requested a material model ('" << aModelName << "') that isn't defined";
-        ANALYZE_THROWERR(tSS.str());
-      }
-      auto tModelParamList = tModelsParamList.sublist(aModelName);
-      if(tModelParamList.isSublist("Isotropic Linear Elastic"))
-      {
-        return ( std::make_shared<Plato::MaterialIsotropicElastic<EvaluationType>>( 
-          tModelParamList.sublist("Isotropic Linear Elastic") ) 
-        );
-      }
-      else
-      {
-        auto tErrMsg = this->getErrorMsg();
-        ANALYZE_THROWERR(tErrMsg);
-      }
-    }
-  }
-
-private:
-  /// @fn getErrorMsg
-  /// @brief error message if requested elastic material constitutive model is not supported
-  /// @return string
-  std::string
-  getErrorMsg()
-  const
-  {
-    std::string tMsg = std::string("ERROR: Requested material constitutive model is not supported. ")
-      + "Supported material constitutive models for mechanical analyses are: ";
-    for(const auto& tElement : mSupportedMaterials)
-    {
-      tMsg = tMsg + "'" + tElement + "', ";
-    }
-    auto tSubMsg = tMsg.substr(0,tMsg.size()-2);
-    return tSubMsg;
-  }
-};
-
-/// @class FactoryMechanicalMaterials
-/// @brief factory for mechanical material constitutive models
-/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
-template<typename EvaluationType>
-class FactoryMechanicalMaterials
-{
-public:
-  /// @fn create
-  /// @brief create mechanical material constitutive model
-  /// @param [in] aMaterialName user assigned name for mechanical material constitutive model
-  /// @param [in] aParamList    input problem parameters
-  /// @return standard shared pointer to material model
-  std::shared_ptr<Plato::MaterialModel<EvaluationType>>
-  create(
-    const std::string            & aMaterialName,
-          Teuchos::ParameterList & aParamList
-  )
-  {
-    Plato::PhysicsEnum tS2E;
-    auto tResponse = aParamList.get<std::string>("Response","Linear");
-    auto tResponseEnum = tS2E.response(tResponse);
-    switch (tResponseEnum)
-    {
-    case Plato::response_t::LINEAR:
-    {
-      Plato::FactoryElasticMaterial<EvaluationType> tFactory(aParamList);
-      return ( tFactory.create(aMaterialName) );
-      break;
-    }
-    case Plato::response_t::NONLINEAR:
-    {
-      Plato::FactoryNonlinearElasticMaterial<EvaluationType> tFactory(aParamList);
-      return ( tFactory.create(aMaterialName) );
-      break;
-    }
-    default:
-      ANALYZE_THROWERR(std::string("ERROR: Response '") + tResponse 
-        + "' does not support weak enforcement of Dirichlet boundary conditions")
-      break;
-    }
-  }
-};
 
 /// @class ComputeStrainTensor
 /// @brief compute strain tensor for small strains:

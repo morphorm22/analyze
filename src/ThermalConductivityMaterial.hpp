@@ -2,9 +2,9 @@
 #define LINEARTHERMALMATERIAL_HPP
 
 #include <Teuchos_ParameterList.hpp>
-#include "MaterialModel.hpp"
 
 #include "PlatoStaticsTypes.hpp"
+#include "materials/MaterialModel.hpp"
 
 namespace Plato
 {

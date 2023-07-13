@@ -10,8 +10,8 @@
 #include <Teuchos_XMLParameterListHelpers.hpp>
 
 #include "Tri3.hpp"
-#include "MaterialModel.hpp"
 #include "MechanicsElement.hpp"
+#include "materials/MaterialModel.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 
 namespace PlatoUnitTests

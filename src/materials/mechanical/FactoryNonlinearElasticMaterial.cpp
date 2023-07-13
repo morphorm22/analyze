@@ -4,11 +4,11 @@
  *  Created on: May 31, 2023
  */
 
-#include "elliptic/mechanical/nonlinear/FactoryNonlinearElasticMaterial_decl.hpp"
+#include "materials/mechanical/FactoryNonlinearElasticMaterial_decl.hpp"
 
 #ifdef PLATOANALYZE_USE_EXPLICIT_INSTANTIATION
 
-#include "elliptic/mechanical/nonlinear/FactoryNonlinearElasticMaterial_def.hpp"
+#include "materials/mechanical/FactoryNonlinearElasticMaterial_def.hpp"
 
 #include "ThermalElement.hpp"
 #include "MechanicsElement.hpp"
