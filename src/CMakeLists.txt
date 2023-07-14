@@ -168,6 +168,8 @@ if(ELLIPTIC)
     elliptic/thermomechanics/linear/ResidualThermoelastostatic.cpp
     elliptic/thermomechanics/linear/CriterionInternalThermoelasticEnergy.cpp
     elliptic/thermomechanics/nonlinear/ResidualThermoElastoStaticTotalLagrangian.cpp
+    elliptic/thermomechanics/nonlinear/nitsche/NitscheTestThermalHyperElasticStressEvaluator.cpp
+    elliptic/thermomechanics/nonlinear/nitsche/NitscheTrialThermalHyperElasticStressEvaluator.cpp
     elliptic/electrical/SupportedParamOptions.cpp
     elliptic/electrical/FactorySourceEvaluator.cpp
     elliptic/electrical/SourceWeightedSum.cpp
