@@ -157,6 +157,9 @@ if(ELLIPTIC)
     elliptic/mechanical/nonlinear/nitsche/BoundaryEvaluatorTrialKirchhoffStress.cpp
     elliptic/mechanical/nonlinear/nitsche/BoundaryEvaluatorTestNeoHookeanStress.cpp
     elliptic/mechanical/nonlinear/nitsche/BoundaryEvaluatorTrialNeoHookeanStress.cpp
+    elliptic/mechanical/nonlinear/nitsche/NitscheTestHyperElasticStressEvaluator.cpp
+    elliptic/mechanical/nonlinear/nitsche/NitscheTrialHyperElasticStressEvaluator.cpp
+    elliptic/mechanical/nonlinear/nitsche/FactoryNitscheHyperElasticStressEvaluator.cpp
     elliptic/thermal/ResidualThermostatic.cpp
     elliptic/thermal/CriterionFluxPNorm.cpp
     elliptic/thermal/CriterionInternalThermalEnergy.cpp
