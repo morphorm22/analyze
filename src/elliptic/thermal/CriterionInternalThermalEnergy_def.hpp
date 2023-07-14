@@ -2,10 +2,11 @@
 
 #include "MetaData.hpp"
 #include "ScalarGrad.hpp"
-#include "ThermalFlux.hpp"
 #include "ScalarProduct.hpp"
 #include "GradientMatrix.hpp"
 #include "InterpolateFromNodal.hpp"
+
+#include "elliptic/thermal/ThermalFlux.hpp"
 #include "elliptic/thermal/FactoryThermalConductionMaterial.hpp"
 
 namespace Plato

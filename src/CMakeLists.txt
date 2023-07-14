@@ -144,6 +144,7 @@ if(ELLIPTIC)
     elliptic/mechanical/linear/CriterionInternalElasticEnergy.cpp
     elliptic/mechanical/linear/CriterionVolAvgStressPNormDenominator.cpp
     elliptic/mechanical/linear/CriterionVolumeAverageDenominator.cpp
+    elliptic/mechanical/linear/nitsche/NitscheLinearMechanics.cpp
     elliptic/mechanical/linear/nitsche/NitscheTestElasticStressEvaluator.cpp
     elliptic/mechanical/linear/nitsche/NitscheTrialElasticStressEvaluator.cpp
     elliptic/mechanical/linear/nitsche/BoundaryEvaluatorTestIsotropicElasticStress.cpp
@@ -154,6 +155,7 @@ if(ELLIPTIC)
     elliptic/mechanical/nonlinear/ResidualElastostaticTotalLagrangian.cpp
     elliptic/mechanical/nonlinear/CriterionKirchhoffEnergyPotential.cpp
     elliptic/mechanical/nonlinear/CriterionNeoHookeanEnergyPotential.cpp
+    elliptic/mechanical/nonlinear/nitsche/NitscheNonLinearMechanics.cpp
     elliptic/mechanical/nonlinear/nitsche/BoundaryEvaluatorTestKirchhoffStress.cpp
     elliptic/mechanical/nonlinear/nitsche/BoundaryEvaluatorTrialKirchhoffStress.cpp
     elliptic/mechanical/nonlinear/nitsche/BoundaryEvaluatorTestNeoHookeanStress.cpp
@@ -165,6 +167,10 @@ if(ELLIPTIC)
     elliptic/thermal/CriterionFluxPNorm.cpp
     elliptic/thermal/CriterionInternalThermalEnergy.cpp
     elliptic/thermomechanics/SupportedParamOptions.cpp
+    elliptic/thermal/nitsche/NitscheLinearThermoStatics.cpp
+    elliptic/thermal/nitsche/NitscheTempMisfitEvaluator.cpp
+    elliptic/thermal/nitsche/NitscheTestHeatFluxEvaluator.cpp
+    elliptic/thermal/nitsche/NitscheTrialHeatFluxEvaluator.cpp
     elliptic/thermomechanics/linear/CriterionThermoMechStressPNorm.cpp
     elliptic/thermomechanics/linear/ResidualThermoelastostatic.cpp
     elliptic/thermomechanics/linear/CriterionInternalThermoelasticEnergy.cpp

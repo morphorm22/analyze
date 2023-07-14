@@ -10,6 +10,8 @@
 #include "MetaData.hpp"
 #include "SpatialModel.hpp"
 
+#include "utilities/SurfaceArea.hpp"
+
 namespace Plato
 {
 

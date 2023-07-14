@@ -3,9 +3,10 @@
 #include "MetaData.hpp"
 #include "ScalarGrad.hpp"
 #include "VectorPNorm.hpp"
-#include "ThermalFlux.hpp"
 #include "GradientMatrix.hpp"
 #include "InterpolateFromNodal.hpp"
+
+#include "elliptic/thermal/ThermalFlux.hpp"
 #include "elliptic/thermal/FactoryThermalConductionMaterial.hpp"
 
 
