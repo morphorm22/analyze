@@ -13,7 +13,7 @@
 #include "Tri6.hpp"
 #include "Tri3.hpp"
 
-#include "SurfaceArea.hpp"
+#include "utilities/SurfaceArea.hpp"
 
 using ordType = typename Plato::ScalarMultiVector::size_type;
 

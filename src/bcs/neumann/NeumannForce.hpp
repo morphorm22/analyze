@@ -7,7 +7,7 @@
 #pragma once
 
 #include "FadTypes.hpp"
-#include "SurfaceArea.hpp"
+#include "utilities/SurfaceArea.hpp"
 #include "bcs/neumann/NeumannBoundaryConditionBase.hpp"
 
 namespace Plato

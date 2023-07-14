@@ -16,13 +16,14 @@
 #include "WorkSets.hpp"
 #include "ScalarGrad.hpp"
 #include "ThermalFlux.hpp"
-#include "SurfaceArea.hpp"
 #include "SpatialModel.hpp"
 #include "AnalyzeMacros.hpp"
 #include "GradientMatrix.hpp"
 #include "InterpolateFromNodal.hpp"
 
 #include "base/SupportedParamOptions.hpp"
+
+#include "utilities/SurfaceArea.hpp"
 #include "utilities/WeightedNormalVector.hpp"
 #include "utilities/ComputeCharacteristicLength.hpp"
 
@@ -38,7 +39,9 @@
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/base/WorksetBuilder.hpp"
 #include "elliptic/thermal/Thermal.hpp"
+
 #include "elliptic/mechanical/StressEvaluator.hpp"
+#include "elliptic/mechanical/NitscheDispMisfitEvaluator.hpp"
 #include "elliptic/mechanical/linear/Mechanics.hpp"
 #include "elliptic/mechanical/SupportedParamOptions.hpp"
 
@@ -78,178 +81,6 @@ namespace Plato
 
 namespace Elliptic
 {
-
-/// @class NitscheDispMisfitEvaluator
-/// @brief evaluate nitsche's displacement misfit integral 
-///
-/// \f[
-///   \int_{\Gamma_D}\gamma_{N}^{u}\delta{u}_i\left(u_i-u_i^{D}\right)
-/// \f]
-///
-///  where \f$\delta{u}_i\f$ is the test displacement, \f$u_i\f$ is the trial displacement, \f$u_i^D\f$ 
-/// is the enforced dirichlet displacement, \f$\Gamma_D\f$ is the surface where dirichlet boundary conditions 
-/// are enforced, and \gamma_{N}^{u} is the nitsche penalty parameter. 
-///
-/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
-template<typename EvaluationType>
-class NitscheDispMisfitEvaluator : public Plato::NitscheEvaluator
-{
-private:
-  /// @brief local topological parent body and face element typenames
-  using BodyElementBase = typename EvaluationType::ElementType;
-  using FaceElementBase = typename BodyElementBase::Face;
-  /// @brief number of spatial dimensions
-  static constexpr auto mNumSpatialDims = BodyElementBase::mNumSpatialDims;
-  /// @brief number of degrees of freedom per parent body element vertex/node
-  static constexpr auto mNumDofsPerNode = BodyElementBase::mNumDofsPerNode;
-  /// @brief number of nodes per parent body element
-  static constexpr auto mNumNodesPerCell = BodyElementBase::mNumNodesPerCell;
-  /// @brief number of nodes per parent body element surface
-  static constexpr auto mNumNodesPerFace = BodyElementBase::mNumNodesPerFace;
-  /// @brief number of integration points per parent body element surface
-  static constexpr auto mNumGaussPointsPerFace = BodyElementBase::mNumGaussPointsPerFace;
-  /// @brief local typename for base class
-  using BaseClassType = Plato::NitscheEvaluator;
-  /// @brief side set name where dirichlet boundary conditions are 
-  using BaseClassType::mSideSetName;
-  /// @brief scalar types associated with the automatic differentation evaluation type
-  using StateScalarType  = typename EvaluationType::StateScalarType;
-  using ResultScalarType = typename EvaluationType::ResultScalarType;
-  using ConfigScalarType = typename EvaluationType::ConfigScalarType;
-  using StrainScalarType = typename Plato::fad_type_t<BodyElementBase,StateScalarType,ConfigScalarType>;
-  /// @brief penalty for nitsche's method
-  Plato::Scalar mNitschePenalty = 1.0;
-  /// @brief material constitutive model interface
-  std::shared_ptr<Plato::MaterialModel<EvaluationType>> mMaterialModel;
-
-public:
-  /// @brief class constructor
-  /// @param [in] aParamList     input problem parameters
-  /// @param [in] aNitscheParams input parameters for nitsche's method
-  NitscheDispMisfitEvaluator(
-    Teuchos::ParameterList & aParamList,
-    Teuchos::ParameterList & aNitscheParams
-  ) : 
-    BaseClassType(aNitscheParams)
-  {
-    // create material constitutive model
-    //
-    Plato::FactoryMechanicalMaterials<EvaluationType> tFactory;
-    mMaterialModel = tFactory.create(mMaterialName,aParamList);
-    // parse penalty parameter
-    //
-    if(aParamList.isType<Plato::Scalar>("Penalty")){
-      mNitschePenalty = aParamList.get<Plato::Scalar>("Penalty");
-    }
-  }
-
-  /// @brief class destructor
-  ~NitscheDispMisfitEvaluator()
-  {}
-
-  /// @fn evaluate
-  /// @brief evaluate integral for all side set cells
-  /// @param [in]     aSpatialModel contains mesh and model information
-  /// @param [in,out] aWorkSets     domain and range workset database
-  /// @param [in]     aCycle        scalar
-  /// @param [in]     aScale        scalar
-  void 
-  evaluate(
-    const Plato::SpatialModel & aSpatialModel,
-    const Plato::WorkSets     & aWorkSets,
-        Plato::Scalar           aCycle = 0.0,
-        Plato::Scalar           aScale = 1.0
-  )
-  {
-    // unpack worksets
-    //
-    Plato::ScalarMultiVectorT<StateScalarType> tStateWS = 
-      Plato::unpack<Plato::ScalarMultiVectorT<StateScalarType>>(aWorkSets.get("states"));
-    Plato::ScalarMultiVectorT<ResultScalarType> tResultWS = 
-      Plato::unpack<Plato::ScalarMultiVectorT<ResultScalarType>>(aWorkSets.get("result"));
-    Plato::ScalarArray3DT<ConfigScalarType> tConfigWS = 
-      Plato::unpack<Plato::ScalarArray3DT<ConfigScalarType>>(aWorkSets.get("configuration"));
-    Plato::ScalarMultiVector tDirichletWS = 
-      Plato::unpack<Plato::ScalarMultiVector>(aWorkSets.get("dirichlet"));
-    // get side set connectivity information
-    //
-    auto tSideCellOrdinals  = aSpatialModel.Mesh->GetSideSetElements(mSideSetName);
-    auto tSideLocalFaceOrds = aSpatialModel.Mesh->GetSideSetFaces(mSideSetName);
-    auto tSideLocalNodeOrds = aSpatialModel.Mesh->GetSideSetLocalNodes(mSideSetName);
-    // get integration points and weights
-    //
-    auto tCubPointsOnParentFaceElem = FaceElementBase::getCubPoints();
-    auto tCubPointsOnParentBodyElemSurfaces = BodyElementBase::getFaceCubPoints();
-    auto tCubWeightsOnParentBodyElemSurface = BodyElementBase::getFaceCubWeights();
-    // compute characteristic length
-    //
-    Plato::OrdinalType tNumCellsOnSideSet = tSideCellOrdinals.size();
-    Plato::ComputeCharacteristicLength<EvaluationType> tComputeCharacteristicLength(mSideSetName);
-    Plato::ScalarVectorT<ConfigScalarType> tCharacteristicLength("characteristic length",tNumCellsOnSideSet);
-    tComputeCharacteristicLength(aSpatialModel, aWorkSets, tCharacteristicLength);
-    // compute numerator for nitsche's penalty parameter
-    //
-    auto tYoungsModulus  = mMaterialModel->getScalarConstant("youngs modulus");
-    auto tNitschePenaltyTimesModulus = mNitschePenalty * tYoungsModulus;
-    // evaluate integral
-    //
-    Plato::SurfaceArea<BodyElementBase> tComputeSurfaceArea;
-    Kokkos::parallel_for("nitsche stress evaluator", 
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{tNumCellsOnSideSet, mNumGaussPointsPerFace}),
-      KOKKOS_LAMBDA(const Plato::OrdinalType & aSideOrdinal, const Plato::OrdinalType & aPointOrdinal)
-    {
-      auto tCubPointOnParentFaceElem = tCubPointsOnParentFaceElem(aPointOrdinal);
-      auto tBasisGradsOnParentFaceElem = FaceElementBase::basisGrads(tCubPointOnParentFaceElem);
-      // quadrature data to evaluate integral on the body surface of interest
-      Plato::Array<mNumSpatialDims> tCubPointOnParentBodyElemSurface;
-      Plato::OrdinalType tLocalFaceOrdinal = tSideLocalFaceOrds(aSideOrdinal);
-      auto tCubPointsOnBodyParentElemSurface = tCubPointsOnParentBodyElemSurfaces(tLocalFaceOrdinal);
-      for( Plato::OrdinalType tDim=0; tDim < mNumSpatialDims; tDim++ ){
-        Plato::OrdinalType tIndex = BodyElementBase::mNumGaussPointsPerFace * aPointOrdinal + tDim;
-        tCubPointOnParentBodyElemSurface(tDim) = tCubPointsOnBodyParentElemSurface(tIndex);
-      }
-      auto tCubWeightOnParentBodyElemSurface = tCubWeightsOnParentBodyElemSurface(aPointOrdinal);
-      auto tBasisValuesOnParentBodyElemSurface = BodyElementBase::basisValues(tCubPointOnParentBodyElemSurface);
-      Plato::Array<mNumNodesPerFace, Plato::OrdinalType> tFaceLocalNodeOrds;
-      for( Plato::OrdinalType tIndex=0; tIndex<mNumNodesPerFace; tIndex++){
-        tFaceLocalNodeOrds(tIndex) = tSideLocalNodeOrds(aSideOrdinal*mNumNodesPerFace+tIndex);
-      }
-      // compute surface area
-      //
-      ConfigScalarType tSurfaceArea(0.0);
-      auto tCellOrdinal = tSideCellOrdinals(aSideOrdinal);
-      tComputeSurfaceArea(tCellOrdinal,tFaceLocalNodeOrds,tBasisGradsOnParentFaceElem,tConfigWS,tSurfaceArea);
-      // project state from nodes to quadrature/cubature point
-      //
-      Plato::Array<mNumSpatialDims,StateScalarType> tProjectedStates;
-      for(Plato::OrdinalType tDof = 0; tDof < mNumDofsPerNode; tDof++)
-      {
-        tProjectedStates(tDof) = 0.0;
-        for(Plato::OrdinalType tNodeIndex = 0; tNodeIndex < mNumNodesPerCell; tNodeIndex++)
-        {
-          Plato::OrdinalType tCellDofIndex = (mNumDofsPerNode * tNodeIndex) + tDof;
-          tProjectedStates(tDof) += tStateWS(tCellOrdinal, tCellDofIndex) * 
-            tBasisValuesOnParentBodyElemSurface(tNodeIndex);
-        }
-      }
-      // evaluate int_{\Gamma_D}\gamma_N^u \delta{u}\cdot(u - u_D) d\Gamma_D
-      //
-      ConfigScalarType tGamma = tNitschePenaltyTimesModulus / tCharacteristicLength(aSideOrdinal);
-      for(Plato::OrdinalType tNode=0; tNode<mNumNodesPerCell; tNode++)
-      {
-        for(Plato::OrdinalType tDimI=0; tDimI<mNumSpatialDims; tDimI++)
-        {
-          auto tLocalDofOrdinal = ( tNode * mNumSpatialDims ) + tDimI;
-          ResultScalarType tValue = aScale * tGamma * tBasisValuesOnParentBodyElemSurface(tNode)
-            * ( tProjectedStates[tDimI] - tDirichletWS(tCellOrdinal,tLocalDofOrdinal) ) 
-            * tSurfaceArea * tCubWeightOnParentBodyElemSurface;
-          Kokkos::atomic_add(&tResultWS(tCellOrdinal,tLocalDofOrdinal), tValue);
-        }
-      }
-    });
-  }
-};
-
 
 /// @class NitscheTrialHeatFluxEvaluator
 /// @brief evaluate nitsche's trial heat flux integral 

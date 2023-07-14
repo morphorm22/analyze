@@ -135,6 +135,7 @@ if(ELLIPTIC)
     elliptic/evaluators/problem/ProblemEvaluatorThermoMechanics.cpp
     elliptic/evaluators/problem/SupportedEllipticProblemOptions.cpp
     elliptic/mechanical/SupportedParamOptions.cpp
+    elliptic/mechanical/NitscheDispMisfitEvaluator.cpp
     elliptic/mechanical/linear/ResidualElastostatic.cpp
     elliptic/mechanical/linear/CriterionMassMoment.cpp
     elliptic/mechanical/linear/CriterionStressPNorm.cpp

@@ -3,7 +3,6 @@
 #include "ToMap.hpp"
 #include "FadTypes.hpp"
 #include "ScalarGrad.hpp"
-#include "SurfaceArea.hpp"
 #include "UtilsTeuchos.hpp"
 #include "GradientMatrix.hpp"
 #include "PlatoMathHelpers.hpp"
@@ -11,6 +10,8 @@
 #include "InterpolateFromNodal.hpp"
 #include "GeneralFluxDivergence.hpp"
 #include "SurfaceIntegralUtilities.hpp"
+
+#include "utilities/SurfaceArea.hpp"
 
 #include "helmholtz/AddMassTerm.hpp"
 #include "helmholtz/HelmholtzFlux.hpp"
