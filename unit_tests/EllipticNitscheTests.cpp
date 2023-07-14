@@ -15,30 +15,23 @@
 #include "MetaData.hpp"
 #include "WorkSets.hpp"
 #include "SpatialModel.hpp"
-#include "AnalyzeMacros.hpp"
 
+#include "base/WorksetBase.hpp"
 #include "utilities/ComputeCharacteristicLength.hpp"
 
 #include "materials/mechanical/MaterialIsotropicElastic.hpp"
 #include "materials/mechanical/FactoryElasticMaterial.hpp"
 
-#include "bcs/dirichlet/nitsche/NitscheBase.hpp"
-#include "bcs/dirichlet/nitsche/NitscheEvaluator.hpp"
-
-#include "base/WorksetBase.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/base/WorksetBuilder.hpp"
-#include "elliptic/thermal/Thermal.hpp"
+
+#include "elliptic/evaluators/nitsche/FactoryNitscheEvaluator.hpp"
+#include "elliptic/evaluators/nitsche/NitscheBoundaryCondition.hpp"
 
 #include "elliptic/mechanical/linear/Mechanics.hpp"
-#include "elliptic/mechanical/SupportedParamOptions.hpp"
-
 #include "elliptic/mechanical/NitscheDispMisfitEvaluator.hpp"
 #include "elliptic/mechanical/linear/ComputeStrainTensor.hpp"
 #include "elliptic/mechanical/linear/ComputeIsotropicElasticStressTensor.hpp"
-
-
-#include "elliptic/mechanical/linear/nitsche/NitscheLinearMechanics.hpp"
 #include "elliptic/mechanical/linear/nitsche/NitscheTestElasticStressEvaluator.hpp"
 #include "elliptic/mechanical/linear/nitsche/NitscheTrialElasticStressEvaluator.hpp"
 
@@ -46,273 +39,18 @@
 #include "elliptic/mechanical/nonlinear/nitsche/NitscheTestHyperElasticStressEvaluator.hpp"
 #include "elliptic/mechanical/nonlinear/nitsche/NitscheTrialHyperElasticStressEvaluator.hpp"
 
-#include "elliptic/thermal/nitsche/NitscheLinearThermoStatics.hpp"
+#include "elliptic/thermal/Thermal.hpp"
 #include "elliptic/thermal/nitsche/NitscheTempMisfitEvaluator.hpp"
 #include "elliptic/thermal/nitsche/NitscheTestHeatFluxEvaluator.hpp"
 #include "elliptic/thermal/nitsche/NitscheTrialHeatFluxEvaluator.hpp"
 
 #include "elliptic/thermomechanics/nonlinear/ThermoMechanics.hpp"
+#include "elliptic/thermomechanics/nonlinear/nitsche/NitscheNonlinearThermoMechanics.hpp"
 #include "elliptic/thermomechanics/nonlinear/nitsche/NitscheTestThermalHyperElasticStressEvaluator.hpp"
 #include "elliptic/thermomechanics/nonlinear/nitsche/NitscheTrialThermalHyperElasticStressEvaluator.hpp"
 
 /// @include analyze unit test includes
 #include "util/PlatoTestHelpers.hpp"
-
-namespace Plato
-{
-
-namespace Elliptic
-{
-
-/// @class NitscheNonlinearThermoMechanics
-/// @brief weak enforcement of the dirichlet boundary conditions in nonlinear elastostatics problems 
-/// using nitsche's method
-///
-/// \f[
-///   -\int_{\Gamma_D}\delta{u}_i\left(P_{ij} n_j}\right)d\Gamma
-///   +\int_{\Gamma_D}\delta\left(P_{ij} n_j\right)\left(u_i-u_i^{D}\right)d\Gamma
-///   +\int_{\Gamma_D}\gamma_{N}^{u}\delta{u}_i\left(u_i-u_i^{D}\right)d\Gamma
-/// \f]
-///
-/// where \f$u_i^D\f$ is the dirichlet displacement enforced on dirichlet boundary \f$\Gamma_D\f$, 
-/// \f$\gamma_{N}^{u}\f$ is a penalty parameter chosen to achieve a desired accuracy in satisfying the dirichlet
-/// boundary conditions, \f$u_i\f$ is the displacement field, \f$n_j\f$ is the normal vector to the surface where
-/// dirichlet boundary conditions are applied, and \f$P_{ij}\f$ is the first piola-kirchhoff stress tensor. A 
-/// non-symmetric nitsche formulation is considered in this work, see for example Burman (2012) and Schillinger 
-/// et al. (2016a).
-///
-/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
-template<typename EvaluationType>
-class NitscheNonlinearThermoMechanics : public Plato::NitscheEvaluator
-{
-private:
-  /// @brief local typename for base class
-  using BaseClassType = Plato::NitscheEvaluator;
-  /// @brief list of nitsche boundary condition evaluators 
-  std::vector<std::shared_ptr<Plato::NitscheEvaluator>> mEvaluators;
-
-public:
-  /// @brief class constructor
-  /// @param [in] aParamList     input problem parameters
-  /// @param [in] aNitscheParams input parameters for nitsche's method
-  NitscheNonlinearThermoMechanics(
-    Teuchos::ParameterList & aParamList,
-    Teuchos::ParameterList & aNitscheParams
-  ) : 
-    BaseClassType(aNitscheParams)
-  {
-    // trial stress evaluator
-    //
-    mEvaluators.push_back(
-      std::make_shared<Plato::Elliptic::NitscheTrialThermalHyperElasticStressEvaluator<EvaluationType>>(
-        aParamList,aNitscheParams
-      )
-    );
-    // test stress evaluator
-    //
-    mEvaluators.push_back(
-      std::make_shared<Plato::Elliptic::NitscheTestThermalHyperElasticStressEvaluator<EvaluationType>>(
-        aParamList,aNitscheParams
-      )
-    );
-    // displacement misfit evaluator
-    //
-    mEvaluators.push_back(
-      std::make_shared<Plato::Elliptic::NitscheDispMisfitEvaluator<EvaluationType>>(
-        aParamList,aNitscheParams
-      )
-    );
-  }
-
-  /// @fn evaluate
-  /// @brief evaluate nitsche's integral for all side set cells
-  /// @param [in]     aSpatialModel contains mesh and model information
-  /// @param [in,out] aWorkSets     domain and range workset database
-  /// @param [in]     aCycle        scalar
-  /// @param [in]     aScale        scalar
-  void 
-  evaluate(
-    const Plato::SpatialModel & aSpatialModel,
-    const Plato::WorkSets     & aWorkSets,
-          Plato::Scalar         aCycle = 0.0,
-          Plato::Scalar         aScale = 1.0
-  )
-  {
-    if(mEvaluators.empty()){
-      ANALYZE_THROWERR( std::string("ERROR: Found an empty list of Nitsche evaluators, weak Dirichlet boundary " )
-        + "conditions cannot be enforced" )
-    }
-    for(auto& tEvaluator : mEvaluators){
-      tEvaluator->evaluate(aSpatialModel,aWorkSets,aCycle,aScale);
-    }
-  }
-};
-
-/// @class FactoryNitscheEvaluator
-/// @brief creates evaluator used to weakly enforce dirichlet boundary conditions via nitsche's method
-/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
-template<typename EvaluationType>
-class FactoryNitscheEvaluator
-{
-public:
-  /// @fn create
-  /// @brief create nitsche integral evaluator
-  /// @param [in] aParamList     input problem parameters
-  /// @param [in] aNitscheParams input parameters for nitsche's method
-  /// @return standard shared pointer
-  std::shared_ptr<Plato::NitscheEvaluator>
-  create(
-    Teuchos::ParameterList & aParamList,
-    Teuchos::ParameterList & aNitscheParams
-  )
-  {
-    if( !aParamList.isParameter("Physics") ){
-      ANALYZE_THROWERR("ERROR: Argument ('Physics') is not defined, nitsche's evaluator cannot be created")
-    }
-    Plato::PhysicsEnum tS2E;
-    auto tResponse = aParamList.get<std::string>("Response","Linear");
-    auto tResponseEnum = tS2E.response(tResponse);
-    switch (tResponseEnum)
-    {
-    case Plato::response_t::LINEAR:
-      return ( this->createLinearNitscheEvaluator(aParamList,aNitscheParams) );
-      break;
-    case Plato::response_t::NONLINEAR:
-      return ( this->createNonlinearNitscheEvaluator(aParamList,aNitscheParams) );
-      break;
-    default:
-      ANALYZE_THROWERR(std::string("ERROR: Response '") + tResponse 
-        + "' does not support weak enforcement of Dirichlet boundary conditions")
-      break;
-    }
-  }
-
-private:
-  /// @fn createLinearNitscheEvaluator
-  /// @brief create nitsche integral evaluator for linear elliptic problems
-  /// @param [in] aParamList     input problem parameters
-  /// @param [in] aNitscheParams input parameters for nitsche's method
-  /// @return standard shared pointer
-  std::shared_ptr<Plato::NitscheEvaluator>
-  createLinearNitscheEvaluator(
-    Teuchos::ParameterList & aParamList,
-    Teuchos::ParameterList & aNitscheParams
-  )
-  {
-    if( !aParamList.isParameter("Physics") ){
-      ANALYZE_THROWERR("ERROR: Argument ('Physics') is not defined, nitsche's evaluator cannot be created")
-    }
-    Plato::PhysicsEnum tS2E;
-    auto tPhysics = aParamList.get<std::string>("Physics");
-    auto tPhysicsEnum = tS2E.physics(tPhysics);
-    switch (tPhysicsEnum)
-    {
-    case Plato::physics_t::THERMAL:
-      return ( std::make_shared<Plato::Elliptic::NitscheLinearThermoStatics<EvaluationType>>(
-        aParamList,aNitscheParams) 
-      );
-      break;
-    case Plato::physics_t::MECHANICAL:
-      return ( std::make_shared<Plato::Elliptic::NitscheLinearMechanics<EvaluationType>>(
-        aParamList,aNitscheParams) 
-      );
-      break;
-    default:
-      ANALYZE_THROWERR(std::string("ERROR: Physics '") + tPhysics 
-        + "' does not support weak enforcement of Dirichlet boundary conditions")
-      break;
-    }
-  }
-
-  /// @fn createNonlinearNitscheEvaluator
-  /// @brief create nitsche integral evaluator for nonlinear elliptic problems
-  /// @param [in] aParamList     input problem parameters
-  /// @param [in] aNitscheParams input parameters for nitsche's method
-  /// @return standard shared pointer
-  std::shared_ptr<Plato::NitscheEvaluator>
-  createNonlinearNitscheEvaluator(
-    Teuchos::ParameterList & aParamList,
-    Teuchos::ParameterList & aNitscheParams
-  )
-  {
-    if( !aParamList.isParameter("Physics") ){
-      ANALYZE_THROWERR("ERROR: Argument ('Physics') is not defined, nitsche's evaluator cannot be created")
-    }
-    Plato::PhysicsEnum tS2E;
-    auto tPhysics = aParamList.get<std::string>("Physics");
-    auto tPhysicsEnum = tS2E.physics(tPhysics);
-    switch (tPhysicsEnum)
-    {
-    case Plato::physics_t::MECHANICAL:
-      return 
-      ( 
-        std::make_shared<Plato::Elliptic::NitscheNonLinearMechanics<EvaluationType>>(
-          aParamList,aNitscheParams) 
-      );
-      break;
-    case Plato::physics_t::THERMOMECHANICAL:
-      return 
-      ( 
-        std::make_shared<Plato::Elliptic::NitscheNonlinearThermoMechanics<EvaluationType>>(
-          aParamList,aNitscheParams) 
-      );
-      break;
-    default:
-      ANALYZE_THROWERR(std::string("ERROR: Physics '") + tPhysics 
-        + "' does not support weak enforcement of Dirichlet boundary conditions")
-      break;
-    }
-  }
-};
-
-/// NitscheBC
-/// @brief weak enforcement of dirichlet boundary conditions via nitsche's method
-/// @tparam EvaluationType automatic differentiation evaluation type, which sets scalar types
-template<typename EvaluationType>
-class NitscheBC : public NitscheBase
-{
-private:
-  /// @brief nitsche's integral evaluator
-  std::shared_ptr<Plato::NitscheEvaluator> mNitscheBC;
-
-public:
-  /// @brief class constructor
-  /// @param [in] aParamList     input problem parameters
-  /// @param [in] aNitscheParams input parameters for nitsche's method
-  NitscheBC(
-    Teuchos::ParameterList & aParamList,
-    Teuchos::ParameterList & aNitscheParams
-  )
-  {
-    Plato::Elliptic::FactoryNitscheEvaluator<EvaluationType> tFactory;
-    mNitscheBC = tFactory.create(aParamList,aNitscheParams);
-  }
-
-  /// @brief class destructor
-  ~NitscheBC(){}
-
-  /// @fn evaluate
-  /// @brief enforces weak dirichlet boundary conditions via nitsche's method
-  /// @param [in]     aSpatialModel contains mesh and model information
-  /// @param [in,out] aWorkSets     domain and range workset database
-  /// @param [in]     aCycle        scalar
-  /// @param [in]     aScale        scalar
-  void 
-  evaluate(
-    const Plato::SpatialModel & aSpatialModel,
-    const Plato::WorkSets     & aWorkSets,
-          Plato::Scalar         aCycle = 0.0,
-          Plato::Scalar         aScale = 1.0
-  )
-  {
-    mNitscheBC->evaluate(aSpatialModel,aWorkSets,aCycle,aScale);
-  }
-
-};
-
-} // namespace Elliptic
-
-} // namespace Plato
 
 namespace EllipticNitscheTests
 {
@@ -1115,7 +853,7 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, LinearMechanicalNitscheBC )
   tNitscheParams.set("Material Model",tOnlyDomainDefined.getMaterialName());
   // create evaluator and evaluate nitsche's stress term
   //
-  Plato::Elliptic::NitscheBC<Residual> tNitscheBC(*tParamList,tNitscheParams);
+  Plato::Elliptic::NitscheBoundaryCondition<Residual> tNitscheBC(*tParamList,tNitscheParams);
   tNitscheBC.evaluate(tSpatialModel,tWorkSets);
   // test gold values
   //
@@ -1624,7 +1362,7 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, LinearThermalNitscheBC )
   tNitscheParams.set("Material Model",tOnlyDomainDefined.getMaterialName());
   // create evaluator and evaluate nitsche's stress term
   //
-  Plato::Elliptic::NitscheBC<Residual> tNitscheBC(*tParamList,tNitscheParams);
+  Plato::Elliptic::NitscheBoundaryCondition<Residual> tNitscheBC(*tParamList,tNitscheParams);
   tNitscheBC.evaluate(tSpatialModel,tWorkSets);
   // test gold values
   //

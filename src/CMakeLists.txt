@@ -122,6 +122,8 @@ if(ELLIPTIC)
     elliptic/Problem.cpp
     elliptic/base/VectorFunction.cpp
     elliptic/base/WorksetBuilder.cpp
+    elliptic/evaluators/nitsche/FactoryNitscheEvaluator.cpp
+    elliptic/evaluators/nitsche/NitscheBoundaryCondition.cpp
     elliptic/evaluators/criterion/FactoryCriterionEvaluator.cpp
     elliptic/evaluators/criterion/CriterionEvaluatorDivision.cpp
     elliptic/evaluators/criterion/CriterionEvaluatorWeightedSum.cpp
@@ -175,6 +177,7 @@ if(ELLIPTIC)
     elliptic/thermomechanics/linear/ResidualThermoelastostatic.cpp
     elliptic/thermomechanics/linear/CriterionInternalThermoelasticEnergy.cpp
     elliptic/thermomechanics/nonlinear/ResidualThermoElastoStaticTotalLagrangian.cpp
+    elliptic/thermomechanics/nonlinear/nitsche/NitscheNonlinearThermoMechanics.cpp
     elliptic/thermomechanics/nonlinear/nitsche/NitscheTestThermalHyperElasticStressEvaluator.cpp
     elliptic/thermomechanics/nonlinear/nitsche/NitscheTrialThermalHyperElasticStressEvaluator.cpp
     elliptic/electrical/SupportedParamOptions.cpp
