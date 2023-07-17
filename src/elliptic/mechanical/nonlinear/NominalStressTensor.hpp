@@ -29,8 +29,6 @@ private:
 public:
   /// @brief class constructor
   NominalStressTensor(){}
-  /// @brief class destructor
-  ~NominalStressTensor(){}
 
   /// @fn operator()
   /// @brief compute nominal stress

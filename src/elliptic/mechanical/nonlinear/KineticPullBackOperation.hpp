@@ -29,8 +29,6 @@ private:
 public:
   /// @brief class constructor
   KineticPullBackOperation(){}
-  /// @brief class destructor
-  ~KineticPullBackOperation(){}
 
   /// @fn operator()
   /// @brief apply pull back operation to second order kinetic tensor

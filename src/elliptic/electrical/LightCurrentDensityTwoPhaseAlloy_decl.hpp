@@ -7,8 +7,6 @@
 #pragma once
 
 /// @include analyze includes
-#include "Plato_TopOptFunctors.hpp"
-
 #include "materials/MaterialModel.hpp"
 #include "elliptic/EvaluationTypes.hpp"
 #include "elliptic/electrical/CurrentDensitySourceEvaluator.hpp"
@@ -90,59 +88,6 @@ public:
 
   /// @fn evaluate
   /// @brief evaluate light-generated current density
-  /// @param [in]     aSpatialDomain  contains meshed model information
-  /// @param [in]     aCurrentDensity 2D current density workset
-  /// @param [in]     aState          2D state workset
-  /// @param [in]     aControl        2D control workset
-  /// @param [in]     aConfig         3D configuration workset
-  /// @param [in,out] aResult         2D result workset
-  /// @param [in]     aScale          scalar
-  template<typename CurrentDensityType>
-  void evaluate(
-      const Plato::SpatialDomain                          & aSpatialDomain,
-      const Plato::ScalarMultiVectorT<CurrentDensityType> & aCurrentDensity,
-      const Plato::ScalarMultiVectorT<StateScalarType>    & aState,
-      const Plato::ScalarMultiVectorT<ControlScalarType>  & aControl,
-      const Plato::ScalarArray3DT<ConfigScalarType>       & aConfig,
-      const Plato::ScalarMultiVectorT<ResultScalarType>   & aResult,
-      const Plato::Scalar                                 & aScale
-  ) const
-  {
-    // integration rule
-    auto tCubPoints  = ElementType::getCubPoints();
-    auto tCubWeights = ElementType::getCubWeights();
-    // out-of-plane thicknesses
-    Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
-    Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
-    // evaluate light-generated current density
-    Plato::OrdinalType tNumCells = aSpatialDomain.numCells();
-    Kokkos::parallel_for("light-generated current density", 
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, mNumGaussPoints}),
-      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
-    {
-        auto tCubPoint = tCubPoints(iGpOrdinal);
-        auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal));
-        auto tBasisValues = ElementType::basisValues(tCubPoint);
-        // material interpolation
-        ControlScalarType tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
-        ControlScalarType tMaterialFraction = static_cast<Plato::Scalar>(1.0) - tDensity;
-        ControlScalarType tMaterialPenalty = pow(tMaterialFraction, mPenaltyExponent);
-        // out-of-plane thickness interpolation
-        ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
-        ControlScalarType tThicknessInterpolation = tThicknessTwo + 
-          ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
-        auto tWeight = aScale * tCubWeights(iGpOrdinal) * tDetJ;
-        for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
-        {
-          ResultScalarType tCellResult = ( tBasisValues(tFieldOrdinal) * 
-            (tMaterialPenalty * aCurrentDensity(iCellOrdinal,iGpOrdinal)) * tWeight ) / tThicknessInterpolation; 
-          Kokkos::atomic_add( &aResult(iCellOrdinal,tFieldOrdinal*mNumDofsPerNode),tCellResult );
-        }
-    });
-  }
-
-  /// @fn evaluate
-  /// @brief evaluate light-generated current density
   /// @param [in]     aState   2D state workset
   /// @param [in]     aControl 2D control workset
   /// @param [in]     aConfig  3D configuration workset
@@ -156,53 +101,6 @@ public:
       const Plato::ScalarMultiVectorT<ResultScalarType>  & aResult,
       const Plato::Scalar                                & aScale
   ) const;
-
-  /// @fn evaluate
-  /// @brief evaluate light-generated current density
-  /// @param [in]     aCurrentDensity 2D current density workset
-  /// @param [in]     aState          2D state workset
-  /// @param [in]     aControl        2D control workset
-  /// @param [in]     aConfig         3D configuration workset
-  /// @param [in,out] aResult         2D result workset
-  /// @param [in]     aScale          scalar
-  template<typename CurrentDensityType>
-  void evaluate(
-      const Plato::ScalarMultiVectorT<CurrentDensityType> & aCurrentDensity,
-      const Plato::ScalarMultiVectorT<StateScalarType>    & aState,
-      const Plato::ScalarMultiVectorT<ControlScalarType>  & aControl,
-      const Plato::ScalarArray3DT<ConfigScalarType>       & aConfig,
-      const Plato::ScalarMultiVectorT<ResultScalarType>   & aResult,
-      const Plato::Scalar                                 & aScale
-  ) const
-  {
-    // integration rule
-    auto tCubPoints  = ElementType::getCubPoints();
-    auto tCubWeights = ElementType::getCubWeights();
-    // out-of-plane thicknesses
-    Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
-    Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
-    // evaluate light-generated current density
-    Plato::OrdinalType tNumCells = aResult.extent(0);
-    Kokkos::parallel_for("light-generated current density", 
-      Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, mNumGaussPoints}),
-      KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
-    {
-      auto tCubPoint = tCubPoints(iGpOrdinal);
-      auto tBasisValues = ElementType::basisValues(tCubPoint);
-      // material interpolation
-      ControlScalarType tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
-      ControlScalarType tMaterialFraction = static_cast<Plato::Scalar>(1.0) - tDensity;
-      ControlScalarType tMaterialPenalty = pow(tMaterialFraction, mPenaltyExponent);
-      // out-of-plane thickness interpolation
-      ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
-      ControlScalarType tThicknessInterpolation = tThicknessTwo + 
-        ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
-      // compute penalized current density at gauss points
-      ResultScalarType tCellResult = 
-      aResult(iCellOrdinal,iGpOrdinal) = ( aScale * tMaterialPenalty * 
-        aCurrentDensity(iCellOrdinal,iGpOrdinal) ) / tThicknessInterpolation;
-    });
-  }
 
 private:
     /// @fn initialize

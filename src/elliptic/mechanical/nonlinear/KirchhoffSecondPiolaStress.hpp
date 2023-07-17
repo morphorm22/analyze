@@ -51,9 +51,6 @@ public:
     mLambda = std::stod(aMaterial.property("lame lambda").front());
   }
 
-  /// @brief class destructor
-  ~KirchhoffSecondPiolaStress(){}
-
   /// @fn operator()()
   /// @brief Compute second Piola-Kirchhoff stress tensor
   /// @param [in]     aStrainTensor Green-Lagrange strain tensor 

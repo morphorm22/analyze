@@ -75,6 +75,7 @@ evaluateConditional(
   Plato::ScalarMultiVectorT<ResultScalarType> tCurrentDensity("current density",tNumCells,tNumPoints);
   mCurrentDensitySourceEvaluator->evaluate(tStateWS,tControlWS,tConfigWS,tCurrentDensity,1.0);
   // evaluate dark current density
+  Plato::Scalar tPenaltyExponent = mPenaltyExponent;
   Kokkos::parallel_for("power surface density", 
     Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
     KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
@@ -86,7 +87,7 @@ evaluateConditional(
     // out-of-plane thickness interpolation
     ControlScalarType tDensity =
       Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,tControlWS,tBasisValues);
-    ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
+    ControlScalarType tThicknessPenalty = pow(tDensity, tPenaltyExponent);
     ControlScalarType tThicknessInterpolation = tThicknessTwo + 
       ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
     // evaluate electric potential

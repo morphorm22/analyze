@@ -231,7 +231,7 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, StressTensor )
   //
   Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
   Plato::ComputeStrainTensor<Residual> tComputeStrainTensor;
-  Plato::ComputeIsotropicElasticStressTensor tComputeStressTensor(tMaterialModel);
+  Plato::ComputeIsotropicElasticStressTensor<Residual> tComputeStressTensor(tMaterialModel);
   // create output worksets
   //
   Plato::ScalarArray4DT<StrainScalarType> 
@@ -302,7 +302,6 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, ComputeSideCellVolumes )
   ); 
   // create mesh
   //
-  constexpr Plato::OrdinalType tSpaceDim = 2;
   constexpr Plato::OrdinalType tMeshWidth = 1;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
   // create compute strain functor
@@ -362,7 +361,6 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, ComputeSideCellFaceAreas )
   ); 
   // create mesh
   //
-  constexpr Plato::OrdinalType tSpaceDim = 2;
   constexpr Plato::OrdinalType tMeshWidth = 1;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
   // create compute strain functor
@@ -422,7 +420,6 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, ComputeCharacteristicLength )
   ); 
   // create mesh
   //
-  constexpr Plato::OrdinalType tSpaceDim = 2;
   constexpr Plato::OrdinalType tMeshWidth = 1;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
   // create compute strain functor
@@ -902,7 +899,6 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheTrialHeatFluxEvaluator )
     );
   // create mesh
   //
-  constexpr Plato::OrdinalType tSpaceDim = 2;
   constexpr Plato::OrdinalType tMeshWidth = 1;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
   // create output database and spatial model
@@ -1000,7 +996,6 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheTestHeatFluxEvaluator )
     );
   // create mesh
   //
-  constexpr Plato::OrdinalType tSpaceDim = 2;
   constexpr Plato::OrdinalType tMeshWidth = 1;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
   // create output database and spatial model
@@ -1206,7 +1201,6 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, NitscheTempMisfitEvaluator )
     );
   // create mesh
   //
-  constexpr Plato::OrdinalType tSpaceDim = 2;
   constexpr Plato::OrdinalType tMeshWidth = 1;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
   // create output database and spatial model
@@ -1309,7 +1303,6 @@ TEUCHOS_UNIT_TEST( EllipticNitscheTests, LinearThermalNitscheBC )
     );
   // create mesh
   //
-  constexpr Plato::OrdinalType tSpaceDim = 2;
   constexpr Plato::OrdinalType tMeshWidth = 1;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
   // create output database and spatial model

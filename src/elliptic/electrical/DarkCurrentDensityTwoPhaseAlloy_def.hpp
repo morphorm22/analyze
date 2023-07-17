@@ -7,6 +7,7 @@
 #pragma once
 
 #include "AnalyzeMacros.hpp"
+#include "Plato_TopOptFunctors.hpp"
 #include "elliptic/electrical/FactoryElectricalMaterial.hpp"
 
 namespace Plato
@@ -46,7 +47,35 @@ evaluate(
   Plato::ScalarMultiVectorT<StateScalarType> 
     tCurrentDensity("current density",tNumCells,mNumGaussPoints);
   mDarkCurrentDensity->evaluate(aState,tCurrentDensity);
-  this->evaluate<StateScalarType>(aSpatialDomain,tCurrentDensity,aState,aControl,aConfig,aResult,aScale);
+  // integration rule
+  auto tCubPoints  = ElementType::getCubPoints();
+  auto tCubWeights = ElementType::getCubWeights();
+  // out-of-plane thicknesses
+  Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
+  Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
+  // evaluate dark current density
+  Plato::Scalar tPenaltyExponent = mPenaltyExponent;
+  Kokkos::parallel_for("evaluate dark current density", 
+    Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, mNumGaussPoints}),
+    KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+  {
+    // get basis functions and weights for this integration point
+    auto tCubPoint = tCubPoints(iGpOrdinal);
+    auto tDetJ = Plato::determinant(ElementType::jacobian(tCubPoint, aConfig, iCellOrdinal));
+    auto tBasisValues = ElementType::basisValues(tCubPoint);
+    // out-of-plane thickness interpolation
+    ControlScalarType tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
+    ControlScalarType tThicknessPenalty = pow(tDensity, tPenaltyExponent);
+    ControlScalarType tThicknessInterpolation = tThicknessTwo + 
+      ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
+    auto tWeight = aScale * tCubWeights(iGpOrdinal) * tDetJ;
+    for (Plato::OrdinalType tFieldOrdinal = 0; tFieldOrdinal < mNumNodesPerCell; tFieldOrdinal++)
+    {
+      ResultScalarType tCellResult = ( tBasisValues(tFieldOrdinal) * 
+        tCurrentDensity(iCellOrdinal,iGpOrdinal) * tWeight ) / tThicknessInterpolation;
+      Kokkos::atomic_add( &aResult(iCellOrdinal,tFieldOrdinal), tCellResult );
+    }
+  });
 }
 
 template<typename EvaluationType>
@@ -66,7 +95,29 @@ const
   Plato::ScalarMultiVectorT<StateScalarType> 
     tCurrentDensity("current density",tNumCells,mNumGaussPoints);
   mDarkCurrentDensity->evaluate(aState,tCurrentDensity);
-  this->evaluate<StateScalarType>(tCurrentDensity,aState,aControl,aConfig,aResult,aScale);
+  // integration rule
+  auto tCubPoints  = ElementType::getCubPoints();
+  auto tCubWeights = ElementType::getCubWeights();
+  // out-of-plane thicknesses
+  Plato::Scalar tThicknessOne = mOutofPlaneThickness.front();
+  Plato::Scalar tThicknessTwo = mOutofPlaneThickness.back();
+  // evaluate dark current density
+  Plato::Scalar tPenaltyExponent = mPenaltyExponent;
+  Kokkos::parallel_for("evaluate dark current density", 
+    Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, mNumGaussPoints}),
+    KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+  {
+    // get basis functions and weights for this integration point
+    auto tCubPoint = tCubPoints(iGpOrdinal);
+    auto tBasisValues = ElementType::basisValues(tCubPoint);
+    // out-of-plane thickness interpolation
+    ControlScalarType tDensity = Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,aControl,tBasisValues);
+    ControlScalarType tThicknessPenalty = pow(tDensity, tPenaltyExponent);
+    ControlScalarType tThicknessInterpolation = tThicknessTwo + 
+      ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
+    aResult(iCellOrdinal,iGpOrdinal) = 
+      ( aScale * tCurrentDensity(iCellOrdinal,iGpOrdinal) ) / tThicknessInterpolation;
+  });
 }
 
 template<typename EvaluationType>

@@ -353,8 +353,6 @@ TEUCHOS_UNIT_TEST( ElastostaticTotalLagrangianTests, GreenLagrangeStrainTensor )
   // compute state gradient
   Plato::StateGradient<Residual> tComputeStateGradient;
   Plato::ComputeGradientMatrix<ElementType> tComputeGradient;
-  Plato::DeformationGradient<Residual> tComputeDeformationGradient;
-  Plato::RightDeformationTensor<Residual> tComputeRightDeformationTensor;
   Plato::GreenLagrangeStrainTensor<Residual> tGreenLagrangeStrainTensor;
   Kokkos::parallel_for("compute state gradient", 
     Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0}, {tNumCells,tNumPoints}),

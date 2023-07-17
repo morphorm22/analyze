@@ -63,28 +63,6 @@ public:
     virtual ~DarkCurrentDensityQuadratic(){}
 
     /// @fn evaluate
-    /// @brief evaluate cell current density model
-    /// @param [in] aCellElectricPotential cell electric potential
-    /// @return scalar value 
-    KOKKOS_INLINE_FUNCTION
-    OutputScalarType 
-    evaluate(
-        const StateScalarType & aCellElectricPotential
-    ) const
-    {
-        OutputScalarType tDarkCurrentDensity = 0.0;
-        if( aCellElectricPotential > 0.0 )
-          { tDarkCurrentDensity = mCoefA + mCoefB * exp(mCoefC * aCellElectricPotential); }
-        else 
-        if( (mPerformanceLimit < aCellElectricPotential) && (aCellElectricPotential < 0.0) )
-          { tDarkCurrentDensity = mCoefM1 * aCellElectricPotential + mCoefB1; }
-        else 
-        if( aCellElectricPotential < mPerformanceLimit )
-          { tDarkCurrentDensity = mCoefM2 * aCellElectricPotential + mCoefB2; }
-        return tDarkCurrentDensity;
-    }
-
-    /// @fn evaluate
     /// @brief implements pure virtual method, evaluates current density model
     /// @param [in] aState  2D state workset
     /// @param [in] aResult 2D output workset
@@ -93,25 +71,46 @@ public:
       const Plato::ScalarMultiVectorT <OutputScalarType>  & aResult
     ) const
     {
-        // integration rule
-        auto tCubPoints  = ElementType::getCubPoints();
-        auto tCubWeights = ElementType::getCubWeights();
-        auto tNumPoints  = tCubWeights.size();
-
-        Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
-
-        // evaluate light-generated current density
-        Plato::OrdinalType tNumCells = aState.extent(0);
-        Kokkos::parallel_for("light-generated current density", 
-          Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
-          KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
-        {
-            auto tCubPoint = tCubPoints(iGpOrdinal);
-            auto tBasisValues = ElementType::basisValues(tCubPoint);
-            // evaluate light-generated current density
-            StateScalarType tCellElectricPotential = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
-            aResult(iCellOrdinal,iGpOrdinal) = this->evaluate(tCellElectricPotential);
-        });
+      // integration rule
+      //
+      auto tCubPoints  = ElementType::getCubPoints();
+      auto tCubWeights = ElementType::getCubWeights();
+      auto tNumPoints  = tCubWeights.size();
+      Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
+      // create local copy of global member data
+      //
+      Plato::Scalar tCoefA  = mCoefA;
+      Plato::Scalar tCoefB  = mCoefB;
+      Plato::Scalar tCoefC  = mCoefC;
+      Plato::Scalar tCoefM1 = mCoefM1;
+      Plato::Scalar tCoefB1 = mCoefB1;
+      Plato::Scalar tCoefM2 = mCoefM2;
+      Plato::Scalar tCoefB2 = mCoefB2;
+      Plato::Scalar tPerformanceLimit = mPerformanceLimit;
+      // evaluate light-generated current density
+      //
+      Plato::OrdinalType tNumCells = aState.extent(0);
+      Kokkos::parallel_for("light-generated current density", 
+        Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
+        KOKKOS_LAMBDA(const Plato::OrdinalType iCellOrdinal, const Plato::OrdinalType iGpOrdinal)
+      {
+        auto tCubPoint = tCubPoints(iGpOrdinal);
+        auto tBasisValues = ElementType::basisValues(tCubPoint);
+        // interpolate electric potential 
+        StateScalarType tCellElectricPotential = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
+        // evaluate dark current density
+        OutputScalarType tDarkCurrentDensity = 0.0;
+        if( tCellElectricPotential > 0.0 )
+          { tDarkCurrentDensity = tCoefA + tCoefB * exp(tCoefC * tCellElectricPotential); }
+        else 
+        if( (tPerformanceLimit < tCellElectricPotential) && (tCellElectricPotential < 0.0) )
+          { tDarkCurrentDensity = tCoefM1 * tCellElectricPotential + tCoefB1; }
+        else 
+        if( tCellElectricPotential < tPerformanceLimit )
+          { tDarkCurrentDensity = tCoefM2 * tCellElectricPotential + tCoefB2; }
+        // set result workset
+        aResult(iCellOrdinal,iGpOrdinal) = tDarkCurrentDensity;
+      });
     }
 
 private:
@@ -145,14 +144,14 @@ private:
       Teuchos::ParameterList & aParamList
     )
     {
-        mCoefA  = aParamList.get<Plato::Scalar>("a",0.);
-        mCoefB  = aParamList.get<Plato::Scalar>("b",1.27e-6);
-        mCoefC  = aParamList.get<Plato::Scalar>("c",25.94253);
-        mCoefM1 = aParamList.get<Plato::Scalar>("m1",0.38886);
-        mCoefB1 = aParamList.get<Plato::Scalar>("b1",0.);
-        mCoefM2 = aParamList.get<Plato::Scalar>("m2",30.);
-        mCoefB2 = aParamList.get<Plato::Scalar>("b2",6.520373);
-        mPerformanceLimit = aParamList.get<Plato::Scalar>("limit",-0.22);
+      mCoefA  = aParamList.get<Plato::Scalar>("a",0.);
+      mCoefB  = aParamList.get<Plato::Scalar>("b",1.27e-6);
+      mCoefC  = aParamList.get<Plato::Scalar>("c",25.94253);
+      mCoefM1 = aParamList.get<Plato::Scalar>("m1",0.38886);
+      mCoefB1 = aParamList.get<Plato::Scalar>("b1",0.);
+      mCoefM2 = aParamList.get<Plato::Scalar>("m2",30.);
+      mCoefB2 = aParamList.get<Plato::Scalar>("b2",6.520373);
+      mPerformanceLimit = aParamList.get<Plato::Scalar>("limit",-0.22);
     }
 };
 

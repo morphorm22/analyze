@@ -65,6 +65,7 @@ evaluateConditional(
   auto tCubWeights = ElementType::getCubWeights();
   auto tNumPoints  = tCubWeights.size();
   // evaluate volume for a two-phase electrical material
+  Plato::Scalar tPenaltyExponent = mPenaltyExponent;
   auto tNumCells = mSpatialDomain.numCells();
   Kokkos::parallel_for("compute volume", 
     Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
@@ -81,7 +82,7 @@ evaluateConditional(
     auto tBasisValues = ElementType::basisValues(tCubPoint);
     ControlScalarType tDensity = 
         Plato::cell_density<mNumNodesPerCell>(iCellOrdinal,tControlWS,tBasisValues);
-    ControlScalarType tThicknessPenalty = pow(tDensity, mPenaltyExponent);
+    ControlScalarType tThicknessPenalty = pow(tDensity, tPenaltyExponent);
     ControlScalarType tThicknessInterpolation = tThicknessTwo + 
       ( ( tThicknessOne - tThicknessTwo) * tThicknessPenalty );
     // apply penalty to volume

@@ -52,9 +52,6 @@ public:
     mLambda = std::stod(aMaterial.property("lame lambda").front());
   }
 
-  /// @brief class destructor
-  ~NeoHookeanSecondPiolaStress(){}
-
   /// @fn operator()()
   /// @brief Compute second Piola-Kirchhoff stress tensor
   /// @param [in]     aDefGradient  deformation gradient  

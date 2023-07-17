@@ -123,7 +123,6 @@ Teuchos::RCP<Teuchos::ParameterList> tGenericParamList = Teuchos::getParametersF
 TEUCHOS_UNIT_TEST( ThermoelastostaticTotalLagrangianTests, ThermoElastoStaticResidual2D_Solution )
 {
   // create mesh
-  constexpr Plato::OrdinalType tSpaceDim = 2;
   constexpr Plato::OrdinalType tMeshWidth = 1;
   auto tMesh = Plato::TestHelpers::get_box_mesh("TRI3", tMeshWidth);
   // mpi wrapper

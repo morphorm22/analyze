@@ -129,10 +129,7 @@ test_partial_control(
     using ControlT = typename EvaluationType::ControlScalarType;
 
     const Plato::OrdinalType tNumCells = aMesh->NumElements();
-    constexpr Plato::OrdinalType tSpaceDim = EvaluationType::SpatialDim;
     constexpr Plato::OrdinalType tDofsPerNode = ElementType::mNumDofsPerNode;
-    constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
-    constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
 
     // Create control workset
     Plato::Database tDatabase;
@@ -254,10 +251,7 @@ test_partial_state(
     using ResultT  = typename EvaluationType::ResultScalarType;
     using ControlT = typename EvaluationType::ControlScalarType;
 
-    constexpr Plato::OrdinalType tSpaceDim = EvaluationType::SpatialDim;
     constexpr Plato::OrdinalType tDofsPerNode = ElementType::mNumDofsPerNode;
-    constexpr Plato::OrdinalType tDofsPerCell = ElementType::mNumDofsPerCell;
-    constexpr Plato::OrdinalType tNodesPerCell = ElementType::mNumNodesPerCell;
 
     // Create control workset
     Plato::Database tDatabase;

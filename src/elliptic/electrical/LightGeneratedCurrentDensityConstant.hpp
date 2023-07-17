@@ -60,20 +60,6 @@ public:
     virtual ~LightGeneratedCurrentDensityConstant(){}
 
     /// @fn evaluate
-    /// @brief evaluate cell current density model
-    /// @param [in] aCellElectricPotential cell electric potential
-    /// @return scalar value 
-    KOKKOS_INLINE_FUNCTION
-    OutputScalarType 
-    evaluate(
-        const StateScalarType & aCellElectricPotential
-    ) const
-    {
-      Plato::Scalar tOutput = mGenerationRate * mIlluminationPower;
-      return ( tOutput );
-    }
-
-    /// @fn evaluate
     /// @brief implements pure virtual method, evaluates current density model
     /// @param [in] aState  2D state workset
     /// @param [in] aResult 2D output workset
@@ -90,6 +76,9 @@ public:
         Plato::InterpolateFromNodal<ElementType,mNumDofsPerNode> tInterpolateFromNodal;
 
         // evaluate light-generated current density
+        Plato::Scalar tGenerationRate = mGenerationRate;
+        Plato::Scalar tIlluminationPower = mIlluminationPower;
+        
         Plato::OrdinalType tNumCells = aState.extent(0);
         Kokkos::parallel_for("light-generated current density", 
           Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0, 0}, {tNumCells, tNumPoints}),
@@ -99,7 +88,7 @@ public:
             auto tBasisValues = ElementType::basisValues(tCubPoint);
             // evaluate light-generated current density
             StateScalarType tCellElectricPotential = tInterpolateFromNodal(iCellOrdinal,tBasisValues,aState);
-            aResult(iCellOrdinal,iGpOrdinal) = this->evaluate(tCellElectricPotential);
+            aResult(iCellOrdinal,iGpOrdinal) = tGenerationRate * tIlluminationPower;
         });
     }
 
